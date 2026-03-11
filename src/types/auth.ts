@@ -1,6 +1,1 @@
-export interface User {
-  id: string
-  email: string
-  name: string
-  avatarUrl?: string
-}
+export type { User } from "@supabase/supabase-js"

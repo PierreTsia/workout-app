@@ -1,22 +1,32 @@
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { Link } from "react-router-dom"
 import { useTheme } from "next-themes"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
-import { drawerOpenAtom, themeAtom } from "@/store/atoms"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LogOut } from "lucide-react"
+import { authAtom, drawerOpenAtom, themeAtom } from "@/store/atoms"
+import { supabase } from "@/lib/supabase"
 
 export function SideDrawer() {
   const [open, setOpen] = useAtom(drawerOpenAtom)
-  const [, setThemeAtom] = useAtom(themeAtom)
-  const { theme, setTheme } = useTheme()
+  const [currentTheme, setThemeAtom] = useAtom(themeAtom)
+  const user = useAtomValue(authAtom)
+  const { setTheme } = useTheme()
 
   function closeDrawer() {
     setOpen(false)
   }
 
+  function handleSignOut() {
+    supabase.auth.signOut()
+    closeDrawer()
+  }
+
   function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark"
+    const next = currentTheme === "dark" ? "light" : "dark"
     setTheme(next)
     setThemeAtom(next)
   }
@@ -29,60 +39,67 @@ export function SideDrawer() {
         </SheetHeader>
 
         <div className="flex flex-col gap-2 py-4">
-          {/* User placeholder */}
           <div className="flex items-center gap-3 px-2 pb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-lg">
-              👤
-            </div>
-            <div>
-              <p className="font-medium text-foreground">Guest</p>
-              <p className="text-xs text-muted-foreground">Not signed in</p>
+            <Avatar>
+              <AvatarImage
+                src={user?.user_metadata?.avatar_url}
+                alt={user?.user_metadata?.full_name ?? ""}
+                referrerPolicy="no-referrer"
+              />
+              <AvatarFallback>👤</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-foreground">
+                {user?.user_metadata?.full_name ?? "Guest"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email ?? "Not signed in"}
+              </p>
             </div>
           </div>
 
           <Separator />
 
-          {/* Nav links */}
           <nav className="flex flex-col gap-1 py-2">
-            <Link
-              to="/history"
-              onClick={closeDrawer}
-              className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              History
-            </Link>
-            <Link
-              to="/builder"
-              onClick={closeDrawer}
-              className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              Workout Builder
-            </Link>
+            <Button variant="ghost" className="justify-start" asChild>
+              <Link to="/history" onClick={closeDrawer}>
+                History
+              </Link>
+            </Button>
+            <Button variant="ghost" className="justify-start" asChild>
+              <Link to="/builder" onClick={closeDrawer}>
+                Workout Builder
+              </Link>
+            </Button>
           </nav>
 
           <Separator />
 
-          {/* Settings */}
-          <div className="flex flex-col gap-3 py-2 px-2">
+          <div className="flex flex-col gap-3 px-2 py-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">Dark mode</span>
               <Switch
-                checked={theme === "dark"}
+                checked={currentTheme === "dark"}
                 onCheckedChange={toggleTheme}
               />
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start text-muted-foreground"
               disabled
-              className="text-left text-sm text-muted-foreground opacity-50"
             >
               Install app
-            </button>
-            <button
-              disabled
-              className="text-left text-sm text-muted-foreground opacity-50"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start text-muted-foreground"
+              onClick={handleSignOut}
             >
+              <LogOut className="h-4 w-4" />
               Sign out
-            </button>
+            </Button>
           </div>
         </div>
       </SheetContent>
