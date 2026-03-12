@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   normalizeEquipment,
-  resolveMusclGroup,
+  resolveMuscleGroup,
   extractTranslation,
   buildExerciseRecord,
   mergeWithExisting,
@@ -53,56 +53,56 @@ describe("normalizeEquipment", () => {
   })
 })
 
-describe("resolveMusclGroup", () => {
+describe("resolveMuscleGroup", () => {
   it("maps pectoralis major to Pectoraux", () => {
-    expect(resolveMusclGroup([4], 11)).toBe("Pectoraux")
+    expect(resolveMuscleGroup([4], 11)).toBe("Pectoraux")
   })
 
   it("maps biceps to Biceps", () => {
-    expect(resolveMusclGroup([1], 8)).toBe("Biceps")
+    expect(resolveMuscleGroup([1], 8)).toBe("Biceps")
   })
 
   it("maps triceps to Triceps", () => {
-    expect(resolveMusclGroup([5], 8)).toBe("Triceps")
+    expect(resolveMuscleGroup([5], 8)).toBe("Triceps")
   })
 
   it("maps lats to Dos", () => {
-    expect(resolveMusclGroup([12], 12)).toBe("Dos")
+    expect(resolveMuscleGroup([12], 12)).toBe("Dos")
   })
 
   it("maps quads to Quadriceps", () => {
-    expect(resolveMusclGroup([10], 9)).toBe("Quadriceps")
+    expect(resolveMuscleGroup([10], 9)).toBe("Quadriceps")
   })
 
   it("maps hamstrings to Ischios", () => {
-    expect(resolveMusclGroup([11], 9)).toBe("Ischios")
+    expect(resolveMuscleGroup([11], 9)).toBe("Ischios")
   })
 
   it("maps calves to Mollets", () => {
-    expect(resolveMusclGroup([7], 14)).toBe("Mollets")
-    expect(resolveMusclGroup([15], 14)).toBe("Mollets")
+    expect(resolveMuscleGroup([7], 14)).toBe("Mollets")
+    expect(resolveMuscleGroup([15], 14)).toBe("Mollets")
   })
 
   it("maps abs to Abdos", () => {
-    expect(resolveMusclGroup([6], 10)).toBe("Abdos")
+    expect(resolveMuscleGroup([6], 10)).toBe("Abdos")
   })
 
   it("maps trapezius to Trapèzes", () => {
-    expect(resolveMusclGroup([9], 13)).toBe("Trapèzes")
+    expect(resolveMuscleGroup([9], 13)).toBe("Trapèzes")
   })
 
   it("falls back to category when no muscle ID matches", () => {
-    expect(resolveMusclGroup([], 11)).toBe("Pectoraux")
-    expect(resolveMusclGroup([], 10)).toBe("Abdos")
+    expect(resolveMuscleGroup([], 11)).toBe("Pectoraux")
+    expect(resolveMuscleGroup([], 10)).toBe("Abdos")
   })
 
   it("returns null for unknown muscle and unknown category", () => {
-    expect(resolveMusclGroup([999], 999)).toBeNull()
+    expect(resolveMuscleGroup([999], 999)).toBeNull()
   })
 
   it("uses first matching muscle when multiple given", () => {
-    expect(resolveMusclGroup([4, 5], 11)).toBe("Pectoraux")
-    expect(resolveMusclGroup([5, 4], 11)).toBe("Triceps")
+    expect(resolveMuscleGroup([4, 5], 11)).toBe("Pectoraux")
+    expect(resolveMuscleGroup([5, 4], 11)).toBe("Triceps")
   })
 })
 

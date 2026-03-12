@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import { OVERRIDES, normalizeCasing } from "./fitness-dictionary.js"
 import * as fs from "node:fs"
 import * as path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -104,7 +105,8 @@ async function main() {
   console.log(`Translation fixes: ${changes.length}`)
   console.log()
 
-  const outputDir = path.join(import.meta.dirname, "output")
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+  const outputDir = path.join(__dirname, "output")
   fs.mkdirSync(outputDir, { recursive: true })
   const csvPath = path.join(outputDir, "curation-diff.csv")
   const header = "name_en,old_name_fr,new_name_fr,reason\n"

@@ -67,20 +67,22 @@ test.describe("Builder — CRUD", () => {
     const pickerDialog = page.getByRole("dialog")
     await expect(pickerDialog).toBeVisible({ timeout: 5_000 })
 
-    const exerciseOption = pickerDialog.locator("[cmdk-item]").first()
-    await expect(exerciseOption).toBeVisible({ timeout: 10_000 })
+    const allItems = pickerDialog.locator("[cmdk-item]")
+    await expect(allItems.first()).toBeVisible({ timeout: 10_000 })
+    const initialCount = await allItems.count()
 
     // --- Verify search filters the list ---
     const searchInput = pickerDialog.locator("[cmdk-input]")
     await searchInput.fill("Développé")
     const filteredItems = pickerDialog.locator("[cmdk-item]")
     const filteredCount = await filteredItems.count()
-    expect(filteredCount).toBeLessThan(23)
+    expect(filteredCount).toBeLessThan(initialCount)
     await expect(
       filteredItems.first().locator("span").last(),
     ).toContainText("Développé", { timeout: 3_000 })
     await searchInput.fill("")
 
+    const exerciseOption = allItems.first()
     const exerciseName = await exerciseOption
       .locator("span")
       .last()

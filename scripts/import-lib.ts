@@ -29,7 +29,7 @@ export function normalizeEquipment(wgerEquipmentIds: number[]): string {
   return EQUIPMENT_MAP[wgerEquipmentIds[0]] ?? "other"
 }
 
-export function resolveMusclGroup(
+export function resolveMuscleGroup(
   wgerMuscleIds: number[],
   wgerCategoryId: number,
 ): string | null {
@@ -52,7 +52,7 @@ export function buildExerciseRecord(
   frenchName: string,
   englishName: string,
 ) {
-  const muscleGroup = resolveMusclGroup(
+  const muscleGroup = resolveMuscleGroup(
     info.muscles.map((m) => m.id),
     info.category.id,
   )

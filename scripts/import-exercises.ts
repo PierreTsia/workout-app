@@ -8,6 +8,7 @@ import {
 } from "./import-lib.js"
 import * as fs from "node:fs"
 import * as path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -114,20 +115,28 @@ async function run() {
   }
 
   // 4. Check which wger IDs already exist in the database
-  const { data: existingBySource } = await supabase
+  const { data: existingBySource, error: sourceErr } = await supabase
     .from("exercises")
     .select("source")
     .not("source", "is", null)
+  if (sourceErr) {
+    console.error("Failed to fetch existing sources:", sourceErr.message)
+    process.exit(1)
+  }
   const existingSources = new Set(
-    (existingBySource ?? []).map((e: { source: string }) => e.source),
+    existingBySource.map((e: { source: string }) => e.source),
   )
 
   // 5. Fetch existing exercises by name for the mapping
-  const { data: existingExercises } = await supabase
+  const { data: existingExercises, error: nameErr } = await supabase
     .from("exercises")
     .select("id, name")
+  if (nameErr || !existingExercises) {
+    console.error("Failed to fetch existing exercises:", nameErr?.message)
+    process.exit(1)
+  }
   const existingByName = new Map<string, string>()
-  for (const ex of existingExercises ?? []) {
+  for (const ex of existingExercises) {
     existingByName.set(ex.name, ex.id)
   }
 
@@ -228,7 +237,8 @@ async function run() {
   }
 
   // 6. Write review CSV
-  const outputDir = path.join(import.meta.dirname, "output")
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+  const outputDir = path.join(__dirname, "output")
   fs.mkdirSync(outputDir, { recursive: true })
   const csvPath = path.join(outputDir, "translation-review.csv")
   const csvHeader = "wger_id,name_en,name_fr,translation_source,needs_review\n"

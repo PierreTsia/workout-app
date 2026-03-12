@@ -111,7 +111,7 @@ INSERT INTO exercises (name, muscle_group, emoji, is_system, youtube_url, instru
   ('Pec Deck bras tendus', 'Pectoraux', '🦅', true,
    'https://www.youtube.com/watch?v=iaFzPXaPLHo',
    '{"setup":["Asseyez-vous sur la machine, dos bien plaqué contre le dossier.","Saisissez les poignées bras tendus à hauteur de poitrine.","Réglez le siège pour aligner les bras avec le milieu des pectoraux."],"movement":["Rapprochez les poignées devant vous en serrant les pectoraux.","Maintenez la contraction une seconde, bras quasi tendus.","Revenez lentement sans dépasser l''alignement des épaules."],"breathing":["Expirez en fermant les bras.","Inspirez en les ouvrant."],"common_mistakes":["Décoller le dos du dossier.","Fléchir les coudes au lieu de garder les bras tendus.","Ouvrir les bras trop loin en arrière."]}',
-   'pec-deck-bras-tendus.png', 'machine', 'Pec Deck', 'wger:1904'),
+   'pec-deck-bras-tendus.png', 'machine', 'Pec Deck', NULL),
 
   -- 19. Extension triceps corde (Triceps)
   ('Extension triceps corde', 'Triceps', '💪', true,
