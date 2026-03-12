@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Trash2 } from "lucide-react"
 import type { WorkoutExercise } from "@/types/database"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { Button } from "@/components/ui/button"
 
 interface ExerciseRowProps {
@@ -11,6 +12,7 @@ interface ExerciseRowProps {
 }
 
 export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
+  const { formatWeight } = useWeightUnit()
   const {
     attributes,
     listeners,
@@ -26,7 +28,7 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const summary = `${exercise.sets}×${exercise.reps} @ ${exercise.weight}kg`
+  const summary = `${exercise.sets}×${exercise.reps} @ ${formatWeight(Number(exercise.weight))}`
 
   return (
     <div

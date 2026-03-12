@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { Button } from "@/components/ui/button"
 import { OfflineBlock } from "@/components/builder/OfflineBlock"
@@ -13,6 +14,7 @@ type BuilderView = "list" | "editor" | "detail"
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function BuilderPage() {
+  const { t } = useTranslation("builder")
   const navigate = useNavigate()
   const isOnline = useOnlineStatus()
 
@@ -54,10 +56,10 @@ export function BuilderPage() {
 
   const viewTitle =
     view === "list"
-      ? "Workout Builder"
+      ? t("workoutBuilder")
       : view === "editor"
-        ? "Edit Day"
-        : "Edit Exercise"
+        ? t("editDay")
+        : t("editExercise")
 
   if (!isOnline) {
     return (
@@ -66,7 +68,7 @@ export function BuilderPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold">Workout Builder</h1>
+          <h1 className="text-lg font-bold">{t("workoutBuilder")}</h1>
         </header>
         <OfflineBlock />
       </div>

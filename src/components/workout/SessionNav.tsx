@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useAtom } from "jotai"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ interface SessionNavProps {
 }
 
 export function SessionNav({ exercises, onFinish }: SessionNavProps) {
+  const { t } = useTranslation("workout")
   const [session, setSession] = useAtom(sessionAtom)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -69,14 +71,14 @@ export function SessionNav({ exercises, onFinish }: SessionNavProps) {
           className="flex-1"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
-          Previous
+          {t("previous")}
         </Button>
         <Button
           size="lg"
           onClick={next}
           className="flex-1"
         >
-          {isLast ? "Finish" : "Next"}
+          {isLast ? t("finish") : t("next")}
           {!isLast && <ChevronRight className="ml-1 h-4 w-4" />}
         </Button>
       </div>
@@ -84,17 +86,16 @@ export function SessionNav({ exercises, onFinish }: SessionNavProps) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Finish session?</DialogTitle>
+            <DialogTitle>{t("finishSessionTitle")}</DialogTitle>
             <DialogDescription>
-              You have {skippedCount} skipped set{skippedCount !== 1 && "s"}.
-              Finish anyway?
+              {t("skippedSets", { count: skippedCount })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
-            <Button onClick={handleConfirmFinish}>Finish</Button>
+            <Button onClick={handleConfirmFinish}>{t("finish")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

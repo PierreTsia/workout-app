@@ -1,0 +1,23 @@
+{
+  "history": "Historique",
+  "sessions": "Séances",
+  "byExercise": "Par exercice",
+  "selectExercise": "Sélectionner un exercice…",
+  "searchExercises": "Rechercher des exercices…",
+  "noExercisesFound": "Aucun exercice trouvé.",
+  "pickExercise": "Choisissez un exercice ci-dessus pour voir votre progression.",
+  "weightUnit": "Poids",
+  "oneRm": "1RM",
+  "pr": "PR",
+  "date": "Date",
+  "noData": "Pas encore de données pour cet exercice.",
+  "loadingSets": "Chargement des séries…",
+  "noSetsRecorded": "Aucune série enregistrée.",
+  "noSessions": "Aucune séance pour l'instant.",
+  "noSessionsHint": "Complétez un entraînement et il apparaîtra ici.",
+  "backToWorkout": "Retour à l'entraînement",
+  "statSessions": "Séances",
+  "statSets": "Séries",
+  "statPrs": "PRs",
+  "sets": "séries"
+}

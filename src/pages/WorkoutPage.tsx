@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useBootstrapProgram } from "@/hooks/useBootstrapProgram"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { enqueueSessionFinish } from "@/lib/syncService"
 import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
@@ -24,6 +26,8 @@ import {
 } from "@/components/ui/dialog"
 
 export function WorkoutPage() {
+  const { t } = useTranslation("workout")
+  const { toDisplay } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
@@ -36,7 +40,6 @@ export function WorkoutPage() {
   const bootstrap = useBootstrapProgram()
   const bootstrapAttempted = useRef(false)
 
-  // Auto-bootstrap a default program from system exercises on first visit
   useEffect(() => {
     if (bootstrapAttempted.current) return
     if (daysLoading) return
@@ -60,7 +63,6 @@ export function WorkoutPage() {
     return "no-session"
   }, [session.isActive, session.startedAt])
 
-  // Initialize setsData for newly loaded exercises that don't have entries yet
   useEffect(() => {
     if (exercises.length === 0) return
 
@@ -72,9 +74,12 @@ export function WorkoutPage() {
       Array<{ reps: string; weight: string; done: boolean }>
     > = {}
     for (const ex of missing) {
+      const displayWeight = String(
+        Math.round(toDisplay(Number(ex.weight)) * 10) / 10,
+      )
       newSetsData[ex.id] = Array.from({ length: ex.sets }, () => ({
         reps: ex.reps,
-        weight: ex.weight,
+        weight: displayWeight,
         done: false,
       }))
     }
@@ -82,9 +87,8 @@ export function WorkoutPage() {
       ...prev,
       setsData: { ...prev.setsData, ...newSetsData },
     }))
-  }, [exercises, session.setsData, setSession])
+  }, [exercises, session.setsData, setSession, toDisplay])
 
-  // PWA back-button trap
   const handlePopState = useCallback(() => {
     setExitDialogOpen(true)
   }, [])
@@ -172,39 +176,34 @@ export function WorkoutPage() {
     setFinished(false)
   }
 
-  // Loading state (including bootstrap in progress)
   if (daysLoading || bootstrap.isPending) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         {bootstrap.isPending && (
           <p className="text-sm text-muted-foreground">
-            Setting up your program...
+            {t("settingUp")}
           </p>
         )}
       </div>
     )
   }
 
-  // Empty state -- bootstrap failed or no system exercises
   if (!days || days.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <Dumbbell className="h-16 w-16 text-muted-foreground/50" />
-        <h2 className="text-xl font-bold">No workout program yet</h2>
+        <h2 className="text-xl font-bold">{t("noProgram")}</h2>
         <p className="text-sm text-muted-foreground">
-          {bootstrap.isError
-            ? "Could not create a default program. Try the Builder instead."
-            : "Create your first program in the Workout Builder to get started."}
+          {bootstrap.isError ? t("bootstrapError") : t("createPrompt")}
         </p>
         <Button asChild>
-          <Link to="/builder">Open Builder</Link>
+          <Link to="/builder">{t("openBuilder")}</Link>
         </Button>
       </div>
     )
   }
 
-  // Session summary view
   if (finished) {
     return (
       <SessionSummary
@@ -227,9 +226,9 @@ export function WorkoutPage() {
         </div>
       ) : exercises.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-          <p className="text-muted-foreground">No exercises for this day.</p>
+          <p className="text-muted-foreground">{t("noExercises")}</p>
           <Button variant="outline" asChild size="sm">
-            <Link to="/builder">Add exercises</Link>
+            <Link to="/builder">{t("addExercises")}</Link>
           </Button>
         </div>
       ) : (
@@ -258,7 +257,7 @@ export function WorkoutPage() {
                 onClick={startSession}
               >
                 <Play className="h-5 w-5" />
-                Start Workout
+                {t("startWorkout")}
               </Button>
             </div>
           )}
@@ -267,21 +266,20 @@ export function WorkoutPage() {
 
       <RestTimerOverlay />
 
-      {/* Exit dialog (PWA back-button) */}
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Exit app?</DialogTitle>
+            <DialogTitle>{t("exitTitle")}</DialogTitle>
             <DialogDescription>
-              Your session state is automatically saved.
+              {t("exitDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button variant="destructive" onClick={handleExit}>
-              Exit
+              {t("exit")}
             </Button>
           </DialogFooter>
         </DialogContent>

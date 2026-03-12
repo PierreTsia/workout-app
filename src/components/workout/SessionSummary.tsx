@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useAtomValue } from "jotai"
 import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 
@@ -34,6 +35,7 @@ export function SessionSummary({
   prExercises,
   onNewSession,
 }: SessionSummaryProps) {
+  const { t } = useTranslation("workout")
   const session = useAtomValue(sessionAtom)
 
   const [finishedAt] = useState(() => Date.now())
@@ -44,19 +46,19 @@ export function SessionSummary({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
       <Trophy className="h-16 w-16 text-primary" />
-      <h2 className="text-2xl font-bold">Session Complete!</h2>
+      <h2 className="text-2xl font-bold">{t("sessionComplete")}</h2>
 
       <div className="grid w-full max-w-xs grid-cols-2 gap-4">
         <div className="flex flex-col items-center gap-1 rounded-xl bg-card p-4">
           <Clock className="h-5 w-5 text-muted-foreground" />
           <span className="text-lg font-bold">{duration}</span>
-          <span className="text-xs text-muted-foreground">Duration</span>
+          <span className="text-xs text-muted-foreground">{t("duration")}</span>
         </div>
 
         <div className="flex flex-col items-center gap-1 rounded-xl bg-card p-4">
           <Dumbbell className="h-5 w-5 text-muted-foreground" />
           <span className="text-lg font-bold">{setsDone}</span>
-          <span className="text-xs text-muted-foreground">Sets done</span>
+          <span className="text-xs text-muted-foreground">{t("setsDone")}</span>
         </div>
 
         <div className="col-span-2 flex flex-col items-center gap-1 rounded-xl bg-card p-4">
@@ -64,7 +66,7 @@ export function SessionSummary({
             {exercisesCompleted} / {totalExercises}
           </span>
           <span className="text-xs text-muted-foreground">
-            Exercises completed
+            {t("exercisesCompleted")}
           </span>
         </div>
       </div>
@@ -74,8 +76,7 @@ export function SessionSummary({
           <div className="mb-3 flex items-center justify-center gap-2">
             <Flame className="h-5 w-5 text-yellow-500" />
             <span className="text-sm font-semibold">
-              {prExercises.length} Personal{" "}
-              {prExercises.length === 1 ? "Record" : "Records"}
+              {t("prCount", { count: prExercises.length })}
             </span>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
@@ -94,7 +95,7 @@ export function SessionSummary({
 
       <Button size="lg" onClick={onNewSession} className="mt-4 gap-2">
         <RotateCcw className="h-4 w-4" />
-        New Session
+        {t("newSession")}
       </Button>
     </div>
   )

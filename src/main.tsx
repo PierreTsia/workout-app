@@ -1,3 +1,4 @@
+import "@/lib/i18n"
 import "@/styles/globals.css"
 import "@/lib/supabase"
 

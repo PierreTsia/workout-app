@@ -1,0 +1,23 @@
+{
+  "history": "History",
+  "sessions": "Sessions",
+  "byExercise": "By Exercise",
+  "selectExercise": "Select an exercise…",
+  "searchExercises": "Search exercises…",
+  "noExercisesFound": "No exercises found.",
+  "pickExercise": "Pick an exercise above to see your progression.",
+  "weightUnit": "Weight",
+  "oneRm": "1RM",
+  "pr": "PR",
+  "date": "Date",
+  "noData": "No data for this exercise yet.",
+  "loadingSets": "Loading sets…",
+  "noSetsRecorded": "No sets recorded.",
+  "noSessions": "No sessions yet.",
+  "noSessionsHint": "Complete a workout and it will show up here.",
+  "backToWorkout": "Back to workout",
+  "statSessions": "Sessions",
+  "statSets": "Sets",
+  "statPrs": "PRs",
+  "sets": "sets"
+}

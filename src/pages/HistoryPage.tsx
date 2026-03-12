@@ -1,12 +1,14 @@
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatsDashboard } from "@/components/history/StatsDashboard"
 import { SessionList } from "@/components/history/SessionList"
 import { ExerciseTab } from "@/components/history/ExerciseTab"
 
 export function HistoryPage() {
+  const { t } = useTranslation("history")
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -26,11 +28,11 @@ export function HistoryPage() {
         <button
           onClick={() => navigate("/")}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Back to workout"
+          aria-label={t("backToWorkout")}
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-bold">History</h1>
+        <h1 className="text-xl font-bold">{t("history")}</h1>
       </div>
 
       <StatsDashboard />
@@ -38,10 +40,10 @@ export function HistoryPage() {
       <Tabs defaultValue="sessions">
         <TabsList className="w-full">
           <TabsTrigger value="sessions" className="flex-1">
-            Sessions
+            {t("sessions")}
           </TabsTrigger>
           <TabsTrigger value="by-exercise" className="flex-1">
-            By Exercise
+            {t("byExercise")}
           </TabsTrigger>
         </TabsList>
 

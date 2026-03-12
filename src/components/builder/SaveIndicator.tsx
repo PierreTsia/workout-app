@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Check, AlertTriangle } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
@@ -9,6 +10,7 @@ interface SaveIndicatorProps {
 }
 
 export function SaveIndicator({ status }: SaveIndicatorProps) {
+  const { t } = useTranslation("builder")
   const [hidden, setHidden] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const statusRef = useRef(status)
@@ -44,13 +46,13 @@ export function SaveIndicator({ status }: SaveIndicatorProps) {
       {status === "saved" && (
         <>
           <Check className="h-3.5 w-3.5" />
-          Saved
+          {t("saved")}
         </>
       )}
       {status === "error" && (
         <>
           <AlertTriangle className="h-3.5 w-3.5" />
-          Syncing failed
+          {t("syncFailed")}
         </>
       )}
     </span>

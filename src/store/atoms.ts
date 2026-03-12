@@ -53,4 +53,8 @@ export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
   { dismissed: false },
 )
 
+export const localeAtom = atomWithStorage<"en" | "fr">("locale", "fr")
+
+export const weightUnitAtom = atomWithStorage<"kg" | "lbs">("weightUnit", "kg")
+
 export const drawerOpenAtom = atom(false)

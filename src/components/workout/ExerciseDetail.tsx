@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { useLastSession } from "@/hooks/useLastSession"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { WorkoutExercise } from "@/types/database"
 import { SetsTable } from "./SetsTable"
 
@@ -9,6 +11,8 @@ interface ExerciseDetailProps {
 }
 
 export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
+  const { t } = useTranslation("workout")
+  const { formatWeight } = useWeightUnit()
   const { data: lastSession } = useLastSession(exercise.exercise_id)
 
   return (
@@ -23,8 +27,11 @@ export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
         </Badge>
         {lastSession && (
           <p className="text-sm text-muted-foreground">
-            Last time: {lastSession.sets} &times; {lastSession.reps} @{" "}
-            {lastSession.weight} kg
+            {t("lastTime", {
+              sets: lastSession.sets,
+              reps: lastSession.reps,
+              weight: formatWeight(lastSession.weight),
+            })}
           </p>
         )}
       </div>

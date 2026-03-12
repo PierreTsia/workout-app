@@ -1,4 +1,5 @@
 import { Dumbbell, Flame, Trophy } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent } from "@/components/ui/card"
 import { useStatsAggregates } from "@/hooks/useStatsAggregates"
 
@@ -25,6 +26,7 @@ function StatItem({
 }
 
 export function StatsDashboard() {
+  const { t } = useTranslation("history")
   const { data, isLoading } = useStatsAggregates()
 
   return (
@@ -32,19 +34,19 @@ export function StatsDashboard() {
       <CardContent className="grid grid-cols-3 gap-4 py-5">
         <StatItem
           icon={<Flame className="h-5 w-5" />}
-          label="Sessions"
+          label={t("statSessions")}
           value={data?.totalSessions ?? 0}
           loading={isLoading}
         />
         <StatItem
           icon={<Dumbbell className="h-5 w-5" />}
-          label="Sets"
+          label={t("statSets")}
           value={data?.totalSets ?? 0}
           loading={isLoading}
         />
         <StatItem
           icon={<Trophy className="h-5 w-5" />}
-          label="PRs"
+          label={t("statPrs")}
           value={data?.totalPRs ?? 0}
           loading={isLoading}
         />

@@ -14,6 +14,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable"
 import { Loader2, Plus } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import {
@@ -46,6 +47,7 @@ export function DayEditor({
   onSelectExercise,
   onMutationStateChange,
 }: DayEditorProps) {
+  const { t } = useTranslation("builder")
   const { data: days } = useWorkoutDays()
   const { data: exercises, isLoading } = useWorkoutExercises(dayId)
   const updateDay = useUpdateDay()
@@ -148,7 +150,7 @@ export function DayEditor({
       <Input
         value={label}
         onChange={(e) => handleLabelChange(e.target.value)}
-        placeholder="Day name"
+        placeholder={t("dayName")}
         className="text-lg font-semibold"
       />
 
@@ -176,7 +178,7 @@ export function DayEditor({
 
       {items.length === 0 && (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          No exercises yet. Add one from the library below.
+          {t("noExercises")}
         </p>
       )}
 
@@ -186,7 +188,7 @@ export function DayEditor({
         onClick={() => setPickerOpen(true)}
       >
         <Plus className="h-4 w-4" />
-        Add Exercise
+        {t("addExercise")}
       </Button>
 
       <ExerciseLibraryPicker
@@ -203,14 +205,16 @@ export function DayEditor({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove exercise?</DialogTitle>
+            <DialogTitle>{t("removeExerciseTitle")}</DialogTitle>
             <DialogDescription>
-              "{deleteTarget?.name_snapshot}" will be removed from this day.
+              {t("removeExerciseDescription", {
+                name: deleteTarget?.name_snapshot,
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -220,7 +224,7 @@ export function DayEditor({
               {deleteExercise.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Remove"
+                t("remove")
               )}
             </Button>
           </DialogFooter>

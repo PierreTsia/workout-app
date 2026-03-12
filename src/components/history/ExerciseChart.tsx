@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { Trophy } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartTooltip,
@@ -17,37 +18,40 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useExerciseTrend } from "@/hooks/useExerciseTrend"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
-
-const chartConfig = {
-  weight: {
-    label: "Weight (kg)",
-    color: "hsl(var(--primary))",
-  },
-  reps: {
-    label: "Reps",
-    color: "hsl(var(--muted-foreground))",
-  },
-} satisfies ChartConfig
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  })
-}
+import { formatDate } from "@/lib/formatters"
 
 export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
+  const { t, i18n } = useTranslation("history")
+  const { formatWeight, toDisplay, unit } = useWeightUnit()
   const { data: logs, isLoading } = useExerciseTrend(exerciseId)
+
+  const chartConfig = useMemo<ChartConfig>(
+    () => ({
+      weight: {
+        label: `${t("weightUnit")} (${unit})`,
+        color: "hsl(var(--primary))",
+      },
+      reps: {
+        label: t("history:reps", { defaultValue: "Reps" }),
+        color: "hsl(var(--muted-foreground))",
+      },
+    }),
+    [t, unit],
+  )
 
   const chartData = useMemo(() => {
     if (!logs) return []
     return logs.map((log) => ({
-      date: formatDate(log.logged_at),
-      weight: Number(log.weight_logged),
+      date: formatDate(log.logged_at, i18n.language, {
+        month: "short",
+        day: "numeric",
+      }),
+      weight: Math.round(toDisplay(Number(log.weight_logged)) * 10) / 10,
       reps: parseInt(log.reps_logged, 10) || 0,
     }))
-  }, [logs])
+  }, [logs, i18n.language, toDisplay])
 
   const tableRows = useMemo(() => {
     if (!logs) return []
@@ -60,14 +64,17 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
           : computeEpley1RM(w, r)
       return {
         id: log.id,
-        date: formatDate(log.logged_at),
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
         reps: log.reps_logged,
-        weight: w,
+        weightKg: w,
         e1rm: Math.round(e1rm),
         wasPr: log.was_pr,
       }
     })
-  }, [logs])
+  }, [logs, i18n.language])
 
   if (isLoading) {
     return <div className="h-52 animate-pulse rounded-lg bg-muted/40" />
@@ -76,7 +83,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   if (!logs || logs.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No data for this exercise yet.
+        {t("noData")}
       </p>
     )
   }
@@ -131,10 +138,10 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
       <Table className="text-xs">
         <TableHeader>
           <TableRow>
-            <TableHead className="h-8 px-2">Date</TableHead>
-            <TableHead className="h-8 px-2">Reps</TableHead>
-            <TableHead className="h-8 px-2">Weight</TableHead>
-            <TableHead className="h-8 px-2">1RM</TableHead>
+            <TableHead className="h-8 px-2">{t("date")}</TableHead>
+            <TableHead className="h-8 px-2">{t("workout:reps", { defaultValue: "Reps" })}</TableHead>
+            <TableHead className="h-8 px-2">{t("weightUnit")}</TableHead>
+            <TableHead className="h-8 px-2">{t("oneRm")}</TableHead>
             <TableHead className="h-8 w-12 px-2" />
           </TableRow>
         </TableHeader>
@@ -143,7 +150,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             <TableRow key={row.id}>
               <TableCell className="px-2 py-1.5">{row.date}</TableCell>
               <TableCell className="px-2 py-1.5 tabular-nums">{row.reps}</TableCell>
-              <TableCell className="px-2 py-1.5 tabular-nums">{row.weight}kg</TableCell>
+              <TableCell className="px-2 py-1.5 tabular-nums">{formatWeight(row.weightKg)}</TableCell>
               <TableCell className="px-2 py-1.5 tabular-nums">
                 {row.e1rm > 0 ? row.e1rm : "–"}
               </TableCell>
@@ -151,7 +158,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
                 {row.wasPr && (
                   <Badge variant="secondary" className="h-5 gap-0.5 px-1.5 text-[10px]">
                     <Trophy className="h-3 w-3" />
-                    PR
+                    {t("pr")}
                   </Badge>
                 )}
               </TableCell>

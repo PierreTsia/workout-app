@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Loader2, Plus, Trash2, GripVertical, Dumbbell } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import {
@@ -40,6 +41,7 @@ interface DayListProps {
 }
 
 export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
+  const { t } = useTranslation("builder")
   const { data: days, isLoading } = useWorkoutDays()
   const createDay = useCreateDay()
   const deleteDay = useDeleteDay()
@@ -122,7 +124,7 @@ export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
         <div className="flex flex-col items-center gap-2 py-12 text-center">
           <Dumbbell className="h-12 w-12 text-muted-foreground/40" />
           <p className="text-sm text-muted-foreground">
-            No workout days yet. Create your first one!
+            {t("noDays")}
           </p>
         </div>
       )}
@@ -162,7 +164,7 @@ export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
         ) : (
           <Plus className="h-4 w-4" />
         )}
-        New Day
+        {t("newDay")}
       </Button>
 
       <Dialog
@@ -171,15 +173,14 @@ export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete workout day?</DialogTitle>
+            <DialogTitle>{t("deleteDayTitle")}</DialogTitle>
             <DialogDescription>
-              "{deleteTarget?.label}" and all its exercises will be permanently
-              removed.
+              {t("deleteDayDescription", { label: deleteTarget?.label })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t("common:cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -189,7 +190,7 @@ export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
               {deleteDay.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Delete"
+                t("common:delete")
               )}
             </Button>
           </DialogFooter>
@@ -212,6 +213,7 @@ function DayCard({
   onTap: () => void
   onDelete: () => void
 }) {
+  const { t } = useTranslation("builder")
   const { data: exercises } = useWorkoutExercises(dayId)
   const count = exercises?.length ?? 0
 
@@ -250,7 +252,7 @@ function DayCard({
         <div className="flex-1">
           <p className="font-semibold">{label}</p>
           <p className="text-xs text-muted-foreground">
-            {count} exercise{count !== 1 ? "s" : ""}
+            {t("exerciseCount", { count })}
           </p>
         </div>
         <Button

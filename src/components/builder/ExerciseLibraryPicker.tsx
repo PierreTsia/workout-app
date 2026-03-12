@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import { useAddExerciseToDay } from "@/hooks/useBuilderMutations"
 import type { Exercise } from "@/types/database"
@@ -32,6 +33,7 @@ export function ExerciseLibraryPicker({
   existingExerciseCount,
   onMutationStateChange,
 }: ExerciseLibraryPickerProps) {
+  const { t } = useTranslation("builder")
   const { data: exercises, isLoading } = useExerciseLibrary()
   const addExercise = useAddExerciseToDay()
 
@@ -60,11 +62,11 @@ export function ExerciseLibraryPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[80vh] flex-col gap-0 p-0">
         <DialogHeader className="px-4 pt-4">
-          <DialogTitle>Add Exercise</DialogTitle>
+          <DialogTitle>{t("addExercise")}</DialogTitle>
         </DialogHeader>
 
         <Command className="flex-1">
-          <CommandInput placeholder="Search exercises..." />
+          <CommandInput placeholder={t("searchExercises")} />
           <CommandList className="max-h-[60vh]">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -72,7 +74,7 @@ export function ExerciseLibraryPicker({
               </div>
             ) : (
               <>
-                <CommandEmpty>No exercises found.</CommandEmpty>
+                <CommandEmpty>{t("noExercisesFound")}</CommandEmpty>
                 {grouped &&
                   Object.entries(grouped).map(([muscle, exList]) => (
                     <CommandGroup key={muscle} heading={muscle}>

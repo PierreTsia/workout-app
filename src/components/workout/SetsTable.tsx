@@ -1,9 +1,11 @@
 import { useAtom, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
 import { computeEpley1RM } from "@/lib/epley"
 import { useBest1RM } from "@/hooks/useBest1RM"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -16,6 +18,8 @@ interface SetsTableProps {
 }
 
 export function SetsTable({ exercise, sessionId }: SetsTableProps) {
+  const { t } = useTranslation("workout")
+  const { unit, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const setRest = useSetAtom(restAtom)
   const setPrFlags = useSetAtom(prFlagsAtom)
@@ -48,9 +52,10 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
       const delta = wasDone ? -1 : 1
 
       if (!wasDone) {
-        const weight = Number(exerciseSets[setIdx].weight) || 0
+        const displayWeight = Number(exerciseSets[setIdx].weight) || 0
+        const weightKg = toKg(displayWeight)
         const reps = parseInt(exerciseSets[setIdx].reps, 10)
-        const estimatedOneRM = computeEpley1RM(weight, reps)
+        const estimatedOneRM = computeEpley1RM(weightKg, reps)
 
         const runningBest = Math.max(
           historicalBest,
@@ -81,7 +86,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
           exerciseNameSnapshot: exercise.name_snapshot,
           setNumber: setIdx + 1,
           repsLogged: exerciseSets[setIdx].reps,
-          weightLogged: weight,
+          weightLogged: weightKg,
           estimatedOneRM,
           wasPr,
           loggedAt: Date.now(),
@@ -130,10 +135,10 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
   return (
     <div className="space-y-1">
       <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
-        <span className="text-center">#</span>
-        <span>Reps</span>
-        <span>Kg</span>
-        <span className="text-center">✓</span>
+        <span className="text-center">{t("setNumber")}</span>
+        <span>{t("reps")}</span>
+        <span className="capitalize">{unit}</span>
+        <span className="text-center">{t("done")}</span>
       </div>
 
       {rows.map((set, idx) => (
@@ -183,19 +188,19 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
             ;(e.currentTarget as HTMLButtonElement).blur()
           }}
           disabled={rows.length <= 1}
-          aria-label="Remove last set"
+          aria-label={t("removeLastSet")}
         >
           <Minus className="h-4 w-4" />
         </Button>
         <span className="text-xs tabular-nums text-muted-foreground">
-          {rows.length} {rows.length === 1 ? "set" : "sets"}
+          {t("setCount", { count: rows.length })}
         </span>
         <Button
           variant="ghost"
           size="icon"
           className="h-8 w-8 text-muted-foreground"
           onClick={addSet}
-          aria-label="Add set"
+          aria-label={t("addSet")}
         >
           <Plus className="h-4 w-4" />
         </Button>

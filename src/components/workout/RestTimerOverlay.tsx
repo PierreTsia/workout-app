@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useAtom } from "jotai"
+import { useTranslation } from "react-i18next"
 import { restAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 
@@ -13,6 +14,7 @@ function formatSeconds(s: number): string {
 }
 
 export function RestTimerOverlay() {
+  const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)
   const [remaining, setRemaining] = useState(0)
   const hasNotifiedRef = useRef(false)
@@ -35,7 +37,7 @@ export function RestTimerOverlay() {
           navigator.vibrate([200, 100, 200])
         }
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          new Notification("Rest over!", { body: "Time for your next set" })
+          new Notification(t("restOverNotif"), { body: t("restOverBody") })
         }
 
         setTimeout(() => setRest(null), 1200)
@@ -45,7 +47,7 @@ export function RestTimerOverlay() {
     tick()
     const id = setInterval(tick, 250)
     return () => clearInterval(id)
-  }, [rest, setRest])
+  }, [rest, setRest, t])
 
   if (!rest) return null
 
@@ -57,7 +59,7 @@ export function RestTimerOverlay() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-background/95 backdrop-blur-sm">
       <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
-        Rest
+        {t("rest")}
       </p>
 
       <div className="relative flex items-center justify-center">
@@ -94,7 +96,7 @@ export function RestTimerOverlay() {
         onClick={() => setRest(null)}
         className="min-w-[140px]"
       >
-        Skip
+        {t("skip")}
       </Button>
     </div>
   )

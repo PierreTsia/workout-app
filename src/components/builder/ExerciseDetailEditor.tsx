@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { Input } from "@/components/ui/input"
 
 interface ExerciseDetailEditorProps {
@@ -21,6 +23,8 @@ export function ExerciseDetailEditor({
   exerciseId,
   onMutationStateChange,
 }: ExerciseDetailEditorProps) {
+  const { t } = useTranslation("builder")
+  const { unit, toDisplay, toKg } = useWeightUnit()
   const { data: exercises } = useWorkoutExercises(dayId)
   const updateExercise = useUpdateExercise()
   const exercise = exercises?.find((e) => e.id === exerciseId)
@@ -34,14 +38,15 @@ export function ExerciseDetailEditor({
 
   useEffect(() => {
     if (exercise) {
+      const displayWeight = Math.round(toDisplay(Number(exercise.weight)) * 10) / 10
       setForm({
         sets: String(exercise.sets),
         reps: exercise.reps,
-        weight: exercise.weight,
+        weight: String(displayWeight),
         rest_seconds: String(exercise.rest_seconds),
       })
     }
-  }, [exercise])
+  }, [exercise, toDisplay])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -51,6 +56,7 @@ export function ExerciseDetailEditor({
       debounceRef.current = setTimeout(() => {
         const sets = parseInt(updated.sets, 10)
         const restSeconds = parseInt(updated.rest_seconds, 10)
+        const weightKg = toKg(Number(updated.weight) || 0)
         onMutationStateChange("saving")
         updateExercise.mutate(
           {
@@ -58,7 +64,7 @@ export function ExerciseDetailEditor({
             dayId,
             sets: isNaN(sets) ? undefined : sets,
             reps: updated.reps || undefined,
-            weight: updated.weight || undefined,
+            weight: updated.weight ? String(Math.round(weightKg * 10) / 10) : undefined,
             rest_seconds: isNaN(restSeconds) ? undefined : restSeconds,
           },
           {
@@ -68,7 +74,7 @@ export function ExerciseDetailEditor({
         )
       }, 500)
     },
-    [exerciseId, dayId, updateExercise, onMutationStateChange],
+    [exerciseId, dayId, updateExercise, onMutationStateChange, toKg],
   )
 
   useEffect(() => {
@@ -96,7 +102,7 @@ export function ExerciseDetailEditor({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FieldGroup label="Sets">
+        <FieldGroup label={t("sets")}>
           <Input
             type="number"
             inputMode="numeric"
@@ -106,23 +112,23 @@ export function ExerciseDetailEditor({
           />
         </FieldGroup>
 
-        <FieldGroup label="Reps">
+        <FieldGroup label={t("reps")}>
           <Input
             value={form.reps}
             onChange={(e) => handleChange("reps", e.target.value)}
-            placeholder="e.g. 8-12"
+            placeholder={t("placeholderReps")}
           />
         </FieldGroup>
 
-        <FieldGroup label="Weight (kg)">
+        <FieldGroup label={t("weightLabel", { unit })}>
           <Input
             value={form.weight}
             onChange={(e) => handleChange("weight", e.target.value)}
-            placeholder="e.g. 10"
+            placeholder={t("placeholderWeight")}
           />
         </FieldGroup>
 
-        <FieldGroup label="Rest (seconds)">
+        <FieldGroup label={t("restSeconds")}>
           <Input
             type="number"
             inputMode="numeric"
