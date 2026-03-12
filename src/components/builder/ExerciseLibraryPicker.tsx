@@ -115,8 +115,8 @@ export function ExerciseLibraryPicker({
         </DialogHeader>
 
         <Command className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-center border-b pr-2">
-            <CommandInput placeholder={t("searchExercises")} className="flex-1" />
+          <div className="flex items-center border-b pr-2 [&_[cmdk-input-wrapper]]:flex-1 [&_[cmdk-input-wrapper]]:border-0">
+            <CommandInput placeholder={t("searchExercises")} />
             <button
               type="button"
               onClick={() => setFiltersOpen(!filtersOpen)}
