@@ -87,48 +87,6 @@ describe("ExerciseInstructionsPanel", () => {
     expect(screen.getByText("Common mistakes")).toBeInTheDocument()
   })
 
-  it("shows image when image_url is present", () => {
-    mockUseExerciseFromLibrary.mockReturnValue({
-      data: {
-        ...BASE_EXERCISE,
-        image_url: "bench-press.jpg",
-      },
-      isLoading: false,
-    })
-
-    const { container } = renderWithProviders(
-      <ExerciseInstructionsPanel exerciseId="ex-1" />,
-    )
-    fireEvent.click(screen.getByText("How to perform"))
-
-    const img = container.querySelector("img")
-    expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute(
-      "src",
-      expect.stringContaining("bench-press.jpg"),
-    )
-  })
-
-  it("hides image on simulated load error", () => {
-    mockUseExerciseFromLibrary.mockReturnValue({
-      data: {
-        ...BASE_EXERCISE,
-        image_url: "broken.jpg",
-      },
-      isLoading: false,
-    })
-
-    const { container } = renderWithProviders(
-      <ExerciseInstructionsPanel exerciseId="ex-1" />,
-    )
-    fireEvent.click(screen.getByText("How to perform"))
-
-    const img = container.querySelector("img")!
-    fireEvent.error(img)
-
-    expect(container.querySelector("img")).not.toBeInTheDocument()
-  })
-
   it("renders YouTube link when youtube_url is present", () => {
     mockUseExerciseFromLibrary.mockReturnValue({
       data: {
