@@ -5,13 +5,11 @@ import type { Exercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "./ExerciseInstructionsPanel"
 
 const mockUseExerciseFromLibrary = vi.fn<
-  [],
-  { data: Exercise | undefined; isLoading: boolean }
+  (id: string) => { data: Exercise | undefined; isLoading: boolean }
 >()
 
 vi.mock("@/hooks/useExerciseFromLibrary", () => ({
-  useExerciseFromLibrary: (...args: unknown[]) =>
-    mockUseExerciseFromLibrary(...(args as [])),
+  useExerciseFromLibrary: (id: string) => mockUseExerciseFromLibrary(id),
 }))
 
 const BASE_EXERCISE: Exercise = {
