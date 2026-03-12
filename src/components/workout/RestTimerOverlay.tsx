@@ -13,25 +13,72 @@ function formatSeconds(s: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
 }
 
+let audioCtx: AudioContext | null = null
+function getAudioCtx(): AudioContext {
+  if (!audioCtx) audioCtx = new AudioContext()
+  return audioCtx
+}
+
+function playBeep(frequency: number, durationMs: number, volume = 0.3) {
+  try {
+    const ctx = getAudioCtx()
+    if (ctx.state === "suspended") ctx.resume()
+
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.frequency.value = frequency
+    osc.type = "sine"
+    gain.gain.setValueAtTime(volume, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000)
+
+    osc.start()
+    osc.stop(ctx.currentTime + durationMs / 1000)
+  } catch {
+    // Web Audio not available — silent fallback
+  }
+}
+
+function playWarningBeep() {
+  playBeep(660, 150, 0.2)
+}
+
+function playFinishBeeps() {
+  playBeep(880, 200, 0.5)
+  setTimeout(() => playBeep(1100, 300, 0.5), 250)
+}
+
 export function RestTimerOverlay() {
   const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)
   const [remaining, setRemaining] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
   const hasNotifiedRef = useRef(false)
+  const hasWarned10sRef = useRef(false)
 
   useEffect(() => {
     if (!rest) {
       hasNotifiedRef.current = false
+      hasWarned10sRef.current = false
       return
     }
 
     function tick() {
-      const elapsed = (Date.now() - rest!.startedAt) / 1000
-      const left = Math.max(0, Math.ceil(rest!.durationSeconds - elapsed))
+      const elapsedSec = (Date.now() - rest!.startedAt) / 1000
+      const left = Math.max(0, Math.ceil(rest!.durationSeconds - elapsedSec))
       setRemaining(left)
+      setElapsed(elapsedSec)
+
+      if (left <= 10 && left > 0 && !hasWarned10sRef.current) {
+        hasWarned10sRef.current = true
+        playWarningBeep()
+      }
 
       if (left <= 0 && !hasNotifiedRef.current) {
         hasNotifiedRef.current = true
+        playFinishBeeps()
 
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200])
@@ -52,7 +99,7 @@ export function RestTimerOverlay() {
   if (!rest) return null
 
   const progress = rest.durationSeconds > 0
-    ? Math.min(1, (Date.now() - rest.startedAt) / 1000 / rest.durationSeconds)
+    ? Math.min(1, elapsed / rest.durationSeconds)
     : 1
   const dashOffset = CIRCLE_CIRCUMFERENCE * (1 - progress)
 
