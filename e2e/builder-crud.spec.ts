@@ -69,14 +69,14 @@ test.describe("Builder — CRUD", () => {
 
     const allItems = pickerDialog.locator("[cmdk-item]")
     await expect(allItems.first()).toBeVisible({ timeout: 10_000 })
-    const initialCount = await allItems.count()
+    const libraryItemCount = await allItems.count()
 
     // --- Verify search filters the list ---
     const searchInput = pickerDialog.locator("[cmdk-input]")
     await searchInput.fill("Développé")
     const filteredItems = pickerDialog.locator("[cmdk-item]")
     const filteredCount = await filteredItems.count()
-    expect(filteredCount).toBeLessThan(initialCount)
+    expect(filteredCount).toBeLessThan(libraryItemCount)
     await expect(
       filteredItems.first().locator("span").last(),
     ).toContainText("Développé", { timeout: 3_000 })
