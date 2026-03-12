@@ -1,3 +1,10 @@
+export interface ExerciseInstructions {
+  setup: string[]
+  movement: string[]
+  breathing: string[]
+  common_mistakes: string[]
+}
+
 export interface Exercise {
   id: string
   name: string
@@ -5,6 +12,9 @@ export interface Exercise {
   emoji: string
   is_system: boolean
   created_at: string
+  youtube_url: string | null
+  instructions: ExerciseInstructions | null
+  image_url: string | null
 }
 
 export interface WorkoutDay {
