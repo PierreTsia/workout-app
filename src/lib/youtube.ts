@@ -11,3 +11,9 @@ export function getYouTubeThumbnail(url: string): string | null {
   if (!id) return null
   return `https://img.youtube.com/vi/${id}/mqdefault.jpg`
 }
+
+export function getYouTubeEmbedUrl(url: string): string | null {
+  const id = extractVideoId(url)
+  if (!id) return null
+  return `https://www.youtube.com/embed/${id}?rel=0`
+}

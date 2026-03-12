@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Input } from "@/components/ui/input"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
+import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 
 interface ExerciseDetailEditorProps {
   dayId: string
@@ -29,6 +31,7 @@ export function ExerciseDetailEditor({
   const { data: exercises } = useWorkoutExercises(dayId)
   const updateExercise = useUpdateExercise()
   const exercise = exercises?.find((e) => e.id === exerciseId)
+  const { data: libExercise } = useExerciseFromLibrary(exercise?.exercise_id ?? "")
 
   const [form, setForm] = useState<FormState>({
     sets: "",
@@ -97,7 +100,7 @@ export function ExerciseDetailEditor({
   return (
     <div className="flex flex-col gap-6 p-4">
       <div className="flex items-center gap-3">
-        <span className="text-3xl">{exercise.emoji_snapshot}</span>
+        <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-12 w-12" />
         <div>
           <h2 className="text-lg font-bold">{exercise.name_snapshot}</h2>
           <p className="text-sm text-muted-foreground">

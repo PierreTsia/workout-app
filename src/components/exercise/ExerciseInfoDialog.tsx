@@ -1,8 +1,7 @@
-import { useState } from "react"
 import { Activity, AlertTriangle, Info, Settings2, Wind } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { Exercise } from "@/types/database"
-import { getExerciseImageUrl } from "@/lib/storage"
+import { ExerciseThumbnail } from "./ExerciseThumbnail"
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,6 @@ interface ExerciseInfoDialogProps {
 
 export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
   const { t } = useTranslation("exercise")
-  const [imageError, setImageError] = useState(false)
 
   const hasInstructions =
     exercise.instructions &&
@@ -29,8 +27,7 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
       exercise.instructions.breathing.length > 0 ||
       exercise.instructions.common_mistakes.length > 0)
 
-  const hasContent =
-    hasInstructions || exercise.image_url || exercise.youtube_url
+  const hasContent = hasInstructions || exercise.youtube_url
 
   if (!hasContent) return null
 
@@ -49,8 +46,8 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
 
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            <span className="mr-2">{exercise.emoji}</span>
+          <DialogTitle className="flex items-center gap-2">
+            <ExerciseThumbnail imageUrl={exercise.image_url} emoji={exercise.emoji} className="h-8 w-8" />
             {exercise.name}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -59,16 +56,6 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {exercise.image_url && !imageError && (
-            <img
-              src={getExerciseImageUrl(exercise.image_url)}
-              alt=""
-              loading="lazy"
-              className="w-full rounded-lg object-cover aspect-video"
-              onError={() => setImageError(true)}
-            />
-          )}
-
           {exercise.instructions && (
             <>
               <InstructionSection

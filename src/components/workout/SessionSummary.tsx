@@ -3,7 +3,9 @@ import { useAtomValue } from "jotai"
 import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
+import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
+import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000)
@@ -81,13 +83,7 @@ export function SessionSummary({
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             {prExercises.map((pr) => (
-              <span
-                key={pr.exerciseId}
-                className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-500"
-              >
-                <span>{pr.emoji}</span>
-                <span>{pr.name}</span>
-              </span>
+              <PrBadge key={pr.exerciseId} pr={pr} />
             ))}
           </div>
         </div>
@@ -98,5 +94,20 @@ export function SessionSummary({
         {t("newSession")}
       </Button>
     </div>
+  )
+}
+
+function PrBadge({ pr }: { pr: PrExercise }) {
+  const { data: libExercise } = useExerciseFromLibrary(pr.exerciseId)
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-500">
+      <ExerciseThumbnail
+        imageUrl={libExercise?.image_url}
+        emoji={pr.emoji}
+        className="h-4 w-4"
+      />
+      <span>{pr.name}</span>
+    </span>
   )
 }

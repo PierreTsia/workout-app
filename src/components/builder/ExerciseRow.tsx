@@ -3,7 +3,9 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Trash2 } from "lucide-react"
 import type { WorkoutExercise } from "@/types/database"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
+import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 
 interface ExerciseRowProps {
   exercise: WorkoutExercise
@@ -13,6 +15,7 @@ interface ExerciseRowProps {
 
 export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
   const { formatWeight } = useWeightUnit()
+  const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const {
     attributes,
     listeners,
@@ -46,7 +49,7 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
 
       <div className="flex-1 cursor-pointer" onClick={onTap}>
         <div className="flex items-center gap-2">
-          <span className="text-base">{exercise.emoji_snapshot}</span>
+          <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-7 w-7" />
           <span className="text-sm font-medium">{exercise.name_snapshot}</span>
         </div>
         <p className="text-xs text-muted-foreground">
