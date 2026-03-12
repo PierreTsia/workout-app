@@ -26,11 +26,11 @@ export function useLastSession(exerciseId: string | undefined) {
       if (error) throw error
       if (!data || data.length === 0) return null
 
-      const logs = data as Pick<
+      const logs = data as (Pick<
         SetLog,
         "set_number" | "reps_logged" | "weight_logged"
       > &
-        { session_id: string }[]
+        { session_id: string })[]
 
       const latestSessionId = logs[0].session_id
       const sessionLogs = logs.filter((l) => l.session_id === latestSessionId)

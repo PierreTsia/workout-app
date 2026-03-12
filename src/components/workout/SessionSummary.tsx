@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useAtomValue } from "jotai"
 import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
-import { sessionAtom, prFlagsAtom } from "@/store/atoms"
+import { sessionAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 
 function formatDuration(ms: number): string {
