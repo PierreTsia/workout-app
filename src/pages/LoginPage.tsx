@@ -28,8 +28,8 @@ export function LoginPage() {
     >
       <div className="flex flex-col items-center gap-2">
         <span className="text-5xl">🏋️</span>
-        <h1 className="text-4xl font-bold text-white">{t("appName")}</h1>
-        <p className="text-muted-foreground">{t("tagline")}</p>
+        <h1 className="text-4xl font-bold text-white">{t("auth:appName")}</h1>
+        <p className="text-muted-foreground">{t("auth:tagline")}</p>
       </div>
       <Button size="lg" onClick={handleGoogleSignIn}>
         {t("auth:signInGoogle")}

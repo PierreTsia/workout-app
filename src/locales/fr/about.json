@@ -6,7 +6,7 @@
   "storyTitle": "L'histoire",
   "storyP1": "J'ai créé cette app parce que j'en avais marre des apps de muscu soit blindées de fonctions inutiles, soit payantes, soit qui aspirent mes données. Je voulais juste noter mes séries, suivre ma progression et passer à autre chose.",
   "storyP2": "Alors j'ai construit exactement ça — un tracker d'entraînement simple, rapide, sans bullshit. C'est gratuit, c'est open-source, et ça le restera.",
-  "featuresTitle": "Ce qui change",
+  "featuresTitle": "Pourquoi c'est différent",
   "featurePwa": "Fonctionne hors-ligne — installe-le comme une app native",
   "featureOpenSource": "100% open-source — inspecte, fork, contribue",
   "featurePrivacy": "Vie privée d'abord — tes données, ton contrôle",
@@ -18,6 +18,6 @@
   "supportDescription": "Tu aimes l'app ? Une option de don arrive bientôt. En attendant, mets une étoile sur le repo ou partage-le.",
   "supportComingSoon": "Dons bientôt disponibles",
   "creditsTitle": "Crédits",
-  "creditsCreator": "Créé par Pierre Tsiakkaros",
-  "creditsAi": "Développement assisté par IA"
+  "creditsCreator": "Créé avec <heart/> par <author>PierreTsia</author>",
+  "creditsAi": "🤖 Développement assisté par IA"
 }

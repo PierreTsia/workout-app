@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom"
-import { useTranslation } from "react-i18next"
+import { Trans, useTranslation } from "react-i18next"
 import { ArrowLeft, Wifi, GitBranch, Shield, Heart, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
-const GITHUB_URL = "https://github.com/PierreTsia/workout-app"
+const GITHUB_REPO = "https://github.com/PierreTsia/workout-app"
+const GITHUB_PROFILE = "https://github.com/PierreTsia"
 
 export function AboutPage() {
   const { t } = useTranslation("about")
@@ -54,7 +55,7 @@ export function AboutPage() {
           <h2 className="mb-4 text-xl font-semibold text-white">{t("openSourceTitle")}</h2>
           <p className="mb-4 leading-relaxed text-muted-foreground">{t("openSourceDescription")}</p>
           <Button variant="outline" asChild>
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+            <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">
               <GitBranch className="mr-2 h-4 w-4" />
               {t("viewOnGithub")}
               <ExternalLink className="ml-2 h-3 w-3" />
@@ -76,7 +77,23 @@ export function AboutPage() {
 
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-semibold text-white">{t("creditsTitle")}</h2>
-          <p className="text-muted-foreground">{t("creditsCreator")}</p>
+          <p className="text-muted-foreground">
+            <Trans
+              i18nKey="creditsCreator"
+              ns="about"
+              components={{
+                heart: <span className="text-red-500">❤️</span>,
+                author: (
+                  <a
+                    href={GITHUB_PROFILE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-teal hover:underline"
+                  />
+                ),
+              }}
+            />
+          </p>
           <p className="text-sm text-muted-foreground/70">{t("creditsAi")}</p>
         </section>
       </div>
