@@ -1,4 +1,5 @@
 import { useAtom, useSetAtom } from "jotai"
+import { Minus, Plus } from "lucide-react"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
 import { computeEpley1RM } from "@/lib/epley"
@@ -6,6 +7,7 @@ import { useBest1RM } from "@/hooks/useBest1RM"
 import type { WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface SetsTableProps {
@@ -94,6 +96,35 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
     })
   }
 
+  function removeLastSet() {
+    setSession((prev) => {
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
+      const removed = exerciseSets.pop()
+      const delta = removed?.done ? -1 : 0
+      return {
+        ...prev,
+        setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+        totalSetsDone: Math.max(0, prev.totalSetsDone + delta),
+      }
+    })
+  }
+
+  function addSet() {
+    const lastRow = rows[rows.length - 1]
+    setSession((prev) => {
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
+      exerciseSets.push({
+        reps: lastRow?.reps ?? exercise.reps,
+        weight: lastRow?.weight ?? exercise.weight,
+        done: false,
+      })
+      return {
+        ...prev,
+        setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+      }
+    })
+  }
+
   if (rows.length === 0) return null
 
   return (
@@ -136,10 +167,39 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
             <Checkbox
               checked={set.done}
               onCheckedChange={() => toggleDone(idx)}
+              disabled={!session.isActive}
             />
           </div>
         </div>
       ))}
+
+      <div className="flex items-center justify-center gap-1 pt-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground active:text-destructive"
+          onClick={(e) => {
+            removeLastSet()
+            ;(e.currentTarget as HTMLButtonElement).blur()
+          }}
+          disabled={rows.length <= 1}
+          aria-label="Remove last set"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {rows.length} {rows.length === 1 ? "set" : "sets"}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground"
+          onClick={addSet}
+          aria-label="Add set"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }

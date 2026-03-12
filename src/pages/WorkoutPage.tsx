@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
-import { Dumbbell, Loader2 } from "lucide-react"
+import { Dumbbell, Loader2, Play } from "lucide-react"
 import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
@@ -150,6 +150,14 @@ export function WorkoutPage() {
     setFinished(true)
   }
 
+  function startSession() {
+    setSession((prev) => ({
+      ...prev,
+      isActive: true,
+      startedAt: Date.now(),
+    }))
+  }
+
   function handleNewSession() {
     setSession({
       currentDayId: null,
@@ -237,10 +245,23 @@ export function WorkoutPage() {
             )}
           </div>
 
-          <SessionNav
-            exercises={exercises}
-            onFinish={handleFinish}
-          />
+          {session.isActive ? (
+            <SessionNav
+              exercises={exercises}
+              onFinish={handleFinish}
+            />
+          ) : (
+            <div className="sticky bottom-0 border-t bg-background px-4 py-3">
+              <Button
+                className="w-full gap-2"
+                size="lg"
+                onClick={startSession}
+              >
+                <Play className="h-5 w-5" />
+                Start Workout
+              </Button>
+            </div>
+          )}
         </>
       )}
 

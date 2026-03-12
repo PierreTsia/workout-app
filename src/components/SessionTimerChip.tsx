@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from "react"
 import { useAtomValue } from "jotai"
+import { Timer } from "lucide-react"
 import { sessionAtom } from "@/store/atoms"
 
 function formatElapsed(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000)
-  const h = String(Math.floor(totalSeconds / 3600)).padStart(2, "0")
+  const h = Math.floor(totalSeconds / 3600)
   const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0")
   const s = String(totalSeconds % 60).padStart(2, "0")
-  return `${h}:${m}:${s}`
+  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`
 }
-
-const ZERO = "00:00:00"
 
 export function SessionTimerChip() {
   const session = useAtomValue(sessionAtom)
   const startedAt = session.startedAt
-  const [display, setDisplay] = useState(ZERO)
+  const isActive = session.isActive
+  const [display, setDisplay] = useState("")
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -24,8 +24,8 @@ export function SessionTimerChip() {
       intervalRef.current = null
     }
 
-    if (!startedAt) {
-      setDisplay(ZERO)
+    if (!startedAt || !isActive) {
+      setDisplay("")
       return
     }
 
@@ -35,11 +35,16 @@ export function SessionTimerChip() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [startedAt])
+  }, [startedAt, isActive])
+
+  if (!display) return null
 
   return (
-    <span className="font-mono text-lg font-bold tabular-nums tracking-wide">
-      {display}
-    </span>
+    <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1">
+      <Timer className="h-3.5 w-3.5 text-primary" />
+      <span className="font-mono text-sm font-semibold tabular-nums text-primary">
+        {display}
+      </span>
+    </div>
   )
 }
