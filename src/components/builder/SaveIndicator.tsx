@@ -1,0 +1,58 @@
+import { useEffect, useRef, useState } from "react"
+import { Check, AlertTriangle } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+type SaveStatus = "idle" | "saving" | "saved" | "error"
+
+interface SaveIndicatorProps {
+  status: SaveStatus
+}
+
+export function SaveIndicator({ status }: SaveIndicatorProps) {
+  const [hidden, setHidden] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const statusRef = useRef(status)
+
+  if (statusRef.current !== status) {
+    statusRef.current = status
+    if (status === "saved") {
+      setHidden(false)
+    }
+  }
+
+  useEffect(() => {
+    clearTimeout(timerRef.current)
+    if (status === "saved") {
+      timerRef.current = setTimeout(() => setHidden(true), 2000)
+      return () => clearTimeout(timerRef.current)
+    }
+  }, [status])
+
+  const visible =
+    (status === "saved" && !hidden) || status === "error"
+
+  if (!visible) return null
+
+  return (
+    <span
+      className={cn(
+        "flex items-center gap-1 text-xs font-medium transition-opacity",
+        status === "saved" && "text-green-500",
+        status === "error" && "text-destructive",
+      )}
+    >
+      {status === "saved" && (
+        <>
+          <Check className="h-3.5 w-3.5" />
+          Saved
+        </>
+      )}
+      {status === "error" && (
+        <>
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Syncing failed
+        </>
+      )}
+    </span>
+  )
+}
