@@ -46,6 +46,8 @@ export const queueSyncMetaAtom = atomWithStorage<{
 
 export const prFlagsAtom = atom<Record<string, boolean>>({})
 
+export const sessionBest1RMAtom = atom<Record<string, number>>({})
+
 export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
   "installPrompt",
   { dismissed: false },

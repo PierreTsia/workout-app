@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useAtomValue } from "jotai"
-import { Trophy, Clock, Dumbbell, RotateCcw } from "lucide-react"
-import { sessionAtom } from "@/store/atoms"
+import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
+import { sessionAtom, prFlagsAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 
 function formatDuration(ms: number): string {
@@ -13,10 +13,17 @@ function formatDuration(ms: number): string {
   return `${m}m ${String(s).padStart(2, "0")}s`
 }
 
+interface PrExercise {
+  exerciseId: string
+  name: string
+  emoji: string
+}
+
 interface SessionSummaryProps {
   setsDone: number
   exercisesCompleted: number
   totalExercises: number
+  prExercises: PrExercise[]
   onNewSession: () => void
 }
 
@@ -24,6 +31,7 @@ export function SessionSummary({
   setsDone,
   exercisesCompleted,
   totalExercises,
+  prExercises,
   onNewSession,
 }: SessionSummaryProps) {
   const session = useAtomValue(sessionAtom)
@@ -60,6 +68,29 @@ export function SessionSummary({
           </span>
         </div>
       </div>
+
+      {prExercises.length > 0 && (
+        <div className="w-full max-w-xs rounded-xl bg-card p-4">
+          <div className="mb-3 flex items-center justify-center gap-2">
+            <Flame className="h-5 w-5 text-yellow-500" />
+            <span className="text-sm font-semibold">
+              {prExercises.length} Personal{" "}
+              {prExercises.length === 1 ? "Record" : "Records"}
+            </span>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {prExercises.map((pr) => (
+              <span
+                key={pr.exerciseId}
+                className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-500"
+              >
+                <span>{pr.emoji}</span>
+                <span>{pr.name}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Button size="lg" onClick={onNewSession} className="mt-4 gap-2">
         <RotateCcw className="h-4 w-4" />

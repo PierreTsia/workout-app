@@ -20,6 +20,8 @@ export interface SetLogPayload {
   setNumber: number
   repsLogged: string
   weightLogged: number
+  estimatedOneRM: number
+  wasPr: boolean
   loggedAt: number
 }
 
@@ -322,6 +324,7 @@ export async function drainQueue(userId: string): Promise<void> {
   // Cache invalidation for all touched exercises
   for (const exId of exerciseIds) {
     queryClient.invalidateQueries({ queryKey: ["last-session", exId] })
+    queryClient.invalidateQueries({ queryKey: ["best-1rm", exId] })
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
@@ -416,6 +419,8 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       set_number: p.setNumber,
       reps_logged: p.repsLogged,
       weight_logged: p.weightLogged,
+      estimated_1rm: p.estimatedOneRM || null,
+      was_pr: p.wasPr,
       logged_at: new Date(p.loggedAt).toISOString(),
     })
 

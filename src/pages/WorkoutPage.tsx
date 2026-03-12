@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2 } from "lucide-react"
-import { sessionAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useBootstrapProgram } from "@/hooks/useBootstrapProgram"
@@ -25,6 +25,8 @@ import {
 
 export function WorkoutPage() {
   const [session, setSession] = useAtom(sessionAtom)
+  const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
+  const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
   const [finished, setFinished] = useState(false)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
 
@@ -120,6 +122,16 @@ export function WorkoutPage() {
     return count
   }, [exercises, session.setsData])
 
+  const prExercises = useMemo(() => {
+    return exercises
+      .filter((ex) => prFlags[ex.exercise_id])
+      .map((ex) => ({
+        exerciseId: ex.exercise_id,
+        name: ex.name_snapshot,
+        emoji: ex.emoji_snapshot,
+      }))
+  }, [exercises, prFlags])
+
   function handleFinish() {
     const daySets = exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
     const hasSkipped = daySets.some((s) => !s.done)
@@ -147,6 +159,8 @@ export function WorkoutPage() {
       isActive: false,
       totalSetsDone: 0,
     })
+    setPrFlags({})
+    setSessionBest1RM({})
     setFinished(false)
   }
 
@@ -189,6 +203,7 @@ export function WorkoutPage() {
         setsDone={daySetsDone}
         exercisesCompleted={exercisesCompleted}
         totalExercises={exercises.length}
+        prExercises={prExercises}
         onNewSession={handleNewSession}
       />
     )

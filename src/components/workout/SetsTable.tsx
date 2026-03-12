@@ -1,6 +1,8 @@
 import { useAtom, useSetAtom } from "jotai"
-import { sessionAtom, restAtom } from "@/store/atoms"
+import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
+import { computeEpley1RM } from "@/lib/epley"
+import { useBest1RM } from "@/hooks/useBest1RM"
 import type { WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,6 +16,9 @@ interface SetsTableProps {
 export function SetsTable({ exercise, sessionId }: SetsTableProps) {
   const [session, setSession] = useAtom(sessionAtom)
   const setRest = useSetAtom(restAtom)
+  const setPrFlags = useSetAtom(prFlagsAtom)
+  const [sessionBest, setSessionBest] = useAtom(sessionBest1RMAtom)
+  const { data: historicalBest = 0, isSuccess: best1RMReady } = useBest1RM(exercise.exercise_id)
 
   const rows = session.setsData[exercise.id] ?? []
 
@@ -41,6 +46,28 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
       const delta = wasDone ? -1 : 1
 
       if (!wasDone) {
+        const weight = Number(exerciseSets[setIdx].weight) || 0
+        const reps = parseInt(exerciseSets[setIdx].reps, 10)
+        const estimatedOneRM = computeEpley1RM(weight, reps)
+
+        const runningBest = Math.max(
+          historicalBest,
+          sessionBest[exercise.exercise_id] ?? 0,
+        )
+        const wasPr = best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
+
+        if (wasPr) {
+          setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
+        }
+
+        setSessionBest((prev) => ({
+          ...prev,
+          [exercise.exercise_id]: Math.max(
+            prev[exercise.exercise_id] ?? 0,
+            estimatedOneRM,
+          ),
+        }))
+
         setRest({
           startedAt: Date.now(),
           durationSeconds: exercise.rest_seconds,
@@ -52,7 +79,9 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
           exerciseNameSnapshot: exercise.name_snapshot,
           setNumber: setIdx + 1,
           repsLogged: exerciseSets[setIdx].reps,
-          weightLogged: Number(exerciseSets[setIdx].weight) || 0,
+          weightLogged: weight,
+          estimatedOneRM,
+          wasPr,
           loggedAt: Date.now(),
         })
       }
