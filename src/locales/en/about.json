@@ -1,0 +1,23 @@
+{
+  "pageTitle": "About",
+  "goToApp": "Go to app",
+  "heroTitle": "Workout",
+  "heroTagline": "Free, open-source workout tracker",
+  "storyTitle": "The Story",
+  "storyP1": "I built this because I was tired of gym apps that were either bloated with features I didn't need, locked behind subscriptions, or harvesting my data. I just wanted to log my sets, track my progress, and get on with my workout.",
+  "storyP2": "So I built exactly that — a simple, fast, no-BS workout tracker. It's free, it's open-source, and it always will be.",
+  "featuresTitle": "What makes it different",
+  "featurePwa": "Works offline — install it like a native app",
+  "featureOpenSource": "Fully open-source — inspect, fork, contribute",
+  "featurePrivacy": "Privacy-first — your data, your control",
+  "featureFree": "Free forever — no subscriptions, no ads",
+  "openSourceTitle": "Open Source",
+  "openSourceDescription": "Licensed under MIT. The code is on GitHub — contributions, issues, and stars are welcome.",
+  "viewOnGithub": "View on GitHub",
+  "supportTitle": "Support the project",
+  "supportDescription": "Love the app? A donation option is coming soon. In the meantime, star the repo or share it with a friend.",
+  "supportComingSoon": "Donations coming soon",
+  "creditsTitle": "Credits",
+  "creditsCreator": "Built by Pierre Tsiakkaros",
+  "creditsAi": "AI-assisted development"
+}

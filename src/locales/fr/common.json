@@ -20,5 +20,6 @@
   "syncFailed": "Échec de synchro",
   "installBanner": "Ajouter à l'écran d'accueil pour une meilleure expérience",
   "install": "Installer",
-  "dismiss": "Fermer"
+  "dismiss": "Fermer",
+  "about": "À propos"
 }

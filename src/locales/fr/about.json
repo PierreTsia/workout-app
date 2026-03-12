@@ -1,0 +1,23 @@
+{
+  "pageTitle": "À propos",
+  "goToApp": "Aller à l'app",
+  "heroTitle": "Workout",
+  "heroTagline": "Tracker d'entraînement gratuit et open-source",
+  "storyTitle": "L'histoire",
+  "storyP1": "J'ai créé cette app parce que j'en avais marre des apps de muscu soit blindées de fonctions inutiles, soit payantes, soit qui aspirent mes données. Je voulais juste noter mes séries, suivre ma progression et passer à autre chose.",
+  "storyP2": "Alors j'ai construit exactement ça — un tracker d'entraînement simple, rapide, sans bullshit. C'est gratuit, c'est open-source, et ça le restera.",
+  "featuresTitle": "Ce qui change",
+  "featurePwa": "Fonctionne hors-ligne — installe-le comme une app native",
+  "featureOpenSource": "100% open-source — inspecte, fork, contribue",
+  "featurePrivacy": "Vie privée d'abord — tes données, ton contrôle",
+  "featureFree": "Gratuit pour toujours — pas d'abonnement, pas de pub",
+  "openSourceTitle": "Open Source",
+  "openSourceDescription": "Sous licence MIT. Le code est sur GitHub — contributions, issues et étoiles bienvenues.",
+  "viewOnGithub": "Voir sur GitHub",
+  "supportTitle": "Soutenir le projet",
+  "supportDescription": "Tu aimes l'app ? Une option de don arrive bientôt. En attendant, mets une étoile sur le repo ou partage-le.",
+  "supportComingSoon": "Dons bientôt disponibles",
+  "creditsTitle": "Crédits",
+  "creditsCreator": "Créé par Pierre Tsiakkaros",
+  "creditsAi": "Développement assisté par IA"
+}
