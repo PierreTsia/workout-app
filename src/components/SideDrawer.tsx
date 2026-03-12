@@ -1,26 +1,47 @@
+import { useState } from "react"
 import { useAtom, useAtomValue } from "jotai"
 import { Link } from "react-router-dom"
 import { useTheme } from "next-themes"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogOut } from "lucide-react"
-import { authAtom, drawerOpenAtom, themeAtom } from "@/store/atoms"
+import { authAtom, drawerOpenAtom, queueSyncMetaAtom, themeAtom } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
 
 export function SideDrawer() {
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [currentTheme, setThemeAtom] = useAtom(themeAtom)
   const user = useAtomValue(authAtom)
+  const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { setTheme } = useTheme()
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
 
   function closeDrawer() {
     setOpen(false)
   }
 
   function handleSignOut() {
+    if (queueMeta.pendingCount > 0) {
+      setSignOutConfirmOpen(true)
+      return
+    }
+    supabase.auth.signOut()
+    closeDrawer()
+  }
+
+  function confirmSignOut() {
+    setSignOutConfirmOpen(false)
     supabase.auth.signOut()
     closeDrawer()
   }
@@ -103,6 +124,30 @@ export function SideDrawer() {
           </div>
         </div>
       </SheetContent>
+
+      <Dialog open={signOutConfirmOpen} onOpenChange={setSignOutConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsaved workout data</DialogTitle>
+            <DialogDescription>
+              You have workout data that hasn't synced yet. It will be
+              saved locally and synced when you sign back in. Sign out
+              anyway?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setSignOutConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmSignOut}>
+              Sign out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   )
 }

@@ -1,6 +1,20 @@
+import { useSyncExternalStore } from "react"
 import { useAtomValue } from "jotai"
 import { Badge } from "@/components/ui/badge"
 import { syncStatusAtom } from "@/store/atoms"
+
+function subscribeOnline(cb: () => void) {
+  window.addEventListener("online", cb)
+  window.addEventListener("offline", cb)
+  return () => {
+    window.removeEventListener("online", cb)
+    window.removeEventListener("offline", cb)
+  }
+}
+
+function getOnlineSnapshot() {
+  return navigator.onLine
+}
 
 const statusConfig = {
   idle: null,
@@ -11,9 +25,10 @@ const statusConfig = {
 
 export function SyncStatusChip() {
   const status = useAtomValue(syncStatusAtom)
+  const online = useSyncExternalStore(subscribeOnline, getOnlineSnapshot)
 
   if (status === "idle") {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    if (!online) {
       return (
         <Badge variant="outline" className="text-xs">
           Offline
