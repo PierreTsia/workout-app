@@ -61,19 +61,12 @@ async function main() {
 
   // --- Phase 2: Curate translations on remaining exercises ---
   const changes: { id: string; name_en: string; old_name: string; new_name: string; reason: string }[] = []
-  let skipped = 0
 
   for (const ex of exercises) {
-    if (ex.is_system || deleteIds.has(ex.id)) {
-      skipped++
-      continue
-    }
+    if (ex.is_system || deleteIds.has(ex.id)) continue
 
     const nameEn = ex.name_en?.trim() ?? ""
-    if (!nameEn) {
-      skipped++
-      continue
-    }
+    if (!nameEn) continue
 
     let newName: string | null = null
     let reason = ""
