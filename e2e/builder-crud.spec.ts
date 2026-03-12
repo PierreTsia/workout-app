@@ -142,4 +142,54 @@ test.describe("Builder — CRUD", () => {
     await dayDeleteDialog.getByRole("button", { name: /delete/i }).click()
     await expect(dayCard).not.toBeVisible({ timeout: 5_000 })
   })
+
+  test("exercise picker shows filter button at mobile viewport", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    await page.goto("/")
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear */
+    }
+
+    await page.goto("/builder")
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear */
+    }
+
+    const dayLabels = page.locator("p.font-semibold")
+    await expect(dayLabels.first()).toBeVisible({ timeout: 10_000 })
+    await dayLabels.first().click()
+
+    const addExerciseButton = page.getByRole("button", {
+      name: /add exercise/i,
+    })
+    await expect(addExerciseButton).toBeVisible({ timeout: 5_000 })
+    await addExerciseButton.click()
+
+    const pickerDialog = page.getByRole("dialog")
+    await expect(pickerDialog).toBeVisible({ timeout: 5_000 })
+
+    const filterButton = pickerDialog.getByRole("button", {
+      name: /filters|filtres/i,
+    })
+    await expect(filterButton).toBeVisible()
+
+    await filterButton.click()
+    await expect(
+      pickerDialog.getByRole("button", { name: /filters|filtres/i }),
+    ).toBeVisible()
+  })
 })

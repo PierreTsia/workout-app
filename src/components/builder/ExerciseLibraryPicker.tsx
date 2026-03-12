@@ -115,12 +115,12 @@ export function ExerciseLibraryPicker({
         </DialogHeader>
 
         <Command className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-center border-b pr-2 [&_[cmdk-input-wrapper]]:flex-1 [&_[cmdk-input-wrapper]]:border-0">
+          <div className="flex items-center border-b pr-2 [&_[cmdk-input-wrapper]]:min-w-0 [&_[cmdk-input-wrapper]]:flex-1 [&_[cmdk-input-wrapper]]:border-0">
             <CommandInput placeholder={t("searchExercises")} />
             <button
               type="button"
               onClick={() => setFiltersOpen(!filtersOpen)}
-              className="relative shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="relative flex h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label={t("filters")}
             >
               <SlidersHorizontal className="h-4 w-4" />
