@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { useAtomValue } from "jotai"
 import { Navigate, Outlet } from "react-router-dom"
 import { authAtom, authLoadingAtom } from "@/store/atoms"
@@ -16,18 +16,17 @@ import { Button } from "@/components/ui/button"
 export function AuthGuard() {
   const user = useAtomValue(authAtom)
   const authLoading = useAtomValue(authLoadingAtom)
-  const prevUserRef = useRef(user)
+  const [prevUser, setPrevUser] = useState(user)
   const [showDialog, setShowDialog] = useState(false)
   const { permissionGranted, requestPermission } = useNotificationPermission()
 
-  useEffect(() => {
-    const wasNull = prevUserRef.current === null
-    prevUserRef.current = user
-
+  if (prevUser !== user) {
+    const wasNull = prevUser === null
+    setPrevUser(user)
     if (wasNull && user && !permissionGranted) {
       setShowDialog(true)
     }
-  }, [user, permissionGranted])
+  }
 
   if (authLoading) {
     return null

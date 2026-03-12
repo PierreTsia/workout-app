@@ -12,22 +12,21 @@ interface SaveIndicatorProps {
 export function SaveIndicator({ status }: SaveIndicatorProps) {
   const { t } = useTranslation("builder")
   const [hidden, setHidden] = useState(false)
+  const [prevStatus, setPrevStatus] = useState(status)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const statusRef = useRef(status)
 
-  if (statusRef.current !== status) {
-    statusRef.current = status
+  if (prevStatus !== status) {
+    setPrevStatus(status)
     if (status === "saved") {
       setHidden(false)
     }
   }
 
   useEffect(() => {
+    if (status !== "saved") return
     clearTimeout(timerRef.current)
-    if (status === "saved") {
-      timerRef.current = setTimeout(() => setHidden(true), 2000)
-      return () => clearTimeout(timerRef.current)
-    }
+    timerRef.current = setTimeout(() => setHidden(true), 2000)
+    return () => clearTimeout(timerRef.current)
   }, [status])
 
   const visible =

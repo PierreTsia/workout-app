@@ -1,7 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
-yarn.lock
 
 # IDE
 .vscode/
@@ -30,3 +28,4 @@ yarn-debug.log*
 playwright/.auth/
 playwright-report/
 test-results/
+.env*.local

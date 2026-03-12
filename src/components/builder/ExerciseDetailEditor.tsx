@@ -35,8 +35,12 @@ export function ExerciseDetailEditor({
     weight: "",
     rest_seconds: "",
   })
+  const [trackedExerciseId, setTrackedExerciseId] = useState(exerciseId)
+  const [trackedUnit, setTrackedUnit] = useState(unit)
 
-  useEffect(() => {
+  if (exerciseId !== trackedExerciseId || unit !== trackedUnit) {
+    setTrackedExerciseId(exerciseId)
+    setTrackedUnit(unit)
     if (exercise) {
       const displayWeight = Math.round(toDisplay(Number(exercise.weight)) * 10) / 10
       setForm({
@@ -46,7 +50,7 @@ export function ExerciseDetailEditor({
         rest_seconds: String(exercise.rest_seconds),
       })
     }
-  }, [exercise, toDisplay])
+  }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 

@@ -24,10 +24,7 @@ export function SessionTimerChip() {
       intervalRef.current = null
     }
 
-    if (!startedAt || !isActive) {
-      setDisplay("")
-      return
-    }
+    if (!startedAt || !isActive) return
 
     const tick = () => setDisplay(formatElapsed(Date.now() - startedAt))
     tick()
@@ -37,7 +34,7 @@ export function SessionTimerChip() {
     }
   }, [startedAt, isActive])
 
-  if (!display) return null
+  if (!startedAt || !isActive || !display) return null
 
   return (
     <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1">
