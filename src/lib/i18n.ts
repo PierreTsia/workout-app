@@ -8,6 +8,7 @@ import enWorkout from "@/locales/en/workout.json"
 import enHistory from "@/locales/en/history.json"
 import enBuilder from "@/locales/en/builder.json"
 import enSettings from "@/locales/en/settings.json"
+import enAbout from "@/locales/en/about.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -15,6 +16,7 @@ import frWorkout from "@/locales/fr/workout.json"
 import frHistory from "@/locales/fr/history.json"
 import frBuilder from "@/locales/fr/builder.json"
 import frSettings from "@/locales/fr/settings.json"
+import frAbout from "@/locales/fr/about.json"
 
 i18n
   .use(LanguageDetector)
@@ -28,6 +30,7 @@ i18n
         history: enHistory,
         builder: enBuilder,
         settings: enSettings,
+        about: enAbout,
       },
       fr: {
         common: frCommon,
@@ -36,11 +39,12 @@ i18n
         history: frHistory,
         builder: frBuilder,
         settings: frSettings,
+        about: frAbout,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

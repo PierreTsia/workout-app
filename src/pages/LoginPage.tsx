@@ -1,12 +1,12 @@
 import { useAtomValue } from "jotai"
-import { Navigate } from "react-router-dom"
+import { Link, Navigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { authAtom, authLoadingAtom } from "@/store/atoms"
 
 export function LoginPage() {
-  const { t } = useTranslation("auth")
+  const { t } = useTranslation(["auth", "common"])
   const user = useAtomValue(authAtom)
   const authLoading = useAtomValue(authLoadingAtom)
 
@@ -28,12 +28,18 @@ export function LoginPage() {
     >
       <div className="flex flex-col items-center gap-2">
         <span className="text-5xl">🏋️</span>
-        <h1 className="text-4xl font-bold text-white">{t("appName")}</h1>
-        <p className="text-muted-foreground">{t("tagline")}</p>
+        <h1 className="text-4xl font-bold text-white">{t("auth:appName")}</h1>
+        <p className="text-muted-foreground">{t("auth:tagline")}</p>
       </div>
       <Button size="lg" onClick={handleGoogleSignIn}>
-        {t("signInGoogle")}
+        {t("auth:signInGoogle")}
       </Button>
+      <Link
+        to="/about"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        {t("common:about")}
+      </Link>
     </div>
   )
 }

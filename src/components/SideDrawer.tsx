@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download } from "lucide-react"
+import { LogOut, Download, Info } from "lucide-react"
 import {
   authAtom,
   drawerOpenAtom,
@@ -183,6 +183,18 @@ export function SideDrawer() {
             </div>
 
             <Separator />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start text-muted-foreground"
+              asChild
+            >
+              <Link to="/about" onClick={closeDrawer}>
+                <Info className="h-4 w-4" />
+                {t("common:about")}
+              </Link>
+            </Button>
 
             {!isInstalled && (
               <Button
