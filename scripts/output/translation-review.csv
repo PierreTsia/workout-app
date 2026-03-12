@@ -1,0 +1,685 @@
+wger_id,name_en,name_fr,translation_source,needs_review
+57,"Bear Walk 2","Bear Walk 2",mymemory,true
+822,"Cable Rear Delt Fly","Câble Delt Fly arrière",mymemory,true
+805,"Tricep Pushdown on Cable","Pousser le triceps vers le bas sur le câble",mymemory,true
+980,"commando pull-ups","pull-ups commando",mymemory,true
+1022,"Single Arm Plank to Row","Planche à bras unique vers la rangée",mymemory,true
+56,"Abdominal Stabilization","Stabilisation abdominale",mymemory,true
+828,"Incline Bench Reverse Fly - Hello","Vol inversé du banc incliné - Bonjour",mymemory,true
+907,"Handstand Push Up","Pousser le support manuel vers le haut",mymemory,true
+923,"LYING DUMBBELL ROW SS SEATED SHRUG","RANGÉE D'HALTÈRES ALLONGÉS SS ASSIS EN HAUSSANT LES ÉPAULES",mymemory,true
+927,"Suspended crossess","Crossess suspendu",mymemory,true
+958,"Biceps with TRX","Biceps avec TRX",mymemory,true
+960,"Kettlebell Swing","Balançoire Kettlebell",mymemory,true
+975,"one-handed kettlebell curls","boucles kettlebell à une main",mymemory,true
+976,"Medicine ball booklet crunch","Crunch du livret de balles médicinales",mymemory,true
+977,"Коробочный присед","Коробочный присед",mymemory,true
+978,"Knee Raises","Élévation des genoux",mymemory,true
+12,"Seated Hip Adduction","Adduction de la hanche assise",mymemory,true
+46,"Barbell Lunges Standing","Fentes de barbelé debout",mymemory,true
+41,"Barbell Ab Rollout","Panneau déroulant Barbell Ab",mymemory,true
+50,"Barbell Triceps Extension","Rallonge de triceps Barbell",mymemory,true
+962,"Elliptical","Vélo elliptique",mymemory,true
+909,"Reverse Nordic Curl","Boucle nordique inversée",mymemory,true
+912,"Straight Bar Cable Curls","Boucles de câble droites",mymemory,true
+924,"Cable Fly","Système de câble Fly (+)",mymemory,true
+959,"TRX Rows","Lignes TRX",mymemory,true
+979,"Leg raises pull up bar","La jambe soulève la barre de traction vers le haut",mymemory,true
+92,"Biceps Curls With Dumbbell","Boucles de biceps avec haltères",mymemory,true
+83,"Bent Over Rowing","Courbé sur aviron",mymemory,true
+81,"Bent Over Dumbbell Rows","Courbé sur les rangées d'haltères",mymemory,true
+94,"Biceps Curls With SZ-bar","Boucles de biceps avec barre SZ",mymemory,true
+75,"Benchpress Dumbbells","Développé couché avec haltères",wger,false
+91,"Biceps Curls With Barbell","Curls stricts barre",wger,false
+73,"Bench Press","Développé couché",wger,false
+76,"Bench Press Narrow Grip","Poignée étroite de la presse de banc",mymemory,true
+95,"Biceps Curl With Cable","Boucle des biceps avec câble",mymemory,true
+71,"Single Leg Extension","Extension d'une jambe",mymemory,true
+79,"Bent High Pulls","Bent High Pulls",mymemory,true
+1630,"Blaze","Blaze",mymemory,true
+265,"Glute Bridge","Pont fessier",mymemory,true
+1697,"Lat Pulldown (Wide Grip)","Tirage latéral prise large",wger,false
+910,"Nordic Curl","Boucle nordique",mymemory,true
+913,"Reverse Preacher Curl (Close Grip)","Reverse Preacher Curl (Fermer la poignée)",mymemory,true
+925,"SMITH MACHINE SLIGHT INCLINE PRESS","PRESSE À LÉGÈRE INCLINAISON POUR MACHINE SMITH",mymemory,true
+158,"Close-grip Lat Pull Down","Tirette Lat à prise étroite vers le bas",mymemory,true
+124,"Braced Squat","Squat renforcé",mymemory,true
+51,"Barbell Wrist Curl","Boucle de poignet Barbell",mymemory,true
+146,"Calf Press Using Leg Press Machine","Presse à mollets à l'aide d'une presse à jambes",mymemory,true
+154,"Chin-ups","Chin-ups",mymemory,true
+148,"Calf Raises on Hackenschmitt Machine","Élévations de mollets sur la machine Hackenschmitt",mymemory,true
+137,"Butterfly Narrow Grip","Poignée papillon étroite",mymemory,true
+135,"Butterfly","""Butterfly""",mymemory,true
+172,"Crunches on Machine","Crunch assis machine",wger,false
+171,"Incline Crunches","Incliner les craquements",mymemory,true
+139,"Butterfly Reverse","Butterfly Reverse",mymemory,true
+167,"Crunches","Abdominaux",wger,false
+174,"Crunches With Legs Up","Crunchs avec les jambes en l'air",mymemory,true
+129,"Chest Press","Supino",mymemory,true
+161,"Cross-Bench Dumbbell Pullovers","Pull-over Cross-Bench Dumbbell",mymemory,true
+177,"Cycling","Cyclisme",mymemory,true
+145,"Cable Woodchoppers","Câble Woodchoppers",mymemory,true
+235,"Flutter Kicks","Battements de jambes",mymemory,true
+184,"Deadlifts","Deadlifts.",mymemory,true
+222,"Facepull","Facepull",mymemory,true
+203,"Dumbbell Goblet Squat","Squat de gobelet avec haltères",mymemory,true
+185,"Decline Bench Press Barbell","Déclin de la presse de banc Barbell",mymemory,true
+186,"Decline Bench Press Dumbbell","Haltère de la presse d'établi à décliner",mymemory,true
+205,"Dumbbell Lunges Standing","Fentes d'haltères debout",mymemory,true
+914,"Reverse EZ Bar Cable Curls","Boucles de câble de la barre EZ inversée",mymemory,true
+926,"Machine chest fly","Braguette poitrine machine",mymemory,true
+188,"Decline Pushups","Refuser les pushups",mymemory,true
+237,"Fly With Cable","dont le câble",mymemory,true
+206,"Dumbbell Lunges Walking","Fentes d'haltères en marche",mymemory,true
+239,"Fly With Dumbbells, Decline Bench","Volez avec des haltères, baissez le banc",mymemory,true
+238,"Fly With Dumbbells","avec des haltères",mymemory,true
+204,"Dumbbell Incline Curl","Curls biceps inclinés",wger,false
+211,"Dumbbell Triceps Extension","Extension du triceps de l'haltère",mymemory,true
+194,"Dips","Dips",mymemory,true
+197,"Dips Between Two Benches","Trempette entre deux bancs",mymemory,true
+208,"Dumbbells on Scott Machine","Haltères sur Scott Machine",mymemory,true
+254,"Front Raises with Plates","Élévations avant avec plaques",mymemory,true
+283,"Hanging Leg Raises","Élévations des jambes pendantes",mymemory,true
+256,"Front Raises","Élévations avant",mymemory,true
+301,"Hyperextensions","Extension du dos machine",wger,false
+291,"Hindu Squats","Squats hindous",mymemory,true
+257,"Front Squats","Squats avant",mymemory,true
+285,"High Knee Jumps","Sauts en hauteur aux genoux",mymemory,true
+275,"Hammercurls on Cable","Hammercurls sur câble",mymemory,true
+901,"Barbell Hip Thrust","Poussée de hanche Barbell",mymemory,true
+915,"BUS DRIVERS","Chauffeurs de bus",mymemory,true
+272,"Hammer Curls","Boucles de marteau",mymemory,true
+245,"Skullcrusher Dumbbells","Haltères Skullcrusher",mymemory,true
+246,"Skullcrusher SZ-bar","Crâne concasseur SZ-bar",mymemory,true
+259,"Front Pull narrow","Tirer à l'avant étroit",mymemory,true
+258,"Front pull wide","Tirer à l'avant large",mymemory,true
+284,"Hercules Pillars","Piliers Hercules",mymemory,true
+282,"Handstand Pushup","Poussée du support à main",mymemory,true
+294,"Hip Thrust","relevé de bassin",mymemory,true
+289,"High Pull","Tirage haut",mymemory,true
+297,"Hollow Hold","Hollow Hold",mymemory,true
+1634,"Rope Pullover/row","Pull en corde/rangée",mymemory,true
+1637,"Single arm row","Rangée de bras unique",mymemory,true
+1638,"Barbell Clean and press","Barbell Nettoyer et presser",mymemory,true
+268,"Good Mornings","Bonjour",mymemory,true
+827,"Front Plate Raise","Élévation de la plaque avant",mymemory,true
+365,"Leg Curls (laying)","Boucles de jambe (pose)",mymemory,true
+354,"Lat Pull Down (Leaning Back)","Lat Tirer vers le bas (en se penchant vers l'arrière)",mymemory,true
+355,"Lat Pull Down (Straight Back)","Tirage vertical à la poulie haute",wger,false
+366,"Leg Curls (sitting)","Leg Curl assis",wger,false
+349,"Lateral Rows on Cable, One Armed","Rangées latérales sur le câble, une armée",mymemory,true
+348,"Lateral Raises","Élévations latérales",wger,false
+902,"Barbell Hip Thrust","Poussée de hanche Barbell",mymemory,true
+916,"Smith Press","Smith Press",mymemory,true
+314,"Isometric Wipers","Essuie-glaces isométriques",mymemory,true
+364,"Leg Curl","Flexion des jambes",mymemory,true
+351,"Lateral-to-Front Raises","Élévations latérales à frontales",mymemory,true
+313,"Incline Push up","Incliner Pousser vers le haut",mymemory,true
+341,"Squats on Multipress","Squats sur Multipress",mymemory,true
+308,"Incline Dumbbell Fly","Mouche d'haltère inclinée",mymemory,true
+320,"Jumping Jacks","Sauts en étoile",wger,false
+312,"Incline Plank With Alternate Floor Touch","Planche inclinée avec contact au sol alternatif",mymemory,true
+331,"Kettlebell Swings","Balançoires Kettlebell",mymemory,true
+346,"Landmine press","Développé vertical à la barre",mymemory,true
+323,"Cable Cross-over","Croisement de câbles",mymemory,true
+380,"Leverage Machine Iso Row","Tirer parti de la machine Iso Row",mymemory,true
+395,"Long-Pulley, Narrow","Poulie longue, étroite",mymemory,true
+427,"Negative Crunches","Crunchs négatifs",mymemory,true
+386,"Diamond push ups","3. Pompes en diamant",mymemory,true
+378,"Leg Raises, Standing","Élévations des jambes, debout",mymemory,true
+917,"Straight Bar Cable Front Raise","Élévation avant de câble de barre droite",mymemory,true
+379,"Leverage Machine Chest Press","Tirer parti de la presse thoracique de la",mymemory,true
+957,"Quadriped Arm and Leg Raise","Élévation quadripède des bras et des jambes",mymemory,true
+377,"Leg Raises, Lying","Élévations des jambes, allongement",mymemory,true
+376,"Leg Raise","Levées de jambe",wger,false
+394,"Long-Pulley (low Row)","Poulie longue (rangée basse)",mymemory,true
+397,"Low Box Squat - Wide Stance","Squat box bas - Position large",mymemory,true
+367,"Leg Curls (standing)","Boucles de jambes (debout)",mymemory,true
+375,"Leg Press on Hackenschmidt Machine","Presse à jambes sur machine Hackenschmidt",mymemory,true
+373,"Leg Presses (narrow)","Presses pour les jambes (étroites)",mymemory,true
+374,"Leg Presses (wide)","Presses pour les jambes (larges)",mymemory,true
+371,"Leg Press","Presse à cuisse",wger,false
+423,"Muscle up","Traction",mymemory,true
+448,"Pendelay Rows","Lignes Pendelay",mymemory,true
+484,"Rack Deadlift","Rack Deadlift",mymemory,true
+478,"Push Press","Jeté Force",mymemory,true
+445,"Pause Bench","Suspendre le banc",mymemory,true
+465,"Preacher Curls","Boucles de prédicateur",mymemory,true
+468,"Prone Scapular Retraction - Arms at Side","Rétraction scapulaire inclinée - Bras sur le côté",mymemory,true
+454,"Pike Push Ups","Pompes piquées",wger,false
+456,"Pistol Squat","Pistol squats gauches",wger,false
+477,"Pull Ups on Machine","Tirer vers le haut sur la machine",mymemory,true
+918,"Seated Dumbbell Side Lateral","Latéral côté haltère assis",mymemory,true
+475,"Pull-ups","Tractions",wger,false
+439,"Overhand Cable Curl","Overhand Cable Curl",mymemory,true
+458,"Plank","Planche pour les avant-bras",wger,false
+545,"Scissors","Ciseaux",mymemory,true
+495,"Reverse Curl","Inversez.",mymemory,true
+512,"Rowing seated, narrow grip","Rangées prise serrée neutre",wger,false
+493,"Reverse Bar Curl","Boucle de barre inversée",mymemory,true
+490,"Renegade Row","Renegade Row",mymemory,true
+513,"Rowing, T-bar","Aviron, barre en T",mymemory,true
+549,"Seated Triceps Press","Presse triceps assise",mymemory,true
+919,"T-Bar row","Rangée de barre en T",mymemory,true
+508,"Row","Rang",mymemory,true
+510,"Rowing, Lying on Bench","Aviron, couché sur le banc",mymemory,true
+501,"Ring Dips","Trempettes annulaires",mymemory,true
+525,"Bent Over Rowing Reverse","Bent Over Rowing Reverse",mymemory,true
+543,"Shoulder Press, on Machine","Appuyer sur l'épaule, sur la machine",mymemory,true
+498,"Reverse Grip Bench Press","Presse de banc à poignée inversée",mymemory,true
+538,"Incline Bench Press - Barbell","Presse pour banc incliné - Barbell",mymemory,true
+1635,"Modified pulldown","Pulldown modifié",mymemory,true
+1639,"Dumbbell Bent Over Face Pull","Tirage facial avec haltères buste penché",wger,false
+1713,"Doorway Pectoral Stretch","Étirement pectoral de la porte",mymemory,true
+539,"Incline Bench Press - MP","Développé Incliné aux Haltères",mymemory,true
+562,"Shotgun Row","Rangée de fusils de chasse",mymemory,true
+607,"Splinter Sit-ups","Sit-ups Splinter",mymemory,true
+569,"Shoulder Press, on Multi Press","Appuyer sur l'épaule, sur la presse multiple",mymemory,true
+591,"Sit-ups","Redressements assis",mymemory,true
+920,"V-BAR PULL DOWNS","V-BAR PULL DOWNS",mymemory,true
+567,"Shoulder Press, Dumbbells","Presse d'épaule, haltères",mymemory,true
+566,"Shoulder Press, Barbell","Presse d'épaule, Barbell",mymemory,true
+584,"Single-arm Preacher Curl","Boucle de prédicateur à un bras",mymemory,true
+590,"Sitting Calf Raises","Élévations des mollets assis",mymemory,true
+577,"Side Dumbbell Trunk Flexion","Flexion latérale du tronc de l'haltère",mymemory,true
+583,"Side to Side Push Ups","Poussées d'un côté à l'autre",mymemory,true
+598,"Smith Machine Close-grip Bench Press","Presse d'établi Smith Machine à prise serrée",mymemory,true
+576,"Side Crunch","Exercice latéral :",mymemory,true
+571,"Shrugs, Barbells","Haussements d'épaules, haltères",mymemory,true
+575,"Shrugs on Multipress","Shrugs sur Multipress",mymemory,true
+572,"Shrugs, Dumbbells","Haussements d'épaules, haltères",mymemory,true
+595,"Skipping - Standard","Sauter - Standard",mymemory,true
+570,"Shoulder Shrug","Haussement d'épaules",wger,false
+580,"Side Plank","Planche latérale gauche",wger,false
+556,"Side Bends on Machine","Coudes latérales sur la machine",mymemory,true
+628,"Straight-arm Pull Down (bar Attachment)","Tirer le bras droit vers le bas (fixation de la barre)",mymemory,true
+632,"Sumo Squats","Squats sumo",wger,false
+629,"Straight-arm Pull Down (rope Attachment)","Tirer le bras droit vers le bas (attache de corde)",mymemory,true
+630,"Sumo Deadlift","Soulèvement de Sumo",mymemory,true
+616,"Squat Thrust","Poussées de squat",wger,false
+627,"Stiff-legged Deadlifts","Deadlifts aux jambes raides",mymemory,true
+622,"Standing Calf Raises","Élévation mollet machine",wger,false
+614,"Squat Jumps","Sauts en squat",mymemory,true
+615,"Squats","Accroupi",wger,false
+621,"Standing Bicep Curl","Boucle du biceps debout",mymemory,true
+655,"Tricep Dumbbell Kickback","Extension des avant-bras avec haltère",wger,false
+660,"Triceps Extensions on Cable With Bar","Extensions de triceps sur câble avec barre",mymemory,true
+636,"Superman","Surhomme",mymemory,true
+661,"Triceps on Machine","Triceps sur machine",mymemory,true
+675,"Turkish Get-Up","Récupération turque",mymemory,true
+723,"Wide-grip Pulldown","Tirage vertical à prise large",mymemory,true
+684,"Underhand Lat Pull Down","Sous-main Lat Pull Down",mymemory,true
+922,"SEATED CABLE MID TRAP SHRUG","CÂBLE ASSIS À MI-PIÈGE HAUSSEMENT D'ÉPAULES",mymemory,true
+694,"Upright Row w/ Dumbbells","Rangée verticale avec haltères",mymemory,true
+974,"Curl with kettlebell two hands","Bouclez avec la kettlebell à deux mains",mymemory,true
+683,"Power Clean","Power Clean",mymemory,true
+702,"Calf raises, one legged","Lever du mollet gauche",wger,false
+693,"Upright Row, SZ-bar","Rangée verticale, barre SZ",mymemory,true
+713,"Wall Pushup","Poussée murale",mymemory,true
+691,"Upright Row, on Multi Press","Rangée droite, sur presse multiple",mymemory,true
+688,"Upper External Oblique","Oblique externe supérieur",mymemory,true
+672,"Trunk Rotation With Cable","Rotation du tronc avec câble",mymemory,true
+716,"Wall Slides","Glissières murales",mymemory,true
+687,"Overhead Press","Développé militaire",mymemory,true
+1027,"Elevated prayer stretch","Étirement de prière élevé",mymemory,true
+1079,"Plate twist","Torsion de la plaque",mymemory,true
+1080,"Hindu Pushups","Pompes hindoues",mymemory,true
+1084,"Dumbbell Floor Press","Développé au sol avec haltères",mymemory,true
+1085,"Dumbbell Bent Over Row","Haltère jambe pliée (gauche)",mymemory,true
+1086,"Close-grip Press-ups","Press-ups à prise serrée",mymemory,true
+1089,"Medicine ball twist","Torsade de balle médicinale",mymemory,true
+1090,"Vpushup","Vpushup",mymemory,true
+1091,"Plank Shoulter Taps","Robinets d'encrassement de planche",mymemory,true
+1636,"Unilateral Cable row","Rangée de câbles unilatérale",mymemory,true
+1640,"Dumbbell Front Squat","Squat avant avec haltères",wger,false
+1641,"Kettlebell One Legged Deadlift","Soulevé de terre unilatéral",wger,false
+1642,"Dumbbell Hip Thrust","Hip Thrust avec haltère",wger,false
+1643,"Dumbbell Incline Fly","Écarté incliné avec haltères",wger,false
+1644,"Dumbbell Decline Bench Press","Développé couché décliné",wger,false
+1648,"Weighted Crunch","Crunch lesté",wger,false
+1649,"Concentration Curl","Curl biceps avec haltère",wger,false
+1650,"Dumbbell Side Bend","Flexion Latérale avec haltère",wger,false
+1651,"Dumbbell Rear Lunge","Fente arrière avec haltères",wger,false
+1653,"Dumbbell Side Squat","Squat latéral avec haltère",wger,false
+1654,"Machine lateral wise","Machine latéralement",mymemory,true
+1655,"Machine Chest Press Exercise","Exercice de presse thoracique de la machine",mymemory,true
+1652,"Dumbbell Romanian Deadlift","Soulevé de terre roumain avec haltères",wger,false
+911,"Incline Skull Crush","Skull Crusher incliné",wger,false
+829,"Rear Delt Raise","Levage de delt arrière",mymemory,true
+1093,"Rowing Machine","appareil à ramer",mymemory,true
+1094,"Seated Bench Press","Presse à bancs assis",mymemory,true
+1095,"Seated bench press","Presse à bancs assis",mymemory,true
+1098,"Seated rear delt rise","Élévation du delt arrière assis",mymemory,true
+1099,"Dynamic side hold","Maintien latéral dynamique",mymemory,true
+1100,"Wall balls","Boules murales",mymemory,true
+1101,"Horizontal traction isometry","Isométrie de traction horizontale",mymemory,true
+1102,"Alternate back lunges","Alterner les fentes arrière",mymemory,true
+1103,"walking bridge","pont piétonnier",mymemory,true
+1104,"Walking","Marche à pied",mymemory,true
+1105,"Seated Knee Tuck","Repli du genou assis",mymemory,true
+1106,"Seated Knee Tuck","Repli du genou assis",mymemory,true
+1109,"Cable Concentration Curl","Courbe de concentration du câble",mymemory,true
+1111,"Push-Ups | Incline","Pompes | Incliner",mymemory,true
+1112,"Push-Ups | Decline","Pompes déclinées",wger,false
+1113,"Push-Ups | Parallettes","Pompes | Parallettes",mymemory,true
+1124,"Jalón abierto","Jalón abierto",mymemory,true
+1125,"Jalón abierto supino","Jalón abierto supino",mymemory,true
+1126,"Jalón cerrado","Jalón cerrado",mymemory,true
+1127,"Jalón cerrado supino","Jalón cerrado supino",mymemory,true
+1131,"Extensión de gluteos en polea","Extensión de gluteos en polea",mymemory,true
+1132,"Extensión de gluteo en  máquina","Extensión de gluteo en  máquina",mymemory,true
+1136,"JALONES PECHO NEUTRO","JALONES PECHO NEUTRO",mymemory,true
+1137,"PULL OVER POLEA ALTA","PULL OVER POLEA ALTA",mymemory,true
+1138,"JALON EN BANCO INCLINADO","JALON EN BANCO INCLINADO",mymemory,true
+1141,"Arabesque","Arabesque",mymemory,true
+1143,"Back extensión","Retour extensión",mymemory,true
+1185,"Triceps Pushdown","Poussée du triceps",mymemory,true
+1187,"High Pull","Tirage haut",mymemory,true
+1190,"Curl de biceps con agarre prono","Curl de biceps con agarre prono",mymemory,true
+1192,"Alternating Biceps Curls With Dumbbell","Alterner les boucles du biceps avec un haltère",mymemory,true
+1193,"Russian Twist","Torsion russe",mymemory,true
+1194,"PALLOF PRESS","PRESSE PALLOF",mymemory,true
+1195,"Side Slides + Squats","Glissières latérales + Squats",mymemory,true
+1196,"Wall Drills","Perceuses murales",mymemory,true
+1198,"Inverted Rows","Lignes inversées",mymemory,true
+1201,"Dragon squat","Squat dragon",mymemory,true
+1203,"Calf raises, left leg","Élévations des mollets, jambe gauche",mymemory,true
+1211,"Romanian deadlift, single leg","Deadlift roumain, jambe unique",mymemory,true
+84,"Bent Over Rowing Reverse","Bent Over Rowing Reverse",mymemory,true
+260,"Full Sit Outs","Sit Outs complets",mymemory,true
+1215,"Reverse Snow Angel","Ange de neige inversé",mymemory,true
+1218,"knee push-ups","Pompes sur les genoux",wger,false
+1219,"Australian pull-ups","Tractions australiennes",wger,false
+1656,"Cable Chest Press - Decline","Presse à poitrine câblée - Refus",mymemory,true
+1714,"Shoulder Dumbbell Pendular Exercise","Exercice pendulaire avec haltères à l'épaule",mymemory,true
+1715,"Shoulder External Rotation with Dumbbell","Rotation externe de l'épaule avec haltère",mymemory,true
+1223,"Claps over the head","Applique sur la tête",mymemory,true
+1224,"Dumbbell drag curls","Boucles de traînée avec haltères",mymemory,true
+369,"Leg Extension","Extension de jambe machine",wger,false
+1716,"Incline Shoulder Press Up","Appuyer sur l'épaule inclinée vers le haut",mymemory,true
+1225,"Dumbbell wide bicep curls","Boucles de biceps larges avec haltères",mymemory,true
+1717,"Kneck extension","Extension du coude",mymemory,true
+1226,"Dumbbell bicep curl to press","Boucler le biceps de l'haltère pour appuyer",mymemory,true
+1227,"Dumbbell rear delt row","Rangée de delt arrière de l'haltère",mymemory,true
+537,"Incline Bench Press - Dumbbell","Presse d'établi inclinée - Haltère",mymemory,true
+1228,"Dumbbell close grip bench press","Presse de banc à prise rapprochée avec haltères",mymemory,true
+599,"Snach","Snach",mymemory,true
+1229,"Dumbbell upright-row","Tirage menton avec haltères",wger,false
+173,"Crunches With Cable","Crunch à genoux poulie",wger,false
+1230,"Triceps stretch left","Étirement des triceps",mymemory,true
+921,"Seated Cable Rows","Rangées de câbles assis",mymemory,true
+1231,"Triceps stretch right","Les triceps s'étirent à droite",mymemory,true
+1232,"Standing biceps stretch left","Étirement des biceps debout vers la gauche",mymemory,true
+659,"Triceps Extensions on Cable","Extensions de triceps sur le câble",mymemory,true
+1233,"Standing biceps stretch right","Les biceps debout s'étirent à droite",mymemory,true
+1234,"Dumbbell Single-leg Hip Thrust","Poussée de hanche à une jambe avec haltère",mymemory,true
+1718,"Remo alto polea alta","Remo alto polea alta",mymemory,true
+718,"Wall Squat","Assis dos au mur",wger,false
+1238,"Frog stand","Support grenouille",mymemory,true
+1239,"Standing Calf Stretch","Étirement du mollet debout",mymemory,true
+1092,"Bag training","Formation sur les sacs",mymemory,true
+1240,"Standing Soleus Stretch","Étirement du soléaire debout",mymemory,true
+1241,"Exercise Band Dorsiflexion","Bande d'exercice Dorsiflexion",mymemory,true
+1242,"Exercise Band Plantarflexion","Bande d'exercice Plantarflexion",mymemory,true
+1243,"Double Leg Calf Raise","Élévation du mollet à deux jambes",mymemory,true
+1244,"Yoga exercise: Cow-cat","Exercice de yoga : Cow-cat",mymemory,true
+1245,"Front Lever","Levier avant",mymemory,true
+1246,"TRX roll out","Déploiement TRX",mymemory,true
+1248,"Ice Scream maker","Machine à crier les glaçons",mymemory,true
+851,"Leg Extension","Extension des pieds",mymemory,true
+1252,"Front lever pull-up","Levier avant pull-up",mymemory,true
+1214,"Front lever tuck","Repli du levier avant",mymemory,true
+1259,"TRX Obliques","TRX Obliques",mymemory,true
+1260,"TRX hammer curl","Flexion marteau",mymemory,true
+142,"Cable External Rotation","Rotation externe du câble",mymemory,true
+1261,"TRX gorilla biceps curl","Boucle biceps gorille TRX",mymemory,true
+1262,"Trx Single Arm Bicep Curl","Boucle de biceps à bras unique Trx",mymemory,true
+202,"Dumbbell Concentration Curl","Boucle de concentration d'haltères",mymemory,true
+1266,"TRX Tricep Extension","Extension de triceps TRX",mymemory,true
+1269,"TRX dips","Trempettes TRX",mymemory,true
+1270,"Low Pulley Cable fFly","Câble de poulie basse fFly",mymemory,true
+1271,"Low Pulley Cable fFly","Câble de poulie basse fFly",mymemory,true
+1272,"Low Pulley Cable fFly","Câble de poulie basse fFly",mymemory,true
+1273,"Pullover","Pull-over",mymemory,true
+1274,"Sitting Calf Stretch (Dorsiflexion)","Étirement du mollet assis (Dorsiflexion)",mymemory,true
+1276,"Incline Dumbbell Bench Press","Développé couché incliné avec haltères",mymemory,true
+1277,"Incline Dumbbell Press","Presse à haltères inclinée",mymemory,true
+1278,"Dumbbell Chest Press","Presse à poitrine avec haltères",mymemory,true
+1280,"Biceps Close Grip Pull Down","Biceps Fermer Poignée Tirer vers le bas",mymemory,true
+1282,"Isometria trazioni impugnatura inversa","Isometria trazioni impugnatura inversa",mymemory,true
+1283,"Incline Chest-Supported Dumbbell Row","Rangée d'haltères inclinée soutenue par la poitrine",mymemory,true
+1284,"Pseudo Planche Push-up","Pseudo Planche Push-up",mymemory,true
+1285,"Talons fesses","Talons fesses",mymemory,true
+1286,"Dynamic Planche","Planche dynamique",wger,false
+1287,"Reach ups","Reach ups",mymemory,true
+1288,"Planche de cote dynamique","Planche de cote dynamique",mymemory,true
+1289,"Seated Dumbbell Curls","Boucles d'haltères assises",mymemory,true
+1290,"Reverse Grip Barbell Curls","Boucles Barbell à poignée inversée",mymemory,true
+1292,"Trazioni impugnatura inversa","Trazioni impugnatura inversa",mymemory,true
+1293,"One armed push-ups","Un push-up armé",mymemory,true
+1294,"Arco femorale una gamba","Arco femorale una gamba",mymemory,true
+1295,"Barbell Bench Press - NB","Barbell Bench Press - NB",mymemory,true
+1296,"Low-Cable Cross-Over - NB","Low-Cable Cross-Over - NB",mymemory,true
+1297,"EZ-Bar Skullcrusher - NB","Broyeur de crâne EZ-Bar - NB",mymemory,true
+1298,"High-Cable Cross Tricep Extention - NB","Extension croisée de triceps à câble élevé - NB",mymemory,true
+1657,"Preacher Curl - Internally Rotated","Boucle de prédicateur - Rotation interne",mymemory,true
+1659,"Lat Pulldown - Cross Body Single Arm","Lat Pulldown - Corps croisé à un seul bras",mymemory,true
+1660,"Cable Chest Press - Incline","Presse à poitrine à câble - Inclinée",mymemory,true
+1302,"JM Press","Presse JM",mymemory,true
+1303,"Helms Row","Helms Row",mymemory,true
+1304,"Meadows Row","Meadows Row",mymemory,true
+1661,"Cable Triceps Press","Presse à triceps à câble",mymemory,true
+1662,"Cable Tri Extension - Internal Rotation","Câble Tri Extension - Rotation interne",mymemory,true
+1307,"Front Plank","Planche avant",mymemory,true
+1665,"Cable Tri Extension - External Rotation","Tri rallonge de câble - Rotation externe",mymemory,true
+1666,"Curl  - With Shoulder Elevated","Boucle  - Avec épaule surélevée",mymemory,true
+1312,"Bodyweight Squat HD","Poids corporel Squat HD",mymemory,true
+1313,"Lying Leg Raise","Levage de la jambe allongée",mymemory,true
+1314,"Jumping Jack HD","Jumping Jack HD",mymemory,true
+1315,"Bodyweight Squat HD","Poids corporel Squat HD",mymemory,true
+1316,"Jumping Jack HD","Jumping Jack HD",mymemory,true
+1317,"Plank","Planche",mymemory,true
+1318,"High Knee Skips HD","High Knee Skips HD",mymemory,true
+1319,"Crunches HD","Crunches HD",mymemory,true
+1320,"Bench Dips On Floor HD","Bench Dips On Floor HD",mymemory,true
+1322,"Kopfüber Gewichtaufheben","Kopfüber Gewichtaufheben",mymemory,true
+1324,"Bodyweight lunge HD","Poids corporel LUNGE HD",mymemory,true
+1325,"Lateral Push Off","Poussée latérale",mymemory,true
+1668,"One Arm Overhead Cable Tricep Extension","Extension Triceps Poulie Basse à Un Bras",wger,false
+1669,"Jumping Jacks","Sautillements sur place",mymemory,true
+1670,"Leg Swings (Front–Back)","Balançoires de jambe (avant-arrière)",mymemory,true
+1672,"Seated Hip Abduction","Abduction assis de la hanche",mymemory,true
+1673,"Dumbbell Romanian Deadlifts","Lève-morts roumains avec haltères",mymemory,true
+1674,"Dumbbell Floor Press","Développé au sol avec haltères",mymemory,true
+1675,"Push-Ups","Pompe",mymemory,true
+1336,"Triceps Overhead (Dumbbell)","Triceps au-dessus de la tête (haltères)",mymemory,true
+1337,"Shoulder Press (Dumbbell)","Appuyer sur l'épaule (haltère)",mymemory,true
+1338,"Schoulder Raise (Dumbbell)","Élévation de Schoulder (haltère)",mymemory,true
+1676,"Dumbbell Bench Press","Développé couché avec haltères",mymemory,true
+1679,"Wall Angels","Anges muraux",mymemory,true
+1680,"seated figure four","figure assise quatre",mymemory,true
+1683,"Zottman curl","Boucle Zottman",mymemory,true
+650,"Thruster","Propulseur",mymemory,true
+1684,"Dumbbell Thruster","Propulseur d'haltères",mymemory,true
+1686,"Glute Bridge Single-Arm Press","Presse à bras unique Glute Bridge",mymemory,true
+1687,"Bear crawl pull through","Tirer le crawl de l'ours à travers",mymemory,true
+1360,"Double Kettlebell Clean and Press","Double Kettlebell Nettoyer et Presser",mymemory,true
+1361,"Double Kettlebell Front Squat","Squat avant double Kettlebell",mymemory,true
+1389,"Single Leg RDL","RDL à une jambe",mymemory,true
+1372,"Triceps Dips (Assisted)","Trempettes triceps (assistées)",mymemory,true
+1373,"box jumps","sauts de boîte",mymemory,true
+1374,"Rotary Torso Machine","Machine rotative pour torse",mymemory,true
+1378,"Cable Lateral Raises (Single Arm)","Élévations latérales de câble (bras unique)",mymemory,true
+1376,"Recumbent Bike","Vélo couché",mymemory,true
+1377,"TORSO TWIST","TORSION DU TORSE",mymemory,true
+1321,"Side Plank","La Planche sur le côté:",mymemory,true
+1381,"Upper Back","Upper Back",mymemory,true
+1384,"Pullover Machine","Machine à pull-over",mymemory,true
+1387,"Hamstring Kicks","Coup de pied aux ischio-jambiers",mymemory,true
+1388,"Single Leg RDL","RDL à une jambe",mymemory,true
+1390,"Toe Touch","Toucher les orteils",mymemory,true
+1391,"Elephant Walks","Promenades à dos d'éléphant",mymemory,true
+1392,"Good Morning","Bonjour",mymemory,true
+1393,"Single Leg Hamstring Stretch","Étirement des ischio-jambiers d'une jambe",mymemory,true
+1394,"Sit & Reach","Sit & Reach",mymemory,true
+1395,"Crossbody Leg Swings","Balançoires à bandoulière",mymemory,true
+1396,"Standing Pancake","Crêpe debout",mymemory,true
+1398,"Hamstring Chokes","Stokes ischio-jambiers",mymemory,true
+1400,"Crossbody Hamstring Stretch","Étirement des ischio-jambiers à bandoulière",mymemory,true
+1658,"Preacher Curl - Externally Rotated","Boucle de prédicateur - Rotation externe",mymemory,true
+1688,"Kickstand RDL","Kickstand RDL",mymemory,true
+1406,"Plank-to-Elbow Extension","Extension planche-coude",mymemory,true
+1407,"Cossack squat","Squat cosaque",mymemory,true
+1408,"Wall-sit","L'assise",mymemory,true
+1409,"Dragon-flag","Drapeau-dragon",mymemory,true
+1410,"Plank with Alternating Leg Lift","Planche avec levage alterné des jambes",mymemory,true
+1411,"Heel Touches","Touches de talon",mymemory,true
+1412,"bicycle crunches","Crunchs bicyclette",mymemory,true
+1414,"Hack Squats","Hack Squats",mymemory,true
+1415,"Dumbbell Crunches","Coups d'haltères",mymemory,true
+1424,"Biceps Curl Machine","Machine à boucler les biceps",mymemory,true
+1425,"Toe Taps","Test de tapotement",mymemory,true
+1426,"Standing Side Crunches","Crevasses latérales debout",mymemory,true
+1429,"Dumbbell Shoulder Rotations","Rotations de l'épaule de l'haltère",mymemory,true
+1430,"Plate Pinch Hold","Support de pincement de plaque",mymemory,true
+1433,"Reverse Wood Chops","Couteaux de bois inversés",mymemory,true
+1434,"Lat Pull DB","Lat Pull DB",mymemory,true
+1435,"Scapula Pulls","Tirettes d'omoplate",mymemory,true
+1436,"Pin Bench Press BB","Pin Bench Press BB",mymemory,true
+1437,"Pin Squat","Pin Squat",mymemory,true
+1438,"Clean","Nettoyer",mymemory,true
+1439,"Pin OHP","Pin OHP",mymemory,true
+1440,"Push OHP","Push OHP",mymemory,true
+1441,"Incline OHP DB","Incliner OHP DB",mymemory,true
+1442,"Kreis Press DB","Kreis Press DB",mymemory,true
+1443,"Shoulder Raise Side and Front DB","Élévation de l'épaule côté et DB avant",mymemory,true
+1444,"Incline Chest Press DB","Incline Chest Press DB",mymemory,true
+1445,"Jerk OL","Jerk OL",mymemory,true
+1446,"Clean and Jerk OL","Epaulé jeté",mymemory,true
+1447,"Snatch OL","Snatch OL",mymemory,true
+1448,"Seated W Curl","Curl incliné avec haltères",wger,false
+1449,"ClimbMill","ClimbMill",mymemory,true
+1450,"Cobra Stretch","Étirement Cobra",mymemory,true
+1451,"Torso rotation strech","Stretch de rotation du torse",mymemory,true
+1452,"Knee to Chest Stretch","○  Étirement des muscles de la cuisse",mymemory,true
+1455,"Towel Superman","Serviette Superman",mymemory,true
+1457,"Cable Press Around","Presse à câble autour",mymemory,true
+1458,"Cross-Body Cable Y-Raise","Élévation en Y du câble transversal",mymemory,true
+1461,"No Leg Drive Dumbbell Chest Press","Presse thoracique à haltères sans entraînement de jambe",mymemory,true
+1462,"punches","emporte-pièce",mymemory,true
+1463,"Dumbbell Underhand Dead Row","Ligne morte sous le bras de l'haltère",mymemory,true
+1464,"Pause Hack Squats","Pause Hack Squats",mymemory,true
+1465,"Spider Curl","Spider Curl",mymemory,true
+1466,"Calf Raise using Hack Squat Machine","Levage de mollet à l'aide de la machine Hack Squat",mymemory,true
+1467,"Incline Close Grip Barbell Bench Press","Développé-couché barre à prise serrée",mymemory,true
+1468,"Floor Skull Crusher","Concasseur de crânes de sol",mymemory,true
+1469,"Bent over Cable Flye","Bent over Cable Flye",mymemory,true
+1470,"1-Arm Half-Kneeling Lat Pulldown","Pulldown lat à demi-genoux 1 bras",mymemory,true
+1471,"Kroc Row","Kroc Row",mymemory,true
+1472,"Cable Shrug-In","Câble Shrug-In",mymemory,true
+1473,"Reverse Cable Flye","Mouche à câble inversé",mymemory,true
+1474,"W-Raise","W-Raise",mymemory,true
+1475,"Black Widow Knee Slides","Glissières de veuve noires",mymemory,true
+1476,"Butterfly Sit Up","Papillon assis",mymemory,true
+1477,"Seated Corkscrew","Tire-bouchon assis",mymemory,true
+1478,"Levitation Crunch","Crunch de lévitation",mymemory,true
+1479,"Sit Up Elbow Thrust","Poussée du coude assis",mymemory,true
+1480,"Lying Triceps Extensions","Extensions du triceps couché",mymemory,true
+1481,"Drag Pushdown","Faire glisser le bouton vers le bas",mymemory,true
+1482,"Dumbbell Cheat Curl","Boucle de triche avec haltères",mymemory,true
+1483,"Bizeps Curls Trifecta","Boucles de bizeps Trifecta",mymemory,true
+1484,"Omni Cable Cross-over","Câble Omni Cross-over",mymemory,true
+1485,"Rocking Triceps Pushdown","Poussée des triceps à bascule",mymemory,true
+1486,"Alternating High Cable Row","Alterner la rangée de câbles haute",mymemory,true
+1487,"Hyper Y W Combo","Hyper Y W Combo",mymemory,true
+1488,"Dumbbell Pullover","Pull haltères",mymemory,true
+1489,"Plank Jacks","Jacks en planche",mymemory,true
+1490,"Lying Triceps Kickback","Rebond du triceps couché",mymemory,true
+1491,"Remada unilateral no cabo","Remada unilatéral sans cabine",mymemory,true
+1492,"High Row","Ligne haute",mymemory,true
+1493,"Bayesian Curl","Boucle bayésienne",mymemory,true
+1494,"Sitting Calf Raises","Élévations des mollets assis",mymemory,true
+1551,"Push-Up","Pompe",mymemory,true
+1496,"DB Upper Chest Variation","Variation du haut de la poitrine DB",mymemory,true
+1497,"DB Underhand bench press","DB Presse à bancs sous la main",mymemory,true
+1498,"Elbows Tucked DB Bench Press","Presse de banc DB à coudes repliés",mymemory,true
+1499,"DB Skull Crushers","Broyeurs de crânes DB",mymemory,true
+1500,"DB UCV","DB UCV",mymemory,true
+1501,"Alternative DB Gorilla rows","Rangées alternatives de gorilles DB",mymemory,true
+1502,"DB Cross Body Hammer Curls","DB Cross Body Hammer Curls",mymemory,true
+1503,"Dumbbell Frog Press","Presse à grenouilles avec haltères",mymemory,true
+1504,"Dumbbel Bradford press","Dumbbel Bradford Press",mymemory,true
+1567,"Alternating dumbbell hammer curl","Curl marteau alterné assis avec haltères",mymemory,true
+1689,"Cable Fly Middle Chest","Coffre du milieu de la mouche à câble",mymemory,true
+1690,"Cable Fly Upper Chest","Coffre supérieur de mouche à câble",mymemory,true
+1508,"High-Incline Smith Machine Press","Presse à Smith High-Incline",mymemory,true
+1509,"Cable Tricep Kickback","Cable Tricep Kickback",mymemory,true
+1510,"Neutral Grip Lat Pulldown","Pulldown de latte à prise neutre",mymemory,true
+1511,"Kong Curl","Kong Curl",mymemory,true
+1512,"Drop Curl","Drop Curl",mymemory,true
+1513,"Overhead Cable Tricep Extension","Extension de triceps de câble aérien",mymemory,true
+1514,"Lateral Walk","Marche latérale",mymemory,true
+1515,"Leg Press Toe Press","Presse à jambes Presse à orteils",mymemory,true
+1516,"Handstand","Poirier",mymemory,true
+1691,"Cable Fly Lower Chest","Coffre inférieur de mouche à câble",mymemory,true
+1692,"Incline Smith Press","Incline Smith Press",mymemory,true
+1519,"Overhead Triceps Extension","Extension de triceps en hauteur",mymemory,true
+1693,"Incline Static Hold","Maintien statique incliné",mymemory,true
+1694,"Flat Machine Press","Presse",mymemory,true
+1523,"Sled Push","Poussée de traîneau",mymemory,true
+1524,"Battle Ropes","Cordes de combat",mymemory,true
+1525,"Ball Slams","Ball Slams",mymemory,true
+1526,"Ski Machine","Machine à ski",mymemory,true
+1527,"Pendulum Squat","Squat pendulaire",mymemory,true
+1528,"Glute Drive","Glute Drive",mymemory,true
+1530,"Lying Dumbbell Curls","Boucles d'haltères couchées",mymemory,true
+1531,"Cable Curls","Boucles de câble",mymemory,true
+1695,"Pull-Ups (Wide Grip)","Pull-Ups (Poignée large)",mymemory,true
+1698,"Barbell Row (Overhand)","Barbell Row (Overhand)",mymemory,true
+1699,"Barbell Row (Underhand)","Barbell Row (Underhand)",mymemory,true
+1535,"lying bicep curl","boucle de biceps couché",mymemory,true
+1536,"Delt Stretch","Delt Stretch",mymemory,true
+1537,"Pull-up Isometric Hold","Maintien isométrique Pull-up",mymemory,true
+1700,"Barbell Romanian Deadlift (RDL)","Soulèvement mort roumain de Barbell (RDL)",mymemory,true
+1701,"One-Arm Heavy Row","Rangée lourde à un bras",mymemory,true
+1702,"Jalón al pecho con agarre ancho","Jalón al pecho con agarre ancho",mymemory,true
+1703,"Patadas traseras","Patadas traseras",mymemory,true
+1542,"Wide Pull Up","Wide Pull Up",mymemory,true
+1704,"Tuck L-sit","Tuck L-sit",mymemory,true
+1545,"Archer Pull Up","Archer Pull Up",mymemory,true
+1546,"Larsen Press","Larsen Press",mymemory,true
+1706,"Bulgarian Squat with Dumbbells","Squats bulgares haltères",wger,false
+1548,"Stair Master","Maître d'escalier",mymemory,true
+1549,"Stair Master","Maître d'escalier",mymemory,true
+1707,"Elevación lateral polea","Elevación side polea",mymemory,true
+1710,"Butchers Block Stretch","Étirement des blocs de bouchers",mymemory,true
+1554,"Clap Push-UP","Clap Push-Up",mymemory,true
+1711,"Sleeper Stretch","Étirement du dormeur",mymemory,true
+1556,"Devil’s Press","Devil's Press",mymemory,true
+1572,"Bird Dog","Bird dog",mymemory,true
+1573,"Ab wheel","Roue ab",mymemory,true
+1576,"Snap Down","Snap Down",mymemory,true
+1577,"Bretzel stretch","Bretzel stretch",mymemory,true
+1578,"Hip hinge","Charnière de hanche",mymemory,true
+1580,"Perpendicular Unilateral Landmine Row","Rangée perpendiculaire unilatérale de mines antipersonnel",mymemory,true
+1581,"Trap press","Presse-piège",mymemory,true
+1582,"Side-laying interior rotation","Rotation intérieure latérale",mymemory,true
+1583,"Supine press","Presse en décubitus",mymemory,true
+1584,"March or jog in place","Marche ou jogging en place",mymemory,true
+1589,"Estiramiento de piernas y cadera","Estiramiento de piernas y cadera",mymemory,true
+1590,"Estiramiento de brazos y cuello","Estiramiento de brazos y cuello",mymemory,true
+1591,"Respiración profunda (de pie o sentado)","Respiración profunda (de pie o sentado)",mymemory,true
+1593,"Smith Machine Split Squat","Smith Machine Split Squat",mymemory,true
+1594,"Smith Machine Split Squat","Smith Machine Split Squat",mymemory,true
+1696,"Pull-Ups (Neutral Grip)","Pull-Ups (Neutral Grip)",mymemory,true
+1709,"Reverse Fly Standing","Vol inversé en position debout",mymemory,true
+1712,"Horizontal Shoulder Flexion Stretch","Étirement horizontal de la flexion de l'épaule",mymemory,true
+1719,"Jalon caballero unialteral","Jalon caballero unialteral",mymemory,true
+1602,"Dumbbell Scaption","Scaption d'haltères",mymemory,true
+1603,"Leg curl with elastic","Flexion des jambes avec élastique",mymemory,true
+1604,"Sliding Lateral Lunge","Fente latérale coulissante",mymemory,true
+1605,"Copenhagen Adduction Exercise","Exercice d'Adduction à Copenhague",mymemory,true
+1606,"Arm Raises (T/Y/I)","Élévations des bras (T/Y/I)",mymemory,true
+1607,"Typewriter Pull-ups","Glissières pour machine à écrire",mymemory,true
+1608,"Bodyweight Biceps Curl","Bodyweight Biceps Curl",mymemory,true
+1723,"Glute Kickback (Machine)","Glute Kickback (Machine)",mymemory,true
+1725,"Seated Row (Machine)","Rangée assise (machine)",mymemory,true
+1612,"kettlebell sumo deadlift","kettlebell sumo deadlift",mymemory,true
+1613,"rubber band glute kickback","bande en caoutchouc fessière kickback",mymemory,true
+1614,"Dumbbell Hip Thrust","Poussée de la hanche de l'haltère",mymemory,true
+1616,"Patada de burro con mancuerna","Patada de burro con mancuerna",mymemory,true
+1617,"Crunch en maquina","Crunch en maquina",mymemory,true
+1726,"Straight-Arm Pulldown (Cable)","Pulldown à bras droit (câble)",mymemory,true
+1620,"Seated Dumbbell Calf Raise","Élévation des mollets haltères assis",wger,false
+1621,"Unilateral Cable row","Rangée de câbles unilatérale",mymemory,true
+1727,"Side Straight-Arm Pulldown (Cable)","Pulldown latéral à bras droit (câble)",mymemory,true
+1728,"Shoulder Internal Rotation (Cable)","Rotation interne de l'épaule (câble)",mymemory,true
+1729,"Shoulder External Rotation (Cable)","Rotation externe de l'épaule (câble)",mymemory,true
+1730,"Side Lateral Raise (Cable)","Élévation latérale latérale (câble)",mymemory,true
+1731,"Front Raise (Cable)","Élévation avant (câble)",mymemory,true
+1732,"Face pulls with yellow/green band","Tirettes faciales avec bande jaune/verte",mymemory,true
+1733,"Isometric Squat to Failure","Squat isométrique jusqu'à l'échec",mymemory,true
+1734,"Single-Leg Lunge with Kettlebell:","Fente à une jambe avec Kettlebell :",mymemory,true
+1735,"Single-leg side glute press","Presse fessière latérale à une jambe",mymemory,true
+1736,"Single-Leg Deadlift with Dumbbell","Deadlift à une jambe avec haltère",mymemory,true
+1738,"Neutral-grip pull-ups or TRX rows","Tirettes à prise neutre ou rangées TRX",mymemory,true
+1740,"Single Leg Glute Bridge","Pont fessier à une jambe",mymemory,true
+1743,"Windshield Wipers","Essuie-glaces",mymemory,true
+1744,"Machine Side Lateral Raises","Élévations latérales côté machine",mymemory,true
+1745,"Cable Front Raise with a small bar","Élévation avant de câble avec une petite barre",mymemory,true
+1746,"Floor dumbbell bench press","Presse de banc pour haltères au sol",mymemory,true
+1747,"Smith machine squat","Squat sumo à la Smith machine",mymemory,true
+1748,"Machine Hip Abduction","Abduction de la hanche à la machine",mymemory,true
+1749,"Seated Triceps Press","Presse triceps assise",mymemory,true
+1750,"Romanian Deadlift","Soulevé de terre roumain",wger,false
+1751,"Cable pull through","Tirer le câble à travers",mymemory,true
+1752,"Side lateral raise - Front (Cable)","Élévation latérale latérale - Avant (câble)",mymemory,true
+1753,"Side lateral raise - Back (Cable)","Élévation latérale latérale - Arrière (câble)",mymemory,true
+1765,"Pull-Ups (Wide Grip)","Pull-Ups (Poignée large)",mymemory,true
+1770,"Seated machine row","Rangée de machines assises",mymemory,true
+1772,"Reverse crunch","Crunch inversé",mymemory,true
+1773,"Legend Incline Bench Press","Legend Incline Bench Press",mymemory,true
+1627,"Barbell squat","Haltères Squat",mymemory,true
+1777,"Deficit Push ups","Déficit Push-ups",mymemory,true
+1844,"Frog Stretch","Étirement de la grenouille",mymemory,true
+1795,"unilateral cross body cable pull down","câble transversal unilatéral tirant vers le bas",mymemory,true
+1801,"Barbell Full Squat","Barbell Squat complet",mymemory,true
+1803,"Trap Bar Squat","Squat de la barre de piégeage",mymemory,true
+1804,"ankle dorsiflexion rocks","roches dorsiflexion cheville",mymemory,true
+1806,"Lat Pull Down","EXERCICE DU MUSCLE GRAND DORSAL",mymemory,true
+1807,"Behind the Back Cable Lateral Raise","Derrière le câble arrière Élévation latérale",mymemory,true
+1808,"Parallel Bar Hold","Maintien de barre parallèle",mymemory,true
+1809,"Reverse Hyperextension","Hyperextension inverse",mymemory,true
+1810,"Sphinx","Sphinx",mymemory,true
+1823,"Clamshell","Clapet",mymemory,true
+1824,"Dumbell Tate Press","Dumbell Tate Press",mymemory,true
+1825,"Chest-Supported Rear Delt Raise","Soulèvement de delt arrière soutenu par la poitrine",mymemory,true
+1826,"Band pull-apart with external rotation","Band pull-apart avec rotation externe",mymemory,true
+1827,"Double-Leg Abdominal Press","Presse abdominale à deux jambes",mymemory,true
+1828,"Abdominal Draw-In","Aspiration abdominale",mymemory,true
+1829,"Landmine Squat to Press","Squat de mine terrestre à presser",mymemory,true
+1830,"Barbell Step Back Lunge","Fente de marche arrière Barbell",mymemory,true
+1831,"Hammerstrength Decline Chest Press","Hammerstrength Decline Chest Press",mymemory,true
+1834,"Trap-3 Raise","Élévation du piège-3",mymemory,true
+1835,"External Rotation Stretch","Étirement de rotation externe",mymemory,true
+1838,"Banded Shoulder Drills","Perceuses à bandoulière rayée",mymemory,true
+1841,"Seated Shoulder Extension Stretch","Étirement de l'extension de l'épaule assise",mymemory,true
+1842,"Banded Clamshell","Clamshell à bande",mymemory,true
+1397,"Standing Pancake Good Morning","Crêpe debout Bonjour",mymemory,true
+1845,"Seated Pancake Good Morning","Crêpe assise Bonjour",mymemory,true
+1846,"Horse Stance (Side Splits)","Position du cheval (fentes latérales)",mymemory,true
+1847,"Straddle L-Sit","Straddle L-Sit",mymemory,true
+1852,"L-sit","L-sit",mymemory,true
+1853,"L-Sit (Foot Supported)","L-Sit (supporté par le pied)",mymemory,true
+1854,"Calves foam roller","Rouleau mousse veaux",mymemory,true
+1857,"Foam Roller Iliotibial band","Rouleau en mousse Bande iliotibiale",mymemory,true
+1858,"Foam Roller quadriceps","Mousse Rouleau quadriceps",mymemory,true
+1859,"Foam Roller Gluteus","Rouleau de mousse Gluteus",mymemory,true
+1877,"Banded Scapular Retraction","Rétraction scapulaire en bande",mymemory,true
+1878,"Bench Press Dumbbell","Haltère Bench Press",mymemory,true
+1879,"Incline DB Y-Raise","Incliner DB Y-Raise",mymemory,true
+1880,"Wide Grip Pull Up","Barre de traction à grande ouverture",mymemory,true
+1882,"High-Cable Lateral Raise","Élévation latérale à câble élevé",mymemory,true
+1883,"Machine Chest Press","Presse de coffre de machine",mymemory,true
+1884,"Shinbox IR Stretch","Shinbox IR Stretch",mymemory,true
+1885,"YTWL Exercise","Exercice YTWL",mymemory,true
+1886,"Supine Hip Abduction","Abduction de la hanche supérieure",mymemory,true
+1889,"Decline Bench Leg Raise","Relevé de la jambe du banc déclinant",mymemory,true
+1893,"Overhead Barbell Press","Presse à barbe aérienne",mymemory,true
+1897,"Close-Grip Bench Press","Développé-couché barre à prise serrée",mymemory,true
+1900,"Tricep Rope Pushdowns","Extension triceps corde",wger,false
+1901,"Clean and Press","Nettoyer et presser",mymemory,true
+1902,"Weighted push-ups","Pompes pondérées",mymemory,true
+1903,"Walking Lunges","Jambes : marche fentes",mymemory,true
+1904,"Pec Deck","Pec Deck bras tendus",wger,false
+1905,"Pullback","Pullback",mymemory,true
+1906,"Hip Bridge","Pont de hanche",mymemory,true
+1907,"Unilateral Lunges","Fentes unilatérales",mymemory,true
+1908,"Butterfly Superman","Papillon Superman",mymemory,true
+1909,"Leg Wheel","Roue de jambe",mymemory,true
+1910,"Kneeling Superman","S'agenouiller Superman",mymemory,true
+1911,"Cat Plank","Planche de chat",mymemory,true
+1912,"Core Rotation","Rotation du tronc",mymemory,true
+1913,"Unilateral Hip Thrust","Poussée unilatérale de la hanche",mymemory,true
+1914,"Isometria alle parallele","Parallèle de l'allèle Isometria",mymemory,true
+1916,"Tuck planche","Tuck planche",mymemory,true

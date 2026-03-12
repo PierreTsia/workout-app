@@ -25,5 +25,18 @@
   "offlineTitle": "Internet required for editing",
   "offlineDescription": "The Workout Builder needs a connection to save changes. Please reconnect and try again.",
   "exerciseCount_one": "{{count}} exercise",
-  "exerciseCount_other": "{{count}} exercises"
+  "exerciseCount_other": "{{count}} exercises",
+  "filters": "Filters",
+  "equipment": {
+    "barbell": "Barbell",
+    "dumbbell": "Dumbbell",
+    "machine": "Machine",
+    "cable": "Cable",
+    "bodyweight": "Bodyweight",
+    "kettlebell": "Kettlebell",
+    "bench": "Bench",
+    "ez_bar": "EZ Bar",
+    "band": "Band",
+    "other": "Other"
+  }
 }

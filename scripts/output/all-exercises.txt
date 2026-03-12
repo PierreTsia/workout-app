@@ -1,0 +1,692 @@
+IMP | 1-Arm Half-Kneeling Lat Pulldown | Pulldown lat à demi-genoux 1 bras
+IMP | Ab wheel | Roue ab
+IMP | Abdominal Draw-In | Aspiration abdominale
+IMP | Abdominal Stabilization | Stabilisation abdominale
+IMP | Alternate back lunges | Alterner les fentes arrière
+IMP | Alternating Biceps Curls With Dumbbell | Alterner les boucles du biceps avec un haltère
+IMP | Alternating dumbbell hammer curl | Curl marteau alterné assis avec haltères
+IMP | Alternating High Cable Row | Alterner la rangée de câbles haute
+IMP | Alternative DB Gorilla rows | Rangées alternatives de gorilles DB
+IMP | ankle dorsiflexion rocks | roches dorsiflexion cheville
+IMP | Arabesque | Arabesque
+IMP | Archer Pull Up | Archer Pull Up
+IMP | Arco femorale una gamba | Arco femorale una gamba
+IMP | Arm Raises (T/Y/I) | Élévations des bras (T/Y/I)
+SYS | Arnold Shoulder Press | Arnold Press Haltères
+IMP | Australian pull-ups | Tractions australiennes
+IMP | Back extensión | Retour extensión
+IMP | Bag training | Formation sur les sacs
+IMP | Ball Slams | Ball Slams
+IMP | Band pull-apart with external rotation | Band pull-apart avec rotation externe
+IMP | Banded Clamshell | Clamshell à bande
+IMP | Banded Scapular Retraction | Rétraction scapulaire en bande
+IMP | Banded Shoulder Drills | Perceuses à bandoulière rayée
+IMP | Barbell Ab Rollout | Panneau déroulant Barbell Ab
+IMP | Barbell Bench Press - NB | Barbell Bench Press - NB
+IMP | Barbell Clean and press | Barbell Nettoyer et presser
+IMP | Barbell Full Squat | Barbell Squat complet
+IMP | Barbell Hip Thrust | Poussée de hanche Barbell
+IMP | Barbell Hip Thrust | Poussée de hanche Barbell
+IMP | Barbell Lunges Standing | Fentes de barbelé debout
+IMP | Barbell Romanian Deadlift (RDL) | Soulèvement mort roumain de Barbell (RDL)
+IMP | Barbell Row (Overhand) | Barbell Row (Overhand)
+IMP | Barbell Row (Underhand) | Barbell Row (Underhand)
+IMP | Barbell squat | Haltères Squat
+IMP | Barbell Step Back Lunge | Fente de marche arrière Barbell
+IMP | Barbell Triceps Extension | Rallonge de triceps Barbell
+IMP | Barbell Wrist Curl | Boucle de poignet Barbell
+IMP | Battle Ropes | Cordes de combat
+IMP | Bayesian Curl | Boucle bayésienne
+IMP | Bear crawl pull through | Tirer le crawl de l'ours à travers
+IMP | Bear Walk 2 | Bear Walk 2
+IMP | Behind the Back Cable Lateral Raise | Derrière le câble arrière Élévation latérale
+IMP | Bench Dips On Floor HD | Bench Dips On Floor HD
+SYS | Bench Press | Développé couché
+IMP | Bench Press Dumbbell | Haltère Bench Press
+IMP | Bench Press Narrow Grip | Poignée étroite de la presse de banc
+IMP | Benchpress Dumbbells | Développé couché avec haltères
+IMP | Bent High Pulls | Bent High Pulls
+IMP | Bent over Cable Flye | Bent over Cable Flye
+IMP | Bent Over Dumbbell Rows | Courbé sur les rangées d'haltères
+IMP | Bent Over Rowing | Courbé sur aviron
+IMP | Bent Over Rowing Reverse | Bent Over Rowing Reverse
+IMP | Bent Over Rowing Reverse | Bent Over Rowing Reverse
+IMP | Biceps Close Grip Pull Down | Biceps Fermer Poignée Tirer vers le bas
+IMP | Biceps Curl Machine | Machine à boucler les biceps
+IMP | Biceps Curl With Cable | Boucle des biceps avec câble
+SYS | Biceps Curls With Barbell | Curls stricts barre
+IMP | Biceps Curls With Dumbbell | Boucles de biceps avec haltères
+IMP | Biceps Curls With SZ-bar | Boucles de biceps avec barre SZ
+IMP | Biceps with TRX | Biceps avec TRX
+IMP | bicycle crunches | Crunchs bicyclette
+IMP | Bird Dog | Bird dog
+IMP | Bizeps Curls Trifecta | Boucles de bizeps Trifecta
+IMP | Black Widow Knee Slides | Glissières de veuve noires
+IMP | Blaze | Blaze
+IMP | Bodyweight Biceps Curl | Bodyweight Biceps Curl
+IMP | Bodyweight lunge HD | Poids corporel LUNGE HD
+IMP | Bodyweight Squat HD | Poids corporel Squat HD
+IMP | Bodyweight Squat HD | Poids corporel Squat HD
+IMP | box jumps | sauts de boîte
+IMP | Braced Squat | Squat renforcé
+IMP | Bretzel stretch | Bretzel stretch
+IMP | Bulgarian Squat with Dumbbells | Squats bulgares haltères
+IMP | BUS DRIVERS | Chauffeurs de bus
+IMP | Butchers Block Stretch | Étirement des blocs de bouchers
+IMP | Butterfly | "Butterfly"
+IMP | Butterfly Narrow Grip | Poignée papillon étroite
+IMP | Butterfly Reverse | Butterfly Reverse
+IMP | Butterfly Sit Up | Papillon assis
+IMP | Butterfly Superman | Papillon Superman
+IMP | Cable Chest Press - Decline | Presse à poitrine câblée - Refus
+IMP | Cable Chest Press - Incline | Presse à poitrine à câble - Inclinée
+IMP | Cable Concentration Curl | Courbe de concentration du câble
+IMP | Cable Cross-over | Croisement de câbles
+IMP | Cable Curls | Boucles de câble
+IMP | Cable External Rotation | Rotation externe du câble
+IMP | Cable Fly | Système de câble Fly (+)
+IMP | Cable Fly Lower Chest | Coffre inférieur de mouche à câble
+IMP | Cable Fly Middle Chest | Coffre du milieu de la mouche à câble
+IMP | Cable Fly Upper Chest | Coffre supérieur de mouche à câble
+IMP | Cable Front Raise with a small bar | Élévation avant de câble avec une petite barre
+IMP | Cable Lateral Raises (Single Arm) | Élévations latérales de câble (bras unique)
+IMP | Cable Press Around | Presse à câble autour
+IMP | Cable pull through | Tirer le câble à travers
+IMP | Cable Rear Delt Fly | Câble Delt Fly arrière
+IMP | Cable Shrug-In | Câble Shrug-In
+IMP | Cable Tri Extension - External Rotation | Tri rallonge de câble - Rotation externe
+IMP | Cable Tri Extension - Internal Rotation | Câble Tri Extension - Rotation interne
+IMP | Cable Tricep Kickback | Cable Tricep Kickback
+IMP | Cable Triceps Press | Presse à triceps à câble
+IMP | Cable Woodchoppers | Câble Woodchoppers
+IMP | Calf Press Using Leg Press Machine | Presse à mollets à l'aide d'une presse à jambes
+IMP | Calf Raise using Hack Squat Machine | Levage de mollet à l'aide de la machine Hack Squat
+IMP | Calf Raises on Hackenschmitt Machine | Élévations de mollets sur la machine Hackenschmitt
+IMP | Calf raises, left leg | Élévations des mollets, jambe gauche
+IMP | Calf raises, one legged | Lever du mollet gauche
+IMP | Calves foam roller | Rouleau mousse veaux
+IMP | Cat Plank | Planche de chat
+IMP | Chest Press | Supino
+IMP | Chest-Supported Rear Delt Raise | Soulèvement de delt arrière soutenu par la poitrine
+IMP | Chin-ups | Chin-ups
+IMP | Clamshell | Clapet
+IMP | Clap Push-UP | Clap Push-Up
+IMP | Claps over the head | Applique sur la tête
+IMP | Clean | Nettoyer
+IMP | Clean and Jerk OL | Epaulé jeté
+IMP | Clean and Press | Nettoyer et presser
+IMP | ClimbMill | ClimbMill
+IMP | Close-Grip Bench Press | Développé-couché barre à prise serrée
+IMP | Close-grip Lat Pull Down | Tirette Lat à prise étroite vers le bas
+IMP | Close-grip Press-ups | Press-ups à prise serrée
+IMP | Cobra Stretch | Étirement Cobra
+IMP | commando pull-ups | pull-ups commando
+IMP | Concentration Curl | Curl biceps avec haltère
+IMP | Copenhagen Adduction Exercise | Exercice d'Adduction à Copenhague
+IMP | Core Rotation | Rotation du tronc
+IMP | Cossack squat | Squat cosaque
+IMP | Cross-Bench Dumbbell Pullovers | Pull-over Cross-Bench Dumbbell
+IMP | Cross-Body Cable Y-Raise | Élévation en Y du câble transversal
+IMP | Crossbody Hamstring Stretch | Étirement des ischio-jambiers à bandoulière
+IMP | Crossbody Leg Swings | Balançoires à bandoulière
+IMP | Crunch en maquina | Crunch en maquina
+IMP | Crunches | Abdominaux
+IMP | Crunches HD | Crunches HD
+SYS | Crunches on Machine | Crunch assis machine
+SYS | Crunches With Cable | Crunch à genoux poulie
+IMP | Crunches With Legs Up | Crunchs avec les jambes en l'air
+IMP | Curl  - With Shoulder Elevated | Boucle  - Avec épaule surélevée
+IMP | Curl de biceps con agarre prono | Curl de biceps con agarre prono
+IMP | Curl with kettlebell two hands | Bouclez avec la kettlebell à deux mains
+IMP | Cycling | Cyclisme
+IMP | DB Cross Body Hammer Curls | DB Cross Body Hammer Curls
+IMP | DB Skull Crushers | Broyeurs de crânes DB
+IMP | DB UCV | DB UCV
+IMP | DB Underhand bench press | DB Presse à bancs sous la main
+IMP | DB Upper Chest Variation | Variation du haut de la poitrine DB
+IMP | Deadlifts | Deadlifts.
+IMP | Decline Bench Leg Raise | Relevé de la jambe du banc déclinant
+IMP | Decline Bench Press Barbell | Déclin de la presse de banc Barbell
+IMP | Decline Bench Press Dumbbell | Haltère de la presse d'établi à décliner
+IMP | Decline Pushups | Refuser les pushups
+IMP | Deficit Push ups | Déficit Push-ups
+IMP | Delt Stretch | Delt Stretch
+IMP | Devil’s Press | Devil's Press
+IMP | Diamond push ups | 3. Pompes en diamant
+IMP | Dips | Dips
+IMP | Dips Between Two Benches | Trempette entre deux bancs
+IMP | Doorway Pectoral Stretch | Étirement pectoral de la porte
+IMP | Double Kettlebell Clean and Press | Double Kettlebell Nettoyer et Presser
+IMP | Double Kettlebell Front Squat | Squat avant double Kettlebell
+IMP | Double Leg Calf Raise | Élévation du mollet à deux jambes
+IMP | Double-Leg Abdominal Press | Presse abdominale à deux jambes
+IMP | Drag Pushdown | Faire glisser le bouton vers le bas
+IMP | Dragon squat | Squat dragon
+IMP | Dragon-flag | Drapeau-dragon
+IMP | Drop Curl | Drop Curl
+IMP | Dumbbel Bradford press | Dumbbel Bradford Press
+IMP | Dumbbell Bench Press | Développé couché avec haltères
+IMP | Dumbbell Bent Over Face Pull | Tirage facial avec haltères buste penché
+IMP | Dumbbell Bent Over Row | Haltère jambe pliée (gauche)
+IMP | Dumbbell bicep curl to press | Boucler le biceps de l'haltère pour appuyer
+IMP | Dumbbell Cheat Curl | Boucle de triche avec haltères
+IMP | Dumbbell Chest Press | Presse à poitrine avec haltères
+IMP | Dumbbell close grip bench press | Presse de banc à prise rapprochée avec haltères
+IMP | Dumbbell Concentration Curl | Boucle de concentration d'haltères
+IMP | Dumbbell Crunches | Coups d'haltères
+IMP | Dumbbell Decline Bench Press | Développé couché décliné
+IMP | Dumbbell drag curls | Boucles de traînée avec haltères
+IMP | Dumbbell Floor Press | Développé au sol avec haltères
+IMP | Dumbbell Floor Press | Développé au sol avec haltères
+IMP | Dumbbell Frog Press | Presse à grenouilles avec haltères
+IMP | Dumbbell Front Squat | Squat avant avec haltères
+IMP | Dumbbell Goblet Squat | Squat de gobelet avec haltères
+IMP | Dumbbell Hip Thrust | Hip Thrust avec haltère
+IMP | Dumbbell Hip Thrust | Poussée de la hanche de l'haltère
+SYS | Dumbbell Incline Curl | Curls biceps inclinés
+IMP | Dumbbell Incline Fly | Écarté incliné avec haltères
+IMP | Dumbbell Lunges Standing | Fentes d'haltères debout
+IMP | Dumbbell Lunges Walking | Fentes d'haltères en marche
+IMP | Dumbbell Pullover | Pull haltères
+IMP | Dumbbell rear delt row | Rangée de delt arrière de l'haltère
+IMP | Dumbbell Rear Lunge | Fente arrière avec haltères
+IMP | Dumbbell Romanian Deadlift | Soulevé de terre roumain avec haltères
+IMP | Dumbbell Romanian Deadlifts | Lève-morts roumains avec haltères
+IMP | Dumbbell Scaption | Scaption d'haltères
+IMP | Dumbbell Shoulder Rotations | Rotations de l'épaule de l'haltère
+SYS | Dumbbell Shrug | Shrugs haltères
+IMP | Dumbbell Side Bend | Flexion Latérale avec haltère
+IMP | Dumbbell Side Squat | Squat latéral avec haltère
+IMP | Dumbbell Single-leg Hip Thrust | Poussée de hanche à une jambe avec haltère
+IMP | Dumbbell Thruster | Propulseur d'haltères
+IMP | Dumbbell Triceps Extension | Extension du triceps de l'haltère
+IMP | Dumbbell Underhand Dead Row | Ligne morte sous le bras de l'haltère
+IMP | Dumbbell upright-row | Tirage menton avec haltères
+IMP | Dumbbell wide bicep curls | Boucles de biceps larges avec haltères
+IMP | Dumbbells on Scott Machine | Haltères sur Scott Machine
+IMP | Dumbell Tate Press | Dumbell Tate Press
+IMP | Dynamic Planche | Planche dynamique
+IMP | Dynamic side hold | Maintien latéral dynamique
+IMP | Elbows Tucked DB Bench Press | Presse de banc DB à coudes repliés
+IMP | Elephant Walks | Promenades à dos d'éléphant
+IMP | Elevación lateral polea | Elevación side polea
+IMP | Elevated prayer stretch | Étirement de prière élevé
+IMP | Elliptical | Vélo elliptique
+IMP | Estiramiento de brazos y cuello | Estiramiento de brazos y cuello
+IMP | Estiramiento de piernas y cadera | Estiramiento de piernas y cadera
+IMP | Exercise Band Dorsiflexion | Bande d'exercice Dorsiflexion
+IMP | Exercise Band Plantarflexion | Bande d'exercice Plantarflexion
+IMP | Extensión de gluteo en  máquina | Extensión de gluteo en  máquina
+IMP | Extensión de gluteos en polea | Extensión de gluteos en polea
+IMP | External Rotation Stretch | Étirement de rotation externe
+IMP | EZ-Bar Skullcrusher - NB | Broyeur de crâne EZ-Bar - NB
+IMP | Face pulls with yellow/green band | Tirettes faciales avec bande jaune/verte
+IMP | Facepull | Facepull
+IMP | Flat Machine Press | Presse
+IMP | Floor dumbbell bench press | Presse de banc pour haltères au sol
+IMP | Floor Skull Crusher | Concasseur de crânes de sol
+IMP | Flutter Kicks | Battements de jambes
+IMP | Fly With Cable | dont le câble
+IMP | Fly With Dumbbells | avec des haltères
+IMP | Fly With Dumbbells, Decline Bench | Volez avec des haltères, baissez le banc
+IMP | Foam Roller Gluteus | Rouleau de mousse Gluteus
+IMP | Foam Roller Iliotibial band | Rouleau en mousse Bande iliotibiale
+IMP | Foam Roller quadriceps | Mousse Rouleau quadriceps
+IMP | Frog stand | Support grenouille
+IMP | Frog Stretch | Étirement de la grenouille
+IMP | Front Lever | Levier avant
+IMP | Front lever pull-up | Levier avant pull-up
+IMP | Front lever tuck | Repli du levier avant
+IMP | Front Plank | Planche avant
+IMP | Front Plate Raise | Élévation de la plaque avant
+IMP | Front Pull narrow | Tirer à l'avant étroit
+IMP | Front pull wide | Tirer à l'avant large
+IMP | Front Raise (Cable) | Élévation avant (câble)
+IMP | Front Raises | Élévations avant
+IMP | Front Raises with Plates | Élévations avant avec plaques
+IMP | Front Squats | Squats avant
+IMP | Full Sit Outs | Sit Outs complets
+IMP | Glute Bridge | Pont fessier
+IMP | Glute Bridge Single-Arm Press | Presse à bras unique Glute Bridge
+IMP | Glute Drive | Glute Drive
+IMP | Glute Kickback (Machine) | Glute Kickback (Machine)
+IMP | Good Morning | Bonjour
+IMP | Good Mornings | Bonjour
+IMP | Hack Squats | Hack Squats
+IMP | Hammer Curls | Boucles de marteau
+IMP | Hammercurls on Cable | Hammercurls sur câble
+IMP | Hammerstrength Decline Chest Press | Hammerstrength Decline Chest Press
+IMP | Hamstring Chokes | Stokes ischio-jambiers
+IMP | Hamstring Kicks | Coup de pied aux ischio-jambiers
+IMP | Handstand | Poirier
+IMP | Handstand Push Up | Pousser le support manuel vers le haut
+IMP | Handstand Pushup | Poussée du support à main
+IMP | Hanging Leg Raises | Élévations des jambes pendantes
+IMP | Heel Touches | Touches de talon
+IMP | Helms Row | Helms Row
+IMP | Hercules Pillars | Piliers Hercules
+IMP | High Knee Jumps | Sauts en hauteur aux genoux
+IMP | High Knee Skips HD | High Knee Skips HD
+IMP | High Pull | Tirage haut
+IMP | High Pull | Tirage haut
+IMP | High Row | Ligne haute
+IMP | High-Cable Cross Tricep Extention - NB | Extension croisée de triceps à câble élevé - NB
+IMP | High-Cable Lateral Raise | Élévation latérale à câble élevé
+IMP | High-Incline Smith Machine Press | Presse à Smith High-Incline
+IMP | Hindu Pushups | Pompes hindoues
+IMP | Hindu Squats | Squats hindous
+IMP | Hip Bridge | Pont de hanche
+IMP | Hip hinge | Charnière de hanche
+IMP | Hip Thrust | relevé de bassin
+IMP | Hollow Hold | Hollow Hold
+IMP | Horizontal Shoulder Flexion Stretch | Étirement horizontal de la flexion de l'épaule
+IMP | Horizontal traction isometry | Isométrie de traction horizontale
+IMP | Horse Stance (Side Splits) | Position du cheval (fentes latérales)
+IMP | Hyper Y W Combo | Hyper Y W Combo
+SYS | Hyperextensions | Extension du dos machine
+IMP | Ice Scream maker | Machine à crier les glaçons
+IMP | Incline Bench Press - Barbell | Presse pour banc incliné - Barbell
+IMP | Incline Bench Press - Dumbbell | Presse d'établi inclinée - Haltère
+IMP | Incline Bench Press - MP | Développé Incliné aux Haltères
+IMP | Incline Bench Reverse Fly - Hello | Vol inversé du banc incliné - Bonjour
+IMP | Incline Chest Press DB | Incline Chest Press DB
+IMP | Incline Chest-Supported Dumbbell Row | Rangée d'haltères inclinée soutenue par la poitrine
+IMP | Incline Close Grip Barbell Bench Press | Développé-couché barre à prise serrée
+IMP | Incline Crunches | Incliner les craquements
+IMP | Incline DB Y-Raise | Incliner DB Y-Raise
+IMP | Incline Dumbbell Bench Press | Développé couché incliné avec haltères
+IMP | Incline Dumbbell Fly | Mouche d'haltère inclinée
+IMP | Incline Dumbbell Press | Presse à haltères inclinée
+IMP | Incline OHP DB | Incliner OHP DB
+IMP | Incline Plank With Alternate Floor Touch | Planche inclinée avec contact au sol alternatif
+IMP | Incline Push up | Incliner Pousser vers le haut
+IMP | Incline Shoulder Press Up | Appuyer sur l'épaule inclinée vers le haut
+SYS | Incline Skull Crush | Skull Crusher incliné
+IMP | Incline Smith Press | Incline Smith Press
+IMP | Incline Static Hold | Maintien statique incliné
+IMP | Inverted Rows | Lignes inversées
+IMP | Isometria alle parallele | Parallèle de l'allèle Isometria
+IMP | Isometria trazioni impugnatura inversa | Isometria trazioni impugnatura inversa
+IMP | Isometric Squat to Failure | Squat isométrique jusqu'à l'échec
+IMP | Isometric Wipers | Essuie-glaces isométriques
+IMP | Jalón abierto | Jalón abierto
+IMP | Jalón abierto supino | Jalón abierto supino
+IMP | Jalón al pecho con agarre ancho | Jalón al pecho con agarre ancho
+IMP | Jalon caballero unialteral | Jalon caballero unialteral
+IMP | Jalón cerrado | Jalón cerrado
+IMP | Jalón cerrado supino | Jalón cerrado supino
+IMP | JALON EN BANCO INCLINADO | JALON EN BANCO INCLINADO
+IMP | JALONES PECHO NEUTRO | JALONES PECHO NEUTRO
+IMP | Jerk OL | Jerk OL
+IMP | JM Press | Presse JM
+IMP | Jumping Jack HD | Jumping Jack HD
+IMP | Jumping Jack HD | Jumping Jack HD
+IMP | Jumping Jacks | Sauts en étoile
+IMP | Jumping Jacks | Sautillements sur place
+IMP | Kettlebell One Legged Deadlift | Soulevé de terre unilatéral
+IMP | kettlebell sumo deadlift | kettlebell sumo deadlift
+IMP | Kettlebell Swing | Balançoire Kettlebell
+IMP | Kettlebell Swings | Balançoires Kettlebell
+IMP | Kickstand RDL | Kickstand RDL
+IMP | Kneck extension | Extension du coude
+IMP | knee push-ups | Pompes sur les genoux
+IMP | Knee Raises | Élévation des genoux
+IMP | Knee to Chest Stretch | ○  Étirement des muscles de la cuisse
+IMP | Kneeling Superman | S'agenouiller Superman
+IMP | Kong Curl | Kong Curl
+IMP | Kopfüber Gewichtaufheben | Kopfüber Gewichtaufheben
+IMP | Kreis Press DB | Kreis Press DB
+IMP | Kroc Row | Kroc Row
+IMP | L-sit | L-sit
+IMP | L-Sit (Foot Supported) | L-Sit (supporté par le pied)
+IMP | Landmine press | Développé vertical à la barre
+IMP | Landmine Squat to Press | Squat de mine terrestre à presser
+IMP | Larsen Press | Larsen Press
+IMP | Lat Pull DB | Lat Pull DB
+IMP | Lat Pull Down | EXERCICE DU MUSCLE GRAND DORSAL
+IMP | Lat Pull Down (Leaning Back) | Lat Tirer vers le bas (en se penchant vers l'arrière)
+IMP | Lat Pull Down (Straight Back) | Tirage vertical à la poulie haute
+IMP | Lat Pulldown - Cross Body Single Arm | Lat Pulldown - Corps croisé à un seul bras
+SYS | Lat Pulldown (Wide Grip) | Tirage latéral prise large
+IMP | Lateral Push Off | Poussée latérale
+SYS | Lateral Raises | Élévations latérales
+IMP | Lateral Rows on Cable, One Armed | Rangées latérales sur le câble, une armée
+IMP | Lateral Walk | Marche latérale
+IMP | Lateral-to-Front Raises | Élévations latérales à frontales
+IMP | Leg Curl | Flexion des jambes
+IMP | Leg curl with elastic | Flexion des jambes avec élastique
+IMP | Leg Curls (laying) | Boucles de jambe (pose)
+SYS | Leg Curls (sitting) | Leg Curl assis
+IMP | Leg Curls (standing) | Boucles de jambes (debout)
+IMP | Leg Extension | Extension des pieds
+SYS | Leg Extension | Extension de jambe machine
+SYS | Leg Press | Presse à cuisse
+IMP | Leg Press on Hackenschmidt Machine | Presse à jambes sur machine Hackenschmidt
+IMP | Leg Press Toe Press | Presse à jambes Presse à orteils
+IMP | Leg Presses (narrow) | Presses pour les jambes (étroites)
+IMP | Leg Presses (wide) | Presses pour les jambes (larges)
+IMP | Leg Raise | Levées de jambe
+IMP | Leg raises pull up bar | La jambe soulève la barre de traction vers le haut
+IMP | Leg Raises, Lying | Élévations des jambes, allongement
+IMP | Leg Raises, Standing | Élévations des jambes, debout
+IMP | Leg Swings (Front–Back) | Balançoires de jambe (avant-arrière)
+IMP | Leg Wheel | Roue de jambe
+IMP | Legend Incline Bench Press | Legend Incline Bench Press
+IMP | Leverage Machine Chest Press | Tirer parti de la presse thoracique de la
+IMP | Leverage Machine Iso Row | Tirer parti de la machine Iso Row
+IMP | Levitation Crunch | Crunch de lévitation
+IMP | Long-Pulley (low Row) | Poulie longue (rangée basse)
+IMP | Long-Pulley, Narrow | Poulie longue, étroite
+IMP | Low Box Squat - Wide Stance | Squat box bas - Position large
+IMP | Low Pulley Cable fFly | Câble de poulie basse fFly
+IMP | Low Pulley Cable fFly | Câble de poulie basse fFly
+IMP | Low Pulley Cable fFly | Câble de poulie basse fFly
+IMP | Low-Cable Cross-Over - NB | Low-Cable Cross-Over - NB
+IMP | lying bicep curl | boucle de biceps couché
+IMP | Lying Dumbbell Curls | Boucles d'haltères couchées
+IMP | LYING DUMBBELL ROW SS SEATED SHRUG | RANGÉE D'HALTÈRES ALLONGÉS SS ASSIS EN HAUSSANT LES ÉPAULES
+IMP | Lying Leg Raise | Levage de la jambe allongée
+IMP | Lying Triceps Extensions | Extensions du triceps couché
+IMP | Lying Triceps Kickback | Rebond du triceps couché
+IMP | Machine chest fly | Braguette poitrine machine
+IMP | Machine Chest Press | Presse de coffre de machine
+IMP | Machine Chest Press Exercise | Exercice de presse thoracique de la machine
+IMP | Machine Hip Abduction | Abduction de la hanche à la machine
+IMP | Machine lateral wise | Machine latéralement
+IMP | Machine Side Lateral Raises | Élévations latérales côté machine
+IMP | March or jog in place | Marche ou jogging en place
+IMP | Meadows Row | Meadows Row
+IMP | Medicine ball booklet crunch | Crunch du livret de balles médicinales
+IMP | Medicine ball twist | Torsade de balle médicinale
+IMP | Modified pulldown | Pulldown modifié
+IMP | Muscle up | Traction
+IMP | Negative Crunches | Crunchs négatifs
+IMP | Neutral Grip Lat Pulldown | Pulldown de latte à prise neutre
+IMP | Neutral-grip pull-ups or TRX rows | Tirettes à prise neutre ou rangées TRX
+IMP | No Leg Drive Dumbbell Chest Press | Presse thoracique à haltères sans entraînement de jambe
+IMP | Nordic Curl | Boucle nordique
+IMP | Omni Cable Cross-over | Câble Omni Cross-over
+IMP | One Arm Overhead Cable Tricep Extension | Extension Triceps Poulie Basse à Un Bras
+IMP | One armed push-ups | Un push-up armé
+IMP | One-Arm Heavy Row | Rangée lourde à un bras
+IMP | one-handed kettlebell curls | boucles kettlebell à une main
+IMP | Overhand Cable Curl | Overhand Cable Curl
+IMP | Overhead Barbell Press | Presse à barbe aérienne
+IMP | Overhead Cable Tricep Extension | Extension de triceps de câble aérien
+IMP | Overhead Press | Développé militaire
+IMP | Overhead Triceps Extension | Extension de triceps en hauteur
+IMP | PALLOF PRESS | PRESSE PALLOF
+IMP | Parallel Bar Hold | Maintien de barre parallèle
+IMP | Patada de burro con mancuerna | Patada de burro con mancuerna
+IMP | Patadas traseras | Patadas traseras
+IMP | Pause Bench | Suspendre le banc
+IMP | Pause Hack Squats | Pause Hack Squats
+SYS | Pec Deck | Papillon bras tendus
+SYS | Pec Deck | Pec Deck bras tendus
+SYS | Pec Deck Rear Delt Fly | Papillon inverse
+IMP | Pendelay Rows | Lignes Pendelay
+IMP | Pendulum Squat | Squat pendulaire
+IMP | Perpendicular Unilateral Landmine Row | Rangée perpendiculaire unilatérale de mines antipersonnel
+IMP | Pike Push Ups | Pompes piquées
+IMP | Pin Bench Press BB | Pin Bench Press BB
+IMP | Pin OHP | Pin OHP
+IMP | Pin Squat | Pin Squat
+IMP | Pistol Squat | Pistol squats gauches
+IMP | Planche de cote dynamique | Planche de cote dynamique
+IMP | Plank | Planche
+IMP | Plank | Planche pour les avant-bras
+IMP | Plank Jacks | Jacks en planche
+IMP | Plank Shoulter Taps | Robinets d'encrassement de planche
+IMP | Plank with Alternating Leg Lift | Planche avec levage alterné des jambes
+IMP | Plank-to-Elbow Extension | Extension planche-coude
+IMP | Plate Pinch Hold | Support de pincement de plaque
+IMP | Plate twist | Torsion de la plaque
+IMP | Power Clean | Power Clean
+IMP | Preacher Curl - Externally Rotated | Boucle de prédicateur - Rotation externe
+IMP | Preacher Curl - Internally Rotated | Boucle de prédicateur - Rotation interne
+IMP | Preacher Curls | Boucles de prédicateur
+IMP | Prone Scapular Retraction - Arms at Side | Rétraction scapulaire inclinée - Bras sur le côté
+IMP | Pseudo Planche Push-up | Pseudo Planche Push-up
+IMP | PULL OVER POLEA ALTA | PULL OVER POLEA ALTA
+IMP | Pull Ups on Machine | Tirer vers le haut sur la machine
+IMP | Pull-up Isometric Hold | Maintien isométrique Pull-up
+IMP | Pull-ups | Tractions
+IMP | Pull-Ups (Neutral Grip) | Pull-Ups (Neutral Grip)
+IMP | Pull-Ups (Wide Grip) | Pull-Ups (Poignée large)
+IMP | Pull-Ups (Wide Grip) | Pull-Ups (Poignée large)
+IMP | Pullback | Pullback
+IMP | Pullover | Pull-over
+IMP | Pullover Machine | Machine à pull-over
+IMP | punches | emporte-pièce
+IMP | Push OHP | Push OHP
+IMP | Push Press | Jeté Force
+IMP | Push-Up | Pompe
+IMP | Push-Ups | Pompe
+IMP | Push-Ups | Decline | Pompes déclinées
+IMP | Push-Ups | Incline | Pompes | Incliner
+IMP | Push-Ups | Parallettes | Pompes | Parallettes
+IMP | Quadriped Arm and Leg Raise | Élévation quadripède des bras et des jambes
+IMP | Rack Deadlift | Rack Deadlift
+IMP | Reach ups | Reach ups
+IMP | Rear Delt Raise | Levage de delt arrière
+IMP | Recumbent Bike | Vélo couché
+IMP | Remada unilateral no cabo | Remada unilatéral sans cabine
+IMP | Remo alto polea alta | Remo alto polea alta
+IMP | Renegade Row | Renegade Row
+IMP | Respiración profunda (de pie o sentado) | Respiración profunda (de pie o sentado)
+IMP | Reverse Bar Curl | Boucle de barre inversée
+IMP | Reverse Cable Flye | Mouche à câble inversé
+IMP | Reverse crunch | Crunch inversé
+IMP | Reverse Curl | Inversez.
+IMP | Reverse EZ Bar Cable Curls | Boucles de câble de la barre EZ inversée
+IMP | Reverse Fly Standing | Vol inversé en position debout
+IMP | Reverse Grip Barbell Curls | Boucles Barbell à poignée inversée
+IMP | Reverse Grip Bench Press | Presse de banc à poignée inversée
+IMP | Reverse Hyperextension | Hyperextension inverse
+IMP | Reverse Nordic Curl | Boucle nordique inversée
+IMP | Reverse Preacher Curl (Close Grip) | Reverse Preacher Curl (Fermer la poignée)
+IMP | Reverse Snow Angel | Ange de neige inversé
+IMP | Reverse Wood Chops | Couteaux de bois inversés
+IMP | Ring Dips | Trempettes annulaires
+IMP | Rocking Triceps Pushdown | Poussée des triceps à bascule
+SYS | Romanian Deadlift | Soulevé de terre roumain
+IMP | Romanian deadlift, single leg | Deadlift roumain, jambe unique
+IMP | Rope Pullover/row | Pull en corde/rangée
+IMP | Rotary Torso Machine | Machine rotative pour torse
+IMP | Row | Rang
+IMP | Rowing Machine | appareil à ramer
+SYS | Rowing seated, narrow grip | Rangées prise serrée neutre
+IMP | Rowing, Lying on Bench | Aviron, couché sur le banc
+IMP | Rowing, T-bar | Aviron, barre en T
+IMP | rubber band glute kickback | bande en caoutchouc fessière kickback
+IMP | Russian Twist | Torsion russe
+IMP | Scapula Pulls | Tirettes d'omoplate
+IMP | Schoulder Raise (Dumbbell) | Élévation de Schoulder (haltère)
+IMP | Scissors | Ciseaux
+IMP | Seated bench press | Presse à bancs assis
+IMP | Seated Bench Press | Presse à bancs assis
+IMP | SEATED CABLE MID TRAP SHRUG | CÂBLE ASSIS À MI-PIÈGE HAUSSEMENT D'ÉPAULES
+SYS | Seated Cable Row | Rangées prise large pronation
+IMP | Seated Cable Rows | Rangées de câbles assis
+SYS | Seated Calf Raise | Extension mollet machine
+IMP | Seated Corkscrew | Tire-bouchon assis
+IMP | Seated Dumbbell Calf Raise | Élévation des mollets haltères assis
+IMP | Seated Dumbbell Curls | Boucles d'haltères assises
+IMP | Seated Dumbbell Side Lateral | Latéral côté haltère assis
+IMP | seated figure four | figure assise quatre
+IMP | Seated Hip Abduction | Abduction assis de la hanche
+IMP | Seated Hip Adduction | Adduction de la hanche assise
+IMP | Seated Knee Tuck | Repli du genou assis
+IMP | Seated Knee Tuck | Repli du genou assis
+IMP | Seated machine row | Rangée de machines assises
+IMP | Seated Pancake Good Morning | Crêpe assise Bonjour
+IMP | Seated rear delt rise | Élévation du delt arrière assis
+IMP | Seated Row (Machine) | Rangée assise (machine)
+IMP | Seated Shoulder Extension Stretch | Étirement de l'extension de l'épaule assise
+IMP | Seated Triceps Press | Presse triceps assise
+IMP | Seated Triceps Press | Presse triceps assise
+IMP | Seated W Curl | Curl incliné avec haltères
+IMP | Shinbox IR Stretch | Shinbox IR Stretch
+IMP | Shotgun Row | Rangée de fusils de chasse
+IMP | Shoulder Dumbbell Pendular Exercise | Exercice pendulaire avec haltères à l'épaule
+IMP | Shoulder External Rotation (Cable) | Rotation externe de l'épaule (câble)
+IMP | Shoulder External Rotation with Dumbbell | Rotation externe de l'épaule avec haltère
+IMP | Shoulder Internal Rotation (Cable) | Rotation interne de l'épaule (câble)
+IMP | Shoulder Press (Dumbbell) | Appuyer sur l'épaule (haltère)
+IMP | Shoulder Press, Barbell | Presse d'épaule, Barbell
+IMP | Shoulder Press, Dumbbells | Presse d'épaule, haltères
+IMP | Shoulder Press, on Machine | Appuyer sur l'épaule, sur la machine
+IMP | Shoulder Press, on Multi Press | Appuyer sur l'épaule, sur la presse multiple
+IMP | Shoulder Raise Side and Front DB | Élévation de l'épaule côté et DB avant
+IMP | Shoulder Shrug | Haussement d'épaules
+IMP | Shrugs on Multipress | Shrugs sur Multipress
+IMP | Shrugs, Barbells | Haussements d'épaules, haltères
+IMP | Shrugs, Dumbbells | Haussements d'épaules, haltères
+IMP | Side Bends on Machine | Coudes latérales sur la machine
+IMP | Side Crunch | Exercice latéral :
+IMP | Side Dumbbell Trunk Flexion | Flexion latérale du tronc de l'haltère
+IMP | Side lateral raise - Back (Cable) | Élévation latérale latérale - Arrière (câble)
+IMP | Side lateral raise - Front (Cable) | Élévation latérale latérale - Avant (câble)
+IMP | Side Lateral Raise (Cable) | Élévation latérale latérale (câble)
+IMP | Side Plank | La Planche sur le côté:
+IMP | Side Plank | Planche latérale gauche
+IMP | Side Slides + Squats | Glissières latérales + Squats
+IMP | Side Straight-Arm Pulldown (Cable) | Pulldown latéral à bras droit (câble)
+IMP | Side to Side Push Ups | Poussées d'un côté à l'autre
+IMP | Side-laying interior rotation | Rotation intérieure latérale
+IMP | Single Arm Plank to Row | Planche à bras unique vers la rangée
+IMP | Single arm row | Rangée de bras unique
+IMP | Single Leg Extension | Extension d'une jambe
+IMP | Single Leg Glute Bridge | Pont fessier à une jambe
+IMP | Single Leg Hamstring Stretch | Étirement des ischio-jambiers d'une jambe
+IMP | Single Leg RDL | RDL à une jambe
+IMP | Single Leg RDL | RDL à une jambe
+IMP | Single-arm Preacher Curl | Boucle de prédicateur à un bras
+IMP | Single-Leg Deadlift with Dumbbell | Deadlift à une jambe avec haltère
+IMP | Single-Leg Lunge with Kettlebell: | Fente à une jambe avec Kettlebell :
+IMP | Single-leg side glute press | Presse fessière latérale à une jambe
+IMP | Sit & Reach | Sit & Reach
+IMP | Sit Up Elbow Thrust | Poussée du coude assis
+IMP | Sit-ups | Redressements assis
+IMP | Sitting Calf Raises | Élévations des mollets assis
+IMP | Sitting Calf Raises | Élévations des mollets assis
+IMP | Sitting Calf Stretch (Dorsiflexion) | Étirement du mollet assis (Dorsiflexion)
+IMP | Ski Machine | Machine à ski
+IMP | Skipping - Standard | Sauter - Standard
+IMP | Skullcrusher Dumbbells | Haltères Skullcrusher
+IMP | Skullcrusher SZ-bar | Crâne concasseur SZ-bar
+IMP | Sled Push | Poussée de traîneau
+IMP | Sleeper Stretch | Étirement du dormeur
+IMP | Sliding Lateral Lunge | Fente latérale coulissante
+IMP | Smith Machine Close-grip Bench Press | Presse d'établi Smith Machine à prise serrée
+IMP | SMITH MACHINE SLIGHT INCLINE PRESS | PRESSE À LÉGÈRE INCLINAISON POUR MACHINE SMITH
+IMP | Smith Machine Split Squat | Smith Machine Split Squat
+IMP | Smith Machine Split Squat | Smith Machine Split Squat
+IMP | Smith machine squat | Squat sumo à la Smith machine
+IMP | Smith Press | Smith Press
+IMP | Snach | Snach
+IMP | Snap Down | Snap Down
+IMP | Snatch OL | Snatch OL
+IMP | Sphinx | Sphinx
+IMP | Spider Curl | Spider Curl
+IMP | Splinter Sit-ups | Sit-ups Splinter
+IMP | Squat Jumps | Sauts en squat
+IMP | Squat Thrust | Poussées de squat
+IMP | Squats | Accroupi
+IMP | Squats on Multipress | Squats sur Multipress
+IMP | Stair Master | Maître d'escalier
+IMP | Stair Master | Maître d'escalier
+IMP | Standing Bicep Curl | Boucle du biceps debout
+IMP | Standing biceps stretch left | Étirement des biceps debout vers la gauche
+IMP | Standing biceps stretch right | Les biceps debout s'étirent à droite
+SYS | Standing Calf Raises | Élévation mollet machine
+IMP | Standing Calf Stretch | Étirement du mollet debout
+IMP | Standing Pancake | Crêpe debout
+IMP | Standing Pancake Good Morning | Crêpe debout Bonjour
+IMP | Standing Side Crunches | Crevasses latérales debout
+IMP | Standing Soleus Stretch | Étirement du soléaire debout
+IMP | Stiff-legged Deadlifts | Deadlifts aux jambes raides
+IMP | Straddle L-Sit | Straddle L-Sit
+IMP | Straight Bar Cable Curls | Boucles de câble droites
+IMP | Straight Bar Cable Front Raise | Élévation avant de câble de barre droite
+IMP | Straight-arm Pull Down (bar Attachment) | Tirer le bras droit vers le bas (fixation de la barre)
+IMP | Straight-arm Pull Down (rope Attachment) | Tirer le bras droit vers le bas (attache de corde)
+IMP | Straight-Arm Pulldown (Cable) | Pulldown à bras droit (câble)
+IMP | Sumo Deadlift | Soulèvement de Sumo
+IMP | Sumo Squats | Squats sumo
+IMP | Superman | Surhomme
+IMP | Supine Hip Abduction | Abduction de la hanche supérieure
+IMP | Supine press | Presse en décubitus
+IMP | Suspended crossess | Crossess suspendu
+IMP | T-Bar row | Rangée de barre en T
+IMP | Talons fesses | Talons fesses
+IMP | Thruster | Propulseur
+IMP | Toe Taps | Test de tapotement
+IMP | Toe Touch | Toucher les orteils
+IMP | Torso rotation strech | Stretch de rotation du torse
+IMP | TORSO TWIST | TORSION DU TORSE
+IMP | Towel Superman | Serviette Superman
+IMP | Trap Bar Squat | Squat de la barre de piégeage
+IMP | Trap press | Presse-piège
+IMP | Trap-3 Raise | Élévation du piège-3
+IMP | Trazioni impugnatura inversa | Trazioni impugnatura inversa
+IMP | Tricep Dumbbell Kickback | Extension des avant-bras avec haltère
+IMP | Tricep Pushdown on Cable | Pousser le triceps vers le bas sur le câble
+SYS | Tricep Rope Pushdowns | Extension triceps corde
+IMP | Triceps Dips (Assisted) | Trempettes triceps (assistées)
+IMP | Triceps Extensions on Cable | Extensions de triceps sur le câble
+IMP | Triceps Extensions on Cable With Bar | Extensions de triceps sur câble avec barre
+IMP | Triceps on Machine | Triceps sur machine
+IMP | Triceps Overhead (Dumbbell) | Triceps au-dessus de la tête (haltères)
+IMP | Triceps Pushdown | Poussée du triceps
+IMP | Triceps stretch left | Étirement des triceps
+IMP | Triceps stretch right | Les triceps s'étirent à droite
+IMP | Trunk Rotation With Cable | Rotation du tronc avec câble
+IMP | TRX dips | Trempettes TRX
+IMP | TRX gorilla biceps curl | Boucle biceps gorille TRX
+IMP | TRX hammer curl | Flexion marteau
+IMP | TRX Obliques | TRX Obliques
+IMP | TRX roll out | Déploiement TRX
+IMP | TRX Rows | Lignes TRX
+IMP | Trx Single Arm Bicep Curl | Boucle de biceps à bras unique Trx
+IMP | TRX Tricep Extension | Extension de triceps TRX
+IMP | Tuck L-sit | Tuck L-sit
+IMP | Tuck planche | Tuck planche
+IMP | Turkish Get-Up | Récupération turque
+IMP | Typewriter Pull-ups | Glissières pour machine à écrire
+IMP | Underhand Lat Pull Down | Sous-main Lat Pull Down
+IMP | Unilateral Cable row | Rangée de câbles unilatérale
+IMP | Unilateral Cable row | Rangée de câbles unilatérale
+IMP | unilateral cross body cable pull down | câble transversal unilatéral tirant vers le bas
+IMP | Unilateral Hip Thrust | Poussée unilatérale de la hanche
+IMP | Unilateral Lunges | Fentes unilatérales
+IMP | Upper Back | Upper Back
+IMP | Upper External Oblique | Oblique externe supérieur
+IMP | Upright Row w/ Dumbbells | Rangée verticale avec haltères
+IMP | Upright Row, on Multi Press | Rangée droite, sur presse multiple
+IMP | Upright Row, SZ-bar | Rangée verticale, barre SZ
+IMP | V-BAR PULL DOWNS | V-BAR PULL DOWNS
+IMP | Vpushup | Vpushup
+IMP | W-Raise | W-Raise
+IMP | Walking | Marche à pied
+IMP | walking bridge | pont piétonnier
+IMP | Walking Lunges | Jambes : marche fentes
+IMP | Wall Angels | Anges muraux
+IMP | Wall balls | Boules murales
+IMP | Wall Drills | Perceuses murales
+IMP | Wall Pushup | Poussée murale
+IMP | Wall Slides | Glissières murales
+IMP | Wall Squat | Assis dos au mur
+IMP | Wall-sit | L'assise
+IMP | Weighted Crunch | Crunch lesté
+IMP | Weighted push-ups | Pompes pondérées
+IMP | Wide Grip Pull Up | Barre de traction à grande ouverture
+IMP | Wide Pull Up | Wide Pull Up
+IMP | Wide-grip Pulldown | Tirage vertical à prise large
+IMP | Windshield Wipers | Essuie-glaces
+IMP | Yoga exercise: Cow-cat | Exercice de yoga : Cow-cat
+IMP | YTWL Exercise | Exercice YTWL
+IMP | Zottman curl | Boucle Zottman
+IMP | Коробочный присед | Коробочный присед
+
+Total: 690

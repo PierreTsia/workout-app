@@ -25,5 +25,18 @@
   "offlineTitle": "Connexion internet requise",
   "offlineDescription": "Le Créateur d'entraînement a besoin d'une connexion pour sauvegarder les modifications. Veuillez vous reconnecter et réessayer.",
   "exerciseCount_one": "{{count}} exercice",
-  "exerciseCount_other": "{{count}} exercices"
+  "exerciseCount_other": "{{count}} exercices",
+  "filters": "Filtres",
+  "equipment": {
+    "barbell": "Barre",
+    "dumbbell": "Haltères",
+    "machine": "Machine",
+    "cable": "Poulie",
+    "bodyweight": "Poids du corps",
+    "kettlebell": "Kettlebell",
+    "bench": "Banc",
+    "ez_bar": "Barre EZ",
+    "band": "Élastique",
+    "other": "Autre"
+  }
 }

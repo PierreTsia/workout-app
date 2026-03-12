@@ -1,0 +1,596 @@
+name_en,old_name_fr,new_name_fr,reason
+"1-Arm Half-Kneeling Lat Pulldown","Pulldown lat à demi-genoux 1 bras","Tirage poulie haute un bras à genoux",override
+"Ab wheel","Roue ab","Roue abdominale",override
+"Abdominal Stabilization","Stabilisation abdominale","Gainage abdominal",override
+"Alternate back lunges","Alterner les fentes arrière","Fentes arrière alternées",override
+"Alternating Biceps Curls With Dumbbell","Alterner les boucles du biceps avec un haltère","Curl biceps alterné haltères",override
+"Alternating dumbbell hammer curl","Curl marteau alterné assis avec haltères","Curl marteau alterné haltères",override
+"Alternating High Cable Row","Alterner la rangée de câbles haute","Tirage poulie haute alterné",override
+"Alternative DB Gorilla rows","Rangées alternatives de gorilles DB","Rowing gorilla alterné haltères",override
+"ankle dorsiflexion rocks","roches dorsiflexion cheville","Roches dorsiflexion cheville",casing
+"Archer Pull Up","Archer Pull Up","Tractions archer",override
+"Arm Raises (T/Y/I)","Élévations des bras (T/Y/I)","Élévations bras (T/Y/I)",override
+"Back extensión","Retour extensión","Extension du dos",override
+"Bag training","Formation sur les sacs","Entraînement au sac",override
+"Ball Slams","Ball Slams","Ball slams",override
+"Band pull-apart with external rotation","Band pull-apart avec rotation externe","Écarté élastique avec rotation externe",override
+"Banded Clamshell","Clamshell à bande","Clamshell élastique",override
+"Banded Scapular Retraction","Rétraction scapulaire en bande","Rétraction scapulaire élastique",override
+"Banded Shoulder Drills","Perceuses à bandoulière rayée","Exercices épaules élastique",override
+"Barbell Ab Rollout","Panneau déroulant Barbell Ab","Ab rollout barre",override
+"Barbell Bench Press - NB","Barbell Bench Press - NB","Développé couché barre (NB)",override
+"Barbell Clean and press","Barbell Nettoyer et presser","Épaulé développé barre",override
+"Barbell Full Squat","Barbell Squat complet","Squat complet barre",override
+"Barbell Hip Thrust","Poussée de hanche Barbell","Hip thrust barre",override
+"Barbell Hip Thrust","Poussée de hanche Barbell","Hip thrust barre",override
+"Barbell Lunges Standing","Fentes de barbelé debout","Fentes barre debout",override
+"Barbell Romanian Deadlift (RDL)","Soulèvement mort roumain de Barbell (RDL)","Soulevé de terre roumain barre",override
+"Barbell Row (Overhand)","Barbell Row (Overhand)","Rowing barre pronation",override
+"Barbell Row (Underhand)","Barbell Row (Underhand)","Rowing barre supination",override
+"Barbell squat","Haltères Squat","Squat barre",override
+"Barbell Step Back Lunge","Fente de marche arrière Barbell","Fentes arrière barre",override
+"Barbell Triceps Extension","Rallonge de triceps Barbell","Extension triceps barre",override
+"Barbell Wrist Curl","Boucle de poignet Barbell","Curl poignets barre",override
+"Bayesian Curl","Boucle bayésienne","Curl bayésien",override
+"Bear crawl pull through","Tirer le crawl de l'ours à travers","Bear crawl tirage",override
+"Bear Walk 2","Bear Walk 2","Bear walk 2",override
+"Behind the Back Cable Lateral Raise","Derrière le câble arrière Élévation latérale","Élévation latérale poulie derrière le dos",override
+"Bench Dips On Floor HD","Bench Dips On Floor HD","Dips sur banc au sol",override
+"Bench Press Dumbbell","Haltère Bench Press","Développé couché haltères",override
+"Bench Press Narrow Grip","Poignée étroite de la presse de banc","Développé couché prise serrée",override
+"Benchpress Dumbbells","Développé couché avec haltères","Développé couché haltères",override
+"Bent High Pulls","Bent High Pulls","Bent high pulls",casing
+"Bent over Cable Flye","Bent over Cable Flye","Écarté poulie penché",override
+"Bent Over Dumbbell Rows","Courbé sur les rangées d'haltères","Rowing penché haltères",override
+"Bent Over Rowing","Courbé sur aviron","Rowing penché barre",override
+"Bent Over Rowing Reverse","Bent Over Rowing Reverse","Rowing penché prise inversée",override
+"Bent Over Rowing Reverse","Bent Over Rowing Reverse","Rowing penché prise inversée",override
+"Biceps Close Grip Pull Down","Biceps Fermer Poignée Tirer vers le bas","Tirage poulie haute prise serrée supination",override
+"Biceps Curl Machine","Machine à boucler les biceps","Curl biceps machine",override
+"Biceps Curl With Cable","Boucle des biceps avec câble","Curl biceps poulie",override
+"Biceps Curls With Dumbbell","Boucles de biceps avec haltères","Curl biceps haltères",override
+"Biceps Curls With SZ-bar","Boucles de biceps avec barre SZ","Curl biceps barre EZ",override
+"Biceps with TRX","Biceps avec TRX","Curl biceps TRX",override
+"Bizeps Curls Trifecta","Boucles de bizeps Trifecta","Curl biceps trifecta",override
+"Black Widow Knee Slides","Glissières de veuve noires","Glissements de genoux black widow",override
+"Bodyweight Biceps Curl","Bodyweight Biceps Curl","Curl biceps poids de corps",override
+"Bodyweight lunge HD","Poids corporel LUNGE HD","Fentes poids de corps",override
+"Bodyweight Squat HD","Poids corporel Squat HD","Squat poids de corps",override
+"Bodyweight Squat HD","Poids corporel Squat HD","Squat poids de corps",override
+"box jumps","sauts de boîte","Box jumps",override
+"Bretzel stretch","Bretzel stretch","Étirement bretzel",override
+"Bulgarian Squat with Dumbbells","Squats bulgares haltères","Squat bulgare haltères",override
+"BUS DRIVERS","Chauffeurs de bus","Bus drivers",override
+"Butchers Block Stretch","Étirement des blocs de bouchers","Étirement bloc boucher",override
+"Butterfly","""Butterfly""","Butterfly",override
+"Butterfly Narrow Grip","Poignée papillon étroite","Butterfly prise serrée",override
+"Butterfly Reverse","Butterfly Reverse","Butterfly inversé",override
+"Butterfly Sit Up","Papillon assis","Sit-up papillon",override
+"Butterfly Superman","Papillon Superman","Superman papillon",override
+"Cable Chest Press - Decline","Presse à poitrine câblée - Refus","Développé pectoraux poulie décliné",override
+"Cable Chest Press - Incline","Presse à poitrine à câble - Inclinée","Développé pectoraux poulie incliné",override
+"Cable Concentration Curl","Courbe de concentration du câble","Curl concentration poulie",override
+"Cable Cross-over","Croisement de câbles","Croisement poulie vis-à-vis",override
+"Cable Curls","Boucles de câble","Curl poulie basse",override
+"Cable External Rotation","Rotation externe du câble","Rotation externe poulie",override
+"Cable Fly","Système de câble Fly (+)","Écarté poulie vis-à-vis",override
+"Cable Fly Lower Chest","Coffre inférieur de mouche à câble","Écarté poulie bas des pectoraux",override
+"Cable Fly Middle Chest","Coffre du milieu de la mouche à câble","Écarté poulie milieu des pectoraux",override
+"Cable Fly Upper Chest","Coffre supérieur de mouche à câble","Écarté poulie haut des pectoraux",override
+"Cable Front Raise with a small bar","Élévation avant de câble avec une petite barre","Élévation frontale poulie petite barre",override
+"Cable Lateral Raises (Single Arm)","Élévations latérales de câble (bras unique)","Élévation latérale poulie un bras",override
+"Cable Press Around","Presse à câble autour","Press autour poulie",override
+"Cable pull through","Tirer le câble à travers","Pull through poulie",override
+"Cable Rear Delt Fly","Câble Delt Fly arrière","Écarté arrière poulie",override
+"Cable Shrug-In","Câble Shrug-In","Shrugs poulie",override
+"Cable Tri Extension - External Rotation","Tri rallonge de câble - Rotation externe","Extension triceps poulie rotation externe",override
+"Cable Tri Extension - Internal Rotation","Câble Tri Extension - Rotation interne","Extension triceps poulie rotation interne",override
+"Cable Tricep Kickback","Cable Tricep Kickback","Kickback triceps poulie",override
+"Cable Triceps Press","Presse à triceps à câble","Extension triceps poulie",override
+"Cable Woodchoppers","Câble Woodchoppers","Woodchoppers poulie",override
+"Calf Press Using Leg Press Machine","Presse à mollets à l'aide d'une presse à jambes","Presse mollets sur presse à cuisses",override
+"Calf Raise using Hack Squat Machine","Levage de mollet à l'aide de la machine Hack Squat","Élévation mollets machine hack squat",override
+"Calf Raises on Hackenschmitt Machine","Élévations de mollets sur la machine Hackenschmitt","Élévation mollets machine hack",override
+"Calf raises, left leg","Élévations des mollets, jambe gauche","Élévation mollets jambe gauche",override
+"Calf raises, one legged","Lever du mollet gauche","Élévation mollets unipodal",override
+"Calves foam roller","Rouleau mousse veaux","Rouleau de massage mollets",override
+"Cat Plank","Planche de chat","Gainage planche chat",override
+"Chest Press","Supino","Développé pectoraux machine",override
+"Chest-Supported Rear Delt Raise","Soulèvement de delt arrière soutenu par la poitrine","Élévation deltoïde post. sur banc",override
+"Chin-ups","Chin-ups","Tractions supination",override
+"Clamshell","Clapet","Clamshell",override
+"Clap Push-UP","Clap Push-Up","Pompes claquées",override
+"Claps over the head","Applique sur la tête","Applaudissements au-dessus de la tête",override
+"Clean","Nettoyer","Épaulé",override
+"Clean and Jerk OL","Epaulé jeté","Épaulé-jeté",override
+"Clean and Press","Nettoyer et presser","Épaulé développé",override
+"ClimbMill","ClimbMill","Climb mill",override
+"Close-Grip Bench Press","Développé-couché barre à prise serrée","Développé couché prise serrée",override
+"Close-grip Lat Pull Down","Tirette Lat à prise étroite vers le bas","Tirage poulie haute prise serrée",override
+"Close-grip Press-ups","Press-ups à prise serrée","Pompes prise serrée",override
+"Cobra Stretch","Étirement Cobra","Étirement cobra",override
+"commando pull-ups","pull-ups commando","Tractions commando",override
+"Concentration Curl","Curl biceps avec haltère","Curl concentration haltère",override
+"Copenhagen Adduction Exercise","Exercice d'Adduction à Copenhague","Adduction de Copenhague",override
+"Cross-Bench Dumbbell Pullovers","Pull-over Cross-Bench Dumbbell","Pull-over haltère travers du banc",override
+"Cross-Body Cable Y-Raise","Élévation en Y du câble transversal","Élévation en Y poulie croisée",override
+"Crossbody Hamstring Stretch","Étirement des ischio-jambiers à bandoulière","Étirement ischio-jambiers croisé",override
+"Crossbody Leg Swings","Balançoires à bandoulière","Balancement jambes croisé",override
+"Crunches","Abdominaux","Crunchs",override
+"Crunches HD","Crunches HD","Crunchs",override
+"Crunches With Legs Up","Crunchs avec les jambes en l'air","Crunchs jambes levées",override
+"Curl  - With Shoulder Elevated","Boucle  - Avec épaule surélevée","Curl épaule élevée",override
+"Curl with kettlebell two hands","Bouclez avec la kettlebell à deux mains","Curl kettlebell deux mains",override
+"Cycling","Cyclisme","Vélo",override
+"DB Cross Body Hammer Curls","DB Cross Body Hammer Curls","Curl marteau croisé haltères",override
+"DB Skull Crushers","Broyeurs de crânes DB","Skull crusher haltères",override
+"DB UCV","DB UCV","UCV haltères",override
+"DB Underhand bench press","DB Presse à bancs sous la main","Développé couché prise supination haltères",override
+"DB Upper Chest Variation","Variation du haut de la poitrine DB","Développé haut des pectoraux haltères",override
+"Deadlifts","Deadlifts.","Soulevé de terre",override
+"Decline Bench Leg Raise","Relevé de la jambe du banc déclinant","Relevé de jambes banc décliné",override
+"Decline Bench Press Barbell","Déclin de la presse de banc Barbell","Développé décliné barre",override
+"Decline Bench Press Dumbbell","Haltère de la presse d'établi à décliner","Développé décliné haltères",override
+"Decline Pushups","Refuser les pushups","Pompes déclinées",override
+"Deficit Push ups","Déficit Push-ups","Pompes en déficit",override
+"Delt Stretch","Delt Stretch","Étirement deltoïdes",override
+"Devil’s Press","Devil's Press","Devil's press",casing
+"Diamond push ups","3. Pompes en diamant","Pompes diamant",override
+"Dips Between Two Benches","Trempette entre deux bancs","Dips entre deux bancs",override
+"Doorway Pectoral Stretch","Étirement pectoral de la porte","Étirement pectoral porte",override
+"Double Kettlebell Clean and Press","Double Kettlebell Nettoyer et Presser","Épaulé développé double kettlebell",override
+"Double Kettlebell Front Squat","Squat avant double Kettlebell","Squat avant double kettlebell",casing
+"Double Leg Calf Raise","Élévation du mollet à deux jambes","Élévation mollets deux jambes",override
+"Double-Leg Abdominal Press","Presse abdominale à deux jambes","Presse abdominale deux jambes",override
+"Drag Pushdown","Faire glisser le bouton vers le bas","Drag pushdown",override
+"Dragon-flag","Drapeau-dragon","Dragon flag",override
+"Drop Curl","Drop Curl","Drop curl",casing
+"Dumbbel Bradford press","Dumbbel Bradford Press","Dumbbel bradford press",casing
+"Dumbbell Bench Press","Développé couché avec haltères","Développé couché haltères",override
+"Dumbbell Bent Over Face Pull","Tirage facial avec haltères buste penché","Face pull penché haltères",override
+"Dumbbell Bent Over Row","Haltère jambe pliée (gauche)","Rowing penché haltère",override
+"Dumbbell bicep curl to press","Boucler le biceps de l'haltère pour appuyer","Curl biceps puis press haltère",override
+"Dumbbell Cheat Curl","Boucle de triche avec haltères","Curl triche haltères",override
+"Dumbbell Chest Press","Presse à poitrine avec haltères","Développé pectoraux haltères",override
+"Dumbbell close grip bench press","Presse de banc à prise rapprochée avec haltères","Développé couché prise serrée haltères",override
+"Dumbbell Concentration Curl","Boucle de concentration d'haltères","Curl concentration haltère",override
+"Dumbbell Crunches","Coups d'haltères","Crunchs avec haltère",override
+"Dumbbell Decline Bench Press","Développé couché décliné","Développé décliné haltères",override
+"Dumbbell drag curls","Boucles de traînée avec haltères","Curl drag haltères",override
+"Dumbbell Floor Press","Développé au sol avec haltères","Développé au sol haltères",override
+"Dumbbell Floor Press","Développé au sol avec haltères","Développé au sol haltères",override
+"Dumbbell Frog Press","Presse à grenouilles avec haltères","Press frog haltères",override
+"Dumbbell Front Squat","Squat avant avec haltères","Squat avant haltères",override
+"Dumbbell Goblet Squat","Squat de gobelet avec haltères","Squat goblet haltère",override
+"Dumbbell Hip Thrust","Hip Thrust avec haltère","Hip thrust haltère",override
+"Dumbbell Hip Thrust","Poussée de la hanche de l'haltère","Hip thrust haltère",override
+"Dumbbell Incline Fly","Écarté incliné avec haltères","Écarté incliné haltères",override
+"Dumbbell Lunges Standing","Fentes d'haltères debout","Fentes debout haltères",override
+"Dumbbell Lunges Walking","Fentes d'haltères en marche","Fentes marchées haltères",override
+"Dumbbell Pullover","Pull haltères","Pull-over haltère",override
+"Dumbbell rear delt row","Rangée de delt arrière de l'haltère","Rowing deltoïde postérieur haltère",override
+"Dumbbell Rear Lunge","Fente arrière avec haltères","Fente arrière haltères",override
+"Dumbbell Romanian Deadlift","Soulevé de terre roumain avec haltères","Soulevé de terre roumain haltères",override
+"Dumbbell Romanian Deadlifts","Lève-morts roumains avec haltères","Soulevé de terre roumain haltères",override
+"Dumbbell Scaption","Scaption d'haltères","Scaption haltères",override
+"Dumbbell Shoulder Rotations","Rotations de l'épaule de l'haltère","Rotations épaules haltères",override
+"Dumbbell Side Bend","Flexion Latérale avec haltère","Flexion latérale avec haltère",casing
+"Dumbbell Side Squat","Squat latéral avec haltère","Squat latéral haltère",override
+"Dumbbell Single-leg Hip Thrust","Poussée de hanche à une jambe avec haltère","Hip thrust unipodal haltère",override
+"Dumbbell Thruster","Propulseur d'haltères","Thruster haltères",override
+"Dumbbell Triceps Extension","Extension du triceps de l'haltère","Extension triceps haltère",override
+"Dumbbell Underhand Dead Row","Ligne morte sous le bras de l'haltère","Rowing mort supination haltère",override
+"Dumbbell upright-row","Tirage menton avec haltères","Tirage menton haltères",override
+"Dumbbell wide bicep curls","Boucles de biceps larges avec haltères","Curl biceps prise large haltères",override
+"Dumbbells on Scott Machine","Haltères sur Scott Machine","Haltères sur scott machine",casing
+"Dumbell Tate Press","Dumbell Tate Press","Dumbell tate press",casing
+"Elbows Tucked DB Bench Press","Presse de banc DB à coudes repliés","Développé couché haltères coudes rentrés",override
+"Elephant Walks","Promenades à dos d'éléphant","Marche éléphant",override
+"Elevated prayer stretch","Étirement de prière élevé","Étirement prière élevé",override
+"Estiramiento de brazos y cuello","Estiramiento de brazos y cuello","Estiramiento de brazos Y cuello",casing
+"Estiramiento de piernas y cadera","Estiramiento de piernas y cadera","Estiramiento de piernas Y cadera",casing
+"Exercise Band Dorsiflexion","Bande d'exercice Dorsiflexion","Bande d'exercice dorsiflexion",casing
+"Exercise Band Plantarflexion","Bande d'exercice Plantarflexion","Bande d'exercice plantarflexion",casing
+"External Rotation Stretch","Étirement de rotation externe","Étirement rotation externe",override
+"EZ-Bar Skullcrusher - NB","Broyeur de crâne EZ-Bar - NB","Skull crusher barre EZ (NB)",override
+"Face pulls with yellow/green band","Tirettes faciales avec bande jaune/verte","Face pull élastique jaune/vert",override
+"Facepull","Facepull","Face pull",override
+"Flat Machine Press","Presse","Press à plat machine",override
+"Floor dumbbell bench press","Presse de banc pour haltères au sol","Développé au sol haltères",override
+"Floor Skull Crusher","Concasseur de crânes de sol","Skull crusher au sol",override
+"Flutter Kicks","Battements de jambes","Flutter kicks",override
+"Fly With Cable","dont le câble","Dont le câble",casing
+"Fly With Dumbbells","avec des haltères","Écarté haltères",override
+"Fly With Dumbbells, Decline Bench","Volez avec des haltères, baissez le banc","Écarté haltères banc décliné",override
+"Foam Roller Gluteus","Rouleau de mousse Gluteus","Rouleau de mousse gluteus",casing
+"Foam Roller Iliotibial band","Rouleau en mousse Bande iliotibiale","Rouleau en mousse bande iliotibiale",casing
+"Foam Roller quadriceps","Mousse Rouleau quadriceps","Mousse rouleau quadriceps",casing
+"Frog stand","Support grenouille","Frog stand",override
+"Frog Stretch","Étirement de la grenouille","Étirement grenouille",override
+"Front Lever","Levier avant","Front lever",override
+"Front lever pull-up","Levier avant pull-up","Traction front lever",override
+"Front lever tuck","Repli du levier avant","Front lever tuck",override
+"Front Plank","Planche avant","Gainage planche frontale",override
+"Front Plate Raise","Élévation de la plaque avant","Élévation frontale avec disque",override
+"Front Pull narrow","Tirer à l'avant étroit","Tirage avant prise serrée",override
+"Front pull wide","Tirer à l'avant large","Tirage avant prise large",override
+"Front Raise (Cable)","Élévation avant (câble)","Élévation frontale poulie",override
+"Front Raises","Élévations avant","Élévations frontales",override
+"Front Raises with Plates","Élévations avant avec plaques","Élévations frontales avec disques",override
+"Front Squats","Squats avant","Squat avant",override
+"Full Sit Outs","Sit Outs complets","Sit outs complets",casing
+"Glute Bridge Single-Arm Press","Presse à bras unique Glute Bridge","Presse à bras unique glute bridge",casing
+"Glute Drive","Glute Drive","Glute drive",casing
+"Glute Kickback (Machine)","Glute Kickback (Machine)","Glute kickback (machine)",casing
+"Good Morning","Bonjour","Good morning",override
+"Good Mornings","Bonjour","Good mornings",override
+"Hack Squats","Hack Squats","Hack squats",casing
+"Hammer Curls","Boucles de marteau","Curl marteau",override
+"Hammercurls on Cable","Hammercurls sur câble","Curl marteau poulie",override
+"Hammerstrength Decline Chest Press","Hammerstrength Decline Chest Press","Hammerstrength decline chest press",casing
+"Hamstring Chokes","Stokes ischio-jambiers","Hamstring chokes",override
+"Hamstring Kicks","Coup de pied aux ischio-jambiers","Kick ischio-jambiers",override
+"Handstand Push Up","Pousser le support manuel vers le haut","Pompes en poirier",override
+"Handstand Pushup","Poussée du support à main","Pompes en poirier",override
+"Hanging Leg Raises","Élévations des jambes pendantes","Relevé de jambes suspendu",override
+"Heel Touches","Touches de talon","Toucher de talons",override
+"Helms Row","Helms Row","Helms row",casing
+"Hercules Pillars","Piliers Hercules","Piliers hercules",casing
+"High Knee Jumps","Sauts en hauteur aux genoux","Sauts genoux hauts",override
+"High Knee Skips HD","High Knee Skips HD","High knee skips HD",casing
+"High Row","Ligne haute","Tirage haut",override
+"High-Cable Cross Tricep Extention - NB","Extension croisée de triceps à câble élevé - NB","Extension triceps croisée poulie haute (NB)",override
+"High-Cable Lateral Raise","Élévation latérale à câble élevé","Élévation latérale poulie haute",override
+"High-Incline Smith Machine Press","Presse à Smith High-Incline","Presse à smith high-incline",casing
+"Hip Bridge","Pont de hanche","Pont fessier",override
+"Hip hinge","Charnière de hanche","Hip hinge",override
+"Hip Thrust","relevé de bassin","Relevé de bassin",casing
+"Hollow Hold","Hollow Hold","Hollow hold",casing
+"Horizontal Shoulder Flexion Stretch","Étirement horizontal de la flexion de l'épaule","Étirement flexion horizontale épaule",override
+"Horizontal traction isometry","Isométrie de traction horizontale","Isométrie traction horizontale",override
+"Horse Stance (Side Splits)","Position du cheval (fentes latérales)","Position du cavalier (grand écart)",override
+"Hyper Y W Combo","Hyper Y W Combo","Hyper Y W combo",casing
+"Ice Scream maker","Machine à crier les glaçons","Ice cream maker",override
+"Incline Bench Press - Barbell","Presse pour banc incliné - Barbell","Presse pour banc incliné - barbell",casing
+"Incline Bench Press - Dumbbell","Presse d'établi inclinée - Haltère","Presse d'établi inclinée - haltère",casing
+"Incline Bench Press - MP","Développé Incliné aux Haltères","Développé incliné aux haltères",casing
+"Incline Bench Reverse Fly - Hello","Vol inversé du banc incliné - Bonjour","Écarté inversé banc incliné",override
+"Incline Chest Press DB","Incline Chest Press DB","Incline chest press DB",casing
+"Incline Chest-Supported Dumbbell Row","Rangée d'haltères inclinée soutenue par la poitrine","Rowing haltère sur banc incliné",override
+"Incline Close Grip Barbell Bench Press","Développé-couché barre à prise serrée","Développé incliné prise serrée barre",override
+"Incline Crunches","Incliner les craquements","Crunchs inclinés",override
+"Incline DB Y-Raise","Incliner DB Y-Raise","Élévation en Y incliné haltères",override
+"Incline Dumbbell Bench Press","Développé couché incliné avec haltères","Développé incliné haltères",override
+"Incline Dumbbell Fly","Mouche d'haltère inclinée","Écarté incliné haltères",override
+"Incline Dumbbell Press","Presse à haltères inclinée","Développé incliné haltères",override
+"Incline OHP DB","Incliner OHP DB","Incliner ohp DB",casing
+"Incline Plank With Alternate Floor Touch","Planche inclinée avec contact au sol alternatif","Gainage incliné toucher sol alterné",override
+"Incline Push up","Incliner Pousser vers le haut","Incliner pousser vers le haut",casing
+"Incline Shoulder Press Up","Appuyer sur l'épaule inclinée vers le haut","Développé épaules incliné",override
+"Incline Smith Press","Incline Smith Press","Incline smith press",casing
+"Inverted Rows","Lignes inversées","Rowing inversé",override
+"Jerk OL","Jerk OL","Jeté olympique",override
+"JM Press","Presse JM","Presse jm",casing
+"Jumping Jack HD","Jumping Jack HD","Jumping jack HD",casing
+"Jumping Jack HD","Jumping Jack HD","Jumping jack HD",casing
+"Jumping Jacks","Sauts en étoile","Jumping jacks",override
+"Jumping Jacks","Sautillements sur place","Jumping jacks",override
+"Kettlebell One Legged Deadlift","Soulevé de terre unilatéral","Soulevé de terre unipodal kettlebell",override
+"kettlebell sumo deadlift","kettlebell sumo deadlift","Kettlebell sumo deadlift",casing
+"Kettlebell Swing","Balançoire Kettlebell","Swing kettlebell",override
+"Kettlebell Swings","Balançoires Kettlebell","Swings kettlebell",override
+"Kickstand RDL","Kickstand RDL","Soulevé de terre roumain kickstand",override
+"Kneck extension","Extension du coude","Extension nuque",override
+"Knee Raises","Élévation des genoux","Relevé de genoux",override
+"Knee to Chest Stretch","○  Étirement des muscles de la cuisse","○ étirement des muscles de la cuisse",casing
+"Kneeling Superman","S'agenouiller Superman","S'agenouiller superman",casing
+"Kong Curl","Kong Curl","Kong curl",casing
+"Kroc Row","Kroc Row","Kroc row",casing
+"L-Sit (Foot Supported)","L-Sit (supporté par le pied)","L-sit (pieds supportés)",override
+"Landmine press","Développé vertical à la barre","Press landmine",override
+"Landmine Squat to Press","Squat de mine terrestre à presser","Squat landmine puis press",override
+"Larsen Press","Larsen Press","Larsen press",casing
+"Lat Pull DB","Lat Pull DB","Tirage vertical haltère",override
+"Lat Pull Down","EXERCICE DU MUSCLE GRAND DORSAL","Tirage poulie haute",override
+"Lat Pull Down (Leaning Back)","Lat Tirer vers le bas (en se penchant vers l'arrière)","Tirage poulie haute penché arrière",override
+"Lat Pull Down (Straight Back)","Tirage vertical à la poulie haute","Tirage poulie haute dos droit",override
+"Lat Pulldown - Cross Body Single Arm","Lat Pulldown - Corps croisé à un seul bras","Tirage poulie haute croisé un bras",override
+"Lateral Rows on Cable, One Armed","Rangées latérales sur le câble, une armée","Tirage latéral poulie un bras",override
+"Lateral-to-Front Raises","Élévations latérales à frontales","Élévations latérales-frontales",override
+"Leg Curl","Flexion des jambes","Leg curl",override
+"Leg curl with elastic","Flexion des jambes avec élastique","Leg curl élastique",override
+"Leg Curls (laying)","Boucles de jambe (pose)","Leg curl allongé",override
+"Leg Curls (standing)","Boucles de jambes (debout)","Leg curl debout",override
+"Leg Extension","Extension des pieds","Extension de jambes",override
+"Leg Press on Hackenschmidt Machine","Presse à jambes sur machine Hackenschmidt","Presse à cuisses machine hack",override
+"Leg Press Toe Press","Presse à jambes Presse à orteils","Presse à cuisses orteils",override
+"Leg Presses (narrow)","Presses pour les jambes (étroites)","Presse à cuisses prise serrée",override
+"Leg Presses (wide)","Presses pour les jambes (larges)","Presse à cuisses prise large",override
+"Leg Raise","Levées de jambe","Relevé de jambes",override
+"Leg raises pull up bar","La jambe soulève la barre de traction vers le haut","Relevé de jambes barre de traction",override
+"Leg Raises, Lying","Élévations des jambes, allongement","Relevé de jambes allongé",override
+"Leg Raises, Standing","Élévations des jambes, debout","Relevé de jambes debout",override
+"Leg Swings (Front–Back)","Balançoires de jambe (avant-arrière)","Balancement jambes avant-arrière",override
+"Leg Wheel","Roue de jambe","Roue jambes",override
+"Legend Incline Bench Press","Legend Incline Bench Press","Legend incline bench press",casing
+"Leverage Machine Chest Press","Tirer parti de la presse thoracique de la","Développé pectoraux machine à levier",override
+"Leverage Machine Iso Row","Tirer parti de la machine Iso Row","Rowing machine iso à levier",override
+"Levitation Crunch","Crunch de lévitation","Crunch lévitation",override
+"Long-Pulley (low Row)","Poulie longue (rangée basse)","Tirage poulie basse",override
+"Long-Pulley, Narrow","Poulie longue, étroite","Tirage poulie basse prise serrée",override
+"Low Box Squat - Wide Stance","Squat box bas - Position large","Squat sur boîte basse position large",override
+"Low Pulley Cable fFly","Câble de poulie basse fFly","Câble de poulie basse ffly",casing
+"Low Pulley Cable fFly","Câble de poulie basse fFly","Câble de poulie basse ffly",casing
+"Low Pulley Cable fFly","Câble de poulie basse fFly","Câble de poulie basse ffly",casing
+"Low-Cable Cross-Over - NB","Low-Cable Cross-Over - NB","Low-cable cross-over - NB",casing
+"lying bicep curl","boucle de biceps couché","Boucle de biceps couché",casing
+"Lying Dumbbell Curls","Boucles d'haltères couchées","Curl allongé haltères",override
+"LYING DUMBBELL ROW SS SEATED SHRUG","RANGÉE D'HALTÈRES ALLONGÉS SS ASSIS EN HAUSSANT LES ÉPAULES","Rowing haltères allongé SS shrugs assis",override
+"Lying Leg Raise","Levage de la jambe allongée","Relevé de jambes allongé",override
+"Lying Triceps Extensions","Extensions du triceps couché","Extension triceps allongé",override
+"Lying Triceps Kickback","Rebond du triceps couché","Kickback triceps allongé",override
+"Machine chest fly","Braguette poitrine machine","Écarté pectoraux machine",override
+"Machine Chest Press","Presse de coffre de machine","Développé pectoraux machine",override
+"Machine Chest Press Exercise","Exercice de presse thoracique de la machine","Développé pectoraux machine",override
+"Machine Hip Abduction","Abduction de la hanche à la machine","Abduction hanches machine",override
+"Machine lateral wise","Machine latéralement","Élévation latérale machine",override
+"Machine Side Lateral Raises","Élévations latérales côté machine","Élévation latérale machine",override
+"March or jog in place","Marche ou jogging en place","Marche ou jogging sur place",override
+"Meadows Row","Meadows Row","Meadows row",casing
+"Medicine ball booklet crunch","Crunch du livret de balles médicinales","Crunchs ballon lesté en livre",override
+"Medicine ball twist","Torsade de balle médicinale","Rotation ballon lesté",override
+"Modified pulldown","Pulldown modifié","Tirage poulie modifié",override
+"Muscle up","Traction","Muscle-up",override
+"Neutral Grip Lat Pulldown","Pulldown de latte à prise neutre","Tirage poulie haute prise neutre",override
+"Neutral-grip pull-ups or TRX rows","Tirettes à prise neutre ou rangées TRX","Tractions prise neutre ou tirage TRX",override
+"No Leg Drive Dumbbell Chest Press","Presse thoracique à haltères sans entraînement de jambe","Développé pectoraux haltères sans drive jambes",override
+"Nordic Curl","Boucle nordique","Curl nordique",override
+"Omni Cable Cross-over","Câble Omni Cross-over","Câble omni cross-over",casing
+"One Arm Overhead Cable Tricep Extension","Extension Triceps Poulie Basse à Un Bras","Extension triceps poulie basse à un bras",casing
+"One armed push-ups","Un push-up armé","Pompes un bras",override
+"One-Arm Heavy Row","Rangée lourde à un bras","Rowing lourd un bras",override
+"one-handed kettlebell curls","boucles kettlebell à une main","Curl kettlebell un bras",override
+"Overhand Cable Curl","Overhand Cable Curl","Overhand cable curl",casing
+"Overhead Barbell Press","Presse à barbe aérienne","Développé militaire barre",override
+"Overhead Cable Tricep Extension","Extension de triceps de câble aérien","Extension triceps au-dessus poulie",override
+"Overhead Triceps Extension","Extension de triceps en hauteur","Extension triceps au-dessus",override
+"PALLOF PRESS","PRESSE PALLOF","Pallof press",override
+"Parallel Bar Hold","Maintien de barre parallèle","Maintien barres parallèles",override
+"Pause Bench","Suspendre le banc","Pause bench",override
+"Pause Hack Squats","Pause Hack Squats","Pause hack squats",casing
+"Pendelay Rows","Lignes Pendelay","Lignes pendelay",casing
+"Perpendicular Unilateral Landmine Row","Rangée perpendiculaire unilatérale de mines antipersonnel","Rowing landmine unilatéral",override
+"Pike Push Ups","Pompes piquées","Pompes pike",override
+"Pin Bench Press BB","Pin Bench Press BB","Pin bench press bb",casing
+"Pin OHP","Pin OHP","Pin ohp",casing
+"Pin Squat","Pin Squat","Pin squat",casing
+"Pistol Squat","Pistol squats gauches","Squat pistol",override
+"Planche de cote dynamique","Planche de cote dynamique","Planche de côté dynamique",override
+"Plank","Planche","Gainage planche",override
+"Plank","Planche pour les avant-bras","Gainage planche",override
+"Plank Jacks","Jacks en planche","Gainage planche jumping jacks",override
+"Plank Shoulter Taps","Robinets d'encrassement de planche","Gainage planche toucher épaules",override
+"Plank with Alternating Leg Lift","Planche avec levage alterné des jambes","Gainage planche levé de jambe alterné",override
+"Plank-to-Elbow Extension","Extension planche-coude","Gainage planche extension coude",override
+"Plate Pinch Hold","Support de pincement de plaque","Plate pinch hold",override
+"Plate twist","Torsion de la plaque","Rotation avec disque",override
+"Power Clean","Power Clean","Épaulé puissance",override
+"Preacher Curl - Externally Rotated","Boucle de prédicateur - Rotation externe","Boucle de prédicateur - rotation externe",casing
+"Preacher Curl - Internally Rotated","Boucle de prédicateur - Rotation interne","Boucle de prédicateur - rotation interne",casing
+"Preacher Curls","Boucles de prédicateur","Curl au pupitre",override
+"Prone Scapular Retraction - Arms at Side","Rétraction scapulaire inclinée - Bras sur le côté","Rétraction scapulaire inclinée - bras sur le côté",casing
+"Pseudo Planche Push-up","Pseudo Planche Push-up","Pseudo planche push-up",casing
+"Pull Ups on Machine","Tirer vers le haut sur la machine","Tractions assistées machine",override
+"Pull-up Isometric Hold","Maintien isométrique Pull-up","Maintien isométrique pull-up",casing
+"Pull-Ups (Neutral Grip)","Pull-Ups (Neutral Grip)","Pull-ups (neutral grip)",casing
+"Pull-Ups (Wide Grip)","Pull-Ups (Poignée large)","Pull-ups (poignée large)",casing
+"Pull-Ups (Wide Grip)","Pull-Ups (Poignée large)","Pull-ups (poignée large)",casing
+"Pullback","Pullback","Pull-back",override
+"Pullover Machine","Machine à pull-over","Machine pull-over",override
+"punches","emporte-pièce","Emporte-pièce",casing
+"Push OHP","Push OHP","Push ohp",casing
+"Push Press","Jeté Force","Jeté force",casing
+"Push-Up","Pompe","Pompes",override
+"Push-Ups","Pompe","Pompes",override
+"Push-Ups | Incline","Pompes | Incliner","Pompes | incliner",casing
+"Push-Ups | Parallettes","Pompes | Parallettes","Pompes | parallettes",casing
+"Quadriped Arm and Leg Raise","Élévation quadripède des bras et des jambes","Élévation bras et jambe à quatre pattes",override
+"Rack Deadlift","Rack Deadlift","Rack deadlift",casing
+"Rear Delt Raise","Levage de delt arrière","Élévation deltoïde postérieur",override
+"Renegade Row","Renegade Row","Rowing renegade",override
+"Reverse Bar Curl","Boucle de barre inversée","Curl inversé barre",override
+"Reverse Cable Flye","Mouche à câble inversé","Écarté inversé poulie",override
+"Reverse Curl","Inversez.","Curl inversé",override
+"Reverse EZ Bar Cable Curls","Boucles de câble de la barre EZ inversée","Curl inversé barre EZ poulie",override
+"Reverse Fly Standing","Vol inversé en position debout","Écarté inversé debout",override
+"Reverse Grip Barbell Curls","Boucles Barbell à poignée inversée","Boucles barbell à poignée inversée",casing
+"Reverse Grip Bench Press","Presse de banc à poignée inversée","Développé couché prise inversée",override
+"Reverse Hyperextension","Hyperextension inverse","Hyperextension inversée",override
+"Reverse Nordic Curl","Boucle nordique inversée","Curl nordique inversé",override
+"Reverse Preacher Curl (Close Grip)","Reverse Preacher Curl (Fermer la poignée)","Reverse preacher curl (fermer la poignée)",casing
+"Reverse Snow Angel","Ange de neige inversé","Reverse snow angel",override
+"Reverse Wood Chops","Couteaux de bois inversés","Reverse woodchops",override
+"Ring Dips","Trempettes annulaires","Dips aux anneaux",override
+"Rocking Triceps Pushdown","Poussée des triceps à bascule","Extension triceps poulie bascule",override
+"Romanian deadlift, single leg","Deadlift roumain, jambe unique","Soulevé de terre roumain unipodal",override
+"Rope Pullover/row","Pull en corde/rangée","Pull-over / rowing corde",override
+"Rotary Torso Machine","Machine rotative pour torse","Machine rotation du torse",override
+"Row","Rang","Rowing",override
+"Rowing Machine","appareil à ramer","Rameur",override
+"Rowing, Lying on Bench","Aviron, couché sur le banc","Rowing allongé sur banc",override
+"Rowing, T-bar","Aviron, barre en T","Rowing T-bar",override
+"rubber band glute kickback","bande en caoutchouc fessière kickback","Bande en caoutchouc fessière kickback",casing
+"Russian Twist","Torsion russe","Rotation russe",override
+"Scapula Pulls","Tirettes d'omoplate","Tirage scapulaire",override
+"Schoulder Raise (Dumbbell)","Élévation de Schoulder (haltère)","Élévation de schoulder (haltère)",casing
+"Seated bench press","Presse à bancs assis","Développé assis",override
+"Seated Bench Press","Presse à bancs assis","Développé assis",override
+"SEATED CABLE MID TRAP SHRUG","CÂBLE ASSIS À MI-PIÈGE HAUSSEMENT D'ÉPAULES","Câble assis à mi-piège haussement d'épaules",casing
+"Seated Cable Rows","Rangées de câbles assis","Tirage assis poulie basse",override
+"Seated Dumbbell Calf Raise","Élévation des mollets haltères assis","Élévation mollets assis haltère",override
+"Seated Dumbbell Curls","Boucles d'haltères assises","Curl assis haltères",override
+"Seated Dumbbell Side Lateral","Latéral côté haltère assis","Élévation latérale assis haltères",override
+"seated figure four","figure assise quatre","Figure assise quatre",casing
+"Seated Hip Abduction","Abduction assis de la hanche","Abduction hanches assis",override
+"Seated Hip Adduction","Adduction de la hanche assise","Adduction hanches assis",override
+"Seated Knee Tuck","Repli du genou assis","Repli genoux assis",override
+"Seated Knee Tuck","Repli du genou assis","Repli genoux assis",override
+"Seated machine row","Rangée de machines assises","Rowing assis machine",override
+"Seated Pancake Good Morning","Crêpe assise Bonjour","Crêpe assise bonjour",casing
+"Seated rear delt rise","Élévation du delt arrière assis","Élévation deltoïde postérieur assis",override
+"Seated Row (Machine)","Rangée assise (machine)","Rowing assis machine",override
+"Seated Shoulder Extension Stretch","Étirement de l'extension de l'épaule assise","Étirement extension épaule assis",override
+"Seated Triceps Press","Presse triceps assise","Press triceps assis",override
+"Seated Triceps Press","Presse triceps assise","Press triceps assis",override
+"Seated W Curl","Curl incliné avec haltères","Curl en W assis",override
+"Shinbox IR Stretch","Shinbox IR Stretch","Shinbox ir stretch",casing
+"Shotgun Row","Rangée de fusils de chasse","Rowing shotgun",override
+"Shoulder Dumbbell Pendular Exercise","Exercice pendulaire avec haltères à l'épaule","Exercice pendulaire épaule haltère",override
+"Shoulder External Rotation (Cable)","Rotation externe de l'épaule (câble)","Rotation externe épaule poulie",override
+"Shoulder External Rotation with Dumbbell","Rotation externe de l'épaule avec haltère","Rotation externe épaule haltère",override
+"Shoulder Internal Rotation (Cable)","Rotation interne de l'épaule (câble)","Rotation interne épaule poulie",override
+"Shoulder Press (Dumbbell)","Appuyer sur l'épaule (haltère)","Développé épaules haltère",override
+"Shoulder Press, Barbell","Presse d'épaule, Barbell","Développé épaules barre",override
+"Shoulder Press, Dumbbells","Presse d'épaule, haltères","Développé épaules haltères",override
+"Shoulder Press, on Machine","Appuyer sur l'épaule, sur la machine","Développé épaules machine",override
+"Shoulder Press, on Multi Press","Appuyer sur l'épaule, sur la presse multiple","Développé épaules multi press",override
+"Shoulder Raise Side and Front DB","Élévation de l'épaule côté et DB avant","Élévation latérale et frontale haltères",override
+"Shoulder Shrug","Haussement d'épaules","Shrugs",override
+"Shrugs on Multipress","Shrugs sur Multipress","Shrugs sur multipress",casing
+"Shrugs, Barbells","Haussements d'épaules, haltères","Shrugs barre",override
+"Shrugs, Dumbbells","Haussements d'épaules, haltères","Shrugs haltères",override
+"Side Bends on Machine","Coudes latérales sur la machine","Flexions latérales machine",override
+"Side Crunch","Exercice latéral :","Exercice latéral :",casing
+"Side Dumbbell Trunk Flexion","Flexion latérale du tronc de l'haltère","Flexion latérale tronc haltère",override
+"Side lateral raise - Back (Cable)","Élévation latérale latérale - Arrière (câble)","Élévation latérale poulie arrière",override
+"Side lateral raise - Front (Cable)","Élévation latérale latérale - Avant (câble)","Élévation latérale poulie avant",override
+"Side Lateral Raise (Cable)","Élévation latérale latérale (câble)","Élévation latérale poulie",override
+"Side Plank","La Planche sur le côté:","Gainage planche latérale",override
+"Side Plank","Planche latérale gauche","Gainage planche latérale",override
+"Side Slides + Squats","Glissières latérales + Squats","Glissières latérales + squats",casing
+"Side Straight-Arm Pulldown (Cable)","Pulldown latéral à bras droit (câble)","Tirage latéral bras tendu poulie",override
+"Side to Side Push Ups","Poussées d'un côté à l'autre","Pompes latérales alternées",override
+"Side-laying interior rotation","Rotation intérieure latérale","Rotation interne allongé latéral",override
+"Single Arm Plank to Row","Planche à bras unique vers la rangée","Planche tirage un bras",override
+"Single arm row","Rangée de bras unique","Rowing un bras",override
+"Single Leg Extension","Extension d'une jambe","Extension de jambe unilatérale",override
+"Single Leg Glute Bridge","Pont fessier à une jambe","Pont fessier unipodal",override
+"Single Leg Hamstring Stretch","Étirement des ischio-jambiers d'une jambe","Étirement ischio-jambiers unipodal",override
+"Single Leg RDL","RDL à une jambe","Soulevé de terre roumain unipodal",override
+"Single Leg RDL","RDL à une jambe","Soulevé de terre roumain unipodal",override
+"Single-arm Preacher Curl","Boucle de prédicateur à un bras","Curl au pupitre un bras",override
+"Single-Leg Deadlift with Dumbbell","Deadlift à une jambe avec haltère","Soulevé de terre unipodal haltère",override
+"Single-Leg Lunge with Kettlebell:","Fente à une jambe avec Kettlebell :","Fente à une jambe avec kettlebell :",casing
+"Single-leg side glute press","Presse fessière latérale à une jambe","Press fessier latéral unipodal",override
+"Sit & Reach","Sit & Reach","Sit & reach",casing
+"Sit Up Elbow Thrust","Poussée du coude assis","Sit-up avec poussée coude",override
+"Sit-ups","Redressements assis","Sit-ups",override
+"Sitting Calf Raises","Élévations des mollets assis","Élévation mollets assis",override
+"Sitting Calf Raises","Élévations des mollets assis","Élévation mollets assis",override
+"Sitting Calf Stretch (Dorsiflexion)","Étirement du mollet assis (Dorsiflexion)","Étirement du mollet assis (dorsiflexion)",casing
+"Ski Machine","Machine à ski","Machine ski",override
+"Skipping - Standard","Sauter - Standard","Sauter - standard",casing
+"Skullcrusher Dumbbells","Haltères Skullcrusher","Skull crusher haltères",override
+"Skullcrusher SZ-bar","Crâne concasseur SZ-bar","Skull crusher barre EZ",override
+"Sled Push","Poussée de traîneau","Poussée traîneau",override
+"Sliding Lateral Lunge","Fente latérale coulissante","Fente latérale glissée",override
+"Smith Machine Close-grip Bench Press","Presse d'établi Smith Machine à prise serrée","Presse d'établi smith machine à prise serrée",casing
+"SMITH MACHINE SLIGHT INCLINE PRESS","PRESSE À LÉGÈRE INCLINAISON POUR MACHINE SMITH","Presse à légère inclinaison pour machine smith",casing
+"Smith Machine Split Squat","Smith Machine Split Squat","Smith machine split squat",casing
+"Smith Machine Split Squat","Smith Machine Split Squat","Smith machine split squat",casing
+"Smith machine squat","Squat sumo à la Smith machine","Squat Smith machine",override
+"Smith Press","Smith Press","Smith press",casing
+"Snach","Snach","Arraché",override
+"Snap Down","Snap Down","Snap down",casing
+"Snatch OL","Snatch OL","Arraché olympique",override
+"Spider Curl","Spider Curl","Curl spider",override
+"Splinter Sit-ups","Sit-ups Splinter","Sit-ups splinter",casing
+"Squat Jumps","Sauts en squat","Squats sautés",override
+"Squat Thrust","Poussées de squat","Squat thrust",override
+"Squats","Accroupi","Squats",override
+"Squats on Multipress","Squats sur Multipress","Squats sur multipress",casing
+"Stair Master","Maître d'escalier","Stepper",override
+"Stair Master","Maître d'escalier","Stepper",override
+"Standing Bicep Curl","Boucle du biceps debout","Curl biceps debout",override
+"Standing biceps stretch left","Étirement des biceps debout vers la gauche","Étirement biceps debout gauche",override
+"Standing biceps stretch right","Les biceps debout s'étirent à droite","Étirement biceps debout droit",override
+"Standing Calf Stretch","Étirement du mollet debout","Étirement mollets debout",override
+"Standing Pancake","Crêpe debout","Pancake debout",override
+"Standing Pancake Good Morning","Crêpe debout Bonjour","Crêpe debout bonjour",casing
+"Standing Side Crunches","Crevasses latérales debout","Crunchs latéraux debout",override
+"Standing Soleus Stretch","Étirement du soléaire debout","Étirement soléaire debout",override
+"Stiff-legged Deadlifts","Deadlifts aux jambes raides","Soulevé de terre jambes tendues",override
+"Straddle L-Sit","Straddle L-Sit","Straddle l-sit",casing
+"Straight Bar Cable Curls","Boucles de câble droites","Curl barre droite poulie",override
+"Straight Bar Cable Front Raise","Élévation avant de câble de barre droite","Élévation frontale barre droite poulie",override
+"Straight-arm Pull Down (bar Attachment)","Tirer le bras droit vers le bas (fixation de la barre)","Tirage bras tendus poulie (barre)",override
+"Straight-arm Pull Down (rope Attachment)","Tirer le bras droit vers le bas (attache de corde)","Tirage bras tendus poulie (corde)",override
+"Straight-Arm Pulldown (Cable)","Pulldown à bras droit (câble)","Tirage bras tendus poulie",override
+"Sumo Deadlift","Soulèvement de Sumo","Soulevé de terre sumo",override
+"Superman","Surhomme","Superman",override
+"Supine Hip Abduction","Abduction de la hanche supérieure","Abduction hanches supination",override
+"Supine press","Presse en décubitus","Développé supination",override
+"Suspended crossess","Crossess suspendu","Croix suspendu",override
+"T-Bar row","Rangée de barre en T","Rowing T-bar",override
+"Talons fesses","Talons fesses","Talons-fesses",override
+"Thruster","Propulseur","Thruster",override
+"Toe Taps","Test de tapotement","Toe taps",override
+"Toe Touch","Toucher les orteils","Toucher des orteils",override
+"Torso rotation strech","Stretch de rotation du torse","Étirement rotation du torse",override
+"TORSO TWIST","TORSION DU TORSE","Torsion du torse",casing
+"Towel Superman","Serviette Superman","Serviette superman",casing
+"Trap Bar Squat","Squat de la barre de piégeage","Squat trap bar",override
+"Trap press","Presse-piège","Press trapèzes",override
+"Trap-3 Raise","Élévation du piège-3","Élévation trap-3",override
+"Tricep Dumbbell Kickback","Extension des avant-bras avec haltère","Kickback triceps haltère",override
+"Tricep Pushdown on Cable","Pousser le triceps vers le bas sur le câble","Extension triceps poulie haute",override
+"Triceps Dips (Assisted)","Trempettes triceps (assistées)","Dips triceps assistés",override
+"Triceps Extensions on Cable","Extensions de triceps sur le câble","Extension triceps poulie",override
+"Triceps Extensions on Cable With Bar","Extensions de triceps sur câble avec barre","Extension triceps poulie barre",override
+"Triceps on Machine","Triceps sur machine","Extension triceps machine",override
+"Triceps Overhead (Dumbbell)","Triceps au-dessus de la tête (haltères)","Extension triceps au-dessus haltère",override
+"Triceps Pushdown","Poussée du triceps","Extension triceps poulie haute",override
+"Triceps stretch left","Étirement des triceps","Étirement triceps gauche",override
+"Triceps stretch right","Les triceps s'étirent à droite","Étirement triceps droit",override
+"Trunk Rotation With Cable","Rotation du tronc avec câble","Rotation du tronc poulie",override
+"TRX dips","Trempettes TRX","Dips TRX",override
+"TRX gorilla biceps curl","Boucle biceps gorille TRX","Curl biceps gorilla TRX",override
+"TRX hammer curl","Flexion marteau","Curl marteau TRX",override
+"TRX Obliques","TRX Obliques","TRX obliques",casing
+"TRX roll out","Déploiement TRX","Rollout TRX",override
+"TRX Rows","Lignes TRX","Tirage TRX",override
+"Trx Single Arm Bicep Curl","Boucle de biceps à bras unique Trx","Boucle de biceps à bras unique TRX",casing
+"TRX Tricep Extension","Extension de triceps TRX","Extension triceps TRX",override
+"Tuck L-sit","Tuck L-sit","Tuck l-sit",casing
+"Tuck planche","Tuck planche","Planche tuck",override
+"Turkish Get-Up","Récupération turque","Turkish get-up",override
+"Typewriter Pull-ups","Glissières pour machine à écrire","Tractions machine à écrire",override
+"Underhand Lat Pull Down","Sous-main Lat Pull Down","Sous-main lat pull down",casing
+"Unilateral Cable row","Rangée de câbles unilatérale","Tirage unilatéral poulie",override
+"Unilateral Cable row","Rangée de câbles unilatérale","Tirage unilatéral poulie",override
+"unilateral cross body cable pull down","câble transversal unilatéral tirant vers le bas","Câble transversal unilatéral tirant vers le bas",casing
+"Unilateral Hip Thrust","Poussée unilatérale de la hanche","Hip thrust unilatéral",override
+"Upper Back","Upper Back","Upper back",casing
+"Upright Row w/ Dumbbells","Rangée verticale avec haltères","Tirage menton haltères",override
+"Upright Row, on Multi Press","Rangée droite, sur presse multiple","Tirage menton multi press",override
+"Upright Row, SZ-bar","Rangée verticale, barre SZ","Tirage menton barre EZ",override
+"V-BAR PULL DOWNS","V-BAR PULL DOWNS","V-bar pull downs",casing
+"Vpushup","Vpushup","V push-up",override
+"W-Raise","W-Raise","W-raise",casing
+"Walking","Marche à pied","Marche",override
+"walking bridge","pont piétonnier","Pont piétonnier",casing
+"Walking Lunges","Jambes : marche fentes","Fentes marchées",override
+"Wall Angels","Anges muraux","Wall angels",override
+"Wall balls","Boules murales","Wall balls",override
+"Wall Drills","Perceuses murales","Wall drills",override
+"Wall Pushup","Poussée murale","Pompes au mur",override
+"Wall Slides","Glissières murales","Wall slides",override
+"Wall Squat","Assis dos au mur","Chaise au mur",override
+"Wall-sit","L'assise","Chaise au mur",override
+"Weighted push-ups","Pompes pondérées","Pompes lestées",override
+"Wide Grip Pull Up","Barre de traction à grande ouverture","Tractions prise large",override
+"Wide Pull Up","Wide Pull Up","Wide pull up",casing
+"Wide-grip Pulldown","Tirage vertical à prise large","Tirage poulie haute prise large",override
+"Yoga exercise: Cow-cat","Exercice de yoga : Cow-cat","Exercice de yoga : cow-cat",casing
+"YTWL Exercise","Exercice YTWL","Exercice ytwl",casing
+"Zottman curl","Boucle Zottman","Curl Zottman",override
