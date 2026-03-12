@@ -4,6 +4,7 @@ import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { Input } from "@/components/ui/input"
+import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 
 interface ExerciseDetailEditorProps {
   dayId: string
@@ -104,6 +105,8 @@ export function ExerciseDetailEditor({
           </p>
         </div>
       </div>
+
+      <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
       <div className="grid grid-cols-2 gap-4">
         <FieldGroup label={t("sets")}>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import { useAddExerciseToDay } from "@/hooks/useBuilderMutations"
 import type { Exercise } from "@/types/database"
+import { ExerciseInfoDialog } from "@/components/exercise/ExerciseInfoDialog"
 import {
   Dialog,
   DialogContent,
@@ -84,9 +85,13 @@ export function ExerciseLibraryPicker({
                           value={`${ex.name} ${ex.muscle_group}`}
                           onSelect={() => handleSelect(ex)}
                           disabled={addExercise.isPending}
+                          className="flex items-center justify-between"
                         >
-                          <span className="mr-2 text-base">{ex.emoji}</span>
-                          <span>{ex.name}</span>
+                          <span className="flex items-center">
+                            <span className="mr-2 text-base">{ex.emoji}</span>
+                            <span>{ex.name}</span>
+                          </span>
+                          <ExerciseInfoDialog exercise={ex} />
                         </CommandItem>
                       ))}
                     </CommandGroup>
