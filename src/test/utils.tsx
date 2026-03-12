@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react"
-import type { RenderOptions } from "@testing-library/react"
-import { render } from "@testing-library/react"
+import type { RenderOptions, RenderHookOptions } from "@testing-library/react"
+import { render, renderHook } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createStore, Provider as JotaiProvider } from "jotai"
 import { I18nextProvider } from "react-i18next"
@@ -15,7 +15,7 @@ import enHistory from "@/locales/en/history.json"
 import enBuilder from "@/locales/en/builder.json"
 import enSettings from "@/locales/en/settings.json"
 
-function createTestI18n() {
+export function createTestI18n() {
   const instance = i18n.createInstance()
   instance.use(initReactI18next).init({
     lng: "en",
@@ -72,5 +72,47 @@ export function renderWithProviders(
     ...render(ui, { wrapper: Wrapper, ...renderOptions }),
     store,
     queryClient,
+    i18nInstance,
+  }
+}
+
+interface HookProviderOptions<TProps>
+  extends Omit<RenderHookOptions<TProps>, "wrapper"> {
+  initialEntries?: string[]
+}
+
+export function renderHookWithProviders<TResult, TProps = undefined>(
+  hook: TProps extends undefined ? () => TResult : (props: TProps) => TResult,
+  options: HookProviderOptions<TProps> = {} as HookProviderOptions<TProps>,
+) {
+  const { initialEntries = ["/"], ...hookOptions } = options
+
+  const store = createStore()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  })
+  const i18nInstance = createTestI18n()
+
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <JotaiProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <I18nextProvider i18n={i18nInstance}>
+            <MemoryRouter initialEntries={initialEntries}>
+              {children}
+            </MemoryRouter>
+          </I18nextProvider>
+        </QueryClientProvider>
+      </JotaiProvider>
+    )
+  }
+
+  return {
+    ...renderHook(hook, { wrapper: Wrapper, ...hookOptions }),
+    store,
+    i18nInstance,
   }
 }
