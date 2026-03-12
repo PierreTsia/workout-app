@@ -171,7 +171,7 @@ EOF
 )"
 ```
 
-Ready PR:
+Ready PR — **MUST include `--reviewer "copilot"`**:
 
 ```bash
 gh pr create --title "<title>" --reviewer "copilot" --body "$(cat <<'EOF'
@@ -193,6 +193,8 @@ EOF
 ```
 
 Use `required_permissions: ["all"]`.
+
+**Important**: For ready (non-draft) PRs, always add `--reviewer "copilot"` to request a Copilot review. Never skip this flag.
 
 Display the PR URL to the user.
 
