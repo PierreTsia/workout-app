@@ -57,12 +57,14 @@ export function DayEditor({
   const day = days?.find((d) => d.id === dayId)
 
   const [label, setLabel] = useState(day?.label ?? "")
+  const [trackedDayId, setTrackedDayId] = useState(dayId)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorkoutExercise | null>(null)
 
-  useEffect(() => {
-    if (day) setLabel(day.label)
-  }, [day])
+  if (dayId !== trackedDayId) {
+    setTrackedDayId(dayId)
+    setLabel(day?.label ?? "")
+  }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
