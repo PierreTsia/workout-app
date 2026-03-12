@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { ExternalLink, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { getYouTubeThumbnail, getYouTubeEmbedUrl } from "@/lib/youtube"
@@ -11,11 +11,13 @@ export function YouTubeLink({ url }: YouTubeLinkProps) {
   const { t } = useTranslation("exercise")
   const [playing, setPlaying] = useState(false)
   const [thumbError, setThumbError] = useState(false)
+  const [prevUrl, setPrevUrl] = useState(url)
 
-  useEffect(() => {
+  if (prevUrl !== url) {
+    setPrevUrl(url)
     setPlaying(false)
     setThumbError(false)
-  }, [url])
+  }
 
   const thumbnail = getYouTubeThumbnail(url)
   const embedUrl = getYouTubeEmbedUrl(url)
