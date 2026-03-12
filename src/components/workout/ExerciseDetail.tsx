@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { WorkoutExercise } from "@/types/database"
+import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { SetsTable } from "./SetsTable"
 
 interface ExerciseDetailProps {
@@ -35,6 +36,8 @@ export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
           </p>
         )}
       </div>
+
+      <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
       <SetsTable exercise={exercise} sessionId={sessionId} />
     </div>
