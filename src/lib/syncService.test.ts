@@ -240,7 +240,7 @@ describe("SyncService", () => {
       enqueueSetLog(makeSetLogPayload())
 
       const setCall = mockStore.set.mock.calls.find(
-        ([atom]: [unknown]) => atom === QUEUE_SYNC_META_ATOM,
+        ([atom]) => atom === QUEUE_SYNC_META_ATOM,
       )
       expect(setCall).toBeDefined()
       // The updater function receives prev and returns new
@@ -351,7 +351,7 @@ describe("SyncService", () => {
       expect(queue[0].payload.setNumber).toBe(2)
 
       const failCall = mockStore.set.mock.calls.find(
-        ([atom, val]: [unknown, unknown]) =>
+        ([atom, val]) =>
           atom === SYNC_STATUS_ATOM && val === "failed",
       )
       expect(failCall).toBeDefined()
@@ -454,8 +454,8 @@ describe("SyncService", () => {
       await drainQueue(USER_ID)
 
       const statusCalls = mockStore.set.mock.calls
-        .filter(([atom]: [unknown]) => atom === SYNC_STATUS_ATOM)
-        .map(([, val]: [unknown, unknown]) => val)
+        .filter(([atom]) => atom === SYNC_STATUS_ATOM)
+        .map(([, val]) => val)
 
       expect(statusCalls[0]).toBe("syncing")
       expect(statusCalls[1]).toBe("synced")
