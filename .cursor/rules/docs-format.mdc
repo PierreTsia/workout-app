@@ -1,0 +1,176 @@
+---
+description: Document templates for Epic Briefs, Tech Plans, and Tickets. Enforces consistent structure across all project documentation.
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Document Templates
+
+All docs in `docs/` follow one of three templates. Use the exact heading structure, separators, and conventions shown below.
+
+## Naming Convention
+
+- Underscores for spaces, em dash (`—`) as separator
+- Epic Briefs: `Epic_Brief_—_{Title}.md`
+- Tech Plans: `Tech_Plan_—_{Title}.md`
+- Tickets: `T{n}_—_{Title}.md`
+- Completed docs go in `docs/done/`
+
+## File references
+
+Use `file:path/to/file.ts` for codebase file references within docs.
+
+---
+
+## Epic Brief Template
+
+```markdown
+# Epic Brief — {Title}
+
+## Summary
+
+One paragraph: what this epic delivers, why it matters, what changes for the user.
+
+---
+
+## Context & Problem
+
+**Who is affected:** ...
+
+**Current state:**
+- Bullet points describing the status quo and its limitations
+
+**Pain points:**
+| Pain | Impact |
+|---|---|
+| ... | ... |
+
+---
+
+## Goals
+
+| Goal | Measure |
+|---|---|
+| ... | ... |
+
+---
+
+## Scope
+
+**In scope:**
+- Numbered or bulleted list of features/workstreams
+
+**Out of scope:**
+- What is explicitly deferred
+
+---
+
+## Success Criteria
+
+- **Numeric:** measurable threshold (e.g. ">=95% of X within Y")
+- **Qualitative:** user-observable outcome
+```
+
+---
+
+## Tech Plan Template
+
+```markdown
+# Tech Plan — {Title}
+
+## Architectural Approach
+
+### Key Decisions
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| ... | ... | ... |
+
+### Critical Constraints
+
+Paragraphs describing hard constraints, side effects, and coupling risks. Reference specific files with `file:path`.
+
+---
+
+## Data Model
+
+Mermaid ER/class diagrams + table notes. Include schema snippets (SQL, TypeScript types, localStorage shapes) where relevant.
+
+```mermaid
+classDiagram
+    ...
+```
+
+### Table Notes
+
+Explain non-obvious design choices per entity.
+
+---
+
+## Component Architecture
+
+### Layer Overview
+
+Mermaid graph showing component hierarchy.
+
+```mermaid
+graph TD
+    ...
+```
+
+### New Files & Responsibilities
+
+| File | Purpose |
+|---|---|
+| ... | ... |
+
+### Component Responsibilities
+
+`**ComponentName**`
+- Bullet points describing what it does, what it reads/writes, what it delegates to
+
+### Failure Mode Analysis (if applicable)
+
+| Failure | Behavior |
+|---|---|
+| ... | ... |
+```
+
+---
+
+## Ticket Template
+
+```markdown
+# T{n} — {Title}
+
+## Goal
+
+One paragraph: what this ticket delivers and why.
+
+## Dependencies
+
+Which tickets or systems must be in place before this one.
+
+## Scope
+
+### {Sub-section per workstream}
+
+Detailed description with tables, code snippets, config examples as needed.
+
+| Item | Detail |
+|---|---|
+| ... | ... |
+
+## Out of Scope
+
+- Bulleted list of what this ticket explicitly does NOT cover
+
+## Acceptance Criteria
+
+- [ ] Checkbox-style criteria, each independently verifiable
+- [ ] ...
+
+## References
+
+- Links to Epic Brief, Tech Plan, and any relevant specs
+```
