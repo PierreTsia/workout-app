@@ -15,9 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut } from "lucide-react"
+import { LogOut, Download } from "lucide-react"
 import { authAtom, drawerOpenAtom, queueSyncMetaAtom, themeAtom } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
+import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 
 export function SideDrawer() {
   const [open, setOpen] = useAtom(drawerOpenAtom)
@@ -26,6 +27,7 @@ export function SideDrawer() {
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
+  const { canInstall, isInstalled, promptInstall } = useInstallPrompt()
 
   function closeDrawer() {
     setOpen(false)
@@ -104,14 +106,18 @@ export function SideDrawer() {
                 onCheckedChange={toggleTheme}
               />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start text-muted-foreground"
-              disabled
-            >
-              Install app
-            </Button>
+            {!isInstalled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-muted-foreground"
+                disabled={!canInstall}
+                onClick={promptInstall}
+              >
+                <Download className="h-4 w-4" />
+                {canInstall ? "Install app" : "Install app (open in browser)"}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

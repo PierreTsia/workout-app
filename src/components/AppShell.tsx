@@ -4,6 +4,7 @@ import { drawerOpenAtom } from "@/store/atoms"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
 import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
+import { InstallBanner } from "@/components/InstallBanner"
 
 export function AppShell() {
   const setDrawerOpen = useSetAtom(drawerOpenAtom)
@@ -24,6 +25,7 @@ export function AppShell() {
       </header>
 
       <SideDrawer />
+      <InstallBanner />
 
       {/* Screen content */}
       <main className="flex flex-1 flex-col">
