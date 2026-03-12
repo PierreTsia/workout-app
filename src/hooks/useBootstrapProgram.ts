@@ -13,7 +13,7 @@ const DAYS = [
   { label: "Vendredi — Legs", emoji: "🦵", muscles: null },
 ] as const
 
-const SYSTEM_EXERCISES: Omit<Exercise, "id" | "created_at">[] = [
+const SYSTEM_EXERCISES: Pick<Exercise, "name" | "muscle_group" | "emoji" | "is_system">[] = [
   { name: "Arnold Press Haltères", muscle_group: "Épaules", emoji: "🏋️", is_system: true },
   { name: "Papillon bras tendus", muscle_group: "Pectoraux", emoji: "🦅", is_system: true },
   { name: "Élévations latérales", muscle_group: "Épaules", emoji: "🙆", is_system: true },

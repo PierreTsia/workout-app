@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
 import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import type { WorkoutExercise } from "@/types/database"
+import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
+import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { SetsTable } from "./SetsTable"
 
 interface ExerciseDetailProps {
@@ -14,12 +17,13 @@ export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
   const { data: lastSession } = useLastSession(exercise.exercise_id)
+  const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
 
   return (
     <div className="flex flex-col gap-4 px-4">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{exercise.emoji_snapshot}</span>
+          <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
           <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
         </div>
         <Badge variant="secondary" className="w-fit text-xs">
@@ -35,6 +39,8 @@ export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
           </p>
         )}
       </div>
+
+      <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
       <SetsTable exercise={exercise} sessionId={sessionId} />
     </div>
