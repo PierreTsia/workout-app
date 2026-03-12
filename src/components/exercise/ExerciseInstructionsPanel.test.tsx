@@ -22,6 +22,10 @@ const BASE_EXERCISE: Exercise = {
   youtube_url: null,
   instructions: null,
   image_url: null,
+  equipment: "barbell",
+  name_en: "Bench Press",
+  source: "wger:73",
+  secondary_muscles: null,
 }
 
 describe("ExerciseInstructionsPanel", () => {

@@ -15,6 +15,10 @@ export interface Exercise {
   youtube_url: string | null
   instructions: ExerciseInstructions | null
   image_url: string | null
+  equipment: string
+  name_en: string | null
+  source: string | null
+  secondary_muscles: string[] | null
 }
 
 export interface WorkoutDay {

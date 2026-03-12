@@ -14,6 +14,10 @@ const mockExercises: Exercise[] = [
     youtube_url: null,
     instructions: null,
     image_url: null,
+    equipment: "barbell",
+    name_en: "Bench Press",
+    source: "wger:73",
+    secondary_muscles: null,
   },
   {
     id: "ex-2",
@@ -25,6 +29,10 @@ const mockExercises: Exercise[] = [
     youtube_url: null,
     instructions: null,
     image_url: null,
+    equipment: "barbell",
+    name_en: "Squat",
+    source: "wger:99",
+    secondary_muscles: null,
   },
 ]
 
