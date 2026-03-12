@@ -8,7 +8,7 @@
 |---|---|---|
 | Data model strategy | Extend `exercises` table with 3 nullable columns (no new tables) | Exercises are the natural home for instructional content; avoids JOIN overhead and keeps queries simple |
 | Instruction content source | Read from live `exercises` table, NOT snapshotted on `workout_exercises` | Instructions are reference material, not session-specific data. Updates propagate immediately to all users. |
-| Exercise lookup in workout view | Reuse `useExerciseLibrary` TanStack Query cache + lookup by `exercise_id` | Library is already fetched and cached; no new Supabase query needed |
+| Exercise lookup in workout view | Reuse `useExerciseLibrary` TanStack Query + lookup by `exercise_id` | Shared query key — if cache is warm (builder visited), instant lookup. If cold (workout-only session), triggers a single fetch on first panel mount. No custom endpoint needed. |
 | Expandable UI primitive | Radix Collapsible (`@/components/ui/collapsible`) | Already installed, already patterned in `file:src/components/history/SessionList.tsx` — zero new dependencies |
 | Collapsible position | Between header/badge and `SetsTable` | Users should see form guidance before logging sets |
 | YouTube integration | Thumbnail derived from URL + external link (no iframe) | Free thumbnails via `img.youtube.com`, no API key, no embed performance hit on mobile |
@@ -22,9 +22,13 @@
 
 **Snapshot model boundary.** `workout_exercises` snapshots name, muscle group, and emoji from the exercise library at creation time (`file:src/hooks/useBuilderMutations.ts`). This pattern is intentionally NOT extended to instructions/media — these fields are always read from the live `exercises` table. This means `ExerciseDetail` (which receives a `WorkoutExercise`) must perform a secondary lookup into the exercise library cache to render instructions.
 
-**TanStack Query cache dependency.** The `ExerciseInstructionsPanel` component relies on `useExerciseLibrary()` data being cached. In normal app flow, the library is fetched early (via workout page or builder). If the cache is cold (deep link, first load), the instructions section renders nothing — no skeleton, no spinner. Instructions appear once the cache populates. This is acceptable because instructions are supplementary content.
+**TanStack Query fetch lifecycle.** `useExerciseFromLibrary(exerciseId)` wraps `useExerciseLibrary()`, which subscribes to the `["exercise-library"]` TanStack Query. Crucially, **`WorkoutPage` does not call `useExerciseLibrary` anywhere** — it uses `useWorkoutExercises` instead. The only current caller is `ExerciseLibraryPicker` (builder). This means the first time `ExerciseInstructionsPanel` mounts on the workout page, it will trigger the exercise library fetch (TanStack Query fires the query on first subscription). There is a brief loading window while the fetch completes. During this window, the panel renders nothing — no skeleton, no spinner — because instructions are supplementary content. Once data arrives, the panel appears. Subsequent renders use the cached result. No duplicate Supabase calls occur if multiple `ExerciseInstructionsPanel` instances mount simultaneously (TanStack Query deduplicates by query key).
 
 **First Supabase Storage usage.** The current codebase has zero Supabase Storage usage (`file:src/lib/supabase.ts`). This epic introduces the first storage bucket. The bucket is created via SQL migration on `storage.buckets` — supported in Supabase-managed environments. If issues arise in self-hosted setups, fall back to Supabase CLI.
+
+**`useBootstrapProgram` compatibility.** `file:src/hooks/useBootstrapProgram.ts` inserts exercises with only `name`, `muscle_group`, `emoji`, `is_system`. The new nullable columns (`youtube_url`, `instructions`, `image_url`) remain `null` for bootstrap-inserted exercises. No changes needed — these exercises will simply show no instructions until seed data is updated. Existing `select("*")` calls in bootstrap will return the new columns as `null`, which is handled by the nullable TypeScript types.
+
+**Nested Dialog in builder picker.** `ExerciseInfoDialog` opens from inside `ExerciseLibraryPicker`, which is itself a Radix `Dialog`. Radix UI supports nested dialogs natively — the inner dialog's backdrop and focus trap are scoped correctly. However, this must be tested on mobile (iOS Safari in particular) to confirm that dismissing the inner dialog returns focus to the outer dialog's command input without jank.
 
 ---
 
@@ -150,7 +154,7 @@ graph TD
 | `src/components/exercise/ExerciseInfoDialog.tsx` | Dialog triggered by an info icon button in `ExerciseLibraryPicker`. Shows a compact read-only view of instructions + image + YouTube link for an exercise before adding it. Mobile-optimized full-width dialog. |
 | `src/lib/youtube.ts` | `extractVideoId(url)` — parses YouTube URL formats and returns the video ID. `getYouTubeThumbnail(url)` — returns the `mqdefault.jpg` thumbnail URL. |
 | `src/lib/storage.ts` | `getExerciseImageUrl(imagePath)` — builds the full public Supabase Storage URL from a relative path. |
-| `src/hooks/useExerciseFromLibrary.ts` | `useExerciseFromLibrary(exerciseId)` — wraps `useExerciseLibrary()` and returns the matching `Exercise` by ID. Cache lookup only, no additional Supabase call. |
+| `src/hooks/useExerciseFromLibrary.ts` | `useExerciseFromLibrary(exerciseId)` — wraps `useExerciseLibrary()` and returns the matching `Exercise` by ID. Uses TanStack Query cache if warm; triggers fetch if cold (no duplicate calls thanks to query deduplication). |
 | `supabase/migrations/YYYYMMDD_add_exercise_instructions.sql` | ALTER TABLE + storage bucket creation + public read policy. |
 | `src/locales/en/exercise.json` | i18n keys: `howToPerform`, `setup`, `movement`, `breathing`, `commonMistakes`, `watchOnYouTube`. |
 | `src/locales/fr/exercise.json` | French translations of the above. |
@@ -189,7 +193,8 @@ graph TD
 **`useExerciseFromLibrary`**
 - Calls `useExerciseLibrary()` (TanStack Query, key: `["exercise-library"]`)
 - Returns `{ data: exercises?.find(e => e.id === exerciseId), isLoading }`
-- No additional Supabase call — purely a cache lookup with stable reference
+- If the cache is warm, this is a pure in-memory lookup with no Supabase call
+- If the cache is cold (e.g., first workout page load where the library was never fetched), subscribing to the query triggers the fetch. TanStack Query deduplicates — multiple panels mounting simultaneously produce only one network request.
 
 ### Integration Changes to Existing Files
 
@@ -222,7 +227,7 @@ graph TD
 
 | Failure | Behavior |
 |---|---|
-| Exercise library cache is cold (deep link, first load) | `useExerciseFromLibrary` returns `undefined`; `ExerciseInstructionsPanel` renders nothing. Instructions appear once cache populates via background refetch. |
+| Exercise library cache is cold (first workout page load) | `useExerciseFromLibrary` subscribes to `useExerciseLibrary`, triggering the fetch. `isLoading` is true briefly; panel renders nothing. Once data arrives (typically <500ms), panel appears with instructions. No duplicate fetch if multiple panels mount simultaneously. |
 | YouTube URL is malformed or unsupported format | `extractVideoId` returns `null`; `YouTubeLink` renders nothing. No broken image, no error. |
 | YouTube video has been deleted | Thumbnail still loads (YouTube serves a generic placeholder); external link leads to YouTube's "Video unavailable" page. Acceptable degradation. |
 | Supabase Storage image fails to load (404, network error) | `<img>` `onError` handler sets local state to hide the image element. Instruction text and YouTube link remain visible. |
@@ -230,3 +235,23 @@ graph TD
 | User has slow connection (gym wifi) | Images use `loading="lazy"` — they load only when the collapsible is opened and scrolled into view. YouTube thumbnail is ~15KB. No auto-play, no iframe, no video preload. |
 | Supabase Storage bucket doesn't exist (migration not run) | `image_url` resolves to a 404. `onError` handler hides the image. Text instructions and YouTube link still work. |
 | `stopPropagation` on info icon fails in CommandItem | Exercise gets selected when user tries to view info. Mitigation: test on real devices; fallback is to use `onPointerDown` instead of `onClick` for the stop. |
+| Nested Dialog (info inside picker) dismissed on iOS Safari | Inner dialog dismiss may not return focus cleanly to outer dialog's Command input. Mitigation: manual testing on iOS Safari; if broken, add `onCloseAutoFocus` handler on inner dialog to refocus Command input. |
+| `useBootstrapProgram` seeds exercises without instructions | Bootstrap-created exercises have null instructions/media. `ExerciseInstructionsPanel` renders nothing. No error, no crash — expected behavior for non-seeded exercises. |
+
+---
+
+## Testing Strategy
+
+### Unit Tests (Vitest)
+
+| Test file | What it covers |
+|---|---|
+| `src/lib/youtube.test.ts` | `extractVideoId`: standard `youtube.com/watch?v=` URL, `youtu.be/` short URL, `youtube.com/shorts/` URL, URL with extra params (`&t=`, `&list=`), malformed URL returns `null`, non-YouTube URL returns `null`, empty string returns `null`. `getYouTubeThumbnail`: returns correct `img.youtube.com` URL, returns `null` for invalid input. |
+| `src/lib/storage.test.ts` | `getExerciseImageUrl`: builds correct URL from relative path, handles edge cases (empty string, path with special characters). |
+| `src/hooks/useExerciseFromLibrary.test.tsx` | Returns matching exercise when library is cached. Returns `undefined` when exercise ID doesn't exist. Returns `undefined` while loading. |
+| `src/components/exercise/InstructionSection.test.tsx` | Renders title + items. Renders nothing when items is empty array. Renders nothing when items is undefined. |
+| `src/components/exercise/ExerciseInstructionsPanel.test.tsx` | Renders nothing when exercise has no instructions/media. Renders collapsible trigger when exercise has content. Expands on click to show instruction sections. Shows image when `image_url` is present. Hides image on load error. |
+
+### E2E Tests (Playwright)
+
+No new E2E tests required for this epic. Existing `e2e/workout-session.spec.ts` and `e2e/builder-crud.spec.ts` should continue to pass — the new components are additive and do not change existing behavior. If instructions are populated in the test seed, an optional E2E smoke test can verify the collapsible opens and shows content.
