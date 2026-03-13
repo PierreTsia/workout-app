@@ -264,6 +264,21 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.getByText("No exercises found.")).toBeInTheDocument()
   })
 
+  it("shows Load more when hasNextPage and calls fetchNextPage on click", async () => {
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: EXERCISES,
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: true,
+      fetchNextPage: mockFetchNextPage,
+    })
+    renderPicker()
+    const loadMore = screen.getByRole("button", { name: /load more/i })
+    expect(loadMore).toBeInTheDocument()
+    await userEvent.setup().click(loadMore)
+    expect(mockFetchNextPage).toHaveBeenCalledTimes(1)
+  })
+
   it("adds one exercise when one checkbox selected and Apply changes clicked", async () => {
     renderPicker()
     const user = userEvent.setup()
