@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "import-exercises": "tsx scripts/import-exercises.ts",
     "enrich-youtube": "tsx scripts/enrich-youtube.ts",
-    "enrich-instructions": "tsx scripts/enrich-instructions.ts"
+    "enrich-instructions": "tsx scripts/enrich-instructions.ts",
+    "dedup-exercises": "tsx scripts/dedup-exercises.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
