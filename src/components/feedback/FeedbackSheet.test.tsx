@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest"
-import { screen, fireEvent, act } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { FeedbackSheet } from "./FeedbackSheet"
