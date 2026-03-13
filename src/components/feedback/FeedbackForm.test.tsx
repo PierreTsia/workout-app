@@ -3,6 +3,7 @@ import { screen, waitFor, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { authAtom } from "@/store/atoms"
+import type { User } from "@/types/auth"
 import { FeedbackForm } from "./FeedbackForm"
 
 const mockSubmit = vi.fn()
@@ -24,10 +25,12 @@ const PROPS = {
   onSuccess: vi.fn(),
 }
 
-function renderForm(user?: { email: string; id: string } | null) {
+const TEST_USER = { email: "test@example.com", id: "uid-1" } as unknown as User
+
+function renderForm(user?: User | null) {
   const result = renderWithProviders(<FeedbackForm {...PROPS} />)
   if (user) {
-    result.store.set(authAtom, user as any)
+    result.store.set(authAtom, user)
   }
   return result
 }
@@ -35,7 +38,7 @@ function renderForm(user?: { email: string; id: string } | null) {
 function renderAuthenticatedForm() {
   const result = renderWithProviders(<FeedbackForm {...PROPS} />)
   act(() => {
-    result.store.set(authAtom, { email: "test@example.com", id: "uid-1" } as any)
+    result.store.set(authAtom, TEST_USER)
   })
   result.rerender(<FeedbackForm {...PROPS} />)
   return result
