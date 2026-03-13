@@ -3,11 +3,11 @@ import { z } from "zod"
 const instructionStepSchema = z.object({ value: z.string() })
 
 export const exerciseFormSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, "Required"),
   name_en: z.string().nullable(),
-  muscle_group: z.string().min(1),
+  muscle_group: z.string().min(1, "Required"),
   equipment: z.string(),
-  emoji: z.string().min(1),
+  emoji: z.string().min(1, "Required"),
   secondary_muscles: z.string(),
   youtube_url: z.string().nullable(),
   image_url: z.string().nullable(),

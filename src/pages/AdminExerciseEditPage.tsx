@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useExerciseById } from "@/hooks/useExerciseById"
 import { useAdminUpdateExercise } from "@/hooks/useAdminUpdateExercise"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ExerciseEditForm } from "@/components/admin/exercise-form/ExerciseEditForm"
 import { fromFormValues } from "@/components/admin/exercise-form/transforms"
@@ -48,27 +47,28 @@ export function AdminExerciseEditPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-          <Link to="/admin/exercises">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">{t("editExercise")}</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col gap-1">
+        <Link
+          to="/admin/exercises"
+          className="flex w-fit items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          {t("backToList")}
+        </Link>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">
             {exercise.emoji} {exercise.name}
-          </p>
+          </h1>
+          {exercise.reviewed_at ? (
+            <Badge variant="default" className="bg-green-600 text-xs">
+              {t("reviewed")}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {t("notReviewed")}
+            </Badge>
+          )}
         </div>
-        {exercise.reviewed_at ? (
-          <Badge variant="default" className="bg-green-600 text-xs">
-            {t("reviewed")}
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-xs text-muted-foreground">
-            {t("notReviewed")}
-          </Badge>
-        )}
       </div>
 
       <ExerciseEditForm
