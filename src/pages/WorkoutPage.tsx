@@ -172,6 +172,8 @@ export function WorkoutPage() {
       startedAt: null,
       isActive: false,
       totalSetsDone: 0,
+      pausedAt: null,
+      accumulatedPause: 0,
     })
     setPrFlags({})
     setSessionBest1RM({})
