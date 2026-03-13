@@ -21,6 +21,7 @@ async function main() {
     if (typeof r.instructions === "object" && Object.keys(r.instructions).length === 0) { emptyCount++; continue }
 
     withInstructions++
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const instr = r.instructions as any
 
     if (typeof instr === "string") {
