@@ -1,180 +1,128 @@
 # Workout App — Product Requirements Document
 
-## 📋 Overview
+## Overview
 
-**Workout App** is a mobile-first web application for tracking strength training sessions with integrated rest timers, exercise progression, and workout analytics.
+**Workout App** is a mobile-first PWA for tracking strength training sessions with integrated rest timers, exercise progression, workout analytics, and a 600+ exercise library with content (instructions, demos, illustrations).
 
-**Target User:** Pierre Tsiakkaros (45yo, 72kg, strength training enthusiast)  
+**Target User:** Pierre Tsiakkaros (45yo, 72kg, strength training enthusiast)
 **Use Case:** Neoness gym member, 6 days/week training (push/pull/legs/full-body split)
+**Live at:** Vercel (CI/CD via GitHub Actions)
 
 ---
 
-## 🎯 Problem Statement
+## Tech Stack
 
-- Current workflow: Using multiple tools (spreadsheet + timer + fitness app)
-- Pain points:
-  - No integrated rest timer during workouts
-  - Manual progress tracking across sessions
-  - Static workout plans without real-time adjustment
-  - No mobile-first interface for gym use
-
----
-
-## ✨ Core Features (v1)
-
-### 1. **Workout Selection**
-- Pre-configured workouts (Lundi/Mercredi/Vendredi)
-- One-tap switch between workout days
-- Visual indicator (thumbnail emojis) for quick exercise recognition
-
-### 2. **Exercise Interface**
-- Exercise name + muscle group
-- Sets table with:
-  - Set number
-  - Target reps (editable)
-  - Reference weight (editable)
-  - Checkbox to mark set as done
-- Add/remove set buttons for flexibility
-
-### 3. **Rest Timer (MVP)**
-- Auto-triggers when set is checked
-- Countdown timer (visual circle + numbers)
-- Audio/vibration notification on completion
-- Skip button for early next set
-- Display current exercise + rest duration
-
-### 4. **Workout Tracking**
-- Elapsed time counter (top bar)
-- Session summary on completion:
-  - Total duration
-  - Sets completed
-  - Exercises done
-  - Ability to restart
-
-### 5. **Data Persistence**
-- Local storage (localStorage) for current session
-- No cloud sync (v1) — data stays on device
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript 5.9, Vite 7 |
+| Styling | Tailwind CSS 3.4, shadcn/ui (Radix primitives), class-variance-authority |
+| State | Jotai (atoms) + TanStack React Query |
+| Forms | React Hook Form + Zod |
+| Routing | React Router DOM 7 |
+| Backend | Supabase (Postgres 15, Auth, Storage, RLS) |
+| i18n | react-i18next (FR/EN), 6 namespaces |
+| Theming | next-themes (dark/light, class strategy) |
+| Charts | Recharts |
+| DnD | @dnd-kit |
+| PWA | vite-plugin-pwa (Workbox, auto-update) |
+| Testing | Vitest + Testing Library + Playwright |
+| CI/CD | GitHub Actions → Vercel |
 
 ---
 
-## 🎨 Design
+## Features (Shipped)
 
-**Style:**
-- Dark theme (#0f0f13 bg, teal accents #00c9b1)
-- Mobile-first responsive layout
-- Minimalist UI — focus on what matters during workout
+### Workout Session
+- Day selector with horizontal exercise strip
+- Sets table: reps, weight, done checkbox per set
+- Auto-triggering rest timer with countdown, audio/vibration notification, skip
+- Session summary on completion (duration, sets, exercises)
+- Offline set logging with auto-sync on reconnect (localStorage queue, fingerprint dedupe)
 
-**Key Components:**
-- Top bar: Menu + timer + manual rest button
-- Exercise strip: Horizontal scroll thumbnails
-- Main view: Large exercise info + sets table
-- Bottom nav: Previous/Next exercise buttons
-- Rest overlay: Full-screen timer
+### Progression & Analytics
+- "Last session" reference per exercise
+- PR detection using Epley 1RM (`weight × (1 + reps/30)`)
+- Stats dashboard with session history and per-exercise progression charts (Recharts)
+- `estimated_1rm` and `was_pr` tracked in set_logs
 
----
+### Workout Builder
+- Full CRUD for workout days and exercises
+- Exercise library picker with free-text search, muscle group filter (single-select), equipment filter (multi-select)
+- Drag-and-drop exercise reordering (@dnd-kit)
+- Snapshot fields preserve exercise metadata at build time
 
-## 📊 Data Structure
+### Exercise Library
+- ~600 exercises with French names, English names, muscle group, equipment, instructions (JSONB), YouTube URLs, illustrations
+- Imported from Wger API with AI-assisted French translation
+- Enrichment pipeline (3 phases): YouTube → illustrations → instructions
+- 23 hand-curated exercises preserved with merge/dedupe strategy
 
-### Workout Schema
-```json
-{
-  "day": "vendredi",
-  "label": "🟣 Vendredi — Full Body",
-  "exercises": [
-    {
-      "name": "Développé couché",
-      "muscle": "Pectoraux",
-      "emoji": "🏋️",
-      "sets": 3,
-      "reps": "12",
-      "weight": "32.5-40",
-      "rest": 120,
-      "warn": null
-    }
-  ]
-}
-```
+### Exercise Content
+- Instructions panel (setup, movement, breathing, common mistakes) in workout view and builder
+- YouTube demo links with lazy-loaded thumbnails
+- Exercise illustrations (AI-generated or royalty-free)
+- Content feedback system (users report errors from 3 entry points)
 
-### Session State
-```json
-{
-  "currentDay": "vendredi",
-  "currentExIdx": 0,
-  "setsData": {
-    "vendredi_0": [
-      { "reps": "12", "weight": "32.5-40", "done": false },
-      { "reps": "12", "weight": "32.5-40", "done": true }
-    ]
-  },
-  "workoutStart": 1773261600000,
-  "totalSetsDone": 5
-}
-```
+### PWA & UX
+- Installable to home screen with install prompt banner
+- Service worker with Workbox (Supabase API runtime caching)
+- Dark/light theme toggle
+- FR/EN language switching with weight unit preference (kg/lbs, stored kg-only)
+
+### Auth & Admin
+- Supabase Auth (Google OAuth only)
+- Admin panel for exercise review (`/admin/exercises`)
+- RLS on all tables
+- `admin_users` table for role gating
+
+### Quality
+- Vitest unit tests (Epley, weight units, SyncService, best 1RM)
+- Playwright E2E (login, workout session, builder CRUD)
+- GitHub Actions CI: lint → type-check → unit tests → E2E (local Supabase) → deploy
 
 ---
 
-## 🚀 Roadmap
+## App Routes
 
-### v1 (Current) ✅
-- [x] 3 pre-configured workouts
-- [x] Rest timer with notifications
-- [x] Set tracking
-- [x] Mobile-responsive UI
-- [x] Session summary
-
-### v2 (Planned)
-- [ ] Progression tracking (weekly weight/reps trends)
-- [ ] Google Sheets auto-sync for historical data
-- [ ] Exercise notes/comments per set
-- [ ] PRs (Personal Records) badge
-- [ ] PWA installable to home screen
-- [ ] Dark/light theme toggle
-- [ ] Custom workout builder
-
-### v3 (Future)
-- [ ] Multi-user support (friends can share programs)
-- [ ] Backend API + cloud sync
-- [ ] AI-powered rep suggestions based on form analysis (video)
-- [ ] Wearable integration (Apple Watch, Wear OS)
-- [ ] Social sharing (PR celebrations, leaderboards)
+| Path | Page | Access |
+|---|---|---|
+| `/login` | Login | Public |
+| `/about` | About | Public |
+| `/` | Workout Session | Auth |
+| `/history` | History & Analytics | Auth |
+| `/builder` | Workout Builder | Auth |
+| `/admin/exercises` | Exercise Admin | Admin |
+| `/admin/exercises/:id` | Exercise Edit | Admin |
 
 ---
 
-## 🛠 Tech Stack
+## Data Model (Supabase)
 
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript
-- **Storage:** LocalStorage (v1), Firebase/Supabase (v2+)
-- **Hosting:** GitHub Pages / Vercel / Netlify
-- **No build tool required** (plain HTML file)
+Core tables: `exercises`, `workout_days`, `workout_exercises`, `sessions`, `set_logs`, `exercise_content_feedback`, `admin_users`.
 
----
+### exercises
 
-## 📱 Browser Support
-
-- Modern browsers (Chrome, Safari, Firefox, Edge)
-- iOS 12+, Android 9+
-- Mobile-first design (400px–480px viewport primary target)
-
----
-
-## 🔐 Privacy & Security
-
-- **No data collection:** All data stored locally on device
-- **No external API calls** (v1)
-- **Optional:** User-initiated export to CSV/JSON
-
----
-
-## 📈 Success Metrics
-
-- Session completion rate (% of users finishing workouts)
-- Average rest timer accuracy
-- Time to create new workout plan
-- User retention (weekly active users)
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| name | text | NOT NULL, UNIQUE, French |
+| name_en | text | English name for search |
+| muscle_group | text | NOT NULL |
+| equipment | text | NOT NULL, default 'bodyweight' |
+| emoji | text | NOT NULL |
+| is_system | boolean | NOT NULL, default false |
+| youtube_url | text | Demo video |
+| instructions | jsonb | { setup, movement, breathing, common_mistakes } |
+| image_url | text | Illustration |
+| source | text | Provenance (e.g. "wger", "manual") |
+| secondary_muscles | text[] | |
+| reviewed_at | timestamptz | Admin review timestamp |
+| reviewed_by | text | Admin reviewer |
+| created_at | timestamptz | NOT NULL, default now() |
 
 ---
 
-## 🏋️ Difficulty / Experience Tiers
+## Difficulty / Experience Tiers
 
 Shared vocabulary used across exercise classification, onboarding user profiles, and program generation. The same three tiers apply to both exercises and users.
 
@@ -186,17 +134,84 @@ Shared vocabulary used across exercise classification, onboarding user profiles,
 
 ---
 
-## 🎓 Known Limitations (v1)
+## Roadmap
 
-- Single device only (no sync across devices)
-- No historical analytics
-- No form tracking/video analysis
-- No social features
-- Hardcoded workout programs
+### Shipped
+- [x] Workout session with rest timer
+- [x] Supabase backend with RLS
+- [x] Offline queue & sync
+- [x] Progression tracking & PR detection
+- [x] History & analytics dashboard
+- [x] Workout builder with full CRUD
+- [x] PWA (installable, service worker, theme toggle)
+- [x] i18n (FR/EN) + weight unit preference
+- [x] Exercise library (600+ exercises, search, filters)
+- [x] Exercise content enrichment (YouTube, illustrations, instructions)
+- [x] Content feedback system
+- [x] CI/CD pipeline (lint, tests, E2E, deploy)
+- [x] Admin panel for exercise review
+- [x] About page
+
+### In Progress
+- [ ] Exercise difficulty levels (classification, badges, filter)
+
+### Planned
+- [ ] Onboarding wizard & program generation (user profiles, templates, recommendation engine)
+- [ ] Gamification system (details TBD)
+
+### Future
+- [ ] Multi-user support (share programs)
+- [ ] AI-powered rep suggestions
+- [ ] Wearable integration
+- [ ] Social features (PR celebrations, leaderboards)
 
 ---
 
-## 👤 Author
+## Design
 
-Designed for **Pierre Tsiakkaros** (Jan 2026)  
-Built by **Iris** (OpenClaw Personal Assistant)
+**Style:**
+- Dark theme default (#0f0f13 bg, teal accents #00c9b1), light theme available
+- Mobile-first responsive layout (400px–480px primary target)
+- shadcn/ui component library on Radix primitives
+- Minimalist UI — focus on what matters during workout
+
+**Key Patterns:**
+- Bottom sheets for modals (exercise picker, feedback)
+- Collapsible panels (filters, instructions)
+- Horizontal scroll strips (exercise thumbnails, filter pills)
+- Color-coded badges for metadata (PRs, difficulty)
+- Toast notifications (sonner)
+
+---
+
+## Browser Support
+
+- Modern browsers (Chrome, Safari, Firefox, Edge)
+- iOS 15+, Android 10+
+- Mobile-first design, responsive up to desktop
+- PWA installable on all platforms
+
+---
+
+## Privacy & Security
+
+- Supabase Auth with Google OAuth
+- Row-Level Security on all tables
+- No third-party analytics (planned: generic analytics_events table)
+- Exercise data is server-side; session state cached locally for offline
+- Admin role gated via `admin_users` table
+
+---
+
+## Success Metrics
+
+- Session completion rate
+- Time to find and add an exercise (search + filter UX)
+- Enrichment coverage (% of exercises with instructions, YouTube, images)
+- Onboarding completion rate (future)
+
+---
+
+## Author
+
+Designed for **Pierre Tsiakkaros** (Jan 2026)
