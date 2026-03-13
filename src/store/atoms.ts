@@ -9,6 +9,8 @@ export interface SessionState {
   startedAt: number | null
   isActive: boolean
   totalSetsDone: number
+  pausedAt: number | null
+  accumulatedPause: number
 }
 
 const defaultSessionState: SessionState = {
@@ -18,6 +20,8 @@ const defaultSessionState: SessionState = {
   startedAt: null,
   isActive: false,
   totalSetsDone: 0,
+  pausedAt: null,
+  accumulatedPause: 0,
 }
 
 export const authAtom = atom<User | null>(null)

@@ -159,6 +159,8 @@ export function WorkoutPage() {
       ...prev,
       isActive: true,
       startedAt: Date.now(),
+      pausedAt: null,
+      accumulatedPause: 0,
     }))
   }
 

@@ -35,5 +35,6 @@
   "rest": "Rest",
   "skip": "Skip",
   "restOverNotif": "Rest over!",
-  "restOverBody": "Time for your next set"
+  "restOverBody": "Time for your next set",
+  "finishEarly": "Finish workout early"
 }

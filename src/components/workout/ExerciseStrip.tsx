@@ -27,7 +27,7 @@ export function ExerciseStrip({ exercises }: ExerciseStripProps) {
   return (
     <div
       ref={scrollRef}
-      className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
+      className="flex items-center gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
     >
       {exercises.map((ex, idx) => (
         <StripItem
@@ -63,10 +63,10 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
         ref={ref}
         onClick={onSelect}
         className={cn(
-          "relative flex w-[5.5rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all",
+          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out",
           isActive
-            ? "ring-2 ring-primary"
-            : "opacity-70",
+            ? "w-[7rem] scale-105 ring-2 ring-primary shadow-lg"
+            : "w-[5.5rem] opacity-70",
         )}
       >
         {hasPr && (

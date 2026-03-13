@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
+import { getEffectiveElapsed } from "@/lib/session"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -42,7 +43,7 @@ export function SessionSummary({
 
   const [finishedAt] = useState(() => Date.now())
   const duration = session.startedAt
-    ? formatDuration(finishedAt - session.startedAt)
+    ? formatDuration(getEffectiveElapsed(session, finishedAt))
     : "—"
 
   return (
