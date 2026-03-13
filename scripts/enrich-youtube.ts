@@ -4,6 +4,7 @@
  * then YouTube Data API v3 search. Idempotent: only sets youtube_url where NULL.
  */
 
+import "./load-env.js"
 import { createClient } from "@supabase/supabase-js"
 import * as fs from "node:fs"
 import * as path from "node:path"
