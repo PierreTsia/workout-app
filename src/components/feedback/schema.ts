@@ -49,21 +49,21 @@ export const feedbackFormSchema = z
         path: ["description"],
       })
     }
-    if (data.illustration.includes("other") && !data.other_illustration_text.trim()) {
+    if (data.whatIllustration && data.illustration.includes("other") && !data.other_illustration_text.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "otherRequired",
         path: ["other_illustration_text"],
       })
     }
-    if (data.video.includes("other") && !data.other_video_text.trim()) {
+    if (data.whatVideo && data.video.includes("other") && !data.other_video_text.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "otherRequired",
         path: ["other_video_text"],
       })
     }
-    if (data.description.includes("other") && !data.other_description_text.trim()) {
+    if (data.whatDescription && data.description.includes("other") && !data.other_description_text.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "otherRequired",

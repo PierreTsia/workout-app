@@ -109,6 +109,18 @@ describe("feedbackFormSchema", () => {
       const result = feedbackFormSchema.safeParse({ ...VALID_BASE, comment: "" })
       expect(result.success).toBe(true)
     })
+
+    it("ignores other_*_text validation when category is deselected", () => {
+      const result = feedbackFormSchema.safeParse({
+        ...VALID_BASE,
+        whatIllustration: false,
+        illustration: ["other"],
+        other_illustration_text: "",
+        whatVideo: true,
+        video: ["poor_quality"],
+      })
+      expect(result.success).toBe(true)
+    })
   })
 
   describe("formValuesToPayload", () => {

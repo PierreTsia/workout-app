@@ -198,7 +198,14 @@ export function FeedbackForm({
                                   : opt.value === "video"
                                     ? "whatVideo" as const
                                     : "whatDescription" as const
-                                form.setValue(field, !active, { shouldValidate: true })
+                                const nextActive = !active
+                                form.setValue(field, nextActive, { shouldValidate: true })
+                                if (!nextActive) {
+                                  const arrayField = opt.value as "illustration" | "video" | "description"
+                                  const otherField = `other_${opt.value}_text` as const
+                                  form.setValue(arrayField, [] as never, { shouldValidate: true })
+                                  form.setValue(otherField, "", { shouldValidate: true })
+                                }
                               }}
                               className={cn(
                                 "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
