@@ -29,6 +29,9 @@ const defaultSessionState: SessionState = {
 export const authAtom = atom<User | null>(null)
 export const authLoadingAtom = atom(true)
 
+export const isAdminAtom = atom(false)
+export const isAdminLoadingAtom = atom(true)
+
 export const sessionAtom = atomWithStorage<SessionState>(
   "session",
   defaultSessionState,

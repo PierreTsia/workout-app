@@ -1,0 +1,53 @@
+{
+  "title": "Admin",
+  "exercises": "Exercices",
+  "exercisesDescription": "Gérer le contenu des exercices — instructions, vidéos, images",
+  "backToList": "Retour à la liste",
+  "editExercise": "Modifier l'exercice",
+  "searchPlaceholder": "Rechercher des exercices…",
+  "allReviewStatus": "Tous",
+  "reviewed": "Vérifié",
+  "notReviewed": "Non vérifié",
+  "reviewedFilter": "Statut de vérification",
+  "columns": {
+    "name": "Nom",
+    "muscleGroup": "Groupe musculaire",
+    "equipment": "Équipement",
+    "youtube": "YouTube",
+    "image": "Image",
+    "instructions": "Instructions",
+    "reviewStatus": "Vérifié",
+    "actions": "Actions"
+  },
+  "form": {
+    "name": "Nom",
+    "nameEn": "Nom (EN)",
+    "muscleGroup": "Groupe musculaire",
+    "equipment": "Équipement",
+    "emoji": "Emoji",
+    "secondaryMuscles": "Muscles secondaires",
+    "youtubeUrl": "URL YouTube",
+    "imageUrl": "URL de l'image",
+    "setup": "Mise en place",
+    "movement": "Mouvement",
+    "breathing": "Respiration",
+    "commonMistakes": "Erreurs courantes",
+    "addStep": "Ajouter une étape",
+    "removeStep": "Supprimer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "stepPlaceholder": "Étape {{number}}"
+  },
+  "toast": {
+    "saveSuccess": "Exercice mis à jour avec succès",
+    "saveError": "Échec de la mise à jour de l'exercice"
+  },
+  "pagination": {
+    "rowsPerPage": "Lignes par page",
+    "page": "Page {{current}} sur {{total}}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "exerciseCount": "{{count}} exercices",
+  "reviewedCount": "{{count}} vérifiés"
+}

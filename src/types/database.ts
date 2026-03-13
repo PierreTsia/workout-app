@@ -19,6 +19,8 @@ export interface Exercise {
   name_en: string | null
   source: string | null
   secondary_muscles: string[] | null
+  reviewed_at: string | null
+  reviewed_by: string | null
 }
 
 export interface WorkoutDay {

@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
+import { Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -6,6 +8,7 @@ import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import type { WorkoutExercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { AdminOnly } from "@/components/admin/AdminOnly"
 import { SetsTable } from "./SetsTable"
 
 interface ExerciseDetailProps {
@@ -30,6 +33,14 @@ export function ExerciseDetail({
         <div className="flex items-center gap-2">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
           <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
+          <AdminOnly>
+            <Link
+              to={`/admin/exercises/${exercise.exercise_id}`}
+              className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+          </AdminOnly>
         </div>
         <Badge variant="secondary" className="w-fit text-xs">
           {exercise.muscle_snapshot}

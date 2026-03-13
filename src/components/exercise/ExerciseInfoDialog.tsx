@@ -1,6 +1,8 @@
-import { Activity, AlertTriangle, Info, Settings2, Wind } from "lucide-react"
+import { Activity, AlertTriangle, Info, Pencil, Settings2, Wind } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import type { Exercise } from "@/types/database"
+import { AdminOnly } from "@/components/admin/AdminOnly"
 import { ExerciseThumbnail } from "./ExerciseThumbnail"
 import {
   Dialog,
@@ -49,6 +51,15 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
           <DialogTitle className="flex items-center gap-2">
             <ExerciseThumbnail imageUrl={exercise.image_url} emoji={exercise.emoji} className="h-8 w-8" />
             {exercise.name}
+            <AdminOnly>
+              <Link
+                to={`/admin/exercises/${exercise.id}`}
+                className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </AdminOnly>
           </DialogTitle>
           <DialogDescription className="sr-only">
             {t("howToPerform")}

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info } from "lucide-react"
+import { LogOut, Download, Info, Shield } from "lucide-react"
 import {
   authAtom,
   drawerOpenAtom,
@@ -27,6 +27,7 @@ import {
 } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
+import { AdminOnly } from "@/components/admin/AdminOnly"
 
 function SegmentedButton<T extends string>({
   value,
@@ -145,6 +146,14 @@ export function SideDrawer() {
                 {t("common:workoutBuilder")}
               </Link>
             </Button>
+            <AdminOnly>
+              <Button variant="ghost" className="justify-start" asChild>
+                <Link to="/admin/exercises" onClick={closeDrawer}>
+                  <Shield className="h-4 w-4" />
+                  {t("common:admin")}
+                </Link>
+              </Button>
+            </AdminOnly>
           </nav>
 
           <Separator />

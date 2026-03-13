@@ -26,6 +26,8 @@ const BASE_EXERCISE: Exercise = {
   name_en: "Bench Press",
   source: "wger:73",
   secondary_muscles: null,
+  reviewed_at: null,
+  reviewed_by: null,
 }
 
 describe("ExerciseInstructionsPanel", () => {
