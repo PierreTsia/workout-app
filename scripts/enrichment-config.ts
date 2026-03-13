@@ -38,7 +38,7 @@ export const phase2 = {
   imageProvider: (process.env.ENRICHMENT_IMAGE_PROVIDER ?? "replicate") as "replicate" | "huggingface",
   imageProviderKey: env.imageProviderKey,
   /** Model id (e.g. FLUX or SDXL variant) */
-  imageModel: process.env.ENRICHMENT_IMAGE_MODEL ?? "black-forest-labs/flux-schnell",
+  imageModel: process.env.ENRICHMENT_IMAGE_MODEL ?? "black-forest-labs/FLUX.1-schnell",
   /** Style / diversity: prompt constraints; no new DB columns */
   stylePromptPrefix: process.env.ENRICHMENT_STYLE_PROMPT ?? "clear form, minimal background, fitness illustration",
   /** Max images per minute when batching (rate limit) */

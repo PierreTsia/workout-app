@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "import-exercises": "tsx scripts/import-exercises.ts",
     "enrich-youtube": "tsx scripts/enrich-youtube.ts",
+    "enrich-illustrations": "tsx scripts/enrich-illustrations.ts",
     "enrich-instructions": "tsx scripts/enrich-instructions.ts",
     "dedup-exercises": "tsx scripts/dedup-exercises.ts"
   },
