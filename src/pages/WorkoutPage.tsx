@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
@@ -63,7 +69,19 @@ export function WorkoutPage() {
   const activeSessionDayLabel =
     days?.find((d) => d.id === activeSessionDayId)?.label ?? ""
 
-  const currentExercise = exercises[session.exerciseIndex] ?? null
+  const [lockedDayView, setLockedDayView] = useState<{
+    dayId: string | null
+    index: number
+  }>({ dayId: null, index: 0 })
+
+  const lockedDayIndex =
+    lockedDayView.dayId === session.currentDayId ? lockedDayView.index : 0
+
+  const displayIndex = isViewingLockedDay
+    ? Math.min(lockedDayIndex, Math.max(0, exercises.length - 1))
+    : session.exerciseIndex
+
+  const currentExercise = exercises[displayIndex] ?? null
 
   const sessionId = useMemo(() => {
     if (session.isActive && session.startedAt) {
@@ -263,7 +281,20 @@ export function WorkoutPage() {
         </div>
       ) : (
         <>
-          <ExerciseStrip exercises={exercises} />
+          <ExerciseStrip
+            exercises={exercises}
+            activeIndex={displayIndex}
+            onSelectIndex={
+              isViewingLockedDay
+                ? (idx) =>
+                    setLockedDayView({
+                      dayId: session.currentDayId,
+                      index: idx,
+                    })
+                : (idx) =>
+                    setSession((prev) => ({ ...prev, exerciseIndex: idx }))
+            }
+          />
 
           <div className="flex-1 overflow-y-auto py-2">
             {currentExercise && (

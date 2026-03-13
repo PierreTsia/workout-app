@@ -1,6 +1,6 @@
-import { useAtom, useAtomValue } from "jotai"
+import { useAtomValue } from "jotai"
 import { useRef, useEffect } from "react"
-import { sessionAtom, prFlagsAtom } from "@/store/atoms"
+import { prFlagsAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -8,14 +8,15 @@ import { cn } from "@/lib/utils"
 
 interface ExerciseStripProps {
   exercises: WorkoutExercise[]
-  disableSelection?: boolean
+  activeIndex: number
+  onSelectIndex: (idx: number) => void
 }
 
 export function ExerciseStrip({
   exercises,
-  disableSelection = false,
+  activeIndex,
+  onSelectIndex,
 }: ExerciseStripProps) {
-  const [session, setSession] = useAtom(sessionAtom)
   const prFlags = useAtomValue(prFlagsAtom)
   const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLButtonElement>(null)
@@ -26,7 +27,7 @@ export function ExerciseStrip({
       inline: "center",
       block: "nearest",
     })
-  }, [session.exerciseIndex])
+  }, [activeIndex])
 
   return (
     <div
@@ -37,14 +38,10 @@ export function ExerciseStrip({
         <StripItem
           key={ex.id}
           exercise={ex}
-          isActive={idx === session.exerciseIndex}
+          isActive={idx === activeIndex}
           hasPr={!!prFlags[ex.exercise_id]}
-          ref={idx === session.exerciseIndex ? activeRef : undefined}
-          onSelect={() =>
-            !disableSelection &&
-            setSession((prev) => ({ ...prev, exerciseIndex: idx }))
-          }
-          disabled={disableSelection}
+          ref={idx === activeIndex ? activeRef : undefined}
+          onSelect={() => onSelectIndex(idx)}
         />
       ))}
     </div>
@@ -58,20 +55,18 @@ interface StripItemProps {
   isActive: boolean
   hasPr: boolean
   onSelect: () => void
-  disabled?: boolean
 }
 
 const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
-  function StripItem({ exercise, isActive, hasPr, onSelect, disabled }, ref) {
+  function StripItem({ exercise, isActive, hasPr, onSelect }, ref) {
     const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
 
     return (
       <button
         ref={ref}
         onClick={onSelect}
-        disabled={disabled}
         className={cn(
-          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out disabled:pointer-events-none disabled:opacity-50",
+          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out",
           isActive
             ? "w-[8.5rem] scale-110 ring-2 ring-primary shadow-lg z-10"
             : "w-[5rem] opacity-60",
