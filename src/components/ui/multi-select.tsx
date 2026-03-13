@@ -49,12 +49,9 @@ export function MultiSelect({
     onChange(next)
   }
 
-  const triggerLabel =
-    value.length === 0
-      ? placeholder
-      : value.length === 1
-        ? options.find((o) => o.value === value[0])?.label ?? value[0]
-        : `${value.length} selected`
+  const firstLabel = value.length > 0
+    ? options.find((o) => o.value === value[0])?.label ?? value[0]
+    : null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -67,12 +64,23 @@ export function MultiSelect({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between font-normal",
+            "h-9 w-full justify-between font-normal",
             value.length === 0 && "text-muted-foreground",
-            triggerClassName
+            triggerClassName,
           )}
         >
-          {triggerLabel}
+          {value.length === 0 ? (
+            <span className="truncate">{placeholder}</span>
+          ) : (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate">{firstLabel}</span>
+              {value.length > 1 && (
+                <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                  +{value.length - 1}
+                </span>
+              )}
+            </span>
+          )}
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
