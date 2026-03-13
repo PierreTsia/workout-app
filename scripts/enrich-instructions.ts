@@ -157,14 +157,23 @@ function generateInstructionsTemplate(c: Candidate): ExerciseInstructionsShape {
 // ---------- LLM prompt (shared) ----------
 
 function buildPrompt(c: Candidate) {
-  const system = "Tu es un coach sportif expert. Tu réponds uniquement en JSON valide, sans commentaires."
-  const user = `Génère des instructions d'exercice en français pour l'exercice suivant, au format JSON uniquement, sans texte avant ou après. Le JSON doit avoir exactement ces clés (chacune un tableau de chaînes) : "setup", "movement", "breathing", "common_mistakes". Chaque tableau contient 2 à 4 phrases courtes en français.
+  const system = `Tu es un coach sportif expert et concis. Tu réponds uniquement en JSON valide, sans commentaires ni texte autour.
+
+Règles strictes :
+- Chaque section contient 2 à 3 phrases courtes, directes et actionnables.
+- Les instructions doivent correspondre EXACTEMENT à l'équipement indiqué ("${c.equipment}"). Ne mentionne jamais un équipement différent.
+- Ne prescris JAMAIS de nombre de répétitions ou de séries.
+- Ne commence JAMAIS une phrase par "Répétez" ou "N'oubliez pas".
+- Rédige en français. Les termes de salle courants restent en anglais (squat, curl, pull-up, deadlift, hip thrust, face pull, etc.). Utilise "haltère" (pas "dumbbell"), "barre" (pas "barbell"), "poulie"/"câble" (pas "cable").
+- Sois précis sur le mouvement réel de cet exercice — pas de descriptions génériques.`
+
+  const user = `Génère les instructions pour cet exercice, au format JSON uniquement :
 
 Exercice : ${c.name}${c.name_en ? ` (${c.name_en})` : ""}
 Groupe musculaire : ${c.muscle_group}
 Équipement : ${c.equipment}
 
-Réponds uniquement avec le JSON, rien d'autre.`
+JSON avec exactement ces clés (chacune un tableau de chaînes) : "setup", "movement", "breathing", "common_mistakes".`
   return { system, user }
 }
 

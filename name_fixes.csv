@@ -1,0 +1,54 @@
+id,field,current_value,new_value,reason
+19c42f40-a8df-4768-bb89-ff66c38eae54,name,○ étirement des muscles de la cuisse,Étirement genou-poitrine,"Wrong exercise + garbage ○ char — EN is 'Knee to Chest Stretch', not a thigh stretch"
+28efa800-3387-4936-9e92-ce511b2c44a3,name,Boucle de biceps à bras unique TRX,Curl biceps un bras TRX,"'Boucle' (buckle/loop) is never used in FR gyms — 'Curl' is universal"
+dad09fe4-57ef-4bd9-9a6e-029b812b72ef,name,Boucle de biceps couché,Curl biceps allongé,Same — Boucle → Curl
+bb39c335-c74b-4bf1-986e-b06031df6087,name,Boucle de prédicateur - rotation externe,Curl au pupitre rotation externe,"'Boucle de prédicateur' → 'Curl au pupitre' (standard FR term)"
+27249c8a-571c-4271-b2a6-8b6f917be858,name,Boucle de prédicateur - rotation interne,Curl au pupitre rotation interne,Same
+1b918356-b94c-4527-940f-c85b88fbeb74,name,Boucles barbell à poignée inversée,Curl barre prise inversée,"'Boucles barbell à poignée inversée' — triple error: Boucle+barbell+poignée"
+6500fa22-8ee9-4b17-a12e-2f4ca3c025f7,name,Câble assis à mi-piège haussement d'épaules,Shrugs assis poulie mi-trapèze,"'piège'=trap (as in trap door), should be 'trapèze' (muscle)"
+bd729448-a4a1-4ab0-98ad-1c59297f4007,name,Câble de poulie basse ffly,Écarté poulie basse,"'ffly' is a typo — standard FR for cable fly is 'écarté poulie'"
+e3893001-8cc0-43b1-8542-f1ef19ae5c4c,name,Câble transversal unilatéral tirant vers le bas,Tirage croisé unilatéral poulie,Over-literal verbose translation
+6364737a-3990-4e8b-9b92-132500c2e6ee,name,Crêpe assise bonjour,Pancake good morning assis,"'Crêpe'='pancake' and 'bonjour'='good morning' — these terms are NEVER translated in FR gyms"
+3de0596f-d403-434d-a49c-b5d4404fb495,name,Crêpe debout bonjour,Pancake good morning debout,Same
+18f733b6-80fe-47a5-93b4-d372848a83f7,name,Croix suspendu,Croix suspendue,Gender agreement — 'croix' is feminine
+1d908c58-ea89-4760-b1e1-d648677b2bef,name,Dont le câble,Écarté poulie,"Gibberish — 'Dont'='whose'. EN='Fly With Cable' → 'Écarté poulie'"
+4c5f32b3-941a-43da-994b-2e705bb37fd9,name,Dumbbel bradford press,Bradford press haltères,"Misspelled English → standard FR format (exercise name + equipment)"
+955fd639-d306-4eb4-b450-9604266bbfee,name,Dumbell tate press,Tate press haltères,Same — misspelled + FR format
+77547824-983a-4696-b608-5572b683621f,name,Élévation de schoulder (haltère),Élévation épaule haltère,"'schoulder' = misspelled English in a FR name"
+e60bd02b-ed31-4893-91bc-1b6cc442ff2d,name,Estiramiento de brazos Y cuello,Étirement bras et cou,SPANISH — not French!
+a14406ad-5466-40ef-b581-6f64fb13c867,name,Estiramiento de piernas Y cadera,Étirement jambes et hanches,SPANISH — not French!
+e60bd02b-ed31-4893-91bc-1b6cc442ff2d,name_en,Estiramiento de brazos y cuello,Arm and Neck Stretch,EN name was also in Spanish
+a14406ad-5466-40ef-b581-6f64fb13c867,name_en,Estiramiento de piernas y cadera,Leg and Hip Stretch,EN name was also in Spanish
+ce10bc22-4063-4ae1-9ddc-ed4a03df74f7,name,Exercice latéral :,Crunch latéral,"Trailing colon + vague name → matches EN 'Side Crunch'"
+288b9b85-c912-40cf-9ba0-cd02f4d42efd,name,Fente à une jambe avec kettlebell :,Fente unilatérale kettlebell,Trailing colon + verbose
+f264dda3-22d6-473b-b550-957ed6c6d505,name,Emporte-pièce,Coups de poing,"'Emporte-pièce' = cookie cutter (!). EN = 'punches'"
+5867393f-26ec-4680-90a4-63775290aa82,name,Figure assise quatre,Étirement figure 4 assis,"Awkward literal translation of 'seated figure four'"
+59015623-36d6-4a7f-b728-1c4d163221c6,name,Hammerstrength decline chest press,Développé décliné Hammer Strength,Full English → FR format
+687fd7c2-046e-4e60-a5a1-761073771e6d,name,Haltères sur scott machine,Curl haltères machine Scott,"'Dumbbells on Scott machine' — it's a curl, not just dumbbells on a machine"
+af2cc5d5-b63d-44dc-aedc-366b6733873a,name,Incliner pousser vers le haut,Pompes inclinées,"Terrible literal word-by-word of 'Incline Push Up'"
+4f7084b0-de18-40be-a864-be3ddae0695b,name,Incline chest press DB,Développé incliné haltères presse,Full English → FR format
+eb0ed8b1-092b-4192-9f2f-f85f44db47ec,name,Incline smith press,Développé incliné Smith,Full English → FR format
+14bd9a6e-6c82-4d47-ba30-af5c05f1fac2,name,Legend incline bench press,Développé incliné machine Legend,Full English → FR format
+23cadf9f-778d-4a7d-91d5-bb0dcea8f524,name,Lignes pendelay,Rowing Pendlay,"'Lignes' = literal translation of 'rows' (lines). In FR it's 'Rowing Pendlay'"
+40b2dfd2-140a-4c87-83c2-13018fb9285c,name,Rangées prise large pronation,Rowing assis poulie prise large,"'Rangées' = literal translation of 'rows' (lines on a page)"
+c50d0d7a-22e0-410d-934f-153eb2a55ccb,name,Rangées prise serrée neutre,Rowing assis poulie prise serrée,"Same — 'Rangées' → 'Rowing'"
+29344a08-a2b9-448a-b5af-4ef36aed88c9,name,Oblique externe supérieur,Crunch oblique haut,Muscle name used as exercise name — should describe the movement
+acc214d9-4bfd-4459-a5f9-d9d262753867,name,Pont piétonnier,Pont fessier en marche,"'Piétonnier' = pedestrian (!). EN = 'walking bridge' = walking glute bridge"
+ab25ef38-a941-4e1f-a121-a36e2510ef3d,name,Presse d'établi inclinée - haltère,Développé incliné haltère,"'Presse d'établi' = workbench press (!). Standard FR = 'Développé'"
+9bb75e88-c3fe-4743-a4a9-b5bdd65e69f4,name,Presse d'établi smith machine à prise serrée,Développé couché prise serrée Smith,"Same — 'Presse d'établi' → 'Développé'"
+850c38f5-ea78-466d-8ae2-41a0f059cf97,name,Presse pour banc incliné - barbell,Développé incliné barre,"Same pattern — verbose literal translation"
+38a7524e-6ba1-4413-9eb1-614db20ea51e,name,Presse à légère inclinaison pour machine smith,Développé légèrement incliné Smith,Way too verbose
+05ad16ba-34c2-406e-a4e9-74e90499917b,name,Presse à smith high-incline,Développé incliné haut Smith,Mixed FR/EN
+96a50033-ba37-4677-8842-83e6c7ea3124,name,Presse à bras unique glute bridge,Développé un bras en pont fessier,Mixed FR/EN
+d565cf7f-b8f4-4d2f-9682-8c43c01b24d3,name,Reverse preacher curl (fermer la poignée),Curl inversé au pupitre prise serrée,"'fermer la poignée' = close the handle (!). Should be 'prise serrée'"
+9fbcc335-3d8a-47a3-bbb0-7d5cd8fd9abe,name,Roches dorsiflexion cheville,Mobilisation dorsiflexion cheville,"'Roches' = mistranslation of 'rocks' (the verb/movement)"
+3ce1cd6f-97d2-4339-869c-9a712f1c9592,name,S'agenouiller superman,Superman à genoux,Awkward infinitive → natural FR phrasing
+fc5f4c13-2b69-446c-85a3-6f58aff1ad31,name,Sous-main lat pull down,Tirage poulie haute prise supination,"'Sous-main' = desk pad/coaster (!). EN = 'Underhand Lat Pull Down'"
+20355bba-50f8-4476-bda8-39131375f867,name,Smith machine split squat,Split squat Smith machine,Full English → FR word order
+c4717a52-d3b4-4afb-8d0b-0315964159ab,name,Bent high pulls,Tirage haut penché,Full English → FR
+db6006b4-6c4f-4404-acff-5cb11757e101,name,V-bar pull downs,Tirage poulie haute prise en V,Full English → FR
+221713db-03c5-4db0-835e-80ed109a872a,name,Wide pull up,Tractions prise large,Full English → FR (may be duplicate of existing)
+c21343ce-d11d-42e6-aa10-cd535b890121,name,Upper back,Renforcement haut du dos,Too vague English name → descriptive FR
+481bbc38-c32b-4ce4-a06f-502fb6ef1363,name,Overhand cable curl,Curl poulie prise pronation,Full English → FR
+420bd8b4-da5f-4284-a3d3-c2358073ec0e,name,Mousse rouleau quadriceps,Rouleau de mousse quadriceps,"Word order — 'Mousse rouleau' is backwards ('foam roller' = 'rouleau de mousse')"
+162db63f-324b-4f9f-a9fd-b581a3e23f0f,name,Press à plat machine,Développé à plat machine,"'Press' → 'Développé' for bench press movements in FR"

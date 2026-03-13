@@ -1,0 +1,144 @@
+id,name,current_equipment,suggested_equipment,reason
+60b4f0df-102d-4f25-84eb-24c8f4334b89,Croisement poulie vis-à-vis,bodyweight,cable,Name says "poulie" — it's Cable Cross-over
+c2acc933-3db1-49d7-b2e2-0e8588542655,Écarté arrière poulie,bodyweight,cable,Cable Rear Delt Fly
+dc79f358-f4ea-42c5-b300-ca15a06221df,Écarté inversé poulie,bodyweight,cable,Reverse Cable Flye
+1d908c58-ea89-4760-b1e1-d648677b2bef,Écarté poulie,bodyweight,cable,Fly With Cable
+a92cfa1e-21fd-425e-bc09-48d32b476ef6,Écarté poulie bas des pectoraux,bodyweight,cable,Cable Fly Lower Chest
+bd729448-a4a1-4ab0-98ad-1c59297f4007,Écarté poulie basse,bodyweight,cable,Low Pulley Cable Fly
+a7a4aad3-42eb-4eaf-9084-06326d8bbf8f,Écarté poulie haut des pectoraux,bodyweight,cable,Cable Fly Upper Chest
+176048dc-f461-40d0-8ce2-6de1c5ee24b2,Écarté poulie milieu des pectoraux,bodyweight,cable,Cable Fly Middle Chest
+26c48b5c-cd03-4dd0-a3ae-abed1a58de14,Écarté poulie penché,bodyweight,cable,Bent over Cable Flye
+84b0562d-b5e0-4940-bbd8-b8617f2c0dce,Écarté poulie vis-à-vis,bodyweight,cable,Cable Fly
+2d7a1bb1-35aa-43d9-957c-dd031510ab60,Élévation en Y poulie croisée,bodyweight,cable,Cross-Body Cable Y-Raise
+ce6a9bd0-6ece-41c7-b48e-840ae8874e8d,Élévation latérale poulie,bodyweight,cable,Side Lateral Raise (Cable)
+1c2a8eec-caed-4d8b-a883-23e79b36f7cd,Élévation latérale poulie arrière,bodyweight,cable,Cable lateral raise variant
+f6363b80-f7bd-4d7d-ba5f-52a39ca0c6ee,Élévation latérale poulie avant,bodyweight,cable,Cable lateral raise variant
+5c43630f-7903-4f3d-b07b-f310579289eb,Élévation latérale poulie derrière le dos,bodyweight,cable,Behind the Back Cable Lateral Raise
+bf9e6034-f98b-4e4b-a82a-8d7c58ea8a72,Élévation latérale poulie haute,bodyweight,cable,High-Cable Lateral Raise
+b04bc576-fca1-4246-9c34-642293271375,Élévation latérale poulie un bras,bodyweight,cable,Cable Lateral Raises (Single Arm)
+89a8146f-08bb-4f0f-936d-92e8895033d2,Élévation frontale poulie petite barre,bodyweight,cable,Cable Front Raise with a small bar
+8bbfe283-aa44-47e6-a5bf-9c50b4c511d2,Extension triceps au-dessus poulie,bodyweight,cable,Overhead Cable Tricep Extension
+4e4f45d3-cc99-4e7e-a38b-eab941c56ae0,Extension triceps croisée poulie haute (NB),bodyweight,cable,High-Cable Cross Tricep Extension
+9e313848-2084-43ec-8267-ef0e8cc0ae27,Extension triceps poulie barre,bodyweight,cable,Triceps Extensions on Cable With Bar
+1dfefce0-b206-41f9-97a5-59a7d3719238,Extension triceps poulie haute,bodyweight,cable,Tricep Pushdown on Cable
+28d44421-c1be-4811-b33b-75603041c79e,Extension triceps poulie rotation externe,bodyweight,cable,Cable Tri Extension - External Rotation
+210afec5-d1dd-4bfc-8ae1-bde82e6703b6,Extension triceps poulie rotation interne,bodyweight,cable,Cable Tri Extension - Internal Rotation
+8847dd79-7f44-42e8-8daa-18fca1a91273,Face pull,bodyweight,cable,Face pulls are cable exercises
+46e80aef-53ec-49fb-8e4f-af8bb7b70173,Kickback triceps poulie,bodyweight,cable,Cable Tricep Kickback
+3fc99676-7550-41ae-87ec-b463baf8ac0b,Low-cable cross-over - NB,bodyweight,cable,Low-Cable Cross-Over
+9dd089a9-6fb8-43e0-9ece-325f209c9c56,Pallof press,bodyweight,cable,Pallof press is a cable exercise
+24983c2b-87fd-4e60-be1c-0d32dbc6ba91,Press autour poulie,bodyweight,cable,Cable Press Around
+9f682da0-cc84-41a4-9436-2adfb0ee253c,Pull through poulie,bodyweight,cable,Cable pull through
+4d4e1b96-8a72-4bfd-9811-cc1eccf6cfe5,Rotation du tronc poulie,bodyweight,cable,Trunk Rotation With Cable
+31419c2c-8e7a-4a8c-90d7-4ee7b14a57a5,Rotation externe épaule poulie,bodyweight,cable,Shoulder External Rotation (Cable)
+4fa26d83-bc91-4a86-9047-ffb476ce0f05,Rotation externe poulie,bodyweight,cable,Cable External Rotation
+6f65989a-a4d9-42d1-9d50-e2949ffa39b5,Rotation interne épaule poulie,bodyweight,cable,Shoulder Internal Rotation (Cable)
+6500fa22-8ee9-4b17-a12e-2f4ca3c025f7,Shrugs assis poulie mi-trapèze,bodyweight,cable,Seated Cable Mid Trap Shrug
+26db6432-c5e0-450f-a206-93a5efbbaad6,Shrugs poulie,bodyweight,cable,Cable Shrug
+aa755af2-4af5-440d-810b-ed048b910251,Tirage assis poulie basse,bodyweight,cable,Seated Cable Rows
+b4dea389-445a-4ab9-bed5-ce33aa9d8b2d,Tirage bras tendus poulie (barre),bodyweight,cable,Straight-arm Pull Down (bar)
+705ff2b8-97a2-4784-9bcc-fabf13e6c26a,Tirage bras tendus poulie (corde),bodyweight,cable,Straight-arm Pull Down (rope)
+e3893001-8cc0-43b1-8542-f1ef19ae5c4c,Tirage croisé unilatéral poulie,bodyweight,cable,Unilateral cross body cable pull down
+7c979e97-2fe7-471d-8267-d884b30ae83e,Tirage latéral bras tendu poulie,bodyweight,cable,Side Straight-Arm Pulldown (Cable)
+c341f9f4-3278-4fb3-87af-5210dcea0247,Tirage latéral poulie un bras,bodyweight,cable,Lateral Rows on Cable
+a53d233c-4b2b-4d19-97b0-61966f98d24f,Tirage poulie basse,bodyweight,cable,Long-Pulley (low Row)
+df5fce1d-07ca-4bfd-b131-88c5ca6f96d3,Tirage poulie basse prise serrée,bodyweight,cable,Long-Pulley Narrow
+7bf594f1-283a-4647-a6d4-2e0ed57935aa,Tirage poulie haute,bodyweight,cable,Lat Pull Down
+7cae3828-7313-46dc-99ec-f0bfd7196d11,Tirage poulie haute alterné,bodyweight,cable,Alternating High Cable Row
+be46a858-714e-49ae-a391-e92e8ac1a7d9,Tirage poulie haute croisé un bras,bodyweight,cable,Lat Pulldown Cross Body Single Arm
+1a73e258-628d-4ebf-ab8e-6a28d3082428,Tirage poulie haute dos droit,bodyweight,cable,Lat Pull Down (Straight Back)
+4dbdb558-010e-4a2f-afe2-e6ae9ac6f206,Tirage poulie haute penché arrière,bodyweight,cable,Lat Pull Down (Leaning Back)
+db6006b4-6c4f-4404-acff-5cb11757e101,Tirage poulie haute prise en V,bodyweight,cable,V-BAR PULL DOWNS
+a73696b2-3b0c-4b90-a8fe-6a2169122a48,Tirage poulie haute prise large,bodyweight,cable,Wide-grip Pulldown
+79741482-4cf3-4ed3-8cc4-92121642ceb4,Tirage poulie haute prise neutre,bodyweight,cable,Neutral Grip Lat Pulldown
+071e638b-1a70-4818-b547-190f4ca20e35,Tirage poulie haute prise serrée,bodyweight,cable,Close-grip Lat Pull Down
+a9c3b9d9-b625-46ff-923a-d45c5faef4c9,Tirage poulie haute prise serrée supination,bodyweight,cable,Biceps Close Grip Pull Down
+fc5f4c13-2b69-446c-85a3-6f58aff1ad31,Tirage poulie haute prise supination,bodyweight,cable,Underhand Lat Pull Down
+39390c69-b038-4834-9662-e05b789caf9c,Tirage poulie haute un bras à genoux,bodyweight,cable,1-Arm Half-Kneeling Lat Pulldown
+d2f2a8ab-49c8-48cf-a4a2-41121cad3370,Woodchoppers poulie,bodyweight,cable,Cable Woodchoppers
+2330adae-1fcb-429c-85cd-8d63cb5dca6a,Curl barre droite poulie,bodyweight,cable,Straight Bar Cable Curls
+f43ddffa-67c9-4f63-8b73-beb6709d7e14,Curl bayésien,bodyweight,cable,Bayesian Curl is a cable exercise
+395c37fc-deb3-4b64-bf71-95e7892ca8cd,Curl biceps poulie,bodyweight,cable,Biceps Curl With Cable
+f5dbb716-7807-44b2-9202-d8403877f1a8,Curl concentration poulie,bodyweight,cable,Cable Concentration Curl
+9ffb7f1e-3e2c-4390-91e1-060d523e8a52,Curl marteau poulie,bodyweight,cable,Hammercurls on Cable
+e6fa9992-6e75-4044-ab22-77b00925a90c,Curl poulie basse,bodyweight,cable,Cable Curls
+481bbc38-c32b-4ce4-a06f-502fb6ef1363,Curl poulie prise pronation,bodyweight,cable,Overhand Cable Curl
+703929c6-5cba-40e0-95f9-f69f6bd05ffe,Développé pectoraux poulie décliné,bodyweight,cable,Cable Chest Press - Decline
+938f121a-746a-45c0-aa61-605958094462,Développé pectoraux poulie incliné,bodyweight,cable,Cable Chest Press - Incline
+bb3be6e0-0850-4612-ae6a-a2ff9f9bd11e,Abduction hanches machine,bodyweight,machine,Name says "machine" — Machine Hip Abduction
+103758a2-3381-40fd-98d5-5a53d093ce04,Curl biceps machine,bodyweight,machine,Name says "machine" — Biceps Curl Machine
+9bb75e88-c3fe-4743-a4a9-b5bdd65e69f4,Développé couché prise serrée Smith,bodyweight,machine,Smith Machine exercise
+59015623-36d6-4a7f-b728-1c4d163221c6,Développé décliné Hammer Strength,bodyweight,machine,Hammer Strength is a machine
+d3e8c53a-b63d-4f04-842a-2e21a0230c97,Développé épaules machine,bodyweight,machine,Name says "machine"
+b9fd338b-370a-4e60-99f0-6d4550be8c37,Développé épaules multi press,bodyweight,machine,Multi press is a machine
+3567a432-06ed-4b2b-8a3f-a2ebf389a3d7,Développé incliné aux haltères,bodyweight,machine,EN = Incline Bench Press - MP (Multi Press = machine)
+05ad16ba-34c2-406e-a4e9-74e90499917b,Développé incliné haut Smith,bodyweight,machine,Smith Machine exercise
+14bd9a6e-6c82-4d47-ba30-af5c05f1fac2,Développé incliné machine Legend,bodyweight,machine,Legend = machine brand
+38a7524e-6ba1-4413-9eb1-614db20ea51e,Développé légèrement incliné Smith,bodyweight,machine,Smith Machine exercise
+18064a63-25c1-48de-99c8-51ef19b31252,Développé pectoraux machine,bodyweight,machine,Name says "machine"
+2f9917f5-d62f-489c-abb9-8e98d0855adc,Développé pectoraux machine à levier,bodyweight,machine,Leverage Machine Chest Press
+a36ebe8b-d10e-4782-9441-45f8dc7d6ddb,Écarté pectoraux machine,bodyweight,machine,Machine chest fly
+8c57a2f0-6cc6-4ef4-b628-bb32f4c517fe,Élévation latérale machine,bodyweight,machine,Name says "machine"
+2bbcdff1-3816-41f4-9789-6bbd5041273c,Élévation mollets machine hack squat,bodyweight,machine,Calf Raise using Hack Squat Machine
+c20507ea-137a-4c99-af7d-95c5b33fa210,Extension triceps machine,bodyweight,machine,Triceps on Machine
+e0e2c65d-a225-43e2-ace6-a6216605d061,Glute drive,bodyweight,machine,Glute Drive is a specific machine
+905fa8f3-175b-4bfb-b913-ad0c462dfc26,Glute kickback (machine),bodyweight,machine,Name says "(machine)"
+00632042-ea0c-40a9-837e-4728bf3056bd,Hack squats,bodyweight,machine,Hack squats use a hack squat machine
+3fc3036b-b3a9-45ba-9c93-83e2f8d64187,Machine pull-over,bodyweight,machine,Name says "Machine"
+2ebc52cb-b9d7-4794-a3b8-729df7fa43d4,Machine rotation du torse,bodyweight,machine,Rotary Torso Machine
+cc6aa849-6def-4733-a94d-babd6738ca4d,Machine ski,bodyweight,machine,Ski Machine
+afefd18e-e13f-4a26-aac7-11da91cb792a,Pause hack squats,bodyweight,machine,Hack squat machine
+fae400e0-98b6-43b4-9f67-b54a438f11b2,Presse à cuisses machine hack,bodyweight,machine,Leg Press on Hackenschmidt Machine
+eb70013f-1223-4939-9a48-6495a99f6389,Presse à cuisses orteils,bodyweight,machine,Leg Press Toe Press (machine)
+2bd7b205-9bee-4790-906d-16b665f7bb2b,Presse à cuisses prise large,bodyweight,machine,Leg Presses (wide) on machine
+2827f761-5e6b-4629-81ef-d55156cb636c,Presse à cuisses prise serrée,bodyweight,machine,Leg Presses (narrow) on machine
+5fcb0bc7-c5e3-4a08-a493-42b8e4c9653c,Presse mollets sur presse à cuisses,bodyweight,machine,Calf Press Using Leg Press Machine
+b4d1212d-f5b4-4b80-acc0-fcb229ee3ae7,Rowing assis machine,bodyweight,machine,Seated Row (Machine)
+026ae371-13b0-4eff-b2d8-58e17b8e2722,Rowing machine iso à levier,bodyweight,machine,Leverage Machine Iso Row
+98d1b8c2-fdf0-4a7d-9523-b56a0afa8cff,Shrugs sur multipress,bodyweight,machine,Multipress is a machine
+baeab1b9-db48-454e-889f-f469d2e3f0e2,Squat pendulaire,bodyweight,machine,Pendulum Squat is a machine exercise
+271271a1-cc6e-4168-847b-bdcf1c05d8b7,Squat Smith machine,bodyweight,machine,Smith machine exercise
+821493c1-0f70-46d7-b26c-2cbf662c6108,Squats sur multipress,bodyweight,machine,Multipress is a machine
+96a9ad05-192e-4e20-878f-90a153efa4d8,Tractions assistées machine,bodyweight,machine,Pull Ups on Machine (assisted)
+bcd680b9-f13a-4069-96af-5b6d2601cd2b,Tirage menton multi press,bodyweight,machine,Upright Row on Multi Press
+a9cc0d12-1209-42b9-b031-75b47e442e9e,Développé pectoraux haltères,bodyweight,dumbbell,Dumbbell Chest Press
+a089fc9b-4e5c-4eda-ba02-3efc493cb01b,Squat latéral haltère,bodyweight,dumbbell,Dumbbell Side Squat — name says "haltère"
+d4fc8348-cd49-4078-a89e-59d6d0951bca,Rack deadlift,bodyweight,barbell,Rack Deadlift uses a barbell
+7274d47f-54ca-44a9-9dfe-109f0ee6e299,Soulevé de terre sumo,bodyweight,barbell,Sumo Deadlift is a barbell exercise
+1407ee89-9cf7-4a83-815b-da6eb0960448,Good mornings,bodyweight,barbell,Good Mornings are a barbell exercise
+304134ce-1bcd-4c7f-a8da-e78929b74c69,Tirage haut,bodyweight,barbell,High Pull is a barbell exercise
+d4c5388c-c176-47e6-8a54-5183058fe5ff,Squat trap bar,bodyweight,barbell,Trap bar is a barbell variant
+3f559914-6b72-4b42-a146-567dbfba879b,Bande d'exercice dorsiflexion,bodyweight,band,Name says "Bande d'exercice" (Exercise Band)
+a9b21057-970f-4435-870e-16699f6e1b15,Bande d'exercice plantarflexion,bodyweight,band,Name says "Bande d'exercice" (Exercise Band)
+1a842bf1-6b3b-4efc-99ed-398de30905ab,Ball slams,bodyweight,other,Ball Slams use a slam ball
+75fccdf4-363f-4ef7-bb93-77b6383c7b88,Crunchs ballon lesté en livre,bodyweight,other,Medicine ball booklet crunch
+fbf93a1e-0b96-4357-9945-13323cb6ee8f,Cordes de combat,bodyweight,other,Battle Ropes
+cff04de0-a6f9-4e34-bcf2-49f5ae81bade,Rotation avec disque,bodyweight,other,Plate twist — weight plate
+28401d75-a1f8-4f73-ac6f-1ef765e6e535,Élévation frontale avec disque,bodyweight,other,Front Plate Raise — weight plate
+9b081a7d-428f-4719-a05a-52bd711adaec,Élévations frontales avec disques,bodyweight,other,Front Raises with Plates
+ddc04d70-3b79-481b-b812-7109c8893b67,Entraînement au sac,bodyweight,other,Bag training — punching bag
+6c3d4245-cec8-4959-962a-4e5fa70fca65,Roue abdominale,bodyweight,other,Ab wheel
+a490fd60-69a9-4710-9a81-2af3a4a0df12,Roue jambes,bodyweight,other,Leg Wheel — ab wheel variant
+8813ea81-5b3d-4939-a71a-4e8ed7a5486f,Plate pinch hold,bodyweight,other,Plate Pinch Hold — weight plate
+343744b7-2671-4ee5-a7cb-3ef8688b8125,Poussée traîneau,bodyweight,other,Sled Push — sled
+4607b2bd-ff63-4794-b3fb-d0239cf6fcd5,Hip thrust unipodal haltère,barbell,dumbbell,Name says "haltère" (dumbbell) but tagged barbell
+0a94032d-fc3a-45fd-bac6-6f80c0ce1f60,Rotation interne allongé latéral,barbell,bodyweight,Side-laying interior rotation — no barbell needed
+8ab29b99-a8b1-40a7-8a89-8863359c838f,Étirement rotation externe,barbell,bodyweight,It's a stretch — no barbell
+710cccdf-a4af-43d2-99fc-7f60445a5f73,Fente latérale glissée,barbell,bodyweight,Sliding Lateral Lunge — bodyweight exercise
+162db63f-324b-4f9f-a9fd-b581a3e23f0f,Développé à plat machine,bench,machine,Flat Machine Press
+eb0ed8b1-092b-4192-9f2f-f85f44db47ec,Développé incliné Smith,bench,machine,Smith Machine exercise
+7bfc28fe-efb3-47e6-b099-7803f7ebd0d8,Smith press,bench,machine,Smith Machine
+9f3050fa-6c42-4ff0-b3ec-3f66676d0693,Tuck l-sit,bench,bodyweight,L-sit is a bodyweight exercise
+95d35907-cdd9-487e-9cf6-fc966735a117,Tirage poulie modifié,bench,cable,Modified pulldown — cable
+cc6c6b91-d325-4dcd-99a8-d75976af9ad1,Tirage unilatéral poulie,bench,cable,Unilateral Cable row
+0c238248-28eb-431d-9dd2-ff26d9c5509d,Câble omni cross-over,ez_bar,cable,Omni Cable Cross-over — cable exercise
+64f8124b-81a3-41ed-bc4b-1bac7f28dd22,Drag pushdown,ez_bar,cable,Pushdowns are cable exercises
+bb0806ab-87ad-4c21-b679-10dd9e2a160b,Élévation frontale barre droite poulie,ez_bar,cable,Straight Bar Cable Front Raise — cable
+c71fe6c3-5b81-4ffb-9af5-ed2a5fde4f59,Extension triceps poulie bascule,ez_bar,cable,Rocking Triceps Pushdown — cable
+d86d5c01-d8bb-499a-9502-3f07235a0823,Extension triceps poulie basse à un bras,band,cable,One Arm Overhead Cable Tricep Extension — cable not band
+7eefe1b3-b826-422b-95ee-400ee2e9b14b,Abduction hanches supination,dumbbell,bodyweight,Supine Hip Abduction is bodyweight
+aa995ff8-f176-40ed-8b44-3ae7ddfc4001,Soulevé de terre unipodal kettlebell,dumbbell,kettlebell,Name says "kettlebell" — tagged dumbbell
+735d048e-0531-404d-8ee3-4ac7195821da,Flexions latérales machine,dumbbell,machine,EN = Side Bends on Machine
+687fd7c2-046e-4e60-a5a1-761073771e6d,Curl haltères machine Scott,bodyweight,machine,Scott machine is a machine (preacher curl bench)
+ea385dce-4506-47ff-a187-bf4855c1dc0d,Leg curl allongé,bodyweight,machine,Leg Curls (laying) is a machine exercise
+26fdac7f-b498-45c5-986a-f088dde582ed,Leg curl debout,bodyweight,machine,Leg Curls (standing) is a machine exercise
