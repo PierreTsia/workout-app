@@ -192,22 +192,33 @@ export function FeedbackForm({
                 render={() => (
                   <FormItem>
                     <FormControl>
-                      <MultiSelect
-                        options={whatOptions}
-                        value={whatValue}
-                        onChange={(arr) => {
-                          form.setValue("whatIllustration", arr.includes("illustration"), {
-                            shouldValidate: true,
-                          })
-                          form.setValue("whatVideo", arr.includes("video"), {
-                            shouldValidate: true,
-                          })
-                          form.setValue("whatDescription", arr.includes("description"), {
-                            shouldValidate: true,
-                          })
-                        }}
-                        placeholder={t("step1Title")}
-                      />
+                      <div className="flex flex-wrap gap-2">
+                        {whatOptions.map((opt) => {
+                          const active = whatValue.includes(opt.value)
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                const field = opt.value === "illustration"
+                                  ? "whatIllustration" as const
+                                  : opt.value === "video"
+                                    ? "whatVideo" as const
+                                    : "whatDescription" as const
+                                form.setValue(field, !active, { shouldValidate: true })
+                              }}
+                              className={cn(
+                                "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                                active
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </FormControl>
                     <TranslatedFormMessage />
                   </FormItem>

@@ -34,7 +34,7 @@ export function FeedbackSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex flex-col overflow-hidden p-0"
+        className="flex w-[92%] flex-col overflow-hidden p-0 sm:w-3/4"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader className="shrink-0 px-6 pt-6 pb-2">
