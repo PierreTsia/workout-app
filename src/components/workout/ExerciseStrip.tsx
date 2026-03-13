@@ -1,6 +1,6 @@
-import { useAtom, useAtomValue } from "jotai"
+import { useAtomValue } from "jotai"
 import { useRef, useEffect } from "react"
-import { sessionAtom, prFlagsAtom } from "@/store/atoms"
+import { prFlagsAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -8,10 +8,15 @@ import { cn } from "@/lib/utils"
 
 interface ExerciseStripProps {
   exercises: WorkoutExercise[]
+  activeIndex: number
+  onSelectIndex: (idx: number) => void
 }
 
-export function ExerciseStrip({ exercises }: ExerciseStripProps) {
-  const [session, setSession] = useAtom(sessionAtom)
+export function ExerciseStrip({
+  exercises,
+  activeIndex,
+  onSelectIndex,
+}: ExerciseStripProps) {
   const prFlags = useAtomValue(prFlagsAtom)
   const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLButtonElement>(null)
@@ -22,7 +27,7 @@ export function ExerciseStrip({ exercises }: ExerciseStripProps) {
       inline: "center",
       block: "nearest",
     })
-  }, [session.exerciseIndex])
+  }, [activeIndex])
 
   return (
     <div
@@ -33,12 +38,10 @@ export function ExerciseStrip({ exercises }: ExerciseStripProps) {
         <StripItem
           key={ex.id}
           exercise={ex}
-          isActive={idx === session.exerciseIndex}
+          isActive={idx === activeIndex}
           hasPr={!!prFlags[ex.exercise_id]}
-          ref={idx === session.exerciseIndex ? activeRef : undefined}
-          onSelect={() =>
-            setSession((prev) => ({ ...prev, exerciseIndex: idx }))
-          }
+          ref={idx === activeIndex ? activeRef : undefined}
+          onSelect={() => onSelectIndex(idx)}
         />
       ))}
     </div>

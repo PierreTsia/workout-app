@@ -7,6 +7,7 @@ import { SessionTimerChip } from "./SessionTimerChip"
 
 const BASE_SESSION: SessionState = {
   currentDayId: "day-1",
+  activeDayId: null,
   exerciseIndex: 0,
   setsData: {},
   startedAt: null,

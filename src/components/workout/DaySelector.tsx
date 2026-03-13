@@ -35,8 +35,12 @@ export function DaySelector({ days }: DaySelectorProps) {
     setSession((prev) => ({
       ...prev,
       currentDayId: dayId,
-      exerciseIndex: 0,
-      totalSetsDone: prev.currentDayId === dayId ? prev.totalSetsDone : 0,
+      exerciseIndex: prev.isActive ? prev.exerciseIndex : 0,
+      totalSetsDone: prev.isActive
+        ? prev.totalSetsDone
+        : prev.currentDayId === dayId
+          ? prev.totalSetsDone
+          : 0,
     }))
   }
 

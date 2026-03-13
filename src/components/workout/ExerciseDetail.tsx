@@ -11,9 +11,14 @@ import { SetsTable } from "./SetsTable"
 interface ExerciseDetailProps {
   exercise: WorkoutExercise
   sessionId: string
+  isReadOnly: boolean
 }
 
-export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
+export function ExerciseDetail({
+  exercise,
+  sessionId,
+  isReadOnly,
+}: ExerciseDetailProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
   const { data: lastSession } = useLastSession(exercise.exercise_id)
@@ -42,7 +47,7 @@ export function ExerciseDetail({ exercise, sessionId }: ExerciseDetailProps) {
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
-      <SetsTable exercise={exercise} sessionId={sessionId} />
+      <SetsTable exercise={exercise} sessionId={sessionId} isReadOnly={isReadOnly} />
     </div>
   )
 }
