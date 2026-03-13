@@ -100,4 +100,53 @@ test.describe("Workout session — full flow", () => {
     await expect(page.getByText(/sets done/i)).toBeVisible()
     await expect(page.getByText(/exercises completed/i)).toBeVisible()
   })
+
+  test("allows day navigation but locks editing on non-active day", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000)
+    await page.goto("/")
+
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear — permission already granted */
+    }
+
+    const dayButtons = page
+      .locator("button")
+      .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
+    await expect(dayButtons.first()).toBeVisible({ timeout: 60_000 })
+    await expect(dayButtons.nth(1)).toBeVisible({ timeout: 5_000 })
+
+    const activeDayLabel =
+      (await dayButtons.first().locator("span").last().textContent())?.trim() ??
+      "Lundi"
+
+    await page.getByRole("button", { name: /start workout/i }).click()
+    await dayButtons.nth(1).click()
+
+    await expect(
+      page.getByText(/Session in progress on another day/i),
+    ).toBeVisible()
+    await expect(
+      page.getByText(`Return to ${activeDayLabel} to continue or finish your active session.`),
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /add set/i }),
+    ).toBeDisabled()
+
+    await dayButtons.first().click()
+    await expect(
+      page.getByText(/Session in progress on another day/i),
+    ).not.toBeVisible()
+    await expect(
+      page.getByRole("button", { name: /add set/i }),
+    ).toBeEnabled()
+  })
 })

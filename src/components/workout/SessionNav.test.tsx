@@ -26,6 +26,7 @@ const EXERCISES = [makeExercise("ex-1"), makeExercise("ex-2"), makeExercise("ex-
 
 const BASE_SESSION: SessionState = {
   currentDayId: "day-1",
+  activeDayId: "day-1",
   exerciseIndex: 0,
   setsData: {},
   startedAt: Date.now(),

@@ -4,6 +4,7 @@ import type { User } from "@/types/auth"
 
 export interface SessionState {
   currentDayId: string | null
+  activeDayId: string | null
   exerciseIndex: number
   setsData: Record<string, Array<{ reps: string; weight: string; done: boolean }>>
   startedAt: number | null
@@ -15,6 +16,7 @@ export interface SessionState {
 
 const defaultSessionState: SessionState = {
   currentDayId: null,
+  activeDayId: null,
   exerciseIndex: 0,
   setsData: {},
   startedAt: null,

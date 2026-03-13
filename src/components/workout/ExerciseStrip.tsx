@@ -8,9 +8,13 @@ import { cn } from "@/lib/utils"
 
 interface ExerciseStripProps {
   exercises: WorkoutExercise[]
+  disableSelection?: boolean
 }
 
-export function ExerciseStrip({ exercises }: ExerciseStripProps) {
+export function ExerciseStrip({
+  exercises,
+  disableSelection = false,
+}: ExerciseStripProps) {
   const [session, setSession] = useAtom(sessionAtom)
   const prFlags = useAtomValue(prFlagsAtom)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -37,8 +41,10 @@ export function ExerciseStrip({ exercises }: ExerciseStripProps) {
           hasPr={!!prFlags[ex.exercise_id]}
           ref={idx === session.exerciseIndex ? activeRef : undefined}
           onSelect={() =>
+            !disableSelection &&
             setSession((prev) => ({ ...prev, exerciseIndex: idx }))
           }
+          disabled={disableSelection}
         />
       ))}
     </div>
@@ -52,18 +58,20 @@ interface StripItemProps {
   isActive: boolean
   hasPr: boolean
   onSelect: () => void
+  disabled?: boolean
 }
 
 const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
-  function StripItem({ exercise, isActive, hasPr, onSelect }, ref) {
+  function StripItem({ exercise, isActive, hasPr, onSelect, disabled }, ref) {
     const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
 
     return (
       <button
         ref={ref}
         onClick={onSelect}
+        disabled={disabled}
         className={cn(
-          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out",
+          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out disabled:pointer-events-none disabled:opacity-50",
           isActive
             ? "w-[8.5rem] scale-110 ring-2 ring-primary shadow-lg z-10"
             : "w-[5rem] opacity-60",

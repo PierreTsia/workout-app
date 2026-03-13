@@ -15,9 +15,10 @@ import { cn } from "@/lib/utils"
 interface SetsTableProps {
   exercise: WorkoutExercise
   sessionId: string
+  isReadOnly: boolean
 }
 
-export function SetsTable({ exercise, sessionId }: SetsTableProps) {
+export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
   const { t } = useTranslation("workout")
   const { unit, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
@@ -33,6 +34,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
     field: "reps" | "weight",
     value: string,
   ) {
+    if (isReadOnly) return
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
       exerciseSets[setIdx] = { ...exerciseSets[setIdx], [field]: value }
@@ -44,6 +46,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
   }
 
   function toggleDone(setIdx: number) {
+    if (isReadOnly) return
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
       const wasDone = exerciseSets[setIdx].done
@@ -102,6 +105,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
   }
 
   function removeLastSet() {
+    if (isReadOnly) return
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
       const removed = exerciseSets.pop()
@@ -115,6 +119,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
   }
 
   function addSet() {
+    if (isReadOnly) return
     const lastRow = rows[rows.length - 1]
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
@@ -158,7 +163,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
             value={set.reps}
             onChange={(e) => updateField(idx, "reps", e.target.value)}
             className="h-8 text-center"
-            disabled={set.done}
+            disabled={set.done || isReadOnly}
           />
           <Input
             type="text"
@@ -166,13 +171,13 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
             value={set.weight}
             onChange={(e) => updateField(idx, "weight", e.target.value)}
             className="h-8 text-center"
-            disabled={set.done}
+            disabled={set.done || isReadOnly}
           />
           <div className="flex justify-center">
             <Checkbox
               checked={set.done}
               onCheckedChange={() => toggleDone(idx)}
-              disabled={!session.isActive}
+              disabled={!session.isActive || isReadOnly}
             />
           </div>
         </div>
@@ -187,7 +192,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
             removeLastSet()
             ;(e.currentTarget as HTMLButtonElement).blur()
           }}
-          disabled={rows.length <= 1}
+          disabled={rows.length <= 1 || isReadOnly}
           aria-label={t("removeLastSet")}
         >
           <Minus className="h-4 w-4" />
@@ -200,6 +205,7 @@ export function SetsTable({ exercise, sessionId }: SetsTableProps) {
           size="icon"
           className="h-8 w-8 text-muted-foreground"
           onClick={addSet}
+          disabled={isReadOnly}
           aria-label={t("addSet")}
         >
           <Plus className="h-4 w-4" />

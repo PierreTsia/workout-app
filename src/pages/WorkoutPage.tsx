@@ -53,6 +53,15 @@ export function WorkoutPage() {
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
   )
+  const activeSessionDayId = session.activeDayId ?? session.currentDayId
+  const isViewingLockedDay = Boolean(
+    session.isActive &&
+      activeSessionDayId &&
+      session.currentDayId &&
+      session.currentDayId !== activeSessionDayId,
+  )
+  const activeSessionDayLabel =
+    days?.find((d) => d.id === activeSessionDayId)?.label ?? ""
 
   const currentExercise = exercises[session.exerciseIndex] ?? null
 
@@ -88,6 +97,11 @@ export function WorkoutPage() {
       setsData: { ...prev.setsData, ...newSetsData },
     }))
   }, [exercises, session.setsData, setSession, toDisplay])
+
+  useEffect(() => {
+    if (!session.isActive || session.activeDayId || !session.currentDayId) return
+    setSession((prev) => ({ ...prev, activeDayId: prev.currentDayId }))
+  }, [session.activeDayId, session.currentDayId, session.isActive, setSession])
 
   const handlePopState = useCallback(() => {
     setExitDialogOpen(true)
@@ -142,15 +156,16 @@ export function WorkoutPage() {
 
     enqueueSessionFinish({
       sessionId,
-      workoutDayId: session.currentDayId ?? "",
+      workoutDayId: activeSessionDayId ?? "",
       workoutLabelSnapshot:
-        days?.find((d) => d.id === session.currentDayId)?.label ?? "",
+        days?.find((d) => d.id === activeSessionDayId)?.label ?? "",
       startedAt: session.startedAt ?? Date.now(),
       finishedAt: Date.now(),
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
     })
 
+    setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setFinished(true)
   }
 
@@ -158,6 +173,7 @@ export function WorkoutPage() {
     setSession((prev) => ({
       ...prev,
       isActive: true,
+      activeDayId: prev.currentDayId,
       startedAt: Date.now(),
       pausedAt: null,
       accumulatedPause: 0,
@@ -167,6 +183,7 @@ export function WorkoutPage() {
   function handleNewSession() {
     setSession({
       currentDayId: null,
+      activeDayId: null,
       exerciseIndex: 0,
       setsData: {},
       startedAt: null,
@@ -224,6 +241,15 @@ export function WorkoutPage() {
     <div className="flex flex-1 flex-col">
       <DaySelector days={days} />
 
+      {isViewingLockedDay && (
+        <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          <p>{t("crossDayReadOnlyTitle")}</p>
+          <p className="text-xs text-amber-200/90">
+            {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
+          </p>
+        </div>
+      )}
+
       {exercisesLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -244,15 +270,20 @@ export function WorkoutPage() {
               <ExerciseDetail
                 exercise={currentExercise}
                 sessionId={sessionId}
+                isReadOnly={isViewingLockedDay}
               />
             )}
           </div>
 
-          {session.isActive ? (
+          {session.isActive && !isViewingLockedDay ? (
             <SessionNav
               exercises={exercises}
               onFinish={handleFinish}
             />
+          ) : session.isActive ? (
+            <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
+              {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
+            </div>
           ) : (
             <div className="sticky bottom-0 border-t bg-background px-4 py-3">
               <Button
