@@ -5,6 +5,10 @@ import { renderWithProviders } from "@/test/utils"
 import type { Exercise } from "@/types/database"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 const EXERCISES: Exercise[] = [
   {
     id: "1",

@@ -8,6 +8,7 @@ import {
 import type { Exercise } from "@/types/database"
 import { ExerciseInfoDialog } from "@/components/exercise/ExerciseInfoDialog"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -135,8 +136,16 @@ export function ExerciseSelectionContent({
                   />
                   <span className="truncate">{ex.name}</span>
                 </span>
-                <span className="flex shrink-0">
+                <span
+                  className="flex shrink-0 items-center gap-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <ExerciseInfoDialog exercise={ex} />
+                  <FeedbackTrigger
+                    exerciseId={ex.id}
+                    sourceScreen="library_picker"
+                  />
                 </span>
               </CommandItem>
             ))}

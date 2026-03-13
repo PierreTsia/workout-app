@@ -9,6 +9,7 @@ import type { WorkoutExercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
+import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { SetsTable } from "./SetsTable"
 
 interface ExerciseDetailProps {
@@ -41,6 +42,10 @@ export function ExerciseDetail({
               <Pencil className="h-4 w-4" />
             </Link>
           </AdminOnly>
+          <FeedbackTrigger
+            exerciseId={exercise.exercise_id}
+            sourceScreen="workout"
+          />
         </div>
         <Badge variant="secondary" className="w-fit text-xs">
           {exercise.muscle_snapshot}

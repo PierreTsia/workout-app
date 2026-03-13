@@ -1,0 +1,41 @@
+{
+  "title": "Envoyer un retour",
+  "userLabel": "Utilisateur",
+  "reportingAs": "Envoyé en tant que {{email}}",
+  "step": "Étape {{n}}",
+  "step1Title": "Qu'est-ce qui ne va pas ?",
+  "whatIllustration": "Illustration / image",
+  "whatVideo": "Vidéo (YouTube)",
+  "whatDescription": "Description / instructions",
+  "step2Title": "En quoi est-ce incorrect ?",
+  "illustration": {
+    "wrongExercise": "Montre le mauvais exercice",
+    "misleadingAngle": "Angle / forme trompeur",
+    "other": "Autre"
+  },
+  "video": {
+    "differentExercise": "Montre un autre exercice",
+    "poorQuality": "Mauvaise qualité / inutilisable",
+    "other": "Autre"
+  },
+  "description": {
+    "unrelated": "Instructions sans rapport avec le nom de l'exercice",
+    "wrongMuscle": "Mauvais groupe musculaire",
+    "missingSteps": "Étapes manquantes",
+    "other": "Autre"
+  },
+  "selectIssues": "Sélectionner…",
+  "otherPlaceholder": "Veuillez préciser…",
+  "otherIllustrationLabel": "Précisez (illustration)",
+  "otherVideoLabel": "Précisez (vidéo)",
+  "otherDescriptionLabel": "Précisez (description)",
+  "commentPlaceholder": "Commentaire additionnel (optionnel)",
+  "reportButton": "Envoyer un retour",
+  "submit": "Envoyer le retour",
+  "submitting": "Envoi…",
+  "successToast": "Merci pour votre retour. Nous l'avons bien reçu.",
+  "errorToast": "Échec de l'envoi. Veuillez réessayer.",
+  "required": "Requis",
+  "otherRequired": "Veuillez préciser lorsque vous choisissez « Autre »",
+  "atLeastOneRequired": "Sélectionnez au moins une option"
+}
