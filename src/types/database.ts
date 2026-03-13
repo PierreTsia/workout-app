@@ -69,3 +69,18 @@ export interface SetLog {
   was_pr: boolean
   logged_at: string
 }
+
+export type FeedbackSourceScreen = "workout" | "builder" | "library_picker"
+
+export interface ExerciseContentFeedbackInsert {
+  exercise_id: string
+  user_email: string
+  user_id: string
+  source_screen: FeedbackSourceScreen
+  fields_reported: string[]
+  error_details: Record<string, string[]>
+  other_illustration_text: string | null
+  other_video_text: string | null
+  other_description_text: string | null
+  comment: string | null
+}

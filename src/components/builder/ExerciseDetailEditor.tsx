@@ -7,6 +7,7 @@ import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Input } from "@/components/ui/input"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 
 interface ExerciseDetailEditorProps {
   dayId: string
@@ -99,14 +100,21 @@ export function ExerciseDetailEditor({
 
   return (
     <div className="flex flex-col gap-6 p-4">
-      <div className="flex items-center gap-3">
-        <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-12 w-12" />
-        <div>
-          <h2 className="text-lg font-bold">{exercise.name_snapshot}</h2>
-          <p className="text-sm text-muted-foreground">
-            {exercise.muscle_snapshot}
-          </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-12 w-12 shrink-0" />
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold truncate">{exercise.name_snapshot}</h2>
+            <p className="text-sm text-muted-foreground">
+              {exercise.muscle_snapshot}
+            </p>
+          </div>
         </div>
+        <FeedbackTrigger
+          exerciseId={exercise.exercise_id}
+          sourceScreen="builder"
+          className="shrink-0"
+        />
       </div>
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />

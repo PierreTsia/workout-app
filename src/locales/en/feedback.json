@@ -1,0 +1,38 @@
+{
+  "title": "Send feedback",
+  "userLabel": "User",
+  "step1Title": "What is wrong?",
+  "whatIllustration": "Illustration / image",
+  "whatVideo": "Video (YouTube)",
+  "whatDescription": "Description / instructions",
+  "step2Title": "How is it wrong?",
+  "illustration": {
+    "wrongExercise": "Shows wrong exercise",
+    "misleadingAngle": "Misleading angle/form",
+    "other": "Other"
+  },
+  "video": {
+    "differentExercise": "Shows a different exercise",
+    "poorQuality": "Poor quality / unusable",
+    "other": "Other"
+  },
+  "description": {
+    "unrelated": "Instructions unrelated to exercise name",
+    "wrongMuscle": "Wrong muscle focus",
+    "missingSteps": "Missing steps",
+    "other": "Other"
+  },
+  "otherPlaceholder": "Please describe…",
+  "otherIllustrationLabel": "Describe (illustration)",
+  "otherVideoLabel": "Describe (video)",
+  "otherDescriptionLabel": "Describe (description)",
+  "commentPlaceholder": "Additional comment (optional)",
+  "reportButton": "Send feedback",
+  "submit": "Submit feedback",
+  "submitting": "Submitting…",
+  "successToast": "Thank you for your feedback. We've received it.",
+  "errorToast": "Failed to submit. Please try again.",
+  "required": "Required",
+  "otherRequired": "Please describe when selecting \"Other\"",
+  "atLeastOneRequired": "Select at least one option"
+}
