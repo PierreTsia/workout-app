@@ -114,6 +114,42 @@ export function useAddExerciseToDay() {
   })
 }
 
+export function useAddExercisesToDay() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      dayId,
+      exercises,
+      startSortOrder,
+    }: {
+      dayId: string
+      exercises: Exercise[]
+      startSortOrder: number
+    }) => {
+      const rows = exercises.map((exercise, i) => ({
+        workout_day_id: dayId,
+        exercise_id: exercise.id,
+        name_snapshot: exercise.name,
+        muscle_snapshot: exercise.muscle_group,
+        emoji_snapshot: exercise.emoji,
+        sets: 3,
+        reps: "12",
+        weight: "0",
+        rest_seconds: 90,
+        sort_order: startSortOrder + i,
+      }))
+      const { error } = await supabase.from("workout_exercises").insert(rows)
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({
+        queryKey: ["workout-exercises", variables.dayId],
+      })
+    },
+  })
+}
+
 export function useUpdateExercise() {
   const qc = useQueryClient()
 

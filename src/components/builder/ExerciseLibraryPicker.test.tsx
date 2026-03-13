@@ -73,9 +73,14 @@ const mockUseExerciseLibrary = vi.fn(() => ({
   isLoading: false,
 }))
 
-const mockMutate = vi.fn()
-const mockUseAddExerciseToDay = vi.fn(() => ({
-  mutate: mockMutate,
+const mockAddExercisesMutateAsync = vi.fn().mockResolvedValue(undefined)
+const mockDeleteExerciseMutateAsync = vi.fn().mockResolvedValue(undefined)
+const mockUseAddExercisesToDay = vi.fn(() => ({
+  mutateAsync: mockAddExercisesMutateAsync,
+  isPending: false,
+}))
+const mockUseDeleteExercise = vi.fn(() => ({
+  mutateAsync: mockDeleteExerciseMutateAsync,
   isPending: false,
 }))
 
@@ -84,7 +89,8 @@ vi.mock("@/hooks/useExerciseLibrary", () => ({
 }))
 
 vi.mock("@/hooks/useBuilderMutations", () => ({
-  useAddExerciseToDay: () => mockUseAddExerciseToDay(),
+  useAddExercisesToDay: () => mockUseAddExercisesToDay(),
+  useDeleteExercise: () => mockUseDeleteExercise(),
 }))
 
 vi.mock("@/components/exercise/ExerciseInfoDialog", () => ({
@@ -200,5 +206,63 @@ describe("ExerciseLibraryPicker", () => {
     mockUseExerciseLibrary.mockReturnValue({ data: [], isLoading: false })
     renderPicker()
     expect(screen.getByText("No exercises found.")).toBeInTheDocument()
+  })
+
+  it("adds one exercise when one checkbox selected and Apply changes clicked", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
+    const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
+    expect(vars.exercises).toHaveLength(1)
+    expect(vars).toMatchObject({ dayId: "day-1", startSortOrder: 0 })
+  })
+
+  it("does not add exercise when row text is clicked", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    await user.click(screen.getByText("Développé couché"))
+    expect(mockAddExercisesMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it("shows Apply changes button and batch-adds when checkboxes selected", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    const checkboxes = screen.getAllByRole("checkbox")
+    expect(checkboxes.length).toBeGreaterThanOrEqual(2)
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
+    expect(screen.getByRole("button", { name: "Apply changes" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
+    const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
+    expect(vars).toMatchObject({
+      dayId: "day-1",
+      startSortOrder: 0,
+    })
+    expect(Array.isArray(vars.exercises)).toBe(true)
+    expect(vars.exercises).toHaveLength(2)
+  })
+
+  it("pre-checks exercises already in the day", async () => {
+    renderPicker({
+      existingExercises: [{ exercise_id: "1", id: "we-1" }],
+    })
+    const checked = await screen.findByRole("checkbox", { checked: true })
+    expect(checked).toBeInTheDocument()
+  })
+
+  it("calls delete when existing exercise is unchecked and Apply changes clicked", async () => {
+    renderPicker({
+      existingExerciseCount: 1,
+      existingExercises: [{ exercise_id: "1", id: "we-1" }],
+    })
+    const user = userEvent.setup()
+    const checked = screen.getByRole("checkbox", { checked: true })
+    await user.click(checked)
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockDeleteExerciseMutateAsync).toHaveBeenCalledWith({ id: "we-1", dayId: "day-1" })
   })
 })
