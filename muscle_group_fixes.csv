@@ -1,0 +1,61 @@
+id,name,name_en,current_muscle_group,suggested_muscle_group,reason
+fc4b3df7-4bd5-493b-8b5d-f6ac51d53318,Étirement cobra,Cobra Stretch,Abdos,Lombaires,Cobra stretch extends the spine — targets lower back / erector spinae
+8e7d5e22-1327-40f1-b872-a87bfade6814,High knee skips HD,High Knee Skips HD,Abdos,Quadriceps,High knees = hip flexors + quads — not an abs exercise
+acc214d9-4bfd-4459-a5f9-d9d262753867,Pont piétonnier,Walking Bridge,Abdos,Fessiers,Walking bridge = glute bridge variation — targets glutes
+4db27564-2359-427e-adac-b76994598c37,Vélo,Cycling,Abdos,Quadriceps,Cycling targets legs (quads) — not abs at all
+029a1da6-b89a-433d-a9af-5d33a4795c04,W-raise,W-Raise,Abdos,Épaules,W-raise is a scapular/rear delt exercise — targets shoulders/upper back
+ecf8d831-de7b-4519-82aa-a60984900c67,Dips sur banc au sol,Bench Dips On Floor HD,Biceps,Triceps,Bench dips target triceps — never biceps
+4d485428-d3e0-40bc-87b3-b510183fc29e,Extension nuque,Neck Extension,Biceps,Trapèzes,Neck extension targets neck/upper traps — no biceps involvement
+35b83c86-5b91-45f4-9d39-10b2ea8b2931,Maintien isométrique pull-up,Pull-up Isometric Hold,Biceps,Dos,Pull-up hold = isometric lat contraction — primarily back
+60b76525-5985-4003-bc88-a79fc66b8a8d,Muscle-up,Muscle Up,Biceps,Dos,Muscle-up is a compound pull — primarily lats/back
+0910c1be-970d-4ed8-974e-83077a7636ef,Piliers hercules,Hercules Pillars,Biceps,Pectoraux,Iron cross / Hercules hold = chest + shoulders — not biceps
+6b46d77b-1291-44b9-9d40-f4da8930ae17,Pompes prise serrée,Close-grip Press-ups,Biceps,Triceps,Close-grip push-ups are a triceps exercise — pushing not pulling
+7afb17cf-ddf0-4efe-aa5a-f3e72d379b48,Pull-back,Pullback,Biceps,Dos,Pullback = pulling motion targeting lats/back
+3bfd60f4-1d5e-4f4a-ab0b-aa35452aca08,Rowing haltère sur banc incliné,Incline Chest-Supported Dumbbell Row,Biceps,Dos,Chest-supported row = classic back exercise
+01807007-7465-4a5f-8155-e0eff0dc10da,Rowing inversé,Inverted Rows,Biceps,Dos,Inverted rows = horizontal pull primarily targeting back
+5cfd6d84-21e3-43fe-bea6-d39fecb559a5,Rowing mort supination haltère,Dumbbell Underhand Dead Row,Biceps,Dos,Dead row = back exercise (underhand grip adds bicep involvement but primary is back)
+3ce11aeb-966e-4168-b744-902b7d357cfe,Traction front lever,Front Lever Pull-up,Biceps,Dos,Front lever pull-up = advanced lat exercise
+c713d4ed-4b8e-4ccd-b1cf-fe289f68f21a,Tractions machine à écrire,Typewriter Pull-ups,Biceps,Dos,Typewriter pull-ups = horizontal lat pull variant
+099b8e03-ab8e-4fee-b274-0d29bbaa4656,Wall slides,Wall Slides,Biceps,Épaules,Wall slides = shoulder mobility drill — zero biceps involvement
+1a842bf1-6b3b-4efc-99ed-398de30905ab,Ball slams,Ball Slams,Dos,Épaules,Ball slams = overhead throwing — primarily shoulders and core
+6500fa22-8ee9-4b17-a12e-2f4ca3c025f7,Câble assis à mi-piège haussement d'épaules,Seated Cable Mid Trap Shrug,Dos,Trapèzes,Mid-trap shrug = shrugs target trapezius not lats
+809a050e-239c-440c-91a2-6e4cfb4e9cfe,Élévation deltoïde postérieur assis,Seated Rear Delt Raise,Dos,Épaules,Rear delt raise = shoulder exercise (posterior deltoid)
+ce6a9bd0-6ece-41c7-b48e-840ae8874e8d,Élévation latérale poulie,Side Lateral Raise (Cable),Dos,Épaules,Lateral raises = textbook shoulder (lateral deltoid) exercise
+1bb681ed-6898-41c1-9edf-559a3b15610c,Étirement extension épaule assis,Seated Shoulder Extension Stretch,Dos,Épaules,Shoulder stretch should be categorized with shoulders
+9e8f3238-14ae-4431-a694-2c329857a70f,L-sit,L-Sit,Dos,Abdos,L-sit = isometric hold targeting hip flexors and core
+44b36b98-b2f3-4337-8663-512bc09562f2,L-sit (pieds supportés),L-Sit (Foot Supported),Dos,Abdos,Same as L-sit — core/hip flexor exercise
+4dfbccd4-0a00-4c20-bd71-75339c04d677,Rotation russe,Russian Twist,Dos,Abdos,Russian twist = classic oblique/core exercise — not back
+2d0e91b2-6102-43b7-9548-ec146baf88d3,Soulevé de terre roumain barre,Barbell Romanian Deadlift (RDL),Dos,Ischios,RDL primarily targets hamstrings — other RDL variants already classified as Ischios
+e2f06797-3c62-445a-9bc3-3bb8e5ddaa6b,Curl poignets barre,Barbell Wrist Curl,Épaules,Biceps,Wrist curls target forearms — no shoulder involvement (Biceps is closest available group)
+0c5cd2b2-d73e-4e47-a1d6-a9630c5602e1,Rameur,Rowing Machine,Épaules,Dos,Rowing machine = horizontal pulling — primarily back
+00115396-a68e-4463-915e-176dc183008f,Shrugs barre,Shrugs Barbells,Épaules,Trapèzes,Shrugs = the defining trapezius exercise
+98d1b8c2-fdf0-4a7d-9523-b56a0afa8cff,Shrugs sur multipress,Shrugs on Multipress,Épaules,Trapèzes,Shrugs = trapezius regardless of equipment
+84dbd964-b428-43cc-b0c1-49defcfea525,Tractions australiennes,Australian Pull-ups,Épaules,Dos,Inverted/Australian pull-ups = horizontal pull targeting back
+366e1372-4fa0-40c4-816c-6fa83aa2c53d,Tractions commando,Commando Pull-ups,Épaules,Dos,Commando pull-ups = pull-up variant targeting back
+278a1216-0176-40c3-b471-0c9c741d0477,Superman,Superman,Fessiers,Lombaires,Superman targets erector spinae (lower back) — not glutes
+fbf93a1e-0b96-4357-9945-13323cb6ee8f,Cordes de combat,Battle Ropes,Ischios,Épaules,Battle ropes = arm/shoulder endurance — no hamstring involvement
+e58fa8eb-e42a-4610-b0d8-b94bbe78e708,Chaise au mur,Wall Squat,Ischios,Quadriceps,Wall sit = isometric quad hold — targets quadriceps
+873f87b6-2eea-47e7-882e-7665b2f20a26,Squat barre,Barbell Squat,Ischios,Quadriceps,Back squat = primarily quads — other squat variants already in Quadriceps
+8bde27f3-c42e-4619-8e98-5a81c1e1ab84,Squat complet barre,Barbell Full Squat,Ischios,Quadriceps,Full squat = primarily quads (deeper ROM adds glute but primary is still quads)
+f1c88f28-8742-4862-985d-0752deca3675,Squat pistol,Pistol Squat,Ischios,Quadriceps,Pistol squat = single-leg squat targeting quads
+92510e57-ab4a-4a02-98ec-e8328613cd77,Pin squat,Pin Squat,Ischios,Quadriceps,Pin squat = squat variant with pause — targets quads
+20355bba-50f8-4476-bda8-39131375f867,Smith machine split squat,Smith Machine Split Squat,Ischios,Quadriceps,Split squat = lunge variant primarily targeting quads
+04d4f061-bc86-4a76-87d4-b9df1f12ea9a,Thruster haltères,Dumbbell Thruster,Ischios,Épaules,Thruster = squat-to-press compound — shoulders are the limiting factor
+2b9b7fd3-7182-4c2b-80aa-17f314575ee9,Stepper,Stair Master,Ischios,Quadriceps,Stair stepper = cardio targeting quads/glutes — not hamstrings
+e2779bb6-3099-4714-ad2f-22d570f8b509,Vélo couché,Recumbent Bike,Ischios,Quadriceps,Recumbent bike = cycling targeting quads — not hamstrings
+288b9b85-c912-40cf-9ba0-cd02f4d42efd,Fente à une jambe avec kettlebell :,Single-Leg Lunge with Kettlebell:,Mollets,Quadriceps,Lunges target quads/glutes — zero calf involvement
+2f0787d3-ecdd-4ad3-99c5-5d6a09a26074,Leg curl élastique,Leg Curl with Elastic,Mollets,Ischios,Leg curls target hamstrings — not calves
+67f05897-eef3-4719-ab46-8b21a2cf5bd5,Poussée latérale,Lateral Push Off,Mollets,Quadriceps,Lateral push-off = lateral plyometric targeting quads/glutes
+343744b7-2671-4ee5-a7cb-3ef8688b8125,Poussée traîneau,Sled Push,Mollets,Quadriceps,Sled push = leg drive — primarily quads
+8ebd4969-24bb-454f-a4e4-be48f8634ca7,Press fessier latéral unipodal,Single-leg Side Glute Press,Mollets,Fessiers,It literally says 'glute press' in the name — targets glutes
+a3f7c6dc-522c-4075-9a91-41744f1bc1ee,Talons-fesses,Butt Kicks,Mollets,Ischios,Butt kicks = dynamic hamstring curl — targets hamstrings
+31d91617-1f7e-4b89-a707-ee000395f86e,Épaulé puissance,Power Clean,Pectoraux,Épaules,Power clean = Olympic lift — shoulders/legs/back — not chest at all
+b08b3f6f-2963-4324-a681-2d8d03ba51c0,Essuie-glaces isométriques,Isometric Wipers,Pectoraux,Abdos,Isometric wipers = core rotation hold — abs exercise
+5c7e172f-6c33-46cc-9886-4c31287623a8,Pompes pike,Pike Push Ups,Pectoraux,Épaules,Pike push-ups = overhead press substitute targeting shoulders
+73586729-769f-4f4b-8a1f-19b917ac7969,Gainage planche chat,Cat Plank,Quadriceps,Abdos,Cat plank = core stabilization exercise — not quads
+930c25f9-d290-4f76-bbeb-318f3dce54ab,Rotation du tronc,Core Rotation,Quadriceps,Abdos,It literally says 'Core' — core rotation is an abs exercise
+ae78fc17-c031-45e6-81f8-b779a63cd465,Développé supination,Supine Press,Trapèzes,Pectoraux,Supine press = bench press variant — targets chest
+6598b84c-9e8a-4b48-af0a-4ef557ddcae7,Extension triceps au-dessus,Overhead Triceps Extension,Trapèzes,Triceps,Literally 'triceps extension' — classified under Trapèzes by mistake
+61d6da8b-fd59-4421-a88b-5c343b3ec848,Jeté force,Push Press,Trapèzes,Épaules,Push press = overhead press with leg drive — shoulders are the primary movers
+0a94032d-fc3a-45fd-bac6-6f80c0ce1f60,Rotation interne allongé latéral,Side-laying Interior Rotation,Trapèzes,Épaules,Internal rotation = rotator cuff exercise — targets shoulders
+d382483c-2d5a-47b6-9d1a-8aed395a2b67,Scaption haltères,Dumbbell Scaption,Trapèzes,Épaules,Scaption = shoulder raise in scapular plane — targets deltoids
