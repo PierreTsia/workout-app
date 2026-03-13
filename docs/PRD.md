@@ -174,6 +174,18 @@
 
 ---
 
+## 🏋️ Difficulty / Experience Tiers
+
+Shared vocabulary used across exercise classification, onboarding user profiles, and program generation. The same three tiers apply to both exercises and users.
+
+| Tier | User Experience | Exercise Characteristics |
+|---|---|---|
+| **Beginner** | < 6 months regular strength training | Easy to learn, low strength/mobility demands, safe even with imperfect form |
+| **Intermediate** | 6 months – 2 years | Moderate form complexity, solid strength base needed, some mobility demands |
+| **Advanced** | 2+ years consistent training | High form complexity, significant strength and mobility requirements, injury risk if form breaks down |
+
+---
+
 ## 🎓 Known Limitations (v1)
 
 - Single device only (no sync across devices)
