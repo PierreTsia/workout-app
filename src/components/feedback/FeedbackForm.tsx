@@ -94,6 +94,7 @@ export function FeedbackForm({
     },
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- RHF watch() is inherently non-memoizable
   const watchWhat = form.watch([
     "whatIllustration",
     "whatVideo",
@@ -258,7 +259,7 @@ export function FeedbackForm({
                           <FormControl>
                             <MultiSelect
                               options={illustrationOptions}
-                              value={form.watch("illustration") as string[]}
+                              value={watchIllustration }
                               onChange={(next) =>
                                 form.setValue("illustration", next as FeedbackFormValues["illustration"], {
                                   shouldValidate: true,
@@ -313,7 +314,7 @@ export function FeedbackForm({
                           <FormControl>
                             <MultiSelect
                               options={videoOptions}
-                              value={form.watch("video") as string[]}
+                              value={watchVideo}
                               onChange={(next) =>
                                 form.setValue("video", next as FeedbackFormValues["video"], {
                                   shouldValidate: true,
@@ -368,7 +369,7 @@ export function FeedbackForm({
                           <FormControl>
                             <MultiSelect
                               options={descriptionOptions}
-                              value={form.watch("description") as string[]}
+                              value={watchDescription}
                               onChange={(next) =>
                                 form.setValue("description", next as FeedbackFormValues["description"], {
                                   shouldValidate: true,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { CircleCheck } from "lucide-react"
 import {
@@ -38,12 +38,13 @@ export function FeedbackSheet({
     onOpenChange(false)
   }, [onSuccess, onOpenChange])
 
-  useEffect(() => {
-    if (!open) setShowSuccess(false)
-  }, [open])
+  const handleOpenChange = useCallback((next: boolean) => {
+    if (!next) setShowSuccess(false)
+    onOpenChange(next)
+  }, [onOpenChange])
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         className="flex w-[92%] flex-col overflow-hidden p-0 sm:w-3/4"
