@@ -164,8 +164,7 @@ async function youtubeSearch(query: string, relevanceLanguage: string): Promise<
       }
       if (data.error) {
         if (data.error.code === 403 && data.error.message?.includes("quota")) {
-          console.error("YouTube API quota exceeded. Stop and re-run tomorrow or add allowlist entries.")
-          throw new Error("YouTube API quota exceeded")
+          throw new QuotaExceededError()
         }
         console.warn("YouTube API error:", data.error.message)
         return null
@@ -179,6 +178,10 @@ async function youtubeSearch(query: string, relevanceLanguage: string): Promise<
     }
   }
   return null
+}
+
+class QuotaExceededError extends Error {
+  constructor() { super("YouTube API quota exceeded") }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -243,6 +246,7 @@ async function run() {
 
   let updated = 0
   let skipped = 0
+  let quotaHit = false
   const failedIds: string[] = []
 
   for (let i = 0; i < candidates.length; i++) {
@@ -269,14 +273,23 @@ async function run() {
         updated++
       }
     } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        console.log("QUOTA EXCEEDED")
+        quotaHit = true
+        break
+      }
       console.log("error:", (err as Error).message)
       failedIds.push(c.id)
     }
   }
 
-  console.log("\n=== Done ===")
-  console.log(`Updated: ${updated}`)
-  console.log(`Skipped (no URL): ${skipped}`)
+  const remaining = candidates.length - updated - skipped - failedIds.length
+  console.log("\n=== Results ===")
+  console.log(`Updated:   ${updated}`)
+  console.log(`Skipped:   ${skipped} (no match)`)
+  console.log(`Failed:    ${failedIds.length}`)
+  console.log(`Remaining: ${remaining}`)
+  if (quotaHit) console.log(`\n⏸  Quota exceeded — will resume on next run (${remaining} exercises left)`)
   if (failedIds.length > 0) console.log(`Failed IDs: ${failedIds.join(", ")}`)
 }
 
