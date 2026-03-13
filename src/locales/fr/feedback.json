@@ -1,6 +1,7 @@
 {
   "title": "Envoyer un retour",
   "userLabel": "Utilisateur",
+  "reportingAs": "Envoyé en tant que {{email}}",
   "step": "Étape {{n}}",
   "step1Title": "Qu'est-ce qui ne va pas ?",
   "whatIllustration": "Illustration / image",
@@ -23,6 +24,7 @@
     "missingSteps": "Étapes manquantes",
     "other": "Autre"
   },
+  "selectIssues": "Sélectionner…",
   "otherPlaceholder": "Veuillez préciser…",
   "otherIllustrationLabel": "Précisez (illustration)",
   "otherVideoLabel": "Précisez (vidéo)",

@@ -161,17 +161,9 @@ export function FeedbackForm({
           <div className="flex flex-col gap-5 pt-2">
 
             {/* User */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground" htmlFor="feedback-user">
-                {t("userLabel")}
-              </label>
-              <Input
-                id="feedback-user"
-                readOnly
-                value={user.email}
-                className="h-9 bg-muted/50 cursor-default text-sm"
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("reportingAs", { email: user.email })}
+            </p>
 
             <Separator />
 
@@ -272,14 +264,14 @@ export function FeedbackForm({
                                   shouldValidate: true,
                                 })
                               }
-                              placeholder={t("step2Title")}
-                            />
-                          </FormControl>
-                          <TranslatedFormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {hasOtherIllustration && (
+                            placeholder={t("selectIssues")}
+                          />
+                        </FormControl>
+                        <TranslatedFormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {hasOtherIllustration && (
                       <FormField
                         control={form.control}
                         name="other_illustration_text"
@@ -327,14 +319,14 @@ export function FeedbackForm({
                                   shouldValidate: true,
                                 })
                               }
-                              placeholder={t("step2Title")}
-                            />
-                          </FormControl>
-                          <TranslatedFormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {hasOtherVideo && (
+                            placeholder={t("selectIssues")}
+                          />
+                        </FormControl>
+                        <TranslatedFormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {hasOtherVideo && (
                       <FormField
                         control={form.control}
                         name="other_video_text"
@@ -382,14 +374,14 @@ export function FeedbackForm({
                                   shouldValidate: true,
                                 })
                               }
-                              placeholder={t("step2Title")}
-                            />
-                          </FormControl>
-                          <TranslatedFormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {hasOtherDescription && (
+                            placeholder={t("selectIssues")}
+                          />
+                        </FormControl>
+                        <TranslatedFormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {hasOtherDescription && (
                       <FormField
                         control={form.control}
                         name="other_description_text"

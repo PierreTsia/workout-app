@@ -1,6 +1,7 @@
 {
   "title": "Send feedback",
   "userLabel": "User",
+  "reportingAs": "Reporting as {{email}}",
   "step": "Step {{n}}",
   "step1Title": "What is wrong?",
   "whatIllustration": "Illustration / image",
@@ -23,6 +24,7 @@
     "missingSteps": "Missing steps",
     "other": "Other"
   },
+  "selectIssues": "Select issues…",
   "otherPlaceholder": "Please describe…",
   "otherIllustrationLabel": "Describe (illustration)",
   "otherVideoLabel": "Describe (video)",
