@@ -65,8 +65,8 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
         className={cn(
           "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out",
           isActive
-            ? "w-[7rem] scale-105 ring-2 ring-primary shadow-lg"
-            : "w-[5.5rem] opacity-70",
+            ? "w-[8.5rem] scale-110 ring-2 ring-primary shadow-lg z-10"
+            : "w-[5rem] opacity-60",
         )}
       >
         {hasPr && (
