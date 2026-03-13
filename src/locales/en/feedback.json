@@ -1,6 +1,7 @@
 {
   "title": "Send feedback",
   "userLabel": "User",
+  "step": "Step {{n}}",
   "step1Title": "What is wrong?",
   "whatIllustration": "Illustration / image",
   "whatVideo": "Video (YouTube)",

@@ -6,6 +6,7 @@ import { authAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MultiSelect } from "@/components/ui/multi-select"
+import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Form,
@@ -157,220 +158,243 @@ export function FeedbackForm({
         className="flex min-h-0 flex-1 flex-col"
       >
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
-          <div className="flex flex-col gap-6 pt-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="feedback-user">
+          <div className="flex flex-col gap-5 pt-2">
+
+            {/* User */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground" htmlFor="feedback-user">
                 {t("userLabel")}
               </label>
               <Input
                 id="feedback-user"
                 readOnly
                 value={user.email}
-                className="bg-muted/50 cursor-default"
+                className="h-9 bg-muted/50 cursor-default text-sm"
               />
             </div>
 
-            <p className="text-sm font-medium text-foreground">
-              {t("step1Title")}
-            </p>
+            <Separator />
 
-            <FormField
-              control={form.control}
-              name="whatIllustration"
-              render={() => (
-                <FormItem>
-                  <FormControl>
-                    <MultiSelect
-                      options={whatOptions}
-                      value={whatValue}
-                      onChange={(arr) => {
-                        form.setValue("whatIllustration", arr.includes("illustration"), {
-                          shouldValidate: true,
-                        })
-                        form.setValue("whatVideo", arr.includes("video"), {
-                          shouldValidate: true,
-                        })
-                        form.setValue("whatDescription", arr.includes("description"), {
-                          shouldValidate: true,
-                        })
-                      }}
-                      placeholder={t("step1Title")}
-                    />
-                  </FormControl>
-                  <TranslatedFormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Step 1 */}
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  1
+                </span>
+                <p className="text-sm font-semibold text-foreground">
+                  {t("step1Title")}
+                </p>
+              </div>
 
-        {(whatIllustration || whatVideo || whatDescription) && (
-          <>
-            <p className="text-sm font-medium text-foreground">
-              {t("step2Title")}
-            </p>
-            <div className="flex flex-col gap-4">
-              {whatIllustration && (
-                <div className="space-y-2">
-                  <FormField
-                    control={form.control}
-                    name="illustration"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/90">
-                          {t("whatIllustration")}
-                        </FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={illustrationOptions}
-                            value={form.watch("illustration") as string[]}
-                            onChange={(next) =>
-                              form.setValue("illustration", next as FeedbackFormValues["illustration"], {
-                                shouldValidate: true,
-                              })
-                            }
-                            placeholder={t("step2Title")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherIllustration && (
-                    <FormField
-                      control={form.control}
-                      name="other_illustration_text"
-                      render={({ field }) => (
-                        <FormItem className="mt-1">
-                          <FormLabel className="text-sm">{t("otherIllustrationLabel")} *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("otherPlaceholder")}
-                              className={cn(
-                                form.formState.errors.other_illustration_text && "border-destructive",
-                              )}
-                              {...field}
-                            />
-                          </FormControl>
-                          {form.formState.errors.other_illustration_text?.message && (
-                            <p className="text-sm font-medium text-destructive">
-                              {t(form.formState.errors.other_illustration_text.message as string)}
-                            </p>
-                          )}
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-              )}
-              {whatVideo && (
-                <div className="space-y-2">
-                  <FormField
-                    control={form.control}
-                    name="video"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/90">
-                          {t("whatVideo")}
-                        </FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={videoOptions}
-                            value={form.watch("video") as string[]}
-                            onChange={(next) =>
-                              form.setValue("video", next as FeedbackFormValues["video"], {
-                                shouldValidate: true,
-                              })
-                            }
-                            placeholder={t("step2Title")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherVideo && (
-                    <FormField
-                      control={form.control}
-                      name="other_video_text"
-                      render={({ field }) => (
-                        <FormItem className="mt-1">
-                          <FormLabel className="text-sm">{t("otherVideoLabel")} *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("otherPlaceholder")}
-                              className={cn(
-                                form.formState.errors.other_video_text && "border-destructive",
-                              )}
-                              {...field}
-                            />
-                          </FormControl>
-                          {form.formState.errors.other_video_text?.message && (
-                            <p className="text-sm font-medium text-destructive">
-                              {t(form.formState.errors.other_video_text.message as string)}
-                            </p>
-                          )}
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-              )}
-              {whatDescription && (
-                <div className="space-y-2">
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel className="text-foreground/90">
-                          {t("whatDescription")}
-                        </FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={descriptionOptions}
-                            value={form.watch("description") as string[]}
-                            onChange={(next) =>
-                              form.setValue("description", next as FeedbackFormValues["description"], {
-                                shouldValidate: true,
-                              })
-                            }
-                            placeholder={t("step2Title")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherDescription && (
-                    <FormField
-                      control={form.control}
-                      name="other_description_text"
-                      render={({ field }) => (
-                        <FormItem className="mt-1">
-                          <FormLabel className="text-sm">{t("otherDescriptionLabel")} *</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder={t("otherPlaceholder")}
-                              className={cn(
-                                form.formState.errors.other_description_text && "border-destructive",
-                              )}
-                              {...field}
-                            />
-                          </FormControl>
-                          {form.formState.errors.other_description_text?.message && (
-                            <p className="text-sm font-medium text-destructive">
-                              {t(form.formState.errors.other_description_text.message as string)}
-                            </p>
-                          )}
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                </div>
-              )}
+              <FormField
+                control={form.control}
+                name="whatIllustration"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <MultiSelect
+                        options={whatOptions}
+                        value={whatValue}
+                        onChange={(arr) => {
+                          form.setValue("whatIllustration", arr.includes("illustration"), {
+                            shouldValidate: true,
+                          })
+                          form.setValue("whatVideo", arr.includes("video"), {
+                            shouldValidate: true,
+                          })
+                          form.setValue("whatDescription", arr.includes("description"), {
+                            shouldValidate: true,
+                          })
+                        }}
+                        placeholder={t("step1Title")}
+                      />
+                    </FormControl>
+                    <TranslatedFormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </>
+
+            {/* Step 2 */}
+            {(whatIllustration || whatVideo || whatDescription) && (
+              <div className="rounded-lg border border-border p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                    2
+                  </span>
+                  <p className="text-sm font-semibold text-foreground">
+                    {t("step2Title")}
+                  </p>
+                </div>
+
+                {whatIllustration && (
+                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="illustration"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-foreground/80">
+                            {t("whatIllustration")}
+                          </FormLabel>
+                          <FormControl>
+                            <MultiSelect
+                              options={illustrationOptions}
+                              value={form.watch("illustration") as string[]}
+                              onChange={(next) =>
+                                form.setValue("illustration", next as FeedbackFormValues["illustration"], {
+                                  shouldValidate: true,
+                                })
+                              }
+                              placeholder={t("step2Title")}
+                            />
+                          </FormControl>
+                          <TranslatedFormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {hasOtherIllustration && (
+                      <FormField
+                        control={form.control}
+                        name="other_illustration_text"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">{t("otherIllustrationLabel")} *</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("otherPlaceholder")}
+                                className={cn(
+                                  "h-9",
+                                  form.formState.errors.other_illustration_text && "border-destructive",
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            {form.formState.errors.other_illustration_text?.message && (
+                              <p className="text-sm font-medium text-destructive">
+                                {t(form.formState.errors.other_illustration_text.message as string)}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {whatVideo && (
+                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="video"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-foreground/80">
+                            {t("whatVideo")}
+                          </FormLabel>
+                          <FormControl>
+                            <MultiSelect
+                              options={videoOptions}
+                              value={form.watch("video") as string[]}
+                              onChange={(next) =>
+                                form.setValue("video", next as FeedbackFormValues["video"], {
+                                  shouldValidate: true,
+                                })
+                              }
+                              placeholder={t("step2Title")}
+                            />
+                          </FormControl>
+                          <TranslatedFormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {hasOtherVideo && (
+                      <FormField
+                        control={form.control}
+                        name="other_video_text"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">{t("otherVideoLabel")} *</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("otherPlaceholder")}
+                                className={cn(
+                                  "h-9",
+                                  form.formState.errors.other_video_text && "border-destructive",
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            {form.formState.errors.other_video_text?.message && (
+                              <p className="text-sm font-medium text-destructive">
+                                {t(form.formState.errors.other_video_text.message as string)}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {whatDescription && (
+                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-semibold text-foreground/80">
+                            {t("whatDescription")}
+                          </FormLabel>
+                          <FormControl>
+                            <MultiSelect
+                              options={descriptionOptions}
+                              value={form.watch("description") as string[]}
+                              onChange={(next) =>
+                                form.setValue("description", next as FeedbackFormValues["description"], {
+                                  shouldValidate: true,
+                                })
+                              }
+                              placeholder={t("step2Title")}
+                            />
+                          </FormControl>
+                          <TranslatedFormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {hasOtherDescription && (
+                      <FormField
+                        control={form.control}
+                        name="other_description_text"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">{t("otherDescriptionLabel")} *</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t("otherPlaceholder")}
+                                className={cn(
+                                  "h-9",
+                                  form.formState.errors.other_description_text && "border-destructive",
+                                )}
+                                {...field}
+                              />
+                            </FormControl>
+                            {form.formState.errors.other_description_text?.message && (
+                              <p className="text-sm font-medium text-destructive">
+                                {t(form.formState.errors.other_description_text.message as string)}
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
+            {/* Comment */}
             <FormField
               control={form.control}
               name="comment"
