@@ -36,19 +36,19 @@ const mockExercises: Exercise[] = [
   },
 ]
 
-vi.mock("@/hooks/useExerciseLibrary", () => ({
-  useExerciseLibrary: vi.fn(),
+vi.mock("@/hooks/useExerciseById", () => ({
+  useExerciseById: vi.fn(),
 }))
 
-import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
-const mockUseExerciseLibrary = vi.mocked(useExerciseLibrary)
+import { useExerciseById } from "@/hooks/useExerciseById"
+const mockUseExerciseById = vi.mocked(useExerciseById)
 
 describe("useExerciseFromLibrary", () => {
-  it("returns matching exercise when library is cached", () => {
-    mockUseExerciseLibrary.mockReturnValue({
-      data: mockExercises,
+  it("returns matching exercise when fetched by id", () => {
+    mockUseExerciseById.mockReturnValue({
+      data: mockExercises[0],
       isLoading: false,
-    } as ReturnType<typeof useExerciseLibrary>)
+    } as ReturnType<typeof useExerciseById>)
 
     const { result } = renderHookWithProviders(() =>
       useExerciseFromLibrary("ex-1"),
@@ -59,10 +59,10 @@ describe("useExerciseFromLibrary", () => {
   })
 
   it("returns undefined for nonexistent ID", () => {
-    mockUseExerciseLibrary.mockReturnValue({
-      data: mockExercises,
+    mockUseExerciseById.mockReturnValue({
+      data: null,
       isLoading: false,
-    } as ReturnType<typeof useExerciseLibrary>)
+    } as ReturnType<typeof useExerciseById>)
 
     const { result } = renderHookWithProviders(() =>
       useExerciseFromLibrary("ex-999"),
@@ -73,10 +73,10 @@ describe("useExerciseFromLibrary", () => {
   })
 
   it("returns undefined while loading", () => {
-    mockUseExerciseLibrary.mockReturnValue({
+    mockUseExerciseById.mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as ReturnType<typeof useExerciseLibrary>)
+    } as ReturnType<typeof useExerciseById>)
 
     const { result } = renderHookWithProviders(() =>
       useExerciseFromLibrary("ex-1"),

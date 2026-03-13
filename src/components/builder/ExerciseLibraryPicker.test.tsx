@@ -68,8 +68,35 @@ const EXERCISES: Exercise[] = [
   },
 ]
 
-const mockUseExerciseLibrary = vi.fn(() => ({
-  data: EXERCISES,
+const mockFetchNextPage = vi.fn()
+function paginatedReturn(params: {
+  muscleGroup?: string | null
+  equipment?: string[]
+}) {
+  let list = EXERCISES
+  if (params.muscleGroup) {
+    list = list.filter((e) => e.muscle_group === params.muscleGroup)
+  }
+  if (params.equipment?.length) {
+    list = list.filter((e) => params.equipment!.includes(e.equipment))
+  }
+  return {
+    data: list,
+    isLoading: false,
+    isFetchingNextPage: false,
+    hasNextPage: false,
+    fetchNextPage: mockFetchNextPage,
+  }
+}
+const mockUseExerciseLibraryPaginated = vi.fn(
+  (params: { muscleGroup?: string | null; equipment?: string[] }) =>
+    paginatedReturn(params),
+)
+const mockUseExerciseFilterOptions = vi.fn(() => ({
+  data: {
+    muscle_groups: ["Biceps", "Épaules", "Pectoraux", "Quadriceps"],
+    equipment: ["barbell", "dumbbell", "machine"],
+  },
   isLoading: false,
 }))
 
@@ -84,8 +111,15 @@ const mockUseDeleteExercise = vi.fn(() => ({
   isPending: false,
 }))
 
-vi.mock("@/hooks/useExerciseLibrary", () => ({
-  useExerciseLibrary: () => mockUseExerciseLibrary(),
+vi.mock("@/hooks/useExerciseLibraryPaginated", () => ({
+  useExerciseLibraryPaginated: (params: {
+    search?: string
+    muscleGroup?: string | null
+    equipment?: string[]
+  }) => mockUseExerciseLibraryPaginated(params),
+}))
+vi.mock("@/hooks/useExerciseFilterOptions", () => ({
+  useExerciseFilterOptions: () => mockUseExerciseFilterOptions(),
 }))
 
 vi.mock("@/hooks/useBuilderMutations", () => ({
@@ -117,10 +151,10 @@ function renderPicker(overrides = {}) {
 describe("ExerciseLibraryPicker", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseExerciseLibrary.mockReturnValue({
-      data: EXERCISES,
-      isLoading: false,
-    })
+    mockUseExerciseLibraryPaginated.mockImplementation(
+      (params: { muscleGroup?: string | null; equipment?: string[] }) =>
+        paginatedReturn(params),
+    )
   })
 
   it("renders all exercises grouped by muscle", () => {
@@ -170,20 +204,30 @@ describe("ExerciseLibraryPicker", () => {
   })
 
   it("combines muscle group and equipment filters", async () => {
-    const allExercises = [
-      ...EXERCISES,
-      {
-        ...EXERCISES[0],
-        id: "5",
-        name: "Écarté haltères",
-        name_en: "Dumbbell Fly",
-        equipment: "dumbbell",
+    const pectoralDumbbell = {
+      ...EXERCISES[0],
+      id: "5",
+      name: "Écarté haltères",
+      name_en: "Dumbbell Fly",
+      equipment: "dumbbell",
+    }
+    mockUseExerciseLibraryPaginated.mockImplementation(
+      (params: { muscleGroup?: string | null; equipment?: string[] }) => {
+        if (
+          params.muscleGroup === "Pectoraux" &&
+          params.equipment?.includes("dumbbell")
+        ) {
+          return {
+            data: [pectoralDumbbell],
+            isLoading: false,
+            isFetchingNextPage: false,
+            hasNextPage: false,
+            fetchNextPage: mockFetchNextPage,
+          }
+        }
+        return paginatedReturn(params)
       },
-    ]
-    mockUseExerciseLibrary.mockReturnValue({
-      data: allExercises,
-      isLoading: false,
-    })
+    )
 
     renderPicker()
     const user = userEvent.setup()
@@ -197,13 +241,25 @@ describe("ExerciseLibraryPicker", () => {
   })
 
   it("shows loading state", () => {
-    mockUseExerciseLibrary.mockReturnValue({ data: [] as Exercise[], isLoading: true })
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: [] as Exercise[],
+      isLoading: true,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+    })
     renderPicker()
     expect(screen.getByText("Add Exercise")).toBeInTheDocument()
   })
 
   it("shows empty state when no exercises match", () => {
-    mockUseExerciseLibrary.mockReturnValue({ data: [], isLoading: false })
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+    })
     renderPicker()
     expect(screen.getByText("No exercises found.")).toBeInTheDocument()
   })

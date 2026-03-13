@@ -18,6 +18,7 @@
   "addSelectedCount": "Ajouter la sélection ({{count}})",
   "alreadyInDay": "Dans le jour",
   "applyChanges": "Appliquer les modifications",
+  "loadMore": "Charger plus",
   "noDays": "Pas encore de jours d'entraînement. Créez le premier !",
   "newDay": "Nouveau jour",
   "deleteDayTitle": "Supprimer ce jour ?",

@@ -18,6 +18,7 @@
   "addSelectedCount": "Add selected ({{count}})",
   "alreadyInDay": "In day",
   "applyChanges": "Apply changes",
+  "loadMore": "Load more",
   "noDays": "No workout days yet. Create your first one!",
   "newDay": "New Day",
   "deleteDayTitle": "Delete workout day?",
