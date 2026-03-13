@@ -212,6 +212,12 @@ async function run() {
       translationSource = "none"
     }
 
+    if (existingByName.has(frenchName)) {
+      console.warn(`  Skipping duplicate name "${frenchName}" (wger:${info.id})`)
+      skippedCount++
+      continue
+    }
+
     const record = buildExerciseRecord(info, frenchName, englishName)
     if (!record) {
       skippedCount++
@@ -224,6 +230,7 @@ async function run() {
       console.error(`  Failed to insert "${englishName}":`, error.message)
       skippedCount++
     } else {
+      existingByName.set(frenchName, "inserted")
       insertedCount++
     }
 
