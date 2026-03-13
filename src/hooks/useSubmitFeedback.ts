@@ -27,7 +27,6 @@ export function useSubmitFeedback() {
             comment: payload.comment,
           })
         if (error) throw error
-        toast.success(t("successToast"))
       } catch {
         toast.error(t("errorToast"))
         throw new Error("Feedback submit failed")
