@@ -227,8 +227,23 @@ export function FeedbackForm({
             </div>
 
             {/* Step 2 */}
-            {(whatIllustration || whatVideo || whatDescription) && (
-              <div className="rounded-lg border border-border p-4 space-y-4">
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                (whatIllustration || whatVideo || whatDescription)
+                  ? "grid-rows-[1fr]"
+                  : "grid-rows-[0fr]",
+              )}
+            >
+              <div className="overflow-hidden">
+              <div
+                className={cn(
+                  "rounded-lg border border-border p-4 space-y-4 transition-opacity duration-300",
+                  (whatIllustration || whatVideo || whatDescription)
+                    ? "opacity-100"
+                    : "opacity-0",
+                )}>
+
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                     2
@@ -403,7 +418,8 @@ export function FeedbackForm({
                   </div>
                 )}
               </div>
-            )}
+              </div>
+            </div>
 
             {/* Comment */}
             <FormField
