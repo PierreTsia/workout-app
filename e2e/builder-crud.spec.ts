@@ -72,22 +72,29 @@ test.describe("Builder — CRUD", () => {
     const libraryItemCount = await allItems.count()
 
     // --- Verify search filters the list ---
-    const searchInput = pickerDialog.locator("[cmdk-input]")
+    const searchInput = pickerDialog.getByRole("searchbox")
     await searchInput.fill("Développé")
     const filteredItems = pickerDialog.locator("[cmdk-item]")
-    const filteredCount = await filteredItems.count()
-    expect(filteredCount).toBeLessThan(libraryItemCount)
+    await expect(async () => {
+      const count = await filteredItems.count()
+      expect(count).toBeGreaterThan(0)
+      expect(count).toBeLessThan(libraryItemCount)
+    }).toPass({ timeout: 10_000 })
     await expect(
-      filteredItems.first().locator("span").last(),
+      filteredItems.first().locator("span.truncate"),
     ).toContainText("Développé", { timeout: 3_000 })
     await searchInput.fill("")
+    await expect(allItems).toHaveCount(libraryItemCount, { timeout: 10_000 })
 
+    // --- Select exercise via checkbox + Apply ---
     const exerciseOption = allItems.first()
     const exerciseName = await exerciseOption
-      .locator("span")
-      .last()
+      .locator("span.truncate")
       .textContent()
-    await exerciseOption.click()
+    await exerciseOption.getByRole("checkbox").click()
+    await pickerDialog
+      .getByRole("button", { name: /apply changes|appliquer/i })
+      .click()
 
     await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
     await expect(page.getByText(exerciseName!)).toBeVisible({ timeout: 5_000 })

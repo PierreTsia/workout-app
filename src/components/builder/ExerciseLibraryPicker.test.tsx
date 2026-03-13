@@ -68,23 +68,63 @@ const EXERCISES: Exercise[] = [
   },
 ]
 
-const mockUseExerciseLibrary = vi.fn(() => ({
-  data: EXERCISES,
+const mockFetchNextPage = vi.fn()
+function paginatedReturn(params: {
+  muscleGroup?: string | null
+  equipment?: string[]
+}) {
+  let list = EXERCISES
+  if (params.muscleGroup) {
+    list = list.filter((e) => e.muscle_group === params.muscleGroup)
+  }
+  if (params.equipment?.length) {
+    list = list.filter((e) => params.equipment!.includes(e.equipment))
+  }
+  return {
+    data: list,
+    isLoading: false,
+    isFetchingNextPage: false,
+    hasNextPage: false,
+    fetchNextPage: mockFetchNextPage,
+  }
+}
+const mockUseExerciseLibraryPaginated = vi.fn(
+  (params: { muscleGroup?: string | null; equipment?: string[] }) =>
+    paginatedReturn(params),
+)
+const mockUseExerciseFilterOptions = vi.fn(() => ({
+  data: {
+    muscle_groups: ["Biceps", "Épaules", "Pectoraux", "Quadriceps"],
+    equipment: ["barbell", "dumbbell", "machine"],
+  },
   isLoading: false,
 }))
 
-const mockMutate = vi.fn()
-const mockUseAddExerciseToDay = vi.fn(() => ({
-  mutate: mockMutate,
+const mockAddExercisesMutateAsync = vi.fn().mockResolvedValue(undefined)
+const mockDeleteExerciseMutateAsync = vi.fn().mockResolvedValue(undefined)
+const mockUseAddExercisesToDay = vi.fn(() => ({
+  mutateAsync: mockAddExercisesMutateAsync,
+  isPending: false,
+}))
+const mockUseDeleteExercise = vi.fn(() => ({
+  mutateAsync: mockDeleteExerciseMutateAsync,
   isPending: false,
 }))
 
-vi.mock("@/hooks/useExerciseLibrary", () => ({
-  useExerciseLibrary: () => mockUseExerciseLibrary(),
+vi.mock("@/hooks/useExerciseLibraryPaginated", () => ({
+  useExerciseLibraryPaginated: (params: {
+    search?: string
+    muscleGroup?: string | null
+    equipment?: string[]
+  }) => mockUseExerciseLibraryPaginated(params),
+}))
+vi.mock("@/hooks/useExerciseFilterOptions", () => ({
+  useExerciseFilterOptions: () => mockUseExerciseFilterOptions(),
 }))
 
 vi.mock("@/hooks/useBuilderMutations", () => ({
-  useAddExerciseToDay: () => mockUseAddExerciseToDay(),
+  useAddExercisesToDay: () => mockUseAddExercisesToDay(),
+  useDeleteExercise: () => mockUseDeleteExercise(),
 }))
 
 vi.mock("@/components/exercise/ExerciseInfoDialog", () => ({
@@ -111,10 +151,10 @@ function renderPicker(overrides = {}) {
 describe("ExerciseLibraryPicker", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseExerciseLibrary.mockReturnValue({
-      data: EXERCISES,
-      isLoading: false,
-    })
+    mockUseExerciseLibraryPaginated.mockImplementation(
+      (params: { muscleGroup?: string | null; equipment?: string[] }) =>
+        paginatedReturn(params),
+    )
   })
 
   it("renders all exercises grouped by muscle", () => {
@@ -164,20 +204,30 @@ describe("ExerciseLibraryPicker", () => {
   })
 
   it("combines muscle group and equipment filters", async () => {
-    const allExercises = [
-      ...EXERCISES,
-      {
-        ...EXERCISES[0],
-        id: "5",
-        name: "Écarté haltères",
-        name_en: "Dumbbell Fly",
-        equipment: "dumbbell",
+    const pectoralDumbbell = {
+      ...EXERCISES[0],
+      id: "5",
+      name: "Écarté haltères",
+      name_en: "Dumbbell Fly",
+      equipment: "dumbbell",
+    }
+    mockUseExerciseLibraryPaginated.mockImplementation(
+      (params: { muscleGroup?: string | null; equipment?: string[] }) => {
+        if (
+          params.muscleGroup === "Pectoraux" &&
+          params.equipment?.includes("dumbbell")
+        ) {
+          return {
+            data: [pectoralDumbbell],
+            isLoading: false,
+            isFetchingNextPage: false,
+            hasNextPage: false,
+            fetchNextPage: mockFetchNextPage,
+          }
+        }
+        return paginatedReturn(params)
       },
-    ]
-    mockUseExerciseLibrary.mockReturnValue({
-      data: allExercises,
-      isLoading: false,
-    })
+    )
 
     renderPicker()
     const user = userEvent.setup()
@@ -191,14 +241,99 @@ describe("ExerciseLibraryPicker", () => {
   })
 
   it("shows loading state", () => {
-    mockUseExerciseLibrary.mockReturnValue({ data: [] as Exercise[], isLoading: true })
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: [] as Exercise[],
+      isLoading: true,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+    })
     renderPicker()
     expect(screen.getByText("Add Exercise")).toBeInTheDocument()
   })
 
   it("shows empty state when no exercises match", () => {
-    mockUseExerciseLibrary.mockReturnValue({ data: [], isLoading: false })
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+    })
     renderPicker()
     expect(screen.getByText("No exercises found.")).toBeInTheDocument()
+  })
+
+  it("shows Load more when hasNextPage and calls fetchNextPage on click", async () => {
+    mockUseExerciseLibraryPaginated.mockReturnValue({
+      data: EXERCISES,
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: true,
+      fetchNextPage: mockFetchNextPage,
+    })
+    renderPicker()
+    const loadMore = screen.getByRole("button", { name: /load more/i })
+    expect(loadMore).toBeInTheDocument()
+    await userEvent.setup().click(loadMore)
+    expect(mockFetchNextPage).toHaveBeenCalledTimes(1)
+  })
+
+  it("adds one exercise when one checkbox selected and Apply changes clicked", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
+    const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
+    expect(vars.exercises).toHaveLength(1)
+    expect(vars).toMatchObject({ dayId: "day-1", startSortOrder: 0 })
+  })
+
+  it("does not add exercise when row text is clicked", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    await user.click(screen.getByText("Développé couché"))
+    expect(mockAddExercisesMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it("shows Apply changes button and batch-adds when checkboxes selected", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+    const checkboxes = screen.getAllByRole("checkbox")
+    expect(checkboxes.length).toBeGreaterThanOrEqual(2)
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
+    expect(screen.getByRole("button", { name: "Apply changes" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
+    const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
+    expect(vars).toMatchObject({
+      dayId: "day-1",
+      startSortOrder: 0,
+    })
+    expect(Array.isArray(vars.exercises)).toBe(true)
+    expect(vars.exercises).toHaveLength(2)
+  })
+
+  it("pre-checks exercises already in the day", async () => {
+    renderPicker({
+      existingExercises: [{ exercise_id: "1", id: "we-1" }],
+    })
+    const checked = await screen.findByRole("checkbox", { checked: true })
+    expect(checked).toBeInTheDocument()
+  })
+
+  it("calls delete when existing exercise is unchecked and Apply changes clicked", async () => {
+    renderPicker({
+      existingExerciseCount: 1,
+      existingExercises: [{ exercise_id: "1", id: "we-1" }],
+    })
+    const user = userEvent.setup()
+    const checked = screen.getByRole("checkbox", { checked: true })
+    await user.click(checked)
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(mockDeleteExerciseMutateAsync).toHaveBeenCalledWith({ id: "we-1", dayId: "day-1" })
   })
 })

@@ -1,9 +1,9 @@
-import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
+import { useExerciseById } from "@/hooks/useExerciseById"
 
 export function useExerciseFromLibrary(exerciseId: string) {
-  const { data: exercises, isLoading } = useExerciseLibrary()
+  const { data, isLoading } = useExerciseById(exerciseId)
   return {
-    data: exercises?.find((e) => e.id === exerciseId),
+    data: data ?? undefined,
     isLoading,
   }
 }

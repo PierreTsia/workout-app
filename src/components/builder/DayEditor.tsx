@@ -198,6 +198,7 @@ export function DayEditor({
         onOpenChange={setPickerOpen}
         dayId={dayId}
         existingExerciseCount={items.length}
+        existingExercises={items.map((e) => ({ exercise_id: e.exercise_id, id: e.id }))}
         onMutationStateChange={onMutationStateChange}
       />
 
