@@ -202,7 +202,11 @@ export function FeedbackForm({
                                 form.setValue(field, nextActive, { shouldValidate: true })
                                 if (!nextActive) {
                                   const arrayField = opt.value as "illustration" | "video" | "description"
-                                  const otherField = `other_${opt.value}_text` as const
+                                  const otherField = opt.value === "illustration"
+                                    ? "other_illustration_text" as const
+                                    : opt.value === "video"
+                                      ? "other_video_text" as const
+                                      : "other_description_text" as const
                                   form.setValue(arrayField, [] as never, { shouldValidate: true })
                                   form.setValue(otherField, "", { shouldValidate: true })
                                 }
