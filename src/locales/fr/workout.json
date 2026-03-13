@@ -35,5 +35,6 @@
   "rest": "Repos",
   "skip": "Passer",
   "restOverNotif": "Repos terminé !",
-  "restOverBody": "C'est parti pour la prochaine série"
+  "restOverBody": "C'est parti pour la prochaine série",
+  "finishEarly": "Terminer la séance"
 }

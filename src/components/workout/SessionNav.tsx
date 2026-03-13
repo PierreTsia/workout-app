@@ -62,25 +62,37 @@ export function SessionNav({ exercises, onFinish }: SessionNavProps) {
 
   return (
     <>
-      <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-border bg-background px-4 py-3">
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={prev}
-          disabled={isFirst}
-          className="flex-1"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          {t("previous")}
-        </Button>
-        <Button
-          size="lg"
-          onClick={next}
-          className="flex-1"
-        >
-          {isLast ? t("finish") : t("next")}
-          {!isLast && <ChevronRight className="ml-1 h-4 w-4" />}
-        </Button>
+      <div className="sticky bottom-0 border-t border-border bg-background px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={prev}
+            disabled={isFirst}
+            className="flex-1"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            {t("previous")}
+          </Button>
+          <Button
+            size="lg"
+            onClick={next}
+            className="flex-1"
+          >
+            {isLast ? t("finish") : t("next")}
+            {!isLast && <ChevronRight className="ml-1 h-4 w-4" />}
+          </Button>
+        </div>
+        {!isLast && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFinishAttempt}
+            className="mt-2 w-full text-muted-foreground"
+          >
+            {t("finishEarly")}
+          </Button>
+        )}
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

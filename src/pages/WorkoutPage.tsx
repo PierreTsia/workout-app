@@ -159,6 +159,8 @@ export function WorkoutPage() {
       ...prev,
       isActive: true,
       startedAt: Date.now(),
+      pausedAt: null,
+      accumulatedPause: 0,
     }))
   }
 
@@ -170,6 +172,8 @@ export function WorkoutPage() {
       startedAt: null,
       isActive: false,
       totalSetsDone: 0,
+      pausedAt: null,
+      accumulatedPause: 0,
     })
     setPrFlags({})
     setSessionBest1RM({})
