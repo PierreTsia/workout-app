@@ -21,5 +21,6 @@
   "installBanner": "Ajouter à l'écran d'accueil pour une meilleure expérience",
   "install": "Installer",
   "dismiss": "Fermer",
-  "about": "À propos"
+  "about": "À propos",
+  "admin": "Admin"
 }

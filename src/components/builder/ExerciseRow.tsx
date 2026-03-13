@@ -1,11 +1,13 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Trash2 } from "lucide-react"
+import { Link } from "react-router-dom"
+import { GripVertical, Pencil, Trash2 } from "lucide-react"
 import type { WorkoutExercise } from "@/types/database"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { AdminOnly } from "@/components/admin/AdminOnly"
 
 interface ExerciseRowProps {
   exercise: WorkoutExercise
@@ -56,6 +58,20 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
           {exercise.muscle_snapshot} &middot; {summary}
         </p>
       </div>
+
+      <AdminOnly>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+          asChild
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Link to={`/admin/exercises/${exercise.exercise_id}`}>
+            <Pencil className="h-4 w-4" />
+          </Link>
+        </Button>
+      </AdminOnly>
 
       <Button
         variant="ghost"

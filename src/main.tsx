@@ -10,6 +10,7 @@ import { RouterProvider } from "react-router-dom"
 import { router } from "@/router"
 import { queryClient } from "@/lib/queryClient"
 import { initSyncListeners } from "@/lib/syncService"
+import { Toaster } from "@/components/ui/sonner"
 
 initSyncListeners()
 
@@ -18,6 +19,7 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,

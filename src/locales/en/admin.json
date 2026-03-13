@@ -1,0 +1,56 @@
+{
+  "title": "Admin",
+  "exercises": "Exercises",
+  "exercisesDescription": "Manage exercise content — instructions, videos, images",
+  "backToList": "Back to list",
+  "editExercise": "Edit Exercise",
+  "searchPlaceholder": "Search exercises…",
+  "allReviewStatus": "All",
+  "reviewed": "Reviewed",
+  "notReviewed": "Not reviewed",
+  "reviewedFilter": "Review status",
+  "columns": {
+    "name": "Name",
+    "muscleGroup": "Muscle group",
+    "equipment": "Equipment",
+    "youtube": "YouTube",
+    "image": "Image",
+    "instructions": "Instructions",
+    "reviewStatus": "Reviewed",
+    "actions": "Actions"
+  },
+  "form": {
+    "name": "Name",
+    "nameEn": "Name (EN)",
+    "muscleGroup": "Muscle group",
+    "equipment": "Equipment",
+    "emoji": "Emoji",
+    "secondaryMuscles": "Secondary muscles",
+    "youtubeUrl": "YouTube URL",
+    "imageUrl": "Illustration",
+    "uploadImage": "Upload",
+    "uploading": "Uploading…",
+    "uploadError": "Upload failed",
+    "setup": "Setup",
+    "movement": "Movement",
+    "breathing": "Breathing",
+    "commonMistakes": "Common mistakes",
+    "addStep": "Add step",
+    "removeStep": "Remove",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "stepPlaceholder": "Step {{number}}"
+  },
+  "toast": {
+    "saveSuccess": "Exercise updated successfully",
+    "saveError": "Failed to update exercise"
+  },
+  "pagination": {
+    "rowsPerPage": "Rows per page",
+    "page": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "exerciseCount": "{{count}} exercises",
+  "reviewedCount": "{{count}} reviewed"
+}

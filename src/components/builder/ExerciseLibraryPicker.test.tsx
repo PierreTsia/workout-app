@@ -20,6 +20,8 @@ const EXERCISES: Exercise[] = [
     image_url: null,
     source: "wger:73",
     secondary_muscles: null,
+    reviewed_at: null,
+    reviewed_by: null,
   },
   {
     id: "2",
@@ -35,6 +37,8 @@ const EXERCISES: Exercise[] = [
     image_url: null,
     source: "wger:348",
     secondary_muscles: null,
+    reviewed_at: null,
+    reviewed_by: null,
   },
   {
     id: "3",
@@ -50,6 +54,8 @@ const EXERCISES: Exercise[] = [
     image_url: null,
     source: "wger:371",
     secondary_muscles: null,
+    reviewed_at: null,
+    reviewed_by: null,
   },
   {
     id: "4",
@@ -65,6 +71,8 @@ const EXERCISES: Exercise[] = [
     image_url: null,
     source: "wger:204",
     secondary_muscles: null,
+    reviewed_at: null,
+    reviewed_by: null,
   },
 ]
 
