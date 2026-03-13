@@ -35,6 +35,7 @@ export function FeedbackSheet({
       <SheetContent
         side="right"
         className="flex flex-col overflow-hidden p-0"
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader className="shrink-0 px-6 pt-6 pb-2">
           <SheetTitle>{t("title")}</SheetTitle>
