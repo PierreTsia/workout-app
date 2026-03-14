@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
-import { authAtom } from "@/store/atoms"
+import { authAtom, activeProgramIdAtom } from "@/store/atoms"
 import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
 
 export function useCreateDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -18,9 +19,10 @@ export function useCreateDay() {
       emoji: string
       sortOrder: number
     }) => {
+      if (!programId) throw new Error("No active program")
       const { data, error } = await supabase
         .from("workout_days")
-        .insert({ user_id: user!.id, label, emoji, sort_order: sortOrder })
+        .insert({ user_id: user!.id, program_id: programId, label, emoji, sort_order: sortOrder })
         .select("id")
         .single()
       if (error) throw error

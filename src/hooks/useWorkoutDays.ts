@@ -12,7 +12,7 @@ export function useWorkoutDays() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_days")
-        .select("id, user_id, label, emoji, sort_order, created_at")
+        .select("id, user_id, program_id, label, emoji, sort_order, created_at")
         .eq("user_id", user!.id)
         .order("sort_order")
 

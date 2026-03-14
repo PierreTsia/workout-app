@@ -32,6 +32,10 @@ export const authLoadingAtom = atom(true)
 export const isAdminAtom = atom(false)
 export const isAdminLoadingAtom = atom(true)
 
+export const hasProgramAtom = atom(false)
+export const hasProgramLoadingAtom = atom(true)
+export const activeProgramIdAtom = atom<string | null>(null)
+
 export const sessionAtom = atomWithStorage<SessionState>(
   "session",
   defaultSessionState,

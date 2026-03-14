@@ -103,6 +103,7 @@ export function useBootstrapProgram() {
           .from("workout_days")
           .insert({
             user_id: user.id,
+            program_id: "00000000-0000-0000-0000-000000000000",
             label: day.label,
             emoji: day.emoji,
             sort_order: i,
