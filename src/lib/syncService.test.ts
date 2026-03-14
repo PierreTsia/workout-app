@@ -8,6 +8,7 @@ const AUTH_ATOM = Symbol("authAtom")
 const SESSION_ATOM = Symbol("sessionAtom")
 const SYNC_STATUS_ATOM = Symbol("syncStatusAtom")
 const QUEUE_SYNC_META_ATOM = Symbol("queueSyncMetaAtom")
+const ACTIVE_PROGRAM_ID_ATOM = Symbol("activeProgramIdAtom")
 
 // ---------------------------------------------------------------------------
 // Module-scope mock objects (survive vi.resetModules)
@@ -60,6 +61,7 @@ vi.mock("@/store/atoms", () => ({
   sessionAtom: SESSION_ATOM,
   syncStatusAtom: SYNC_STATUS_ATOM,
   queueSyncMetaAtom: QUEUE_SYNC_META_ATOM,
+  activeProgramIdAtom: ACTIVE_PROGRAM_ID_ATOM,
 }))
 
 vi.mock("@/lib/supabase", () => ({
@@ -156,6 +158,7 @@ describe("SyncService", () => {
           totalSetsDone: 0,
         }
       if (atom === SYNC_STATUS_ATOM) return "idle"
+      if (atom === ACTIVE_PROGRAM_ID_ATOM) return "program-1"
       return undefined
     })
     mockStore.set.mockImplementation(() => {})

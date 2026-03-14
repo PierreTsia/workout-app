@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom"
 import { AuthGuard } from "@/router/AuthGuard"
+import { OnboardingGuard } from "@/router/OnboardingGuard"
 import { AdminGuard } from "@/router/AdminGuard"
 import { AppShell } from "@/components/AppShell"
 import { LoginPage } from "@/pages/LoginPage"
@@ -7,8 +8,10 @@ import { WorkoutPage } from "@/pages/WorkoutPage"
 import { HistoryPage } from "@/pages/HistoryPage"
 import { BuilderPage } from "@/pages/BuilderPage"
 import { AboutPage } from "@/pages/AboutPage"
+import { OnboardingPage } from "@/pages/OnboardingPage"
 import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
+import { ChangeProgramPage } from "@/pages/ChangeProgramPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
@@ -27,30 +30,43 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorFallback />,
     children: [
       {
-        element: <AppShell />,
+        path: "/onboarding",
+        element: <OnboardingPage />,
+      },
+      {
+        element: <OnboardingGuard />,
         children: [
           {
-            path: "/",
-            element: <WorkoutPage />,
-          },
-          {
-            path: "/history",
-            element: <HistoryPage />,
-          },
-          {
-            path: "/builder",
-            element: <BuilderPage />,
-          },
-          {
-            element: <AdminGuard />,
+            element: <AppShell />,
             children: [
               {
-                path: "/admin/exercises",
-                element: <AdminExercisesPage />,
+                path: "/",
+                element: <WorkoutPage />,
               },
               {
-                path: "/admin/exercises/:id",
-                element: <AdminExerciseEditPage />,
+                path: "/history",
+                element: <HistoryPage />,
+              },
+              {
+                path: "/builder",
+                element: <BuilderPage />,
+              },
+              {
+                path: "/change-program",
+                element: <ChangeProgramPage />,
+              },
+              {
+                element: <AdminGuard />,
+                children: [
+                  {
+                    path: "/admin/exercises",
+                    element: <AdminExercisesPage />,
+                  },
+                  {
+                    path: "/admin/exercises/:id",
+                    element: <AdminExerciseEditPage />,
+                  },
+                ],
               },
             ],
           },

@@ -1,0 +1,49 @@
+---
+description: Avoid TypeScript type casts — prefer type-safe alternatives
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# No Type Casts
+
+Avoid `as T` type assertions. Never use `as unknown as T` — it's a type-safety escape hatch that hides real design problems.
+
+## Rules
+
+1. **`as unknown as T` is banned.** No exceptions. If types don't align, fix the types or the code, not the compiler.
+2. **`as T` should be a last resort.** Prefer narrowing, generics, or explicit type definitions instead.
+3. **`as const` is fine** — it narrows, not widens.
+
+## Common patterns to use instead
+
+```typescript
+// ❌ BAD — casting to silence a type mismatch
+const data = response as unknown as MyType
+
+// ✅ GOOD — validate at runtime
+const data = mySchema.parse(response)
+
+// ❌ BAD — casting because the return type is wrong
+const result = fetchData() as SomeType
+
+// ✅ GOOD — type the function properly
+function fetchData(): SomeType { ... }
+
+// ❌ BAD — casting to bridge mismatched library types
+const resolver = zodResolver(schema) as unknown as Resolver<T>
+
+// ✅ GOOD — restructure so input/output types align (no transforms in schema)
+const resolver = zodResolver(schema) // schema with no .transform()
+
+// ❌ BAD — casting API responses
+const data = apiResponse as MyType[]
+
+// ✅ GOOD — use generics or runtime validation
+const { data } = await supabase.from("table").select("*").returns<MyType[]>()
+```
+
+## When `as` is acceptable
+
+- `as const` for literal narrowing
+- DOM element refs: `ref.current as HTMLInputElement` (after null check)
+- Discriminated unions where TS can't narrow automatically (add a comment explaining why)

@@ -22,5 +22,6 @@
   "install": "Install",
   "dismiss": "Dismiss",
   "about": "About",
-  "admin": "Admin"
+  "admin": "Admin",
+  "changeProgram": "Change program"
 }

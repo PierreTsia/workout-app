@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react"
 import { useAtom, useSetAtom } from "jotai"
@@ -12,7 +11,6 @@ import { useTranslation } from "react-i18next"
 import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
-import { useBootstrapProgram } from "@/hooks/useBootstrapProgram"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { enqueueSessionFinish } from "@/lib/syncService"
 import { DaySelector } from "@/components/workout/DaySelector"
@@ -43,17 +41,6 @@ export function WorkoutPage() {
   const { data: days, isLoading: daysLoading } = useWorkoutDays()
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
-  const bootstrap = useBootstrapProgram()
-  const bootstrapAttempted = useRef(false)
-
-  useEffect(() => {
-    if (bootstrapAttempted.current) return
-    if (daysLoading) return
-    if (!days || days.length > 0) return
-
-    bootstrapAttempted.current = true
-    bootstrap.mutate()
-  }, [daysLoading, days, bootstrap])
 
   const exercises = useMemo(
     () => allExercisesForDay ?? [],
@@ -215,15 +202,10 @@ export function WorkoutPage() {
     setFinished(false)
   }
 
-  if (daysLoading || bootstrap.isPending) {
+  if (daysLoading) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        {bootstrap.isPending && (
-          <p className="text-sm text-muted-foreground">
-            {t("settingUp")}
-          </p>
-        )}
       </div>
     )
   }
@@ -234,7 +216,7 @@ export function WorkoutPage() {
         <Dumbbell className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-bold">{t("noProgram")}</h2>
         <p className="text-sm text-muted-foreground">
-          {bootstrap.isError ? t("bootstrapError") : t("createPrompt")}
+          {t("createPrompt")}
         </p>
         <Button asChild>
           <Link to="/builder">{t("openBuilder")}</Link>

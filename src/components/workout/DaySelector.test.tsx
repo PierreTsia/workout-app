@@ -10,6 +10,7 @@ const DAYS: WorkoutDay[] = [
   {
     id: "day-a",
     user_id: "user-1",
+    program_id: "program-1",
     label: "Monday",
     emoji: "🟦",
     sort_order: 0,
@@ -18,6 +19,7 @@ const DAYS: WorkoutDay[] = [
   {
     id: "day-b",
     user_id: "user-1",
+    program_id: "program-1",
     label: "Tuesday",
     emoji: "🟧",
     sort_order: 1,

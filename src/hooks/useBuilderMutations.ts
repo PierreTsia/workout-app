@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
-import { authAtom } from "@/store/atoms"
+import { authAtom, activeProgramIdAtom } from "@/store/atoms"
 import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
 
 export function useCreateDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -18,22 +19,24 @@ export function useCreateDay() {
       emoji: string
       sortOrder: number
     }) => {
+      if (!programId) throw new Error("No active program")
       const { data, error } = await supabase
         .from("workout_days")
-        .insert({ user_id: user!.id, label, emoji, sort_order: sortOrder })
+        .insert({ user_id: user!.id, program_id: programId, label, emoji, sort_order: sortOrder })
         .select("id")
         .single()
       if (error) throw error
       return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
 
 export function useUpdateDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -56,13 +59,14 @@ export function useUpdateDay() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
 
 export function useDeleteDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -74,7 +78,7 @@ export function useDeleteDay() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
@@ -198,6 +202,7 @@ export function useDeleteExercise() {
 
 export function useReorderDays() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -213,7 +218,7 @@ export function useReorderDays() {
       if (failed?.error) throw failed.error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
