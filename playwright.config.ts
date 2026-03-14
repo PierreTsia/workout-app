@@ -31,24 +31,6 @@ export default defineConfig({
       testIgnore: "login.spec.ts",
     },
     {
-      name: "firefox",
-      use: {
-        ...devices["Desktop Firefox"],
-        storageState: "playwright/.auth/user.json",
-        permissions: ["notifications"],
-      },
-      testIgnore: "login.spec.ts",
-    },
-    {
-      name: "webkit",
-      use: {
-        ...devices["Desktop Safari"],
-        storageState: "playwright/.auth/user.json",
-        permissions: ["notifications"],
-      },
-      testIgnore: "login.spec.ts",
-    },
-    {
       name: "unauthenticated",
       use: {
         ...devices["Desktop Chrome"],

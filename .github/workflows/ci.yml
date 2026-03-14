@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,43 +16,80 @@ jobs:
           node-version: lts/*
           cache: npm
       - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-deps
+          path: |
+            node_modules
+            dist
+          retention-days: 1
+
+  lint:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-deps
       - run: npm run lint
 
   type-check:
-    needs: lint
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: npm
-      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-deps
       - run: tsc -b
 
   unit:
-    needs: type-check
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: npm
-      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-deps
       - run: npx vitest run --reporter=verbose
 
   e2e:
-    needs: unit
+    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-deps
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
 
       - uses: supabase/setup-cli@v1
         with:
@@ -68,8 +105,14 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+  gate:
+    needs: [lint, type-check, unit, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All checks passed"
+
   deploy:
-    needs: e2e
+    needs: gate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
