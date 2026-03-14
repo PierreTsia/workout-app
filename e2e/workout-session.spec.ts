@@ -49,12 +49,17 @@ test.describe("Workout session — full flow", () => {
     await expect(checkboxes.first()).toBeVisible()
     await checkboxes.first().click()
 
+    // RIR Drawer opens — confirm with default RIR
+    const rirConfirmButton = page.getByRole("button", { name: /confirm/i })
+    await expect(rirConfirmButton).toBeVisible({ timeout: 3_000 })
+    await rirConfirmButton.click()
+
     // Row should be marked as done (bg-primary/10 class)
     const firstSetRow = page
       .locator("div.grid.items-center")
       .filter({ has: page.getByRole("checkbox").first() })
       .first()
-    await expect(firstSetRow).toHaveClass(/bg-primary/)
+    await expect(firstSetRow).toHaveClass(/bg-primary/, { timeout: 5_000 })
 
     // Rest timer overlay should appear
     const restOverlay = page.locator(".fixed.inset-0.z-50")
@@ -71,6 +76,10 @@ test.describe("Workout session — full flow", () => {
       .first()
     await expect(secondCheckbox).toBeVisible()
     await secondCheckbox.click()
+
+    // RIR Drawer opens again — confirm
+    await expect(rirConfirmButton).toBeVisible({ timeout: 3_000 })
+    await rirConfirmButton.click()
 
     // Rest timer appears again — skip it
     await expect(restOverlay).toBeVisible({ timeout: 3_000 })
