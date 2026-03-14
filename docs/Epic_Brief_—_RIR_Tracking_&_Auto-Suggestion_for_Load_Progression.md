@@ -20,24 +20,28 @@ This epic adds a Reps in Reserve (RIR) input to the set completion flow — a 5-
 
 **Pain points:**
 
-| Pain | Impact |
-|---|---|
-| No effort tracking | Users can't systematically gauge set difficulty, making progressive overload inconsistent |
-| Load guesswork | Over- or under-loading because there's no structured signal for when to adjust |
-| No pre-rest interaction point | Lost opportunity to capture per-set data while the experience is fresh |
-| 1RM alone is blind to effort | Estimated 1RM doesn't distinguish a set at failure from a comfortable set |
+
+| Pain                          | Impact                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| No effort tracking            | Users can't systematically gauge set difficulty, making progressive overload inconsistent |
+| Load guesswork                | Over- or under-loading because there's no structured signal for when to adjust            |
+| No pre-rest interaction point | Lost opportunity to capture per-set data while the experience is fresh                    |
+| 1RM alone is blind to effort  | Estimated 1RM doesn't distinguish a set at failure from a comfortable set                 |
+
 
 ---
 
 ## Goals
 
-| Goal | Measure |
-|---|---|
-| Capture per-set effort data | >= 60% of logged sets include a deliberate RIR selection (user changed the default) within 4 weeks of launch |
-| Reduce load guesswork | 100% of sets following an RIR-logged set display an auto-filled suggestion |
-| Cross-session progression | When starting an exercise that has RIR history from a prior session, weight/rep inputs are pre-filled with a progression suggestion |
-| Zero friction for uninterested users | Dismissing the RIR sheet is one tap (default pre-selected); adds < 1s to set completion flow |
-| Practical suggestions | Weight suggestions always resolve to real plate increments (2.5 kg / 5 lbs) |
+
+| Goal                                 | Measure                                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Capture per-set effort data          | >= 60% of logged sets include a deliberate RIR selection (user changed the default) within 4 weeks of launch                        |
+| Reduce load guesswork                | 100% of sets following an RIR-logged set display an auto-filled suggestion                                                          |
+| Cross-session progression            | When starting an exercise that has RIR history from a prior session, weight/rep inputs are pre-filled with a progression suggestion |
+| Zero friction for uninterested users | Dismissing the RIR sheet is one tap (default pre-selected); adds < 1s to set completion flow                                        |
+| Practical suggestions                | Weight suggestions always resolve to real plate increments (2.5 kg / 5 lbs)                                                         |
+
 
 ---
 
@@ -46,39 +50,31 @@ This epic adds a Reps in Reserve (RIR) input to the set completion flow — a 5-
 **In scope:**
 
 1. **RIR bottom sheet** — slides up after checking a set as done, *before* the rest timer starts. Five color-coded circle buttons: 0 (red, Maximum), 1 (orange, Very Hard), 2 (yellow, Hard), 3 (green, Moderate), 4+ (blue, Easy). **Default pre-selected: 2 ("Hard")** — so dismissing ("Confirm") is a single tap. Context line shows set number and reps x weight. An info icon (i) opens a tooltip explaining what RIR means for first-timers.
-
 2. **Schema: `rir` column on `set_logs`** — `smallint, nullable`. Values 0–4 (where 4 represents "4+"). Nullable for backward compatibility with historical data. Single `ALTER TABLE` migration, no data backfill.
-
 3. **Modified set completion flow** — the current flow is: checkbox → update state + enqueue set log + start rest timer (all synchronous in `toggleDone()`). The new flow inserts the RIR sheet between checkbox and rest timer: checkbox → mark set pending → open RIR sheet → user confirms → enqueue set log (with RIR) + start rest timer. If the user unchecks a completed set, the stored RIR for that set is cleared.
-
 4. **Intra-session suggestion engine** — after logging RIR on set N, auto-fill set N+1 of the same exercise. The primary signal within a single workout is fatigue management (RIR naturally decreases set-to-set), not load progression:
 
-   | RIR | Label | Next set suggestion |
-   |---|---|---|
-   | 0 | Maximum (failure) | Reduce weight by 1 increment (2.5 kg / 5 lbs) |
-   | 1 | Very Hard | Same weight, same reps |
-   | 2 | Hard (sweet spot) | Same weight, same reps |
-   | 3 | Moderate | Same weight, same reps (current weight is fine) |
-   | 4+ | Easy | Increase weight by 1 increment (2.5 kg / 5 lbs) |
+  | RIR | Label             | Next set suggestion                             |
+  | --- | ----------------- | ----------------------------------------------- |
+  | 0   | Maximum (failure) | Reduce weight by 1 increment (2.5 kg / 5 lbs)   |
+  | 1   | Very Hard         | Same weight, same reps                          |
+  | 2   | Hard (sweet spot) | Same weight, same reps                          |
+  | 3   | Moderate          | Same weight, same reps (current weight is fine) |
+  | 4+  | Easy              | Increase weight by 1 increment (2.5 kg / 5 lbs) |
 
    RIR 4+ on an early set means the user started too light — bumping by one increment is warranted. RIR 0 means they hit failure — dropping one increment prevents a forced reduction in reps. RIR 1–3 all suggest holding steady, which matches standard straight-set training. The engine is a pure function, fully unit-testable. Weight increments respect the user's unit preference (`weightUnitAtom`).
-
    **Last-set behavior:** RIR is still collected on the final set of an exercise (valuable for cross-session data), but no intra-session suggestion is generated since there's no subsequent set.
-
 5. **Cross-session suggestion engine** — when initializing sets for a workout, for each exercise that has RIR data from a completed prior session, compute a suggestion based on the average RIR across all sets of that exercise in the most recent session:
 
-   | Avg RIR (last session) | Suggestion |
-   |---|---|
-   | < 1.5 | Same weight as last session (near failure — consolidate before progressing) |
-   | 1.5 – 2.5 | +1 increment (2.5 kg / 5 lbs) — sweet spot, ready for small progression |
-   | > 2.5 | +2 increments (5 kg / 10 lbs) or +1–2 reps — too easy, bigger jump warranted |
+  | Avg RIR (last session) | Suggestion                                                                   |
+  | ---------------------- | ---------------------------------------------------------------------------- |
+  | < 1.5                  | Same weight as last session (near failure — consolidate before progressing)  |
+  | 1.5 – 2.5              | +1 increment (2.5 kg / 5 lbs) — sweet spot, ready for small progression      |
+  | > 2.5                  | +2 increments (5 kg / 10 lbs) or +1–2 reps — too easy, bigger jump warranted |
 
    Suggestions auto-fill the weight/rep inputs but remain fully editable. Cross-session suggestions are the primary driver of progressive overload; intra-session suggestions handle fatigue.
-
 6. **Suggestion visual indicator** — auto-filled values appear directly in the weight/reps inputs (no separate badge). In Phase 2, a subtle visual cue (e.g. tinted input border) distinguishes auto-suggested values from manual ones, so the user knows a suggestion was applied.
-
 7. **i18n** — all new strings in EN and FR: bottom sheet title ("Reps in Reserve" / "Répétitions en réserve"), scale labels (Maximum, Very Hard, Hard, Moderate, Easy), info tooltip content, confirm button text.
-
 8. **Analytics events** — `rir_logged` (with exercise_id, set_number, rir_value, was_default flag), `rir_suggestion_accepted` (user kept auto-filled values), `rir_suggestion_overridden` (user changed them). Via the existing `useTrackEvent` hook and `analytics_events` table.
 
 **Out of scope:**
@@ -144,3 +140,4 @@ This epic adds a Reps in Reserve (RIR) input to the set completion flow — a 5-
 - Should the default RIR (2) adapt based on the user's training goal from their profile? Strength-focused users typically train at RIR 0–1, making a default of 2 slightly inaccurate for quick dismissals. Universal default is simpler; goal-aware default is more accurate. Leaning toward universal default for V1.
 - How should cross-session suggestions handle long gaps (> 4 weeks since last session with that exercise)? Options: apply suggestions normally, decay confidence, or skip suggestions entirely. Deferred — apply normally for V1 and revisit based on user feedback.
 - Whether a one-time educational overlay on first RIR encounter adds value beyond the persistent info icon. Leaning toward info icon only (simpler, less intrusive).
+
