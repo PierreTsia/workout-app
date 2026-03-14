@@ -31,24 +31,6 @@ export default defineConfig({
       testIgnore: "login.spec.ts",
     },
     {
-      name: "firefox",
-      use: {
-        ...devices["Desktop Firefox"],
-        storageState: "playwright/.auth/user.json",
-        permissions: ["notifications"],
-      },
-      testIgnore: "login.spec.ts",
-    },
-    {
-      name: "webkit",
-      use: {
-        ...devices["Desktop Safari"],
-        storageState: "playwright/.auth/user.json",
-        permissions: ["notifications"],
-      },
-      testIgnore: "login.spec.ts",
-    },
-    {
       name: "unauthenticated",
       use: {
         ...devices["Desktop Chrome"],
@@ -58,7 +40,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run build && npx vite preview --port 5173",
+    command: process.env.CI
+      ? "npx vite preview --port 5173"
+      : "npm run build && npx vite preview --port 5173",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     env: {

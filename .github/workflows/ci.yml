@@ -19,7 +19,6 @@ jobs:
       - run: npm run lint
 
   type-check:
-    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +30,6 @@ jobs:
       - run: tsc -b
 
   unit:
-    needs: type-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +41,6 @@ jobs:
       - run: npx vitest run --reporter=verbose
 
   e2e:
-    needs: unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +49,21 @@ jobs:
           node-version: lts/*
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps
 
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - run: supabase start
+
+      - name: Build, install browsers, start Supabase in parallel
+        run: |
+          npx vite build &
+          npx playwright install --with-deps chromium &
+          supabase start &
+          wait
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+
       - run: supabase db reset
 
       - run: npx playwright test
@@ -68,8 +74,14 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+  gate:
+    needs: [lint, type-check, unit, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All checks passed"
+
   deploy:
-    needs: e2e
+    needs: gate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
