@@ -80,6 +80,36 @@ async function globalSetup() {
     ],
   }
 
+  // Seed user profile + active program so OnboardingGuard lets existing specs through
+  const { error: profileErr } = await admin.from("user_profiles").insert({
+    user_id: userId,
+    gender: "male",
+    age: 30,
+    weight_kg: 80,
+    goal: "general_fitness",
+    experience: "intermediate",
+    equipment: "gym",
+    training_days_per_week: 4,
+    session_duration_minutes: 60,
+  })
+  if (profileErr) throw new Error(`Failed to seed profile: ${profileErr.message}`)
+
+  const { data: program, error: programErr } = await admin
+    .from("programs")
+    .insert({ user_id: userId, name: "E2E Test Program", is_active: true })
+    .select("id")
+    .single()
+  if (programErr) throw new Error(`Failed to seed program: ${programErr.message}`)
+
+  const { error: dayErr } = await admin.from("workout_days").insert({
+    program_id: program.id,
+    user_id: userId,
+    label: "Day A",
+    emoji: "💪",
+    sort_order: 0,
+  })
+  if (dayErr) throw new Error(`Failed to seed workout day: ${dayErr.message}`)
+
   fs.mkdirSync(AUTH_DIR, { recursive: true })
   fs.writeFileSync(
     path.join(AUTH_DIR, "user.json"),

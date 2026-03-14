@@ -22,13 +22,16 @@ async function globalTeardown() {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  await admin.auth.admin.deleteUser(userId)
-
-  // Clean up generated data owned by the test user
+  // Clean up generated data owned by the test user (order matters for FK constraints)
+  await admin.from("analytics_events").delete().eq("user_id", userId)
   await admin.from("set_logs").delete().match({})
   await admin.from("sessions").delete().match({})
   await admin.from("workout_exercises").delete().match({})
   await admin.from("workout_days").delete().eq("user_id", userId)
+  await admin.from("programs").delete().eq("user_id", userId)
+  await admin.from("user_profiles").delete().eq("user_id", userId)
+
+  await admin.auth.admin.deleteUser(userId)
 }
 
 export default globalTeardown
