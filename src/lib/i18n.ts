@@ -13,6 +13,7 @@ import enExercise from "@/locales/en/exercise.json"
 import enAdmin from "@/locales/en/admin.json"
 import enFeedback from "@/locales/en/feedback.json"
 import enError from "@/locales/en/error.json"
+import enOnboarding from "@/locales/en/onboarding.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -25,6 +26,7 @@ import frExercise from "@/locales/fr/exercise.json"
 import frAdmin from "@/locales/fr/admin.json"
 import frFeedback from "@/locales/fr/feedback.json"
 import frError from "@/locales/fr/error.json"
+import frOnboarding from "@/locales/fr/onboarding.json"
 
 i18n
   .use(LanguageDetector)
@@ -43,6 +45,7 @@ i18n
         admin: enAdmin,
         feedback: enFeedback,
         error: enError,
+        onboarding: enOnboarding,
       },
       fr: {
         common: frCommon,
@@ -56,11 +59,12 @@ i18n
         admin: frAdmin,
         feedback: frFeedback,
         error: frError,
+        onboarding: frOnboarding,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
