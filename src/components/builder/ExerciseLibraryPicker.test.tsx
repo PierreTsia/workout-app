@@ -16,6 +16,7 @@ const EXERCISES: Exercise[] = [
     name_en: "Bench Press",
     muscle_group: "Pectoraux",
     equipment: "barbell",
+    difficulty_level: "beginner",
     emoji: "🏋️",
     is_system: true,
     created_at: "2025-01-01T00:00:00Z",
@@ -33,6 +34,7 @@ const EXERCISES: Exercise[] = [
     name_en: "Lateral Raises",
     muscle_group: "Épaules",
     equipment: "dumbbell",
+    difficulty_level: "intermediate",
     emoji: "🙆",
     is_system: true,
     created_at: "2025-01-01T00:00:00Z",
@@ -50,6 +52,7 @@ const EXERCISES: Exercise[] = [
     name_en: "Leg Press",
     muscle_group: "Quadriceps",
     equipment: "machine",
+    difficulty_level: "advanced",
     emoji: "🦵",
     is_system: true,
     created_at: "2025-01-01T00:00:00Z",
@@ -67,6 +70,7 @@ const EXERCISES: Exercise[] = [
     name_en: "Dumbbell Incline Curl",
     muscle_group: "Biceps",
     equipment: "dumbbell",
+    difficulty_level: null,
     emoji: "💪",
     is_system: true,
     created_at: "2025-01-01T00:00:00Z",
@@ -84,6 +88,7 @@ const mockFetchNextPage = vi.fn()
 function paginatedReturn(params: {
   muscleGroup?: string | null
   equipment?: string[]
+  difficulty?: string[]
 }) {
   let list = EXERCISES
   if (params.muscleGroup) {
@@ -91,6 +96,11 @@ function paginatedReturn(params: {
   }
   if (params.equipment?.length) {
     list = list.filter((e) => params.equipment!.includes(e.equipment))
+  }
+  if (params.difficulty?.length) {
+    list = list.filter(
+      (e) => e.difficulty_level != null && params.difficulty!.includes(e.difficulty_level),
+    )
   }
   return {
     data: list,
@@ -101,13 +111,17 @@ function paginatedReturn(params: {
   }
 }
 const mockUseExerciseLibraryPaginated = vi.fn(
-  (params: { muscleGroup?: string | null; equipment?: string[] }) =>
-    paginatedReturn(params),
+  (params: {
+    muscleGroup?: string | null
+    equipment?: string[]
+    difficulty?: string[]
+  }) => paginatedReturn(params),
 )
 const mockUseExerciseFilterOptions = vi.fn(() => ({
   data: {
     muscle_groups: ["Biceps", "Épaules", "Pectoraux", "Quadriceps"],
     equipment: ["barbell", "dumbbell", "machine"],
+    difficulty_levels: ["beginner", "intermediate", "advanced"],
   },
   isLoading: false,
 }))
@@ -128,6 +142,7 @@ vi.mock("@/hooks/useExerciseLibraryPaginated", () => ({
     search?: string
     muscleGroup?: string | null
     equipment?: string[]
+    difficulty?: string[]
   }) => mockUseExerciseLibraryPaginated(params),
 }))
 vi.mock("@/hooks/useExerciseFilterOptions", () => ({
@@ -164,8 +179,11 @@ describe("ExerciseLibraryPicker", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseExerciseLibraryPaginated.mockImplementation(
-      (params: { muscleGroup?: string | null; equipment?: string[] }) =>
-        paginatedReturn(params),
+      (params: {
+        muscleGroup?: string | null
+        equipment?: string[]
+        difficulty?: string[]
+      }) => paginatedReturn(params),
     )
   })
 
@@ -215,6 +233,29 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.queryByText("Presse à cuisse")).not.toBeInTheDocument()
   })
 
+  it("filters by difficulty when a pill is selected", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByLabelText("Filters"))
+    await user.click(screen.getByRole("button", { name: "Beginner" }))
+
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
+    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(screen.queryByText("Presse à cuisse")).not.toBeInTheDocument()
+    expect(screen.queryByText("Curls biceps inclinés")).not.toBeInTheDocument()
+  })
+
+  it("includes difficulty in active filter count", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+
+    await user.click(screen.getByLabelText("Filters"))
+    await user.click(screen.getByRole("button", { name: "Beginner" }))
+
+    expect(screen.getByLabelText("Filters")).toHaveTextContent("1")
+  })
+
   it("combines muscle group and equipment filters", async () => {
     const pectoralDumbbell = {
       ...EXERCISES[0],
@@ -224,7 +265,11 @@ describe("ExerciseLibraryPicker", () => {
       equipment: "dumbbell",
     }
     mockUseExerciseLibraryPaginated.mockImplementation(
-      (params: { muscleGroup?: string | null; equipment?: string[] }) => {
+      (params: {
+        muscleGroup?: string | null
+        equipment?: string[]
+        difficulty?: string[]
+      }) => {
         if (
           params.muscleGroup === "Pectoraux" &&
           params.equipment?.includes("dumbbell")

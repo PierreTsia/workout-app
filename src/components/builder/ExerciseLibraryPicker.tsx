@@ -55,6 +55,7 @@ export function ExerciseLibraryPicker({
     null,
   )
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([])
 
   useEffect(() => {
     const id = setTimeout(() => setSearchDebounced(searchInput), SEARCH_DEBOUNCE_MS)
@@ -70,6 +71,10 @@ export function ExerciseLibraryPicker({
     () => filterOptions?.equipment ?? [],
     [filterOptions?.equipment],
   )
+  const difficultyLevels = useMemo(
+    () => filterOptions?.difficulty_levels ?? [],
+    [filterOptions?.difficulty_levels],
+  )
 
   const {
     data: paginatedData,
@@ -81,6 +86,7 @@ export function ExerciseLibraryPicker({
     search: searchDebounced,
     muscleGroup: selectedMuscleGroup,
     equipment: selectedEquipment,
+    difficulty: selectedDifficulty,
     enabled: open,
   })
 
@@ -101,7 +107,9 @@ export function ExerciseLibraryPicker({
   )
 
   const activeFilterCount =
-    (selectedMuscleGroup ? 1 : 0) + selectedEquipment.length
+    (selectedMuscleGroup ? 1 : 0) +
+    selectedEquipment.length +
+    selectedDifficulty.length
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -112,6 +120,7 @@ export function ExerciseLibraryPicker({
         setFiltersOpen(false)
         setSelectedMuscleGroup(null)
         setSelectedEquipment([])
+        setSelectedDifficulty([])
         setSearchInput("")
       }
       onOpenChange(next)
@@ -178,10 +187,13 @@ export function ExerciseLibraryPicker({
                 <ExerciseFilterPanel
                   muscleGroups={muscleGroups}
                   equipmentTypes={equipmentTypes}
+                  difficultyLevels={difficultyLevels}
                   selectedMuscleGroup={selectedMuscleGroup}
                   selectedEquipment={selectedEquipment}
+                  selectedDifficulty={selectedDifficulty}
                   onMuscleGroupChange={setSelectedMuscleGroup}
                   onEquipmentChange={setSelectedEquipment}
+                  onDifficultyChange={setSelectedDifficulty}
                 />
               )}
             </div>

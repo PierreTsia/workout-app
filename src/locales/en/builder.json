@@ -33,6 +33,12 @@
   "exerciseCount_one": "{{count}} exercise",
   "exerciseCount_other": "{{count}} exercises",
   "filters": "Filters",
+  "difficulty_label": "Difficulty",
+  "difficulty": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
   "equipment": {
     "barbell": "Barbell",
     "dumbbell": "Dumbbell",
