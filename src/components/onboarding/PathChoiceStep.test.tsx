@@ -36,7 +36,7 @@ describe("PathChoiceStep", () => {
     renderWithProviders(
       <PathChoiceStep onGuided={onGuided} onSelfDirected={vi.fn()} />,
     )
-    const card = screen.getByText("Recommend me a program").closest("[role='button']")!
+    const card = screen.getByText("Recommend me a program").closest("[role='button']") as HTMLElement
     card.focus()
     await userEvent.keyboard("{Enter}")
     expect(onGuided).toHaveBeenCalledOnce()
@@ -47,7 +47,7 @@ describe("PathChoiceStep", () => {
     renderWithProviders(
       <PathChoiceStep onGuided={vi.fn()} onSelfDirected={onSelfDirected} />,
     )
-    const card = screen.getByText("I'll build my own").closest("[role='button']")!
+    const card = screen.getByText("I'll build my own").closest("[role='button']") as HTMLElement
     card.focus()
     await userEvent.keyboard(" ")
     expect(onSelfDirected).toHaveBeenCalledOnce()
