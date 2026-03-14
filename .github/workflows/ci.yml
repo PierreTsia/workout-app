@@ -49,21 +49,7 @@ jobs:
           node-version: lts/*
           cache: npm
       - run: npm ci
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Install Playwright system deps (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
+      - run: npx playwright install --with-deps chromium
 
       - uses: supabase/setup-cli@v1
         with:
