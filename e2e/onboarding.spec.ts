@@ -76,6 +76,11 @@ async function dismissNotificationDialog(page: import("@playwright/test").Page) 
 }
 
 test.describe("Onboarding", () => {
+  test.afterAll(async () => {
+    const userId = getTestUserId()
+    await seedProgram(userId)
+  })
+
   test("full guided onboarding flow", async ({ page }) => {
     test.setTimeout(120_000)
     const userId = getTestUserId()
@@ -120,9 +125,6 @@ test.describe("Onboarding", () => {
 
     // --- Should redirect to home after program generation ---
     await expect(page).toHaveURL("/", { timeout: 30_000 })
-
-    // Re-seed program for subsequent tests (in case they rely on it)
-    await seedProgram(userId)
   })
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {
