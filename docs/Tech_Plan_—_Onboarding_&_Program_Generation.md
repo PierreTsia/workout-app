@@ -6,7 +6,7 @@
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Onboarding signal | `programs` row existence, checked at auth time via Jotai atom (`hasProgramAtom`) | Mirrors the `isAdmin` / `isAdminLoading` pattern in `file:src/lib/supabase.ts`. No extra column, no redundancy — the existence of a programs row IS the completion signal. |
+| Onboarding signal + active program | `programs` row existence, checked at auth time. Stores both `hasProgramAtom` (boolean) and `activeProgramIdAtom` (string \| null) in Jotai. | Mirrors the `isAdmin` / `isAdminLoading` pattern in `file:src/lib/supabase.ts`. Storing the active program ID at auth time avoids a sequential query on every page load — components read the atom directly instead of fetching via `useActiveProgram`. |
 | Route protection | `OnboardingGuard` wrapper between `AuthGuard` and `AppShell` | Separates concerns. `AuthGuard` handles auth, `OnboardingGuard` handles onboarding. `/onboarding` route sits outside this guard to avoid redirect loops. |
 | Onboarding page placement | `/onboarding` outside `AppShell` (full-screen), `/change-program` inside `AppShell` | Onboarding is a dedicated experience — no hamburger menu, no session timer. Program switching is an in-app action — keeps nav context. |
 | Wizard state | Local React state in page component | Each step gets data via props and calls `onNext(data)`. Simple, no atom pollution. React Hook Form + Zod for the questionnaire step only. |
@@ -22,7 +22,7 @@
 
 - **`useBuilderMutations.useCreateDay`** (`file:src/hooks/useBuilderMutations.ts`) inserts `workout_days` with `user_id`. Must also include `program_id` from the active program. Other mutations (update, delete, reorder) don't need changes — they operate on existing day IDs.
 
-- **`syncService.resolveSessionMeta`** (`file:src/lib/syncService.ts` line 137) reads `workout-days` from the React Query cache by key `["workout-days", userId]`. The query key will change to include `programId` — this cache lookup must be updated.
+- **`syncService.resolveSessionMeta`** (`file:src/lib/syncService.ts` line 137) reads `workout-days` from the React Query cache by key `["workout-days", userId]`. The query key will change to include `programId` — this cache lookup must be updated. `syncService` is a plain module (not a React component), so it reads `programId` via `store.get(activeProgramIdAtom)` — same pattern as `file:src/lib/supabase.ts` already uses for atoms outside React.
 
 - **RLS on `programs`:** `user_id = auth.uid()` for all operations. RLS on `workout_days` stays as-is (already scoped by `user_id`), but the `program_id` FK provides an additional grouping constraint.
 
@@ -58,6 +58,7 @@ erDiagram
 CREATE TABLE programs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
   template_id uuid REFERENCES program_templates(id),
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -85,7 +86,8 @@ CREATE TABLE user_profiles (
   equipment text NOT NULL CHECK (equipment IN ('home', 'gym', 'minimal')),
   training_days_per_week integer NOT NULL CHECK (training_days_per_week BETWEEN 2 AND 6),
   session_duration_minutes integer NOT NULL CHECK (session_duration_minutes IN (30, 45, 60, 90)),
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
@@ -177,6 +179,8 @@ CREATE TABLE analytics_events (
 ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can insert own events" ON analytics_events
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- INSERT-only: no SELECT policy for now. Add a SELECT policy when/if
+-- we build a user-facing analytics dashboard.
 ```
 
 ### Modified Table
@@ -184,6 +188,10 @@ CREATE POLICY "Users can insert own events" ON analytics_events
 **`workout_days`** — add `program_id` FK:
 
 ```sql
+-- Clean slate: no real users, only test data. TRUNCATE ensures the NOT NULL
+-- constraint can be added without a default value or backfill.
+TRUNCATE workout_days CASCADE;
+
 ALTER TABLE workout_days
   ADD COLUMN program_id uuid NOT NULL REFERENCES programs(id) ON DELETE CASCADE;
 ```
@@ -207,6 +215,7 @@ export interface UserProfile {
   training_days_per_week: number
   session_duration_minutes: number
   created_at: string
+  updated_at: string
 }
 
 export interface ProgramTemplate {
@@ -215,8 +224,8 @@ export interface ProgramTemplate {
   description: string | null
   min_days: number
   max_days: number
-  primary_goal: string
-  experience_tags: string[]
+  primary_goal: UserGoal
+  experience_tags: UserExperience[]
   template_days: TemplateDay[]
 }
 
@@ -244,6 +253,7 @@ export interface TemplateExercise {
 export interface Program {
   id: string
   user_id: string
+  name: string
   template_id: string | null
   is_active: boolean
   created_at: string
@@ -371,11 +381,11 @@ flowchart TD
 
 | File | Change |
 |---|---|
-| `file:src/store/atoms.ts` | Add `hasProgramAtom` (boolean) and `hasProgramLoadingAtom` (boolean). |
-| `file:src/lib/supabase.ts` | At auth time, query `programs` for active program. Set `hasProgramAtom` and `hasProgramLoadingAtom`. Pattern identical to `checkAdminStatus()`. |
-| `file:src/hooks/useWorkoutDays.ts` | Accept `programId` param (from `useActiveProgram`). Add `.eq("program_id", programId)` filter. Update query key to `["workout-days", userId, programId]`. |
+| `file:src/store/atoms.ts` | Add `hasProgramAtom` (boolean), `hasProgramLoadingAtom` (boolean), and `activeProgramIdAtom` (string \| null). |
+| `file:src/lib/supabase.ts` | At auth time, query `programs` for active program. Set `hasProgramAtom`, `hasProgramLoadingAtom`, and `activeProgramIdAtom`. Pattern identical to `checkAdminStatus()`. |
+| `file:src/hooks/useWorkoutDays.ts` | Read `programId` from `activeProgramIdAtom` (instant, no extra query). Add `.eq("program_id", programId)` filter. Update query key to `["workout-days", userId, programId]`. Query disabled when `programId` is null. |
 | `file:src/hooks/useBuilderMutations.ts` | `useCreateDay`: accept `programId`, include in INSERT. Other mutations unchanged. |
-| `file:src/lib/syncService.ts` | Update `resolveSessionMeta` cache key lookup from `["workout-days", userId]` to `["workout-days", userId, programId]` — read programId from the active program atom. |
+| `file:src/lib/syncService.ts` | Update `resolveSessionMeta` cache key lookup from `["workout-days", userId]` to `["workout-days", userId, programId]`. Reads `programId` via `store.get(activeProgramIdAtom)`. |
 | `file:src/router/index.tsx` | Add `OnboardingGuard` wrapper, `/onboarding` route, `/change-program` route (Phase 3). |
 | `file:src/pages/WorkoutPage.tsx` | Remove `useBootstrapProgram` import and usage. New empty state: purposeful UI with link to builder. |
 | `file:src/components/SideDrawer.tsx` | Add "Change Program" nav link to `/change-program`. Phase 3. |
@@ -386,7 +396,7 @@ flowchart TD
 
 | File | Phase |
 |---|---|
-| `file:src/hooks/useBootstrapProgram.ts` | Phase 2 — replaced by `useGenerateProgram` + onboarding redirect. |
+| `file:src/hooks/useBootstrapProgram.ts` | Phase 1 — its only consumer (`WorkoutPage`) is refactored in Phase 1 step 16; delete the file in the same step to avoid dead code. |
 
 ### Component Responsibilities
 
@@ -397,6 +407,7 @@ flowchart TD
 - Has program → `<Outlet />`
 
 **`OnboardingPage`**
+- **Already-onboarded guard:** on mount, reads `hasProgramAtom`. If true → `<Navigate to="/" replace />`. Prevents direct URL access to `/onboarding` after completion.
 - Local state: `{ step: number, profileData: Partial<UserProfile>, selectedTemplate: ProgramTemplate | null }`
 - Renders current step component based on `step`
 - Step transitions: each step calls `onNext(data)` which updates state and increments step
@@ -429,21 +440,21 @@ flowchart TD
 **`rankTemplates(templates, profile)`** (`file:src/lib/recommendTemplates.ts`)
 - Filter: `profile.training_days_per_week` must be within `[template.min_days, template.max_days]`
 - Score: +10 for goal match, +5 for experience match
-- Sort descending by score
+- Sort descending by score, then alphabetically by `template.name` as a stable deterministic tiebreak
 - Returns all matching templates (not just top 1)
 
 **`useGenerateProgram`** (`file:src/hooks/useGenerateProgram.ts`)
-- Input: `{ templateId: string | null, profile: UserProfile }`
+- Input: `{ templateId: string | null, templateName: string | null, profile: UserProfile }`
 - Steps:
   1. Set any existing active program to `is_active = false`
-  2. Insert new `programs` row (`template_id`, `user_id`, `is_active = true`)
+  2. Insert new `programs` row (`name`, `template_id`, `user_id`, `is_active = true`). Name = `templateName` for guided programs, `"My Program"` for self-directed.
   3. If `templateId` is not null (guided path):
      - Fetch template with days and exercises
      - Fetch exercise alternatives for user's equipment
      - For each template_day: insert `workout_day` (with `program_id`)
      - For each template_exercise: resolve swap if needed, adapt sets/reps, insert `workout_exercise`
   4. Invalidate `["workout-days"]`, `["active-program"]` query caches
-  5. Set `hasProgramAtom = true`
+  5. Set `hasProgramAtom = true` and `activeProgramIdAtom = newProgramId`
 - If `templateId` is null (self-directed): only steps 1-2 and 4-5 (empty program)
 
 ### Failure Mode Analysis
@@ -472,15 +483,15 @@ flowchart TD
 5. Migration: `create_analytics_events` (table + RLS)
 6. Migration: `add_program_id_to_workout_days` (ALTER TABLE + NOT NULL)
 7. TypeScript types: `file:src/types/onboarding.ts`, update `file:src/types/database.ts`
-8. New atoms: `hasProgramAtom`, `hasProgramLoadingAtom` in `file:src/store/atoms.ts`
-9. Auth-time check: add `checkProgramStatus()` in `file:src/lib/supabase.ts`
+8. New atoms: `hasProgramAtom`, `hasProgramLoadingAtom`, `activeProgramIdAtom` in `file:src/store/atoms.ts`
+9. Auth-time check: add `checkProgramStatus()` in `file:src/lib/supabase.ts` — sets all three atoms
 10. `useActiveProgram` hook
 11. Refactor `useWorkoutDays`: accept `programId`, update filter and query key
 12. Refactor `useBuilderMutations.useCreateDay`: accept and include `program_id`
 13. Refactor `syncService.resolveSessionMeta`: update cache key lookup
 14. `OnboardingGuard` component
 15. Route structure update in `file:src/router/index.tsx` (add guard + `/onboarding` placeholder)
-16. WorkoutPage: new empty state, remove `useBootstrapProgram` usage
+16. WorkoutPage: new empty state, remove `useBootstrapProgram` usage and delete `file:src/hooks/useBootstrapProgram.ts`
 17. Tests: update existing tests for workout-days query key changes
 
 ### Phase 2 — Templates + Onboarding Wizard + Program Generation
@@ -500,8 +511,7 @@ flowchart TD
 13. `ProgramSummaryStep` component
 14. `OnboardingPage` (orchestrates all steps)
 15. Wire onboarding redirect on first login
-16. Delete `file:src/hooks/useBootstrapProgram.ts`
-17. i18n: `onboarding` namespace (EN + FR)
+16. i18n: `onboarding` namespace (EN + FR)
 
 ### Phase 3 — Polish + Switching + Analytics
 

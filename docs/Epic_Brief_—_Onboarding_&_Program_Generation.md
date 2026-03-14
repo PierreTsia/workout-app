@@ -46,7 +46,7 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
 
 **In scope:**
 
-1. **Programs abstraction** — new `programs` table (`id`, `user_id`, `template_id` (nullable — null for self-directed programs), `is_active`, `created_at`). `workout_days` gains a `program_id` FK. This groups days into switchable programs: deactivate old, create new, history stays linked via `sessions.workout_day_id`. All existing queries on `workout_days` are updated to filter by active program. **This is the highest-risk change** — every hook that reads/writes `workout_days` (`useWorkoutDays`, `useWorkoutExercises`, `useBuilderMutations`, session creation) must be updated to scope through the active program.
+1. **Programs abstraction** — new `programs` table (`id`, `user_id`, `name`, `template_id` (nullable — null for self-directed programs), `is_active`, `created_at`). `name` is copied from the template at creation time (e.g. "PPL (Push/Pull/Legs)") or defaults to "My Program" for self-directed programs. `workout_days` gains a `program_id` FK. This groups days into switchable programs: deactivate old, create new, history stays linked via `sessions.workout_day_id`. All existing queries on `workout_days` are updated to filter by active program. **This is the highest-risk change** — every hook that reads/writes `workout_days` (`useWorkoutDays`, `useWorkoutExercises`, `useBuilderMutations`, session creation) must be updated to scope through the active program.
 
 2. **User profile model** — new `user_profiles` table:
    - `user_id` (PK, FK to auth.users)
