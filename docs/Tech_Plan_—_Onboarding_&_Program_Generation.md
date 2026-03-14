@@ -421,8 +421,10 @@ flowchart TD
 **`ProgramSummaryStep`**
 - Takes selected template + profile
 - Previews: for each template_day, shows day label, muscle focus, exercise list with adapted sets/reps
+- Read-only in v1 — no inline editing. After creation, a success message directs users to the builder for customization.
 - "Create Program" button at bottom → `onConfirm()`
 - "Back" button → `onBack()`
+- **Future evolution:** add light inline editing (remove/swap exercises) before confirming. Deferred to keep wizard scope tight — the builder already handles full CRUD.
 
 **`rankTemplates(templates, profile)`** (`file:src/lib/recommendTemplates.ts`)
 - Filter: `profile.training_days_per_week` must be within `[template.min_days, template.max_days]`

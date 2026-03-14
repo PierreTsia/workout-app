@@ -140,6 +140,7 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
 - Workout scheduling or calendar integration
 - Bro Split and other templates beyond the initial 5 (trivially addable later as seed data)
 - Session duration-based volume adaptation (deferred — can be layered in)
+- Inline exercise editing in the program summary step (remove/swap exercises before creating) — deferred, users can customize in the builder after creation
 
 ---
 
