@@ -5,9 +5,9 @@ import { authAtom, weightUnitAtom } from "@/store/atoms"
 import type { UserGoal, UserExperience, UserEquipment, UserGender } from "@/types/onboarding"
 
 interface ProfileInput {
-  gender: UserGender | null
-  age: number | null
-  weight: number | null
+  gender: UserGender
+  age: number
+  weight: number
   goal: UserGoal
   experience: UserExperience
   equipment: UserEquipment
@@ -26,7 +26,7 @@ export function useCreateUserProfile() {
       if (!user) throw new Error("Not authenticated")
 
       const weightKg =
-        input.weight != null && weightUnit === "lbs"
+        weightUnit === "lbs"
           ? Math.round(input.weight * LBS_TO_KG * 10) / 10
           : input.weight
 

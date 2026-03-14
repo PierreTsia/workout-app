@@ -20,9 +20,9 @@ function makeTemplate(
 function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
   return {
     user_id: "u1",
+    gender: "male",
     age: 30,
     weight_kg: 80,
-    gender: null,
     goal: "hypertrophy",
     experience: "intermediate",
     equipment: "gym",

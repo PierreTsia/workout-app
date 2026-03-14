@@ -27,9 +27,9 @@
   "durationLabel": "Session duration",
   "durationMinutes": "{{count}} min",
   "ageLabel": "Age",
-  "agePlaceholder": "Optional",
+  "agePlaceholder": "e.g. 28",
   "weightLabel": "Weight ({{unit}})",
-  "weightPlaceholder": "Optional",
+  "weightPlaceholder": "e.g. 75",
   "next": "Next",
 
   "pathTitle": "How do you want to start?",
@@ -54,5 +54,9 @@
   "createProgram": "Create program",
   "back": "Back",
 
-  "generating": "Generating your program…"
+  "generating": "Generating your program…",
+
+  "validation_required": "Required",
+  "validation_positive": "Must be positive",
+  "validation_number": "Must be a number"
 }

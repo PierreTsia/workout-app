@@ -1,5 +1,9 @@
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { adaptForExperience } from "@/lib/generateProgram"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/lib/supabase"
+import { adaptForExperience, resolveEquipmentSwap } from "@/lib/generateProgram"
+import { useExerciseAlternatives } from "@/hooks/useExerciseAlternatives"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -19,6 +23,39 @@ export function ProgramSummaryStep({
   onBack,
 }: ProgramSummaryStepProps) {
   const { t } = useTranslation("onboarding")
+  const { data: alternatives = [] } = useExerciseAlternatives()
+
+  const swappedIds = useMemo(() => {
+    if (profile.equipment === "gym") return new Set<string>()
+    const ids = new Set<string>()
+    for (const day of template.template_days) {
+      for (const te of day.template_exercises) {
+        const resolved = resolveEquipmentSwap(te.exercise_id, profile.equipment, alternatives)
+        if (resolved !== te.exercise_id) ids.add(resolved)
+      }
+    }
+    return ids
+  }, [template, profile.equipment, alternatives])
+
+  const { data: swappedExercises = [] } = useQuery({
+    queryKey: ["exercises-by-ids", [...swappedIds]],
+    enabled: swappedIds.size > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("exercises")
+        .select("id, name, emoji")
+        .in("id", [...swappedIds])
+      return data ?? []
+    },
+  })
+
+  const swapMap = useMemo(() => {
+    const map = new Map<string, { name: string; emoji: string }>()
+    for (const ex of swappedExercises) {
+      map.set(ex.id, { name: ex.name, emoji: ex.emoji })
+    }
+    return map
+  }, [swappedExercises])
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 pb-8 pt-4">
@@ -47,6 +84,15 @@ export function ProgramSummaryStep({
                 {[...day.template_exercises]
                   .sort((a, b) => a.sort_order - b.sort_order)
                   .map((te) => {
+                    const resolvedId = resolveEquipmentSwap(
+                      te.exercise_id,
+                      profile.equipment,
+                      alternatives,
+                    )
+                    const swap = resolvedId !== te.exercise_id ? swapMap.get(resolvedId) : null
+                    const name = swap?.name ?? te.exercise?.name ?? "Exercise"
+                    const emoji = swap?.emoji ?? te.exercise?.emoji ?? "🏋️"
+
                     const adapted = adaptForExperience(
                       te.rep_range,
                       te.sets,
@@ -59,8 +105,8 @@ export function ProgramSummaryStep({
                         className="flex items-center justify-between text-sm"
                       >
                         <span className="truncate">
-                          {te.exercise?.emoji ?? "🏋️"}{" "}
-                          {te.exercise?.name ?? "Exercise"}
+                          {emoji}{" "}
+                          {name}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {t("summarySets", { sets: adapted.sets, reps: adapted.reps })}

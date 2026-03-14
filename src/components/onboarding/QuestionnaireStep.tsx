@@ -1,3 +1,24 @@
+import type { LucideIcon } from "lucide-react"
+import {
+  Mars,
+  Venus,
+  Ghost,
+  EyeOff,
+  BicepsFlexed,
+  Target,
+  HeartPulse,
+  Zap,
+  Sprout,
+  Leaf,
+  Flame,
+  Dumbbell,
+  Weight,
+  Home,
+  CalendarDays,
+  Timer,
+  Cake,
+  Scale,
+} from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
@@ -5,9 +26,19 @@ import { useAtomValue } from "jotai"
 import { weightUnitAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  useFormField,
+} from "@/components/ui/form"
 import {
   questionnaireSchema,
+  toQuestionnaireOutput,
   goalOptions,
   experienceOptions,
   equipmentOptions,
@@ -16,50 +47,64 @@ import {
   type QuestionnaireValues,
   type QuestionnaireOutput,
 } from "./schema"
-import { cn } from "@/lib/utils"
 
 interface QuestionnaireStepProps {
   onNext: (data: QuestionnaireOutput) => void
 }
 
-function OptionButton({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
-        selected
-          ? "border-primary bg-primary/10 text-primary"
-          : "border-border bg-background text-foreground hover:border-primary/50",
-      )}
-    >
-      {children}
-    </button>
-  )
+const validationKeys: Record<string, string> = {
+  Required: "validation_required",
+  "Must be positive": "validation_positive",
+  "Must be a number": "validation_number",
 }
+
+function TranslatedFormMessage() {
+  const { t } = useTranslation("onboarding")
+  const { error } = useFormField()
+  const raw = error?.message
+  if (!raw) return null
+  const i18nKey = validationKeys[raw]
+  return <FormMessage>{i18nKey ? t(i18nKey) : raw}</FormMessage>
+}
+
+interface OptionMeta {
+  key: string
+  icon: LucideIcon
+}
+
+const genderMeta: Record<string, OptionMeta> = {
+  male: { key: "genderMale", icon: Mars },
+  female: { key: "genderFemale", icon: Venus },
+  other: { key: "genderOther", icon: Ghost },
+  prefer_not_to_say: { key: "genderPreferNotToSay", icon: EyeOff },
+}
+const goalMeta: Record<string, OptionMeta> = {
+  strength: { key: "goalStrength", icon: BicepsFlexed },
+  hypertrophy: { key: "goalHypertrophy", icon: Target },
+  endurance: { key: "goalEndurance", icon: HeartPulse },
+  general_fitness: { key: "goalGeneralFitness", icon: Zap },
+}
+const expMeta: Record<string, OptionMeta> = {
+  beginner: { key: "experienceBeginner", icon: Sprout },
+  intermediate: { key: "experienceIntermediate", icon: Leaf },
+  advanced: { key: "experienceAdvanced", icon: Flame },
+}
+const equipMeta: Record<string, OptionMeta> = {
+  gym: { key: "equipmentGym", icon: Dumbbell },
+  minimal: { key: "equipmentMinimal", icon: Weight },
+  home: { key: "equipmentHome", icon: Home },
+}
+
+const toggleItemClass =
+  "rounded-lg border border-border px-4 py-2.5 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
 
 export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
   const { t } = useTranslation("onboarding")
   const weightUnit = useAtomValue(weightUnitAtom)
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { isValid, errors },
-  } = useForm<QuestionnaireValues, unknown, QuestionnaireOutput>({
+  const form = useForm<QuestionnaireValues>({
     resolver: zodResolver(questionnaireSchema),
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       gender: undefined,
       goal: undefined,
@@ -72,170 +117,240 @@ export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
     },
   })
 
-  const selectedGender = watch("gender")
-  const selectedGoal = watch("goal")
-  const selectedExperience = watch("experience")
-  const selectedEquipment = watch("equipment")
-  const selectedDays = watch("training_days_per_week")
-  const selectedDuration = watch("session_duration_minutes")
-
-  const goalKeys: Record<string, string> = {
-    strength: "goalStrength",
-    hypertrophy: "goalHypertrophy",
-    endurance: "goalEndurance",
-    general_fitness: "goalGeneralFitness",
-  }
-  const expKeys: Record<string, string> = {
-    beginner: "experienceBeginner",
-    intermediate: "experienceIntermediate",
-    advanced: "experienceAdvanced",
-  }
-  const equipKeys: Record<string, string> = {
-    gym: "equipmentGym",
-    minimal: "equipmentMinimal",
-    home: "equipmentHome",
-  }
-  const genderKeys: Record<string, string> = {
-    male: "genderMale",
-    female: "genderFemale",
-    other: "genderOther",
-    prefer_not_to_say: "genderPreferNotToSay",
-  }
-
-  function onSubmit(data: QuestionnaireOutput) {
-    onNext(data)
+  function onSubmit(data: QuestionnaireValues) {
+    onNext(toQuestionnaireOutput(data))
   }
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-1 flex-col gap-8 overflow-y-auto px-6 pb-8 pt-4"
-    >
-      <h1 className="text-2xl font-bold">{t("questionnaireTitle")}</h1>
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-1 flex-col gap-8 overflow-y-auto px-6 pb-8 pt-4"
+      >
+        <h1 className="text-2xl font-bold">{t("questionnaireTitle")}</h1>
 
-      <fieldset className="space-y-2">
-        <Label>{t("genderLabel")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {genderOptions.map((g) => (
-            <OptionButton
-              key={g}
-              selected={selectedGender === g}
-              onClick={() => setValue("gender", g, { shouldValidate: true })}
-            >
-              {t(genderKeys[g])}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("genderLabel")}</FormLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                className="flex-wrap justify-start gap-2"
+                value={field.value ?? ""}
+                onValueChange={(v) => { if (v) field.onChange(v) }}
+              >
+                {genderOptions.map((g) => {
+                  const Icon = genderMeta[g].icon
+                  return (
+                    <ToggleGroupItem key={g} value={g} className={toggleItemClass}>
+                      <Icon className="h-4 w-4" />
+                      {t(genderMeta[g].key)}
+                    </ToggleGroupItem>
+                  )
+                })}
+              </ToggleGroup>
+              <TranslatedFormMessage />
+            </FormItem>
+          )}
+        />
 
-      <fieldset className="space-y-2">
-        <Label className={errors.goal ? "text-destructive" : ""}>{t("goalLabel")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {goalOptions.map((g) => (
-            <OptionButton
-              key={g}
-              selected={selectedGoal === g}
-              onClick={() => setValue("goal", g, { shouldValidate: true })}
-            >
-              {t(goalKeys[g])}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset className="space-y-2">
-        <Label className={errors.experience ? "text-destructive" : ""}>{t("experienceLabel")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {experienceOptions.map((e) => (
-            <OptionButton
-              key={e}
-              selected={selectedExperience === e}
-              onClick={() => setValue("experience", e, { shouldValidate: true })}
-            >
-              {t(expKeys[e])}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset className="space-y-2">
-        <Label className={errors.equipment ? "text-destructive" : ""}>{t("equipmentLabel")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {equipmentOptions.map((eq) => (
-            <OptionButton
-              key={eq}
-              selected={selectedEquipment === eq}
-              onClick={() => setValue("equipment", eq, { shouldValidate: true })}
-            >
-              {t(equipKeys[eq])}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset className="space-y-2">
-        <Label>{t("daysLabel")}</Label>
-        <div className="flex items-center gap-4">
-          <input
-            type="range"
-            min={2}
-            max={6}
-            step={1}
-            className="h-2 flex-1 cursor-pointer accent-primary"
-            {...register("training_days_per_week", { valueAsNumber: true })}
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="age"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="inline-flex items-center gap-1.5">
+                  <Cake className="h-4 w-4" />
+                  {t("ageLabel")}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder={t("agePlaceholder")}
+                    {...field}
+                  />
+                </FormControl>
+                <TranslatedFormMessage />
+              </FormItem>
+            )}
           />
-          <span className="min-w-[4rem] text-center text-sm font-medium">
-            {t("daysValue", { count: selectedDays })}
-          </span>
-        </div>
-      </fieldset>
 
-      <fieldset className="space-y-2">
-        <Label>{t("durationLabel")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {durationOptions.map((d) => (
-            <OptionButton
-              key={d}
-              selected={selectedDuration === String(d)}
-              onClick={() =>
-                setValue("session_duration_minutes", String(d) as "30" | "45" | "60" | "90", {
-                  shouldValidate: true,
-                })
-              }
-            >
-              {t("durationMinutes", { count: d })}
-            </OptionButton>
-          ))}
-        </div>
-      </fieldset>
-
-      <div className="grid grid-cols-2 gap-4">
-        <fieldset className="space-y-2">
-          <Label htmlFor="age">{t("ageLabel")}</Label>
-          <Input
-            id="age"
-            type="number"
-            inputMode="numeric"
-            placeholder={t("agePlaceholder")}
-            {...register("age")}
+          <FormField
+            control={form.control}
+            name="weight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="inline-flex items-center gap-1.5">
+                  <Scale className="h-4 w-4" />
+                  {t("weightLabel", { unit: weightUnit })}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.1"
+                    placeholder={t("weightPlaceholder")}
+                    {...field}
+                  />
+                </FormControl>
+                <TranslatedFormMessage />
+              </FormItem>
+            )}
           />
-        </fieldset>
-        <fieldset className="space-y-2">
-          <Label htmlFor="weight">{t("weightLabel", { unit: weightUnit })}</Label>
-          <Input
-            id="weight"
-            type="number"
-            inputMode="decimal"
-            step="0.1"
-            placeholder={t("weightPlaceholder")}
-            {...register("weight")}
-          />
-        </fieldset>
-      </div>
+        </div>
 
-      <Button type="submit" size="lg" disabled={!isValid} className="mt-auto w-full">
-        {t("next")}
-      </Button>
-    </form>
+        <FormField
+          control={form.control}
+          name="goal"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("goalLabel")}</FormLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                className="flex-wrap justify-start gap-2"
+                value={field.value ?? ""}
+                onValueChange={(v) => { if (v) field.onChange(v) }}
+              >
+                {goalOptions.map((g) => {
+                  const Icon = goalMeta[g].icon
+                  return (
+                    <ToggleGroupItem key={g} value={g} className={toggleItemClass}>
+                      <Icon className="h-4 w-4" />
+                      {t(goalMeta[g].key)}
+                    </ToggleGroupItem>
+                  )
+                })}
+              </ToggleGroup>
+              <TranslatedFormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="experience"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("experienceLabel")}</FormLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                className="flex-wrap justify-start gap-2"
+                value={field.value ?? ""}
+                onValueChange={(v) => { if (v) field.onChange(v) }}
+              >
+                {experienceOptions.map((e) => {
+                  const Icon = expMeta[e].icon
+                  return (
+                    <ToggleGroupItem key={e} value={e} className={toggleItemClass}>
+                      <Icon className="h-4 w-4" />
+                      {t(expMeta[e].key)}
+                    </ToggleGroupItem>
+                  )
+                })}
+              </ToggleGroup>
+              <TranslatedFormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="equipment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("equipmentLabel")}</FormLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                className="flex-wrap justify-start gap-2"
+                value={field.value ?? ""}
+                onValueChange={(v) => { if (v) field.onChange(v) }}
+              >
+                {equipmentOptions.map((eq) => {
+                  const Icon = equipMeta[eq].icon
+                  return (
+                    <ToggleGroupItem key={eq} value={eq} className={toggleItemClass}>
+                      <Icon className="h-4 w-4" />
+                      {t(equipMeta[eq].key)}
+                    </ToggleGroupItem>
+                  )
+                })}
+              </ToggleGroup>
+              <TranslatedFormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="training_days_per_week"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4" />
+                {t("daysLabel")}
+              </FormLabel>
+              <div className="flex items-center gap-4">
+                <FormControl>
+                  <input
+                    type="range"
+                    min={2}
+                    max={6}
+                    step={1}
+                    className="h-2 flex-1 cursor-pointer accent-primary"
+                    value={field.value}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <span className="min-w-[4rem] text-center text-sm font-medium">
+                  {t("daysValue", { count: field.value })}
+                </span>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="session_duration_minutes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="inline-flex items-center gap-1.5">
+                <Timer className="h-4 w-4" />
+                {t("durationLabel")}
+              </FormLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                className="flex-wrap justify-start gap-2"
+                value={field.value ?? ""}
+                onValueChange={(v) => { if (v) field.onChange(v) }}
+              >
+                {durationOptions.map((d) => (
+                  <ToggleGroupItem key={d} value={d} className={toggleItemClass}>
+                    {d} min
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </FormItem>
+          )}
+        />
+
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-auto w-full"
+        >
+          {t("next")}
+        </Button>
+      </form>
+    </Form>
   )
 }

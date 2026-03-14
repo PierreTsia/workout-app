@@ -27,9 +27,9 @@
   "durationLabel": "Durée de séance",
   "durationMinutes": "{{count}} min",
   "ageLabel": "Âge",
-  "agePlaceholder": "Optionnel",
+  "agePlaceholder": "ex. 28",
   "weightLabel": "Poids ({{unit}})",
-  "weightPlaceholder": "Optionnel",
+  "weightPlaceholder": "ex. 75",
   "next": "Suivant",
 
   "pathTitle": "Comment voulez-vous commencer ?",
@@ -54,5 +54,9 @@
   "createProgram": "Créer le programme",
   "back": "Retour",
 
-  "generating": "Génération de votre programme…"
+  "generating": "Génération de votre programme…",
+
+  "validation_required": "Requis",
+  "validation_positive": "Doit être positif",
+  "validation_number": "Doit être un nombre"
 }
