@@ -11,10 +11,13 @@ function renderPanel(overrides = {}) {
   const defaultProps = {
     muscleGroups: MUSCLE_GROUPS,
     equipmentTypes: EQUIPMENT,
+    difficultyLevels: [] as string[],
     selectedMuscleGroup: null as string | null,
     selectedEquipment: [] as string[],
+    selectedDifficulty: [] as string[],
     onMuscleGroupChange: vi.fn(),
     onEquipmentChange: vi.fn(),
+    onDifficultyChange: vi.fn(),
     ...overrides,
   }
   const result = renderWithProviders(<ExerciseFilterPanel {...defaultProps} />)

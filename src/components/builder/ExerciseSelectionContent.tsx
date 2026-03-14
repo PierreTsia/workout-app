@@ -9,6 +9,7 @@ import type { Exercise } from "@/types/database"
 import { ExerciseInfoDialog } from "@/components/exercise/ExerciseInfoDialog"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -16,6 +17,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 /** Minimal shape for an existing day exercise (library id + row id for delete) */
 export interface ExistingDayExercise {
@@ -135,6 +137,19 @@ export function ExerciseSelectionContent({
                     className="h-8 w-8 shrink-0 rounded-md"
                   />
                   <span className="truncate">{ex.name}</span>
+                  {ex.difficulty_level && (
+                    <Badge
+                      className={cn(
+                        "h-5 shrink-0 px-1.5 text-[10px] border-0",
+                        ex.difficulty_level === "beginner" && "bg-green-600 text-white",
+                        ex.difficulty_level === "intermediate" &&
+                          "bg-yellow-500 text-black",
+                        ex.difficulty_level === "advanced" && "bg-red-600 text-white",
+                      )}
+                    >
+                      {t(`difficulty.${ex.difficulty_level}`, ex.difficulty_level)}
+                    </Badge>
+                  )}
                 </span>
                 <span
                   className="flex shrink-0 items-center gap-0.5"

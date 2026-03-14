@@ -23,6 +23,7 @@ const BASE_EXERCISE: Exercise = {
   instructions: null,
   image_url: null,
   equipment: "barbell",
+  difficulty_level: null,
   name_en: "Bench Press",
   source: "wger:73",
   secondary_muscles: null,

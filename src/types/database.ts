@@ -16,6 +16,7 @@ export interface Exercise {
   instructions: ExerciseInstructions | null
   image_url: string | null
   equipment: string
+  difficulty_level: "beginner" | "intermediate" | "advanced" | null
   name_en: string | null
   source: string | null
   secondary_muscles: string[] | null

@@ -8,6 +8,7 @@ export interface UseExerciseLibraryPaginatedParams {
   search: string
   muscleGroup: string | null
   equipment: string[]
+  difficulty: string[]
   enabled?: boolean
 }
 
@@ -15,10 +16,11 @@ export function useExerciseLibraryPaginated({
   search,
   muscleGroup,
   equipment,
+  difficulty,
   enabled = true,
 }: UseExerciseLibraryPaginatedParams) {
   const query = useInfiniteQuery({
-    queryKey: ["exercise-library-paginated", search.trim(), muscleGroup, equipment],
+    queryKey: ["exercise-library-paginated", search.trim(), muscleGroup, equipment, difficulty],
     queryFn: async ({ pageParam }) => {
       const from = pageParam * PAGE_SIZE
       const to = from + PAGE_SIZE - 1
@@ -33,6 +35,9 @@ export function useExerciseLibraryPaginated({
       }
       if (equipment.length > 0) {
         q = q.in("equipment", equipment)
+      }
+      if (difficulty.length > 0) {
+        q = q.in("difficulty_level", difficulty)
       }
 
       q = q.order("muscle_group").order("name").range(from, to)
