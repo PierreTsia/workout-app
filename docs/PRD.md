@@ -109,6 +109,7 @@ Core tables: `exercises`, `workout_days`, `workout_exercises`, `sessions`, `set_
 | name_en | text | English name for search |
 | muscle_group | text | NOT NULL |
 | equipment | text | NOT NULL, default 'bodyweight' |
+| difficulty_level | text | beginner / intermediate / advanced, nullable |
 | emoji | text | NOT NULL |
 | is_system | boolean | NOT NULL, default false |
 | youtube_url | text | Demo video |

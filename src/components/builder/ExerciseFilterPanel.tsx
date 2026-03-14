@@ -62,6 +62,7 @@ export function ExerciseFilterPanel({
           <button
             key={group}
             type="button"
+            aria-pressed={selectedMuscleGroup === group}
             onClick={() =>
               onMuscleGroupChange(selectedMuscleGroup === group ? null : group)
             }
@@ -82,6 +83,7 @@ export function ExerciseFilterPanel({
           <button
             key={eq}
             type="button"
+            aria-pressed={selectedEquipment.includes(eq)}
             onClick={() => toggleEquipment(eq)}
             className={cn(
               "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors",
@@ -105,6 +107,7 @@ export function ExerciseFilterPanel({
               <button
                 key={level}
                 type="button"
+                aria-pressed={selectedDifficulty.includes(level)}
                 onClick={() => toggleDifficulty(level)}
                 className={cn(
                   "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors",
