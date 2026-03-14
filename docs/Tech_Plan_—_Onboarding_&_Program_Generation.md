@@ -93,6 +93,20 @@ CREATE TABLE user_profiles (
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users manage own profile" ON user_profiles
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- Auto-update updated_at on row modification
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_user_profiles_updated_at
+    BEFORE UPDATE ON user_profiles
+    FOR EACH ROW
+    EXECUTE PROCEDURE update_updated_at_column();
 ```
 
 **`program_templates`** (read-only for regular users, seeded by migration)
@@ -194,6 +208,8 @@ TRUNCATE workout_days CASCADE;
 
 ALTER TABLE workout_days
   ADD COLUMN program_id uuid NOT NULL REFERENCES programs(id) ON DELETE CASCADE;
+
+CREATE INDEX idx_workout_days_program_id ON workout_days(program_id);
 ```
 
 ### TypeScript Types
@@ -490,7 +506,7 @@ flowchart TD
 12. Refactor `useBuilderMutations.useCreateDay`: accept and include `program_id`
 13. Refactor `syncService.resolveSessionMeta`: update cache key lookup
 14. `OnboardingGuard` component
-15. Route structure update in `file:src/router/index.tsx` (add guard + `/onboarding` placeholder)
+15. Route structure update in `file:src/router/index.tsx` (add guard + `/onboarding` placeholder). The placeholder is a minimal page with a "Get Started" button that creates an empty program (self-directed) and redirects to the builder — ensures the app is functional at the end of Phase 1.
 16. WorkoutPage: new empty state, remove `useBootstrapProgram` usage and delete `file:src/hooks/useBootstrapProgram.ts`
 17. Tests: update existing tests for workout-days query key changes
 
@@ -509,9 +525,8 @@ flowchart TD
 11. `PathChoiceStep` component
 12. `TemplateRecommendationStep` component
 13. `ProgramSummaryStep` component
-14. `OnboardingPage` (orchestrates all steps)
-15. Wire onboarding redirect on first login
-16. i18n: `onboarding` namespace (EN + FR)
+14. `OnboardingPage` (orchestrates all steps, replaces Phase 1 placeholder)
+15. i18n: `onboarding` namespace (EN + FR)
 
 ### Phase 3 — Polish + Switching + Analytics
 
