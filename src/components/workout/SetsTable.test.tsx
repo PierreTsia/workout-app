@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import { act, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { sessionAtom, type SessionState } from "@/store/atoms"
+import { sessionAtom, restAtom, type SessionState } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { SetsTable } from "./SetsTable"
 
@@ -20,6 +20,8 @@ vi.mock("@/hooks/useWeightUnit", () => ({
   useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value }),
 }))
 
+let mockRirValue = 2
+
 vi.mock("@/components/workout/RirDrawer", () => ({
   RirDrawer: ({
     open,
@@ -30,7 +32,7 @@ vi.mock("@/components/workout/RirDrawer", () => ({
   }) =>
     open ? (
       <div data-testid="rir-drawer">
-        <button onClick={() => onConfirm(2)} data-testid="rir-confirm">
+        <button onClick={() => onConfirm(mockRirValue)} data-testid="rir-confirm">
           Confirm RIR
         </button>
       </div>
@@ -71,6 +73,7 @@ const BASE_SESSION: SessionState = {
 describe("SetsTable", () => {
   beforeEach(() => {
     enqueueSetLogMock.mockClear()
+    mockRirValue = 2
   })
 
   it("locks all controls when rendered as read-only", async () => {
@@ -181,5 +184,89 @@ describe("SetsTable", () => {
     const set2 = next.setsData["workout-ex-1"][1]
     expect(set2.weight).toBe("60")
     expect(set2.reps).toBe("10")
+  })
+
+  it("increases next set weight when RIR is 4 (easy)", async () => {
+    mockRirValue = 4
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const next = store.get(sessionAtom)
+    const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.weight).toBe("62.5")
+  })
+
+  it("decreases next set weight when RIR is 0 (failure)", async () => {
+    mockRirValue = 0
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const next = store.get(sessionAtom)
+    const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.weight).toBe("57.5")
+  })
+
+  it("completes last set without crashing when there is no next set", async () => {
+    const user = userEvent.setup()
+    const singleSetSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [{ reps: "10", weight: "60", done: false }],
+      },
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, singleSetSession)
+    })
+
+    const checkbox = screen.getByRole("checkbox")
+    await user.click(checkbox)
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const next = store.get(sessionAtom)
+    expect(next.setsData["workout-ex-1"][0].done).toBe(true)
+    expect(next.setsData["workout-ex-1"][0].rir).toBe(2)
+    expect(next.totalSetsDone).toBe(1)
+  })
+
+  it("starts rest timer after RIR confirm", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    expect(store.get(restAtom)).toBeNull()
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rest = store.get(restAtom)
+    expect(rest).not.toBeNull()
+    expect(rest!.durationSeconds).toBe(90)
   })
 })
