@@ -24,6 +24,7 @@ export interface SetLogPayload {
   estimatedOneRM: number
   wasPr: boolean
   loggedAt: number
+  rir?: number
 }
 
 export interface SessionFinishPayload {
@@ -425,6 +426,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       estimated_1rm: p.estimatedOneRM || null,
       was_pr: p.wasPr,
       logged_at: new Date(p.loggedAt).toISOString(),
+      rir: p.rir ?? null,
     })
 
     if (error) {

@@ -1,15 +1,18 @@
+import { useState, useCallback } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
 import { computeEpley1RM } from "@/lib/epley"
+import { computeIntraSessionSuggestion } from "@/lib/rirSuggestion"
 import { useBest1RM } from "@/hooks/useBest1RM"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { RirDrawer } from "@/components/workout/RirDrawer"
 import { cn } from "@/lib/utils"
 
 interface SetsTableProps {
@@ -26,6 +29,8 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
   const setPrFlags = useSetAtom(prFlagsAtom)
   const [sessionBest, setSessionBest] = useAtom(sessionBest1RMAtom)
   const { data: historicalBest = 0, isSuccess: best1RMReady } = useBest1RM(exercise.exercise_id)
+
+  const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
   const rows = session.setsData[exercise.id] ?? []
 
@@ -45,64 +50,116 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
     })
   }
 
-  function toggleDone(setIdx: number) {
+  function handleCheckboxChange(setIdx: number) {
     if (isReadOnly) return
-    setSession((prev) => {
-      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
-      const wasDone = exerciseSets[setIdx].done
-      exerciseSets[setIdx] = { ...exerciseSets[setIdx], done: !wasDone }
+    const currentSet = rows[setIdx]
 
-      const delta = wasDone ? -1 : 1
-
-      if (!wasDone) {
-        const displayWeight = Number(exerciseSets[setIdx].weight) || 0
-        const weightKg = toKg(displayWeight)
-        const reps = parseInt(exerciseSets[setIdx].reps, 10)
-        const estimatedOneRM = computeEpley1RM(weightKg, reps)
-
-        const runningBest = Math.max(
-          historicalBest,
-          sessionBest[exercise.exercise_id] ?? 0,
-        )
-        const wasPr = best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
-
-        if (wasPr) {
-          setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
-        }
-
-        setSessionBest((prev) => ({
+    if (currentSet.done) {
+      setSession((prev) => {
+        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
+        exerciseSets[setIdx] = { ...exerciseSets[setIdx], done: false, rir: undefined }
+        return {
           ...prev,
-          [exercise.exercise_id]: Math.max(
-            prev[exercise.exercise_id] ?? 0,
-            estimatedOneRM,
-          ),
-        }))
+          setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+          totalSetsDone: Math.max(0, prev.totalSetsDone - 1),
+        }
+      })
+      return
+    }
 
-        setRest({
-          startedAt: Date.now(),
-          durationSeconds: exercise.rest_seconds,
-        })
+    setPendingSetIdx(setIdx)
+  }
 
-        enqueueSetLog({
-          sessionId,
-          exerciseId: exercise.exercise_id,
-          exerciseNameSnapshot: exercise.name_snapshot,
-          setNumber: setIdx + 1,
-          repsLogged: exerciseSets[setIdx].reps,
-          weightLogged: weightKg,
-          estimatedOneRM,
-          wasPr,
-          loggedAt: Date.now(),
-        })
+  const confirmRir = useCallback(
+    (rir: number) => {
+      const setIdx = pendingSetIdx
+      if (setIdx === null) return
+      setPendingSetIdx(null)
+
+      const exerciseSets = [...(session.setsData[exercise.id] ?? [])]
+      const currentSet = exerciseSets[setIdx]
+      if (!currentSet || currentSet.done) return
+
+      const displayWeight = Number(currentSet.weight) || 0
+      const weightKg = toKg(displayWeight)
+      const reps = parseInt(currentSet.reps, 10)
+      const estimatedOneRM = computeEpley1RM(weightKg, reps)
+
+      const runningBest = Math.max(
+        historicalBest,
+        sessionBest[exercise.exercise_id] ?? 0,
+      )
+      const wasPr = best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
+
+      if (wasPr) {
+        setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
       }
 
-      return {
+      setSessionBest((prev) => ({
+        ...prev,
+        [exercise.exercise_id]: Math.max(
+          prev[exercise.exercise_id] ?? 0,
+          estimatedOneRM,
+        ),
+      }))
+
+      setRest({
+        startedAt: Date.now(),
+        durationSeconds: exercise.rest_seconds,
+      })
+
+      enqueueSetLog({
+        sessionId,
+        exerciseId: exercise.exercise_id,
+        exerciseNameSnapshot: exercise.name_snapshot,
+        setNumber: setIdx + 1,
+        repsLogged: currentSet.reps,
+        weightLogged: weightKg,
+        estimatedOneRM,
+        wasPr,
+        loggedAt: Date.now(),
+        rir,
+      })
+
+      exerciseSets[setIdx] = { ...currentSet, done: true, rir }
+
+      const nextIdx = setIdx + 1
+      if (nextIdx < exerciseSets.length && !exerciseSets[nextIdx].done) {
+        const suggestion = computeIntraSessionSuggestion(
+          rir,
+          displayWeight,
+          currentSet.reps,
+          unit,
+        )
+        exerciseSets[nextIdx] = {
+          ...exerciseSets[nextIdx],
+          weight: String(suggestion.weight),
+          reps: suggestion.reps,
+        }
+      }
+
+      setSession((prev) => ({
         ...prev,
         setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
-        totalSetsDone: Math.max(0, prev.totalSetsDone + delta),
-      }
-    })
-  }
+        totalSetsDone: prev.totalSetsDone + 1,
+      }))
+    },
+    [
+      pendingSetIdx,
+      session.setsData,
+      exercise,
+      sessionId,
+      toKg,
+      unit,
+      historicalBest,
+      sessionBest,
+      best1RMReady,
+      setSession,
+      setRest,
+      setPrFlags,
+      setSessionBest,
+    ],
+  )
 
   function removeLastSet() {
     if (isReadOnly) return
@@ -176,7 +233,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
           <div className="flex justify-center">
             <Checkbox
               checked={set.done}
-              onCheckedChange={() => toggleDone(idx)}
+              onCheckedChange={() => handleCheckboxChange(idx)}
               disabled={!session.isActive || isReadOnly}
             />
           </div>
@@ -211,6 +268,22 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
           <Plus className="h-4 w-4" />
         </Button>
       </div>
+
+      <RirDrawer
+        key={pendingSetIdx ?? "closed"}
+        open={pendingSetIdx !== null}
+        setInfo={
+          pendingSetIdx !== null
+            ? {
+                setNumber: pendingSetIdx + 1,
+                reps: rows[pendingSetIdx]?.reps ?? "",
+                weight: rows[pendingSetIdx]?.weight ?? "",
+                unit,
+              }
+            : null
+        }
+        onConfirm={confirmRir}
+      />
     </div>
   )
 }
