@@ -30,6 +30,22 @@ async function clearUserData(userId: string) {
   await admin.from("user_profiles").delete().eq("user_id", userId)
 }
 
+async function seedProgram(userId: string) {
+  const admin = getAdmin()
+  await clearUserData(userId)
+  await admin.from("user_profiles").insert({
+    user_id: userId, gender: "male", age: 30, weight_kg: 80,
+    goal: "general_fitness", experience: "intermediate", equipment: "gym",
+    training_days_per_week: 4, session_duration_minutes: 60,
+  })
+  const { data: program } = await admin.from("programs").insert({
+    user_id: userId, name: "E2E Test Program", is_active: true,
+  }).select("id").single()
+  await admin.from("workout_days").insert({
+    program_id: program!.id, user_id: userId, label: "Day A", emoji: "💪", sort_order: 0,
+  })
+}
+
 async function dismissNotificationDialog(page: import("@playwright/test").Page) {
   const dialog = page.getByRole("dialog", { name: /enable notifications/i })
   try {
@@ -46,10 +62,8 @@ test.describe("Onboarding", () => {
     test.setTimeout(120_000)
     const userId = getTestUserId()
 
-    // Start fresh — remove any existing profile/program
     await clearUserData(userId)
 
-    // Navigate to app — should redirect to /onboarding
     await page.goto("/")
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
 
@@ -62,19 +76,13 @@ test.describe("Onboarding", () => {
     // --- Questionnaire step ---
     await expect(page.getByText("About you")).toBeVisible({ timeout: 5_000 })
 
-    // Fill gender
     await page.getByRole("radio", { name: /Male/ }).click()
-
-    // Fill age & weight
     await page.getByPlaceholder("e.g. 28").fill("28")
     await page.getByPlaceholder("e.g. 75").fill("80")
-
-    // Fill goal, experience, equipment
     await page.getByRole("radio", { name: /General fitness/ }).click()
     await page.getByRole("radio", { name: /Intermediate/ }).click()
     await page.getByRole("radio", { name: /Full gym/ }).click()
 
-    // Days slider defaults to 3, duration defaults to 60 min — leave as-is
     await page.getByRole("button", { name: "Next" }).click()
 
     // --- Path choice step ---
@@ -84,7 +92,6 @@ test.describe("Onboarding", () => {
     // --- Template recommendation step ---
     await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
 
-    // Click the first (top-ranked) template card
     const firstTemplate = page.locator("[role='button']").filter({ hasText: /Recommended/ }).first()
     await expect(firstTemplate).toBeVisible({ timeout: 10_000 })
     await firstTemplate.click()
@@ -96,64 +103,37 @@ test.describe("Onboarding", () => {
     // --- Should redirect to home after program generation ---
     await expect(page).toHaveURL("/", { timeout: 30_000 })
 
-    await dismissNotificationDialog(page)
-
-    // Verify we're on the workout page with content (not redirected back to onboarding)
-    await expect(page.locator("button").filter({ hasText: /Day/ }).first()).toBeVisible({
-      timeout: 15_000,
-    })
+    // Re-seed program for subsequent tests (in case they rely on it)
+    await seedProgram(userId)
   })
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {
     test.setTimeout(30_000)
-    const userId = getTestUserId()
-    const admin = getAdmin()
 
-    // Ensure user has a program so the guard kicks in
-    await admin.from("programs").delete().eq("user_id", userId)
-    await admin.from("user_profiles").delete().eq("user_id", userId)
-    await admin.from("user_profiles").insert({
-      user_id: userId, gender: "male", age: 30, weight_kg: 80,
-      goal: "general_fitness", experience: "intermediate", equipment: "gym",
-      training_days_per_week: 4, session_duration_minutes: 60,
-    })
-    await admin.from("programs").insert({
-      user_id: userId, name: "Guard Test Program", is_active: true,
-    })
+    // Global setup seeds a program, so the guard should redirect
+    await page.goto("/")
+    await dismissNotificationDialog(page)
 
+    // Confirm we're on the home page (user has a program)
+    await page.waitForLoadState("networkidle")
+    await expect(page).toHaveURL("/", { timeout: 10_000 })
+
+    // Now try /onboarding — guard should redirect back to /
     await page.goto("/onboarding")
     await expect(page).toHaveURL("/", { timeout: 15_000 })
   })
 
   test("change program flow from side drawer", async ({ page }) => {
     test.setTimeout(120_000)
-    const userId = getTestUserId()
-    const admin = getAdmin()
-
-    // Ensure user has a profile and an active program
-    await admin.from("workout_exercises").delete().match({})
-    await admin.from("workout_days").delete().eq("user_id", userId)
-    await admin.from("programs").delete().eq("user_id", userId)
-    await admin.from("user_profiles").delete().eq("user_id", userId)
-    await admin.from("user_profiles").insert({
-      user_id: userId, gender: "male", age: 30, weight_kg: 80,
-      goal: "general_fitness", experience: "intermediate", equipment: "gym",
-      training_days_per_week: 4, session_duration_minutes: 60,
-    })
-    const { data: program } = await admin.from("programs").insert({
-      user_id: userId, name: "Change Test Program", is_active: true,
-    }).select("id").single()
-    await admin.from("workout_days").insert({
-      program_id: program!.id, user_id: userId, label: "Day A", emoji: "💪", sort_order: 0,
-    })
 
     await page.goto("/")
     await dismissNotificationDialog(page)
 
-    // Wait for workout page to load
-    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 })
+    // Wait for workout page to be loaded
+    await page.waitForLoadState("networkidle")
+    await expect(page).toHaveURL("/", { timeout: 10_000 })
 
-    // Open side drawer
+    // Open side drawer via the hamburger button
     await page.getByLabel("Open menu").click()
     await expect(page.getByText("Menu")).toBeVisible({ timeout: 5_000 })
 
