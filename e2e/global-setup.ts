@@ -101,14 +101,39 @@ async function globalSetup() {
     .single()
   if (programErr) throw new Error(`Failed to seed program: ${programErr.message}`)
 
-  const { error: dayErr } = await admin.from("workout_days").insert({
-    program_id: program.id,
-    user_id: userId,
-    label: "Day A",
-    emoji: "💪",
-    sort_order: 0,
-  })
-  if (dayErr) throw new Error(`Failed to seed workout day: ${dayErr.message}`)
+  // Seed 3 days with French labels that existing E2E specs expect
+  const dayLabels = [
+    { label: "Lundi", emoji: "💪", sort_order: 0 },
+    { label: "Mercredi", emoji: "🔥", sort_order: 1 },
+    { label: "Vendredi", emoji: "⚡", sort_order: 2 },
+  ]
+  const { data: days, error: dayErr } = await admin
+    .from("workout_days")
+    .insert(dayLabels.map((d) => ({ ...d, program_id: program.id, user_id: userId })))
+    .select("id")
+  if (dayErr) throw new Error(`Failed to seed workout days: ${dayErr.message}`)
+
+  // Seed one exercise per day so workout-session specs have content
+  const { data: exercises } = await admin
+    .from("exercises")
+    .select("id, name, muscle_group, emoji")
+    .limit(3)
+  if (exercises && exercises.length >= 3) {
+    await admin.from("workout_exercises").insert(
+      days!.map((day, i) => ({
+        workout_day_id: day.id,
+        exercise_id: exercises[i].id,
+        name_snapshot: exercises[i].name,
+        muscle_snapshot: exercises[i].muscle_group ?? "",
+        emoji_snapshot: exercises[i].emoji ?? "🏋️",
+        sets: 3,
+        reps: "10",
+        weight: "0",
+        rest_seconds: 90,
+        sort_order: 0,
+      })),
+    )
+  }
 
   fs.mkdirSync(AUTH_DIR, { recursive: true })
   fs.writeFileSync(

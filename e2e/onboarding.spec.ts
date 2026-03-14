@@ -41,9 +41,27 @@ async function seedProgram(userId: string) {
   const { data: program } = await admin.from("programs").insert({
     user_id: userId, name: "E2E Test Program", is_active: true,
   }).select("id").single()
-  await admin.from("workout_days").insert({
-    program_id: program!.id, user_id: userId, label: "Day A", emoji: "💪", sort_order: 0,
-  })
+  const days = [
+    { label: "Lundi", emoji: "💪", sort_order: 0 },
+    { label: "Mercredi", emoji: "🔥", sort_order: 1 },
+    { label: "Vendredi", emoji: "⚡", sort_order: 2 },
+  ]
+  const { data: insertedDays } = await admin.from("workout_days")
+    .insert(days.map((d) => ({ ...d, program_id: program!.id, user_id: userId })))
+    .select("id")
+  const { data: exercises } = await admin.from("exercises").select("id, name, muscle_group, emoji").limit(3)
+  if (exercises && exercises.length >= 3 && insertedDays) {
+    await admin.from("workout_exercises").insert(
+      insertedDays.map((day, i) => ({
+        workout_day_id: day.id,
+        exercise_id: exercises[i].id,
+        name_snapshot: exercises[i].name,
+        muscle_snapshot: exercises[i].muscle_group ?? "",
+        emoji_snapshot: exercises[i].emoji ?? "🏋️",
+        sets: 3, reps: "10", weight: "0", rest_seconds: 90, sort_order: 0,
+      })),
+    )
+  }
 }
 
 async function dismissNotificationDialog(page: import("@playwright/test").Page) {
