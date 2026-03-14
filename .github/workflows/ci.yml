@@ -17,12 +17,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ci-deps
-          path: |
-            node_modules
-            dist
+          name: build-output
+          path: dist
           retention-days: 1
 
   lint:
@@ -33,9 +35,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: ci-deps
+          path: node_modules
+          key: node-modules-${{ github.sha }}
       - run: npm run lint
 
   type-check:
@@ -46,9 +49,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: ci-deps
+          path: node_modules
+          key: node-modules-${{ github.sha }}
       - run: tsc -b
 
   unit:
@@ -59,9 +63,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: ci-deps
+          path: node_modules
+          key: node-modules-${{ github.sha }}
       - run: npx vitest run --reporter=verbose
 
   e2e:
@@ -72,9 +77,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+      - uses: actions/cache/restore@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ github.sha }}
       - uses: actions/download-artifact@v4
         with:
-          name: ci-deps
+          name: build-output
+          path: dist
 
       - name: Cache Playwright browsers
         id: playwright-cache
