@@ -142,3 +142,401 @@ INSERT INTO exercises (name, muscle_group, emoji, is_system, youtube_url, instru
    'https://www.youtube.com/watch?v=SVmM6a0dHGU',
    '{"setup":["Asseyez-vous sur la machine à mollets, genoux sous les coussinets.","Placez l''avant des pieds sur la plateforme, talons dans le vide.","Gardez le dos droit et les mains sur les poignées."],"movement":["Poussez sur les orteils pour lever les talons le plus haut possible.","Maintenez la contraction en haut pendant 2 secondes.","Redescendez lentement les talons sous le niveau de la plateforme."],"breathing":["Expirez en montant les talons.","Inspirez en redescendant."],"common_mistakes":["Faire des mouvements rapides et saccadés.","Ne pas descendre assez bas pour étirer le mollet.","Utiliser l''élan au lieu de contrôler la charge."]}',
    'extension-mollet-machine.png', 'machine', 'Seated Calf Raise', 'wger:1365');
+
+-- =========================================================================
+-- Additional exercises for templates & alternatives (bodyweight / dumbbell)
+-- =========================================================================
+
+INSERT INTO exercises (name, muscle_group, emoji, is_system, equipment, name_en) VALUES
+  ('Pompes', 'Pectoraux', '🏋️', true, 'bodyweight', 'Push-ups'),
+  ('Tractions', 'Dos', '🚣', true, 'bodyweight', 'Pull-ups'),
+  ('Dips', 'Triceps', '💪', true, 'bodyweight', 'Dips'),
+  ('Squat barre', 'Quadriceps', '🦵', true, 'barbell', 'Barbell Squat'),
+  ('Squat au poids du corps', 'Quadriceps', '🦵', true, 'bodyweight', 'Bodyweight Squat'),
+  ('Fentes haltères', 'Quadriceps', '🦵', true, 'dumbbell', 'Dumbbell Lunges'),
+  ('Gainage planche', 'Abdos', '🔥', true, 'bodyweight', 'Plank'),
+  ('Crunchs', 'Abdos', '🔥', true, 'bodyweight', 'Crunches'),
+  ('Développé haltères', 'Pectoraux', '🏋️', true, 'dumbbell', 'Dumbbell Bench Press'),
+  ('Rowing haltère', 'Dos', '🚣', true, 'dumbbell', 'Dumbbell Row'),
+  ('Développé épaules haltères', 'Épaules', '🙆', true, 'dumbbell', 'Dumbbell Shoulder Press'),
+  ('Curl marteau haltères', 'Biceps', '💪', true, 'dumbbell', 'Hammer Curl'),
+  ('Extension triceps haltère', 'Triceps', '💪', true, 'dumbbell', 'Dumbbell Triceps Extension'),
+  ('Soulevé de terre', 'Dos', '🏋️', true, 'barbell', 'Deadlift'),
+  ('Hip Thrust', 'Fessiers', '🍑', true, 'barbell', 'Hip Thrust'),
+  ('Élévation mollet debout', 'Mollets', '🦶', true, 'bodyweight', 'Standing Calf Raise');
+
+-- =========================================================================
+-- Program Templates
+-- =========================================================================
+
+INSERT INTO program_templates (name, description, min_days, max_days, primary_goal, experience_tags) VALUES
+  ('Full Body', 'Compound-heavy full body sessions. Low volume per muscle, high frequency. Ideal for beginners building a strength base.', 2, 4, 'general_fitness', '{beginner}'),
+  ('Upper/Lower', 'Balanced upper/lower split with push-pull balance. Good volume per session for hypertrophy.', 3, 4, 'hypertrophy', '{intermediate}'),
+  ('PPL (Push/Pull/Legs)', 'Classic bodybuilding split. High volume, each muscle hit twice per week at 6 days.', 3, 6, 'hypertrophy', '{intermediate,advanced}'),
+  ('GZCLP', 'Linear progression with heavy compounds (T1), moderate volume accessories (T2/T3). Great for building raw strength.', 3, 4, 'strength', '{beginner,intermediate}'),
+  ('Muscular Endurance', 'High reps, short rest, circuit-style training. Builds muscular endurance and work capacity.', 3, 4, 'endurance', '{beginner,intermediate,advanced}');
+
+-- =========================================================================
+-- Template Days
+-- =========================================================================
+
+INSERT INTO template_days (template_id, day_label, day_number, muscle_focus, sort_order) VALUES
+  -- Full Body (3 days)
+  ((SELECT id FROM program_templates WHERE name = 'Full Body'), 'Full Body A', 1, 'Full body — press focus', 0),
+  ((SELECT id FROM program_templates WHERE name = 'Full Body'), 'Full Body B', 2, 'Full body — hinge focus', 1),
+  ((SELECT id FROM program_templates WHERE name = 'Full Body'), 'Full Body C', 3, 'Full body — unilateral focus', 2),
+  -- Upper/Lower (4 days)
+  ((SELECT id FROM program_templates WHERE name = 'Upper/Lower'), 'Upper A', 1, 'Chest, back, shoulders, arms', 0),
+  ((SELECT id FROM program_templates WHERE name = 'Upper/Lower'), 'Lower A', 2, 'Quads, hamstrings, calves, core', 1),
+  ((SELECT id FROM program_templates WHERE name = 'Upper/Lower'), 'Upper B', 3, 'Chest, back, shoulders, arms', 2),
+  ((SELECT id FROM program_templates WHERE name = 'Upper/Lower'), 'Lower B', 4, 'Quads, hamstrings, calves, core', 3),
+  -- PPL (6 days)
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Push', 1, 'Chest, shoulders, triceps', 0),
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Pull', 2, 'Back, biceps, rear delts', 1),
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Legs', 3, 'Quads, hamstrings, calves, core', 2),
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Push B', 4, 'Chest, shoulders, triceps', 3),
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Pull B', 5, 'Back, biceps, rear delts', 4),
+  ((SELECT id FROM program_templates WHERE name = 'PPL (Push/Pull/Legs)'), 'Legs B', 6, 'Quads, hamstrings, calves, core', 5),
+  -- GZCLP (3 days)
+  ((SELECT id FROM program_templates WHERE name = 'GZCLP'), 'GZCLP Day A', 1, 'Squat + bench focus', 0),
+  ((SELECT id FROM program_templates WHERE name = 'GZCLP'), 'GZCLP Day B', 2, 'Deadlift + OHP focus', 1),
+  ((SELECT id FROM program_templates WHERE name = 'GZCLP'), 'GZCLP Day C', 3, 'Squat + bench variation', 2),
+  -- Muscular Endurance (4 days)
+  ((SELECT id FROM program_templates WHERE name = 'Muscular Endurance'), 'Upper Circuit', 1, 'Upper body endurance', 0),
+  ((SELECT id FROM program_templates WHERE name = 'Muscular Endurance'), 'Lower Circuit', 2, 'Lower body endurance', 1),
+  ((SELECT id FROM program_templates WHERE name = 'Muscular Endurance'), 'Full Body Circuit', 3, 'Total body conditioning', 2),
+  ((SELECT id FROM program_templates WHERE name = 'Muscular Endurance'), 'Conditioning', 4, 'Mixed endurance + core', 3);
+
+-- =========================================================================
+-- Template Exercises
+-- =========================================================================
+
+-- Helper: each row references (template_day via label+template, exercise via name)
+-- Format: (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order)
+
+-- ---- Full Body A ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body A'),
+   (SELECT id FROM exercises WHERE name = 'Développé couché'), 3, '8-12', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body A'),
+   (SELECT id FROM exercises WHERE name = 'Squat barre'), 3, '8-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body A'),
+   (SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body A'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body A'),
+   (SELECT id FROM exercises WHERE name = 'Crunchs'), 3, '15-20', 60, 4);
+
+-- ---- Full Body B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body B'),
+   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 3, '8-12', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body B'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre roumain'), 3, '8-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body B'),
+   (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body B'),
+   (SELECT id FROM exercises WHERE name = 'Arnold Press Haltères'), 3, '8-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body B'),
+   (SELECT id FROM exercises WHERE name = 'Gainage planche'), 3, '30-60s', 60, 4);
+
+-- ---- Full Body C ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body C'),
+   (SELECT id FROM exercises WHERE name = 'Pompes'), 3, '10-15', 60, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body C'),
+   (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 3, '10-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body C'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body C'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Full Body' AND td.day_label = 'Full Body C'),
+   (SELECT id FROM exercises WHERE name = 'Crunch assis machine'), 3, '12-15', 60, 4);
+
+-- ---- Upper A ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Développé couché'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), 4, '8-10', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Arnold Press Haltères'), 3, '10-12', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Extension triceps corde'), 3, '10-12', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper A'),
+   (SELECT id FROM exercises WHERE name = 'Curls stricts barre'), 3, '10-12', 60, 5);
+
+-- ---- Lower A ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Squat barre'), 4, '6-8', 120, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre roumain'), 3, '8-10', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Presse à cuisse'), 3, '10-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Leg Curl assis'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), 4, '12-15', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower A'),
+   (SELECT id FROM exercises WHERE name = 'Crunch assis machine'), 3, '12-15', 60, 5);
+
+-- ---- Upper B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise large pronation'), 4, '8-10', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Papillon inverse'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Skull Crusher incliné'), 3, '10-12', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Upper B'),
+   (SELECT id FROM exercises WHERE name = 'Curls biceps inclinés'), 3, '10-12', 60, 5);
+
+-- ---- Lower B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Presse à cuisse'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre roumain'), 3, '10-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), 3, '12-15', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Leg Curl assis'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Extension mollet machine'), 4, '12-15', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Upper/Lower' AND td.day_label = 'Lower B'),
+   (SELECT id FROM exercises WHERE name = 'Crunch à genoux poulie'), 3, '12-15', 60, 5);
+
+-- ---- PPL Push ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Développé couché'), 4, '6-8', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Papillon bras tendus'), 3, '10-12', 60, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Arnold Press Haltères'), 3, '8-10', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Skull Crusher incliné'), 3, '10-12', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push'),
+   (SELECT id FROM exercises WHERE name = 'Extension triceps corde'), 3, '12-15', 60, 5);
+
+-- ---- PPL Pull ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), 4, '6-8', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), 3, '8-10', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Papillon inverse'), 3, '12-15', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Shrugs haltères'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Curls stricts barre'), 3, '8-10', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull'),
+   (SELECT id FROM exercises WHERE name = 'Curls biceps inclinés'), 3, '10-12', 60, 5);
+
+-- ---- PPL Legs ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Squat barre'), 4, '6-8', 120, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Presse à cuisse'), 3, '10-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre roumain'), 3, '8-10', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Leg Curl assis'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), 4, '12-15', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs'),
+   (SELECT id FROM exercises WHERE name = 'Crunch assis machine'), 3, '12-15', 60, 5);
+
+-- ---- PPL Push B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Pec Deck bras tendus'), 3, '10-12', 60, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Développé épaules haltères'), 3, '8-10', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Extension triceps corde'), 3, '12-15', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Push B'),
+   (SELECT id FROM exercises WHERE name = 'Dips'), 3, '8-12', 60, 5);
+
+-- ---- PPL Pull B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise large pronation'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Tractions'), 3, '6-10', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Papillon inverse'), 3, '12-15', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Shrugs haltères'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Curl marteau haltères'), 3, '10-12', 60, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Pull B'),
+   (SELECT id FROM exercises WHERE name = 'Curls biceps inclinés'), 3, '12-15', 60, 5);
+
+-- ---- PPL Legs B ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Presse à cuisse'), 4, '8-10', 90, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 3, '10-12', 90, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), 3, '12-15', 60, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Leg Curl assis'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Extension mollet machine'), 4, '15-20', 45, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'PPL (Push/Pull/Legs)' AND td.day_label = 'Legs B'),
+   (SELECT id FROM exercises WHERE name = 'Crunch à genoux poulie'), 3, '12-15', 60, 5);
+
+-- ---- GZCLP Day A (Squat T1 + Bench T2) ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day A'),
+   (SELECT id FROM exercises WHERE name = 'Squat barre'), 5, '3-5', 180, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day A'),
+   (SELECT id FROM exercises WHERE name = 'Développé couché'), 3, '8-10', 120, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day A'),
+   (SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day A'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '12-15', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day A'),
+   (SELECT id FROM exercises WHERE name = 'Crunch à genoux poulie'), 3, '10-15', 60, 4);
+
+-- ---- GZCLP Day B (Deadlift T1 + OHP T2) ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day B'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre'), 5, '3-5', 180, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day B'),
+   (SELECT id FROM exercises WHERE name = 'Arnold Press Haltères'), 3, '8-10', 120, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day B'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day B'),
+   (SELECT id FROM exercises WHERE name = 'Curls stricts barre'), 3, '8-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day B'),
+   (SELECT id FROM exercises WHERE name = 'Extension triceps corde'), 3, '10-12', 60, 4);
+
+-- ---- GZCLP Day C (Bench T1 + Squat T2) ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day C'),
+   (SELECT id FROM exercises WHERE name = 'Développé couché'), 5, '3-5', 180, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day C'),
+   (SELECT id FROM exercises WHERE name = 'Squat barre'), 3, '8-10', 120, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day C'),
+   (SELECT id FROM exercises WHERE name = 'Rangées prise large pronation'), 3, '8-12', 90, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day C'),
+   (SELECT id FROM exercises WHERE name = 'Curls biceps inclinés'), 3, '10-12', 60, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'GZCLP' AND td.day_label = 'GZCLP Day C'),
+   (SELECT id FROM exercises WHERE name = 'Skull Crusher incliné'), 3, '10-12', 60, 4);
+
+-- ---- Muscular Endurance — Upper Circuit ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Pompes'), 3, '15-20', 30, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 3, '15-20', 30, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Développé épaules haltères'), 3, '15-20', 30, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '15-20', 30, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Extension triceps haltère'), 3, '15-20', 30, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Upper Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Curl marteau haltères'), 3, '15-20', 30, 5);
+
+-- ---- Muscular Endurance — Lower Circuit ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 3, '15-20', 30, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Presse à cuisse'), 3, '15-20', 30, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Leg Curl assis'), 3, '15-20', 30, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), 3, '15-20', 30, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), 3, '20-25', 30, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Lower Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Gainage planche'), 3, '30-60s', 30, 5);
+
+-- ---- Muscular Endurance — Full Body Circuit ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 3, '15-20', 30, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Squat au poids du corps'), 3, '20-25', 30, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Tractions'), 3, '8-12', 30, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Élévations latérales'), 3, '15-20', 30, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Crunchs'), 3, '20-25', 30, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Full Body Circuit'),
+   (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 3, '20-25', 30, 5);
+
+-- ---- Muscular Endurance — Conditioning ----
+INSERT INTO template_exercises (template_day_id, exercise_id, sets, rep_range, rest_seconds, sort_order) VALUES
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Soulevé de terre roumain'), 3, '15-20', 45, 0),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Pompes'), 3, '15-20', 30, 1),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 3, '15-20', 30, 2),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 3, '15-20', 30, 3),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Crunch assis machine'), 3, '15-20', 30, 4),
+  ((SELECT td.id FROM template_days td JOIN program_templates pt ON td.template_id = pt.id WHERE pt.name = 'Muscular Endurance' AND td.day_label = 'Conditioning'),
+   (SELECT id FROM exercises WHERE name = 'Extension mollet machine'), 3, '20-25', 30, 5);
+
+-- =========================================================================
+-- Exercise Alternatives (gym → home/minimal swaps)
+-- =========================================================================
+
+INSERT INTO exercise_alternatives (exercise_id, alternative_exercise_id, equipment_context) VALUES
+  -- Home alternatives (bodyweight)
+  ((SELECT id FROM exercises WHERE name = 'Développé couché'),       (SELECT id FROM exercises WHERE name = 'Pompes'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Papillon bras tendus'),   (SELECT id FROM exercises WHERE name = 'Pompes'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Pec Deck bras tendus'),   (SELECT id FROM exercises WHERE name = 'Pompes'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), (SELECT id FROM exercises WHERE name = 'Tractions'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), (SELECT id FROM exercises WHERE name = 'Tractions'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Rangées prise large pronation'), (SELECT id FROM exercises WHERE name = 'Tractions'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Extension triceps corde'), (SELECT id FROM exercises WHERE name = 'Dips'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Skull Crusher incliné'),  (SELECT id FROM exercises WHERE name = 'Dips'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Crunch assis machine'),   (SELECT id FROM exercises WHERE name = 'Crunchs'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Crunch à genoux poulie'), (SELECT id FROM exercises WHERE name = 'Crunchs'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Extension du dos machine'), (SELECT id FROM exercises WHERE name = 'Gainage planche'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Presse à cuisse'),        (SELECT id FROM exercises WHERE name = 'Squat au poids du corps'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), (SELECT id FROM exercises WHERE name = 'Squat au poids du corps'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'home'),
+  ((SELECT id FROM exercises WHERE name = 'Extension mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'home'),
+  -- Minimal alternatives (dumbbells, no machines/cables/barbells)
+  ((SELECT id FROM exercises WHERE name = 'Développé couché'),       (SELECT id FROM exercises WHERE name = 'Développé haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Papillon bras tendus'),   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Pec Deck bras tendus'),   (SELECT id FROM exercises WHERE name = 'Développé haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Tirage latéral prise large'), (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Rangées prise serrée neutre'), (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Rangées prise large pronation'), (SELECT id FROM exercises WHERE name = 'Rowing haltère'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Extension triceps corde'), (SELECT id FROM exercises WHERE name = 'Extension triceps haltère'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Skull Crusher incliné'),  (SELECT id FROM exercises WHERE name = 'Extension triceps haltère'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Curls stricts barre'),    (SELECT id FROM exercises WHERE name = 'Curl marteau haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Crunch assis machine'),   (SELECT id FROM exercises WHERE name = 'Crunchs'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Crunch à genoux poulie'), (SELECT id FROM exercises WHERE name = 'Crunchs'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Extension du dos machine'), (SELECT id FROM exercises WHERE name = 'Gainage planche'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Presse à cuisse'),        (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'minimal'),
+  ((SELECT id FROM exercises WHERE name = 'Extension mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'minimal');

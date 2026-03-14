@@ -3,11 +3,13 @@ import type { Exercise } from "./database"
 export type UserGoal = "strength" | "hypertrophy" | "endurance" | "general_fitness"
 export type UserExperience = "beginner" | "intermediate" | "advanced"
 export type UserEquipment = "home" | "gym" | "minimal"
+export type UserGender = "male" | "female" | "other" | "prefer_not_to_say"
 
 export interface UserProfile {
   user_id: string
   age: number | null
   weight_kg: number | null
+  gender: UserGender | null
   goal: UserGoal
   experience: UserExperience
   equipment: UserEquipment
