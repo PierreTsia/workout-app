@@ -5,5 +5,6 @@
   "goHome": "Retour au training",
   "notFoundTitle": "Rien ici",
   "notFoundDescription": "Cette page a séché l'entraînement — elle n'existe pas.",
-  "details": "Stack trace"
+  "details": "Stack trace",
+  "mutationError": "Un problème est survenu, veuillez réessayer"
 }

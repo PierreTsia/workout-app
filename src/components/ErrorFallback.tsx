@@ -58,9 +58,12 @@ export function ErrorFallback({
 
       {isDev && (
         <div className="w-full max-w-lg">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowDetails((v) => !v)}
-            className="flex w-full items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            aria-expanded={showDetails}
+            className="w-full text-xs text-muted-foreground hover:text-foreground"
           >
             {t("details")}
             {showDetails ? (
@@ -68,7 +71,7 @@ export function ErrorFallback({
             ) : (
               <ChevronDown className="h-3 w-3" />
             )}
-          </button>
+          </Button>
           {showDetails && (
             <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-muted p-4 text-left text-xs text-muted-foreground">
               {error.message}

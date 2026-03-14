@@ -15,7 +15,7 @@ export function RouteErrorFallback() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="text-5xl">🔍</span>
+          <span className="text-5xl" aria-hidden="true">🔍</span>
           <h1 className="text-2xl font-bold text-foreground">
             {t("notFoundTitle")}
           </h1>
