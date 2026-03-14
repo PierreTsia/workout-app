@@ -6,7 +6,7 @@ export interface SessionState {
   currentDayId: string | null
   activeDayId: string | null
   exerciseIndex: number
-  setsData: Record<string, Array<{ reps: string; weight: string; done: boolean }>>
+  setsData: Record<string, Array<{ reps: string; weight: string; done: boolean; rir?: number }>>
   startedAt: number | null
   isActive: boolean
   totalSetsDone: number
