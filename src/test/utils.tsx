@@ -17,6 +17,7 @@ import enSettings from "@/locales/en/settings.json"
 import enAbout from "@/locales/en/about.json"
 import enExercise from "@/locales/en/exercise.json"
 import enFeedback from "@/locales/en/feedback.json"
+import enError from "@/locales/en/error.json"
 
 export function createTestI18n() {
   const instance = i18n.createInstance()
@@ -33,6 +34,7 @@ export function createTestI18n() {
         about: enAbout,
         exercise: enExercise,
         feedback: enFeedback,
+        error: enError,
       },
     },
     defaultNS: "common",
