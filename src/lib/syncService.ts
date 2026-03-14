@@ -6,6 +6,7 @@ import {
   sessionAtom,
   syncStatusAtom,
   queueSyncMetaAtom,
+  activeProgramIdAtom,
 } from "@/store/atoms"
 import type { WorkoutDay } from "@/types/database"
 
@@ -137,9 +138,11 @@ function resolveSessionMeta(
   // Try to get the day label from TanStack Query cache
   let label = ""
   if (session.currentDayId) {
+    const programId = store.get(activeProgramIdAtom)
     const days = queryClient.getQueryData<WorkoutDay[]>([
       "workout-days",
       userId,
+      programId,
     ])
     label =
       days?.find((d) => d.id === session.currentDayId)?.label ?? ""

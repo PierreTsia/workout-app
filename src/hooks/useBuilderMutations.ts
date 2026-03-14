@@ -29,13 +29,14 @@ export function useCreateDay() {
       return data
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
 
 export function useUpdateDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -58,13 +59,14 @@ export function useUpdateDay() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
 
 export function useDeleteDay() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -76,7 +78,7 @@ export function useDeleteDay() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
@@ -200,6 +202,7 @@ export function useDeleteExercise() {
 
 export function useReorderDays() {
   const user = useAtomValue(authAtom)
+  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -215,7 +218,7 @@ export function useReorderDays() {
       if (failed?.error) throw failed.error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id] })
+      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
     },
   })
 }
