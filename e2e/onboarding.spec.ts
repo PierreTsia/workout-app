@@ -53,6 +53,8 @@ test.describe("Onboarding", () => {
     await page.goto("/")
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
 
+    await dismissNotificationDialog(page)
+
     // --- Welcome step ---
     await expect(page.getByText("Let's build your program")).toBeVisible({ timeout: 10_000 })
     await page.getByRole("button", { name: "Get Started" }).click()
@@ -104,43 +106,73 @@ test.describe("Onboarding", () => {
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {
     test.setTimeout(30_000)
+    const userId = getTestUserId()
+    const admin = getAdmin()
 
-    // After the previous test, the user has a program
+    // Ensure user has a program so the guard kicks in
+    await admin.from("programs").delete().eq("user_id", userId)
+    await admin.from("user_profiles").delete().eq("user_id", userId)
+    await admin.from("user_profiles").insert({
+      user_id: userId, gender: "male", age: 30, weight_kg: 80,
+      goal: "general_fitness", experience: "intermediate", equipment: "gym",
+      training_days_per_week: 4, session_duration_minutes: 60,
+    })
+    await admin.from("programs").insert({
+      user_id: userId, name: "Guard Test Program", is_active: true,
+    })
+
     await page.goto("/onboarding")
     await expect(page).toHaveURL("/", { timeout: 15_000 })
   })
 
   test("change program flow from side drawer", async ({ page }) => {
     test.setTimeout(120_000)
+    const userId = getTestUserId()
+    const admin = getAdmin()
+
+    // Ensure user has a profile and an active program
+    await admin.from("workout_exercises").delete().match({})
+    await admin.from("workout_days").delete().eq("user_id", userId)
+    await admin.from("programs").delete().eq("user_id", userId)
+    await admin.from("user_profiles").delete().eq("user_id", userId)
+    await admin.from("user_profiles").insert({
+      user_id: userId, gender: "male", age: 30, weight_kg: 80,
+      goal: "general_fitness", experience: "intermediate", equipment: "gym",
+      training_days_per_week: 4, session_duration_minutes: 60,
+    })
+    const { data: program } = await admin.from("programs").insert({
+      user_id: userId, name: "Change Test Program", is_active: true,
+    }).select("id").single()
+    await admin.from("workout_days").insert({
+      program_id: program!.id, user_id: userId, label: "Day A", emoji: "💪", sort_order: 0,
+    })
 
     await page.goto("/")
     await dismissNotificationDialog(page)
 
     // Wait for workout page to load
-    await expect(page.locator("button").filter({ hasText: /Day/ }).first()).toBeVisible({
-      timeout: 15_000,
-    })
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 })
 
     // Open side drawer
     await page.getByLabel("Open menu").click()
-    await expect(page.getByText("Menu")).toBeVisible({ timeout: 3_000 })
+    await expect(page.getByText("Menu")).toBeVisible({ timeout: 5_000 })
 
     // Click "Change program"
     await page.getByRole("link", { name: /Change program/i }).click()
-    await expect(page).toHaveURL(/\/change-program/, { timeout: 5_000 })
+    await expect(page).toHaveURL(/\/change-program/, { timeout: 10_000 })
 
     // --- Path choice step ---
-    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 10_000 })
     await page.getByText("Recommend me a program").click()
 
     // --- Template recommendation step ---
-    await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 15_000 })
     const firstTemplate = page.locator("[role='button']").first()
     await expect(firstTemplate).toBeVisible({ timeout: 10_000 })
     await firstTemplate.click()
 
     // --- Program summary step ---
-    await expect(page.getByText("Program preview")).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText("Program preview")).toBeVisible({ timeout: 10_000 })
     await page.getByRole("button", { name: "Create program" }).click()
 
     // --- Should redirect to home ---

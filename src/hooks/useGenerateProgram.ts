@@ -24,11 +24,13 @@ export function useGenerateProgram() {
     mutationFn: async ({ template, profile }: GenerateProgramInput) => {
       if (!user) throw new Error("Not authenticated")
 
-      await supabase
+      const { error: deactivateError } = await supabase
         .from("programs")
         .update({ is_active: false })
         .eq("user_id", user.id)
         .eq("is_active", true)
+
+      if (deactivateError) throw deactivateError
 
       const programName = template?.name ?? "My Program"
       const { data: program, error: programError } = await supabase

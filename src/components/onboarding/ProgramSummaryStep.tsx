@@ -37,15 +37,18 @@ export function ProgramSummaryStep({
     return ids
   }, [template, profile.equipment, alternatives])
 
+  const sortedSwappedIds = useMemo(() => Array.from(swappedIds).sort(), [swappedIds])
+
   const { data: swappedExercises = [] } = useQuery({
-    queryKey: ["exercises-by-ids", [...swappedIds]],
-    enabled: swappedIds.size > 0,
+    queryKey: ["exercises-by-ids", sortedSwappedIds],
+    enabled: sortedSwappedIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("exercises")
         .select("id, name, emoji")
-        .in("id", [...swappedIds])
-      return data ?? []
+        .in("id", sortedSwappedIds)
+      if (error) throw error
+      return data
     },
   })
 
