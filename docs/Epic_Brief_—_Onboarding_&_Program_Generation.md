@@ -46,7 +46,7 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
 
 **In scope:**
 
-1. **Programs abstraction** — new `programs` table (`id`, `user_id`, `name`, `template_id` (nullable — null for self-directed programs), `is_active`, `created_at`). `name` is copied from the template at creation time (e.g. "PPL (Push/Pull/Legs)") or defaults to "My Program" for self-directed programs. `workout_days` gains a `program_id` FK. This groups days into switchable programs: deactivate old, create new, history stays linked via `sessions.workout_day_id`. All existing queries on `workout_days` are updated to filter by active program. **This is the highest-risk change** — every hook that reads/writes `workout_days` (`useWorkoutDays`, `useWorkoutExercises`, `useBuilderMutations`, session creation) must be updated to scope through the active program.
+1. **Programs abstraction** — new `programs` table (`id`, `user_id`, `name`, `template_id` (nullable — null for self-directed programs), `is_active`, `created_at`). `name` is copied from the template at creation time (e.g. "PPL (Push/Pull/Legs)") or defaults to "My Program" for self-directed programs. `workout_days` gains a `program_id` FK. This groups days into switchable programs: deactivate old, create new, history stays linked via `sessions.workout_day_id`. All existing queries on `workout_days` are updated to filter by active program. **This is the highest-risk change** — every hook that reads/writes `workout_days` (`useWorkoutDays`, `useBuilderMutations`, session creation) must be updated to scope through the active program. (`useWorkoutExercises` queries by `dayId` and inherits the scoping automatically.)
 
 2. **User profile model** — new `user_profiles` table:
    - `user_id` (PK, FK to auth.users)
@@ -107,8 +107,8 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
    ~20 lines of pure logic. No ML, no black box.
 
 8. **Program generation** — given a selected template + user profile:
-   1. Create a `programs` row (user_id, template_id, is_active = true)
-   2. Deactivate any existing active program (is_active = false)
+   1. Deactivate any existing active program (is_active = false)
+   2. Create a `programs` row (user_id, name, template_id, is_active = true)
    3. For each `template_day`: create a `workout_day` (program_id, user_id, label, emoji, sort_order)
    4. For each `template_exercise`: resolve equipment swaps if needed, then create a `workout_exercise` with adapted sets/reps based on experience level:
       - Beginner: higher end of rep range, standard sets (3), longer rest
@@ -151,7 +151,8 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
 - Migrations: `programs`, `user_profiles`, `program_templates`, `template_days`, `template_exercises`, `exercise_alternatives`, `analytics_events`
 - Add `program_id` FK to `workout_days`
 - TypeScript types for all new entities
-- **Refactor all existing hooks** that touch `workout_days` to scope through active program (`useWorkoutDays`, `useWorkoutExercises`, `useBuilderMutations`, session creation). This is the highest-risk work — must be done carefully with tests.
+- **Refactor all existing hooks** that touch `workout_days` to scope through active program (`useWorkoutDays`, `useBuilderMutations`, session creation). `useWorkoutExercises` queries by `dayId` and inherits the scoping automatically. This is the highest-risk work — must be done carefully with tests.
+- Delete `useBootstrapProgram` (its only consumer is removed in this phase)
 - New WorkoutPage empty state component (purposeful UI when no workout_days exist under active program)
 
 **Phase 2 — Templates + Onboarding Wizard + Program Generation**
@@ -163,7 +164,7 @@ This epic replaces the hardcoded Push/Pull/Legs bootstrap with a guided onboardi
 - Questionnaire saves to user_profiles
 - Program generation logic (template + profile → programs + workout_days + workout_exercises)
 - Self-directed path (empty program + builder redirect)
-- Wire onboarding redirect on first login (no `programs` rows) and delete `useBootstrapProgram`
+- Wire onboarding redirect on first login (no `programs` rows)
 
 **Phase 3 — Polish + Switching + Analytics**
 

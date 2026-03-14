@@ -369,7 +369,7 @@ flowchart TD
 | `src/hooks/useActiveProgram.ts` | React Query: `programs WHERE user_id AND is_active = true`. Query key: `["active-program", userId]`. |
 | `src/hooks/useTemplates.ts` | React Query: `program_templates` with nested `template_days(template_exercises(exercise:exercises(*)))`. Returns full template tree. |
 | `src/hooks/useCreateUserProfile.ts` | Mutation: `INSERT INTO user_profiles`. Upsert pattern (ON CONFLICT DO UPDATE) for re-onboarding. |
-| `src/hooks/useGenerateProgram.ts` | Mutation: creates `programs` row, deactivates old program, creates `workout_days` + `workout_exercises`. Invalidates `["workout-days"]` and `["active-program"]` caches. Sets `hasProgramAtom = true`. |
+| `src/hooks/useGenerateProgram.ts` | Mutation: deactivates old program, creates `programs` row, creates `workout_days` + `workout_exercises`. Invalidates `["workout-days"]` and `["active-program"]` caches. Sets `hasProgramAtom = true` and `activeProgramIdAtom`. |
 | `src/hooks/useExerciseAlternatives.ts` | React Query: fetches `exercise_alternatives`. Used by program generation for swap resolution. |
 | `src/lib/recommendTemplates.ts` | Pure function: `(templates, profile) => rankedTemplates[]`. Filter by frequency, rank by goal match, tiebreak by experience. |
 | `src/lib/generateProgram.ts` | Pure logic for adapting sets/reps by experience. Used by `useGenerateProgram`. |
@@ -486,7 +486,7 @@ flowchart TD
 8. New atoms: `hasProgramAtom`, `hasProgramLoadingAtom`, `activeProgramIdAtom` in `file:src/store/atoms.ts`
 9. Auth-time check: add `checkProgramStatus()` in `file:src/lib/supabase.ts` — sets all three atoms
 10. `useActiveProgram` hook
-11. Refactor `useWorkoutDays`: accept `programId`, update filter and query key
+11. Refactor `useWorkoutDays`: read `programId` from `activeProgramIdAtom`, update filter and query key
 12. Refactor `useBuilderMutations.useCreateDay`: accept and include `program_id`
 13. Refactor `syncService.resolveSessionMeta`: update cache key lookup
 14. `OnboardingGuard` component
