@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Navigate, useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { hasProgramAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
+import { useTrackEvent } from "@/hooks/useTrackEvent"
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep"
 import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
@@ -15,6 +16,14 @@ import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
 
 type Step = "welcome" | "questionnaire" | "path" | "recommendation" | "summary"
+
+const STEP_NAMES: Record<Step, string> = {
+  welcome: "welcome",
+  questionnaire: "questionnaire",
+  path: "path_choice",
+  recommendation: "template_recommendation",
+  summary: "program_summary",
+}
 
 export function OnboardingPage() {
   const { t } = useTranslation("onboarding")
@@ -27,6 +36,23 @@ export function OnboardingPage() {
 
   const createProfile = useCreateUserProfile()
   const generateProgram = useGenerateProgram()
+  const trackEvent = useTrackEvent()
+  const trackedStart = useRef(false)
+
+  useEffect(() => {
+    if (!trackedStart.current) {
+      trackedStart.current = true
+      trackEvent.mutate({ eventType: "onboarding_started" })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function trackStepCompleted(stepKey: Step) {
+    const stepIndex = Object.keys(STEP_NAMES).indexOf(stepKey) + 1
+    trackEvent.mutate({
+      eventType: "onboarding_step_completed",
+      payload: { step: stepIndex, step_name: STEP_NAMES[stepKey] },
+    })
+  }
 
   if (hasProgram) return <Navigate to="/" replace />
 
@@ -34,6 +60,7 @@ export function OnboardingPage() {
 
   async function handleQuestionnaireComplete(data: QuestionnaireOutput) {
     await createProfile.mutateAsync(data)
+    trackStepCompleted("questionnaire")
 
     const profile: UserProfile = {
       user_id: "",
@@ -54,19 +81,40 @@ export function OnboardingPage() {
 
   async function handleSelfDirected() {
     if (!profileData) return
-    await generateProgram.mutateAsync({ template: null, profile: profileData })
+    trackStepCompleted("path")
+    const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
+    trackEvent.mutate({
+      eventType: "program_created",
+      payload: { program_id: programId, template_id: null, path: "self_directed" },
+    })
     navigate("/builder", { replace: true })
   }
 
   async function handleSkipTemplate() {
     if (!profileData) return
-    await generateProgram.mutateAsync({ template: null, profile: profileData })
+    trackEvent.mutate({
+      eventType: "onboarding_skipped",
+      payload: { from_step: 4 },
+    })
+    const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
+    trackEvent.mutate({
+      eventType: "program_created",
+      payload: { program_id: programId, template_id: null, path: "guided" },
+    })
     navigate("/builder", { replace: true })
   }
 
   async function handleConfirmProgram() {
     if (!profileData || !selectedTemplate) return
-    await generateProgram.mutateAsync({ template: selectedTemplate, profile: profileData })
+    trackStepCompleted("summary")
+    const programId = await generateProgram.mutateAsync({
+      template: selectedTemplate,
+      profile: profileData,
+    })
+    trackEvent.mutate({
+      eventType: "program_created",
+      payload: { program_id: programId, template_id: selectedTemplate.id, path: "guided" },
+    })
     navigate("/", { replace: true })
   }
 
@@ -88,7 +136,14 @@ export function OnboardingPage() {
           <Dumbbell className="h-6 w-6 text-primary" />
         </header>
 
-        {step === "welcome" && <WelcomeStep onNext={() => setStep("questionnaire")} />}
+        {step === "welcome" && (
+          <WelcomeStep
+            onNext={() => {
+              trackStepCompleted("welcome")
+              setStep("questionnaire")
+            }}
+          />
+        )}
 
         {step === "questionnaire" && (
           <QuestionnaireStep onNext={handleQuestionnaireComplete} />
@@ -96,7 +151,10 @@ export function OnboardingPage() {
 
         {step === "path" && (
           <PathChoiceStep
-            onGuided={() => setStep("recommendation")}
+            onGuided={() => {
+              trackStepCompleted("path")
+              setStep("recommendation")
+            }}
             onSelfDirected={handleSelfDirected}
           />
         )}
@@ -105,6 +163,11 @@ export function OnboardingPage() {
           <TemplateRecommendationStep
             profile={profileData}
             onSelect={(tpl) => {
+              trackStepCompleted("recommendation")
+              trackEvent.mutate({
+                eventType: "template_selected",
+                payload: { template_id: tpl.id, template_name: tpl.name },
+              })
               setSelectedTemplate(tpl)
               setStep("summary")
             }}

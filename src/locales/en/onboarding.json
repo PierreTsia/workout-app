@@ -56,6 +56,10 @@
 
   "generating": "Generating your program…",
 
+  "changeProgramTitle": "Switch program",
+  "changeProgramDescription": "Pick a new training plan — your workout history stays intact.",
+  "switchingProgram": "Switching your program…",
+
   "validation_required": "Required",
   "validation_positive": "Must be positive",
   "validation_number": "Must be a number"
