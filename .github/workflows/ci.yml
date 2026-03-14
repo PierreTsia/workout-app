@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  install:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,75 +16,39 @@ jobs:
           node-version: lts/*
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - uses: actions/cache/save@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ github.sha }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: dist
-          retention-days: 1
-
-  lint:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ github.sha }}
       - run: npm run lint
 
   type-check:
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ github.sha }}
+          cache: npm
+      - run: npm ci
       - run: tsc -b
 
   unit:
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ github.sha }}
+          cache: npm
+      - run: npm ci
       - run: npx vitest run --reporter=verbose
 
   e2e:
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ github.sha }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-output
-          path: dist
+          cache: npm
+      - run: npm ci
 
       - name: Cache Playwright browsers
         id: playwright-cache
