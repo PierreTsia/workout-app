@@ -1,0 +1,9 @@
+{
+  "title": "Dropped the bar",
+  "description": "Something crashed mid-set. Hit retry to get back on track, or head home and start fresh.",
+  "retry": "Retry",
+  "goHome": "Back to workout",
+  "notFoundTitle": "Nothing here",
+  "notFoundDescription": "This page skipped leg day — it doesn't exist.",
+  "details": "Stack trace"
+}
