@@ -49,12 +49,21 @@ jobs:
           node-version: lts/*
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
 
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - run: supabase start
+
+      - name: Build, install browsers, start Supabase in parallel
+        run: |
+          npx vite build &
+          npx playwright install --with-deps chromium &
+          supabase start &
+          wait
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+
       - run: supabase db reset
 
       - run: npx playwright test
