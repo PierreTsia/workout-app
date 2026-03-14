@@ -9,18 +9,22 @@ import { BuilderPage } from "@/pages/BuilderPage"
 import { AboutPage } from "@/pages/AboutPage"
 import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
+import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+    errorElement: <RouteErrorFallback />,
   },
   {
     path: "/about",
     element: <AboutPage />,
+    errorElement: <RouteErrorFallback />,
   },
   {
     element: <AuthGuard />,
+    errorElement: <RouteErrorFallback />,
     children: [
       {
         element: <AppShell />,
