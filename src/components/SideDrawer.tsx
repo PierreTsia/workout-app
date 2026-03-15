@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, RefreshCw, ChevronDown } from "lucide-react"
+import { LogOut, Download, Info, Shield, Library, ChevronDown } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -152,9 +152,9 @@ export function SideDrawer() {
               </Link>
             </Button>
             <Button variant="ghost" className="justify-start" asChild>
-              <Link to="/change-program" onClick={closeDrawer}>
-                <RefreshCw className="h-4 w-4" />
-                {t("common:changeProgram")}
+              <Link to="/library" onClick={closeDrawer}>
+                <Library className="h-4 w-4" />
+                {t("common:library")}
               </Link>
             </Button>
             <AdminOnly>

@@ -4,22 +4,21 @@ import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import type { Program } from "@/types/onboarding"
 
-export function useActiveProgram() {
+export function useUserPrograms() {
   const user = useAtomValue(authAtom)
 
-  return useQuery<Program | null>({
-    queryKey: ["active-program", user?.id],
+  return useQuery<Program[]>({
+    queryKey: ["user-programs", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("programs")
         .select("id, user_id, name, template_id, is_active, archived_at, created_at")
         .eq("user_id", user!.id)
-        .eq("is_active", true)
-        .single()
+        .order("is_active", { ascending: false })
+        .order("created_at", { ascending: false })
 
-      if (error && error.code === "PGRST116") return null
       if (error) throw error
-      return data as Program
+      return data as Program[]
     },
     enabled: !!user,
   })

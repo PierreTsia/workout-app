@@ -11,7 +11,7 @@ import { AboutPage } from "@/pages/AboutPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
 import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
-import { ChangeProgramPage } from "@/pages/ChangeProgramPage"
+import { LibraryPage } from "@/pages/LibraryPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
@@ -53,8 +53,8 @@ export const router = createBrowserRouter([
                 element: <BuilderPage />,
               },
               {
-                path: "/change-program",
-                element: <ChangeProgramPage />,
+                path: "/library",
+                element: <LibraryPage />,
               },
               {
                 element: <AdminGuard />,
