@@ -57,9 +57,7 @@ export function ProgramDetailSheet({ program, open, onOpenChange }: ProgramDetai
           </div>
         ) : (
           <div className="mt-4 grid gap-3">
-            {(days ?? [])
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((day) => (
+            {(days ?? []).map((day) => (
                 <DayCard
                   key={day.id}
                   label={`${day.emoji} ${day.label}`}

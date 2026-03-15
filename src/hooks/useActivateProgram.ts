@@ -41,10 +41,16 @@ export function useActivateProgram() {
 
       if (activateError) {
         if (currentId) {
-          await supabase
+          const { error: rollbackError } = await supabase
             .from("programs")
             .update({ is_active: true })
             .eq("id", currentId)
+
+          if (rollbackError) {
+            throw new Error(
+              `Activation failed and rollback also failed: ${activateError.message} | Rollback: ${rollbackError.message}`,
+            )
+          }
         }
         throw activateError
       }
