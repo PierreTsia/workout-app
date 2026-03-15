@@ -40,6 +40,8 @@
   "restOverNotif": "Rest over!",
   "restOverBody": "Time for your next set",
   "finishEarly": "Finish workout early",
+  "weightPerArm": "{{unit}}/arm",
+  "addedWeight": "+{{unit}}",
   "rir.title": "Reps in Reserve",
   "rir.description": "How many more reps could you have done?",
   "rir.confirm": "Confirm",

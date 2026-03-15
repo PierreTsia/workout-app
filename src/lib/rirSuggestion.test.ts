@@ -56,4 +56,41 @@ describe("computeIntraSessionSuggestion", () => {
     const result = computeIntraSessionSuggestion(4, 0, "10", "kg")
     expect(result).toEqual({ weight: 2.5, reps: "10" })
   })
+
+  describe("dumbbell equipment", () => {
+    it("uses 2 kg increment for dumbbell RIR 4+ (easy)", () => {
+      const result = computeIntraSessionSuggestion(4, 20, "10", "kg", "dumbbell")
+      expect(result).toEqual({ weight: 22, reps: "10" })
+    })
+
+    it("uses 2 kg decrement for dumbbell RIR 0 (failure)", () => {
+      const result = computeIntraSessionSuggestion(0, 20, "10", "kg", "dumbbell")
+      expect(result).toEqual({ weight: 18, reps: "10" })
+    })
+
+    it("uses 5 lbs increment for dumbbell imperial RIR 4+", () => {
+      const result = computeIntraSessionSuggestion(4, 35, "8", "lbs", "dumbbell")
+      expect(result).toEqual({ weight: 40, reps: "8" })
+    })
+
+    it("keeps weight for dumbbell RIR 1-3", () => {
+      const result = computeIntraSessionSuggestion(2, 16, "12", "kg", "dumbbell")
+      expect(result).toEqual({ weight: 16, reps: "12" })
+    })
+
+    it("floors dumbbell weight at 2 kg on failure", () => {
+      const result = computeIntraSessionSuggestion(0, 2, "15", "kg", "dumbbell")
+      expect(result).toEqual({ weight: 2, reps: "15" })
+    })
+  })
+
+  it("uses default increment when equipment is barbell", () => {
+    const result = computeIntraSessionSuggestion(4, 80, "5", "kg", "barbell")
+    expect(result).toEqual({ weight: 82.5, reps: "5" })
+  })
+
+  it("uses default increment when equipment is undefined", () => {
+    const result = computeIntraSessionSuggestion(4, 80, "5", "kg", undefined)
+    expect(result).toEqual({ weight: 82.5, reps: "5" })
+  })
 })

@@ -269,4 +269,86 @@ describe("SetsTable", () => {
     expect(rest).not.toBeNull()
     expect(rest!.durationSeconds).toBe(90)
   })
+
+  it("does NOT start rest timer when completing the last remaining set (#47)", async () => {
+    const user = userEvent.setup()
+    const oneLeftSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { reps: "10", weight: "60", done: true, rir: 2 },
+          { reps: "10", weight: "60", done: false },
+        ],
+      },
+      totalSetsDone: 1,
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, oneLeftSession)
+      store.set(restAtom, null)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(store.get(restAtom)).toBeNull()
+    const next = store.get(sessionAtom)
+    expect(next.setsData["workout-ex-1"].every((s) => s.done)).toBe(true)
+  })
+
+  it("shows 'kg/arm' label when equipment is dumbbell (#49)", () => {
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} equipment="dumbbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    expect(screen.getByText("kg/arm")).toBeInTheDocument()
+  })
+
+  it("shows '+kg' label when equipment is bodyweight (#50)", () => {
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} equipment="bodyweight" />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    expect(screen.getByText("+kg")).toBeInTheDocument()
+  })
+
+  it("shows plain unit label for barbell equipment", () => {
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    expect(screen.getByText("kg")).toBeInTheDocument()
+  })
+
+  it("uses dumbbell increment (2kg) for RIR 4+ when equipment is dumbbell (#49)", async () => {
+    mockRirValue = 4
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} equipment="dumbbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const next = store.get(sessionAtom)
+    const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.weight).toBe("62")
+  })
 })

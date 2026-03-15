@@ -40,6 +40,8 @@
   "restOverNotif": "Repos terminé !",
   "restOverBody": "C'est parti pour la prochaine série",
   "finishEarly": "Terminer la séance",
+  "weightPerArm": "{{unit}}/bras",
+  "addedWeight": "+{{unit}}",
   "rir.title": "Répétitions en réserve",
   "rir.description": "Combien de répétitions auriez-vous encore pu faire ?",
   "rir.confirm": "Valider",

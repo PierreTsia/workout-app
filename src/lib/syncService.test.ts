@@ -129,6 +129,7 @@ function readSessionMeta() {
 let enqueueSetLog: typeof import("./syncService").enqueueSetLog
 let enqueueSessionFinish: typeof import("./syncService").enqueueSessionFinish
 let drainQueue: typeof import("./syncService").drainQueue
+let scheduleImmediateDrain: typeof import("./syncService").scheduleImmediateDrain
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -187,6 +188,7 @@ describe("SyncService", () => {
     enqueueSetLog = mod.enqueueSetLog
     enqueueSessionFinish = mod.enqueueSessionFinish
     drainQueue = mod.drainQueue
+    scheduleImmediateDrain = mod.scheduleImmediateDrain
   })
 
   afterEach(() => {
@@ -483,6 +485,53 @@ describe("SyncService", () => {
       expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
       const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
       expect(insertArg).toEqual(expect.objectContaining({ rir: null }))
+    })
+  })
+
+  // =========================================================================
+  // scheduleImmediateDrain (#48)
+  // =========================================================================
+
+  describe("scheduleImmediateDrain", () => {
+    it("triggers drainQueue when user is authenticated and online", async () => {
+      vi.stubGlobal("navigator", { onLine: true })
+      enqueueSetLog(makeSetLogPayload())
+
+      scheduleImmediateDrain()
+
+      // Give the drain a tick to start processing
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("does not drain when offline", () => {
+      vi.stubGlobal("navigator", { onLine: false })
+      enqueueSetLog(makeSetLogPayload())
+
+      scheduleImmediateDrain()
+
+      expect(readQueue()).toHaveLength(1)
+    })
+
+    it("does not drain when no user is authenticated", () => {
+      vi.stubGlobal("navigator", { onLine: true })
+      mockStore.get.mockImplementation((atom: unknown) => {
+        if (atom === AUTH_ATOM) return null
+        return undefined
+      })
+
+      // Can't enqueue without auth, so manually place an item
+      localStorage.setItem(
+        `offlineQueue:${USER_ID}`,
+        JSON.stringify([{ type: "set_log", fingerprint: "test" }]),
+      )
+
+      scheduleImmediateDrain()
+
+      // Queue should remain untouched — no userId means no drain
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
     })
   })
 })
