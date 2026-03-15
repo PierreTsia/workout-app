@@ -92,6 +92,7 @@ function makeSetLogPayload(
     estimatedOneRM: 133,
     wasPr: false,
     loggedAt: 1000,
+    rir: 3,
     ...overrides,
   }
 }
@@ -462,6 +463,26 @@ describe("SyncService", () => {
 
       expect(statusCalls[0]).toBe("syncing")
       expect(statusCalls[1]).toBe("synced")
+    })
+
+    it("passes rir value through to the set_logs insert", async () => {
+      enqueueSetLog(makeSetLogPayload({ rir: 3 }))
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
+      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
+      expect(insertArg).toEqual(expect.objectContaining({ rir: 3 }))
+    })
+
+    it("maps undefined rir to null for old payloads without rir field", async () => {
+      enqueueSetLog(makeSetLogPayload({ rir: undefined }))
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
+      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
+      expect(insertArg).toEqual(expect.objectContaining({ rir: null }))
     })
   })
 })

@@ -70,6 +70,7 @@ export interface SetLog {
   estimated_1rm: number | null
   was_pr: boolean
   logged_at: string
+  rir: number | null
 }
 
 export type FeedbackSourceScreen = "workout" | "builder" | "library_picker"

@@ -1,0 +1,88 @@
+---
+description: Avoid unnecessary useEffect — prefer keys, derived state, and event handlers
+globs: "**/*.{tsx,jsx}"
+alwaysApply: false
+---
+
+# No Unnecessary Effects
+
+Reference: https://react.dev/learn/you-might-not-need-an-effect
+
+`useEffect` is an escape hatch for synchronizing with **external systems** (DOM, network, third-party libs). It is NOT for reacting to props/state changes. Using `setState` inside `useEffect` to "sync" internal state causes cascading re-renders and is flagged by `react-hooks/set-state-in-effect`.
+
+## Rules
+
+1. **Never call `setState` inside `useEffect` to reset state when a prop changes.** Use a `key` on the component instead — React will unmount/remount it with fresh state.
+2. **Never derive state from props/state via `useEffect`.** Calculate it during rendering (plain `const` or `useMemo`).
+3. **Never trigger side effects in response to user events via `useEffect`.** Put the logic in the event handler directly.
+
+## Common anti-patterns and fixes
+
+### Resetting state when a prop changes
+
+```tsx
+// ❌ BAD — setState in useEffect to reset on prop change
+function RirDrawer({ open }: { open: boolean }) {
+  const [selected, setSelected] = useState(2)
+  useEffect(() => {
+    if (open) setSelected(2)
+  }, [open])
+}
+
+// ✅ GOOD — use key in the parent to remount with fresh state
+<RirDrawer key={pendingSetIdx} open={pendingSetIdx !== null} />
+```
+
+### Deriving values from state
+
+```tsx
+// ❌ BAD — redundant state + effect
+const [filteredItems, setFilteredItems] = useState([])
+useEffect(() => {
+  setFilteredItems(items.filter(i => i.active))
+}, [items])
+
+// ✅ GOOD — derive during render
+const filteredItems = items.filter(i => i.active)
+
+// ✅ GOOD — memoize if expensive
+const filteredItems = useMemo(() => items.filter(i => i.active), [items])
+```
+
+### Sending data on user action
+
+```tsx
+// ❌ BAD — effect reacting to state set by an event handler
+const [submitted, setSubmitted] = useState(false)
+useEffect(() => {
+  if (submitted) sendMessage(message)
+}, [submitted, message])
+
+// ✅ GOOD — call directly in the event handler
+function handleSubmit() {
+  sendMessage(message)
+  setShowForm(false)
+}
+```
+
+### Notifying parent of state change
+
+```tsx
+// ❌ BAD — effect to propagate state up
+useEffect(() => {
+  onChange(isOn)
+}, [isOn, onChange])
+
+// ✅ GOOD — call parent callback in the same event handler that changes state
+function handleClick() {
+  setIsOn(!isOn)
+  onChange(!isOn)
+}
+```
+
+## When useEffect IS appropriate
+
+- Subscribing to external stores (`useSyncExternalStore` is even better)
+- Fetching data when the component is displayed (TanStack Query / framework primitives are better)
+- Synchronizing with non-React DOM (e.g. imperative map widget, analytics on mount)
+- Setting up/tearing down event listeners on `window` or `document`

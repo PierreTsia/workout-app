@@ -39,5 +39,19 @@
   "skip": "Passer",
   "restOverNotif": "Repos terminé !",
   "restOverBody": "C'est parti pour la prochaine série",
-  "finishEarly": "Terminer la séance"
+  "finishEarly": "Terminer la séance",
+  "rir.title": "Répétitions en réserve",
+  "rir.description": "Combien de répétitions auriez-vous encore pu faire ?",
+  "rir.confirm": "Valider",
+  "rir.infoText": "Le RIR mesure combien de répétitions il vous restait avant l'échec. Il aide l'app à suggérer des ajustements de charge.",
+  "rir.label.0": "Maximum",
+  "rir.label.1": "Très difficile",
+  "rir.label.2": "Difficile",
+  "rir.label.3": "Modéré",
+  "rir.label.4": "Facile",
+  "rir.moreReps_zero": "À l'échec",
+  "rir.moreReps_one": "{{count}} répétition de plus",
+  "rir.moreReps_other": "{{count}} répétitions de plus",
+  "rir.setInfo": "#{{setNumber}} série : {{reps}} × {{weight}} {{unit}}",
+  "rir.infoLabel": "Info"
 }

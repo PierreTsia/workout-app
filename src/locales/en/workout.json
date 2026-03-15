@@ -39,5 +39,19 @@
   "skip": "Skip",
   "restOverNotif": "Rest over!",
   "restOverBody": "Time for your next set",
-  "finishEarly": "Finish workout early"
+  "finishEarly": "Finish workout early",
+  "rir.title": "Reps in Reserve",
+  "rir.description": "How many more reps could you have done?",
+  "rir.confirm": "Confirm",
+  "rir.infoText": "RIR measures how many reps you had left before failure. It helps the app suggest weight adjustments.",
+  "rir.label.0": "Maximum",
+  "rir.label.1": "Very Hard",
+  "rir.label.2": "Hard",
+  "rir.label.3": "Moderate",
+  "rir.label.4": "Easy",
+  "rir.moreReps_zero": "At failure",
+  "rir.moreReps_one": "{{count}} more rep",
+  "rir.moreReps_other": "{{count}} more reps",
+  "rir.setInfo": "#{{setNumber}} set: {{reps}} × {{weight}} {{unit}}",
+  "rir.infoLabel": "Info"
 }
