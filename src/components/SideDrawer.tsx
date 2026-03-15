@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, RefreshCw } from "lucide-react"
+import { LogOut, Download, Info, Shield, RefreshCw, ChevronDown } from "lucide-react"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   authAtom,
   drawerOpenAtom,
@@ -153,12 +158,31 @@ export function SideDrawer() {
               </Link>
             </Button>
             <AdminOnly>
-              <Button variant="ghost" className="justify-start" asChild>
-                <Link to="/admin/exercises" onClick={closeDrawer}>
-                  <Shield className="h-4 w-4" />
-                  {t("common:admin")}
-                </Link>
-              </Button>
+              <Collapsible defaultOpen>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      {t("common:admin")}
+                    </span>
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=closed]>&]:rotate-[-90deg]" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="ml-6 flex flex-col gap-1">
+                    <Button variant="ghost" size="sm" className="justify-start" asChild>
+                      <Link to="/admin/exercises" onClick={closeDrawer}>
+                        {t("common:adminExercises")}
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="justify-start" asChild>
+                      <Link to="/admin/feedback" onClick={closeDrawer}>
+                        {t("common:adminFeedback")}
+                      </Link>
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </AdminOnly>
           </nav>
 

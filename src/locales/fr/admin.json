@@ -52,5 +52,62 @@
     "next": "Suivant"
   },
   "exerciseCount": "{{count}} exercices",
-  "reviewedCount": "{{count}} vérifiés"
+  "reviewedCount": "{{count}} vérifiés",
+  "feedback": {
+    "title": "Retours",
+    "description": "Examiner et traiter les signalements de contenu exercice",
+    "searchPlaceholder": "Rechercher par nom d'exercice…",
+    "allStatus": "Tous",
+    "pending": "En attente",
+    "inReview": "En cours",
+    "resolved": "Résolu",
+    "totalCount": "{{count}} signalements",
+    "pendingCount": "{{count}} en attente",
+    "noResults": "Aucun signalement.",
+    "unknownExercise": "Exercice inconnu",
+    "columns": {
+      "exercise": "Exercice",
+      "fieldsReported": "Champs",
+      "sourceScreen": "Source",
+      "userEmail": "Utilisateur",
+      "comment": "Commentaire",
+      "status": "Statut",
+      "submitted": "Soumis",
+      "actions": "Actions"
+    },
+    "source": {
+      "workout": "Entraînement",
+      "builder": "Créateur",
+      "library_picker": "Bibliothèque"
+    },
+    "fields": {
+      "illustration": "Illustration",
+      "video": "Vidéo",
+      "description": "Description"
+    },
+    "errorOptions": {
+      "wrong_exercise": "Montre le mauvais exercice",
+      "misleading_angle": "Angle trompeur",
+      "different_exercise": "Exercice différent",
+      "poor_quality": "Mauvaise qualité",
+      "unrelated": "Instructions sans rapport",
+      "wrong_muscle": "Mauvais muscle ciblé",
+      "missing_steps": "Étapes manquantes",
+      "other": "Autre"
+    },
+    "actions": {
+      "expand": "Détails",
+      "collapse": "Réduire",
+      "markInReview": "Marquer en cours",
+      "markResolved": "Marquer résolu",
+      "reopen": "Rouvrir"
+    },
+    "detail": {
+      "errorDetails": "Détails de l'erreur",
+      "additionalText": "Détails supplémentaires",
+      "comment": "Commentaire",
+      "resolvedAt": "Résolu le",
+      "resolvedBy": "Résolu par"
+    }
+  }
 }

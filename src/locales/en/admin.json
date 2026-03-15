@@ -52,5 +52,62 @@
     "next": "Next"
   },
   "exerciseCount": "{{count}} exercises",
-  "reviewedCount": "{{count}} reviewed"
+  "reviewedCount": "{{count}} reviewed",
+  "feedback": {
+    "title": "Feedback",
+    "description": "Review and resolve user-submitted exercise content feedback",
+    "searchPlaceholder": "Search by exercise name…",
+    "allStatus": "All",
+    "pending": "Pending",
+    "inReview": "In review",
+    "resolved": "Resolved",
+    "totalCount": "{{count}} reports",
+    "pendingCount": "{{count}} pending",
+    "noResults": "No feedback reports.",
+    "unknownExercise": "Unknown exercise",
+    "columns": {
+      "exercise": "Exercise",
+      "fieldsReported": "Fields",
+      "sourceScreen": "Source",
+      "userEmail": "User",
+      "comment": "Comment",
+      "status": "Status",
+      "submitted": "Submitted",
+      "actions": "Actions"
+    },
+    "source": {
+      "workout": "Workout",
+      "builder": "Builder",
+      "library_picker": "Library"
+    },
+    "fields": {
+      "illustration": "Illustration",
+      "video": "Video",
+      "description": "Description"
+    },
+    "errorOptions": {
+      "wrong_exercise": "Shows wrong exercise",
+      "misleading_angle": "Misleading angle",
+      "different_exercise": "Different exercise",
+      "poor_quality": "Poor quality",
+      "unrelated": "Unrelated instructions",
+      "wrong_muscle": "Wrong muscle focus",
+      "missing_steps": "Missing steps",
+      "other": "Other"
+    },
+    "actions": {
+      "expand": "Details",
+      "collapse": "Collapse",
+      "markInReview": "Mark in review",
+      "markResolved": "Mark resolved",
+      "reopen": "Reopen"
+    },
+    "detail": {
+      "errorDetails": "Error details",
+      "additionalText": "Additional details",
+      "comment": "Comment",
+      "resolvedAt": "Resolved at",
+      "resolvedBy": "Resolved by"
+    }
+  }
 }

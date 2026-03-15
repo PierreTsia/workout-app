@@ -12,6 +12,7 @@ import { OnboardingPage } from "@/pages/OnboardingPage"
 import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
 import { ChangeProgramPage } from "@/pages/ChangeProgramPage"
+import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/admin/exercises/:id",
                     element: <AdminExerciseEditPage />,
+                  },
+                  {
+                    path: "/admin/feedback",
+                    element: <AdminFeedbackPage />,
                   },
                 ],
               },
