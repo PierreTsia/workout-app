@@ -211,7 +211,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
       <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
         <span className="text-center">{t("setNumber")}</span>
         <span>{t("reps")}</span>
-        <span className="capitalize">{weightLabel}</span>
+        <span className={equipment === "dumbbell" || equipment === "bodyweight" ? "" : "capitalize"}>{weightLabel}</span>
         <span className="text-center">{t("done")}</span>
       </div>
 
