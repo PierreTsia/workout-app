@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="64" fill="#0f0f13"/>
-  <text x="256" y="310" font-size="260" text-anchor="middle" fill="#00c9a7"><Ë</text>
+  <g fill="#00c9a7">
+    <rect x="120" y="238" width="272" height="36" rx="18"/>
+    <rect x="120" y="180" width="64" height="152" rx="16"/>
+    <rect x="328" y="180" width="64" height="152" rx="16"/>
+  </g>
 </svg>

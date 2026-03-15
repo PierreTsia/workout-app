@@ -68,7 +68,7 @@ export function SideDrawer() {
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
-  const { canInstall, isInstalled, promptInstall } = useInstallPrompt()
+  const { canInstall, promptInstall } = useInstallPrompt()
 
   useEffect(() => {
     if (i18n.language !== locale) {
@@ -211,16 +211,15 @@ export function SideDrawer() {
               </Link>
             </Button>
 
-            {!isInstalled && (
+            {canInstall && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="justify-start text-muted-foreground"
-                disabled={!canInstall}
                 onClick={promptInstall}
               >
                 <Download className="h-4 w-4" />
-                {canInstall ? t("common:installApp") : t("common:installAppBrowser")}
+                {t("common:installApp")}
               </Button>
             )}
             <Button
