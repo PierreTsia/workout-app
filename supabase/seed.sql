@@ -141,7 +141,8 @@ INSERT INTO exercises (name, muscle_group, emoji, is_system, youtube_url, instru
   ('Extension mollet machine', 'Mollets', '🦶', true,
    'https://www.youtube.com/watch?v=SVmM6a0dHGU',
    '{"setup":["Asseyez-vous sur la machine à mollets, genoux sous les coussinets.","Placez l''avant des pieds sur la plateforme, talons dans le vide.","Gardez le dos droit et les mains sur les poignées."],"movement":["Poussez sur les orteils pour lever les talons le plus haut possible.","Maintenez la contraction en haut pendant 2 secondes.","Redescendez lentement les talons sous le niveau de la plateforme."],"breathing":["Expirez en montant les talons.","Inspirez en redescendant."],"common_mistakes":["Faire des mouvements rapides et saccadés.","Ne pas descendre assez bas pour étirer le mollet.","Utiliser l''élan au lieu de contrôler la charge."]}',
-   'extension-mollet-machine.png', 'machine', 'Seated Calf Raise', 'wger:1365');
+   'extension-mollet-machine.png', 'machine', 'Seated Calf Raise', 'wger:1365')
+ON CONFLICT (name) DO NOTHING;
 
 -- =========================================================================
 -- Additional exercises for templates & alternatives (bodyweight / dumbbell)
@@ -163,7 +164,8 @@ INSERT INTO exercises (name, muscle_group, emoji, is_system, equipment, name_en)
   ('Extension triceps haltère', 'Triceps', '💪', true, 'dumbbell', 'Dumbbell Triceps Extension'),
   ('Soulevé de terre', 'Dos', '🏋️', true, 'barbell', 'Deadlift'),
   ('Hip Thrust', 'Fessiers', '🍑', true, 'barbell', 'Hip Thrust'),
-  ('Élévation mollet debout', 'Mollets', '🦶', true, 'bodyweight', 'Standing Calf Raise');
+  ('Élévation mollet debout', 'Mollets', '🦶', true, 'bodyweight', 'Standing Calf Raise')
+ON CONFLICT (name) DO NOTHING;
 
 -- =========================================================================
 -- Program Templates
@@ -174,7 +176,8 @@ INSERT INTO program_templates (name, description, min_days, max_days, primary_go
   ('Upper/Lower', 'Balanced upper/lower split with push-pull balance. Good volume per session for hypertrophy.', 3, 4, 'hypertrophy', '{intermediate}'),
   ('PPL (Push/Pull/Legs)', 'Classic bodybuilding split. High volume, each muscle hit twice per week at 6 days.', 3, 6, 'hypertrophy', '{intermediate,advanced}'),
   ('GZCLP', 'Linear progression with heavy compounds (T1), moderate volume accessories (T2/T3). Great for building raw strength.', 3, 4, 'strength', '{beginner,intermediate}'),
-  ('Muscular Endurance', 'High reps, short rest, circuit-style training. Builds muscular endurance and work capacity.', 3, 4, 'endurance', '{beginner,intermediate,advanced}');
+  ('Muscular Endurance', 'High reps, short rest, circuit-style training. Builds muscular endurance and work capacity.', 3, 4, 'endurance', '{beginner,intermediate,advanced}')
+ON CONFLICT (name) DO NOTHING;
 
 -- =========================================================================
 -- Template Days
@@ -547,3 +550,20 @@ INSERT INTO exercise_alternatives (exercise_id, alternative_exercise_id, equipme
   ((SELECT id FROM exercises WHERE name = 'Extension de jambe machine'), (SELECT id FROM exercises WHERE name = 'Fentes haltères'), 'minimal'),
   ((SELECT id FROM exercises WHERE name = 'Élévation mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'minimal'),
   ((SELECT id FROM exercises WHERE name = 'Extension mollet machine'), (SELECT id FROM exercises WHERE name = 'Élévation mollet debout'), 'minimal');
+
+-- =========================================================================
+-- New Program Templates (also inserted by migrations 210000 + 220000;
+-- ON CONFLICT keeps seed.sql idempotent after those migrations run)
+-- =========================================================================
+
+INSERT INTO program_templates (name, description, min_days, max_days, primary_goal, experience_tags) VALUES
+  ('Bodyweight Full Body', 'Zero equipment needed. 3 full body sessions per week using push-ups, pull-ups, dips, squats and core work. Progressive overload through reps and tempo. Perfect first program for training at home.', 3, 3, 'general_fitness', '{beginner,intermediate}'),
+  ('Home Dumbbell Upper/Lower', 'All you need is a pair of dumbbells. Upper push, lower body, and upper pull split. Enough volume for real hypertrophy with minimal gear. Add bodyweight finishers for extra stimulus.', 3, 3, 'hypertrophy', '{beginner,intermediate}'),
+  ('5x5 Compound Strength', 'The proven minimalist approach to getting strong. Three heavy compound lifts per session — squat, bench, deadlift, overhead press, rows. Low reps, long rest, linear progression. No fluff.', 3, 3, 'strength', '{intermediate,advanced}'),
+  ('Machine Hypertrophy', 'Guided movements on machines and cables for safe, effective muscle growth. Ideal for beginners who want to build muscle without the learning curve of free weights. Full body coverage across 3 sessions.', 3, 3, 'hypertrophy', '{beginner}'),
+  ('Lower Body Emphasis', 'Two dedicated leg days plus one upper maintenance day. Squats, hip thrusts, Romanian deadlifts, leg press, lunges — everything to build serious lower body strength and size.', 3, 3, 'hypertrophy', '{intermediate,advanced}'),
+  ('Dumbbell Strength', 'Heavy dumbbell work with lower reps and longer rest. A real strength program for anyone with a pair of dumbbells and a pull-up bar. No machines, no barbells, no excuses.', 3, 3, 'strength', '{beginner,intermediate}')
+ON CONFLICT (name) DO NOTHING;
+-- Days and exercises for these 6 templates are inserted by migrations
+-- 20260315210000 and 20260315220000. No duplication needed here since
+-- template_days/template_exercises have no unique constraints.
