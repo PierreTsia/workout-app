@@ -68,7 +68,7 @@ export function SideDrawer() {
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
-  const { canInstall, isInstalled, promptInstall } = useInstallPrompt()
+  const { canInstall, promptInstall } = useInstallPrompt()
 
   useEffect(() => {
     if (i18n.language !== locale) {
