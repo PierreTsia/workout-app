@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useAtomValue } from "jotai"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -42,14 +42,8 @@ export function ProgramsTab() {
 
   const [selectedGoal, setSelectedGoal] = useState<UserGoal | null>(null)
   const [selectedExperience, setSelectedExperience] = useState<UserExperience | null>(null)
-  const [selectedEquipment, setSelectedEquipment] = useState<UserEquipment | null>(null)
-  const hasUserChangedEquipment = useRef(false)
-
-  useEffect(() => {
-    if (profile?.equipment && !hasUserChangedEquipment.current) {
-      setSelectedEquipment(profile.equipment)
-    }
-  }, [profile?.equipment])
+  const [equipmentOverride, setEquipmentOverride] = useState<UserEquipment | null | undefined>(undefined)
+  const selectedEquipment = equipmentOverride !== undefined ? equipmentOverride : (profile?.equipment ?? null)
 
   const [detailTemplate, setDetailTemplate] = useState<EnrichedTemplate | null>(null)
   const [startTargetTemplate, setStartTargetTemplate] = useState<EnrichedTemplate | null>(null)
@@ -121,7 +115,7 @@ export function ProgramsTab() {
         selectedEquipment={selectedEquipment}
         onGoalChange={setSelectedGoal}
         onExperienceChange={setSelectedExperience}
-        onEquipmentChange={(v) => { hasUserChangedEquipment.current = true; setSelectedEquipment(v) }}
+        onEquipmentChange={setEquipmentOverride}
       />
 
       {filteredTemplates.length === 0 && (
