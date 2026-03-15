@@ -3,12 +3,13 @@ import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { LibraryFilterBar } from "./LibraryFilterBar"
+import type { UserGoal, UserExperience, UserEquipment } from "@/types/onboarding"
 
 function renderFilter(overrides = {}) {
   const defaultProps = {
-    selectedGoal: null as string | null,
-    selectedExperience: null as string | null,
-    selectedEquipment: null as string | null,
+    selectedGoal: null as UserGoal | null,
+    selectedExperience: null as UserExperience | null,
+    selectedEquipment: null as UserEquipment | null,
     onGoalChange: vi.fn(),
     onExperienceChange: vi.fn(),
     onEquipmentChange: vi.fn(),
