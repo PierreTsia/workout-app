@@ -87,3 +87,24 @@ export interface ExerciseContentFeedbackInsert {
   other_description_text: string | null
   comment: string | null
 }
+
+export type FeedbackStatus = "pending" | "in_review" | "resolved"
+
+export interface ExerciseContentFeedback {
+  id: string
+  exercise_id: string
+  user_email: string
+  user_id: string
+  source_screen: FeedbackSourceScreen
+  fields_reported: string[]
+  error_details: Record<string, string[]>
+  other_illustration_text: string | null
+  other_video_text: string | null
+  other_description_text: string | null
+  comment: string | null
+  status: FeedbackStatus
+  resolved_at: string | null
+  resolved_by: string | null
+  created_at: string
+  exercises: { name: string; emoji: string } | null
+}

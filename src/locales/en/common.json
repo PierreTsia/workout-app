@@ -23,5 +23,7 @@
   "dismiss": "Dismiss",
   "about": "About",
   "admin": "Admin",
+  "adminExercises": "Exercises",
+  "adminFeedback": "Feedback",
   "changeProgram": "Change program"
 }
