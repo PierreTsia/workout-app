@@ -10,6 +10,7 @@ import type { Exercise } from "@/types/database"
 interface GenerateProgramInput {
   template: ProgramTemplate | null
   profile: UserProfile
+  activate?: boolean
 }
 
 const store = getDefaultStore()
@@ -21,16 +22,18 @@ export function useGenerateProgram() {
   const qc = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ template, profile }: GenerateProgramInput) => {
+    mutationFn: async ({ template, profile, activate = true }: GenerateProgramInput) => {
       if (!user) throw new Error("Not authenticated")
 
-      const { error: deactivateError } = await supabase
-        .from("programs")
-        .update({ is_active: false })
-        .eq("user_id", user.id)
-        .eq("is_active", true)
+      if (activate) {
+        const { error: deactivateError } = await supabase
+          .from("programs")
+          .update({ is_active: false })
+          .eq("user_id", user.id)
+          .eq("is_active", true)
 
-      if (deactivateError) throw deactivateError
+        if (deactivateError) throw deactivateError
+      }
 
       const programName = template?.name ?? "My Program"
       const { data: program, error: programError } = await supabase
@@ -39,7 +42,7 @@ export function useGenerateProgram() {
           user_id: user.id,
           name: programName,
           template_id: template?.id ?? null,
-          is_active: true,
+          is_active: activate,
         })
         .select("id")
         .single()
@@ -126,11 +129,14 @@ export function useGenerateProgram() {
       return program.id as string
     },
 
-    onSuccess: (programId) => {
-      store.set(hasProgramAtom, true)
-      store.set(activeProgramIdAtom, programId)
-      qc.invalidateQueries({ queryKey: ["workout-days"] })
-      qc.invalidateQueries({ queryKey: ["active-program"] })
+    onSuccess: (programId, variables) => {
+      if (variables.activate !== false) {
+        store.set(hasProgramAtom, true)
+        store.set(activeProgramIdAtom, programId)
+        qc.invalidateQueries({ queryKey: ["workout-days"] })
+        qc.invalidateQueries({ queryKey: ["active-program"] })
+      }
+      qc.invalidateQueries({ queryKey: ["user-programs"] })
     },
   })
 }

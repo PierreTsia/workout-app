@@ -1,0 +1,57 @@
+{
+  "title": "Bibliothèque",
+  "backToWorkout": "Retour à l'entraînement",
+
+  "tabMyWorkouts": "Mon entraînement",
+  "tabPrograms": "Programmes",
+  "tabQuickWorkout": "Séance rapide",
+  "comingSoon": "Bientôt",
+
+  "myWorkoutsEmpty": "Aucun programme",
+  "showArchived": "Afficher archivés",
+  "active": "Actif",
+  "generatedOn": "Généré le {{date}}",
+  "archived": "Archivé",
+  "activate": "Activer",
+  "archive": "Archiver",
+  "unarchive": "Restaurer",
+
+  "switchProgramTitle": "Changer de programme ?",
+  "switchProgramDescription": "Votre programme actuel sera désactivé. L'historique d'entraînement est conservé.",
+  "sessionActiveWarning": "Terminez votre séance en cours d'abord",
+  "confirm": "Confirmer",
+
+  "save": "Sauvegarder",
+  "saved": "Sauvegardé ✓",
+  "start": "Démarrer",
+  "details": "Détails",
+
+  "filterGoalStrength": "Force",
+  "filterGoalHypertrophy": "Hypertrophie",
+  "filterGoalEndurance": "Endurance",
+  "filterGoalGeneralFitness": "Forme générale",
+  "filterExperienceBeginner": "Débutant",
+  "filterExperienceIntermediate": "Intermédiaire",
+  "filterExperienceAdvanced": "Avancé",
+  "filterEquipmentGym": "Salle",
+  "filterEquipmentHome": "Maison",
+  "filterEquipmentMinimal": "Minimal",
+  "clearFilters": "Effacer les filtres",
+  "noTemplates": "Aucun programme ne correspond à vos filtres",
+
+  "daysRange": "{{min}}–{{max}} jours",
+  "exerciseCount": "{{count}} exercices",
+  "setsReps": "{{sets}} × {{reps}}",
+  "restSeconds": "{{seconds}}s repos",
+
+  "quickWorkoutTitle": "Séance rapide",
+  "quickWorkoutDescription": "Lancez une séance sans programme. Choisissez vos exercices, définissez vos répétitions, et c'est parti.",
+
+  "savingProgram": "Sauvegarde du programme…",
+  "startingProgram": "Démarrage du programme…",
+  "programSaved": "Programme sauvegardé",
+  "programActivated": "Programme activé",
+  "programArchived": "Programme archivé",
+  "programUnarchived": "Programme restauré",
+  "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+}

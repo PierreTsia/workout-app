@@ -1,0 +1,57 @@
+{
+  "title": "Library",
+  "backToWorkout": "Back to workout",
+
+  "tabMyWorkouts": "My Training",
+  "tabPrograms": "Programs",
+  "tabQuickWorkout": "Quick Workout",
+  "comingSoon": "Coming Soon",
+
+  "myWorkoutsEmpty": "No programs yet",
+  "showArchived": "Show archived",
+  "active": "Active",
+  "generatedOn": "Generated {{date}}",
+  "archived": "Archived",
+  "activate": "Activate",
+  "archive": "Archive",
+  "unarchive": "Unarchive",
+
+  "switchProgramTitle": "Switch program?",
+  "switchProgramDescription": "Your current program will be deactivated. Workout history stays intact.",
+  "sessionActiveWarning": "Finish your current workout first",
+  "confirm": "Confirm",
+
+  "save": "Save",
+  "saved": "Saved ✓",
+  "start": "Start",
+  "details": "Details",
+
+  "filterGoalStrength": "Strength",
+  "filterGoalHypertrophy": "Hypertrophy",
+  "filterGoalEndurance": "Endurance",
+  "filterGoalGeneralFitness": "General fitness",
+  "filterExperienceBeginner": "Beginner",
+  "filterExperienceIntermediate": "Intermediate",
+  "filterExperienceAdvanced": "Advanced",
+  "filterEquipmentGym": "Gym",
+  "filterEquipmentHome": "Home",
+  "filterEquipmentMinimal": "Minimal",
+  "clearFilters": "Clear filters",
+  "noTemplates": "No programs match your filters",
+
+  "daysRange": "{{min}}–{{max}} days",
+  "exerciseCount": "{{count}} exercises",
+  "setsReps": "{{sets}} × {{reps}}",
+  "restSeconds": "{{seconds}}s rest",
+
+  "quickWorkoutTitle": "Quick Workout",
+  "quickWorkoutDescription": "Start a one-off workout without a program. Pick exercises, set your reps, and go.",
+
+  "savingProgram": "Saving program…",
+  "startingProgram": "Starting program…",
+  "programSaved": "Program saved",
+  "programActivated": "Program activated",
+  "programArchived": "Program archived",
+  "programUnarchived": "Program restored",
+  "errorGeneric": "Something went wrong. Please try again."
+}

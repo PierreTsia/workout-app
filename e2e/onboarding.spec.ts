@@ -157,25 +157,21 @@ test.describe("Onboarding", () => {
     await page.getByLabel("Open menu").click()
     await expect(page.getByText("Menu")).toBeVisible({ timeout: 5_000 })
 
-    // Click "Change program"
-    await page.getByRole("link", { name: /Change program/i }).click()
-    await expect(page).toHaveURL(/\/change-program/, { timeout: 10_000 })
+    // Click "Library"
+    await page.getByRole("link", { name: /Library/i }).click()
+    await expect(page).toHaveURL(/\/library/, { timeout: 10_000 })
 
-    // --- Path choice step ---
-    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 10_000 })
-    await page.getByText("Recommend me a program").click()
+    // --- Programs tab ---
+    await page.getByRole("tab", { name: /Programs/i }).click()
+    const firstStartButton = page.getByRole("button", { name: /Start/i }).first()
+    await expect(firstStartButton).toBeVisible({ timeout: 15_000 })
+    await firstStartButton.click()
 
-    // --- Template recommendation step ---
-    await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 15_000 })
-    const firstTemplate = page.locator("[role='button']").first()
-    await expect(firstTemplate).toBeVisible({ timeout: 10_000 })
-    await firstTemplate.click()
+    // --- Confirm activation dialog ---
+    await expect(page.getByText(/Switch program/i)).toBeVisible({ timeout: 5_000 })
+    await page.getByRole("button", { name: /Confirm/i }).click()
 
-    // --- Program summary step ---
-    await expect(page.getByText("Program preview")).toBeVisible({ timeout: 10_000 })
-    await page.getByRole("button", { name: "Create program" }).click()
-
-    // --- Should redirect to home ---
-    await expect(page).toHaveURL("/", { timeout: 30_000 })
+    // --- Should stay on library after activation ---
+    await expect(page).toHaveURL(/\/library/, { timeout: 30_000 })
   })
 })
