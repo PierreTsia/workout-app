@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { deriveEquipmentContexts } from "./useTemplatesWithEquipment"
+import { deriveEquipmentContexts } from "@/lib/deriveEquipmentContexts"
 import type { ProgramTemplate, ExerciseAlternative } from "@/types/onboarding"
 
 function makeTemplate(exercises: { id: string; equipment: string }[]): ProgramTemplate {
