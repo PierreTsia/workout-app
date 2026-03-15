@@ -7,7 +7,7 @@ export type EnrichedTemplate = ProgramTemplate & { equipmentContexts: UserEquipm
 
 const BODYWEIGHT_EQUIPMENT = ["bodyweight", "body weight", "none"]
 
-function deriveEquipmentContexts(
+export function deriveEquipmentContexts(
   template: ProgramTemplate,
   alternatives: ExerciseAlternative[],
 ): UserEquipment[] {
