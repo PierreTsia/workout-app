@@ -12,7 +12,7 @@ import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
-import { enqueueSessionFinish } from "@/lib/syncService"
+import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -169,6 +169,7 @@ export function WorkoutPage() {
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
     })
+    scheduleImmediateDrain()
 
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setFinished(true)

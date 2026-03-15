@@ -5,15 +5,18 @@ export interface IntraSessionSuggestion {
   reps: string
 }
 
-const INCREMENT: Record<WeightUnit, number> = { kg: 2.5, lbs: 5 }
+const DEFAULT_INCREMENT: Record<WeightUnit, number> = { kg: 2.5, lbs: 5 }
+const DUMBBELL_INCREMENT: Record<WeightUnit, number> = { kg: 2, lbs: 5 }
 
 export function computeIntraSessionSuggestion(
   prevRir: number,
   prevWeight: number,
   prevReps: string,
   unit: WeightUnit,
+  equipment?: string,
 ): IntraSessionSuggestion {
-  const inc = INCREMENT[unit]
+  const inc =
+    equipment === "dumbbell" ? DUMBBELL_INCREMENT[unit] : DEFAULT_INCREMENT[unit]
 
   if (prevRir === 0) {
     if (prevWeight <= 0) return { weight: 0, reps: prevReps }

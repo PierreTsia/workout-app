@@ -243,6 +243,17 @@ export function enqueueSessionFinish(
 }
 
 // ---------------------------------------------------------------------------
+// Immediate drain (fire-and-forget, safe to call from event handlers)
+// ---------------------------------------------------------------------------
+
+export function scheduleImmediateDrain(): void {
+  const userId = getUserId()
+  if (userId && navigator.onLine) {
+    drainQueue(userId)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Drain
 // ---------------------------------------------------------------------------
 

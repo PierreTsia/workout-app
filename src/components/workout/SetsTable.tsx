@@ -19,9 +19,10 @@ interface SetsTableProps {
   exercise: WorkoutExercise
   sessionId: string
   isReadOnly: boolean
+  equipment?: string
 }
 
-export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
+export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTableProps) {
   const { t } = useTranslation("workout")
   const { unit, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
@@ -33,6 +34,13 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
   const rows = session.setsData[exercise.id] ?? []
+
+  const weightLabel =
+    equipment === "dumbbell"
+      ? t("weightPerArm", { unit })
+      : equipment === "bodyweight"
+        ? t("addedWeight", { unit })
+        : unit
 
   function updateField(
     setIdx: number,
@@ -103,11 +111,6 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
         ),
       }))
 
-      setRest({
-        startedAt: Date.now(),
-        durationSeconds: exercise.rest_seconds,
-      })
-
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
@@ -123,6 +126,13 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
 
+      if (!exerciseSets.every((s) => s.done)) {
+        setRest({
+          startedAt: Date.now(),
+          durationSeconds: exercise.rest_seconds,
+        })
+      }
+
       const nextIdx = setIdx + 1
       if (nextIdx < exerciseSets.length && !exerciseSets[nextIdx].done) {
         const suggestion = computeIntraSessionSuggestion(
@@ -130,6 +140,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
           displayWeight,
           currentSet.reps,
           unit,
+          equipment,
         )
         exerciseSets[nextIdx] = {
           ...exerciseSets[nextIdx],
@@ -151,6 +162,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
       sessionId,
       toKg,
       unit,
+      equipment,
       historicalBest,
       sessionBest,
       best1RMReady,
@@ -199,7 +211,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly }: SetsTableProps) {
       <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
         <span className="text-center">{t("setNumber")}</span>
         <span>{t("reps")}</span>
-        <span className="capitalize">{unit}</span>
+        <span className="capitalize">{weightLabel}</span>
         <span className="text-center">{t("done")}</span>
       </div>
 

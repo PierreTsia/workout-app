@@ -63,7 +63,7 @@ export function ExerciseDetail({
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
-      <SetsTable exercise={exercise} sessionId={sessionId} isReadOnly={isReadOnly} />
+      <SetsTable exercise={exercise} sessionId={sessionId} isReadOnly={isReadOnly} equipment={libExercise?.equipment} />
     </div>
   )
 }
