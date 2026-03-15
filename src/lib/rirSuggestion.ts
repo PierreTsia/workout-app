@@ -16,6 +16,7 @@ export function computeIntraSessionSuggestion(
   const inc = INCREMENT[unit]
 
   if (prevRir === 0) {
+    if (prevWeight <= 0) return { weight: 0, reps: prevReps }
     return { weight: Math.max(inc, prevWeight - inc), reps: prevReps }
   }
   if (prevRir >= 4) {

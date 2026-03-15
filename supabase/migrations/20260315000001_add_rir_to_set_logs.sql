@@ -1,1 +1,1 @@
-ALTER TABLE set_logs ADD COLUMN rir smallint;
+ALTER TABLE set_logs ADD COLUMN IF NOT EXISTS rir smallint;

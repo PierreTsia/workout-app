@@ -51,5 +51,7 @@
   "rir.label.4": "Easy",
   "rir.moreReps_zero": "At failure",
   "rir.moreReps_one": "{{count}} more rep",
-  "rir.moreReps_other": "{{count}} more reps"
+  "rir.moreReps_other": "{{count}} more reps",
+  "rir.setInfo": "#{{setNumber}} set: {{reps}} × {{weight}} {{unit}}",
+  "rir.infoLabel": "Info"
 }

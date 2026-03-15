@@ -46,4 +46,14 @@ describe("computeIntraSessionSuggestion", () => {
     const result = computeIntraSessionSuggestion(2, 60, "8-10", "kg")
     expect(result).toEqual({ weight: 60, reps: "8-10" })
   })
+
+  it("returns 0 weight when prevWeight is 0 and RIR is 0 (bodyweight)", () => {
+    const result = computeIntraSessionSuggestion(0, 0, "10", "kg")
+    expect(result).toEqual({ weight: 0, reps: "10" })
+  })
+
+  it("returns 0 weight when prevWeight is 0 and RIR is 4+ (bodyweight)", () => {
+    const result = computeIntraSessionSuggestion(4, 0, "10", "kg")
+    expect(result).toEqual({ weight: 2.5, reps: "10" })
+  })
 })

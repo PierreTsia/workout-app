@@ -63,7 +63,7 @@ export function RirDrawer({ open, setInfo, onConfirm }: RirDrawerProps) {
                 <button
                   type="button"
                   className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
-                  aria-label="info"
+                  aria-label={t("rir.infoLabel")}
                 >
                   <Info className="h-4 w-4" />
                 </button>
@@ -75,7 +75,12 @@ export function RirDrawer({ open, setInfo, onConfirm }: RirDrawerProps) {
           </div>
           {setInfo && (
             <DrawerDescription>
-              #{setInfo.setNumber} set: {setInfo.reps} × {setInfo.weight} {setInfo.unit}
+              {t("rir.setInfo", {
+                setNumber: setInfo.setNumber,
+                reps: setInfo.reps,
+                weight: setInfo.weight,
+                unit: setInfo.unit,
+              })}
             </DrawerDescription>
           )}
         </DrawerHeader>
