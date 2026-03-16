@@ -12,6 +12,7 @@ import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom } from
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useLastWeights } from "@/hooks/useLastWeights"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
@@ -49,6 +50,12 @@ export function WorkoutPage() {
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
   )
+
+  const exerciseIds = useMemo(
+    () => exercises.map((ex) => ex.exercise_id),
+    [exercises],
+  )
+  const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isViewingLockedDay = Boolean(
     session.isActive &&
@@ -83,28 +90,50 @@ export function WorkoutPage() {
   useEffect(() => {
     if (exercises.length === 0) return
 
-    const missing = exercises.filter((ex) => !session.setsData[ex.id])
-    if (missing.length === 0) return
-
-    const newSetsData: Record<
+    let hasChanges = false
+    const patch: Record<
       string,
       Array<{ reps: string; weight: string; done: boolean }>
     > = {}
-    for (const ex of missing) {
-      const displayWeight = String(
-        Math.round(toDisplay(Number(ex.weight)) * 10) / 10,
-      )
-      newSetsData[ex.id] = Array.from({ length: ex.sets }, () => ({
-        reps: ex.reps,
-        weight: displayWeight,
-        done: false,
+
+    for (const ex of exercises) {
+      const existing = session.setsData[ex.id]
+      const storedWeight = Number(ex.weight)
+      const historyWeight = lastWeights[ex.exercise_id] ?? 0
+      const effectiveWeightKg =
+        storedWeight > 0 ? storedWeight : historyWeight
+
+      if (!existing) {
+        const displayWeight = String(
+          Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
+        )
+        patch[ex.id] = Array.from({ length: ex.sets }, () => ({
+          reps: ex.reps,
+          weight: displayWeight,
+          done: false,
+        }))
+        hasChanges = true
+      } else if (storedWeight === 0 && historyWeight > 0) {
+        const allUntouched = existing.every(
+          (s) => s.weight === "0" && !s.done,
+        )
+        if (allUntouched) {
+          const displayWeight = String(
+            Math.round(toDisplay(historyWeight) * 10) / 10,
+          )
+          patch[ex.id] = existing.map((s) => ({ ...s, weight: displayWeight }))
+          hasChanges = true
+        }
+      }
+    }
+
+    if (hasChanges) {
+      setSession((prev) => ({
+        ...prev,
+        setsData: { ...prev.setsData, ...patch },
       }))
     }
-    setSession((prev) => ({
-      ...prev,
-      setsData: { ...prev.setsData, ...newSetsData },
-    }))
-  }, [exercises, session.setsData, setSession, toDisplay])
+  }, [exercises, session.setsData, setSession, toDisplay, lastWeights])
 
   useEffect(() => {
     if (!session.isActive || session.activeDayId || !session.currentDayId) return
