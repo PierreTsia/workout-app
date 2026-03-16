@@ -1,5 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts"
-import { createServiceClient } from "../_shared/supabase.ts"
+import { createServiceClient, createUserClient } from "../_shared/supabase.ts"
 import { callGemini } from "./gemini.ts"
 import {
   buildPrompt,
@@ -18,23 +18,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createServiceClient()
-
-    // --- Two-layer auth: extract and verify JWT ---
+    // --- Two-layer auth: verify JWT via user-context client ---
     const authHeader = req.headers.get("Authorization")
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Missing authorization header" }, 401)
     }
 
-    const token = authHeader.replace("Bearer ", "")
+    const userClient = createUserClient(authHeader)
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser(token)
+    } = await userClient.auth.getUser()
 
     if (authError || !user) {
-      return jsonResponse({ error: "Invalid or expired token" }, 401)
+      return jsonResponse(
+        { error: authError?.message ?? "Invalid or expired token" },
+        401,
+      )
     }
+
+    // Service-role client for DB queries (bypasses RLS)
+    const supabase = createServiceClient()
 
     // --- Parse request body ---
     const body = await req.json()
