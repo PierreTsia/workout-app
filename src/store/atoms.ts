@@ -71,3 +71,8 @@ export const localeAtom = atomWithStorage<"en" | "fr">("locale", "fr")
 export const weightUnitAtom = atomWithStorage<"kg" | "lbs">("weightUnit", "kg")
 
 export const drawerOpenAtom = atom(false)
+
+export const isQuickWorkoutAtom = atomWithStorage<boolean>(
+  "isQuickWorkout",
+  false,
+)

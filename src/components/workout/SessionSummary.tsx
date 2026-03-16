@@ -7,6 +7,7 @@ import { getEffectiveElapsed } from "@/lib/session"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { SaveAsProgramPrompt } from "@/components/generator/SaveAsProgramPrompt"
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000)
@@ -29,6 +30,8 @@ interface SessionSummaryProps {
   totalExercises: number
   prExercises: PrExercise[]
   onNewSession: () => void
+  quickWorkoutDayId?: string
+  quickWorkoutName?: string
 }
 
 export function SessionSummary({
@@ -37,6 +40,8 @@ export function SessionSummary({
   totalExercises,
   prExercises,
   onNewSession,
+  quickWorkoutDayId,
+  quickWorkoutName,
 }: SessionSummaryProps) {
   const { t } = useTranslation("workout")
   const session = useAtomValue(sessionAtom)
@@ -87,6 +92,16 @@ export function SessionSummary({
               <PrBadge key={pr.exerciseId} pr={pr} />
             ))}
           </div>
+        </div>
+      )}
+
+      {quickWorkoutDayId && (
+        <div className="w-full max-w-xs">
+          <SaveAsProgramPrompt
+            dayId={quickWorkoutDayId}
+            defaultName={quickWorkoutName ?? "Quick Workout"}
+            onDone={onNewSession}
+          />
         </div>
       )}
 

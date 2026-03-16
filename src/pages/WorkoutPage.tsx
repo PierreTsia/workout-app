@@ -8,10 +8,11 @@ import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useLastWeights } from "@/hooks/useLastWeights"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
@@ -19,6 +20,7 @@ import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { RestTimerOverlay } from "@/components/workout/RestTimerOverlay"
 import { SessionSummary } from "@/components/workout/SessionSummary"
+import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -35,8 +37,14 @@ export function WorkoutPage() {
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
+  const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const [finished, setFinished] = useState(false)
+  const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
+    dayId: string
+    name: string
+  } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
+  const [quickSheetOpen, setQuickSheetOpen] = useState(false)
 
   const { data: days, isLoading: daysLoading } = useWorkoutDays()
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
@@ -46,6 +54,12 @@ export function WorkoutPage() {
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
   )
+
+  const exerciseIds = useMemo(
+    () => exercises.map((ex) => ex.exercise_id),
+    [exercises],
+  )
+  const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isViewingLockedDay = Boolean(
     session.isActive &&
@@ -80,28 +94,50 @@ export function WorkoutPage() {
   useEffect(() => {
     if (exercises.length === 0) return
 
-    const missing = exercises.filter((ex) => !session.setsData[ex.id])
-    if (missing.length === 0) return
-
-    const newSetsData: Record<
+    let hasChanges = false
+    const patch: Record<
       string,
       Array<{ reps: string; weight: string; done: boolean }>
     > = {}
-    for (const ex of missing) {
-      const displayWeight = String(
-        Math.round(toDisplay(Number(ex.weight)) * 10) / 10,
-      )
-      newSetsData[ex.id] = Array.from({ length: ex.sets }, () => ({
-        reps: ex.reps,
-        weight: displayWeight,
-        done: false,
+
+    for (const ex of exercises) {
+      const existing = session.setsData[ex.id]
+      const storedWeight = Number(ex.weight)
+      const historyWeight = lastWeights[ex.exercise_id] ?? 0
+      const effectiveWeightKg =
+        storedWeight > 0 ? storedWeight : historyWeight
+
+      if (!existing) {
+        const displayWeight = String(
+          Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
+        )
+        patch[ex.id] = Array.from({ length: ex.sets }, () => ({
+          reps: ex.reps,
+          weight: displayWeight,
+          done: false,
+        }))
+        hasChanges = true
+      } else if (storedWeight === 0 && historyWeight > 0) {
+        const allUntouched = existing.every(
+          (s) => s.weight === "0" && !s.done,
+        )
+        if (allUntouched) {
+          const displayWeight = String(
+            Math.round(toDisplay(historyWeight) * 10) / 10,
+          )
+          patch[ex.id] = existing.map((s) => ({ ...s, weight: displayWeight }))
+          hasChanges = true
+        }
+      }
+    }
+
+    if (hasChanges) {
+      setSession((prev) => ({
+        ...prev,
+        setsData: { ...prev.setsData, ...patch },
       }))
     }
-    setSession((prev) => ({
-      ...prev,
-      setsData: { ...prev.setsData, ...newSetsData },
-    }))
-  }, [exercises, session.setsData, setSession, toDisplay])
+  }, [exercises, session.setsData, setSession, toDisplay, lastWeights])
 
   useEffect(() => {
     if (!session.isActive || session.activeDayId || !session.currentDayId) return
@@ -171,8 +207,31 @@ export function WorkoutPage() {
     })
     scheduleImmediateDrain()
 
+    if (isQuickWorkout && session.currentDayId) {
+      setFinishedQuickInfo({
+        dayId: session.currentDayId,
+        name:
+          days?.find((d) => d.id === session.currentDayId)?.label ??
+          "Quick Workout",
+      })
+    }
+    setIsQuickWorkout(false)
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setFinished(true)
+  }
+
+  function handleQuickWorkoutStart(dayId: string) {
+    setSession((prev) => ({
+      ...prev,
+      currentDayId: dayId,
+      exerciseIndex: 0,
+      setsData: {},
+      totalSetsDone: 0,
+    }))
+    setIsQuickWorkout(true)
+    setTimeout(() => {
+      startSession()
+    }, 0)
   }
 
   function startSession() {
@@ -187,6 +246,7 @@ export function WorkoutPage() {
   }
 
   function handleNewSession() {
+    setFinishedQuickInfo(null)
     setSession({
       currentDayId: null,
       activeDayId: null,
@@ -234,13 +294,15 @@ export function WorkoutPage() {
         totalExercises={exercises.length}
         prExercises={prExercises}
         onNewSession={handleNewSession}
+        quickWorkoutDayId={finishedQuickInfo?.dayId}
+        quickWorkoutName={finishedQuickInfo?.name}
       />
     )
   }
 
   return (
     <div className="flex flex-1 flex-col">
-      <DaySelector days={days} />
+      <DaySelector days={days} onQuickWorkout={() => setQuickSheetOpen(true)} />
 
       {isViewingLockedDay && (
         <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
@@ -314,6 +376,12 @@ export function WorkoutPage() {
       )}
 
       <RestTimerOverlay />
+
+      <QuickWorkoutSheet
+        open={quickSheetOpen}
+        onOpenChange={setQuickSheetOpen}
+        onStart={handleQuickWorkoutStart}
+      />
 
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent>

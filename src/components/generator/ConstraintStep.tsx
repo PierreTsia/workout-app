@@ -1,0 +1,149 @@
+import { useTranslation } from "react-i18next"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
+import type {
+  Duration,
+  EquipmentCategory,
+  GeneratorConstraints,
+} from "@/types/generator"
+
+const DURATIONS: Duration[] = [15, 30, 45, 60, 90]
+
+const EQUIPMENT_CATEGORIES: { key: EquipmentCategory; label: string }[] = [
+  { key: "bodyweight", label: "Bodyweight" },
+  { key: "dumbbells", label: "Dumbbells" },
+  { key: "full-gym", label: "Full Gym" },
+]
+
+interface ConstraintStepProps {
+  constraints: GeneratorConstraints
+  onChange: (constraints: GeneratorConstraints) => void
+  onGenerate: () => void
+  isLoading: boolean
+}
+
+export function ConstraintStep({
+  constraints,
+  onChange,
+  onGenerate,
+  isLoading,
+}: ConstraintStepProps) {
+  const { t } = useTranslation("generator")
+  const { data: filterOptions } = useExerciseFilterOptions()
+  const muscleGroups = filterOptions?.muscle_groups ?? []
+
+  const isFullBody = constraints.muscleGroups.includes("full-body")
+
+  function toggleMuscleGroup(group: string) {
+    if (group === "full-body") {
+      onChange({ ...constraints, muscleGroups: ["full-body"] })
+      return
+    }
+
+    const withoutFullBody = constraints.muscleGroups.filter(
+      (g) => g !== "full-body",
+    )
+    const alreadySelected = withoutFullBody.includes(group)
+    const next = alreadySelected
+      ? withoutFullBody.filter((g) => g !== group)
+      : [...withoutFullBody, group]
+
+    onChange({
+      ...constraints,
+      muscleGroups: next.length === 0 ? ["full-body"] : next,
+    })
+  }
+
+  const pillClass = (active: boolean) =>
+    cn(
+      "shrink-0 rounded-full border px-3 py-1 text-sm font-medium transition-colors",
+      active
+        ? "border-transparent bg-primary text-primary-foreground"
+        : "border-border bg-background text-muted-foreground hover:bg-accent",
+    )
+
+  return (
+    <div className="flex flex-col gap-5 p-4">
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          {t("duration")}
+        </span>
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
+          {DURATIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={constraints.duration === d}
+              onClick={() => onChange({ ...constraints, duration: d })}
+              className={pillClass(constraints.duration === d)}
+            >
+              {d} min
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          {t("equipment")}
+        </span>
+        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
+          {EQUIPMENT_CATEGORIES.map((eq) => (
+            <button
+              key={eq.key}
+              type="button"
+              aria-pressed={constraints.equipmentCategory === eq.key}
+              onClick={() =>
+                onChange({ ...constraints, equipmentCategory: eq.key })
+              }
+              className={pillClass(constraints.equipmentCategory === eq.key)}
+            >
+              {t(`equipmentCategory.${eq.key}`, eq.label)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          {t("focus")}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={isFullBody}
+            onClick={() => toggleMuscleGroup("full-body")}
+            className={pillClass(isFullBody)}
+          >
+            {t("fullBody")}
+          </button>
+          {muscleGroups.map((mg) => (
+            <button
+              key={mg}
+              type="button"
+              aria-pressed={
+                !isFullBody && constraints.muscleGroups.includes(mg)
+              }
+              onClick={() => toggleMuscleGroup(mg)}
+              className={pillClass(
+                !isFullBody && constraints.muscleGroups.includes(mg),
+              )}
+            >
+              {mg}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        className="w-full"
+        size="lg"
+        onClick={onGenerate}
+        disabled={isLoading}
+      >
+        {isLoading ? t("generating") : t("generate")}
+      </Button>
+    </div>
+  )
+}
