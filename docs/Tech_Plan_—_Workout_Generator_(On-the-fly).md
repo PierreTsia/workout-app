@@ -27,13 +27,17 @@
 
 **`isQuickWorkoutAtom` safety valve** — this persisted atom could get stuck as `true` if session state is corrupted. Safety measure: reset `isQuickWorkoutAtom` to `false` whenever `sessionAtom.isActive` transitions to `false` (in `handleFinish()` and `handleNewSession()`).
 
+**History page must show orphan days** — orphan workout_days (quick workouts) must appear in the History page with a "⚡ Quick Workout" badge. The History page queries `sessions` joined to `workout_days`. Since `sessions.workout_day_id` points to the orphan day, the join works. The History query must NOT filter by `program_id` — it should show all sessions regardless of whether their workout_day has a program. `file:src/pages/HistoryPage.tsx`
+
+**In-flight session guard** — the "Quick Workout" button in DaySelector must check `sessionAtom.isActive` before opening the sheet. If a session (normal or quick) is already active, the button should be hidden or replaced with contextual action (e.g., "Resume Session"). This prevents phantom workout_day creation from users tapping Quick Workout during an active session. `file:src/components/workout/DaySelector.tsx`
+
 **Existing queries audited for program_id null safety:**
 
-- `file:src/hooks/useWorkoutDays.ts` — filters by `program_id = activeProgramId`, safe (orphan days excluded)
+- `file:src/hooks/useWorkoutDays.ts` — filters by `program_id = activeProgramId`, safe (orphan days excluded from builder/day selector)
 - `file:src/hooks/useBuilderMutations.ts` — always provides `program_id` from `activeProgramIdAtom`, safe
 - `file:src/hooks/useGenerateProgram.ts` — always provides `program_id`, safe
 - `file:src/pages/WorkoutPage.tsx` — uses `sessionAtom.currentDayId` for exercises, safe
-- `file:src/pages/HistoryPage.tsx` — queries `sessions` table, joins to `workout_days`. Orphan days have valid `workout_day_id` in sessions; `workout_label_snapshot` provides fallback label if the day is ever deleted.
+- `file:src/pages/HistoryPage.tsx` — queries `sessions` joined to `workout_days`. Orphan days visible — no `program_id` filter applied. Shows "⚡ Quick Workout" badge when `workout_days.program_id IS NULL`.
 
 ---
 
@@ -128,9 +132,10 @@ graph TD
 
 | File | Change |
 |---|---|
-| `file:src/components/workout/DaySelector.tsx` | Add "Quick Workout" button (opens sheet). Show "⚡ Quick Workout" pill when quick session is active. |
+| `file:src/components/workout/DaySelector.tsx` | Add "Quick Workout" button (opens sheet, **hidden when `sessionAtom.isActive`** to prevent phantom day creation). Show "⚡ Quick Workout" pill when quick session is active. |
 | `file:src/components/workout/SessionSummary.tsx` | Conditionally render `SaveAsProgramPrompt` when `isQuickWorkoutAtom` is true |
 | `file:src/pages/WorkoutPage.tsx` | Mount `QuickWorkoutSheet`. Handle quick workout session start (set atoms, call startSession). |
+| `file:src/pages/HistoryPage.tsx` | Ensure history query does NOT filter by `program_id`. Show "⚡ Quick Workout" badge on sessions linked to orphan days (`program_id IS NULL`). |
 | `file:src/store/atoms.ts` | Add `isQuickWorkoutAtom` (boolean, persisted via atomWithStorage) — true during quick workout sessions |
 | `file:src/types/database.ts` | Add `is_quick: boolean` to Program type |
 | i18n files | New `generator` namespace with keys for both FR and EN |
@@ -138,6 +143,7 @@ graph TD
 ### Component Responsibilities
 
 **`QuickWorkoutSheet`**
+- **In-flight guard**: the Drawer cannot be opened when `sessionAtom.isActive` is true. The trigger button in DaySelector is hidden during active sessions. As a safety net, `QuickWorkoutSheet` also checks `isActive` on mount and refuses to open.
 - Manages Drawer open/close state
 - Tracks internal step: `"constraints"` | `"preview"`
 - Holds the `GeneratedWorkout` in local React state
@@ -153,7 +159,7 @@ graph TD
 
 **`PreviewStep`**
 - "Start" button fixed at top (prominent, primary color, not gated behind a confirmation)
-- "Shuffle" button (secondary) next to Start — regenerates a fresh random selection with the same constraints
+- "Shuffle" button (secondary) next to Start — regenerates a fresh random selection with the same constraints. **Debounced at 1s** (button disabled with a brief loading spinner after each tap to prevent rapid-fire regeneration and "shuffle fatigue").
 - Scrollable list of `PreviewExerciseCard` rows
 - Shows adaptive fallback notice banner if equipment was widened
 - Editable workout name field at the top (input, defaults to "Quick: {Focus} / {Equipment} / {Duration}")
@@ -250,3 +256,6 @@ export const MAJOR_MUSCLE_GROUPS = [
 | Orphan workout_day accumulation | Low risk: only created when user starts quick workouts (~2-3/week max). Rows are tiny. Periodic cleanup can be added later if needed. |
 | Quick workout day deleted (future) | `sessions.workout_day_id` is nullable with no cascade — session history survives via `workout_label_snapshot`. |
 | `isQuickWorkoutAtom` stuck as true | Safety valve: reset to false whenever `sessionAtom.isActive` transitions to false (in `handleFinish()` and `handleNewSession()`). |
+| User taps Quick Workout during active session | In-flight guard: button hidden when `sessionAtom.isActive`. QuickWorkoutSheet refuses to open as safety net. No phantom workout_day created. |
+| Rapid Shuffle taps | Shuffle button debounced at 1s with loading spinner. Prevents UI jank and redundant regeneration. |
+| Quick workout missing from History | History query includes orphan days (no `program_id` filter). Orphan sessions display "⚡ Quick Workout" badge. |
