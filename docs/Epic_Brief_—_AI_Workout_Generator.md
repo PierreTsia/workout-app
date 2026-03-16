@@ -49,14 +49,14 @@ This epic adds an AI-powered workout generation mode alongside the existing dete
 
 2. **`generate-workout` edge function** — receives user constraints (duration, equipment category, muscle groups) plus user context (profile, recent session history). Fetches a condensed exercise catalog from the DB, constructs a prompt for Gemini 1.5 Flash, and returns a validated list of exercise IDs.
 
-3. **Exercise catalog schema for LLM context** — a token-optimized JSON representation of the exercise library (~600 exercises). Includes: ID, name (EN), muscle group, equipment, secondary muscles, difficulty level. Designed to fit comfortably in a single prompt while giving the LLM enough information to make intelligent selections.
+3. **Pre-filtered exercise catalog for LLM context** — the edge function queries only the exercises that match the user's constraints (equipment + muscle groups) *before* building the prompt. This reduces the candidate pool from ~600 to typically 30-80 exercises, keeping the prompt at ~2-3k tokens instead of ~20k. Each exercise in the prompt includes: ID, name (EN), muscle group, equipment, secondary muscles, difficulty level.
 
-4. **Guardrail validation layer** — server-side `validateWorkout()` function that checks every LLM response:
-   - All exercise IDs exist in the catalog
-   - Equipment matches the user's constraint
-   - Exercise count matches the duration's volume target (from `VOLUME_MAP`)
-   - No duplicate exercises
-   - On validation failure: retry with error feedback (max 2 retries), then return error to client
+4. **Guardrail validation layer** — server-side `validateWorkout()` function that checks every LLM response with a **repair-first** strategy:
+   - Drop any exercise IDs that don't exist in the catalog or don't match equipment constraints
+   - Remove duplicates
+   - If the remaining valid exercises are fewer than the target count: backfill gaps from the pre-filtered pool deterministically (random pick from unused candidates)
+   - Only trigger a full LLM retry on catastrophic failure (unparseable JSON, zero valid exercises returned) — max 1 retry
+   - This keeps the happy path to a single LLM call and avoids the latency trap of recursive retries
 
 5. **User context in the prompt** — the AI receives:
    - User profile: difficulty level, equipment preference (from `user_profiles`)
@@ -70,6 +70,8 @@ This epic adds an AI-powered workout generation mode alongside the existing dete
    - On AI error: toast notification + automatic offer to fall back to Quick Generate
    - The deterministic sets/reps/rest assignment (`buildExercise()`, `VOLUME_MAP`) is applied client-side after AI returns exercise IDs — the LLM only picks composition
    - AI button disabled/hidden when offline (requires network)
+   - **Active-session guard:** both AI and Quick Generate buttons must respect the same `sessionAtom.isActive` guard — hidden/disabled when a session (normal or quick) is already in progress, preventing phantom workout day creation
+   - **Cold-start UX:** first call of the day may take 2-3s extra due to Supabase Edge Function cold start. The loading state should communicate this gracefully (e.g., "Warming up..." on first call vs. "Generating..." on subsequent calls)
 
 7. **Prompt engineering** — system prompt that constrains the LLM to:
    - Only return exercise IDs from the provided catalog
@@ -124,3 +126,7 @@ This epic adds an AI-powered workout generation mode alongside the existing dete
 - **Full context for the AI:** User profile + training history (last 5 sessions) + exercise catalog. This is what makes the AI mode worth having — otherwise it's just expensive random selection.
 - **Explicit progression directive:** The system prompt instructs the LLM to nudge users toward harder exercises over time, based on their recent history.
 - **AI requires network:** The AI button is disabled/hidden when offline. Quick Generate remains the offline-capable option.
+- **Pre-filtered catalog, not full dump:** The edge function filters exercises by equipment + muscle group *before* building the prompt. The LLM only sees candidates that already pass the hard constraints (~30-80 exercises, not ~600). This cuts prompt size by ~85%, reduces latency, and makes hallucination less likely since every ID in the prompt is already valid.
+- **Repair over retry:** Validation drops invalid exercises and backfills deterministically rather than re-calling the LLM. Full retry only on catastrophic failure (unparseable JSON, zero valid exercises). This keeps latency predictable — one LLM call in the happy path.
+- **Cold start accepted:** Supabase Edge Function cold starts (2-3s) are a known trade-off. The UX adapts the loading message rather than trying to eliminate the delay. Acceptable for a personal app with low concurrent usage.
+- **Session guard parity:** The AI generator respects the same `sessionAtom.isActive` guard as the deterministic generator and the Library Dashboard — no generation while a session is active.
