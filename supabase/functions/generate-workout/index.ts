@@ -1,5 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts"
-import { createServiceClient, createUserClient } from "../_shared/supabase.ts"
+import { createServiceClient } from "../_shared/supabase.ts"
 import { callGemini } from "./gemini.ts"
 import {
   buildPrompt,
@@ -18,26 +18,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // --- Two-layer auth: verify JWT via user-context client ---
+    // --- Auth: extract user ID from JWT ---
+    // The gateway's verify_jwt already validated the signature.
+    // We just decode the payload to get the user ID — no extra HTTP call.
     const authHeader = req.headers.get("Authorization")
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Missing authorization header" }, 401)
     }
 
-    const userClient = createUserClient(authHeader)
-    const {
-      data: { user },
-      error: authError,
-    } = await userClient.auth.getUser()
-
-    if (authError || !user) {
-      return jsonResponse(
-        { error: authError?.message ?? "Invalid or expired token" },
-        401,
-      )
+    const token = authHeader.replace("Bearer ", "")
+    const userId = extractUserIdFromJwt(token)
+    if (!userId) {
+      return jsonResponse({ error: "Could not extract user from token" }, 401)
     }
 
-    // Service-role client for DB queries (bypasses RLS)
     const supabase = createServiceClient()
 
     // --- Parse request body ---
@@ -62,8 +56,8 @@ Deno.serve(async (req) => {
     // --- 3 parallel DB queries ---
     const [catalogResult, profileResult, historyResult] = await Promise.all([
       fetchCatalog(supabase, equipmentValues, muscleGroups, isFullBody),
-      fetchProfile(supabase, user.id),
-      fetchRecentHistory(supabase, user.id),
+      fetchProfile(supabase, userId),
+      fetchRecentHistory(supabase, userId),
     ])
 
     const catalog = capCatalog(catalogResult)
@@ -132,6 +126,17 @@ Deno.serve(async (req) => {
 })
 
 // --- Helpers ---
+
+function extractUserIdFromJwt(token: string): string | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1]))
+    return typeof payload.sub === "string" ? payload.sub : null
+  } catch {
+    return null
+  }
+}
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
