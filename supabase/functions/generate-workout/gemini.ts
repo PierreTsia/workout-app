@@ -22,11 +22,19 @@ function extractJsonArray(raw: string): string[] {
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "")
   text = text.trim()
 
-  const parsed: unknown = JSON.parse(text)
-  if (!Array.isArray(parsed) || !parsed.every((v) => typeof v === "string")) {
-    throw new Error("Gemini response is not a string array")
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (!Array.isArray(parsed) || !parsed.every((v) => typeof v === "string")) {
+      throw new Error("Gemini response is not a string array")
+    }
+    return parsed as string[]
+  } catch (e) {
+    // Log raw text for debugging, truncate to avoid log spam
+    console.error("Gemini raw output (first 500 chars):", text.slice(0, 500))
+    throw new Error(
+      `${e instanceof Error ? e.message : "JSON parse error"} | raw: ${text.slice(0, 200)}`,
+    )
   }
-  return parsed as string[]
 }
 
 export async function callGemini(prompt: string): Promise<string[]> {
