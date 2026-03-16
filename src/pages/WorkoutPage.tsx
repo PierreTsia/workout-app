@@ -8,7 +8,7 @@ import { useAtom, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -19,6 +19,7 @@ import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { RestTimerOverlay } from "@/components/workout/RestTimerOverlay"
 import { SessionSummary } from "@/components/workout/SessionSummary"
+import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -35,8 +36,10 @@ export function WorkoutPage() {
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
+  const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const [finished, setFinished] = useState(false)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
+  const [quickSheetOpen, setQuickSheetOpen] = useState(false)
 
   const { data: days, isLoading: daysLoading } = useWorkoutDays()
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
@@ -175,6 +178,20 @@ export function WorkoutPage() {
     setFinished(true)
   }
 
+  function handleQuickWorkoutStart(dayId: string) {
+    setSession((prev) => ({
+      ...prev,
+      currentDayId: dayId,
+      exerciseIndex: 0,
+      setsData: {},
+      totalSetsDone: 0,
+    }))
+    setIsQuickWorkout(true)
+    setTimeout(() => {
+      startSession()
+    }, 0)
+  }
+
   function startSession() {
     setSession((prev) => ({
       ...prev,
@@ -187,6 +204,7 @@ export function WorkoutPage() {
   }
 
   function handleNewSession() {
+    setIsQuickWorkout(false)
     setSession({
       currentDayId: null,
       activeDayId: null,
@@ -234,13 +252,19 @@ export function WorkoutPage() {
         totalExercises={exercises.length}
         prExercises={prExercises}
         onNewSession={handleNewSession}
+        quickWorkoutDayId={isQuickWorkout ? (session.currentDayId ?? undefined) : undefined}
+        quickWorkoutName={
+          isQuickWorkout
+            ? (days?.find((d) => d.id === session.currentDayId)?.label ?? "Quick Workout")
+            : undefined
+        }
       />
     )
   }
 
   return (
     <div className="flex flex-1 flex-col">
-      <DaySelector days={days} />
+      <DaySelector days={days} onQuickWorkout={() => setQuickSheetOpen(true)} />
 
       {isViewingLockedDay && (
         <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
@@ -314,6 +338,12 @@ export function WorkoutPage() {
       )}
 
       <RestTimerOverlay />
+
+      <QuickWorkoutSheet
+        open={quickSheetOpen}
+        onOpenChange={setQuickSheetOpen}
+        onStart={handleQuickWorkoutStart}
+      />
 
       <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <DialogContent>

@@ -15,6 +15,7 @@ import enFeedback from "@/locales/en/feedback.json"
 import enError from "@/locales/en/error.json"
 import enOnboarding from "@/locales/en/onboarding.json"
 import enLibrary from "@/locales/en/library.json"
+import enGenerator from "@/locales/en/generator.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -29,6 +30,7 @@ import frFeedback from "@/locales/fr/feedback.json"
 import frError from "@/locales/fr/error.json"
 import frOnboarding from "@/locales/fr/onboarding.json"
 import frLibrary from "@/locales/fr/library.json"
+import frGenerator from "@/locales/fr/generator.json"
 
 i18n
   .use(LanguageDetector)
@@ -49,6 +51,7 @@ i18n
         error: enError,
         onboarding: enOnboarding,
         library: enLibrary,
+        generator: enGenerator,
       },
       fr: {
         common: frCommon,
@@ -64,11 +67,12 @@ i18n
         error: frError,
         onboarding: frOnboarding,
         library: frLibrary,
+        generator: frGenerator,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
 import { MyWorkoutsTab } from "@/components/library/MyWorkoutsTab"
 import { ProgramsTab } from "@/components/library/ProgramsTab"
 import { QuickWorkoutTab } from "@/components/library/QuickWorkoutTab"
@@ -32,11 +31,8 @@ export function LibraryPage() {
           <TabsTrigger value="programs" className="flex-1">
             {t("tabPrograms")}
           </TabsTrigger>
-          <TabsTrigger value="quick-workout" className="flex-1 opacity-50 pointer-events-none" disabled>
+          <TabsTrigger value="quick-workout" className="flex-1">
             {t("tabQuickWorkout")}
-            <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
-              {t("comingSoon")}
-            </Badge>
           </TabsTrigger>
         </TabsList>
 

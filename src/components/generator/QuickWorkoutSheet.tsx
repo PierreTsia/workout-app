@@ -1,0 +1,118 @@
+import { useState, useCallback } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer"
+import { ConstraintStep } from "./ConstraintStep"
+import { PreviewStep } from "./PreviewStep"
+import { useExercisesForGenerator } from "@/hooks/useExercisesForGenerator"
+import { useCreateQuickWorkout } from "@/hooks/useCreateQuickWorkout"
+import { generateWorkout } from "@/lib/generateWorkout"
+import type { GeneratorConstraints, GeneratedWorkout } from "@/types/generator"
+
+type Step = "constraints" | "preview"
+
+interface QuickWorkoutSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onStart: (dayId: string) => void
+}
+
+const DEFAULT_CONSTRAINTS: GeneratorConstraints = {
+  duration: 30,
+  equipmentCategory: "full-gym",
+  muscleGroup: "full-body",
+}
+
+export function QuickWorkoutSheet({
+  open,
+  onOpenChange,
+  onStart,
+}: QuickWorkoutSheetProps) {
+  const { t } = useTranslation("generator")
+  const [step, setStep] = useState<Step>("constraints")
+  const [constraints, setConstraints] =
+    useState<GeneratorConstraints>(DEFAULT_CONSTRAINTS)
+  const [generatedWorkout, setGeneratedWorkout] =
+    useState<GeneratedWorkout | null>(null)
+
+  const { data: exercisePool = [], isLoading: isLoadingExercises } =
+    useExercisesForGenerator(
+      constraints.muscleGroup,
+      constraints.equipmentCategory,
+    )
+
+  const createQuickWorkout = useCreateQuickWorkout()
+
+  const handleGenerate = useCallback(() => {
+    const result = generateWorkout(exercisePool, constraints)
+    setGeneratedWorkout(result)
+    setStep("preview")
+  }, [exercisePool, constraints])
+
+  const handleShuffle = useCallback(() => {
+    const result = generateWorkout(exercisePool, constraints)
+    setGeneratedWorkout(result)
+  }, [exercisePool, constraints])
+
+  const handleStart = useCallback(
+    (workout: GeneratedWorkout) => {
+      createQuickWorkout.mutate(workout, {
+        onSuccess: ({ dayId }) => {
+          onStart(dayId)
+          onOpenChange(false)
+          setStep("constraints")
+          setGeneratedWorkout(null)
+        },
+      })
+    },
+    [createQuickWorkout, onStart, onOpenChange],
+  )
+
+  const handleBack = useCallback(() => {
+    setStep("constraints")
+  }, [])
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setStep("constraints")
+      setGeneratedWorkout(null)
+    }
+    onOpenChange(nextOpen)
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={handleOpenChange}>
+      <DrawerContent className="max-h-[90dvh]">
+        <DrawerHeader>
+          <DrawerTitle>{t("quickWorkout")}</DrawerTitle>
+          <DrawerDescription>{t("quickWorkoutDesc")}</DrawerDescription>
+        </DrawerHeader>
+        <div className="overflow-y-auto">
+          {step === "constraints" && (
+            <ConstraintStep
+              constraints={constraints}
+              onChange={setConstraints}
+              onGenerate={handleGenerate}
+              isLoading={isLoadingExercises}
+            />
+          )}
+          {step === "preview" && generatedWorkout && (
+            <PreviewStep
+              workout={generatedWorkout}
+              exercisePool={exercisePool}
+              onStart={handleStart}
+              onShuffle={handleShuffle}
+              onBack={handleBack}
+              isStarting={createQuickWorkout.isPending}
+            />
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}

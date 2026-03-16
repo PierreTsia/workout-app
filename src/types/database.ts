@@ -27,7 +27,7 @@ export interface Exercise {
 export interface WorkoutDay {
   id: string
   user_id: string
-  program_id: string
+  program_id: string | null
   label: string
   emoji: string
   sort_order: number
