@@ -29,5 +29,8 @@
     "dumbbells": "Dumbbells",
     "full-gym": "Full Gym"
   },
-  "quickWorkoutBadge": "⚡ Quick Workout"
+  "quickWorkoutBadge": "⚡ Quick Workout",
+  "addExercise": "Add exercise",
+  "addExerciseTitle": "Add an exercise",
+  "searchExercise": "Search…"
 }

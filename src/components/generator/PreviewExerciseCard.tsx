@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { X, ArrowLeftRight } from "lucide-react"
+import { X, ArrowLeftRight, CircleHelp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { GeneratedExercise } from "@/types/generator"
 
@@ -8,6 +8,7 @@ interface PreviewExerciseCardProps {
   index: number
   onRemove: (index: number) => void
   onSwap: (index: number) => void
+  onInfo: (index: number) => void
   onUpdateSets: (index: number, sets: number) => void
   onUpdateReps: (index: number, reps: string) => void
 }
@@ -17,6 +18,7 @@ export function PreviewExerciseCard({
   index,
   onRemove,
   onSwap,
+  onInfo,
   onUpdateSets,
   onUpdateReps,
 }: PreviewExerciseCardProps) {
@@ -24,12 +26,25 @@ export function PreviewExerciseCard({
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
-      <span className="text-xl">{item.exercise.emoji}</span>
+      <button
+        type="button"
+        className="text-xl"
+        onClick={() => onInfo(index)}
+      >
+        {item.exercise.emoji}
+      </button>
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium">
-          {item.exercise.name}
-        </span>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-left"
+          onClick={() => onInfo(index)}
+        >
+          <span className="truncate text-sm font-medium">
+            {item.exercise.name}
+          </span>
+          <CircleHelp className="h-4 w-4 shrink-0 text-primary" />
+        </button>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded bg-muted px-1.5 py-0.5">
             {item.exercise.muscle_group}

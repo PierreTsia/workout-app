@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { RefreshCw, ArrowLeft } from "lucide-react"
+import { RefreshCw, ArrowLeft, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PreviewExerciseCard } from "./PreviewExerciseCard"
 import { ExerciseSwapPicker } from "./ExerciseSwapPicker"
+import { ExerciseAddPicker } from "./ExerciseAddPicker"
+import { ExerciseDetailSheet } from "./ExerciseDetailSheet"
 import type { Exercise } from "@/types/database"
 import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
 import {
@@ -39,6 +41,8 @@ export function PreviewStep({
   )
   const [name, setName] = useState(workout.name)
   const [swappingIndex, setSwappingIndex] = useState<number | null>(null)
+  const [addingExercise, setAddingExercise] = useState(false)
+  const [inspectedIndex, setInspectedIndex] = useState<number | null>(null)
   const lastShuffleRef = useRef(0)
 
   const handleRemove = useCallback((index: number) => {
@@ -90,6 +94,29 @@ export function PreviewStep({
     lastShuffleRef.current = now
     onShuffle()
   }, [onShuffle])
+
+  const handleAddExercise = useCallback(
+    (exercise: Exercise) => {
+      const compound = (exercise.secondary_muscles?.length ?? 0) > 0
+      setExercises((prev) => {
+        const defaultSets = prev[0]?.sets ?? 3
+        return [
+          ...prev,
+          {
+            exercise,
+            sets: defaultSets,
+            reps: compound ? COMPOUND_REPS : ISOLATION_REPS,
+            restSeconds: compound
+              ? COMPOUND_REST_SECONDS
+              : ISOLATION_REST_SECONDS,
+            isCompound: compound,
+          },
+        ]
+      })
+      setAddingExercise(false)
+    },
+    [],
+  )
 
   const handleStart = useCallback(() => {
     onStart({ exercises, name, fallbackNotice: workout.fallbackNotice })
@@ -148,6 +175,7 @@ export function PreviewStep({
               index={index}
               onRemove={handleRemove}
               onSwap={handleSwap}
+              onInfo={setInspectedIndex}
               onUpdateSets={handleUpdateSets}
               onUpdateReps={handleUpdateReps}
             />
@@ -164,7 +192,38 @@ export function PreviewStep({
             )}
           </div>
         ))}
+
+        {addingExercise ? (
+          <ExerciseAddPicker
+            pool={exercisePool}
+            currentExerciseIds={currentExerciseIds}
+            onSelect={handleAddExercise}
+            onClose={() => setAddingExercise(false)}
+          />
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5"
+            onClick={() => setAddingExercise(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t("addExercise")}
+          </Button>
+        )}
       </div>
+
+      <ExerciseDetailSheet
+        exercise={
+          inspectedIndex !== null
+            ? exercises[inspectedIndex]?.exercise ?? null
+            : null
+        }
+        open={inspectedIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) setInspectedIndex(null)
+        }}
+      />
     </div>
   )
 }

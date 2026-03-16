@@ -29,5 +29,8 @@
     "dumbbells": "Haltères",
     "full-gym": "Salle complète"
   },
-  "quickWorkoutBadge": "⚡ Séance rapide"
+  "quickWorkoutBadge": "⚡ Séance rapide",
+  "addExercise": "Ajouter un exercice",
+  "addExerciseTitle": "Ajouter un exercice",
+  "searchExercise": "Rechercher…"
 }
