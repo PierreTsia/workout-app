@@ -16,7 +16,8 @@
     "enrich-illustrations": "tsx scripts/enrich-illustrations.ts",
     "enrich-instructions": "tsx scripts/enrich-instructions.ts",
     "enrich-difficulty": "tsx scripts/enrich-difficulty.ts",
-    "dedup-exercises": "tsx scripts/dedup-exercises.ts"
+    "dedup-exercises": "tsx scripts/dedup-exercises.ts",
+    "audit-muscles": "tsx scripts/audit-muscle-tags.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
