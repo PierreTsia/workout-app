@@ -39,7 +39,7 @@ export const MAJOR_MUSCLE_GROUPS = [
   "Abdos",
 ] as const
 
-export const COMPOUND_REPS = "8-10"
+export const COMPOUND_REPS = "10"
 export const COMPOUND_REST_SECONDS = 90
-export const ISOLATION_REPS = "12-15"
+export const ISOLATION_REPS = "12"
 export const ISOLATION_REST_SECONDS = 60

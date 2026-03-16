@@ -2,7 +2,11 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
-import type { Duration, EquipmentCategory, GeneratorConstraints } from "@/types/generator"
+import type {
+  Duration,
+  EquipmentCategory,
+  GeneratorConstraints,
+} from "@/types/generator"
 
 const DURATIONS: Duration[] = [15, 30, 45, 60, 90]
 
@@ -28,6 +32,28 @@ export function ConstraintStep({
   const { t } = useTranslation("generator")
   const { data: filterOptions } = useExerciseFilterOptions()
   const muscleGroups = filterOptions?.muscle_groups ?? []
+
+  const isFullBody = constraints.muscleGroups.includes("full-body")
+
+  function toggleMuscleGroup(group: string) {
+    if (group === "full-body") {
+      onChange({ ...constraints, muscleGroups: ["full-body"] })
+      return
+    }
+
+    const withoutFullBody = constraints.muscleGroups.filter(
+      (g) => g !== "full-body",
+    )
+    const alreadySelected = withoutFullBody.includes(group)
+    const next = alreadySelected
+      ? withoutFullBody.filter((g) => g !== group)
+      : [...withoutFullBody, group]
+
+    onChange({
+      ...constraints,
+      muscleGroups: next.length === 0 ? ["full-body"] : next,
+    })
+  }
 
   const pillClass = (active: boolean) =>
     cn(
@@ -86,11 +112,9 @@ export function ConstraintStep({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            aria-pressed={constraints.muscleGroup === "full-body"}
-            onClick={() =>
-              onChange({ ...constraints, muscleGroup: "full-body" })
-            }
-            className={pillClass(constraints.muscleGroup === "full-body")}
+            aria-pressed={isFullBody}
+            onClick={() => toggleMuscleGroup("full-body")}
+            className={pillClass(isFullBody)}
           >
             {t("fullBody")}
           </button>
@@ -98,9 +122,13 @@ export function ConstraintStep({
             <button
               key={mg}
               type="button"
-              aria-pressed={constraints.muscleGroup === mg}
-              onClick={() => onChange({ ...constraints, muscleGroup: mg })}
-              className={pillClass(constraints.muscleGroup === mg)}
+              aria-pressed={
+                !isFullBody && constraints.muscleGroups.includes(mg)
+              }
+              onClick={() => toggleMuscleGroup(mg)}
+              className={pillClass(
+                !isFullBody && constraints.muscleGroups.includes(mg),
+              )}
             >
               {mg}
             </button>

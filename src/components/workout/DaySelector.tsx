@@ -49,6 +49,18 @@ export function DaySelector({ days, onQuickWorkout }: DaySelectorProps) {
     }))
   }
 
+  const quickDayId = isQuickWorkout ? session.activeDayId : null
+  const isViewingQuickDay = isQuickWorkout && session.currentDayId === quickDayId
+
+  function selectQuickDay() {
+    if (!quickDayId) return
+    setSession((prev) => ({
+      ...prev,
+      currentDayId: quickDayId,
+      exerciseIndex: prev.exerciseIndex,
+    }))
+  }
+
   return (
     <div className="relative">
       <div
@@ -56,10 +68,19 @@ export function DaySelector({ days, onQuickWorkout }: DaySelectorProps) {
         className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
       >
         {isQuickWorkout && (
-          <span className="flex shrink-0 snap-start items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+          <button
+            type="button"
+            onClick={selectQuickDay}
+            className={cn(
+              "flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+              isViewingQuickDay
+                ? "bg-primary text-primary-foreground"
+                : "bg-primary/20 text-primary",
+            )}
+          >
             <Zap className="h-3.5 w-3.5" />
             {t("quickWorkout")}
-          </span>
+          </button>
         )}
         {days.map((day) => (
           <button
@@ -71,7 +92,7 @@ export function DaySelector({ days, onQuickWorkout }: DaySelectorProps) {
             onClick={() => selectDay(day.id)}
             className={cn(
               "flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              session.currentDayId === day.id
+              !isViewingQuickDay && session.currentDayId === day.id
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground",
             )}

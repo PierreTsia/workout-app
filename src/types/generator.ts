@@ -7,7 +7,7 @@ export type EquipmentCategory = "bodyweight" | "dumbbells" | "full-gym"
 export interface GeneratorConstraints {
   duration: Duration
   equipmentCategory: EquipmentCategory
-  muscleGroup: string | "full-body"
+  muscleGroups: string[]
 }
 
 export interface GeneratedExercise {

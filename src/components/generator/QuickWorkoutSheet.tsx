@@ -25,7 +25,7 @@ interface QuickWorkoutSheetProps {
 const DEFAULT_CONSTRAINTS: GeneratorConstraints = {
   duration: 30,
   equipmentCategory: "full-gym",
-  muscleGroup: "full-body",
+  muscleGroups: ["full-body"],
 }
 
 export function QuickWorkoutSheet({
@@ -39,10 +39,11 @@ export function QuickWorkoutSheet({
     useState<GeneratorConstraints>(DEFAULT_CONSTRAINTS)
   const [generatedWorkout, setGeneratedWorkout] =
     useState<GeneratedWorkout | null>(null)
+  const [previewKey, setPreviewKey] = useState(0)
 
   const { data: exercisePool = [], isLoading: isLoadingExercises } =
     useExercisesForGenerator(
-      constraints.muscleGroup,
+      constraints.muscleGroups,
       constraints.equipmentCategory,
     )
 
@@ -51,12 +52,14 @@ export function QuickWorkoutSheet({
   const handleGenerate = useCallback(() => {
     const result = generateWorkout(exercisePool, constraints)
     setGeneratedWorkout(result)
+    setPreviewKey((k) => k + 1)
     setStep("preview")
   }, [exercisePool, constraints])
 
   const handleShuffle = useCallback(() => {
     const result = generateWorkout(exercisePool, constraints)
     setGeneratedWorkout(result)
+    setPreviewKey((k) => k + 1)
   }, [exercisePool, constraints])
 
   const handleStart = useCallback(
@@ -103,6 +106,7 @@ export function QuickWorkoutSheet({
           )}
           {step === "preview" && generatedWorkout && (
             <PreviewStep
+              key={previewKey}
               workout={generatedWorkout}
               exercisePool={exercisePool}
               onStart={handleStart}

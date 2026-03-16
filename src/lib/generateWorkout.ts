@@ -27,10 +27,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-function pickWithVariety(
-  pool: Exercise[],
-  count: number,
-): Exercise[] {
+function pickWithVariety(pool: Exercise[], count: number): Exercise[] {
   if (pool.length <= count) return shuffleArray(pool)
 
   const shuffled = shuffleArray(pool)
@@ -49,9 +46,10 @@ function pickWithVariety(
   return picked
 }
 
-function pickFullBody(
+function pickDistributed(
   pool: Exercise[],
   targetCount: number,
+  groups: readonly string[],
 ): Exercise[] {
   const byGroup = new Map<string, Exercise[]>()
   for (const ex of pool) {
@@ -60,15 +58,15 @@ function pickFullBody(
     byGroup.set(ex.muscle_group, list)
   }
 
-  const groups = MAJOR_MUSCLE_GROUPS.filter((g) => byGroup.has(g))
-  if (groups.length === 0) return pickWithVariety(pool, targetCount)
+  const availableGroups = groups.filter((g) => byGroup.has(g))
+  if (availableGroups.length === 0) return pickWithVariety(pool, targetCount)
 
-  const perGroup = Math.max(1, Math.floor(targetCount / groups.length))
-  const remainder = targetCount - perGroup * groups.length
+  const perGroup = Math.max(1, Math.floor(targetCount / availableGroups.length))
+  const remainder = targetCount - perGroup * availableGroups.length
   const picked: Exercise[] = []
 
-  for (let i = 0; i < groups.length; i++) {
-    const groupPool = shuffleArray(byGroup.get(groups[i]) ?? [])
+  for (let i = 0; i < availableGroups.length; i++) {
+    const groupPool = shuffleArray(byGroup.get(availableGroups[i]) ?? [])
     const take = perGroup + (i < remainder ? 1 : 0)
     picked.push(...groupPool.slice(0, take))
   }
@@ -76,7 +74,9 @@ function pickFullBody(
   if (picked.length < targetCount) {
     const pickedIds = new Set(picked.map((e) => e.id))
     const leftover = pool.filter((e) => !pickedIds.has(e.id))
-    picked.push(...shuffleArray(leftover).slice(0, targetCount - picked.length))
+    picked.push(
+      ...shuffleArray(leftover).slice(0, targetCount - picked.length),
+    )
   }
 
   return shuffleArray(picked)
@@ -96,18 +96,23 @@ function buildExercise(
   }
 }
 
+function isFullBody(groups: string[]): boolean {
+  return groups.length === 0 || groups.includes("full-body")
+}
+
 export function generateWorkout(
   exercises: Exercise[],
   constraints: GeneratorConstraints,
 ): GeneratedWorkout {
-  const { duration, equipmentCategory, muscleGroup } = constraints
+  const { duration, equipmentCategory, muscleGroups } = constraints
   const equipmentValues = EQUIPMENT_CATEGORY_MAP[equipmentCategory]
   const { exerciseCount, setsPerExercise } = VOLUME_MAP[duration]
+  const fullBody = isFullBody(muscleGroups)
 
   let pool = exercises.filter((e) => equipmentValues.includes(e.equipment))
 
-  if (muscleGroup !== "full-body") {
-    pool = pool.filter((e) => e.muscle_group === muscleGroup)
+  if (!fullBody) {
+    pool = pool.filter((e) => muscleGroups.includes(e.muscle_group))
   }
 
   let fallbackNotice: string | null = null
@@ -116,11 +121,11 @@ export function generateWorkout(
     const widened = exercises.filter(
       (e) =>
         [...equipmentValues, "bodyweight"].includes(e.equipment) &&
-        (muscleGroup === "full-body" || e.muscle_group === muscleGroup),
+        (fullBody || muscleGroups.includes(e.muscle_group)),
     )
     if (widened.length > pool.length) {
       pool = widened
-      fallbackNotice = `Not enough ${equipmentCategory} exercises${muscleGroup !== "full-body" ? ` for ${muscleGroup}` : ""} — added bodyweight exercises`
+      fallbackNotice = `Not enough ${equipmentCategory} exercises${!fullBody ? ` for ${muscleGroups.join(", ")}` : ""} — added bodyweight exercises`
     }
   }
 
@@ -132,10 +137,14 @@ export function generateWorkout(
     }
   }
 
-  const selected =
-    muscleGroup === "full-body"
-      ? pickFullBody(pool, exerciseCount)
-      : pickWithVariety(pool, exerciseCount)
+  const useDistribution = fullBody || muscleGroups.length > 1
+  const distributionGroups = fullBody
+    ? MAJOR_MUSCLE_GROUPS
+    : muscleGroups
+
+  const selected = useDistribution
+    ? pickDistributed(pool, exerciseCount, distributionGroups)
+    : pickWithVariety(pool, exerciseCount)
 
   return {
     exercises: selected.map((e) => buildExercise(e, setsPerExercise)),
@@ -145,10 +154,10 @@ export function generateWorkout(
 }
 
 function buildName(constraints: GeneratorConstraints): string {
-  const focus =
-    constraints.muscleGroup === "full-body"
-      ? "Full Body"
-      : constraints.muscleGroup
+  const fullBody = isFullBody(constraints.muscleGroups)
+  const focus = fullBody
+    ? "Full Body"
+    : constraints.muscleGroups.join(" + ")
   const equip =
     constraints.equipmentCategory === "full-gym"
       ? "Gym"

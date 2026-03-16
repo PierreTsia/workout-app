@@ -62,7 +62,7 @@ describe("generateWorkout", () => {
   const baseConstraints: GeneratorConstraints = {
     duration: 15,
     equipmentCategory: "full-gym",
-    muscleGroup: "Pectoraux",
+    muscleGroups: ["Pectoraux"],
   }
 
   it("returns exercises filtered by muscle group", () => {
@@ -83,12 +83,12 @@ describe("generateWorkout", () => {
     )
     if (compoundResult) {
       expect(compoundResult.isCompound).toBe(true)
-      expect(compoundResult.reps).toBe("8-10")
+      expect(compoundResult.reps).toBe("10")
       expect(compoundResult.restSeconds).toBe(90)
     }
     if (isolationResult) {
       expect(isolationResult.isCompound).toBe(false)
-      expect(isolationResult.reps).toBe("12-15")
+      expect(isolationResult.reps).toBe("12")
       expect(isolationResult.restSeconds).toBe(60)
     }
   })
@@ -120,7 +120,7 @@ describe("generateWorkout", () => {
     const constraints: GeneratorConstraints = {
       duration: 45,
       equipmentCategory: "full-gym",
-      muscleGroup: "full-body",
+      muscleGroups: ["full-body"],
     }
 
     const result = generateWorkout(pool, constraints)
@@ -138,7 +138,7 @@ describe("generateWorkout", () => {
     const constraints: GeneratorConstraints = {
       duration: 30,
       equipmentCategory: "dumbbells",
-      muscleGroup: "Biceps",
+      muscleGroups: ["Biceps"],
     }
 
     const result = generateWorkout(sparsePool, constraints)
@@ -159,6 +159,33 @@ describe("generateWorkout", () => {
     expect(result.name).toContain("15min")
   })
 
+  it("selects from multiple muscle groups when several are specified", () => {
+    const pool = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        fakeExercise({ id: `chest-${i}`, muscle_group: "Pectoraux", equipment: "barbell" }),
+      ),
+      ...Array.from({ length: 5 }, (_, i) =>
+        fakeExercise({ id: `triceps-${i}`, muscle_group: "Triceps", equipment: "barbell" }),
+      ),
+      ...Array.from({ length: 5 }, (_, i) =>
+        fakeExercise({ id: `back-${i}`, muscle_group: "Dos", equipment: "barbell" }),
+      ),
+    ]
+
+    const constraints: GeneratorConstraints = {
+      duration: 30,
+      equipmentCategory: "full-gym",
+      muscleGroups: ["Pectoraux", "Triceps"],
+    }
+
+    const result = generateWorkout(pool, constraints)
+    result.exercises.forEach((ge) => {
+      expect(["Pectoraux", "Triceps"]).toContain(ge.exercise.muscle_group)
+    })
+    const groups = new Set(result.exercises.map((ge) => ge.exercise.muscle_group))
+    expect(groups.size).toBe(2)
+  })
+
   it("does not fallback to bodyweight when already bodyweight", () => {
     const pool = [
       fakeExercise({ id: "pushup", muscle_group: "Pectoraux", equipment: "bodyweight" }),
@@ -167,7 +194,7 @@ describe("generateWorkout", () => {
     const constraints: GeneratorConstraints = {
       duration: 30,
       equipmentCategory: "bodyweight",
-      muscleGroup: "Pectoraux",
+      muscleGroups: ["Pectoraux"],
     }
 
     const result = generateWorkout(pool, constraints)

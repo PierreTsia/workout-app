@@ -57,13 +57,10 @@ export function PreviewExerciseCard({
           <button
             type="button"
             onClick={() => {
-              const newReps = item.isCompound ? "8-10" : "12-15"
-              const current = item.reps
-              if (current === "8-10") onUpdateReps(index, "6-8")
-              else if (current === "6-8") onUpdateReps(index, "10-12")
-              else if (current === "12-15") onUpdateReps(index, "10-12")
-              else if (current === "10-12") onUpdateReps(index, "15-20")
-              else onUpdateReps(index, newReps)
+              const cycle = ["6", "8", "10", "12", "15", "20"]
+              const currentIdx = cycle.indexOf(item.reps)
+              const nextIdx = (currentIdx + 1) % cycle.length
+              onUpdateReps(index, cycle[nextIdx])
             }}
             className="rounded border px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent"
           >
