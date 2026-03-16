@@ -39,6 +39,10 @@ export function WorkoutPage() {
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const [finished, setFinished] = useState(false)
+  const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
+    dayId: string
+    name: string
+  } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useState(false)
 
@@ -203,6 +207,15 @@ export function WorkoutPage() {
     })
     scheduleImmediateDrain()
 
+    if (isQuickWorkout && session.currentDayId) {
+      setFinishedQuickInfo({
+        dayId: session.currentDayId,
+        name:
+          days?.find((d) => d.id === session.currentDayId)?.label ??
+          "Quick Workout",
+      })
+    }
+    setIsQuickWorkout(false)
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setFinished(true)
   }
@@ -233,7 +246,7 @@ export function WorkoutPage() {
   }
 
   function handleNewSession() {
-    setIsQuickWorkout(false)
+    setFinishedQuickInfo(null)
     setSession({
       currentDayId: null,
       activeDayId: null,
@@ -281,12 +294,8 @@ export function WorkoutPage() {
         totalExercises={exercises.length}
         prExercises={prExercises}
         onNewSession={handleNewSession}
-        quickWorkoutDayId={isQuickWorkout ? (session.currentDayId ?? undefined) : undefined}
-        quickWorkoutName={
-          isQuickWorkout
-            ? (days?.find((d) => d.id === session.currentDayId)?.label ?? "Quick Workout")
-            : undefined
-        }
+        quickWorkoutDayId={finishedQuickInfo?.dayId}
+        quickWorkoutName={finishedQuickInfo?.name}
       />
     )
   }
