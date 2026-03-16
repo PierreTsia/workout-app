@@ -38,6 +38,8 @@ export interface UserProfile {
   goal: string
   equipment: string
   training_days_per_week: number
+  age: number | null
+  gender: string | null
 }
 
 export interface RecentExercise {
@@ -125,6 +127,12 @@ export function buildPrompt(
       `- Equipment preference: ${profile.equipment}`,
       `- Training days/week: ${profile.training_days_per_week}`,
     )
+    if (profile.age != null) {
+      lines.push(`- Age: ${profile.age}`)
+    }
+    if (profile.gender && profile.gender !== "prefer_not_to_say") {
+      lines.push(`- Gender: ${profile.gender}`)
+    }
   }
 
   if (recentExercises.length > 0) {

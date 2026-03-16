@@ -32,6 +32,8 @@ const PROFILE: UserProfile = {
   goal: "hypertrophy",
   equipment: "full-gym",
   training_days_per_week: 4,
+  age: 30,
+  gender: "male",
 }
 
 const HISTORY: RecentExercise[] = [
@@ -50,10 +52,29 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("RULES:")
     expect(prompt).toContain("USER PROFILE:")
     expect(prompt).toContain("intermediate")
+    expect(prompt).toContain("Age: 30")
+    expect(prompt).toContain("Gender: male")
     expect(prompt).toContain("RECENT EXERCISES")
     expect(prompt).toContain("Bench Press")
     expect(prompt).toContain("EXERCISE CATALOG:")
     expect(prompt).toContain("CONSTRAINTS:")
+  })
+
+  it("omits age and gender when null or prefer_not_to_say", () => {
+    const discreetProfile: UserProfile = {
+      ...PROFILE,
+      age: null,
+      gender: "prefer_not_to_say",
+    }
+    const prompt = buildPrompt(CATALOG, discreetProfile, [], {
+      duration: 30,
+      equipmentCategory: "full-gym",
+      muscleGroups: ["Pectoraux"],
+    })
+
+    expect(prompt).toContain("USER PROFILE:")
+    expect(prompt).not.toContain("Age:")
+    expect(prompt).not.toContain("Gender:")
   })
 
   it("omits USER PROFILE section when profile is null", () => {
