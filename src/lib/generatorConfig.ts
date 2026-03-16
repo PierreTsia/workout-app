@@ -28,6 +28,8 @@ export const EQUIPMENT_CATEGORY_MAP: Record<EquipmentCategory, string[]> = {
   ],
 } as const
 
+// These values must match the `muscle_group` column in the `exercises` table.
+// Source of truth: Supabase `exercises.muscle_group` (French labels used as DB identifiers).
 export const MAJOR_MUSCLE_GROUPS = [
   "Pectoraux",
   "Dos",
