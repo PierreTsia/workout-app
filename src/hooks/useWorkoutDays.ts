@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
-import { authAtom, activeProgramIdAtom } from "@/store/atoms"
+import { authAtom } from "@/store/atoms"
 import type { WorkoutDay } from "@/types/database"
 
-export function useWorkoutDays() {
+export function useWorkoutDays(programId: string | null) {
   const user = useAtomValue(authAtom)
-  const programId = useAtomValue(activeProgramIdAtom)
 
   return useQuery<WorkoutDay[]>({
     queryKey: ["workout-days", user?.id, programId],

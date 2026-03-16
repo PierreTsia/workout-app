@@ -36,16 +36,17 @@ import {
 } from "@/components/ui/dialog"
 
 interface DayListProps {
+  programId: string
   onSelectDay: (dayId: string) => void
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
 
-export function DayList({ onSelectDay, onMutationStateChange }: DayListProps) {
+export function DayList({ programId, onSelectDay, onMutationStateChange }: DayListProps) {
   const { t } = useTranslation("builder")
-  const { data: days, isLoading } = useWorkoutDays()
-  const createDay = useCreateDay()
-  const deleteDay = useDeleteDay()
-  const reorderDays = useReorderDays()
+  const { data: days, isLoading } = useWorkoutDays(programId)
+  const createDay = useCreateDay(programId)
+  const deleteDay = useDeleteDay(programId)
+  const reorderDays = useReorderDays(programId)
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string
     label: string

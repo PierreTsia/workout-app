@@ -12,6 +12,7 @@ interface ProgramCardProps {
   onActivate: () => void
   onArchive: () => void
   onDetails: () => void
+  onEdit: () => void
 }
 
 export function ProgramCard({
@@ -21,6 +22,7 @@ export function ProgramCard({
   onActivate,
   onArchive,
   onDetails,
+  onEdit,
 }: ProgramCardProps) {
   const { t } = useTranslation("library")
 
@@ -48,23 +50,28 @@ export function ProgramCard({
           {t("generatedOn", { date: formattedDate })}
         </Badge>
       </CardHeader>
-      {!isActive && (
-        <CardContent className="flex gap-2 pt-0">
-          {!isArchived && (
-            <Button
-              size="sm"
-              onClick={onActivate}
-              disabled={isSessionActive}
-              title={isSessionActive ? t("sessionActiveWarning") : undefined}
-            >
-              {t("activate")}
-            </Button>
-          )}
+      <CardContent className="flex gap-2 pt-0">
+        {!isArchived && (
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            {t("editProgram")}
+          </Button>
+        )}
+        {!isActive && !isArchived && (
+          <Button
+            size="sm"
+            onClick={onActivate}
+            disabled={isSessionActive}
+            title={isSessionActive ? t("sessionActiveWarning") : undefined}
+          >
+            {t("activate")}
+          </Button>
+        )}
+        {!isActive && (
           <Button variant="ghost" size="sm" onClick={onArchive}>
             {isArchived ? t("unarchive") : t("archive")}
           </Button>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   )
 }

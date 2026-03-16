@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { DayCard } from "@/components/library/DayCard"
 import type { Program } from "@/types/onboarding"
@@ -19,9 +20,10 @@ interface ProgramDetailSheetProps {
   program: Program | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onEdit?: (programId: string) => void
 }
 
-export function ProgramDetailSheet({ program, open, onOpenChange }: ProgramDetailSheetProps) {
+export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: ProgramDetailSheetProps) {
   const { t } = useTranslation("library")
 
   const { data: days, isLoading } = useQuery<DayWithExercises[]>({
@@ -45,7 +47,21 @@ export function ProgramDetailSheet({ program, open, onOpenChange }: ProgramDetai
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{program.name}</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle>{program.name}</SheetTitle>
+            {onEdit && !program.archived_at && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false)
+                  onEdit(program.id)
+                }}
+              >
+                {t("editProgram")}
+              </Button>
+            )}
+          </div>
           <Badge variant="outline" className="w-fit text-[10px]">
             {t("generatedOn", { date: new Date(program.created_at).toLocaleDateString() })}
           </Badge>

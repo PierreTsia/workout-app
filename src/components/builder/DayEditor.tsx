@@ -37,20 +37,22 @@ import { ExerciseRow } from "./ExerciseRow"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
 
 interface DayEditorProps {
+  programId: string
   dayId: string
   onSelectExercise: (exerciseId: string) => void
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
 
 export function DayEditor({
+  programId,
   dayId,
   onSelectExercise,
   onMutationStateChange,
 }: DayEditorProps) {
   const { t } = useTranslation("builder")
-  const { data: days } = useWorkoutDays()
+  const { data: days } = useWorkoutDays(programId)
   const { data: exercises, isLoading } = useWorkoutExercises(dayId)
-  const updateDay = useUpdateDay()
+  const updateDay = useUpdateDay(programId)
   const deleteExercise = useDeleteExercise()
   const reorderExercises = useReorderExercises()
 

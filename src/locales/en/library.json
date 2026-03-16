@@ -53,5 +53,10 @@
   "programActivated": "Program activated",
   "programArchived": "Program archived",
   "programUnarchived": "Program restored",
-  "errorGeneric": "Something went wrong. Please try again."
+  "errorGeneric": "Something went wrong. Please try again.",
+
+  "createProgram": "Create Program",
+  "programName": "Program name",
+  "programNamePlaceholder": "My Program",
+  "editProgram": "Edit"
 }

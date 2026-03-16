@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
-import { authAtom, activeProgramIdAtom } from "@/store/atoms"
+import { authAtom } from "@/store/atoms"
 import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
 
-export function useCreateDay() {
+export function useCreateDay(programId: string | null) {
   const user = useAtomValue(authAtom)
-  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -19,7 +18,7 @@ export function useCreateDay() {
       emoji: string
       sortOrder: number
     }) => {
-      if (!programId) throw new Error("No active program")
+      if (!programId) throw new Error("No program")
       const { data, error } = await supabase
         .from("workout_days")
         .insert({ user_id: user!.id, program_id: programId, label, emoji, sort_order: sortOrder })
@@ -34,9 +33,8 @@ export function useCreateDay() {
   })
 }
 
-export function useUpdateDay() {
+export function useUpdateDay(programId: string | null) {
   const user = useAtomValue(authAtom)
-  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -64,9 +62,8 @@ export function useUpdateDay() {
   })
 }
 
-export function useDeleteDay() {
+export function useDeleteDay(programId: string | null) {
   const user = useAtomValue(authAtom)
-  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({
@@ -200,9 +197,8 @@ export function useDeleteExercise() {
   })
 }
 
-export function useReorderDays() {
+export function useReorderDays(programId: string | null) {
   const user = useAtomValue(authAtom)
-  const programId = useAtomValue(activeProgramIdAtom)
   const qc = useQueryClient()
 
   return useMutation({

@@ -4,11 +4,11 @@ import {
   useMemo,
   useState,
 } from "react"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -38,6 +38,7 @@ export function WorkoutPage() {
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
+  const activeProgramId = useAtomValue(activeProgramIdAtom)
   const [finished, setFinished] = useState(false)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
@@ -46,7 +47,7 @@ export function WorkoutPage() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useState(false)
 
-  const { data: days, isLoading: daysLoading } = useWorkoutDays()
+  const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
@@ -279,9 +280,13 @@ export function WorkoutPage() {
         <p className="text-sm text-muted-foreground">
           {t("createPrompt")}
         </p>
-        <Button asChild>
-          <Link to="/builder">{t("openBuilder")}</Link>
-        </Button>
+        {activeProgramId && (
+          <Button asChild>
+            <Link to={`/builder/${activeProgramId}`} state={{ from: "/" }}>
+              {t("openBuilder")}
+            </Link>
+          </Button>
+        )}
       </div>
     )
   }
@@ -320,9 +325,13 @@ export function WorkoutPage() {
       ) : exercises.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
           <p className="text-muted-foreground">{t("noExercises")}</p>
-          <Button variant="outline" asChild size="sm">
-            <Link to="/builder">{t("addExercises")}</Link>
-          </Button>
+          {activeProgramId && (
+            <Button variant="outline" asChild size="sm">
+              <Link to={`/builder/${activeProgramId}`} state={{ from: "/" }}>
+                {t("addExercises")}
+              </Link>
+            </Button>
+          )}
         </div>
       ) : (
         <>

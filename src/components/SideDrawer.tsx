@@ -147,11 +147,6 @@ export function SideDrawer() {
               </Link>
             </Button>
             <Button variant="ghost" className="justify-start" asChild>
-              <Link to="/builder" onClick={closeDrawer}>
-                {t("common:workoutBuilder")}
-              </Link>
-            </Button>
-            <Button variant="ghost" className="justify-start" asChild>
               <Link to="/library" onClick={closeDrawer}>
                 <Library className="h-4 w-4" />
                 {t("common:library")}

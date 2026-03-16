@@ -22,6 +22,7 @@ function renderCard(overrides = {}) {
     isSessionActive: false,
     onActivate: vi.fn(),
     onArchive: vi.fn(),
+    onEdit: vi.fn(),
     onDetails: vi.fn(),
     ...overrides,
   }

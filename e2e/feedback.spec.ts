@@ -41,7 +41,13 @@ test.describe("Feedback — happy path", () => {
         .first(),
     ).toBeVisible({ timeout: 60_000 })
 
-    await page.goto("/builder")
+    const { data: activeProgram } = await admin
+      .from("programs")
+      .select("id")
+      .eq("is_active", true)
+      .limit(1)
+      .single()
+    await page.goto(`/builder/${activeProgram!.id}`)
 
     try {
       await expect(notifDialog).toBeVisible({ timeout: 5_000 })

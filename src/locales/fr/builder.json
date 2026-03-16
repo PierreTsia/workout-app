@@ -50,5 +50,11 @@
     "ez_bar": "Barre EZ",
     "band": "Élastique",
     "other": "Autre"
-  }
+  },
+
+  "activateProgram": "Activer",
+  "renameProgram": "Renommer",
+  "invalidProgram": "Programme introuvable",
+  "goToLibrary": "Aller à la bibliothèque",
+  "programActivated": "Programme activé"
 }
