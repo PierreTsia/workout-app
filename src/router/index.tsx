@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
                 element: <HistoryPage />,
               },
               {
-                path: "/builder",
+                path: "/builder/:programId",
                 element: <BuilderPage />,
               },
               {

@@ -53,5 +53,10 @@
   "programActivated": "Programme activé",
   "programArchived": "Programme archivé",
   "programUnarchived": "Programme restauré",
-  "errorGeneric": "Une erreur est survenue. Veuillez réessayer."
+  "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
+
+  "createProgram": "Créer un programme",
+  "programName": "Nom du programme",
+  "programNamePlaceholder": "Mon programme",
+  "editProgram": "Modifier"
 }

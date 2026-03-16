@@ -50,5 +50,11 @@
     "ez_bar": "EZ Bar",
     "band": "Band",
     "other": "Other"
-  }
+  },
+
+  "activateProgram": "Activate",
+  "renameProgram": "Rename",
+  "invalidProgram": "Program not found",
+  "goToLibrary": "Go to Library",
+  "programActivated": "Program activated"
 }

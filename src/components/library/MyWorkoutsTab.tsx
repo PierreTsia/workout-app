@@ -1,9 +1,11 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
 import { sessionAtom } from "@/store/atoms"
 import { useUserPrograms } from "@/hooks/useUserPrograms"
 import { useActivateProgram } from "@/hooks/useActivateProgram"
@@ -11,10 +13,12 @@ import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
 import { ProgramDetailSheet } from "@/components/library/ProgramDetailSheet"
 import { ActivateConfirmDialog } from "@/components/library/ActivateConfirmDialog"
+import { CreateProgramDialog } from "@/components/library/CreateProgramDialog"
 import type { Program } from "@/types/onboarding"
 
 export function MyWorkoutsTab() {
   const { t } = useTranslation("library")
+  const navigate = useNavigate()
   const { data: programs, isLoading } = useUserPrograms()
   const session = useAtomValue(sessionAtom)
   const activateProgram = useActivateProgram()
@@ -23,11 +27,16 @@ export function MyWorkoutsTab() {
   const [showArchived, setShowArchived] = useState(false)
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
   const [detailProgram, setDetailProgram] = useState<Program | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const visiblePrograms = (programs ?? []).filter((p) => {
     if (showArchived) return true
     return p.archived_at === null
   })
+
+  function handleEdit(programId: string) {
+    navigate(`/builder/${programId}`, { state: { from: "/library" } })
+  }
 
   function handleActivateConfirm() {
     if (!activateTargetId) return
@@ -69,6 +78,15 @@ export function MyWorkoutsTab() {
 
   return (
     <div className="flex flex-col gap-3">
+      <Button
+        className="w-full gap-2"
+        variant="outline"
+        onClick={() => setCreateOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        {t("createProgram")}
+      </Button>
+
       {visiblePrograms.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">{t("myWorkoutsEmpty")}</p>
       )}
@@ -82,6 +100,7 @@ export function MyWorkoutsTab() {
           onActivate={() => setActivateTargetId(program.id)}
           onArchive={() => handleArchive(program.id, program.archived_at === null)}
           onDetails={() => setDetailProgram(program)}
+          onEdit={() => handleEdit(program.id)}
         />
       ))}
 
@@ -100,6 +119,7 @@ export function MyWorkoutsTab() {
         program={detailProgram}
         open={detailProgram !== null}
         onOpenChange={(open) => { if (!open) setDetailProgram(null) }}
+        onEdit={handleEdit}
       />
 
       <ActivateConfirmDialog
@@ -108,6 +128,11 @@ export function MyWorkoutsTab() {
         onConfirm={handleActivateConfirm}
         isSessionActive={session.isActive}
         isPending={activateProgram.isPending}
+      />
+
+      <CreateProgramDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
       />
     </div>
   )

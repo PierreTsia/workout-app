@@ -90,7 +90,7 @@
 | `/about` | About | Public |
 | `/` | Workout Session | Auth |
 | `/history` | History & Analytics | Auth |
-| `/builder` | Workout Builder | Auth |
+| `/builder/:programId` | Workout Builder | Auth |
 | `/admin/exercises` | Exercise Admin | Admin |
 | `/admin/exercises/:id` | Exercise Edit | Admin |
 

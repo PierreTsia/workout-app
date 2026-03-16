@@ -1,4 +1,23 @@
 import { test, expect } from "@playwright/test"
+import { createClient } from "@supabase/supabase-js"
+
+const SUPABASE_URL = "http://127.0.0.1:54321"
+const SERVICE_ROLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+})
+
+async function getActiveProgramId(): Promise<string> {
+  const { data } = await admin
+    .from("programs")
+    .select("id")
+    .eq("is_active", true)
+    .limit(1)
+    .single()
+  return data!.id
+}
 
 test.describe("Builder — CRUD", () => {
   test("create day, add exercise, edit sets/reps, delete exercise, delete day", async ({
@@ -28,8 +47,8 @@ test.describe("Builder — CRUD", () => {
         .first(),
     ).toBeVisible({ timeout: 60_000 })
 
-    // Navigate to builder
-    await page.goto("/builder")
+    const programId = await getActiveProgramId()
+    await page.goto(`/builder/${programId}`)
 
     // Dialog may reappear after full-page navigation (AuthGuard re-mounts)
     try {
@@ -167,7 +186,8 @@ test.describe("Builder — CRUD", () => {
       /* dialog didn't appear */
     }
 
-    await page.goto("/builder")
+    const programId = await getActiveProgramId()
+    await page.goto(`/builder/${programId}`)
     try {
       await expect(notifDialog).toBeVisible({ timeout: 5_000 })
       await notifDialog.getByRole("button", { name: /not now/i }).click()

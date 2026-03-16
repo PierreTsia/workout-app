@@ -87,7 +87,7 @@ export function OnboardingPage() {
       eventType: "program_created",
       payload: { program_id: programId, template_id: null, path: "self_directed" },
     })
-    navigate("/builder", { replace: true })
+    navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
   }
 
   async function handleSkipTemplate() {
@@ -101,7 +101,7 @@ export function OnboardingPage() {
       eventType: "program_created",
       payload: { program_id: programId, template_id: null, path: "guided" },
     })
-    navigate("/builder", { replace: true })
+    navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
   }
 
   async function handleConfirmProgram() {
