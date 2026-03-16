@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import {
   Drawer,
   DrawerContent,
@@ -11,6 +12,7 @@ import { ConstraintStep } from "./ConstraintStep"
 import { PreviewStep } from "./PreviewStep"
 import { useExercisesForGenerator } from "@/hooks/useExercisesForGenerator"
 import { useCreateQuickWorkout } from "@/hooks/useCreateQuickWorkout"
+import { useAIGenerateWorkout, isNetworkError } from "@/hooks/useAIGenerateWorkout"
 import { generateWorkout } from "@/lib/generateWorkout"
 import type { GeneratorConstraints, GeneratedWorkout } from "@/types/generator"
 
@@ -48,6 +50,24 @@ export function QuickWorkoutSheet({
     )
 
   const createQuickWorkout = useCreateQuickWorkout()
+  const aiGenerate = useAIGenerateWorkout({ exercisePool })
+
+  const handleAIGenerate = useCallback(() => {
+    aiGenerate.mutate(constraints, {
+      onSuccess: (result) => {
+        setGeneratedWorkout(result)
+        setPreviewKey((k) => k + 1)
+        setStep("preview")
+      },
+      onError: (err) => {
+        if (isNetworkError(err)) {
+          toast.error(t("networkError"))
+        } else {
+          toast.error(t("aiError"))
+        }
+      },
+    })
+  }, [aiGenerate, constraints, t])
 
   const handleGenerate = useCallback(() => {
     const result = generateWorkout(exercisePool, constraints)
@@ -101,7 +121,9 @@ export function QuickWorkoutSheet({
               constraints={constraints}
               onChange={setConstraints}
               onGenerate={handleGenerate}
+              onAIGenerate={handleAIGenerate}
               isLoading={isLoadingExercises}
+              isAILoading={aiGenerate.isPending}
             />
           )}
           {step === "preview" && generatedWorkout && (
