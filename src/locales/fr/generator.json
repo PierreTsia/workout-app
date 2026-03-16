@@ -29,6 +29,11 @@
     "dumbbells": "Haltères",
     "full-gym": "Salle complète"
   },
+  "aiGenerate": "Générer avec l'IA",
+  "aiGenerating": "L'IA réfléchit…",
+  "aiError": "La génération IA a échoué",
+  "aiFallback": "Utiliser la génération rapide ?",
+  "networkError": "Erreur réseau — essaie la génération rapide",
   "quickWorkoutBadge": "⚡ Séance rapide",
   "addExercise": "Ajouter un exercice",
   "addExerciseTitle": "Ajouter un exercice",

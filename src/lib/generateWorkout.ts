@@ -82,7 +82,7 @@ function pickDistributed(
   return shuffleArray(picked)
 }
 
-function buildExercise(
+export function buildExercise(
   exercise: Exercise,
   setsPerExercise: number,
 ): GeneratedExercise {

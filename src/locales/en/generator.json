@@ -29,6 +29,11 @@
     "dumbbells": "Dumbbells",
     "full-gym": "Full Gym"
   },
+  "aiGenerate": "AI Generate",
+  "aiGenerating": "AI is thinking…",
+  "aiError": "AI generation failed",
+  "aiFallback": "Use Quick Generate instead?",
+  "networkError": "Network error — try Quick Generate",
   "quickWorkoutBadge": "⚡ Quick Workout",
   "addExercise": "Add exercise",
   "addExerciseTitle": "Add an exercise",

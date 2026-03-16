@@ -25,15 +25,18 @@ function setup(overrides: Partial<GeneratorConstraints> = {}) {
   }
   const onChange = vi.fn()
   const onGenerate = vi.fn()
+  const onAIGenerate = vi.fn()
   const result = renderWithProviders(
     <ConstraintStep
       constraints={constraints}
       onChange={onChange}
       onGenerate={onGenerate}
+      onAIGenerate={onAIGenerate}
       isLoading={false}
+      isAILoading={false}
     />,
   )
-  return { ...result, onChange, onGenerate }
+  return { ...result, onChange, onGenerate, onAIGenerate }
 }
 
 describe("ConstraintStep", () => {
@@ -117,8 +120,15 @@ describe("ConstraintStep", () => {
   it("calls onGenerate when Generate button is clicked", async () => {
     const user = userEvent.setup()
     const { onGenerate } = setup()
-    await user.click(screen.getByRole("button", { name: /generate/i }))
+    await user.click(screen.getByRole("button", { name: /^generate$/i }))
     expect(onGenerate).toHaveBeenCalledOnce()
+  })
+
+  it("calls onAIGenerate when AI Generate button is clicked", async () => {
+    const user = userEvent.setup()
+    const { onAIGenerate } = setup()
+    await user.click(screen.getByRole("button", { name: /ai generate/i }))
+    expect(onAIGenerate).toHaveBeenCalledOnce()
   })
 
   it("shows loading text when isLoading is true", () => {
@@ -133,7 +143,9 @@ describe("ConstraintStep", () => {
         }}
         onChange={onChange}
         onGenerate={onGenerate}
+        onAIGenerate={vi.fn()}
         isLoading={true}
+        isAILoading={false}
       />,
     )
     expect(screen.getByText("Generating…")).toBeInTheDocument()

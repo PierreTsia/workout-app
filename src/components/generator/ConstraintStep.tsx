@@ -20,14 +20,18 @@ interface ConstraintStepProps {
   constraints: GeneratorConstraints
   onChange: (constraints: GeneratorConstraints) => void
   onGenerate: () => void
+  onAIGenerate: () => void
   isLoading: boolean
+  isAILoading: boolean
 }
 
 export function ConstraintStep({
   constraints,
   onChange,
   onGenerate,
+  onAIGenerate,
   isLoading,
+  isAILoading,
 }: ConstraintStepProps) {
   const { t } = useTranslation("generator")
   const { data: filterOptions } = useExerciseFilterOptions()
@@ -136,14 +140,25 @@ export function ConstraintStep({
         </div>
       </div>
 
-      <Button
-        className="w-full"
-        size="lg"
-        onClick={onGenerate}
-        disabled={isLoading}
-      >
-        {isLoading ? t("generating") : t("generate")}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="flex-1"
+          size="lg"
+          onClick={onGenerate}
+          disabled={isLoading || isAILoading}
+        >
+          {isLoading ? t("generating") : t("generate")}
+        </Button>
+        <Button
+          className="flex-1"
+          size="lg"
+          onClick={onAIGenerate}
+          disabled={isAILoading || isLoading || !navigator.onLine}
+        >
+          {isAILoading ? t("aiGenerating") : t("aiGenerate")}
+        </Button>
+      </div>
     </div>
   )
 }
