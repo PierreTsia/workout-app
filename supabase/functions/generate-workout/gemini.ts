@@ -57,7 +57,10 @@ export async function callGemini(prompt: string): Promise<string[]> {
           response_mime_type: "application/json",
           response_schema: { type: "ARRAY", items: { type: "STRING" } },
           temperature: 0.8,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 1024,
+        },
+        thinkingConfig: {
+          thinkingBudget: 0,
         },
       }),
     })
