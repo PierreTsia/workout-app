@@ -17,6 +17,7 @@ export function useLastWeights(exerciseIds: string[]) {
         .select("exercise_id, weight_logged, logged_at")
         .in("exercise_id", sortedIds)
         .order("logged_at", { ascending: false })
+        .limit(sortedIds.length * 50)
 
       if (error) throw error
       if (!data || data.length === 0) return {}
