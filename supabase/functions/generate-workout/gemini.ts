@@ -1,7 +1,7 @@
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-const TIMEOUT_MS = 15_000
+const TIMEOUT_MS = 10_000
 
 interface GeminiPart {
   text?: string
@@ -57,7 +57,10 @@ export async function callGemini(prompt: string): Promise<string[]> {
           response_mime_type: "application/json",
           response_schema: { type: "ARRAY", items: { type: "STRING" } },
           temperature: 0.8,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 1024,
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
         },
       }),
     })
