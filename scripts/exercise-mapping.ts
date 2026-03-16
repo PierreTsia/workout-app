@@ -90,6 +90,7 @@ export const MUSCLE_EMOJI_MAP: Record<string, string> = {
   "Quadriceps": "🦵",
   "Ischios": "🦵",
   "Fessiers": "🍑",
+  "Adducteurs": "🦵",
   "Mollets": "🦶",
   "Abdos": "🔥",
   "Lombaires": "🔙",
