@@ -11,7 +11,7 @@
 | Structured output | Gemini `response_mime_type: "application/json"` + `response_schema` | Guarantees valid JSON from the model. Eliminates "extract JSON from markdown" failures entirely. |
 | Exercise catalog scope | Pre-filtered by constraints + capped at 15 per muscle group | Reduces prompt from ~600 exercises to ~30-120. Cuts tokens by ~85%, reduces latency, and makes hallucination less likely. |
 | LLM output format | Array of exercise UUIDs only | Minimal output tokens. Client hydrates from its local cache (`useExercisesForGenerator`). Sets/reps/rest computed deterministically client-side. |
-| Validation strategy | Repair-first: drop invalid, backfill from pool. Full retry only on catastrophic failure (max 1). | Keeps happy path to 1 LLM call. Avoids the latency trap of recursive retries. |
+| Validation strategy | Repair-first: drop invalid, backfill from pool **respecting muscle group of dropped exercise**. Full retry only on catastrophic failure (max 1). | Keeps happy path to 1 LLM call. Avoids the latency trap of recursive retries. Muscle-group-aware backfill preserves workout coherence. |
 | DB access in edge function | Service-role Supabase client | Bypasses RLS. The edge function is trusted backend code — it authenticates the user via JWT, then queries freely. |
 | Rate limiting | Architecture supports per-user daily cap (10/day). Disabled during testing. | Simple counter in `user_profiles` or a lightweight `ai_generation_log` table. Not implemented in v1. |
 
@@ -31,6 +31,8 @@
 | **Total (cold)** | **~3.5-4.5s** | Tight but acceptable. |
 
 **Service-role key management.** The `SUPABASE_SERVICE_ROLE_KEY` must be stored in Supabase Secrets (not in `.env.local`). The edge function reads it via `Deno.env.get()`. The `GEMINI_API_KEY` goes in Secrets too. Neither key is ever sent to the client.
+
+**Explicit JWT verification is mandatory.** The edge function uses a service-role client that bypasses RLS. Without explicit user verification, anyone with the function URL could call the API, scrape exercises, or generate workouts for arbitrary users. The function must call `supabase.auth.getUser(token)` and use the returned verified user ID — never trust a decoded JWT claim directly. This is non-negotiable.
 
 **Session guard.** The AI Generate button must check `sessionAtom.isActive` before opening — same guard as the deterministic generator. `file:src/store/atoms.ts` defines `sessionAtom` and `isQuickWorkoutAtom`.
 
@@ -150,7 +152,7 @@ graph TD
 | `supabase/functions/_shared/cors.ts` | Reusable CORS headers for edge functions. |
 | `supabase/functions/_shared/supabase.ts` | Service-role Supabase client factory. |
 | `supabase/functions/generate-workout/prompt.ts` | System prompt template, catalog serializer, constraint formatter. |
-| `supabase/functions/generate-workout/validate.ts` | `validateAndRepair()` — drops invalid IDs, backfills from pool, returns clean exercise list. |
+| `supabase/functions/generate-workout/validate.ts` | `validateAndRepair()` — drops invalid IDs, backfills from pool **respecting muscle group of each dropped exercise**, returns clean exercise list. Receives full catalog for group-aware repair. |
 | `supabase/functions/generate-workout/gemini.ts` | `callGemini()` — raw fetch to Gemini REST API with structured output config. |
 | `src/hooks/useAIGenerateWorkout.ts` | `useMutation` that calls the edge function, hydrates exercise IDs from cache, and returns a `GeneratedWorkout`. |
 
@@ -166,9 +168,10 @@ graph TD
 ### Component Responsibilities
 
 **`generate-workout/index.ts` (Edge Function)**
-- Validates JWT from `Authorization` header (Supabase does this automatically when `verify_jwt = true`)
-- Extracts user ID from the JWT
-- Runs 3 DB queries in parallel: filtered exercises, user profile, recent history
+- **Auth — belt and suspenders:** Two-layer JWT verification:
+  1. Gateway layer: `verify_jwt = true` in `file:supabase/config.toml` rejects unauthenticated requests before the function code runs
+  2. Function layer: explicitly extract the Bearer token from the `Authorization` header, call `supabase.auth.getUser(token)` to get the verified `user.id`. Use **this verified ID** — not a decoded JWT claim — for all subsequent DB queries. If `getUser()` returns an error, return 401 immediately.
+- Runs 3 DB queries in parallel (using the verified user ID): filtered exercises, user profile, recent history
 - Builds the prompt via `prompt.ts`
 - Calls Gemini via `gemini.ts`
 - Validates and repairs via `validate.ts`
@@ -220,22 +223,37 @@ The catalog JSON is formatted as compact as possible (no whitespace, short keys)
 
 **`validate.ts` — Repair-First Validation**
 
+`validateAndRepair()` receives the full pre-filtered exercise catalog (not just IDs) so it can resolve muscle groups for dropped exercises and backfill intelligently.
+
 ```typescript
+interface CatalogExercise {
+  id: string
+  muscle_group: string
+  equipment: string
+}
+
 interface ValidationResult {
   exerciseIds: string[]
   repaired: boolean
   dropped: number
   backfilled: number
 }
+
+function validateAndRepair(
+  llmOutput: string[],
+  catalog: CatalogExercise[],
+  targetCount: number,
+): ValidationResult
 ```
 
 Steps:
 1. Parse Gemini response (guaranteed JSON via structured output)
-2. Filter: keep only IDs that exist in the pre-filtered exercise catalog
-3. Deduplicate
-4. If count < target: backfill from unused exercises in the pool (random pick)
-5. If count > target: trim to target
-6. If zero valid exercises after filtering: return error (triggers 1 retry with error feedback in the prompt)
+2. Build a catalog lookup map: `Map<string, CatalogExercise>` keyed by ID
+3. Filter: keep only IDs that exist in the catalog map. For each dropped ID, record its `muscle_group` (from the catalog) into a `droppedGroups` list
+4. Deduplicate
+5. If count < target: **muscle-group-aware backfill** — for each slot to fill, pick an unused exercise from the same `muscle_group` as the corresponding dropped exercise. If that group's pool is exhausted, fall back to any unused exercise from the catalog. This preserves the workout's muscle balance rather than injecting random exercises that break the session's coherence.
+6. If count > target: trim to target
+7. If zero valid exercises after filtering: return error (triggers 1 retry with error feedback in the prompt)
 
 **`gemini.ts` — Gemini API Call**
 
@@ -270,6 +288,7 @@ interface AIGenerateParams {
 - For any missing IDs (cache miss): fetches directly via `supabase.from("exercises").select("*").in("id", missingIds)`
 - Applies `buildExercise()` from `file:src/lib/generateWorkout.ts` to each exercise (deterministic sets/reps/rest from `VOLUME_MAP`)
 - Returns a `GeneratedWorkout` compatible with the existing `PreviewStep`
+- **Network error handling:** `onError` detects network failures specifically (`TypeError: Failed to fetch`, `FunctionsFetchError`, or similar). On network error: skip the generic toast, immediately show a targeted prompt offering the deterministic fallback ("Network error — use Quick Generate instead?"). This handles the case where the network drops mid-generation, avoiding an infinite loading state.
 
 **`ConstraintStep` — Modified**
 
@@ -300,7 +319,7 @@ Adds AI state management:
 | Failure | Behavior |
 |---|---|
 | Gemini returns invalid JSON | Should never happen with structured output mode. If it does: 1 retry, then error response to client. Frontend offers deterministic fallback. |
-| Gemini returns hallucinated exercise IDs | Repair: drop invalid IDs, backfill from pool. User sees a partially AI-curated, partially random workout. |
+| Gemini returns hallucinated exercise IDs | Repair: drop invalid IDs, backfill from pool **matching the muscle group of each dropped exercise**. Workout coherence is preserved — user sees a partially AI-curated workout, not a randomly unbalanced one. |
 | Gemini returns fewer exercises than target | Backfill from the pre-filtered pool deterministically. |
 | Gemini API timeout (>8s) | `AbortController` aborts the fetch. Edge function returns `{ error: "timeout" }`. Frontend toast + fallback. |
 | Gemini API key invalid or expired | Edge function returns 500. Frontend toast + fallback. Admin must update Supabase Secret. |
@@ -309,6 +328,7 @@ Adds AI state management:
 | Cold start + slow Gemini (worst case ~5s) | Accepted trade-off. Loading spinner with generic "Generating..." message. |
 | Edge function returns 401 (JWT expired) | Supabase client auto-refreshes tokens before the call. If still fails: toast error. |
 | Offline / no network | AI button disabled via `navigator.onLine`. Quick Generate remains available. |
+| Network drops mid-generation | `onError` detects `TypeError: Failed to fetch` or `FunctionsFetchError`. Immediately offers deterministic fallback ("Network error — use Quick Generate instead?") instead of a generic toast. No infinite loading state. |
 | Exercise pool too small (< target count) | Prompt tells LLM to select from what's available. Validation backfills if needed. |
 | Active session in progress | AI button hidden — same `sessionAtom.isActive` guard as Quick Generate. |
 | Cache miss on hydration | Fallback: direct Supabase query `.in("id", missingIds)`. Transparent to user. |
