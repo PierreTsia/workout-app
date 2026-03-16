@@ -20,6 +20,7 @@ import enFeedback from "@/locales/en/feedback.json"
 import enError from "@/locales/en/error.json"
 import enOnboarding from "@/locales/en/onboarding.json"
 import enLibrary from "@/locales/en/library.json"
+import enGenerator from "@/locales/en/generator.json"
 
 export function createTestI18n() {
   const instance = i18n.createInstance()
@@ -39,6 +40,7 @@ export function createTestI18n() {
         error: enError,
         onboarding: enOnboarding,
         library: enLibrary,
+        generator: enGenerator,
       },
     },
     defaultNS: "common",
