@@ -142,7 +142,7 @@ describe("generateWorkout", () => {
     }
 
     const result = generateWorkout(sparsePool, constraints)
-    expect(result.fallbackNotice).toContain("bodyweight")
+    expect(result.hasFallback).toBe(true)
     expect(result.exercises.length).toBe(2)
   })
 
@@ -198,7 +198,7 @@ describe("generateWorkout", () => {
     }
 
     const result = generateWorkout(pool, constraints)
-    expect(result.fallbackNotice).toBeNull()
+    expect(result.hasFallback).toBe(false)
     expect(result.exercises.length).toBe(1)
   })
 })

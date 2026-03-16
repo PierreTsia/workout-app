@@ -21,5 +21,5 @@ export interface GeneratedExercise {
 export interface GeneratedWorkout {
   exercises: GeneratedExercise[]
   name: string
-  fallbackNotice: string | null
+  hasFallback: boolean
 }

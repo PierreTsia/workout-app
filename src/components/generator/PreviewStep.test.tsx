@@ -49,7 +49,7 @@ const BASE_WORKOUT: GeneratedWorkout = {
     makeGeneratedExercise({ exercise: EX_B }),
   ],
   name: "Quick: Test Workout",
-  fallbackNotice: null,
+  hasFallback: false,
 }
 
 const POOL = [EX_A, EX_B, EX_C]
@@ -124,15 +124,15 @@ describe("PreviewStep", () => {
     expect(onBack).toHaveBeenCalledOnce()
   })
 
-  it("shows fallback notice when present", () => {
-    setup({ fallbackNotice: "Some bodyweight exercises were added" })
+  it("shows fallback notice when hasFallback is true", () => {
+    setup({ hasFallback: true })
     expect(
-      screen.getByText("Some bodyweight exercises were added"),
+      screen.getByText(/bodyweight exercises were added/),
     ).toBeInTheDocument()
   })
 
-  it("does not show fallback notice when null", () => {
-    setup({ fallbackNotice: null })
+  it("does not show fallback notice when hasFallback is false", () => {
+    setup({ hasFallback: false })
     expect(
       screen.queryByText(/bodyweight exercises were added/),
     ).not.toBeInTheDocument()

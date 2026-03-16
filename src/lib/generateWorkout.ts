@@ -115,7 +115,7 @@ export function generateWorkout(
     pool = pool.filter((e) => muscleGroups.includes(e.muscle_group))
   }
 
-  let fallbackNotice: string | null = null
+  let hasFallback = false
 
   if (pool.length < exerciseCount && equipmentCategory !== "bodyweight") {
     const widened = exercises.filter(
@@ -125,7 +125,7 @@ export function generateWorkout(
     )
     if (widened.length > pool.length) {
       pool = widened
-      fallbackNotice = `Not enough ${equipmentCategory} exercises${!fullBody ? ` for ${muscleGroups.join(", ")}` : ""} — added bodyweight exercises`
+      hasFallback = true
     }
   }
 
@@ -133,7 +133,7 @@ export function generateWorkout(
     return {
       exercises: [],
       name: buildName(constraints),
-      fallbackNotice: null,
+      hasFallback: false,
     }
   }
 
@@ -149,7 +149,7 @@ export function generateWorkout(
   return {
     exercises: selected.map((e) => buildExercise(e, setsPerExercise)),
     name: buildName(constraints),
-    fallbackNotice,
+    hasFallback,
   }
 }
 

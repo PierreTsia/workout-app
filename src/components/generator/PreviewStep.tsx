@@ -119,8 +119,8 @@ export function PreviewStep({
   )
 
   const handleStart = useCallback(() => {
-    onStart({ exercises, name, fallbackNotice: workout.fallbackNotice })
-  }, [exercises, name, workout.fallbackNotice, onStart])
+    onStart({ exercises, name, hasFallback: workout.hasFallback })
+  }, [exercises, name, workout.hasFallback, onStart])
 
   const currentExerciseIds = exercises.map((ge) => ge.exercise.id)
 
@@ -137,9 +137,9 @@ export function PreviewStep({
         />
       </div>
 
-      {workout.fallbackNotice && (
+      {workout.hasFallback && (
         <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
-          {workout.fallbackNotice}
+          {t("fallbackNotice")}
         </div>
       )}
 
