@@ -1,6 +1,7 @@
 import { useAtomValue } from "jotai"
 import { useRef, useEffect } from "react"
-import { prFlagsAtom } from "@/store/atoms"
+import { Check } from "lucide-react"
+import { prFlagsAtom, completedExerciseIdsAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -18,6 +19,7 @@ export function ExerciseStrip({
   onSelectIndex,
 }: ExerciseStripProps) {
   const prFlags = useAtomValue(prFlagsAtom)
+  const completedIds = useAtomValue(completedExerciseIdsAtom)
   const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLButtonElement>(null)
 
@@ -40,6 +42,7 @@ export function ExerciseStrip({
           exercise={ex}
           isActive={idx === activeIndex}
           hasPr={!!prFlags[ex.exercise_id]}
+          isCompleted={completedIds.has(ex.id)}
           ref={idx === activeIndex ? activeRef : undefined}
           onSelect={() => onSelectIndex(idx)}
         />
@@ -54,11 +57,12 @@ interface StripItemProps {
   exercise: WorkoutExercise
   isActive: boolean
   hasPr: boolean
+  isCompleted: boolean
   onSelect: () => void
 }
 
 const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
-  function StripItem({ exercise, isActive, hasPr, onSelect }, ref) {
+  function StripItem({ exercise, isActive, hasPr, isCompleted, onSelect }, ref) {
     const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
 
     return (
@@ -70,8 +74,14 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
           isActive
             ? "w-[8.5rem] scale-110 ring-2 ring-primary shadow-lg z-10"
             : "w-[5rem] opacity-60",
+          isCompleted && "border-green-500/50",
         )}
       >
+        {isCompleted && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40">
+            <Check className="h-8 w-8 text-green-400 drop-shadow-lg" strokeWidth={3} />
+          </div>
+        )}
         {hasPr && (
           <span className="absolute right-1 top-1 z-10 text-xs drop-shadow">🏆</span>
         )}
