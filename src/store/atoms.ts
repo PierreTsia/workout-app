@@ -41,10 +41,14 @@ export const sessionAtom = atomWithStorage<SessionState>(
   defaultSessionState,
 )
 
-export const restAtom = atomWithStorage<{
+export interface RestState {
   startedAt: number
   durationSeconds: number
-} | null>("rest", null)
+  pausedAt: number | null
+  accumulatedPause: number
+}
+
+export const restAtom = atomWithStorage<RestState | null>("rest", null)
 
 export const themeAtom = atomWithStorage<"dark" | "light">("theme", "dark")
 

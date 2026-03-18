@@ -61,14 +61,16 @@ test.describe("Workout session — full flow", () => {
       .first()
     await expect(firstSetRow).toHaveClass(/bg-primary/, { timeout: 5_000 })
 
-    // Rest timer overlay should appear
-    const restOverlay = page.locator(".fixed.inset-0.z-50")
-    await expect(restOverlay).toBeVisible({ timeout: 3_000 })
-    await expect(restOverlay.getByText(/rest/i)).toBeVisible()
+    // Rest timer pill should appear in header
+    const restTimerPill = page.getByRole("button", { name: /open rest timer/i })
+    await expect(restTimerPill).toBeVisible({ timeout: 3_000 })
 
-    // Skip rest timer
-    await restOverlay.getByRole("button", { name: /skip/i }).click()
-    await expect(restOverlay).not.toBeVisible()
+    // Click pill to open drawer and skip
+    await restTimerPill.click()
+    const restDrawer = page.getByRole("dialog")
+    await expect(restDrawer).toBeVisible({ timeout: 3_000 })
+    await restDrawer.getByRole("button", { name: /skip/i }).click()
+    await expect(restTimerPill).not.toBeVisible()
 
     // --- Log set 2 ---
     const secondCheckbox = page
@@ -81,10 +83,12 @@ test.describe("Workout session — full flow", () => {
     await expect(rirConfirmButton).toBeVisible({ timeout: 3_000 })
     await rirConfirmButton.click()
 
-    // Rest timer appears again — skip it
-    await expect(restOverlay).toBeVisible({ timeout: 3_000 })
-    await restOverlay.getByRole("button", { name: /skip/i }).click()
-    await expect(restOverlay).not.toBeVisible()
+    // Rest timer pill appears again — skip it
+    await expect(restTimerPill).toBeVisible({ timeout: 3_000 })
+    await restTimerPill.click()
+    await expect(restDrawer).toBeVisible({ timeout: 3_000 })
+    await restDrawer.getByRole("button", { name: /skip/i }).click()
+    await expect(restTimerPill).not.toBeVisible()
 
     // --- Navigate to last exercise and finish ---
     // Click the last exercise chip in the strip to jump there

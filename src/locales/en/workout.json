@@ -37,6 +37,8 @@
   "crossDayLockedFooter": "Return to {{day}} to continue or finish your active session.",
   "rest": "Rest",
   "skip": "Skip",
+  "pause": "Pause",
+  "resume": "Resume",
   "restOverNotif": "Rest over!",
   "restOverBody": "Time for your next set",
   "finishEarly": "Finish workout early",
