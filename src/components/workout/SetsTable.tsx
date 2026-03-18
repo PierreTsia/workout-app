@@ -126,12 +126,12 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
 
-      if (!exerciseSets.every((s) => s.done)) {
-        setRest({
-          startedAt: Date.now(),
-          durationSeconds: exercise.rest_seconds,
-        })
-      }
+      setRest({
+        startedAt: Date.now(),
+        durationSeconds: exercise.rest_seconds,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
 
       const nextIdx = setIdx + 1
       if (nextIdx < exerciseSets.length && !exerciseSets[nextIdx].done) {
@@ -261,7 +261,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
             removeLastSet()
             ;(e.currentTarget as HTMLButtonElement).blur()
           }}
-          disabled={rows.length <= 1 || isReadOnly}
+          disabled={rows.length <= 1 || isReadOnly || rows[rows.length - 1]?.done}
           aria-label={t("removeLastSet")}
         >
           <Minus className="h-4 w-4" />

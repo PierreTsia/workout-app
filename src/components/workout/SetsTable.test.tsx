@@ -270,7 +270,7 @@ describe("SetsTable", () => {
     expect(rest!.durationSeconds).toBe(90)
   })
 
-  it("does NOT start rest timer when completing the last remaining set (#47)", async () => {
+  it("starts rest timer even when completing the last remaining set", async () => {
     const user = userEvent.setup()
     const oneLeftSession: SessionState = {
       ...BASE_SESSION,
@@ -295,7 +295,9 @@ describe("SetsTable", () => {
     await user.click(checkboxes[1])
     await user.click(screen.getByTestId("rir-confirm"))
 
-    expect(store.get(restAtom)).toBeNull()
+    const rest = store.get(restAtom)
+    expect(rest).not.toBeNull()
+    expect(rest!.durationSeconds).toBe(90)
     const next = store.get(sessionAtom)
     expect(next.setsData["workout-ex-1"].every((s) => s.done)).toBe(true)
   })
@@ -350,5 +352,40 @@ describe("SetsTable", () => {
     const next = store.get(sessionAtom)
     const set2 = next.setsData["workout-ex-1"][1]
     expect(set2.weight).toBe("62")
+  })
+
+  it("disables remove button when last set is completed", () => {
+    const sessionWithLastDone: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { reps: "10", weight: "60", done: false },
+          { reps: "10", weight: "60", done: true, rir: 2 },
+        ],
+      },
+      totalSetsDone: 1,
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, sessionWithLastDone)
+    })
+
+    const removeButton = screen.getByRole("button", { name: "Remove last set" })
+    expect(removeButton).toBeDisabled()
+  })
+
+  it("enables remove button when last set is not completed", async () => {
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const removeButton = screen.getByRole("button", { name: "Remove last set" })
+    expect(removeButton).not.toBeDisabled()
   })
 })

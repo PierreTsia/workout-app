@@ -37,6 +37,8 @@
   "crossDayLockedFooter": "Retournez sur {{day}} pour continuer ou terminer la séance active.",
   "rest": "Repos",
   "skip": "Passer",
+  "pause": "Pause",
+  "resume": "Reprendre",
   "restOverNotif": "Repos terminé !",
   "restOverBody": "C'est parti pour la prochaine série",
   "finishEarly": "Terminer la séance",

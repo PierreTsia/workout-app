@@ -18,7 +18,6 @@ import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { SessionNav } from "@/components/workout/SessionNav"
-import { RestTimerOverlay } from "@/components/workout/RestTimerOverlay"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { Button } from "@/components/ui/button"
@@ -383,8 +382,6 @@ export function WorkoutPage() {
           )}
         </>
       )}
-
-      <RestTimerOverlay />
 
       <QuickWorkoutSheet
         open={quickSheetOpen}
