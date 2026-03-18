@@ -26,5 +26,13 @@
   "adminExercises": "Exercices",
   "adminFeedback": "Retours",
   "changeProgram": "Changer de programme",
-  "library": "Bibliothèque"
+  "library": "Bibliothèque",
+  "iosInstallTitle": "Installer sur iOS",
+  "iosInstallSubtitle": "Ajoutez cette appli à votre écran d'accueil pour la meilleure expérience",
+  "iosInstallStep1Title": "Appuyez sur Partager",
+  "iosInstallStep1Desc": "Appuyez sur le bouton Partager en bas de Safari",
+  "iosInstallStep2Title": "Sur l'écran d'accueil",
+  "iosInstallStep2Desc": "Faites défiler et appuyez sur « Sur l'écran d'accueil »",
+  "iosInstallStep3Title": "Confirmer",
+  "iosInstallStep3Desc": "Appuyez sur « Ajouter » en haut à droite"
 }

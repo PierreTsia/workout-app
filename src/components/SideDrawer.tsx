@@ -33,6 +33,8 @@ import {
 import { supabase } from "@/lib/supabase"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 import { AdminOnly } from "@/components/admin/AdminOnly"
+import { IOSInstallModal } from "@/components/IOSInstallModal"
+import { isIOS, isStandalone } from "@/lib/platform"
 
 function SegmentedButton<T extends string>({
   value,
@@ -73,7 +75,10 @@ export function SideDrawer() {
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
+  const [iosModalOpen, setIosModalOpen] = useState(false)
   const { canInstall, promptInstall } = useInstallPrompt()
+
+  const showInstallButton = (canInstall || isIOS()) && !isStandalone()
 
   useEffect(() => {
     if (i18n.language !== locale) {
@@ -230,12 +235,12 @@ export function SideDrawer() {
               </Link>
             </Button>
 
-            {canInstall && (
+            {showInstallButton && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="justify-start text-muted-foreground"
-                onClick={promptInstall}
+                onClick={isIOS() ? () => setIosModalOpen(true) : promptInstall}
               >
                 <Download className="h-4 w-4" />
                 {t("common:installApp")}
@@ -275,6 +280,8 @@ export function SideDrawer() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <IOSInstallModal open={iosModalOpen} onOpenChange={setIosModalOpen} />
     </Sheet>
   )
 }
