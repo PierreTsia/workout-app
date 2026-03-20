@@ -22,7 +22,7 @@ export function WorkoutDayCard({
   isCycleDone,
   shouldFetch,
 }: WorkoutDayCardProps) {
-  const { t } = useTranslation("workout")
+  const { t, i18n } = useTranslation("workout")
   const { data: exercises } = useWorkoutExercises(shouldFetch ? day.id : null)
   const heatmapData = useAggregatedMuscles(exercises ?? [])
   const { data: lastSession } = useLastSessionForDay(shouldFetch ? day.id : null)
@@ -40,7 +40,7 @@ export function WorkoutDayCard({
       <div className="mb-1 flex items-center justify-between">
         {lastSession ? (
           <Badge variant="secondary" className="text-[11px] font-medium">
-            {formatRelativeDate(lastSession.finished_at)}
+            {formatRelativeDate(lastSession.finished_at, i18n.language)}
           </Badge>
         ) : <span />}
         {isCycleDone && (

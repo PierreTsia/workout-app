@@ -30,13 +30,23 @@ export function formatNumber(
   return fmt.format(value)
 }
 
-export function formatRelativeDate(iso: string): string {
+const relativeCache = new Map<string, Intl.RelativeTimeFormat>()
+
+function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {
+  let fmt = relativeCache.get(locale)
+  if (!fmt) {
+    fmt = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
+    relativeCache.set(locale, fmt)
+  }
+  return fmt
+}
+
+export function formatRelativeDate(iso: string, locale = "en"): string {
   const diff = Date.now() - new Date(iso).getTime()
   const days = Math.floor(diff / 86_400_000)
-  if (days === 0) return "Today"
-  if (days === 1) return "Yesterday"
-  if (days < 7) return `${days}d ago`
-  return `${Math.floor(days / 7)}w ago`
+  const fmt = getRelativeFormatter(locale)
+  const raw = days < 7 ? fmt.format(-days, "day") : fmt.format(-Math.floor(days / 7), "week")
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
 export function formatDuration(startIso: string, endIso: string): string {

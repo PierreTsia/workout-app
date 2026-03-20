@@ -7,27 +7,36 @@ describe("formatRelativeDate", () => {
   it('returns "Today" for a timestamp from earlier today', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))
-    expect(formatRelativeDate("2026-03-20T10:00:00Z")).toBe("Today")
+    expect(formatRelativeDate("2026-03-20T10:00:00Z", "en")).toBe("Today")
   })
 
   it('returns "Yesterday" for a timestamp from one day ago', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))
-    expect(formatRelativeDate("2026-03-19T10:00:00Z")).toBe("Yesterday")
+    expect(formatRelativeDate("2026-03-19T10:00:00Z", "en")).toBe("Yesterday")
   })
 
-  it('returns "Xd ago" for 2–6 days', () => {
+  it("returns capitalized relative days for 2–6 days", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))
-    expect(formatRelativeDate("2026-03-17T10:00:00Z")).toBe("3d ago")
-    expect(formatRelativeDate("2026-03-15T10:00:00Z")).toBe("5d ago")
+    expect(formatRelativeDate("2026-03-17T10:00:00Z", "en")).toBe("3 days ago")
+    expect(formatRelativeDate("2026-03-15T10:00:00Z", "en")).toBe("5 days ago")
   })
 
-  it('returns "Xw ago" for 7+ days', () => {
+  it("returns capitalized relative weeks for 7+ days", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))
-    expect(formatRelativeDate("2026-03-06T10:00:00Z")).toBe("2w ago")
-    expect(formatRelativeDate("2026-02-20T10:00:00Z")).toBe("4w ago")
+    expect(formatRelativeDate("2026-03-06T10:00:00Z", "en")).toBe("2 weeks ago")
+    expect(formatRelativeDate("2026-02-20T10:00:00Z", "en")).toBe("4 weeks ago")
+  })
+
+  it("capitalizes French output", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))
+    expect(formatRelativeDate("2026-03-20T10:00:00Z", "fr")).toContain("Aujourd")
+    expect(formatRelativeDate("2026-03-19T10:00:00Z", "fr")).toBe("Hier")
+    expect(formatRelativeDate("2026-03-17T10:00:00Z", "fr")).toContain("3 jours")
+    expect(formatRelativeDate("2026-03-06T10:00:00Z", "fr")).toContain("2 semaines")
   })
 })
 
