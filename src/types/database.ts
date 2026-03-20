@@ -82,6 +82,20 @@ export interface SetLog {
   rir: number | null
 }
 
+export interface CycleStats {
+  session_count: number
+  total_duration_ms: number
+  total_sets: number
+  total_volume_kg: number
+  pr_count: number
+  started_at: string
+  last_finished_at: string | null
+  duration_days: number
+  delta_volume_pct: number | null
+  delta_sets_pct: number | null
+  delta_prs_pct: number | null
+}
+
 export type FeedbackSourceScreen = "workout" | "builder" | "library_picker"
 
 export interface ExerciseContentFeedbackInsert {
