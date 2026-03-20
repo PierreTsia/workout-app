@@ -2,7 +2,9 @@
 
 ## Summary
 
-Replace the pre-start workout main screen with a horizontally swipeable carousel of session cards, powered by a new Training Cycle model. Each card represents a workout day and shows its cycle status (completed/next/pending), a body map heatmap, estimated duration and set count, a full exercise list preview, and a Start CTA. A cycle groups one rotation through all program days — when every day has a finished session, the cycle is complete and a new one begins. This gives users an at-a-glance overview of their program, clear "what's next" guidance, and rotation-level progress tracking (e.g. "2/3 done").
+Replace the pre-start workout main screen with a horizontally swipeable carousel of session cards, powered by a new Training Cycle model. Each card represents a workout day and shows its cycle status (completed/next/pending), a body map heatmap, estimated duration and set count, a full exercise list preview, and a Start CTA. A cycle groups one rotation through all program days — when every day has a finished session the user is prompted to confirm cycle completion and start a new one. This gives users an at-a-glance overview of their program, clear "what's next" guidance, and rotation-level progress tracking (e.g. "2/3 done").
+
+This epic is split into two independent deliverables: **PR A** (Training Cycle data model — table, migration, lifecycle hooks) ships first and is independently deployable; **PR B** (Session card carousel UI) depends on PR A and delivers the visual refactor.
 
 ---
 
@@ -46,49 +48,57 @@ Replace the pre-start workout main screen with a horizontally swipeable carousel
 
 ## Scope
 
-**In scope:**
+**In scope — two independent deliverables:**
 
-### A. Training Cycle model
+### PR A — Training Cycle data model
+
+Independently deployable. The existing UI keeps working since `cycle_id` is nullable and all new code is additive. No UI changes in this PR.
 
 1. **`cycles` table** — New Supabase table: `id` (uuid PK), `program_id` (FK), `user_id` (FK), `started_at` (timestamp), `finished_at` (timestamp, nullable). RLS: users can only read/write their own cycles. One active (unfinished) cycle per program at a time.
 
 2. **`sessions.cycle_id`** — New nullable FK column on `sessions`. When a session starts, it's linked to the active cycle. Quick workout sessions have `cycle_id = null` (they live outside the rotation).
 
-3. **Cycle lifecycle:**
+3. **Migration & legacy data** — Existing sessions keep `cycle_id = NULL`; no backfill is needed since cycles didn't exist before. Sessions with `cycle_id = NULL` are treated as pre-cycle history, never as orphans — they remain fully visible in `/history`. The `useLastSessionForDay` hook (PR B) falls back to the most recent session for a day regardless of cycle when no cycle-scoped session exists, so the "Last session" block is populated from day 1.
+
+4. **Cycle lifecycle:**
    - **Auto-start:** When the user taps "Start Workout" on any day and no active cycle exists for the program, a new cycle is created automatically. No manual "start week" action needed.
-   - **Auto-finish:** When the last incomplete day in a cycle gets a finished session, the cycle's `finished_at` is set. A brief celebration toast appears ("Rotation complete!").
+   - **Confirmed finish:** When the last incomplete day in a cycle gets a finished session, a persistent banner appears at the top of the carousel: "Rotation complete — start a new cycle?" with Confirm/Dismiss actions. The cycle's `finished_at` is only set when the user confirms. Dismissing keeps the cycle open (the user can still reset days or review cards). On next app launch with a fully-completed-but-unconfirmed cycle, the banner reappears.
    - **Manual finish:** A "Finish rotation" action in the carousel header lets users close a cycle early (e.g. skipping a day they want to defer). Non-destructive — it just sets `finished_at`.
-   - **Cancel a day:** Users can "cancel" a completed day within the current cycle — this unlinks the session from the cycle (sets `session.cycle_id = null`), turning the day card back to pending. The session record is preserved in history.
+   - **Reset a day:** Users can "reset" a completed day within the current cycle — this sets `session.cycle_id = NULL`, turning the day card back to pending. The session record itself is preserved in history. A confirmation dialog is required: "This day will be marked as pending again. Your session data is kept in history."
    - **New cycle after finish:** Next time the user taps "Start Workout" on any day, a fresh cycle starts (back to rule 1).
 
-4. **`useActiveCycle(programId)` hook** — Fetches the current unfinished cycle for a program, including which days have completed sessions within it.
+5. **`useActiveCycle(programId)` hook** — Fetches the current unfinished cycle for a program, including which days have completed sessions within it.
 
-5. **`useCycleProgress(cycleId, days)` hook** — Derives `{ completedDayIds: string[], totalDays: number, nextDayId: string | null }` from the active cycle's sessions.
+6. **`useCycleProgress(cycleId, days)` hook** — Derives `{ completedDayIds: string[], totalDays: number, nextDayId: string | null }` from the active cycle's sessions.
 
-### B. Session card carousel
+### PR B — Session card carousel UI
 
-6. **Swipeable day card carousel** — Replace `DaySelector` pills with a full-width horizontal carousel (Embla Carousel via shadcn/ui `Carousel` component). Each card is a `WorkoutDayCard`. Progress indicator below (filled dots for completed days, empty for pending). Auto-scrolls to the next incomplete day on mount.
+Depends on PR A being merged. Reads cycle data but does not modify the data model.
 
-7. **`WorkoutDayCard` component** — A card per workout day showing:
+7. **Swipeable day card carousel** — Replace `DaySelector` pills with a full-width horizontal carousel (Embla Carousel via shadcn/ui `Carousel` component). Each card is a `WorkoutDayCard`. Progress indicator below (filled dots for completed days, empty for pending). Auto-scrolls to the next incomplete day on mount.
+
+8. **`WorkoutDayCard` component** — A card per workout day showing:
    - Status badge: "Completed" (done in current cycle, with checkmark), "Next" (auto-suggested), or no badge (pending)
    - Day emoji + label as header
    - Body map heatmap (reuse `BodyMap` + `useAggregatedMuscles` from #77, always visible — not collapsible)
    - Stats row: estimated duration (exercises x sets x avg rest), total set count
    - Last session block: date + duration + sets from the most recent session for this day in the current cycle (or "Never done" on first cycle)
    - Exercise list: all exercises with thumbnail, name, equipment badge, sets x reps x weight
-   - "Start Workout" floating CTA — sticky at the bottom of the card viewport, always reachable as the exercise list expands. Hidden on completed days (replaced by muted "Completed" state with a "Cancel day" action).
+   - "Start Workout" floating CTA — sticky at the bottom of the card viewport, always reachable as the exercise list expands. Hidden on completed days (replaced by muted "Completed" state with a "Reset day" action).
 
-8. **`useLastSessionForDay(dayId, cycleId?)` hook** — New Supabase query: fetch the most recent finished session for a day, optionally scoped to the current cycle.
+9. **`useLastSessionForDay(dayId, cycleId?)` hook** — New Supabase query: fetch the most recent finished session for a day, optionally scoped to the current cycle. Falls back to the most recent session regardless of cycle when no cycle-scoped session exists (see PR A, item 3).
 
-9. **Exercise list per day** — Each card fetches exercises via `useWorkoutExercises(dayId)`. Fetch strategy: active card + the next peeking neighbor only (2 cards hydrated at a time). Others load on swipe. TanStack Query caching means revisited cards don't re-fetch.
+10. **Exercise list per day** — Each card fetches exercises via `useWorkoutExercises(dayId)`. Fetch strategy: active card + the next peeking neighbor only (2 cards hydrated at a time). Others load on swipe. TanStack Query caching means revisited cards don't re-fetch.
 
-10. **Quick Workout entry point** — Move from `DaySelector` to a trailing card in the carousel (distinctive style — dashed border, Zap icon). Tapping opens `QuickWorkoutSheet`. Quick workouts don't participate in cycles.
+11. **Quick Workout entry point** — Move from `DaySelector` to a trailing card in the carousel (distinctive style — dashed border, Zap icon). Tapping opens `QuickWorkoutSheet`. Quick workouts don't participate in cycles.
 
-11. **Transition to active session** — "Start Workout" resolves or creates the active cycle (getting its ID), stores `cycleId` in the Jotai session atom, collapses the carousel, and switches to the existing in-session layout. The `cycle_id` is written to Supabase at session finish time (via `enqueueSessionFinish` in `file:src/pages/WorkoutPage.tsx`), not at start — matching the existing offline-first session write pattern. After finishing, carousel reappears with updated cycle progress.
+12. **Transition to active session** — "Start Workout" resolves or creates the active cycle (getting its ID), stores `cycleId` in the Jotai session atom, collapses the carousel, and switches to the existing in-session layout. The `cycle_id` is written to Supabase at session finish time (via `enqueueSessionFinish` in `file:src/pages/WorkoutPage.tsx`), not at start — matching the existing offline-first session write pattern. After finishing, carousel reappears with updated cycle progress.
 
-12. **Cycle progress header** — Above the carousel, a compact bar: program name + "2/3 done" progress indicator (filled/empty dots matching day cards). "Finish rotation" action available via three-dot menu.
+13. **Cycle progress header** — Above the carousel, a compact bar: program name + "2/3 done" progress indicator (filled/empty dots matching day cards). "Finish rotation" action available via three-dot menu.
 
-13. **i18n** — New keys: cycle status labels, progress text, "Finish rotation", "Rotation complete!", estimated duration, "Never done", "Cancel day".
+14. **Cycle complete banner** — Persistent banner at the top of the carousel when all days are done but the cycle is unconfirmed: "Rotation complete — start a new cycle?" with Confirm/Dismiss. Reappears on app launch until confirmed.
+
+15. **i18n** — New keys: cycle status labels, progress text, "Finish rotation", "Rotation complete — start a new cycle?", estimated duration, "Never done", "Reset day".
 
 **Out of scope:**
 
@@ -115,7 +125,7 @@ Replace the pre-start workout main screen with a horizontally swipeable carousel
 
 1. **Exercise fetch strategy** — Active card + next peeking neighbor only (2 cards). Others load on swipe. TanStack Query cache handles revisits.
 2. **Card scroll behavior** — Cards expand to fit all exercises (no internal scroll). The "Start Workout" CTA floats at the bottom of the viewport so it stays reachable regardless of list length.
-3. **Redo semantics** — No redo within the same cycle. Users can "cancel" a completed day (unlink session from cycle) to revert it to pending, then start a fresh session for that day.
+3. **Redo semantics** — No redo within the same cycle. Users can "reset" a completed day (sets `session.cycle_id = NULL`, session data preserved) to revert it to pending, then start a fresh session for that day. Requires confirmation dialog.
 4. **Program changes mid-cycle** — Cycle tracks sessions by `workout_day_id`. Adding a day means one more to complete; removing a day doesn't invalidate existing sessions. Cycle completion check is always computed against the current program days.
 
 ---
@@ -131,6 +141,6 @@ Replace the pre-start workout main screen with a horizontally swipeable carousel
 ## Open questions (for Tech Plan)
 
 1. **Floating CTA implementation** — CSS `sticky` within the card, or a portal-based overlay anchored to the viewport bottom? Needs to play well with the carousel's scroll/swipe mechanics.
-2. **Cancel day confirmation** — Should "Cancel day" require a confirmation dialog, or is a single tap with an undo toast sufficient?
+2. **Cycle complete banner persistence** — Should the "Rotation complete — start a new cycle?" banner survive app restarts (reappear until confirmed), or only show once per completed cycle?
 
 When ready, say **create tech plan** to continue.
