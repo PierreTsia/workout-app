@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { CheckCircle2, Dumbbell, Layers, Timer } from "lucide-react"
 import type { WorkoutDay } from "@/types/database"
@@ -27,6 +28,11 @@ export function WorkoutDayCard({
   const heatmapData = useAggregatedMuscles(exercises ?? [])
   const { data: lastSession } = useLastSessionForDay(shouldFetch ? day.id : null)
 
+  const estimatedTotalSets = useMemo(
+    () => exercises?.reduce((sum, ex) => sum + ex.sets, 0) ?? 0,
+    [exercises],
+  )
+
   return (
     <div
       className={cn(
@@ -38,11 +44,17 @@ export function WorkoutDayCard({
     >
       {/* Header: date badge + cycle done */}
       <div className="mb-1 flex items-center justify-between">
-        {lastSession ? (
+        {isCycleDone && lastSession ? (
           <Badge variant="secondary" className="text-[11px] font-medium">
             {formatRelativeDate(lastSession.finished_at, i18n.language)}
           </Badge>
-        ) : <span />}
+        ) : !isCycleDone && lastSession ? (
+          <span className="text-[11px] text-muted-foreground">
+            {t("lastSession", { date: formatRelativeDate(lastSession.finished_at, i18n.language) })}
+          </span>
+        ) : (
+          <span />
+        )}
         {isCycleDone && (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
         )}
@@ -69,23 +81,44 @@ export function WorkoutDayCard({
       {/* Badges row below body map */}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {exercises && (
-          <Badge variant="secondary" className="gap-1.5">
+          <Badge
+            variant={isCycleDone ? "secondary" : "outline"}
+            className={cn(
+              "gap-1.5",
+              !isCycleDone && "text-muted-foreground",
+            )}
+          >
             <Dumbbell className="h-3 w-3" />
             {t("exerciseCount", { count: exercises.length })}
           </Badge>
         )}
-        {lastSession && (
-          <Badge variant="secondary" className="gap-1.5">
-            <Layers className="h-3 w-3" />
-            {t("setCount", { count: lastSession.total_sets_done })}
-          </Badge>
-        )}
-        {lastSession && (
-          <Badge variant="secondary" className="gap-1.5">
-            <Timer className="h-3 w-3" />
-            {formatDuration(lastSession.started_at, lastSession.finished_at)}
-          </Badge>
-        )}
+        {isCycleDone && lastSession ? (
+          <>
+            <Badge variant="secondary" className="gap-1.5">
+              <Layers className="h-3 w-3" />
+              {t("setCount", { count: lastSession.total_sets_done })}
+            </Badge>
+            <Badge variant="secondary" className="gap-1.5">
+              <Timer className="h-3 w-3" />
+              {formatDuration(lastSession.started_at, lastSession.finished_at)}
+            </Badge>
+          </>
+        ) : !isCycleDone && exercises ? (
+          <>
+            <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+              <Layers className="h-3 w-3" />
+              {t("estimatedSets", { count: estimatedTotalSets })}
+            </Badge>
+            {lastSession && (
+              <Badge variant="outline" className="gap-1.5 text-muted-foreground">
+                <Timer className="h-3 w-3" />
+                {t("estimatedDuration", {
+                  duration: formatDuration(lastSession.started_at, lastSession.finished_at),
+                })}
+              </Badge>
+            )}
+          </>
+        ) : null}
       </div>
     </div>
   )
