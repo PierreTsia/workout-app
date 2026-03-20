@@ -34,6 +34,7 @@ const BASE_SESSION: SessionState = {
   totalSetsDone: 0,
   pausedAt: null,
   accumulatedPause: 0,
+  cycleId: null,
 }
 
 describe("SessionNav", () => {

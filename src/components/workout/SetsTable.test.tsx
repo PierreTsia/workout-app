@@ -65,6 +65,7 @@ const BASE_SESSION: SessionState = {
   },
   startedAt: Date.now(),
   isActive: true,
+  cycleId: null,
   totalSetsDone: 0,
   pausedAt: null,
   accumulatedPause: 0,

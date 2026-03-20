@@ -109,6 +109,7 @@ describe("ExerciseStrip", () => {
         totalSetsDone: 3,
         pausedAt: null,
         accumulatedPause: 0,
+        cycleId: null,
       })
     })
 
@@ -142,6 +143,7 @@ describe("ExerciseStrip", () => {
         totalSetsDone: 1,
         pausedAt: null,
         accumulatedPause: 0,
+        cycleId: null,
       })
     })
 
@@ -180,6 +182,7 @@ describe("ExerciseStrip", () => {
         totalSetsDone: 6,
         pausedAt: null,
         accumulatedPause: 0,
+        cycleId: null,
       })
     })
 

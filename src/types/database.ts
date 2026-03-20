@@ -57,6 +57,15 @@ export interface Session {
   finished_at: string | null
   total_sets_done: number
   has_skipped_sets: boolean
+  cycle_id: string | null
+}
+
+export interface Cycle {
+  id: string
+  program_id: string
+  user_id: string
+  started_at: string
+  finished_at: string | null
 }
 
 export interface SetLog {

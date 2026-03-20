@@ -12,6 +12,7 @@ export interface SessionState {
   totalSetsDone: number
   pausedAt: number | null
   accumulatedPause: number
+  cycleId: string | null
 }
 
 const defaultSessionState: SessionState = {
@@ -24,6 +25,7 @@ const defaultSessionState: SessionState = {
   totalSetsDone: 0,
   pausedAt: null,
   accumulatedPause: 0,
+  cycleId: null,
 }
 
 export const authAtom = atom<User | null>(null)
