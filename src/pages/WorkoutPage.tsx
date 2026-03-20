@@ -18,6 +18,8 @@ import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { supabase } from "@/lib/supabase"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
+import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
+import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -295,6 +297,20 @@ export function WorkoutPage() {
     }))
   }
 
+  async function handleFinishCycle() {
+    if (!activeCycle?.id) return
+    try {
+      await supabase
+        .from("cycles")
+        .update({ finished_at: new Date().toISOString() })
+        .eq("id", activeCycle.id)
+      queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
+      queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
+    } catch {
+      // Offline — cycle stays open, will be finished next time
+    }
+  }
+
   function handleNewSession() {
     setFinishedQuickInfo(null)
     setSession({
@@ -358,11 +374,21 @@ export function WorkoutPage() {
   return (
     <div className="flex flex-1 flex-col">
       {!session.isActive && (
-        <WorkoutDayCarousel
-          days={days}
-          completedDayIds={cycleProgress.completedDayIds}
-          onQuickWorkout={() => setQuickSheetOpen(true)}
-        />
+        <div className="space-y-3 py-2">
+          {cycleProgress.isComplete ? (
+            <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
+          ) : cycleProgress.totalDays > 0 && activeCycle && (
+            <CycleProgressHeader
+              completedCount={cycleProgress.completedDayIds.length}
+              totalDays={cycleProgress.totalDays}
+            />
+          )}
+          <WorkoutDayCarousel
+            days={days}
+            completedDayIds={cycleProgress.completedDayIds}
+            onQuickWorkout={() => setQuickSheetOpen(true)}
+          />
+        </div>
       )}
 
       {isViewingLockedDay && (
