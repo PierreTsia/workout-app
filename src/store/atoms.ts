@@ -61,8 +61,6 @@ export interface RestState {
 
 export const restAtom = atomWithStorage<RestState | null>("rest", null)
 
-export const themeAtom = atomWithStorage<"dark" | "light">("theme", "dark")
-
 export const syncStatusAtom = atom<"idle" | "syncing" | "failed" | "synced">(
   "idle",
 )
