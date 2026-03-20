@@ -33,20 +33,25 @@ export function WorkoutDayCarousel({
   const selectedDayId = session.currentDayId
   const completedSet = new Set(completedDayIds)
 
+  // Validate currentDayId on mount / when days change — reset if stale
   useEffect(() => {
-    if (!api || !selectedDayId) return
-    const idx = days.findIndex((d) => d.id === selectedDayId)
-    if (idx >= 0 && idx !== activeSlide) {
-      api.scrollTo(idx)
-    }
-  }, [api, selectedDayId, days, activeSlide])
-
-  useEffect(() => {
-    if (!selectedDayId && days.length > 0) {
+    if (days.length === 0) return
+    const valid = selectedDayId && days.some((d) => d.id === selectedDayId)
+    if (!valid) {
       selectDay(days[0].id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days])
+
+  // When API initializes or selectedDayId changes, scroll carousel to match
+  useEffect(() => {
+    if (!api || !selectedDayId) return
+    const idx = days.findIndex((d) => d.id === selectedDayId)
+    if (idx >= 0 && idx !== api.selectedScrollSnap()) {
+      api.scrollTo(idx, true)
+      setActiveSlide(idx)
+    }
+  }, [api, selectedDayId, days])
 
   const onSelect = useCallback(() => {
     if (!api) return
