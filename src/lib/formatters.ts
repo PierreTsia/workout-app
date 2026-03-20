@@ -29,3 +29,31 @@ export function formatNumber(
   }
   return fmt.format(value)
 }
+
+const relativeCache = new Map<string, Intl.RelativeTimeFormat>()
+
+function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {
+  let fmt = relativeCache.get(locale)
+  if (!fmt) {
+    fmt = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
+    relativeCache.set(locale, fmt)
+  }
+  return fmt
+}
+
+export function formatRelativeDate(iso: string, locale = "en"): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / 86_400_000)
+  const fmt = getRelativeFormatter(locale)
+  const raw = days < 7 ? fmt.format(-days, "day") : fmt.format(-Math.floor(days / 7), "week")
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+
+export function formatDuration(startIso: string, endIso: string): string {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime()
+  const totalMin = Math.round(ms / 60_000)
+  if (totalMin < 60) return `${totalMin} min`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
+}

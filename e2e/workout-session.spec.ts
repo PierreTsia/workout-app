@@ -1,14 +1,13 @@
 import { test, expect } from "@playwright/test"
 
 test.describe("Workout session — full flow", () => {
-  test("select day, log 2 sets, rest timer, skip, finish, summary", async ({
+  test("carousel renders, start session, log sets, finish, summary", async ({
     page,
   }) => {
     test.setTimeout(120_000)
 
     await page.goto("/")
 
-    // AuthGuard shows a notification permission dialog (aria-modal blocks getByRole)
     const notifDialog = page.getByRole("dialog", {
       name: /enable notifications/i,
     })
@@ -20,29 +19,30 @@ test.describe("Workout session — full flow", () => {
       /* dialog didn't appear — permission already granted */
     }
 
-    // Bootstrap creates days with French labels — wait for any day button
-    const dayButton = page
-      .locator("button")
-      .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
-      .first()
-    await expect(dayButton).toBeVisible({ timeout: 60_000 })
+    // Carousel card should render with a day label
+    const dayCard = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first()
+    await expect(dayCard).toBeVisible({ timeout: 60_000 })
 
-    // Exercise strip should render once a day is selected (auto-selected on load)
-    const exerciseChips = page.locator(
-      "div.flex.overflow-x-auto > button",
+    // Exercise list preview (pre-session) should show exercises
+    const exercisePreviewItems = page.locator(
+      "div.flex.items-center.gap-3.rounded-lg.border",
     )
-    await expect(exerciseChips.first()).toBeVisible({ timeout: 15_000 })
+    await expect(exercisePreviewItems.first()).toBeVisible({ timeout: 15_000 })
 
     // Start the workout session
-    const startButton = page.getByRole("button", {
-      name: /start workout/i,
-    })
+    const startButton = page.getByRole("button", { name: /start workout/i })
     await expect(startButton).toBeVisible({ timeout: 5_000 })
     await startButton.click()
 
     // Session timer chip should appear in the header
     const timerChip = page.locator(".font-mono.tabular-nums.text-primary")
     await expect(timerChip).toBeVisible({ timeout: 5_000 })
+
+    // Exercise strip should now be visible (active session view)
+    const exerciseChips = page.locator(
+      "div.flex.overflow-x-auto > button",
+    )
+    await expect(exerciseChips.first()).toBeVisible({ timeout: 15_000 })
 
     // --- Log set 1 ---
     const checkboxes = page.getByRole("checkbox")
@@ -54,7 +54,7 @@ test.describe("Workout session — full flow", () => {
     await expect(rirConfirmButton).toBeVisible({ timeout: 3_000 })
     await rirConfirmButton.click()
 
-    // Row should be marked as done (bg-primary/10 class)
+    // Row should be marked as done
     const firstSetRow = page
       .locator("div.grid.items-center")
       .filter({ has: page.getByRole("checkbox").first() })
@@ -91,7 +91,6 @@ test.describe("Workout session — full flow", () => {
     await expect(restTimerPill).not.toBeVisible()
 
     // --- Navigate to last exercise and finish ---
-    // Click the last exercise chip in the strip to jump there
     const lastChip = exerciseChips.last()
     await lastChip.click()
 
@@ -114,10 +113,9 @@ test.describe("Workout session — full flow", () => {
     await expect(page.getByText(/exercises completed/i)).toBeVisible()
   })
 
-  test("allows day navigation but locks editing on non-active day", async ({
-    page,
-  }) => {
+  test("carousel dot indicators allow day navigation", async ({ page }) => {
     test.setTimeout(120_000)
+
     await page.goto("/")
 
     const notifDialog = page.getByRole("dialog", {
@@ -128,38 +126,66 @@ test.describe("Workout session — full flow", () => {
       await notifDialog.getByRole("button", { name: /not now/i }).click()
       await expect(notifDialog).not.toBeVisible()
     } catch {
-      /* dialog didn't appear — permission already granted */
+      /* dialog didn't appear */
     }
 
-    const dayButtons = page
-      .locator("button")
-      .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
-    await expect(dayButtons.first()).toBeVisible({ timeout: 60_000 })
-    await expect(dayButtons.nth(1)).toBeVisible({ timeout: 5_000 })
+    // Wait for first day card
+    const dayCards = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ })
+    await expect(dayCards.first()).toBeVisible({ timeout: 60_000 })
 
-    const activeDayLabel =
-      (await dayButtons.first().locator("span").last().textContent())?.trim() ??
-      "Lundi"
+    // Dot indicators — small round buttons below the carousel
+    const dots = page.locator("div.flex.items-center.justify-center button.rounded-full")
+    await expect(dots).toHaveCount(3, { timeout: 5_000 })
 
-    await page.getByRole("button", { name: /start workout/i }).click()
-    await dayButtons.nth(1).click()
+    // Click the second dot to navigate to the second day
+    await dots.nth(1).click()
+    await page.waitForTimeout(500)
 
-    await expect(
-      page.getByText(/Session in progress on another day/i),
-    ).toBeVisible()
-    await expect(
-      page.getByText(`Return to ${activeDayLabel} to continue or finish your active session.`),
-    ).toBeVisible()
-    await expect(
-      page.getByRole("button", { name: /add set/i }),
-    ).toBeDisabled()
+    // The second day card should now be the active one (visible)
+    const secondDayLabel = dayCards.filter({ hasText: /Mercredi/ })
+    await expect(secondDayLabel).toBeVisible({ timeout: 5_000 })
 
-    await dayButtons.first().click()
-    await expect(
-      page.getByText(/Session in progress on another day/i),
-    ).not.toBeVisible()
-    await expect(
-      page.getByRole("button", { name: /add set/i }),
-    ).toBeEnabled()
+    // Click the third dot
+    await dots.nth(2).click()
+    await page.waitForTimeout(500)
+
+    const thirdDayLabel = dayCards.filter({ hasText: /Vendredi/ })
+    await expect(thirdDayLabel).toBeVisible({ timeout: 5_000 })
+  })
+
+  test("quick workout accessible from side drawer", async ({ page }) => {
+    test.setTimeout(120_000)
+
+    await page.goto("/")
+
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear */
+    }
+
+    // Wait for page to load
+    const dayCard = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first()
+    await expect(dayCard).toBeVisible({ timeout: 60_000 })
+
+    // Open the side drawer
+    const menuButton = page.getByRole("button", { name: /open menu/i })
+    await menuButton.click()
+
+    // Quick workout entry should be in the drawer
+    const quickWorkoutButton = page.getByRole("button", { name: /quick workout/i })
+    await expect(quickWorkoutButton).toBeVisible({ timeout: 3_000 })
+
+    // Click it — should open the QuickWorkoutSheet
+    await quickWorkoutButton.click()
+
+    // The drawer for quick workout generation should appear
+    const quickWorkoutDrawer = page.getByRole("dialog", { name: /quick workout/i })
+    await expect(quickWorkoutDrawer).toBeVisible({ timeout: 5_000 })
   })
 })

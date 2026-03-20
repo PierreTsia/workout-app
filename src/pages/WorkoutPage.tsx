@@ -9,7 +9,7 @@ import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom, quickSheetOpenAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -17,15 +17,22 @@ import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { supabase } from "@/lib/supabase"
-import { DaySelector } from "@/components/workout/DaySelector"
+import { deriveCycleIdForSession } from "@/lib/cycle"
+import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
+import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { summarizeSessionLogs, templateToPreviewItems } from "@/lib/sessionSummary"
+import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
+import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
+import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
+import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
+import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
-import { SessionHeatmap } from "@/components/body-map/SessionHeatmap"
-import { useAggregatedMuscles } from "@/hooks/useAggregatedMuscles"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -46,15 +53,16 @@ export function WorkoutPage() {
   const user = useAtomValue(authAtom)
   const queryClient = useQueryClient()
   const { data: activeCycle } = useActiveCycle(activeProgramId)
+  const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
+  const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? [])
   const [finished, setFinished] = useState(false)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
     name: string
   } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
-  const [quickSheetOpen, setQuickSheetOpen] = useState(false)
+  const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
 
-  const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
@@ -63,14 +71,26 @@ export function WorkoutPage() {
     [allExercisesForDay],
   )
 
-  const heatmapData = useAggregatedMuscles(exercises)
-
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
     [exercises],
   )
   const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
+  const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
+
+  const { data: lastSessionForDay } = useLastSessionForDay(
+    isDayDoneInCycle ? session.currentDayId : null,
+  )
+  const { data: sessionLogs } = useSessionSetLogs(lastSessionForDay?.id ?? null)
+
+  const previewItems = useMemo(() => {
+    if (isDayDoneInCycle && sessionLogs && sessionLogs.length > 0) {
+      return summarizeSessionLogs(sessionLogs, exercises)
+    }
+    return templateToPreviewItems(exercises)
+  }, [isDayDoneInCycle, sessionLogs, exercises])
+
   const isViewingLockedDay = Boolean(
     session.isActive &&
       activeSessionDayId &&
@@ -251,14 +271,14 @@ export function WorkoutPage() {
     }))
     setIsQuickWorkout(true)
     setTimeout(() => {
-      startSession()
+      startSession({ skipCycle: true })
     }, 0)
   }
 
-  async function startSession() {
-    let cycleId: string | null = activeCycle?.id ?? null
+  async function startSession({ skipCycle = false } = {}) {
+    let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
 
-    if (!cycleId && activeProgramId && user && !isQuickWorkout) {
+    if (!cycleId && activeProgramId && user && !skipCycle) {
       try {
         const { data, error } = await supabase
           .from("cycles")
@@ -291,6 +311,21 @@ export function WorkoutPage() {
       accumulatedPause: 0,
       cycleId,
     }))
+  }
+
+  async function handleFinishCycle() {
+    if (!activeCycle?.id) return
+    const { error } = await supabase
+      .from("cycles")
+      .update({ finished_at: new Date().toISOString() })
+      .eq("id", activeCycle.id)
+
+    if (error) {
+      console.warn("[WorkoutPage] Could not finish cycle:", error.message)
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
+    queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
   }
 
   function handleNewSession() {
@@ -355,77 +390,97 @@ export function WorkoutPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <DaySelector days={days} onQuickWorkout={() => setQuickSheetOpen(true)} />
-
-      {isViewingLockedDay && (
-        <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-          <p>{t("crossDayReadOnlyTitle")}</p>
-          <p className="text-xs text-amber-200/90">
-            {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
-          </p>
-        </div>
-      )}
-
-      {exercisesLoading ? (
-        <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : exercises.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-          <p className="text-muted-foreground">{t("noExercises")}</p>
-          {activeProgramId && (
-            <Button variant="outline" asChild size="sm">
-              <Link to={`/builder/${activeProgramId}`} state={{ from: "/" }}>
-                {t("addExercises")}
-              </Link>
-            </Button>
-          )}
-        </div>
-      ) : (
+      {session.isActive ? (
+        /* ── Active session ── */
         <>
-          <SessionHeatmap data={heatmapData} />
+          {isViewingLockedDay && (
+            <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              <p>{t("crossDayReadOnlyTitle")}</p>
+              <p className="text-xs text-amber-200/90">
+                {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
+              </p>
+            </div>
+          )}
 
-          <ExerciseStrip
-            exercises={exercises}
-            activeIndex={displayIndex}
-            onSelectIndex={
-              isViewingLockedDay
-                ? (idx) =>
-                    setLockedDayView({
-                      dayId: session.currentDayId,
-                      index: idx,
-                    })
-                : (idx) =>
-                    setSession((prev) => ({ ...prev, exerciseIndex: idx }))
-            }
-          />
-
-          <div className="flex-1 overflow-y-auto py-2">
-            {currentExercise && (
-              <ExerciseDetail
-                exercise={currentExercise}
-                sessionId={sessionId}
-                isReadOnly={isViewingLockedDay}
+          {exercisesLoading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : exercises.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+              <p className="text-muted-foreground">{t("noExercises")}</p>
+              {activeProgramId && (
+                <Button variant="outline" asChild size="sm">
+                  <Link to={`/builder/${activeProgramId}`} state={{ from: "/" }}>
+                    {t("addExercises")}
+                  </Link>
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <ExerciseStrip
+                exercises={exercises}
+                activeIndex={displayIndex}
+                onSelectIndex={
+                  isViewingLockedDay
+                    ? (idx) =>
+                        setLockedDayView({
+                          dayId: session.currentDayId,
+                          index: idx,
+                        })
+                    : (idx) =>
+                        setSession((prev) => ({ ...prev, exerciseIndex: idx }))
+                }
               />
+              <div className="flex-1 overflow-y-auto py-2">
+                {currentExercise && (
+                  <ExerciseDetail
+                    exercise={currentExercise}
+                    sessionId={sessionId}
+                    isReadOnly={isViewingLockedDay}
+                  />
+                )}
+              </div>
+              {!isViewingLockedDay ? (
+                <SessionNav exercises={exercises} onFinish={handleFinish} />
+              ) : (
+                <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
+                  {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        /* ── Pre-session: hero card → exercises → start ── */
+        <>
+          <div className={cn("flex-1 overflow-y-auto space-y-4", !isDayDoneInCycle && "pb-20")}>
+            {cycleProgress.isComplete ? (
+              <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
+            ) : cycleProgress.totalDays > 0 && activeCycle && (
+              <CycleProgressHeader
+                completedCount={cycleProgress.completedDayIds.length}
+                totalDays={cycleProgress.totalDays}
+              />
+            )}
+
+            <WorkoutDayCarousel
+              days={days}
+              completedDayIds={cycleProgress.completedDayIds}
+            />
+
+            {/* Exercise list for selected day */}
+            {previewItems.length > 0 && (
+              <div className="px-4">
+                <ExerciseListPreview items={previewItems} />
+              </div>
             )}
           </div>
 
-          {session.isActive && !isViewingLockedDay ? (
-            <SessionNav
-              exercises={exercises}
-              onFinish={handleFinish}
-            />
-          ) : session.isActive ? (
-            <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
-              {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
-            </div>
-          ) : (
+          {!isDayDoneInCycle && (
             <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-              <Button
-                className="w-full gap-2"
-                size="lg"
-                onClick={startSession}
-              >
+              <Button className="w-full gap-2" size="lg" onClick={() => startSession()}>
                 <Play className="h-5 w-5" />
                 {t("startWorkout")}
               </Button>

@@ -5,6 +5,8 @@
   "done": "✓",
   "setCount_one": "{{count}} série",
   "setCount_other": "{{count}} séries",
+  "exerciseCount_one": "{{count}} exercice",
+  "exerciseCount_other": "{{count}} exercices",
   "removeLastSet": "Supprimer la dernière série",
   "addSet": "Ajouter une série",
   "lastTime": "Dernière fois : {{sets}} × {{reps}} @ {{weight}}",
@@ -58,5 +60,11 @@
   "rir.moreReps_other": "{{count}} répétitions de plus",
   "rir.setInfo": "#{{setNumber}} série : {{reps}} × {{weight}} {{unit}}",
   "rir.infoLabel": "Info",
-  "muscleMap": "Carte musculaire"
+  "muscleMap": "Carte musculaire",
+  "cycleProgress": "Cycle {{current}}/{{total}}",
+  "cycleComplete": "Cycle terminé !",
+  "startNewCycle": "Nouveau cycle",
+  "resetDay": "Réinitialiser le jour",
+  "resetDayConfirm": "Le jour sera marqué comme non fait dans le cycle en cours. Continuer ?",
+  "finishCycle": "Terminer le cycle"
 }
