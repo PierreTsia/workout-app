@@ -54,7 +54,7 @@ This epic is split into two independent deliverables: **PR A** (Training Cycle d
 
 Independently deployable. The existing UI keeps working since `cycle_id` is nullable and all new code is additive. No UI changes in this PR.
 
-1. **`cycles` table** — New Supabase table: `id` (uuid PK), `program_id` (FK), `user_id` (FK), `started_at` (timestamp), `finished_at` (timestamp, nullable). RLS: users can only read/write their own cycles. One active (unfinished) cycle per program at a time.
+1. **`cycles` table** — New Supabase table: `id` (uuid PK), `program_id` (uuid, not a FK — no `programs` table exists; matches the grouping UUID in `workout_days.program_id`), `user_id` (FK → `auth.users`), `started_at` (timestamp), `finished_at` (timestamp, nullable). RLS: users can only read/write their own cycles. One active (unfinished) cycle per program at a time.
 
 2. **`sessions.cycle_id`** — New nullable FK column on `sessions`. When a session starts, it's linked to the active cycle. Quick workout sessions have `cycle_id = null` (they live outside the rotation).
 
@@ -92,7 +92,7 @@ Depends on PR A being merged. Reads cycle data but does not modify the data mode
 
 11. **Quick Workout entry point** — Move from `DaySelector` to a trailing card in the carousel (distinctive style — dashed border, Zap icon). Tapping opens `QuickWorkoutSheet`. Quick workouts don't participate in cycles.
 
-12. **Transition to active session** — "Start Workout" resolves or creates the active cycle (getting its ID), stores `cycleId` in the Jotai session atom, collapses the carousel, and switches to the existing in-session layout. The `cycle_id` is written to Supabase at session finish time (via `enqueueSessionFinish` in `file:src/pages/WorkoutPage.tsx`), not at start — matching the existing offline-first session write pattern. After finishing, carousel reappears with updated cycle progress.
+12. **Transition to active session** — "Start Workout" collapses the carousel and switches to the existing in-session layout. The cycle resolution logic (resolve or create the active cycle, store `cycleId` in the Jotai session atom, write `cycle_id` at session finish) lives in PR A — see Tech Plan "Cycle Start Flow". After finishing, carousel reappears with updated cycle progress.
 
 13. **Cycle progress header** — Above the carousel, a compact bar: program name + "2/3 done" progress indicator (filled/empty dots matching day cards). "Finish rotation" action available via three-dot menu.
 
@@ -138,9 +138,9 @@ Depends on PR A being merged. Reads cycle data but does not modify the data mode
 
 ---
 
-## Open questions (for Tech Plan)
+## Resolved in Tech Plan
 
-1. **Floating CTA implementation** — CSS `sticky` within the card, or a portal-based overlay anchored to the viewport bottom? Needs to play well with the carousel's scroll/swipe mechanics.
-2. **Cycle complete banner persistence** — Should the "Rotation complete — start a new cycle?" banner survive app restarts (reappear until confirmed), or only show once per completed cycle?
+1. **Floating CTA implementation** — `position: sticky; bottom: 0` within the page flow. Cards expand to fit all exercises (no internal scroll), so sticky works naturally with viewport scroll.
+2. **Cycle complete banner persistence** — Reappears until confirmed. Derived from cycle state (`isComplete && finished_at IS NULL`), no extra storage needed.
 
-When ready, say **create tech plan** to continue.
+When ready, say **split into tickets** to continue.
