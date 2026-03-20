@@ -66,5 +66,9 @@
   "startNewCycle": "Start new cycle",
   "resetDay": "Reset day",
   "resetDayConfirm": "This will mark the day as not done in the current cycle. Continue?",
-  "finishCycle": "Finish cycle"
+  "finishCycle": "Finish cycle",
+  "estimatedSets_one": "~{{count}} set",
+  "estimatedSets_other": "~{{count}} sets",
+  "estimatedDuration": "~{{duration}}",
+  "lastSession": "Last: {{date}}"
 }
