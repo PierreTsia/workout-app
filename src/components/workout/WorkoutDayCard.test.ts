@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest"
-import { formatRelativeDate, formatDuration } from "./WorkoutDayCard"
+import { formatRelativeDate, formatDuration } from "@/lib/formatters"
 
 describe("formatRelativeDate", () => {
   afterEach(() => vi.useRealTimers())
