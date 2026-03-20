@@ -1,30 +1,30 @@
-import type { WorkoutExercise } from "@/types/database"
+import type { ExercisePreviewItem } from "@/lib/sessionSummary"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 
 interface ExerciseListPreviewProps {
-  exercises: WorkoutExercise[]
+  items: ExercisePreviewItem[]
 }
 
-export function ExerciseListPreview({ exercises }: ExerciseListPreviewProps) {
+export function ExerciseListPreview({ items }: ExerciseListPreviewProps) {
   const { formatWeight } = useWeightUnit()
 
-  if (exercises.length === 0) return null
+  if (items.length === 0) return null
 
   return (
     <div className="space-y-2">
-      {exercises.map((ex) => (
+      {items.map((item) => (
         <div
-          key={ex.id}
+          key={item.id}
           className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3"
         >
-          <span className="text-2xl leading-none">{ex.emoji_snapshot}</span>
+          <span className="text-2xl leading-none">{item.emoji}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">
-              {ex.name_snapshot}
+              {item.name}
             </p>
             <p className="text-xs text-muted-foreground">
-              {ex.sets} × {ex.reps}
-              {Number(ex.weight) > 0 && ` · ${formatWeight(Number(ex.weight))}`}
+              {item.sets} × {item.reps}
+              {item.maxWeight > 0 && ` · ${formatWeight(item.maxWeight)}`}
             </p>
           </div>
         </div>

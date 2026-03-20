@@ -18,6 +18,9 @@ import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
+import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
+import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { summarizeSessionLogs, templateToPreviewItems } from "@/lib/sessionSummary"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
@@ -75,6 +78,19 @@ export function WorkoutPage() {
   const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
+
+  const { data: lastSessionForDay } = useLastSessionForDay(
+    isDayDoneInCycle ? session.currentDayId : null,
+  )
+  const { data: sessionLogs } = useSessionSetLogs(lastSessionForDay?.id ?? null)
+
+  const previewItems = useMemo(() => {
+    if (isDayDoneInCycle && sessionLogs && sessionLogs.length > 0) {
+      return summarizeSessionLogs(sessionLogs, exercises)
+    }
+    return templateToPreviewItems(exercises)
+  }, [isDayDoneInCycle, sessionLogs, exercises])
+
   const isViewingLockedDay = Boolean(
     session.isActive &&
       activeSessionDayId &&
@@ -455,9 +471,9 @@ export function WorkoutPage() {
             />
 
             {/* Exercise list for selected day */}
-            {exercises.length > 0 && (
+            {previewItems.length > 0 && (
               <div className="px-4">
-                <ExerciseListPreview exercises={exercises} />
+                <ExerciseListPreview items={previewItems} />
               </div>
             )}
           </div>
