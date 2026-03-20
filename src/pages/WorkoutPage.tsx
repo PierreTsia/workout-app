@@ -9,7 +9,7 @@ import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom } from "@/store/atoms"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom, quickSheetOpenAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -28,6 +28,7 @@ import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,7 @@ export function WorkoutPage() {
     name: string
   } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
-  const [quickSheetOpen, setQuickSheetOpen] = useState(false)
+  const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
 
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
@@ -72,6 +73,7 @@ export function WorkoutPage() {
   )
   const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
+  const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
   const isViewingLockedDay = Boolean(
     session.isActive &&
       activeSessionDayId &&
@@ -252,14 +254,14 @@ export function WorkoutPage() {
     }))
     setIsQuickWorkout(true)
     setTimeout(() => {
-      startSession()
+      startSession({ skipCycle: true })
     }, 0)
   }
 
-  async function startSession() {
-    let cycleId: string | null = activeCycle?.id ?? null
+  async function startSession({ skipCycle = false } = {}) {
+    let cycleId: string | null = skipCycle ? null : (activeCycle?.id ?? null)
 
-    if (!cycleId && activeProgramId && user && !isQuickWorkout) {
+    if (!cycleId && activeProgramId && user && !skipCycle) {
       try {
         const { data, error } = await supabase
           .from("cycles")
@@ -428,7 +430,7 @@ export function WorkoutPage() {
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */
         <>
-          <div className="flex-1 overflow-y-auto space-y-4 pb-20">
+          <div className={cn("flex-1 overflow-y-auto space-y-4", !isDayDoneInCycle && "pb-20")}>
             {cycleProgress.isComplete ? (
               <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
             ) : cycleProgress.totalDays > 0 && activeCycle && (
@@ -441,7 +443,6 @@ export function WorkoutPage() {
             <WorkoutDayCarousel
               days={days}
               completedDayIds={cycleProgress.completedDayIds}
-              onQuickWorkout={() => setQuickSheetOpen(true)}
             />
 
             {/* Exercise list for selected day */}
@@ -452,12 +453,14 @@ export function WorkoutPage() {
             )}
           </div>
 
-          <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-            <Button className="w-full gap-2" size="lg" onClick={startSession}>
-              <Play className="h-5 w-5" />
-              {t("startWorkout")}
-            </Button>
-          </div>
+          {!isDayDoneInCycle && (
+            <div className="sticky bottom-0 border-t bg-background px-4 py-3">
+              <Button className="w-full gap-2" size="lg" onClick={() => startSession()}>
+                <Play className="h-5 w-5" />
+                {t("startWorkout")}
+              </Button>
+            </div>
+          )}
         </>
       )}
 

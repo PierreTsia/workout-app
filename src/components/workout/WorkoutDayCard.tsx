@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { CheckCircle2, Clock, Dumbbell } from "lucide-react"
+import { CheckCircle2, Dumbbell, Layers, Timer } from "lucide-react"
 import type { WorkoutDay } from "@/types/database"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useAggregatedMuscles } from "@/hooks/useAggregatedMuscles"
@@ -22,6 +22,15 @@ function formatRelativeDate(iso: string): string {
   if (days === 1) return "Yesterday"
   if (days < 7) return `${days}d ago`
   return `${Math.floor(days / 7)}w ago`
+}
+
+function formatDuration(startIso: string, endIso: string): string {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime()
+  const totalMin = Math.round(ms / 60_000)
+  if (totalMin < 60) return `${totalMin} min`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
 }
 
 export function WorkoutDayCard({
@@ -84,8 +93,14 @@ export function WorkoutDayCard({
         )}
         {lastSession && (
           <Badge variant="secondary" className="gap-1.5">
-            <Clock className="h-3 w-3" />
+            <Layers className="h-3 w-3" />
             {t("setCount", { count: lastSession.total_sets_done })}
+          </Badge>
+        )}
+        {lastSession && (
+          <Badge variant="secondary" className="gap-1.5">
+            <Timer className="h-3 w-3" />
+            {formatDuration(lastSession.started_at, lastSession.finished_at)}
           </Badge>
         )}
       </div>

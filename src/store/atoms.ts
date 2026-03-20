@@ -91,3 +91,5 @@ export const isQuickWorkoutAtom = atomWithStorage<boolean>(
   "isQuickWorkout",
   false,
 )
+
+export const quickSheetOpenAtom = atom(false)

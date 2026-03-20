@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import { useAtom, useAtomValue } from "jotai"
-import { useTranslation } from "react-i18next"
-import { Zap } from "lucide-react"
-import { sessionAtom, isQuickWorkoutAtom } from "@/store/atoms"
+import { useAtom } from "jotai"
+import { sessionAtom } from "@/store/atoms"
 import type { WorkoutDay } from "@/types/database"
 import {
   Carousel,
@@ -16,17 +14,13 @@ import { cn } from "@/lib/utils"
 interface WorkoutDayCarouselProps {
   days: WorkoutDay[]
   completedDayIds: string[]
-  onQuickWorkout?: () => void
 }
 
 export function WorkoutDayCarousel({
   days,
   completedDayIds,
-  onQuickWorkout,
 }: WorkoutDayCarouselProps) {
-  const { t } = useTranslation("generator")
   const [session, setSession] = useAtom(sessionAtom)
-  const isQuickWorkout = useAtomValue(isQuickWorkoutAtom)
   const [api, setApi] = useState<CarouselApi>()
   const [activeSlide, setActiveSlide] = useState(0)
 
@@ -106,7 +100,7 @@ export function WorkoutDayCarousel({
         </CarouselContent>
       </Carousel>
 
-      <div className="flex items-center justify-center gap-3 px-4">
+      <div className="flex items-center justify-center px-4">
         <div className="flex gap-1.5">
           {days.map((day, idx) => (
             <button
@@ -120,16 +114,6 @@ export function WorkoutDayCarousel({
             />
           ))}
         </div>
-        {!session.isActive && !isQuickWorkout && onQuickWorkout && (
-          <button
-            type="button"
-            onClick={onQuickWorkout}
-            className="flex items-center gap-1 rounded-full border border-dashed border-primary/50 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
-          >
-            <Zap className="h-3 w-3" />
-            {t("quickWorkout")}
-          </button>
-        )}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { useAtom, useAtomValue } from "jotai"
-import { Link } from "react-router-dom"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { Link, useNavigate } from "react-router-dom"
 import { useTheme } from "next-themes"
 import { useTranslation } from "react-i18next"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, Library, ChevronDown } from "lucide-react"
+import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -28,6 +28,7 @@ import {
   localeAtom,
   queueSyncMetaAtom,
   weightUnitAtom,
+  quickSheetOpenAtom,
 } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
@@ -74,6 +75,8 @@ export function SideDrawer() {
   const { resolvedTheme, setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
   const [iosModalOpen, setIosModalOpen] = useState(false)
+  const setQuickSheetOpen = useSetAtom(quickSheetOpenAtom)
+  const navigate = useNavigate()
   const { canInstall, promptInstall } = useInstallPrompt()
 
   const showInstallButton = (canInstall || isIOS()) && !isStandalone()
@@ -148,6 +151,18 @@ export function SideDrawer() {
                 <Library className="h-4 w-4" />
                 {t("common:library")}
               </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              className="justify-start"
+              onClick={() => {
+                closeDrawer()
+                navigate("/")
+                setQuickSheetOpen(true)
+              }}
+            >
+              <Zap className="h-4 w-4" />
+              {t("common:quickWorkout")}
             </Button>
             <AdminOnly>
               <Collapsible defaultOpen>
