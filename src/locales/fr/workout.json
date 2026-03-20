@@ -5,6 +5,8 @@
   "done": "✓",
   "setCount_one": "{{count}} série",
   "setCount_other": "{{count}} séries",
+  "exerciseCount_one": "{{count}} exercice",
+  "exerciseCount_other": "{{count}} exercices",
   "removeLastSet": "Supprimer la dernière série",
   "addSet": "Ajouter une série",
   "lastTime": "Dernière fois : {{sets}} × {{reps}} @ {{weight}}",

@@ -84,12 +84,12 @@ export function WorkoutDayCarousel({
     <div className="space-y-3">
       <Carousel
         setApi={setApi}
-        opts={{ align: "center", containScroll: false }}
-        className="mx-2"
+        opts={{ align: "start", containScroll: false }}
+        className="px-4"
       >
         <CarouselContent className="-ml-3">
           {days.map((day, idx) => (
-            <CarouselItem key={day.id} className="basis-[85%] pl-3">
+            <CarouselItem key={day.id} className="basis-[92%] pl-3">
               <WorkoutDayCard
                 day={day}
                 isActive={idx === activeSlide}

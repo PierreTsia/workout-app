@@ -23,6 +23,7 @@ import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
+import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
@@ -369,94 +370,95 @@ export function WorkoutPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      {!session.isActive && (
-        <div className="space-y-3 py-2">
-          {cycleProgress.isComplete ? (
-            <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
-          ) : cycleProgress.totalDays > 0 && activeCycle && (
-            <CycleProgressHeader
-              completedCount={cycleProgress.completedDayIds.length}
-              totalDays={cycleProgress.totalDays}
-            />
-          )}
-          <WorkoutDayCarousel
-            days={days}
-            completedDayIds={cycleProgress.completedDayIds}
-            onQuickWorkout={() => setQuickSheetOpen(true)}
-          />
-        </div>
-      )}
-
-      {isViewingLockedDay && (
-        <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-          <p>{t("crossDayReadOnlyTitle")}</p>
-          <p className="text-xs text-amber-200/90">
-            {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
-          </p>
-        </div>
-      )}
-
       {session.isActive ? (
-        /* ── Active session: exercise strip + detail + nav ── */
-        exercisesLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : exercises.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-            <p className="text-muted-foreground">{t("noExercises")}</p>
-          </div>
-        ) : (
-          <>
-            <ExerciseStrip
-              exercises={exercises}
-              activeIndex={displayIndex}
-              onSelectIndex={
-                isViewingLockedDay
-                  ? (idx) =>
-                      setLockedDayView({
-                        dayId: session.currentDayId,
-                        index: idx,
-                      })
-                  : (idx) =>
-                      setSession((prev) => ({ ...prev, exerciseIndex: idx }))
-              }
+        /* ── Active session ── */
+        <>
+          {isViewingLockedDay && (
+            <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              <p>{t("crossDayReadOnlyTitle")}</p>
+              <p className="text-xs text-amber-200/90">
+                {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
+              </p>
+            </div>
+          )}
+
+          {exercisesLoading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : exercises.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+              <p className="text-muted-foreground">{t("noExercises")}</p>
+            </div>
+          ) : (
+            <>
+              <ExerciseStrip
+                exercises={exercises}
+                activeIndex={displayIndex}
+                onSelectIndex={
+                  isViewingLockedDay
+                    ? (idx) =>
+                        setLockedDayView({
+                          dayId: session.currentDayId,
+                          index: idx,
+                        })
+                    : (idx) =>
+                        setSession((prev) => ({ ...prev, exerciseIndex: idx }))
+                }
+              />
+              <div className="flex-1 overflow-y-auto py-2">
+                {currentExercise && (
+                  <ExerciseDetail
+                    exercise={currentExercise}
+                    sessionId={sessionId}
+                    isReadOnly={isViewingLockedDay}
+                  />
+                )}
+              </div>
+              {!isViewingLockedDay ? (
+                <SessionNav exercises={exercises} onFinish={handleFinish} />
+              ) : (
+                <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
+                  {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        /* ── Pre-session: hero card → exercises → start ── */
+        <>
+          <div className="flex-1 overflow-y-auto space-y-4 pb-20">
+            {cycleProgress.isComplete ? (
+              <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
+            ) : cycleProgress.totalDays > 0 && activeCycle && (
+              <CycleProgressHeader
+                completedCount={cycleProgress.completedDayIds.length}
+                totalDays={cycleProgress.totalDays}
+              />
+            )}
+
+            <WorkoutDayCarousel
+              days={days}
+              completedDayIds={cycleProgress.completedDayIds}
+              onQuickWorkout={() => setQuickSheetOpen(true)}
             />
 
-            <div className="flex-1 overflow-y-auto py-2">
-              {currentExercise && (
-                <ExerciseDetail
-                  exercise={currentExercise}
-                  sessionId={sessionId}
-                  isReadOnly={isViewingLockedDay}
-                />
-              )}
-            </div>
-
-            {!isViewingLockedDay ? (
-              <SessionNav
-                exercises={exercises}
-                onFinish={handleFinish}
-              />
-            ) : (
-              <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
-                {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
+            {/* Exercise list for selected day */}
+            {exercises.length > 0 && (
+              <div className="px-4">
+                <ExerciseListPreview exercises={exercises} />
               </div>
             )}
-          </>
-        )
-      ) : (
-        /* ── Pre-session: just the start button ── */
-        <div className="mt-auto sticky bottom-0 border-t bg-background px-4 py-3">
-          <Button
-            className="w-full gap-2"
-            size="lg"
-            onClick={startSession}
-          >
-            <Play className="h-5 w-5" />
-            {t("startWorkout")}
-          </Button>
-        </div>
+          </div>
+
+          <div className="sticky bottom-0 border-t bg-background px-4 py-3">
+            <Button className="w-full gap-2" size="lg" onClick={startSession}>
+              <Play className="h-5 w-5" />
+              {t("startWorkout")}
+            </Button>
+          </div>
+        </>
       )}
 
       <QuickWorkoutSheet

@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next"
-import { Calendar, CheckCircle2, Clock, Dumbbell } from "lucide-react"
+import { CheckCircle2, Clock, Dumbbell } from "lucide-react"
 import type { WorkoutDay } from "@/types/database"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useAggregatedMuscles } from "@/hooks/useAggregatedMuscles"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { BodyMap } from "@/components/body-map/BodyMap"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 interface WorkoutDayCardProps {
@@ -37,56 +38,55 @@ export function WorkoutDayCard({
   return (
     <div
       className={cn(
-        "flex h-full flex-col rounded-xl border bg-card p-4 transition-shadow",
+        "rounded-xl border bg-card p-5 transition-shadow",
         isActive
-          ? "border-primary/60 shadow-md shadow-primary/10"
+          ? "border-primary/60 shadow-lg shadow-primary/10"
           : "border-border",
       )}
     >
-      {/* Header: day label + cycle badge */}
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{day.emoji}</span>
-          <h3 className="text-lg font-semibold text-foreground">{day.label}</h3>
-        </div>
+      {/* Header: date badge + cycle done */}
+      <div className="mb-1 flex items-center justify-between">
+        {lastSession ? (
+          <Badge variant="secondary" className="text-[11px] font-medium">
+            {formatRelativeDate(lastSession.finished_at)}
+          </Badge>
+        ) : <span />}
         {isCycleDone && (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
         )}
       </div>
 
-      {/* Body map hero */}
-      <div className="flex-1 flex items-center justify-center py-2">
+      {/* Day title */}
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-2xl">{day.emoji}</span>
+        <h3 className="text-xl font-bold text-foreground">{day.label}</h3>
+      </div>
+
+      {/* Body map (centered hero) */}
+      <div className="flex items-center justify-center">
         {exercises && exercises.length > 0 ? (
-          <BodyMap data={heatmapData} className="scale-90" />
-        ) : exercises ? (
-          <p className="text-sm text-muted-foreground">{t("noExercises")}</p>
-        ) : (
-          <div className="flex items-center justify-center gap-4 py-6">
+          <BodyMap data={heatmapData} />
+        ) : exercises ? null : (
+          <div className="flex gap-3 py-6">
             <div className="h-28 w-14 animate-pulse rounded bg-muted" />
             <div className="h-28 w-14 animate-pulse rounded bg-muted" />
           </div>
         )}
       </div>
 
-      {/* Stats footer */}
-      <div className="mt-2 flex items-center gap-3 border-t pt-3 text-xs text-muted-foreground">
+      {/* Badges row below body map */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
         {exercises && (
-          <span className="flex items-center gap-1">
-            <Dumbbell className="h-3.5 w-3.5" />
-            {exercises.length} {exercises.length === 1 ? "exercise" : "exercises"}
-          </span>
+          <Badge variant="secondary" className="gap-1.5">
+            <Dumbbell className="h-3 w-3" />
+            {t("exerciseCount", { count: exercises.length })}
+          </Badge>
         )}
         {lastSession && (
-          <>
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              {formatRelativeDate(lastSession.finished_at)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {lastSession.total_sets_done} sets
-            </span>
-          </>
+          <Badge variant="secondary" className="gap-1.5">
+            <Clock className="h-3 w-3" />
+            {t("setCount", { count: lastSession.total_sets_done })}
+          </Badge>
         )}
       </div>
     </div>

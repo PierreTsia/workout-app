@@ -5,6 +5,8 @@
   "done": "✓",
   "setCount_one": "{{count}} set",
   "setCount_other": "{{count}} sets",
+  "exerciseCount_one": "{{count}} exercise",
+  "exerciseCount_other": "{{count}} exercises",
   "removeLastSet": "Remove last set",
   "addSet": "Add set",
   "lastTime": "Last time: {{sets}} × {{reps}} @ {{weight}}",

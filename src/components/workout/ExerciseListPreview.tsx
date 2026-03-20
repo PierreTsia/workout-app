@@ -2,34 +2,30 @@ import type { WorkoutExercise } from "@/types/database"
 
 interface ExerciseListPreviewProps {
   exercises: WorkoutExercise[]
-  maxItems?: number
 }
 
-export function ExerciseListPreview({
-  exercises,
-  maxItems = 5,
-}: ExerciseListPreviewProps) {
-  const visible = exercises.slice(0, maxItems)
-  const remaining = exercises.length - visible.length
+export function ExerciseListPreview({ exercises }: ExerciseListPreviewProps) {
+  if (exercises.length === 0) return null
 
   return (
-    <ul className="space-y-1.5">
-      {visible.map((ex) => (
-        <li key={ex.id} className="flex items-center gap-2 text-sm">
-          <span className="shrink-0 text-base leading-none">
-            {ex.emoji_snapshot}
-          </span>
-          <span className="truncate text-foreground">{ex.name_snapshot}</span>
-          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-            {ex.sets}×{ex.reps}
-          </span>
-        </li>
+    <div className="space-y-2">
+      {exercises.map((ex) => (
+        <div
+          key={ex.id}
+          className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3"
+        >
+          <span className="text-2xl leading-none">{ex.emoji_snapshot}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">
+              {ex.name_snapshot}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {ex.sets} × {ex.reps}
+              {Number(ex.weight) > 0 && ` · ${ex.weight} kg`}
+            </p>
+          </div>
+        </div>
       ))}
-      {remaining > 0 && (
-        <li className="text-xs text-muted-foreground">
-          +{remaining} more
-        </li>
-      )}
-    </ul>
+    </div>
   )
 }
