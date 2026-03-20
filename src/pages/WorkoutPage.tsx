@@ -17,6 +17,7 @@ import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { supabase } from "@/lib/supabase"
+import { deriveCycleIdForSession } from "@/lib/cycle"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
@@ -259,7 +260,7 @@ export function WorkoutPage() {
   }
 
   async function startSession({ skipCycle = false } = {}) {
-    let cycleId: string | null = skipCycle ? null : (activeCycle?.id ?? null)
+    let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
 
     if (!cycleId && activeProgramId && user && !skipCycle) {
       try {
@@ -298,16 +299,17 @@ export function WorkoutPage() {
 
   async function handleFinishCycle() {
     if (!activeCycle?.id) return
-    try {
-      await supabase
-        .from("cycles")
-        .update({ finished_at: new Date().toISOString() })
-        .eq("id", activeCycle.id)
-      queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
-      queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
-    } catch {
-      // Offline — cycle stays open, will be finished next time
+    const { error } = await supabase
+      .from("cycles")
+      .update({ finished_at: new Date().toISOString() })
+      .eq("id", activeCycle.id)
+
+    if (error) {
+      console.warn("[WorkoutPage] Could not finish cycle:", error.message)
+      return
     }
+    queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
+    queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
   }
 
   function handleNewSession() {
@@ -391,6 +393,13 @@ export function WorkoutPage() {
           ) : exercises.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
               <p className="text-muted-foreground">{t("noExercises")}</p>
+              {activeProgramId && (
+                <Button variant="outline" asChild size="sm">
+                  <Link to={`/builder/${activeProgramId}`} state={{ from: "/" }}>
+                    {t("addExercises")}
+                  </Link>
+                </Button>
+              )}
             </div>
           ) : (
             <>

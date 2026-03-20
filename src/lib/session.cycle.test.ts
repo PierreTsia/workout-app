@@ -1,16 +1,5 @@
 import { describe, expect, it } from "vitest"
-
-/**
- * Pure derivation that mirrors the cycleId logic inside startSession.
- * Extracted for testability — the actual startSession function lives in
- * WorkoutPage and has Supabase/atom side effects.
- */
-function deriveCycleIdForSession(
-  skipCycle: boolean,
-  activeCycleId: string | null,
-): string | null {
-  return skipCycle ? null : (activeCycleId ?? null)
-}
+import { deriveCycleIdForSession } from "./cycle"
 
 describe("deriveCycleIdForSession", () => {
   it("returns the active cycle id for normal sessions", () => {

@@ -1,10 +1,13 @@
 import type { WorkoutExercise } from "@/types/database"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 
 interface ExerciseListPreviewProps {
   exercises: WorkoutExercise[]
 }
 
 export function ExerciseListPreview({ exercises }: ExerciseListPreviewProps) {
+  const { formatWeight } = useWeightUnit()
+
   if (exercises.length === 0) return null
 
   return (
@@ -21,7 +24,7 @@ export function ExerciseListPreview({ exercises }: ExerciseListPreviewProps) {
             </p>
             <p className="text-xs text-muted-foreground">
               {ex.sets} × {ex.reps}
-              {Number(ex.weight) > 0 && ` · ${ex.weight} kg`}
+              {Number(ex.weight) > 0 && ` · ${formatWeight(Number(ex.weight))}`}
             </p>
           </div>
         </div>
