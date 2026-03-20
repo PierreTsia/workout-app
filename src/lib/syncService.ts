@@ -35,6 +35,7 @@ export interface SessionFinishPayload {
   finishedAt: number
   totalSetsDone: number
   hasSkippedSets: boolean
+  cycleId?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -344,6 +345,8 @@ export async function drainQueue(userId: string): Promise<void> {
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
   queryClient.invalidateQueries({ queryKey: ["pr-aggregates"] })
+  queryClient.invalidateQueries({ queryKey: ["active-cycle"] })
+  queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
 
   draining = false
 }
@@ -376,6 +379,7 @@ async function ensureSession(
           finished_at: new Date(p.finishedAt).toISOString(),
           total_sets_done: p.totalSetsDone,
           has_skipped_sets: p.hasSkippedSets,
+          cycle_id: p.cycleId ?? null,
         },
         { onConflict: "id" },
       )
@@ -468,6 +472,7 @@ async function processSessionFinish(
         finished_at: new Date(p.finishedAt).toISOString(),
         total_sets_done: p.totalSetsDone,
         has_skipped_sets: p.hasSkippedSets,
+        cycle_id: p.cycleId ?? null,
       },
       { onConflict: "id" },
     )

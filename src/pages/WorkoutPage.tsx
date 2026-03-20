@@ -8,12 +8,15 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom } from "@/store/atoms"
+import { useQueryClient } from "@tanstack/react-query"
+import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights } from "@/hooks/useLastWeights"
+import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
+import { supabase } from "@/lib/supabase"
 import { DaySelector } from "@/components/workout/DaySelector"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -40,6 +43,9 @@ export function WorkoutPage() {
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const activeProgramId = useAtomValue(activeProgramIdAtom)
+  const user = useAtomValue(authAtom)
+  const queryClient = useQueryClient()
+  const { data: activeCycle } = useActiveCycle(activeProgramId)
   const [finished, setFinished] = useState(false)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
@@ -208,8 +214,19 @@ export function WorkoutPage() {
       finishedAt: Date.now(),
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
+      cycleId: session.cycleId,
     })
     scheduleImmediateDrain()
+
+    if (session.cycleId) {
+      queryClient.setQueryData<{ workout_day_id: string | null }[]>(
+        ["cycle-sessions", session.cycleId],
+        (old) => [
+          ...(old ?? []),
+          { workout_day_id: activeSessionDayId ?? null },
+        ],
+      )
+    }
 
     if (isQuickWorkout && session.currentDayId) {
       setFinishedQuickInfo({
@@ -238,7 +255,33 @@ export function WorkoutPage() {
     }, 0)
   }
 
-  function startSession() {
+  async function startSession() {
+    let cycleId: string | null = activeCycle?.id ?? null
+
+    if (!cycleId && activeProgramId && user && !isQuickWorkout) {
+      try {
+        const { data, error } = await supabase
+          .from("cycles")
+          .insert({ program_id: activeProgramId, user_id: user.id })
+          .select()
+          .single()
+
+        if (error?.code === "23505") {
+          // Unique constraint race — another tab created one; refetch
+          await queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
+          const refetched = queryClient.getQueryData<{ id: string } | null>(["active-cycle", activeProgramId])
+          cycleId = refetched?.id ?? null
+        } else if (error) {
+          console.warn("[WorkoutPage] Could not create cycle:", error.message)
+        } else {
+          cycleId = data.id
+          queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
+        }
+      } catch {
+        // Offline — start without cycle
+      }
+    }
+
     setSession((prev) => ({
       ...prev,
       isActive: true,
@@ -246,6 +289,7 @@ export function WorkoutPage() {
       startedAt: Date.now(),
       pausedAt: null,
       accumulatedPause: 0,
+      cycleId,
     }))
   }
 
