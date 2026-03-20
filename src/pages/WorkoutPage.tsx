@@ -20,6 +20,8 @@ import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
+import { SessionHeatmap } from "@/components/body-map/SessionHeatmap"
+import { useAggregatedMuscles } from "@/hooks/useAggregatedMuscles"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -54,6 +56,8 @@ export function WorkoutPage() {
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
   )
+
+  const heatmapData = useAggregatedMuscles(exercises)
 
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
@@ -334,6 +338,8 @@ export function WorkoutPage() {
         </div>
       ) : (
         <>
+          <SessionHeatmap data={heatmapData} />
+
           <ExerciseStrip
             exercises={exercises}
             activeIndex={displayIndex}

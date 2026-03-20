@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { RefreshCw, ArrowLeft, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,8 @@ import {
   ISOLATION_REPS,
   ISOLATION_REST_SECONDS,
 } from "@/lib/generatorConfig"
+import { buildBodyMapData } from "@/lib/muscleMapping"
+import { SessionHeatmap } from "@/components/body-map/SessionHeatmap"
 
 interface PreviewStepProps {
   workout: GeneratedWorkout
@@ -122,6 +124,19 @@ export function PreviewStep({
     onStart({ exercises, name, hasFallback: workout.hasFallback })
   }, [exercises, name, workout.hasFallback, onStart])
 
+  const heatmapData = useMemo(
+    () =>
+      buildBodyMapData(
+        exercises.map((ge) => ({
+          name: ge.exercise.name,
+          muscleGroup: ge.exercise.muscle_group,
+          secondaryMuscles: ge.exercise.secondary_muscles,
+          sets: ge.sets,
+        })),
+      ),
+    [exercises],
+  )
+
   const currentExerciseIds = exercises.map((ge) => ge.exercise.id)
 
   return (
@@ -166,6 +181,8 @@ export function PreviewStep({
           {t("shuffle")}
         </Button>
       </div>
+
+      <SessionHeatmap data={heatmapData} defaultOpen />
 
       <div className="flex flex-col gap-2">
         {exercises.map((item, index) => (
