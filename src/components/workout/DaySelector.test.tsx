@@ -36,6 +36,7 @@ const BASE_SESSION: SessionState = {
   isActive: true,
   totalSetsDone: 5,
   pausedAt: null,
+  cycleId: null,
   accumulatedPause: 0,
 }
 

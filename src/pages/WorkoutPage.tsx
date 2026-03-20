@@ -260,6 +260,7 @@ export function WorkoutPage() {
       isActive: false,
       totalSetsDone: 0,
       pausedAt: null,
+      cycleId: null,
       accumulatedPause: 0,
     })
     setPrFlags({})

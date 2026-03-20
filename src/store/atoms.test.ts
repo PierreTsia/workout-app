@@ -23,6 +23,7 @@ describe("completedExerciseIdsAtom", () => {
       totalSetsDone: 0,
       pausedAt: null,
       accumulatedPause: 0,
+      cycleId: null,
     })
 
     const completed = store.get(completedExerciseIdsAtom)
@@ -47,6 +48,7 @@ describe("completedExerciseIdsAtom", () => {
       totalSetsDone: 2,
       pausedAt: null,
       accumulatedPause: 0,
+      cycleId: null,
     })
 
     const completed = store.get(completedExerciseIdsAtom)
@@ -71,6 +73,7 @@ describe("completedExerciseIdsAtom", () => {
       totalSetsDone: 3,
       pausedAt: null,
       accumulatedPause: 0,
+      cycleId: null,
     })
 
     const completed = store.get(completedExerciseIdsAtom)
@@ -101,6 +104,7 @@ describe("completedExerciseIdsAtom", () => {
       totalSetsDone: 4,
       pausedAt: null,
       accumulatedPause: 0,
+      cycleId: null,
     })
 
     const completed = store.get(completedExerciseIdsAtom)
