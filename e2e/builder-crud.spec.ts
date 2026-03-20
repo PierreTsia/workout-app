@@ -42,7 +42,7 @@ test.describe("Builder — CRUD", () => {
 
     await expect(
       page
-        .locator("button")
+        .locator("h3")
         .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
         .first(),
     ).toBeVisible({ timeout: 60_000 })

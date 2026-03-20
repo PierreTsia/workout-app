@@ -36,7 +36,7 @@ test.describe("Feedback — happy path", () => {
 
     await expect(
       page
-        .locator("button")
+        .locator("h3")
         .filter({ hasText: /Lundi|Mercredi|Vendredi|Monday|Wednesday|Friday/ })
         .first(),
     ).toBeVisible({ timeout: 60_000 })

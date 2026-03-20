@@ -185,8 +185,7 @@ test.describe("Workout session — full flow", () => {
     await quickWorkoutButton.click()
 
     // The drawer for quick workout generation should appear
-    const quickWorkoutDrawer = page.locator("[role='dialog']")
+    const quickWorkoutDrawer = page.getByRole("dialog", { name: /quick workout/i })
     await expect(quickWorkoutDrawer).toBeVisible({ timeout: 5_000 })
-    await expect(quickWorkoutDrawer.getByText(/quick workout/i)).toBeVisible()
   })
 })
