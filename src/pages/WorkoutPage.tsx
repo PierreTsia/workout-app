@@ -17,7 +17,8 @@ import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { supabase } from "@/lib/supabase"
-import { DaySelector } from "@/components/workout/DaySelector"
+import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
+import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { SessionNav } from "@/components/workout/SessionNav"
@@ -46,6 +47,8 @@ export function WorkoutPage() {
   const user = useAtomValue(authAtom)
   const queryClient = useQueryClient()
   const { data: activeCycle } = useActiveCycle(activeProgramId)
+  const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
+  const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? [])
   const [finished, setFinished] = useState(false)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
@@ -54,7 +57,6 @@ export function WorkoutPage() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useState(false)
 
-  const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
@@ -355,7 +357,13 @@ export function WorkoutPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <DaySelector days={days} onQuickWorkout={() => setQuickSheetOpen(true)} />
+      {!session.isActive && (
+        <WorkoutDayCarousel
+          days={days}
+          completedDayIds={cycleProgress.completedDayIds}
+          onQuickWorkout={() => setQuickSheetOpen(true)}
+        />
+      )}
 
       {isViewingLockedDay && (
         <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">

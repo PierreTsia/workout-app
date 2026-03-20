@@ -58,5 +58,11 @@
   "rir.moreReps_other": "{{count}} more reps",
   "rir.setInfo": "#{{setNumber}} set: {{reps}} × {{weight}} {{unit}}",
   "rir.infoLabel": "Info",
-  "muscleMap": "Muscle map"
+  "muscleMap": "Muscle map",
+  "cycleProgress": "Cycle {{current}}/{{total}}",
+  "cycleComplete": "Cycle complete!",
+  "startNewCycle": "Start new cycle",
+  "resetDay": "Reset day",
+  "resetDayConfirm": "This will mark the day as not done in the current cycle. Continue?",
+  "finishCycle": "Finish cycle"
 }
