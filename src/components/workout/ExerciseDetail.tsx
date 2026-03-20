@@ -10,6 +10,7 @@ import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstruc
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
+import { BodyMap } from "@/components/body-map/BodyMap"
 import { SetsTable } from "./SetsTable"
 
 interface ExerciseDetailProps {
@@ -60,6 +61,11 @@ export function ExerciseDetail({
           </p>
         )}
       </div>
+
+      <BodyMap
+        muscleGroup={libExercise?.muscle_group ?? exercise.muscle_snapshot}
+        secondaryMuscles={libExercise?.secondary_muscles}
+      />
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 

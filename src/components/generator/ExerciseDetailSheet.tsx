@@ -10,6 +10,7 @@ import {
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { InstructionSection } from "@/components/exercise/InstructionSection"
 import { getYouTubeEmbedUrl } from "@/lib/youtube"
+import { BodyMap } from "@/components/body-map/BodyMap"
 import type { Exercise } from "@/types/database"
 
 interface ExerciseDetailSheetProps {
@@ -53,6 +54,12 @@ export function ExerciseDetailSheet({
             )}
           </SheetDescription>
         </SheetHeader>
+
+        <BodyMap
+          muscleGroup={exercise.muscle_group}
+          secondaryMuscles={exercise.secondary_muscles}
+          className="mt-4"
+        />
 
         <div className="mt-4 flex flex-col gap-4">
           {ins && (

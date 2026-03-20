@@ -57,5 +57,6 @@
   "rir.moreReps_one": "{{count}} répétition de plus",
   "rir.moreReps_other": "{{count}} répétitions de plus",
   "rir.setInfo": "#{{setNumber}} série : {{reps}} × {{weight}} {{unit}}",
-  "rir.infoLabel": "Info"
+  "rir.infoLabel": "Info",
+  "muscleMap": "Carte musculaire"
 }
