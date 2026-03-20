@@ -12,6 +12,44 @@
     <title>Workout</title>
   </head>
   <body>
+    <!-- Keep keys in sync with src/lib/themeStorage.ts (THEME_STORAGE_KEY, LEGACY_THEME_STORAGE_KEY) -->
+    <script>
+      ;(function () {
+        var NEW_KEY = "workout-app-theme"
+        var OLD_KEY = "theme"
+        var FALLBACK = "dark"
+        function parseStored(raw) {
+          if (raw == null || raw === "") return null
+          var t = String(raw).trim()
+          if (t === "dark" || t === "light" || t === "system") return t
+          try {
+            var p = JSON.parse(t)
+            if (p === "dark" || p === "light" || p === "system") return p
+          } catch (e) {}
+          return null
+        }
+        function systemOrFallbackDark() {
+          try {
+            if (window.matchMedia) {
+              return window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+            }
+          } catch (e) {}
+          return FALLBACK
+        }
+        try {
+          var raw =
+            localStorage.getItem(NEW_KEY) || localStorage.getItem(OLD_KEY)
+          var v = parseStored(raw)
+          var resolved =
+            v === "light" || v === "dark" ? v : systemOrFallbackDark()
+          var d = document.documentElement
+          d.classList.remove("light", "dark")
+          d.classList.add(resolved)
+        } catch (e) {}
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

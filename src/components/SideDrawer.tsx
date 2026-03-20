@@ -27,7 +27,6 @@ import {
   drawerOpenAtom,
   localeAtom,
   queueSyncMetaAtom,
-  themeAtom,
   weightUnitAtom,
 } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
@@ -68,12 +67,11 @@ function SegmentedButton<T extends string>({
 export function SideDrawer() {
   const { t, i18n } = useTranslation(["common", "settings"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
-  const [currentTheme, setThemeAtom] = useAtom(themeAtom)
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
   const user = useAtomValue(authAtom)
   const queueMeta = useAtomValue(queueSyncMetaAtom)
-  const { setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
   const [iosModalOpen, setIosModalOpen] = useState(false)
   const { canInstall, promptInstall } = useInstallPrompt()
@@ -103,12 +101,6 @@ export function SideDrawer() {
     setSignOutConfirmOpen(false)
     supabase.auth.signOut()
     closeDrawer()
-  }
-
-  function toggleTheme() {
-    const next = currentTheme === "dark" ? "light" : "dark"
-    setTheme(next)
-    setThemeAtom(next)
   }
 
   function handleLocaleChange(v: "en" | "fr") {
@@ -192,8 +184,10 @@ export function SideDrawer() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">{t("common:darkMode")}</span>
               <Switch
-                checked={currentTheme === "dark"}
-                onCheckedChange={toggleTheme}
+                checked={resolvedTheme === "dark"}
+                onCheckedChange={(checked) =>
+                  setTheme(checked ? "dark" : "light")
+                }
               />
             </div>
 
