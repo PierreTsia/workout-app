@@ -2,7 +2,7 @@
 
 ## Summary
 
-This epic adds AI-powered multi-day program generation and redesigns the Library page into a unified program management view. Today, users choose between rigid templates ("pick and go") or building a program manually from scratch — there is no middle ground. The AI path generates a complete multi-day training program (split structure, exercise selection, sets/reps/rest) tailored to the user's profile and stated preferences, using a two-phase approach: the LLM proposes a split structure with rationale, the user confirms or adjusts, then the LLM selects exercises for each day. The Library's current 3-tab layout collapses into a single program list with a prominent creation wizard offering three paths: AI Generate, From Template, and Start from Scratch. The Quick Workout tab is removed from the Library — it is already accessible from the side drawer.
+This epic adds AI-powered multi-day program generation and redesigns the Library page into a unified program management view. Today, users choose between rigid templates ("pick and go") or building a program manually from scratch — there is no middle ground. The AI path generates a complete multi-day training program tailored to the user's profile and stated preferences: the LLM designs the split structure and selects exercises, while deterministic code assigns volume (sets, reps, rest) — the same separation of concerns proven in the single-workout AI generator. A single LLM call returns the full program (split with rationale + exercises per day); the UI progressively reveals the split first, then unfolds exercises underneath. A second LLM call only happens if the user modifies the proposed split. The Library's current 3-tab layout collapses into a single program list with a prominent creation wizard offering three paths: AI Generate, From Template, and Start from Scratch. The Quick Workout tab is removed from the Library — it is already accessible from the side drawer.
 
 ---
 
@@ -33,8 +33,8 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
 
 | Goal | Measure |
 |---|---|
-| Context-aware multi-day program generation | AI designs the split structure (day count, muscle focus per day), selects exercises per day, and assigns volume — all informed by user profile, goals, and preferences |
-| Two-phase user agency | AI proposes a split with rationale; user confirms or adjusts before exercise selection proceeds. Users feel in control without needing to design from scratch. |
+| Context-aware multi-day program generation | AI designs the split structure (day count, muscle focus per day) and selects exercises per day — informed by user profile, goals, and preferences. Deterministic code assigns volume (sets/reps/rest) using the proven `buildExercise` + `adaptForExperience` pipeline. |
+| Progressive reveal with user agency | A single LLM call returns the full program. The UI shows the split with rationale first, then unfolds exercises per day. If the user modifies the split, a second call regenerates exercises. Users feel in control without added latency. |
 | Sub-10-second generation latency | Full program generation (structure + exercises) completes in < 10s (p95) from submission to preview render |
 | Zero hallucination tolerance | 100% of AI-returned exercise IDs exist in the catalog and match equipment/muscle constraints — enforced by per-day server-side validation |
 | Unified Library UX | Single program list view with one creation CTA replaces the 3-tab layout. Programs, templates, and quick sessions each have a clear home. |
@@ -50,7 +50,7 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
 1. **Library page redesign** — collapse the 3-tab layout (`file:src/pages/LibraryPage.tsx`) into a single unified view: the user's program list with a prominent "Nouveau programme" CTA at the top. Active program highlighted, inactive programs below, archived toggle at bottom. Remove the Quick Workout tab (`file:src/components/library/QuickWorkoutTab.tsx`) — it is already accessible from the side drawer (`file:src/components/SideDrawer.tsx`). The template catalog (`file:src/components/library/ProgramsTab.tsx`) moves into the creation wizard as one of three paths.
 
 2. **Full-page program creation wizard** — new route (`/create-program`) with a dedicated full-page experience (outside `AppShell`, like `file:src/pages/OnboardingPage.tsx`). Three creation paths:
-   - **AI Generate** — constraint wizard → AI proposes split → user confirms → AI fills exercises → preview → confirm
+   - **AI Generate** — constraint wizard → single AI call → progressive reveal (split with rationale, then exercises) → preview → confirm
    - **From Template** — template catalog (reuses `file:src/components/library/TemplateCard.tsx`, `file:src/components/library/LibraryFilterBar.tsx`, and `file:src/components/library/TemplateDetailSheet.tsx` content) → preview → confirm
    - **Start from Scratch** — name input → creates empty program → redirects to builder (existing `file:src/components/library/CreateProgramDialog.tsx` behavior)
 
@@ -62,12 +62,14 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
    - Equipment available (prefilled from profile)
    - Optional free-form preferences: focus areas (e.g. "emphasis on upper body"), exercises to include or exclude, split preference (or "let AI decide")
 
-4. **Two-phase AI flow** — the generation happens in two logical phases:
-   - **Phase 1 — Split proposal:** the LLM receives user constraints + a condensed exercise catalog and returns a proposed split structure: number of days, label per day, muscle focus per day, and a brief rationale for why this split suits the user's goals and frequency. The user reviews the proposal and can adjust day labels or muscle focus before proceeding.
-   - **Phase 2 — Exercise selection:** once the user confirms the split, the LLM (or the same response, if the user didn't modify anything) returns exercise IDs for each day with sets, reps, and rest. Each day's exercises pass through the guardrail validation layer before reaching the user.
-   - If the user modifies the split in Phase 1, a second LLM call is made with the updated structure. If the user confirms as-is, the exercises from the initial call are used (single LLM round-trip in the happy path).
+4. **Single-call AI with progressive reveal** — the LLM receives user constraints + a condensed exercise catalog and returns the complete program in one response: split structure (day count, label per day, muscle focus per day, brief rationale) plus exercise IDs per day. The UI reveals results progressively:
+   - First: the split structure with the AI's rationale is displayed (day cards with labels and muscle focus).
+   - Then: exercises per day unfold underneath each day card.
+   - The user can review, expand/collapse days, and decide to accept or modify.
+   - If the user modifies the split (changes a day's muscle focus, adds/removes a day), a second LLM call regenerates exercises for the changed structure. If they accept as-is, no second call is needed.
+   - This approach minimizes latency (single round-trip in the happy path) while giving the *impression* of a thoughtful two-step process.
 
-5. **`generate-program` Supabase Edge Function** — new edge function, separate from `file:supabase/functions/generate-workout/index.ts`. Receives user constraints + profile + training history. Fetches a pre-filtered exercise catalog from the DB (same pattern as `file:supabase/functions/generate-workout/prompt.ts` — equipment + muscle group filtering, capped catalog). Constructs a program-design prompt for Gemini 2.5 Flash. Returns structured JSON: split structure with rationale + exercise IDs per day with volume. JWT auth, CORS, error handling follow the established edge function patterns.
+5. **`generate-program` Supabase Edge Function** — new edge function, separate from `file:supabase/functions/generate-workout/index.ts`. Receives user constraints + profile + training history. Fetches a pre-filtered exercise catalog from the DB (same pattern as `file:supabase/functions/generate-workout/prompt.ts` — equipment + muscle group filtering, capped catalog). Constructs a program-design prompt for Gemini 2.5 Flash. Returns structured JSON: split structure with rationale + exercise IDs per day. The LLM selects exercises only — volume (sets, reps, rest) is assigned deterministically client-side via `file:src/lib/generateWorkout.ts` (`buildExercise`) and `file:src/lib/generateProgram.ts` (`adaptForExperience`), consistent with single-workout AI generation. JWT auth, CORS, error handling follow the established edge function patterns.
 
 6. **Multi-day guardrail validation layer** — extends the repair-first validation pattern from `file:supabase/functions/generate-workout/validate.ts`:
    - Validates each day's exercises against the pre-filtered catalog (ID existence, equipment match)
@@ -93,10 +95,10 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
    - Only return exercise IDs from the provided catalog
    - Respect equipment constraints
    - Apply exercise pairing heuristics per day (compound before isolation, synergistic grouping)
-   - Distribute volume across the week (no muscle group overtrained or neglected)
+   - Distribute exercises across the week so no muscle group is overtrained or neglected
    - Consider user training history (last 5 sessions) to avoid staleness
-   - Assign sets, reps, and rest per exercise (informed by user experience level)
-   - Return structured JSON matching a defined multi-day schema
+   - Handle training gaps gracefully: if history is older than 14 days or empty, propose a conservative re-entry program with moderate intensity rather than aggressive progression
+   - Return structured JSON matching a defined multi-day schema (exercise IDs only — no volume; sets/reps/rest are assigned deterministically client-side)
 
 10. **i18n** — new translation keys for the library redesign and AI program generation wizard in both FR and EN. New `create-program` namespace or extension of existing `library` namespace.
 
@@ -106,7 +108,7 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
 - Changes to the onboarding wizard (continues to use template-based generation)
 - Streaming or partial LLM responses (Gemini Flash is fast enough for a single structured response)
 - Per-user rate limiting enforcement (same policy as `generate-workout`: off during dev, 10/day cap later)
-- Multi-turn conversation with the LLM (single prompt per phase, single response)
+- Multi-turn conversation with the LLM (single prompt, single response — second call only on user-initiated split modification)
 - Superset, circuit, or periodization modes (flat sets only, same as current templates)
 - Template editing or custom template creation
 - Exercise library expansion or difficulty data backfill (only 9 of 606 exercises have null `difficulty_level` — negligible)
@@ -122,7 +124,7 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
 - **Numeric:** 100% of AI-returned exercise IDs pass guardrail validation per day (zero hallucinated IDs reach the user)
 - **Numeric:** AI programs contain the correct number of days, 4–10 exercises per day, and zero equipment mismatches
 - **Qualitative:** AI-generated programs feel like they were designed by a knowledgeable trainer — sensible split structure for the user's goals and frequency, complementary exercise pairing within days, balanced volume distribution across the week
-- **Qualitative:** The two-phase flow (split proposal → exercise fill) gives users a sense of control without requiring program design expertise
+- **Qualitative:** The progressive reveal (split with rationale → exercises per day) gives users a sense of control without requiring program design expertise or waiting through multiple loading steps
 - **Qualitative:** The unified Library page is cleaner and more intuitive than the 3-tab layout — program management, creation, and template browsing all flow naturally from a single view
 - **Qualitative:** Constraint wizard is fast for returning users — under 30 seconds from "Nouveau programme" to AI preview, thanks to profile prefill
 - **Qualitative:** AI programs are fully editable in the existing builder after creation — no locked or special-cased fields
@@ -142,11 +144,12 @@ This epic adds AI-powered multi-day program generation and redesigns the Library
 ## Resolved Decisions
 
 - **New edge function, not an extension:** `generate-program` is a separate edge function from `generate-workout`. The prompt, output schema (multi-day structure vs flat exercise list), and validation logic are fundamentally different. Sharing code (catalog fetching, Gemini client, CORS) happens via shared modules in `file:supabase/functions/_shared/`, not by overloading a single function.
-- **Two-phase flow, not one-shot:** The AI proposes a split structure first, the user confirms or adjusts, then exercises are filled in. This gives users agency over the program's macro-structure without requiring them to design it from scratch. In the happy path (user confirms as-is), this is a single LLM call — the split and exercises are returned together.
+- **Single call, progressive reveal:** The LLM returns the full program (split + exercises) in one response. The UI progressively reveals the split with rationale first, then unfolds exercises per day. This eliminates the latency of a blocking two-step interaction while preserving the UX benefit of a "thoughtful" AI that explains its reasoning. A second call only fires if the user modifies the proposed split — a rare path.
 - **Full-page wizard, not a bottom sheet:** The creation wizard is a dedicated full-page experience (like onboarding), not a dialog or bottom sheet. A multi-step AI flow with constraint collection, split review, and program preview is too heavy for a sheet.
 - **Library collapses to a single view:** The 3-tab layout is replaced by a unified program list. Templates move into the creation wizard. Quick Workout is dropped (already in side drawer). This simplifies the Library's mental model: it's where you manage your programs, period.
 - **Templates remain as a separate path:** Templates are not deprecated or replaced by AI. They serve a different use case: quick, predictable, no-wait program adoption. AI is the smart custom path; templates are the fast familiar path.
-- **AI assigns sets/reps/rest (unlike single-workout generation):** Unlike the AI Workout Generator (where sets/reps/rest are calculated deterministically client-side via `VOLUME_MAP`), the program generator has the LLM assign volume per exercise. Multi-day programs require more nuanced volume distribution (heavier compounds vs lighter accessories, volume progression across the week) that a flat lookup table can't express. The validation layer enforces sane ranges.
+- **LLM picks composition, code assigns volume (same as single-workout):** The LLM selects exercises (composition) — this is where AI shines. Deterministic code assigns sets, reps, and rest via the existing `buildExercise()` (compound vs isolation distinction) and `adaptForExperience()` (beginner/intermediate/advanced scaling) pipeline. Letting the LLM decide volume would introduce a whole class of hallucination risk (absurd set counts, inconsistent session lengths) that guardrails would struggle to catch. The deterministic approach is predictable, testable, and already proven.
+- **Training gap awareness in the prompt:** If user training history is older than 14 days or empty, the prompt instructs the LLM to propose a conservative re-entry program with moderate intensity — prioritizing compound movements and standard volume rather than aggressive progression. The user's profile experience level is respected (an intermediate user who took 3 weeks off is still intermediate, just deconditioned), but the exercise selection errs toward accessibility.
 - **Constraint wizard prefilled from profile:** All fields that exist in `user_profiles` (goal, experience, equipment, days/week, duration) are prefilled. The user can override any value for this specific program without changing their profile. Optional free-form fields (focus areas, exercise preferences) start empty.
 - **Deterministic fallback messaging, not automatic fallback:** If AI generation fails, the user is informed and offered alternatives (try again, pick a template, or build from scratch). Unlike single-workout generation, there is no automatic deterministic fallback — the template and manual paths are explicitly separate creation modes, not hidden fallbacks.
 
