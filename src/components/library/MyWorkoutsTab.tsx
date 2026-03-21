@@ -13,7 +13,6 @@ import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
 import { ProgramDetailSheet } from "@/components/library/ProgramDetailSheet"
 import { ActivateConfirmDialog } from "@/components/library/ActivateConfirmDialog"
-import { CreateProgramDialog } from "@/components/library/CreateProgramDialog"
 import type { Program } from "@/types/onboarding"
 
 export function MyWorkoutsTab() {
@@ -27,7 +26,6 @@ export function MyWorkoutsTab() {
   const [showArchived, setShowArchived] = useState(false)
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
   const [detailProgram, setDetailProgram] = useState<Program | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
 
   const visiblePrograms = (programs ?? []).filter((p) => {
     if (showArchived) return true
@@ -81,7 +79,7 @@ export function MyWorkoutsTab() {
       <Button
         className="w-full gap-2"
         variant="outline"
-        onClick={() => setCreateOpen(true)}
+        onClick={() => navigate("/create-program")}
         disabled={session.isActive}
         title={session.isActive ? t("sessionActiveWarning") : undefined}
       >
@@ -138,10 +136,6 @@ export function MyWorkoutsTab() {
         isPending={activateProgram.isPending}
       />
 
-      <CreateProgramDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
     </div>
   )
 }
