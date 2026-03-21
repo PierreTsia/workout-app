@@ -34,6 +34,8 @@ Epic Brief: [docs/Epic_Brief_—_Pre-session_Exercise_Editing.md](Epic_Brief_—
 
 **Permanent = template for all future rotations** — Same semantics as Builder: `workout_exercises` rows are the user’s program. No migration to session-scoped templates. Historical `sessions` / `set_logs` unchanged. Mid-cycle, “last session” card data may reflect **past** work while the template list shows **new** exercises after a permanent edit — acceptable; avoid copy that implies past reps were erased.
 
+**Progression keyed by `exercise_id`** — After a permanent swap, old performances for that day slot remain under the **previous** exercise in `set_logs`. Charts and “progression” for the **new** exercise only include sessions logged with that `exercise_id`. UI copy (scope dialog) should state this so users do not interpret it as missing data (see epic: Squat → Hack squat example).
+
 **Offline** — Permanent mutations require network; use mutation `onError` + toast (pattern elsewhere in app). Session-only overrides work offline until reload.
 
 **Accessibility** — Row actions via `DropdownMenu` with visible trigger or explicit icon buttons + keyboard focus order; scope dialog uses `AlertDialog` / `Dialog` with labelled choices (epic assumption #9).
