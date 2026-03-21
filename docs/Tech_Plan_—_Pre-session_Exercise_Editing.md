@@ -16,6 +16,8 @@ Epic Brief: [docs/Epic_Brief_—_Pre-session_Exercise_Editing.md](Epic_Brief_—
 | Session swap identity | **Keep** `workout_exercises.id`, change `exercise_id` + snapshots + `weight` | Preserves `setsData[exercise.id]` across swap; logs get the correct `exercise_id` for the new movement. |
 | Session add identity | **`crypto.randomUUID()`** for synthetic `WorkoutExercise.id` | No DB row; stable id for whole session; `workout_day_id` = current day. |
 | Permanent swap | New mutation `useSwapExerciseInDay` → `UPDATE workout_exercises` | No insert/delete; preserves `sort_order`, `sets`, `reps`, `rest_seconds` per brief; weight + identity fields updated. |
+| Swap/add target validation | **Authoritative** check that `exercise_id` exists (and is allowed) before committing `workout_exercises` | Client cache (`useExerciseLibrary`) can be stale; user may confirm long after opening the picker. Prefer DB-enforced safety (FK on `exercises`, optional RPC/`SELECT` guard, or trigger) **and** a clear client error path; optionally verify in `mutationFn` with a cheap `exercises` fetch so failures are user-visible, not silent PostgREST errors. |
+| Permanent list mutations + cache | **Optimistic updates** for `useSwapExerciseInDay` and `useDeleteExercise` | Invalidate-only + refetch leaves a window where rapid follow-up actions see a **hybrid** list. Use TanStack Query `onMutate` / optimistic `setQueryData` on `["workout-exercises", dayId]` with rollback in `onError`; keep invalidation for eventual consistency. Apply the same pattern to permanent **add** when touching that mutation. |
 | Weight after swap | Reuse **`set_logs`** “last weight per exercise” logic ([`useLastWeights`](src/hooks/useLastWeights.ts)); else `weight: "0"` | Matches epic: never carry replaced exercise load; hydrate from user history for the **new** `exercise_id` when it exists. |
 | Full exercise pool | `useExerciseLibrary` — single `useQuery`, long `staleTime` | ~600 rows; no pagination in MVP; aligns with [`ExerciseAddPicker`](src/components/generator/ExerciseAddPicker.tsx) / [`ExerciseSwapPicker`](src/components/generator/ExerciseSwapPicker.tsx) `pool` prop. |
 | Start CTA guard | `canStartPreSession(exercises)` in `file:src/lib/` | Brief: ≥1 exercise and **≥1 set per exercise**; prevents empty `SetsTable` and broken volume/timer behavior. |
@@ -37,6 +39,8 @@ Epic Brief: [docs/Epic_Brief_—_Pre-session_Exercise_Editing.md](Epic_Brief_—
 **Progression keyed by `exercise_id`** — After a permanent swap, old performances for that day slot remain under the **previous** exercise in `set_logs`. Charts and “progression” for the **new** exercise only include sessions logged with that `exercise_id`. UI copy (scope dialog) should state this so users do not interpret it as missing data (see epic: Squat → Hack squat example).
 
 **Offline** — Permanent mutations require network; use mutation `onError` + toast (pattern elsewhere in app). Session-only overrides work offline until reload.
+
+**Stale exercise catalog** — The picker shows whatever was last loaded into `["exercise-library"]` (long `staleTime`). An `exercise_id` can disappear from the live catalog (admin delete, migration, future soft-archive) **after** the user opened the sheet. Do not assume “we picked from the list, so the id is valid.” Enforce validity on write and surface a recoverable error (refresh library, pick another exercise).
 
 **Accessibility** — Row actions via `DropdownMenu` with visible trigger or explicit icon buttons + keyboard focus order; scope dialog uses `AlertDialog` / `Dialog` with labelled choices (epic assumption #9).
 
@@ -233,8 +237,16 @@ graph TD
 
 **`useSwapExerciseInDay`**
 - Variables: `{ rowId, dayId, exercise: Exercise, weight: string }` where `weight` already resolved on caller, or mutation calls shared fetch inside `mutationFn` before `update`
+- **Before `update`:** ensure target `exercise_id` still exists in `exercises` (and matches any future “active” rule). Minimum: rely on FK + map DB error to toast; better: explicit `SELECT id FROM exercises WHERE id = …` in `mutationFn` or a small Supabase RPC that validates then updates so the client never depends on stale picker state alone.
 - `update` on `workout_exercises`: `exercise_id`, `name_snapshot`, `muscle_snapshot`, `emoji_snapshot`, `weight`; leave `sets`, `reps`, `rest_seconds`, `sort_order` unchanged
-- `onSuccess`: invalidate `["workout-exercises", dayId]`; parent clears `preSessionPatch` for that day
+- **Cache:** optimistic `setQueryData` for `["workout-exercises", dayId]` (merge updated row into list); `onError` restore previous snapshot; still `invalidateQueries` on settle if desired for parity with server truth
+- `onSuccess`: parent clears `preSessionPatch` for that day (invalidation alone is insufficient for fast UX — see Key Decisions)
+
+**`useDeleteExercise` (permanent delete from day)**
+- Same optimistic remove-from-list pattern for `["workout-exercises", dayId]` with rollback on failure, so strip/preview does not briefly show old ∪ new during refetch
+
+**`useAddExerciseToDay` (permanent add)**
+- Recommended: optimistic append (or placeholder row) + rollback; validate `exercise_id` the same way as swap before insert
 
 **`ExerciseEditScopeDialog`**
 - Props: `open`, `onOpenChange`, `title`, `description`, `onSessionOnly`, `onPermanent`
@@ -254,6 +266,8 @@ graph TD
 | Failure | Behavior |
 |---|---|
 | Permanent mutation network error | Toast / inline error; keep dialog open or allow retry; do not clear patch until success |
+| Target `exercise_id` invalid / removed from catalog | Abort with user-visible error; optional `invalidateQueries` on `exercise-library`; do not write a row that violates FK or leaves ambiguous snapshots |
+| Rapid permanent swap/delete before refetch completes | Optimistic cache updates prevent hybrid UI; rollback clears bad optimistic state |
 | User reloads mid override | Patch lost; acceptable per epic |
 | `mergedExercises` has `sets === 0` on any row | Start disabled; show message pointing to Builder or future template repair |
 | Session-only add then permanent add of same exercise | User may duplicate until refresh; pickers exclude `currentExerciseIds` from **merged** list `exercise_id` set |
@@ -265,7 +279,7 @@ graph TD
 
 ## Suggested implementation order
 
-1. `lastWeightsFromSetLogs` + `useSwapExerciseInDay` + tests for merge/guard.
+1. `lastWeightsFromSetLogs` + `useSwapExerciseInDay` (target validation + optimistic cache) + tests for merge/guard; extend `useDeleteExercise` / `useAddExerciseToDay` with the same cache pattern where they touch `workout-exercises`.
 2. `useExerciseLibrary`.
 3. `WorkoutPage` merged list + `canStartPreSession` on Start + patch lifecycle.
 4. `ExerciseEditScopeDialog` + `PreSessionExerciseList` + i18n.

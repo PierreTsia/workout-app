@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import type { WorkoutExercise } from "@/types/database"
 import {
   clonePreSessionPatch,
+  deserializePreSessionPatch,
   emptyPreSessionPatch,
+  serializePreSessionPatch,
 } from "@/types/preSessionOverrides"
 
 function fakeRow(id: string): WorkoutExercise {
@@ -49,5 +51,20 @@ describe("clonePreSessionPatch", () => {
     expect(original.deletedIds.has("1")).toBe(true)
     expect(original.swappedRows.size).toBe(1)
     expect(original.addedRows).toHaveLength(1)
+  })
+})
+
+describe("serializePreSessionPatch / deserializePreSessionPatch", () => {
+  it("round-trips sets, map entries, and added rows", () => {
+    const p = emptyPreSessionPatch()
+    p.deletedIds.add("del")
+    p.swappedRows.set("r1", fakeRow("r1"))
+    p.addedRows.push(fakeRow("add"))
+
+    const back = deserializePreSessionPatch(serializePreSessionPatch(p))
+    expect(back.deletedIds.has("del")).toBe(true)
+    expect(back.swappedRows.get("r1")?.id).toBe("r1")
+    expect(back.addedRows).toHaveLength(1)
+    expect(back.addedRows[0]?.id).toBe("add")
   })
 })

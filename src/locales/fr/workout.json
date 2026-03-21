@@ -88,6 +88,8 @@
   "cycleSummary.viewSummary": "Voir le bilan du cycle",
   "cycleSummary.notFound": "Cycle introuvable",
   "cycleSummary.errorLoading": "Impossible de charger les stats",
+  "session.exercisesToolbar": "Cette séance",
+  "session.menuEditInAdmin": "Modifier (admin)",
   "preSession.rowActionsLabel": "Actions sur l'exercice",
   "preSession.swap": "Remplacer l'exercice",
   "preSession.delete": "Retirer l'exercice",
@@ -95,10 +97,11 @@
   "preSession.scopeTitleSwap": "Comment appliquer le remplacement ?",
   "preSession.scopeTitleDelete": "Comment retirer l'exercice ?",
   "preSession.scopeTitleAdd": "Comment ajouter l'exercice ?",
-  "preSession.scopeDescription": "Cette séance uniquement modifie votre prochaine séance. Appliquer en permanent met à jour ce jour d'entraînement pour toutes les prochaines rotations. Les séances passées restent enregistrées avec les exercices utilisés.",
+  "preSession.scopeDescription": "Cette séance uniquement modifie votre prochaine séance. Appliquer pour toutes les séances met à jour la définition de ce jour d'entraînement pour toutes vos futures séances sur cette journée. Les séances passées restent enregistrées avec les exercices utilisés.",
+  "preSession.scopeDescriptionInSession": "Cette séance uniquement s'applique à la séance en cours. Appliquer pour toutes les séances met à jour ce jour d'entraînement pour toutes vos futures séances.",
   "preSession.scopeSwapHistoryHint": "Les séances passées pour ce jour restent associées à l'exercice précédent dans l'historique et les graphiques de progression.",
   "preSession.scopeSessionOnly": "Cette séance uniquement",
-  "preSession.scopePermanent": "Appliquer en permanent",
+  "preSession.scopePermanent": "Appliquer pour toutes les séances",
   "preSession.startBlocked": "Chaque exercice doit avoir au moins une série avant de démarrer.",
   "preSession.swapSameMuscle": "Même muscle",
   "preSession.swapAllExercises": "Tous les exercices",
@@ -107,5 +110,8 @@
   "preSession.details": "Détails",
   "preSession.exerciseInfo": "Voir les détails de l'exercice",
   "preSession.noResults": "Aucun exercice trouvé.",
-  "preSession.mutationError": "Enregistrement impossible. Vérifiez la connexion et réessayez."
+  "preSession.mutationError": "Enregistrement impossible. Vérifiez la connexion et réessayez.",
+  "preSession.deleteLoggedTitle": "Retirer un exercice avec des séries enregistrées ?",
+  "preSession.deleteLoggedDescription": "Vous avez enregistré des séries pour cet exercice. Le supprimer effacera ces enregistrements pour cette séance.",
+  "preSession.deleteLoggedContinue": "Continuer"
 }

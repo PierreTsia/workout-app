@@ -6,9 +6,9 @@ import {
   useState,
 } from "react"
 import { toast } from "sonner"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
-import { Dumbbell, Loader2, Play } from "lucide-react"
+import { Dumbbell, Loader2, Play, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -42,6 +42,11 @@ import {
   templateToPreviewItems,
 } from "@/lib/sessionSummary"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
+import {
+  clearSessionExercisePatchStorage,
+  getInitialPreSessionPatchForHydration,
+  saveSessionExercisePatch,
+} from "@/lib/sessionExercisePatchStorage"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
@@ -58,6 +63,8 @@ import {
 import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
+import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
+import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -160,13 +167,29 @@ export function WorkoutPage() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
   const [preSessionPatch, setPreSessionPatch] = useState<PreSessionExercisePatch>(
-    () => emptyPreSessionPatch(),
+    () => {
+      const s = getDefaultStore().get(sessionAtom)
+      const workoutDayId = s.activeDayId ?? s.currentDayId
+      return getInitialPreSessionPatchForHydration(
+        s.isActive,
+        workoutDayId,
+        s.startedAt,
+      )
+    },
   )
   const preSessionPatchRef = useRef(preSessionPatch)
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false)
   const [pendingScope, setPendingScope] = useState<PendingScopeAction | null>(
     null,
   )
+  const [swapLibraryRowId, setSwapLibraryRowId] = useState<string | null>(null)
+  const [addExerciseSheetOpen, setAddExerciseSheetOpen] = useState(false)
+  const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(
+    null,
+  )
+  const [deleteLoggedWarnOpen, setDeleteLoggedWarnOpen] = useState(false)
+  const [deleteLoggedWarnRow, setDeleteLoggedWarnRow] =
+    useState<WorkoutExercise | null>(null)
 
   const addExerciseMutation = useAddExerciseToDay()
   const deleteExerciseMutation = useDeleteExercise()
@@ -185,6 +208,16 @@ export function WorkoutPage() {
   const exercises = useMemo(
     () => mergeWorkoutExercises(baseExercises, preSessionPatch),
     [baseExercises, preSessionPatch],
+  )
+
+  const swapLibraryRow = useMemo(
+    () => exercises.find((e) => e.id === swapLibraryRowId) ?? null,
+    [exercises, swapLibraryRowId],
+  )
+
+  const inspectedExercise = useMemo(
+    () => exercisePool.find((e) => e.id === inspectedExerciseId) ?? null,
+    [exercisePool, inspectedExerciseId],
   )
 
   const exerciseIds = useMemo(
@@ -219,6 +252,27 @@ export function WorkoutPage() {
     preSessionPatchRef.current = preSessionPatch
   }, [preSessionPatch])
 
+  // Persist session-only / in-session list edits across reload while `session` is active.
+  // Do not clear storage when inactive here — another tab may still have an active workout;
+  // stale envelopes are overwritten on the next active session save.
+  useEffect(() => {
+    const workoutDayId = session.activeDayId ?? session.currentDayId
+    if (!session.isActive || !workoutDayId || session.startedAt == null) {
+      return
+    }
+    saveSessionExercisePatch(
+      workoutDayId,
+      session.startedAt,
+      preSessionPatch,
+    )
+  }, [
+    session.isActive,
+    session.activeDayId,
+    session.currentDayId,
+    session.startedAt,
+    preSessionPatch,
+  ])
+
   // Reset ephemeral pre-session edits when browsing another day (not during active session).
   useEffect(() => {
     if (session.isActive) return
@@ -245,8 +299,11 @@ export function WorkoutPage() {
 
   const executeScopeChoice = useCallback(
     async (scope: ExerciseEditScope) => {
-      if (!pendingScope || !session.currentDayId) return
-      const dayId = session.currentDayId
+      if (!pendingScope) return
+      const dayId = session.isActive
+        ? (activeSessionDayId ?? session.currentDayId)
+        : session.currentDayId
+      if (!dayId) return
       const patchNow = preSessionPatchRef.current
 
       const refetchDayExercises = async () => {
@@ -340,7 +397,9 @@ export function WorkoutPage() {
     },
     [
       pendingScope,
+      session.isActive,
       session.currentDayId,
+      activeSessionDayId,
       exercises,
       baseExercises,
       queryClient,
@@ -360,6 +419,41 @@ export function WorkoutPage() {
   const activeSessionDayLabel =
     days?.find((d) => d.id === activeSessionDayId)?.label ?? ""
 
+  const openExerciseDeleteFlow = useCallback((row: WorkoutExercise) => {
+    const logged = session.isActive && (session.setsData[row.id]?.some((s) => s.done) ?? false)
+    if (logged) {
+      setDeleteLoggedWarnRow(row)
+      setDeleteLoggedWarnOpen(true)
+    } else {
+      setPendingScope({ kind: "delete", row })
+      setScopeDialogOpen(true)
+    }
+  }, [session.isActive, session.setsData])
+
+  const exerciseDetailEditSession = useMemo(() => {
+    if (!session.isActive || isViewingLockedDay) return null
+    return {
+      exercisePool,
+      poolLoading: exercisePoolLoading,
+      allExercises: exercises,
+      onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => {
+        setPendingScope({ kind: "swap", row, picked })
+        setScopeDialogOpen(true)
+      },
+      onDeleteRequested: openExerciseDeleteFlow,
+      onSwapBrowseLibrary: (row: WorkoutExercise) => {
+        setSwapLibraryRowId(row.id)
+      },
+    }
+  }, [
+    session.isActive,
+    isViewingLockedDay,
+    exercisePool,
+    exercisePoolLoading,
+    exercises,
+    openExerciseDeleteFlow,
+  ])
+
   const [lockedDayView, setLockedDayView] = useState<{
     dayId: string | null
     index: number
@@ -373,6 +467,15 @@ export function WorkoutPage() {
     : session.exerciseIndex
 
   const currentExercise = exercises[displayIndex] ?? null
+
+  useEffect(() => {
+    if (!session.isActive) return
+    if (exercises.length === 0) return
+    setSession((prev) => {
+      if (prev.exerciseIndex < exercises.length) return prev
+      return { ...prev, exerciseIndex: Math.max(0, exercises.length - 1) }
+    })
+  }, [session.isActive, exercises.length, setSession])
 
   const sessionId = useMemo(() => {
     if (session.isActive && session.startedAt) {
@@ -517,6 +620,7 @@ export function WorkoutPage() {
       })
     }
     setIsQuickWorkout(false)
+    clearSessionExercisePatchStorage()
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
     setFinished(true)
@@ -580,6 +684,7 @@ export function WorkoutPage() {
     const cycleIdForNav = session.cycleId
 
     setPreSessionPatch(emptyPreSessionPatch())
+    clearSessionExercisePatchStorage()
     setFinishedQuickInfo(null)
     setRest(null)
     setSession({
@@ -691,12 +796,30 @@ export function WorkoutPage() {
                         setSession((prev) => ({ ...prev, exerciseIndex: idx }))
                 }
               />
+              {!isViewingLockedDay ? (
+                <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/25 px-4 py-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("session.exercisesToolbar")}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={() => setAddExerciseSheetOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("preSession.addExercise")}
+                  </Button>
+                </div>
+              ) : null}
               <div className="flex-1 overflow-y-auto py-2">
                 {currentExercise && (
                   <ExerciseDetail
                     exercise={currentExercise}
                     sessionId={sessionId}
                     isReadOnly={isViewingLockedDay}
+                    editSession={exerciseDetailEditSession}
                   />
                 )}
               </div>
@@ -742,14 +865,10 @@ export function WorkoutPage() {
                     setPendingScope({ kind: "swap", row, picked })
                     setScopeDialogOpen(true)
                   }}
-                  onDeleteRequested={(row) => {
-                    setPendingScope({ kind: "delete", row })
-                    setScopeDialogOpen(true)
-                  }}
-                  onAddExerciseChosen={(picked) => {
-                    setPendingScope({ kind: "add", picked })
-                    setScopeDialogOpen(true)
-                  }}
+                  onDeleteRequested={openExerciseDeleteFlow}
+                  onSwapBrowseLibrary={(row) => setSwapLibraryRowId(row.id)}
+                  onRequestAddExerciseSheet={() => setAddExerciseSheetOpen(true)}
+                  onInspectExercise={(id) => setInspectedExerciseId(id)}
                 />
               </div>
             )}
@@ -791,7 +910,7 @@ export function WorkoutPage() {
                 ? t("preSession.scopeTitleAdd")
                 : ""
         }
-        description={t("preSession.scopeDescription")}
+        description={t(session.isActive ? "preSession.scopeDescriptionInSession" : "preSession.scopeDescription")}
         swapHint={pendingScope?.kind === "swap"}
         isPending={scopeMutationPending}
         onChoose={(scope) => {
@@ -819,6 +938,81 @@ export function WorkoutPage() {
             </Button>
             <Button variant="destructive" onClick={handleExit}>
               {t("exit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <SwapExerciseSheet
+        open={!!swapLibraryRow}
+        onOpenChange={(open) => {
+          if (!open) setSwapLibraryRowId(null)
+        }}
+        currentExerciseIds={exercises.map((e) => e.exercise_id)}
+        onSelect={(picked) => {
+          if (!swapLibraryRow) return
+          setPendingScope({ kind: "swap", row: swapLibraryRow, picked })
+          setScopeDialogOpen(true)
+          setSwapLibraryRowId(null)
+        }}
+      />
+
+      <SwapExerciseSheet
+        open={addExerciseSheetOpen}
+        onOpenChange={setAddExerciseSheetOpen}
+        currentExerciseIds={exercises.map((e) => e.exercise_id)}
+        title={t("preSession.addExercise")}
+        onSelect={(picked) => {
+          setPendingScope({ kind: "add", picked })
+          setScopeDialogOpen(true)
+          setAddExerciseSheetOpen(false)
+        }}
+      />
+
+      <ExerciseDetailSheet
+        exercise={inspectedExercise}
+        open={!!inspectedExercise}
+        onOpenChange={(v) => {
+          if (!v) setInspectedExerciseId(null)
+        }}
+      />
+
+      <Dialog
+        open={deleteLoggedWarnOpen}
+        onOpenChange={(open) => {
+          setDeleteLoggedWarnOpen(open)
+          if (!open) setDeleteLoggedWarnRow(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("preSession.deleteLoggedTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("preSession.deleteLoggedDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteLoggedWarnOpen(false)
+                setDeleteLoggedWarnRow(null)
+              }}
+            >
+              {t("common:cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteLoggedWarnRow) {
+                  setPendingScope({ kind: "delete", row: deleteLoggedWarnRow })
+                  setScopeDialogOpen(true)
+                }
+                setDeleteLoggedWarnOpen(false)
+                setDeleteLoggedWarnRow(null)
+              }}
+            >
+              {t("preSession.deleteLoggedContinue")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
 
-/** Tighter caps so failures surface quickly; bump if local Supabase is very slow. */
 const T = {
   page: 25_000,
   picker: 18_000,
@@ -22,33 +21,36 @@ async function dismissNotificationPrompt(page: Page) {
   }
 }
 
-async function gotoWorkoutHomeReady(page: Page) {
-  await page.goto("/")
-  await dismissNotificationPrompt(page)
-  await expect(
-    page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
-  ).toBeVisible({ timeout: T.page })
-  const rowMenu = page.getByRole("button", { name: "Exercise actions" }).first()
-  await expect(rowMenu).toBeVisible({ timeout: T.picker })
-  await expect(rowMenu).toBeEnabled({ timeout: T.picker })
-}
-
 async function waitPickerLoaded(dialog: ReturnType<Page["getByRole"]>) {
   await expect(dialog.locator(".animate-spin")).toHaveCount(0, {
     timeout: T.picker,
   })
 }
 
-test.describe("Pre-session exercise editing", () => {
+test.describe("In-session exercise editing", () => {
   test.describe.configure({ timeout: 70_000 })
 
-  test("session-only add: picker → scope → extra row", async ({ page }) => {
-    await gotoWorkoutHomeReady(page)
+  test("session-only add during active workout → extra strip chip", async ({
+    page,
+  }) => {
+    await page.goto("/")
+    await dismissNotificationPrompt(page)
 
-    const rowActionTriggers = page.getByRole("button", {
-      name: "Exercise actions",
-    })
-    await expect(rowActionTriggers).toHaveCount(1)
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
+
+    const startButton = page.getByRole("button", { name: /start workout/i })
+    await expect(startButton).toBeVisible({ timeout: 5_000 })
+    await startButton.click()
+
+    await expect(
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+
+    const stripButtons = page.locator("div.flex.overflow-x-auto > button")
+    await expect(stripButtons.first()).toBeVisible({ timeout: 15_000 })
+    const countBefore = await stripButtons.count()
 
     await page.getByRole("button", { name: /add exercise/i }).click()
 
@@ -63,16 +65,32 @@ test.describe("Pre-session exercise editing", () => {
     const scope = page.getByRole("dialog", { name: /add exercise how\?/i })
     await expect(scope).toBeVisible({ timeout: T.dialog })
     await scope.getByRole("button", { name: /just this session/i }).click()
-
     await expect(scope).not.toBeVisible({ timeout: T.short })
-    await expect(rowActionTriggers).toHaveCount(2, { timeout: T.short })
+
+    await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
   })
 
-  test("session-only swap (full library) → start workout", async ({ page }) => {
-    await gotoWorkoutHomeReady(page)
+  test("session-only swap during active workout → detail title changes", async ({
+    page,
+  }) => {
+    await page.goto("/")
+    await dismissNotificationPrompt(page)
 
-    const nameHeading = page.locator(".text-sm.font-medium.text-foreground")
-    const nameBefore = await nameHeading.first().innerText()
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
+
+    await page.getByRole("button", { name: /start workout/i }).click()
+    await expect(
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+
+    await expect(
+      page.locator("div.flex.overflow-x-auto > button").first(),
+    ).toBeVisible({ timeout: 15_000 })
+
+    const title = page.locator("h2.text-xl.font-bold")
+    const nameBefore = await title.innerText()
 
     await page.getByRole("button", { name: "Exercise actions" }).click()
     await page.getByRole("menuitem", { name: /swap exercise/i }).click()
@@ -93,28 +111,26 @@ test.describe("Pre-session exercise editing", () => {
     await scope.getByRole("button", { name: /just this session/i }).click()
     await expect(scope).not.toBeVisible({ timeout: T.short })
 
-    await expect(nameHeading.first()).not.toHaveText(nameBefore, {
-      timeout: T.short,
-    })
+    await expect(title).not.toHaveText(nameBefore, { timeout: T.short })
+  })
+
+  /** Regression: session-only list patch must persist in localStorage while `session.isActive`. */
+  test("session-only add survives reload during active workout", async ({ page }) => {
+    await page.goto("/")
+    await dismissNotificationPrompt(page)
+
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
 
     await page.getByRole("button", { name: /start workout/i }).click()
-
     await expect(
       page.locator(".font-mono.tabular-nums.text-primary"),
     ).toBeVisible({ timeout: T.dialog })
-  })
 
-  /**
-   * Regression: template must come from DB after reload (React Query + permanent write).
-   * Run last: mutates `workout_exercises` for the seeded day (global setup recreates user each run).
-   */
-  test("permanent add → full reload → still extra row", async ({ page }) => {
-    await gotoWorkoutHomeReady(page)
-
-    const rowActionTriggers = page.getByRole("button", {
-      name: "Exercise actions",
-    })
-    const countBefore = await rowActionTriggers.count()
+    const stripButtons = page.locator("div.flex.overflow-x-auto > button")
+    await expect(stripButtons.first()).toBeVisible({ timeout: 15_000 })
+    const countBefore = await stripButtons.count()
 
     await page.getByRole("button", { name: /add exercise/i }).click()
 
@@ -128,21 +144,18 @@ test.describe("Pre-session exercise editing", () => {
 
     const scope = page.getByRole("dialog", { name: /add exercise how\?/i })
     await expect(scope).toBeVisible({ timeout: T.dialog })
-    await scope.getByRole("button", { name: /apply permanently/i }).click()
+    await scope.getByRole("button", { name: /just this session/i }).click()
     await expect(scope).not.toBeVisible({ timeout: T.short })
 
-    await expect(rowActionTriggers).toHaveCount(countBefore + 1, {
-      timeout: T.short,
-    })
+    await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
 
     await page.reload()
     await dismissNotificationPrompt(page)
+
     await expect(
-      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
-    ).toBeVisible({ timeout: T.page })
-    await expect(rowActionTriggers.first()).toBeVisible({ timeout: T.picker })
-    await expect(rowActionTriggers).toHaveCount(countBefore + 1, {
-      timeout: T.short,
-    })
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+    await expect(stripButtons.first()).toBeVisible({ timeout: 15_000 })
+    await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
   })
 })

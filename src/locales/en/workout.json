@@ -88,6 +88,8 @@
   "cycleSummary.viewSummary": "View Cycle Summary",
   "cycleSummary.notFound": "Cycle not found",
   "cycleSummary.errorLoading": "Could not load stats",
+  "session.exercisesToolbar": "This workout",
+  "session.menuEditInAdmin": "Edit in admin",
   "preSession.rowActionsLabel": "Exercise actions",
   "preSession.swap": "Swap exercise",
   "preSession.delete": "Remove exercise",
@@ -96,6 +98,7 @@
   "preSession.scopeTitleDelete": "Remove exercise how?",
   "preSession.scopeTitleAdd": "Add exercise how?",
   "preSession.scopeDescription": "Just this session only changes your next run. Apply permanently updates this workout day for all future sessions. Past workouts stay logged under the exercises you used.",
+  "preSession.scopeDescriptionInSession": "Just this session applies only to the current workout. Apply permanently updates this workout day for all future sessions.",
   "preSession.scopeSwapHistoryHint": "Past sessions for this day stay under the previous exercise in history and progression charts.",
   "preSession.scopeSessionOnly": "Just this session",
   "preSession.scopePermanent": "Apply permanently",
@@ -107,5 +110,8 @@
   "preSession.details": "Details",
   "preSession.exerciseInfo": "View exercise details",
   "preSession.noResults": "No exercises found.",
-  "preSession.mutationError": "Could not save. Check your connection and try again."
+  "preSession.mutationError": "Could not save. Check your connection and try again.",
+  "preSession.deleteLoggedTitle": "Remove exercise with logged sets?",
+  "preSession.deleteLoggedDescription": "You have logged sets for this exercise. Deleting it will remove these records from this session.",
+  "preSession.deleteLoggedContinue": "Continue"
 }
