@@ -68,7 +68,7 @@ export function ExerciseDetail({
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
-            <Badge variant="secondary" className="w-fit shrink-0 text-xs font-normal">
+            <Badge variant="default" className="w-fit shrink-0 text-xs font-normal">
               {exercise.muscle_snapshot}
             </Badge>
           </div>
