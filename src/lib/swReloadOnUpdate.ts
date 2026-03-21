@@ -12,11 +12,16 @@ const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000 // 10 minutes
 export function listenForSwUpdate() {
   if (!("serviceWorker" in navigator)) return
 
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return
-    reloading = true
-    window.location.reload()
-  })
+  // Only listen when a SW already controls the page — this means the event
+  // signals a genuine *update*, not the initial registration + clients.claim().
+  // Without this guard the very first page load triggers an unwanted reload.
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading) return
+      reloading = true
+      window.location.reload()
+    })
+  }
 
   navigator.serviceWorker.ready.then((registration) => {
     setInterval(() => {
