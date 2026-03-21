@@ -1,18 +1,18 @@
 import { test, expect } from "@playwright/test"
 
 test.describe("Workout session — full flow", () => {
+  test.describe.configure({ timeout: 90_000 })
+
   test("carousel renders, start session, log sets, finish, summary", async ({
     page,
   }) => {
-    test.setTimeout(120_000)
-
     await page.goto("/")
 
     const notifDialog = page.getByRole("dialog", {
       name: /enable notifications/i,
     })
     try {
-      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await expect(notifDialog).toBeVisible({ timeout: 2_500 })
       await notifDialog.getByRole("button", { name: /not now/i }).click()
       await expect(notifDialog).not.toBeVisible()
     } catch {
@@ -21,13 +21,12 @@ test.describe("Workout session — full flow", () => {
 
     // Carousel card should render with a day label
     const dayCard = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first()
-    await expect(dayCard).toBeVisible({ timeout: 60_000 })
+    await expect(dayCard).toBeVisible({ timeout: 30_000 })
 
-    // Exercise list preview (pre-session) should show exercises
-    const exercisePreviewItems = page.locator(
-      "div.flex.items-center.gap-3.rounded-lg.border",
-    )
-    await expect(exercisePreviewItems.first()).toBeVisible({ timeout: 15_000 })
+    // Pre-session editable rows (PreSessionExerciseList — gap-2 + row actions trigger)
+    await expect(
+      page.getByRole("button", { name: "Exercise actions" }).first(),
+    ).toBeVisible({ timeout: 15_000 })
 
     // Start the workout session
     const startButton = page.getByRole("button", { name: /start workout/i })
@@ -114,15 +113,13 @@ test.describe("Workout session — full flow", () => {
   })
 
   test("carousel dot indicators allow day navigation", async ({ page }) => {
-    test.setTimeout(120_000)
-
     await page.goto("/")
 
     const notifDialog = page.getByRole("dialog", {
       name: /enable notifications/i,
     })
     try {
-      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await expect(notifDialog).toBeVisible({ timeout: 2_500 })
       await notifDialog.getByRole("button", { name: /not now/i }).click()
       await expect(notifDialog).not.toBeVisible()
     } catch {
@@ -131,7 +128,7 @@ test.describe("Workout session — full flow", () => {
 
     // Wait for first day card
     const dayCards = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ })
-    await expect(dayCards.first()).toBeVisible({ timeout: 60_000 })
+    await expect(dayCards.first()).toBeVisible({ timeout: 30_000 })
 
     // Dot indicators — small round buttons below the carousel
     const dots = page.locator("div.flex.items-center.justify-center button.rounded-full")
@@ -154,15 +151,13 @@ test.describe("Workout session — full flow", () => {
   })
 
   test("quick workout accessible from side drawer", async ({ page }) => {
-    test.setTimeout(120_000)
-
     await page.goto("/")
 
     const notifDialog = page.getByRole("dialog", {
       name: /enable notifications/i,
     })
     try {
-      await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+      await expect(notifDialog).toBeVisible({ timeout: 2_500 })
       await notifDialog.getByRole("button", { name: /not now/i }).click()
       await expect(notifDialog).not.toBeVisible()
     } catch {
@@ -171,7 +166,7 @@ test.describe("Workout session — full flow", () => {
 
     // Wait for page to load
     const dayCard = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first()
-    await expect(dayCard).toBeVisible({ timeout: 60_000 })
+    await expect(dayCard).toBeVisible({ timeout: 30_000 })
 
     // Open the side drawer
     const menuButton = page.getByRole("button", { name: /open menu/i })
