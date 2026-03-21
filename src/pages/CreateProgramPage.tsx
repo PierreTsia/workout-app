@@ -7,6 +7,7 @@ import { BlankProgramStep } from "@/components/create-program/BlankProgramStep"
 import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
 import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
 import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
+import { TemplateChoiceStep } from "@/components/create-program/TemplateChoiceStep"
 import type { GenerateProgramConstraints, AIGeneratedProgram } from "@/types/aiProgram"
 
 type WizardStep =
@@ -118,11 +119,7 @@ export function CreateProgramPage() {
           />
         )}
 
-        {step === "template-choice" && (
-          <div className="flex flex-1 items-center justify-center px-6 text-muted-foreground">
-            Template Choice Step (T47)
-          </div>
-        )}
+        {step === "template-choice" && <TemplateChoiceStep />}
       </div>
     </div>
   )
