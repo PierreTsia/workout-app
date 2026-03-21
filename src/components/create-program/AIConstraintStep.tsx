@@ -29,13 +29,7 @@ const EXPERIENCE_OPTIONS = ["beginner", "intermediate", "advanced"] as const
 const EQUIPMENT_OPTIONS = ["bodyweight", "dumbbells", "full-gym"] as const
 const SPLIT_OPTIONS = ["auto", "ppl", "upper_lower", "full_body", "bro_split"] as const
 
-const SPLIT_LABELS: Record<string, string> = {
-  auto: "letAIDecide",
-  ppl: "PPL",
-  upper_lower: "Upper / Lower",
-  full_body: "Full Body",
-  bro_split: "Bro Split",
-}
+const DAYS_RANGE = [2, 3, 4, 5, 6, 7] as const
 
 function ChipGroup<T extends string | number>({
   options,
@@ -115,7 +109,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
               <FormLabel>{t("daysPerWeek")}</FormLabel>
               <FormControl>
                 <ChipGroup
-                  options={[2, 3, 4, 5, 6, 7] as const}
+                  options={DAYS_RANGE}
                   value={field.value}
                   onChange={field.onChange}
                   renderLabel={String}
@@ -157,7 +151,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
                   options={GOAL_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  renderLabel={(g) => g.replace("_", " ")}
+                  renderLabel={(g) => t(`goal_${g}`)}
                 />
               </FormControl>
               <FormMessage />
@@ -176,7 +170,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
                   options={EXPERIENCE_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  renderLabel={(e) => e}
+                  renderLabel={(e) => t(`experience_${e}`)}
                 />
               </FormControl>
               <FormMessage />
@@ -195,7 +189,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
                   options={EQUIPMENT_OPTIONS}
                   value={field.value}
                   onChange={field.onChange}
-                  renderLabel={(eq) => eq.replace("-", " ")}
+                  renderLabel={(eq) => t(`equipment_${eq}`)}
                 />
               </FormControl>
               <FormMessage />
@@ -214,7 +208,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
                   options={SPLIT_OPTIONS}
                   value={field.value ?? "auto"}
                   onChange={field.onChange}
-                  renderLabel={(s) => s === "auto" ? t("letAIDecide") : SPLIT_LABELS[s]}
+                  renderLabel={(s) => s === "auto" ? t("letAIDecide") : t(`split_${s}`)}
                 />
               </FormControl>
               <FormMessage />
