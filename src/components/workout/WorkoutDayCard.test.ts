@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest"
-import { formatRelativeDate, formatDuration } from "@/lib/formatters"
+import { formatRelativeDate, formatDuration, formatDurationMs } from "@/lib/formatters"
 
 describe("formatRelativeDate", () => {
   afterEach(() => vi.useRealTimers())
@@ -75,5 +75,32 @@ describe("formatDuration", () => {
     expect(
       formatDuration("2026-03-20T10:00:00Z", "2026-03-20T10:00:45Z"),
     ).toBe("1 min")
+  })
+})
+
+describe("formatDurationMs", () => {
+  it("formats zero ms", () => {
+    expect(formatDurationMs(0)).toBe("0m")
+  })
+
+  it("formats sub-hour durations as compact minutes", () => {
+    expect(formatDurationMs(42 * 60_000)).toBe("42m")
+  })
+
+  it("formats exactly one hour", () => {
+    expect(formatDurationMs(60 * 60_000)).toBe("1h")
+  })
+
+  it("formats hours and minutes with zero-padded minutes", () => {
+    expect(formatDurationMs(65 * 60_000)).toBe("1h05")
+  })
+
+  it("formats multi-hour durations", () => {
+    expect(formatDurationMs(150 * 60_000)).toBe("2h30")
+  })
+
+  it("rounds fractional milliseconds to nearest minute", () => {
+    expect(formatDurationMs(45_000)).toBe("1m")
+    expect(formatDurationMs(29_000)).toBe("0m")
   })
 })

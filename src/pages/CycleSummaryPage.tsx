@@ -18,18 +18,10 @@ import { usePreviousCycle } from "@/hooks/usePreviousCycle"
 import { useFinishCycle } from "@/hooks/useFinishCycle"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
-import { formatDate } from "@/lib/formatters"
+import { formatDate, formatDurationMs } from "@/lib/formatters"
 import { StatCard } from "@/components/cycle-summary/StatCard"
 import { Button } from "@/components/ui/button"
 import type { Cycle } from "@/types/database"
-
-function formatMs(ms: number): string {
-  const totalMin = Math.round(ms / 60_000)
-  if (totalMin < 60) return `${totalMin}m`
-  const h = Math.floor(totalMin / 60)
-  const m = totalMin % 60
-  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
-}
 
 export function CycleSummaryPage() {
   const { cycleId } = useParams<{ cycleId: string }>()
@@ -121,7 +113,7 @@ export function CycleSummaryPage() {
         />
         <StatCard
           icon={Clock}
-          value={formatMs(stats.total_duration_ms)}
+          value={formatDurationMs(stats.total_duration_ms)}
           label={t("cycleSummary.duration")}
         />
         <StatCard
