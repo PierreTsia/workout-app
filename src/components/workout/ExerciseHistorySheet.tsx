@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { formatRelativePast } from "@/lib/formatRelativePast"
+import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -58,7 +58,7 @@ export function ExerciseHistorySheet({
   const showTrend = sessions.length >= 2 && positiveCount >= 2
   const chronologicalSessions = [...sessions].reverse()
   const trendXLabels = chronologicalSessions.map((s) =>
-    formatRelativePast(s.finished_at, i18n.language),
+    formatRelativeTime(s.finished_at, i18n.language),
   )
 
   return (

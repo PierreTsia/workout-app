@@ -121,7 +121,7 @@
   "historySheet.loadError": "Could not load history.",
   "historySheet.retry": "Retry",
   "historySheet.empty": "No prior performance for this exercise yet. Finish a workout to see it here.",
-  "historySheet.trendHint": "Log this exercise on more days to see a weight trend.",
+  "historySheet.trendHint": "Log this exercise on more days to see your estimated 1RM trend.",
   "historySheet.sessionsRegion": "Past sessions",
   "historySheet.refreshing": "Updating…",
   "historySheet.chartCaption": "Best est. 1RM per session ({{unit}})",

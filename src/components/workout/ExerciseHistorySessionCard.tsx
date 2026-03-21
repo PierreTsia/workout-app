@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { formatRelativePast } from "@/lib/formatRelativePast"
+import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { rirBadgeClassName } from "@/lib/rirStyles"
 import type { ExerciseHistorySessionRow } from "@/lib/exerciseHistorySheet"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -23,13 +23,13 @@ export function ExerciseHistorySessionCard({
         ? t("addedWeight", { unit })
         : unit
 
-  const relative = formatRelativePast(session.finished_at, i18n.language)
+  const relative = formatRelativeTime(session.finished_at, i18n.language)
 
   return (
     <div className="w-[min(100%,280px)] shrink-0 snap-start rounded-xl border border-border bg-card/80 p-3">
       <p className="mb-2 text-xs font-medium text-muted-foreground">{relative}</p>
       <div className="grid grid-cols-[1.25rem_1fr_1fr_2.25rem] gap-x-1 gap-y-1 text-xs">
-        <span className="text-center text-muted-foreground">#</span>
+        <span className="text-center text-muted-foreground">{t("setNumber")}</span>
         <span className="text-muted-foreground">{t("reps")}</span>
         <span
           className={
