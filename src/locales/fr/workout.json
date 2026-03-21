@@ -104,6 +104,8 @@
   "preSession.swapAllExercises": "Tous les exercices",
   "preSession.swapSheetTitle": "Choisir un remplacement",
   "preSession.swapBrowseLibrary": "Parcourir la bibliothèque",
+  "preSession.details": "Détails",
+  "preSession.exerciseInfo": "Voir les détails de l'exercice",
   "preSession.noResults": "Aucun exercice trouvé.",
   "preSession.mutationError": "Enregistrement impossible. Vérifiez la connexion et réessayez."
 }

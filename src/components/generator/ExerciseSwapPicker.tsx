@@ -1,5 +1,7 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Info } from "lucide-react"
+import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { cn } from "@/lib/utils"
 import type { Exercise } from "@/types/database"
 
@@ -19,6 +21,7 @@ export function ExerciseSwapPicker({
   onClose,
 }: ExerciseSwapPickerProps) {
   const { t } = useTranslation("generator")
+  const [inspectedExercise, setInspectedExercise] = useState<Exercise | null>(null)
 
   const candidates = useMemo(
     () =>
@@ -49,20 +52,36 @@ export function ExerciseSwapPicker({
       ) : (
         <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
           {candidates.map((exercise) => (
-            <button
-              key={exercise.id}
-              type="button"
-              onClick={() => onSelect(exercise)}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent",
-              )}
-            >
-              <span>{exercise.emoji}</span>
-              <span className="truncate">{exercise.name}</span>
-            </button>
+            <div key={exercise.id} className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onSelect(exercise)}
+                className={cn(
+                  "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent",
+                )}
+              >
+                <span>{exercise.emoji}</span>
+                <span className="truncate">{exercise.name}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInspectedExercise(exercise)}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label={t("exerciseInfo", "View details")}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       )}
+      <ExerciseDetailSheet
+        exercise={inspectedExercise}
+        open={!!inspectedExercise}
+        onOpenChange={(v) => {
+          if (!v) setInspectedExercise(null)
+        }}
+      />
     </div>
   )
 }

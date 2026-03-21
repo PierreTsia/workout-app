@@ -104,6 +104,8 @@
   "preSession.swapAllExercises": "All exercises",
   "preSession.swapSheetTitle": "Choose replacement",
   "preSession.swapBrowseLibrary": "Browse full library",
+  "preSession.details": "Details",
+  "preSession.exerciseInfo": "View exercise details",
   "preSession.noResults": "No exercises found.",
   "preSession.mutationError": "Could not save. Check your connection and try again."
 }

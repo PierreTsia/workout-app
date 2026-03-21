@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
+import { Info, Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
+import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +43,7 @@ export function SwapExerciseSheet({
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string | null>(null)
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
   const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([])
+  const [inspectedExercise, setInspectedExercise] = useState<Exercise | null>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setSearchDebounced(searchInput), SEARCH_DEBOUNCE_MS)
@@ -57,6 +59,7 @@ export function SwapExerciseSheet({
         setSelectedMuscleGroup(null)
         setSelectedEquipment([])
         setSelectedDifficulty([])
+        setInspectedExercise(null)
       }
       onOpenChange(next)
     },
@@ -178,22 +181,31 @@ export function SwapExerciseSheet({
                     {group}
                   </span>
                   {exercises.map((exercise) => (
-                    <button
-                      key={exercise.id}
-                      type="button"
-                      onClick={() => {
-                        onSelect(exercise)
-                        handleOpenChange(false)
-                      }}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                    >
-                      <ExerciseThumbnail
-                        imageUrl={exercise.image_url}
-                        emoji={exercise.emoji}
-                        className="h-7 w-7 rounded"
-                      />
-                      <span className="truncate">{exercise.name}</span>
-                    </button>
+                    <div key={exercise.id} className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelect(exercise)
+                          handleOpenChange(false)
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+                      >
+                        <ExerciseThumbnail
+                          imageUrl={exercise.image_url}
+                          emoji={exercise.emoji}
+                          className="h-7 w-7 rounded"
+                        />
+                        <span className="truncate">{exercise.name}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInspectedExercise(exercise)}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        aria-label={t("preSession.exerciseInfo")}
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               ))}
@@ -220,6 +232,14 @@ export function SwapExerciseSheet({
           )}
         </div>
       </SheetContent>
+
+      <ExerciseDetailSheet
+        exercise={inspectedExercise}
+        open={!!inspectedExercise}
+        onOpenChange={(v) => {
+          if (!v) setInspectedExercise(null)
+        }}
+      />
     </Sheet>
   )
 }

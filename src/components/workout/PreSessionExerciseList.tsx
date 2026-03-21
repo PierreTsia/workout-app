@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { EllipsisVertical, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseSwapPicker } from "@/components/generator/ExerciseSwapPicker"
+import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { Exercise, WorkoutExercise } from "@/types/database"
@@ -36,9 +37,20 @@ export function PreSessionExerciseList({
   const [swappingRowId, setSwappingRowId] = useState<string | null>(null)
   const [swapSheetRowId, setSwapSheetRowId] = useState<string | null>(null)
   const [addSheetOpen, setAddSheetOpen] = useState(false)
+  const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(null)
 
   const currentExerciseIds = exercises.map((e) => e.exercise_id)
   const swapSheetRow = exercises.find((e) => e.id === swapSheetRowId) ?? null
+
+  const poolById = useMemo(() => {
+    const m = new Map<string, Exercise>()
+    for (const e of exercisePool) m.set(e.id, e)
+    return m
+  }, [exercisePool])
+
+  const inspectedExercise = inspectedExerciseId
+    ? poolById.get(inspectedExerciseId) ?? null
+    : null
 
   return (
     <div className="space-y-2">
@@ -69,6 +81,11 @@ export function PreSessionExerciseList({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setInspectedExerciseId(ex.exercise_id)}
+                >
+                  {t("preSession.details")}
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
                     setSwappingRowId((id) => (id === ex.id ? null : ex.id))
@@ -164,6 +181,14 @@ export function PreSessionExerciseList({
         onSelect={(picked) => {
           onAddExerciseChosen(picked)
           setAddSheetOpen(false)
+        }}
+      />
+
+      <ExerciseDetailSheet
+        exercise={inspectedExercise}
+        open={!!inspectedExercise}
+        onOpenChange={(v) => {
+          if (!v) setInspectedExerciseId(null)
         }}
       />
     </div>
