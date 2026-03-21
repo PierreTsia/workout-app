@@ -43,6 +43,7 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
       )
 
       if (error) throw error
+      if (!data) throw new Error("Empty response from generate-program")
 
       const response = data as EdgeFunctionResponse
       if (response.error) throw new Error(response.error)

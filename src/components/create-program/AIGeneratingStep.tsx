@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useReducer, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -22,14 +22,19 @@ export function AIGeneratingStep({
   const { t } = useTranslation("create-program")
   const { data: exercisePool } = useExerciseLibrary()
   const mutation = useAIGenerateProgram({ exercisePool: exercisePool ?? [] })
-  const triggered = useRef(false)
+  const inflight = useRef(false)
+  const [attempt, retry] = useReducer((n: number) => n + 1, 0)
 
   useEffect(() => {
-    if (triggered.current || !exercisePool) return
-    triggered.current = true
+    if (inflight.current || !exercisePool) return
+    inflight.current = true
 
-    mutation.mutateAsync(constraints).then(onSuccess).catch(() => {})
-  }, [exercisePool]) // eslint-disable-line react-hooks/exhaustive-deps
+    mutation
+      .mutateAsync(constraints)
+      .then(onSuccess)
+      .catch(() => {})
+      .finally(() => { inflight.current = false })
+  }, [exercisePool, attempt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (mutation.isError) {
     const err = mutation.error
@@ -46,12 +51,7 @@ export function AIGeneratingStep({
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
         <p className="text-center text-sm text-muted-foreground">{message}</p>
         <div className="flex flex-col gap-2 w-full max-w-xs">
-          <Button
-            onClick={() => {
-              triggered.current = false
-              mutation.reset()
-            }}
-          >
+          <Button onClick={() => { mutation.reset(); retry() }}>
             {t("retry")}
           </Button>
           <Button variant="outline" onClick={onFallbackTemplate}>
