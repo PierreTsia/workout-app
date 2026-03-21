@@ -1,5 +1,5 @@
 import { useSetAtom } from "jotai"
-import { Outlet } from "react-router-dom"
+import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { drawerOpenAtom } from "@/store/atoms"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
@@ -11,6 +11,8 @@ import { RestTimerPill } from "@/components/RestTimerPill"
 export function AppShell() {
   const { t } = useTranslation()
   const setDrawerOpen = useSetAtom(drawerOpenAtom)
+  const { pathname } = useLocation()
+  const hidSessionTimer = pathname.startsWith("/cycle-summary")
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -23,7 +25,7 @@ export function AppShell() {
           >
             ☰
           </button>
-          <SessionTimerChip />
+          {!hidSessionTimer && <SessionTimerChip />}
         </div>
         <div className="flex items-center gap-2">
           <RestTimerPill />

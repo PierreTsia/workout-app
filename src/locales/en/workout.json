@@ -70,5 +70,22 @@
   "estimatedSets_one": "~{{count}} set",
   "estimatedSets_other": "~{{count}} sets",
   "estimatedDuration": "~{{duration}}",
-  "lastSession": "Last: {{date}}"
+  "lastSession": "Last: {{date}}",
+  "cycleSummary.title": "Cycle Complete!",
+  "cycleSummary.subtitle": "Here's how you did",
+  "cycleSummary.sessions": "Sessions",
+  "cycleSummary.duration": "Total time",
+  "cycleSummary.sets": "Sets done",
+  "cycleSummary.volume": "Volume lifted",
+  "cycleSummary.prs": "Personal records",
+  "cycleSummary.consistency": "Completed in",
+  "cycleSummary.days": "days",
+  "cycleSummary.firstCycle": "First cycle — great start!",
+  "cycleSummary.vsPrevious": "vs. previous cycle",
+  "cycleSummary.startNewCycle": "Start new cycle",
+  "cycleSummary.backToWorkouts": "Back to workouts",
+  "cycleSummary.cycleCompleteBadge": "Cycle complete!",
+  "cycleSummary.viewSummary": "View Cycle Summary",
+  "cycleSummary.notFound": "Cycle not found",
+  "cycleSummary.errorLoading": "Could not load stats"
 }

@@ -5,7 +5,7 @@ import {
   useState,
 } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
@@ -23,7 +23,6 @@ import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { summarizeSessionLogs, templateToPreviewItems } from "@/lib/sessionSummary"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
-import { CycleCompleteBanner } from "@/components/workout/CycleCompleteBanner"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -51,6 +50,7 @@ export function WorkoutPage() {
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const activeProgramId = useAtomValue(activeProgramIdAtom)
   const user = useAtomValue(authAtom)
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: activeCycle } = useActiveCycle(activeProgramId)
   const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
@@ -313,22 +313,10 @@ export function WorkoutPage() {
     }))
   }
 
-  async function handleFinishCycle() {
-    if (!activeCycle?.id) return
-    const { error } = await supabase
-      .from("cycles")
-      .update({ finished_at: new Date().toISOString() })
-      .eq("id", activeCycle.id)
-
-    if (error) {
-      console.warn("[WorkoutPage] Could not finish cycle:", error.message)
-      return
-    }
-    queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
-    queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
-  }
-
   function handleNewSession() {
+    const shouldNavigateToSummary = finished && cycleProgress.isComplete && session.cycleId
+    const cycleIdForNav = session.cycleId
+
     setFinishedQuickInfo(null)
     setSession({
       currentDayId: null,
@@ -345,6 +333,10 @@ export function WorkoutPage() {
     setPrFlags({})
     setSessionBest1RM({})
     setFinished(false)
+
+    if (shouldNavigateToSummary && cycleIdForNav) {
+      navigate(`/cycle-summary/${cycleIdForNav}`)
+    }
   }
 
   if (daysLoading) {
@@ -384,6 +376,8 @@ export function WorkoutPage() {
         onNewSession={handleNewSession}
         quickWorkoutDayId={finishedQuickInfo?.dayId}
         quickWorkoutName={finishedQuickInfo?.name}
+        cycleComplete={cycleProgress.isComplete}
+        cycleId={session.cycleId}
       />
     )
   }
@@ -456,9 +450,7 @@ export function WorkoutPage() {
         /* ── Pre-session: hero card → exercises → start ── */
         <>
           <div className={cn("flex-1 overflow-y-auto space-y-4", !isDayDoneInCycle && "pb-20")}>
-            {cycleProgress.isComplete ? (
-              <CycleCompleteBanner onStartNewCycle={handleFinishCycle} />
-            ) : cycleProgress.totalDays > 0 && activeCycle && (
+            {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
               <CycleProgressHeader
                 completedCount={cycleProgress.completedDayIds.length}
                 totalDays={cycleProgress.totalDays}

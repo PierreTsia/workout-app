@@ -13,6 +13,7 @@ import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
 import { LibraryPage } from "@/pages/LibraryPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
+import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
               {
                 path: "/library",
                 element: <LibraryPage />,
+              },
+              {
+                path: "/cycle-summary/:cycleId",
+                element: <CycleSummaryPage />,
               },
               {
                 element: <AdminGuard />,
