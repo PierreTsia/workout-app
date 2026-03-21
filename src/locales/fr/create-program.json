@@ -1,0 +1,49 @@
+{
+  "title": "Nouveau programme",
+  "back": "Retour",
+
+  "pathAI": "Générer avec l'IA",
+  "pathAIDescription": "Un programme personnalisé selon vos objectifs",
+  "pathTemplate": "Depuis un modèle",
+  "pathTemplateDescription": "Choisissez un programme éprouvé",
+  "pathBlank": "Partir de zéro",
+  "pathBlankDescription": "Construisez votre programme exercice par exercice",
+
+  "programName": "Nom du programme",
+  "programNamePlaceholder": "Mon programme",
+  "create": "Créer",
+
+  "constraintTitle": "Personnalisez votre programme",
+  "daysPerWeek": "Jours d'entraînement par semaine",
+  "duration": "Durée de la séance",
+  "goal": "Objectif",
+  "experience": "Niveau d'expérience",
+  "equipment": "Équipement",
+  "focusAreas": "Zones de focus (optionnel)",
+  "focusAreasPlaceholder": "ex. accent sur le haut du corps",
+  "splitPreference": "Préférence de split",
+  "letAIDecide": "Laisser l'IA décider",
+  "generate": "Générer le programme",
+
+  "generating": "Génération de votre programme...",
+  "errorNetwork": "Connexion perdue. Réessayer ?",
+  "errorTimeout": "La génération a pris trop de temps. Réessayer ?",
+  "errorGeneric": "Une erreur est survenue.",
+  "retry": "Réessayer",
+  "useTemplate": "Choisir un modèle",
+  "startBlank": "Partir de zéro",
+
+  "previewTitle": "Votre programme IA",
+  "coachSays": "Le raisonnement du coach",
+  "exercises": "{{count}} exercices",
+  "setsReps": "{{sets}} × {{reps}}",
+  "restSeconds": "{{seconds}}s repos",
+  "regenerate": "Régénérer",
+  "createProgram": "Créer le programme",
+  "creating": "Création du programme...",
+  "created": "Programme créé !",
+
+  "templateTitle": "Choisissez un modèle",
+  "templatePreviewTitle": "Aperçu du modèle",
+  "useThisTemplate": "Utiliser ce modèle"
+}
