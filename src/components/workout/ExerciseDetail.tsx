@@ -1,7 +1,13 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
-import { EllipsisVertical, Pencil } from "lucide-react"
+import {
+  ArrowLeftRight,
+  EllipsisVertical,
+  MessageSquare,
+  Pencil,
+  Trash2,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,7 +66,12 @@ export function ExerciseDetail({
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
-          <h2 className="min-w-0 flex-1 text-xl font-bold">{exercise.name_snapshot}</h2>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
+            <Badge variant="secondary" className="w-fit shrink-0 text-xs font-normal">
+              {exercise.muscle_snapshot}
+            </Badge>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -81,7 +92,7 @@ export function ExerciseDetail({
                     to={`/admin/exercises/${exercise.exercise_id}`}
                     className="flex cursor-default items-center gap-2"
                   >
-                    <Pencil className="h-4 w-4 shrink-0" />
+                    <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
                     {t("session.menuEditInAdmin")}
                   </Link>
                 </DropdownMenuItem>
@@ -91,6 +102,7 @@ export function ExerciseDetail({
                   setFeedbackOpen(true)
                 }}
               >
+                <MessageSquare className="text-muted-foreground" />
                 {tFeedback("reportButton")}
               </DropdownMenuItem>
               {showWorkoutEdits ? (
@@ -101,6 +113,7 @@ export function ExerciseDetail({
                       setSwapPanelOpen(true)
                     }}
                   >
+                    <ArrowLeftRight className="text-muted-foreground" />
                     {t("preSession.swap")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -109,6 +122,7 @@ export function ExerciseDetail({
                       if (editSession) editSession.onDeleteRequested(exercise)
                     }}
                   >
+                    <Trash2 />
                     {t("preSession.delete")}
                   </DropdownMenuItem>
                 </>
@@ -126,9 +140,6 @@ export function ExerciseDetail({
             onDismiss={() => setSwapPanelOpen(false)}
           />
         ) : null}
-        <Badge variant="secondary" className="w-fit text-xs">
-          {exercise.muscle_snapshot}
-        </Badge>
         {lastSession && (
           <p className="text-sm text-muted-foreground">
             {t("lastTime", {
