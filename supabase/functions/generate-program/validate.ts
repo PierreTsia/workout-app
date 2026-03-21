@@ -82,7 +82,15 @@ export function validateProgram(
 
     if (validIds.length > exerciseBounds.max) {
       const excess = validIds.splice(exerciseBounds.max)
-      for (const id of excess) globalSeen.delete(id)
+      for (const id of excess) {
+        globalSeen.delete(id)
+        const entry = catalogMap.get(id)
+        if (entry) {
+          const list = unusedByGroup.get(entry.muscle_group) ?? []
+          list.push(id)
+          unusedByGroup.set(entry.muscle_group, list)
+        }
+      }
     }
 
     totalDropped += dropped

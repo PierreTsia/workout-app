@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = jwt.sub
-    const email = jwt.email ?? null
+    const email = jwt.email?.toLowerCase() ?? null
     const supabase = createServiceClient()
 
     // --- Quota check ---
@@ -139,11 +139,17 @@ interface JwtPayload {
   email?: string
 }
 
+function base64UrlDecode(input: string): string {
+  let b64 = input.replace(/-/g, "+").replace(/_/g, "/")
+  while (b64.length % 4 !== 0) b64 += "="
+  return atob(b64)
+}
+
 function decodeJwt(token: string): JwtPayload | null {
   try {
     const parts = token.split(".")
     if (parts.length !== 3) return null
-    const payload = JSON.parse(atob(parts[1]))
+    const payload = JSON.parse(base64UrlDecode(parts[1]))
     if (typeof payload.sub !== "string") return null
     return { sub: payload.sub, email: payload.email }
   } catch {
@@ -194,13 +200,26 @@ function jsonResponse(data: unknown, status = 200): Response {
   })
 }
 
+const VALID_DAYS = new Set([2, 3, 4, 5, 6, 7])
+const VALID_DURATIONS = new Set([15, 30, 45, 60, 90])
+const VALID_GOALS = new Set(["strength", "hypertrophy", "endurance", "general_fitness"])
+const VALID_EXPERIENCE = new Set(["beginner", "intermediate", "advanced"])
+const VALID_EQUIPMENT = new Set(["bodyweight", "dumbbells", "full-gym"])
+
 function parseConstraints(body: Record<string, unknown>): ProgramConstraints | null {
   const { daysPerWeek, duration, equipmentCategory, goal, experience } = body
   if (!daysPerWeek || !duration || !equipmentCategory || !goal || !experience) return null
 
+  const days = Number(daysPerWeek)
+  const dur = Number(duration)
+  if (!VALID_DAYS.has(days) || !VALID_DURATIONS.has(dur)) return null
+  if (!VALID_GOALS.has(String(goal))) return null
+  if (!VALID_EXPERIENCE.has(String(experience))) return null
+  if (!VALID_EQUIPMENT.has(String(equipmentCategory))) return null
+
   return {
-    daysPerWeek: Number(daysPerWeek),
-    duration: Number(duration),
+    daysPerWeek: days,
+    duration: dur,
     equipmentCategory: String(equipmentCategory),
     goal: String(goal),
     experience: String(experience),

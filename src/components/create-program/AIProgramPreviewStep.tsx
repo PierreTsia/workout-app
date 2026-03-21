@@ -39,11 +39,13 @@ export function AIProgramPreviewStep({
     setIsCreating(true)
 
     try {
-      await supabase
+      const { error: deactivateError } = await supabase
         .from("programs")
         .update({ is_active: false })
         .eq("user_id", user.id)
         .eq("is_active", true)
+
+      if (deactivateError) throw deactivateError
 
       const { data: prog, error: progError } = await supabase
         .from("programs")

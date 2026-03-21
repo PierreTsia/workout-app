@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
@@ -73,17 +74,31 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
   const form = useForm<ProgramConstraintsForm>({
     resolver: zodResolver(programConstraintsSchema),
     defaultValues: {
-      daysPerWeek: profile?.training_days_per_week ?? 4,
-      duration: profile?.session_duration_minutes ?? 60,
-      goal: (profile?.goal as ProgramConstraintsForm["goal"]) ?? "hypertrophy",
-      experience: (profile?.experience as ProgramConstraintsForm["experience"]) ?? "intermediate",
-      equipmentCategory: profile?.equipment
-        ? (mapEquipmentToCategory(profile.equipment) as ProgramConstraintsForm["equipmentCategory"])
-        : "full-gym",
+      daysPerWeek: 4,
+      duration: 60,
+      goal: "hypertrophy",
+      experience: "intermediate",
+      equipmentCategory: "full-gym",
       focusAreas: "",
       splitPreference: "auto",
     },
   })
+
+  const profileApplied = useRef(false)
+  useEffect(() => {
+    if (!profile || profileApplied.current) return
+    profileApplied.current = true
+    form.reset({
+      ...form.getValues(),
+      daysPerWeek: profile.training_days_per_week ?? 4,
+      duration: profile.session_duration_minutes ?? 60,
+      goal: (profile.goal as ProgramConstraintsForm["goal"]) ?? "hypertrophy",
+      experience: (profile.experience as ProgramConstraintsForm["experience"]) ?? "intermediate",
+      equipmentCategory: profile.equipment
+        ? (mapEquipmentToCategory(profile.equipment) as ProgramConstraintsForm["equipmentCategory"])
+        : "full-gym",
+    })
+  }, [profile, form])
 
   function handleSubmit(data: ProgramConstraintsForm) {
     onSubmit({

@@ -175,6 +175,24 @@ describe("validateProgram", () => {
     expect(result.days[0].backfilled).toBeGreaterThanOrEqual(bounds.min)
   })
 
+  it("returns trimmed exercises to the pool for later days", () => {
+    const result = validateProgram(
+      makeLLMOutput([
+        { label: "Day 1", muscle_focus: "chest", exercise_ids: ["c1", "c2", "c3", "b1", "b2", "b3", "l1"] },
+        { label: "Day 2", muscle_focus: "back", exercise_ids: ["l2"] },
+      ]),
+      catalog,
+      2,
+      { min: 3, max: 4 },
+    )
+
+    expect(result.days[0].exercise_ids).toHaveLength(4)
+    const trimmedFromDay1 = ["b2", "b3", "l1"]
+    const day2Ids = result.days[1].exercise_ids
+    const reusedFromTrim = day2Ids.filter((id) => trimmedFromDay1.includes(id))
+    expect(reusedFromTrim.length).toBeGreaterThan(0)
+  })
+
   it("assigns default label when missing", () => {
     const result = validateProgram(
       { rationale: "ok", days: [{ label: "", muscle_focus: "chest", exercise_ids: ["c1", "c2", "c3"] }] },

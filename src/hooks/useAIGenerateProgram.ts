@@ -47,7 +47,12 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
         { body: constraints },
       )
 
-      if (error) throw error
+      if (error) {
+        const ctx = (error as Record<string, unknown>).context as Response | undefined
+        if (ctx?.status === 429) throw new Error("quota_exceeded")
+        if (ctx?.status === 504) throw new Error("timeout")
+        throw error
+      }
       if (!data) throw new Error("Empty response from generate-program")
 
       const response = data as EdgeFunctionResponse
@@ -87,14 +92,21 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
       const duration = constraints.duration as Duration
       const { setsPerExercise } = VOLUME_MAP[duration] ?? VOLUME_MAP[60]
 
-      const days: AIGeneratedDay[] = response.days.map((day) => ({
-        label: day.label,
-        muscleFocus: day.muscle_focus,
-        exercises: day.exercise_ids
-          .map((id) => resolved.get(id))
-          .filter((ex): ex is Exercise => ex != null)
-          .map((ex) => buildExercise(ex, setsPerExercise)),
-      }))
+      const days: AIGeneratedDay[] = response.days.map((day) => {
+        const unresolved = day.exercise_ids.filter((id) => !resolved.has(id))
+        if (unresolved.length > 0) {
+          console.warn(`[AI Program] ${unresolved.length} exercise(s) could not be resolved:`, unresolved)
+        }
+
+        return {
+          label: day.label,
+          muscleFocus: day.muscle_focus,
+          exercises: day.exercise_ids
+            .map((id) => resolved.get(id))
+            .filter((ex): ex is Exercise => ex != null)
+            .map((ex) => buildExercise(ex, setsPerExercise)),
+        }
+      })
 
       return {
         rationale: response.rationale,
