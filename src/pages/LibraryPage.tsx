@@ -1,10 +1,7 @@
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MyWorkoutsTab } from "@/components/library/MyWorkoutsTab"
-import { ProgramsTab } from "@/components/library/ProgramsTab"
-import { QuickWorkoutTab } from "@/components/library/QuickWorkoutTab"
 
 export function LibraryPage() {
   const { t } = useTranslation("library")
@@ -23,31 +20,7 @@ export function LibraryPage() {
         <h1 className="text-xl font-bold">{t("title")}</h1>
       </div>
 
-      <Tabs defaultValue="my-workouts">
-        <TabsList className="w-full">
-          <TabsTrigger value="my-workouts" className="flex-1">
-            {t("tabMyWorkouts")}
-          </TabsTrigger>
-          <TabsTrigger value="programs" className="flex-1">
-            {t("tabPrograms")}
-          </TabsTrigger>
-          <TabsTrigger value="quick-workout" className="flex-1">
-            {t("tabQuickWorkout")}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="my-workouts" className="mt-3">
-          <MyWorkoutsTab />
-        </TabsContent>
-
-        <TabsContent value="programs" className="mt-3">
-          <ProgramsTab />
-        </TabsContent>
-
-        <TabsContent value="quick-workout" className="mt-3">
-          <QuickWorkoutTab />
-        </TabsContent>
-      </Tabs>
+      <MyWorkoutsTab />
     </div>
   )
 }

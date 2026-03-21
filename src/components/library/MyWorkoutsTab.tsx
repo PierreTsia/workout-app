@@ -82,10 +82,18 @@ export function MyWorkoutsTab() {
         className="w-full gap-2"
         variant="outline"
         onClick={() => setCreateOpen(true)}
+        disabled={session.isActive}
+        title={session.isActive ? t("sessionActiveWarning") : undefined}
       >
         <Plus className="h-4 w-4" />
         {t("createProgram")}
       </Button>
+
+      {session.isActive && (
+        <p className="text-center text-xs text-muted-foreground">
+          {t("sessionActiveWarning")}
+        </p>
+      )}
 
       {visiblePrograms.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">{t("myWorkoutsEmpty")}</p>
