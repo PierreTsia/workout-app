@@ -38,9 +38,12 @@ export const hasProgramAtom = atom(false)
 export const hasProgramLoadingAtom = atom(true)
 export const activeProgramIdAtom = atom<string | null>(null)
 
+/** `getOnInit`: read localStorage on first `get` so the value is correct before any `onMount` (needed for WorkoutPage patch hydration and any first-paint session reads). */
 export const sessionAtom = atomWithStorage<SessionState>(
   "session",
   defaultSessionState,
+  undefined,
+  { getOnInit: true },
 )
 
 export const completedExerciseIdsAtom = atom((get) => {

@@ -103,4 +103,46 @@ test.describe("Pre-session exercise editing", () => {
       page.locator(".font-mono.tabular-nums.text-primary"),
     ).toBeVisible({ timeout: T.dialog })
   })
+
+  /**
+   * Regression: template must come from DB after reload (React Query + permanent write).
+   * Run last: mutates `workout_exercises` for the seeded day (global setup recreates user each run).
+   */
+  test("permanent add → full reload → still extra row", async ({ page }) => {
+    await gotoWorkoutHomeReady(page)
+
+    const rowActionTriggers = page.getByRole("button", {
+      name: "Exercise actions",
+    })
+    const countBefore = await rowActionTriggers.count()
+
+    await page.getByRole("button", { name: /add exercise/i }).click()
+
+    const picker = page.getByRole("dialog", { name: /^add exercise$/i })
+    await expect(picker).toBeVisible({ timeout: T.dialog })
+    await waitPickerLoaded(picker)
+
+    await picker.locator("button.min-w-0.flex-1").first().click({
+      timeout: T.picker,
+    })
+
+    const scope = page.getByRole("dialog", { name: /add exercise how\?/i })
+    await expect(scope).toBeVisible({ timeout: T.dialog })
+    await scope.getByRole("button", { name: /apply permanently/i }).click()
+    await expect(scope).not.toBeVisible({ timeout: T.short })
+
+    await expect(rowActionTriggers).toHaveCount(countBefore + 1, {
+      timeout: T.short,
+    })
+
+    await page.reload()
+    await dismissNotificationPrompt(page)
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
+    await expect(rowActionTriggers.first()).toBeVisible({ timeout: T.picker })
+    await expect(rowActionTriggers).toHaveCount(countBefore + 1, {
+      timeout: T.short,
+    })
+  })
 })

@@ -113,4 +113,49 @@ test.describe("In-session exercise editing", () => {
 
     await expect(title).not.toHaveText(nameBefore, { timeout: T.short })
   })
+
+  /** Regression: session-only list patch must persist in localStorage while `session.isActive`. */
+  test("session-only add survives reload during active workout", async ({ page }) => {
+    await page.goto("/")
+    await dismissNotificationPrompt(page)
+
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
+
+    await page.getByRole("button", { name: /start workout/i }).click()
+    await expect(
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+
+    const stripButtons = page.locator("div.flex.overflow-x-auto > button")
+    await expect(stripButtons.first()).toBeVisible({ timeout: 15_000 })
+    const countBefore = await stripButtons.count()
+
+    await page.getByRole("button", { name: /add exercise/i }).click()
+
+    const picker = page.getByRole("dialog", { name: /^add exercise$/i })
+    await expect(picker).toBeVisible({ timeout: T.dialog })
+    await waitPickerLoaded(picker)
+
+    await picker.locator("button.min-w-0.flex-1").first().click({
+      timeout: T.picker,
+    })
+
+    const scope = page.getByRole("dialog", { name: /add exercise how\?/i })
+    await expect(scope).toBeVisible({ timeout: T.dialog })
+    await scope.getByRole("button", { name: /just this session/i }).click()
+    await expect(scope).not.toBeVisible({ timeout: T.short })
+
+    await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
+
+    await page.reload()
+    await dismissNotificationPrompt(page)
+
+    await expect(
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+    await expect(stripButtons.first()).toBeVisible({ timeout: 15_000 })
+    await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
+  })
 })

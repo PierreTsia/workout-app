@@ -6,7 +6,7 @@ import {
   useState,
 } from "react"
 import { toast } from "sonner"
-import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
 import { Dumbbell, Loader2, Play, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -42,6 +42,11 @@ import {
   templateToPreviewItems,
 } from "@/lib/sessionSummary"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
+import {
+  clearSessionExercisePatchStorage,
+  getInitialPreSessionPatchForHydration,
+  saveSessionExercisePatch,
+} from "@/lib/sessionExercisePatchStorage"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
@@ -162,7 +167,15 @@ export function WorkoutPage() {
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
   const [preSessionPatch, setPreSessionPatch] = useState<PreSessionExercisePatch>(
-    () => emptyPreSessionPatch(),
+    () => {
+      const s = getDefaultStore().get(sessionAtom)
+      const workoutDayId = s.activeDayId ?? s.currentDayId
+      return getInitialPreSessionPatchForHydration(
+        s.isActive,
+        workoutDayId,
+        s.startedAt,
+      )
+    },
   )
   const preSessionPatchRef = useRef(preSessionPatch)
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false)
@@ -238,6 +251,27 @@ export function WorkoutPage() {
   useEffect(() => {
     preSessionPatchRef.current = preSessionPatch
   }, [preSessionPatch])
+
+  // Persist session-only / in-session list edits across reload while `session` is active.
+  // Do not clear storage when inactive here — another tab may still have an active workout;
+  // stale envelopes are overwritten on the next active session save.
+  useEffect(() => {
+    const workoutDayId = session.activeDayId ?? session.currentDayId
+    if (!session.isActive || !workoutDayId || session.startedAt == null) {
+      return
+    }
+    saveSessionExercisePatch(
+      workoutDayId,
+      session.startedAt,
+      preSessionPatch,
+    )
+  }, [
+    session.isActive,
+    session.activeDayId,
+    session.currentDayId,
+    session.startedAt,
+    preSessionPatch,
+  ])
 
   // Reset ephemeral pre-session edits when browsing another day (not during active session).
   useEffect(() => {
@@ -586,6 +620,7 @@ export function WorkoutPage() {
       })
     }
     setIsQuickWorkout(false)
+    clearSessionExercisePatchStorage()
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
     setFinished(true)
@@ -649,6 +684,7 @@ export function WorkoutPage() {
     const cycleIdForNav = session.cycleId
 
     setPreSessionPatch(emptyPreSessionPatch())
+    clearSessionExercisePatchStorage()
     setFinishedQuickInfo(null)
     setRest(null)
     setSession({

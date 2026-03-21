@@ -20,6 +20,8 @@ export function useFinishCycle() {
       setRest(null)
       queryClient.invalidateQueries({ queryKey: ["active-cycle"] })
       queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
+      // Bust per-day exercise templates so a new cycle always reflects latest DB (e.g. permanent adds).
+      queryClient.invalidateQueries({ queryKey: ["workout-exercises"] })
     },
   })
 }
