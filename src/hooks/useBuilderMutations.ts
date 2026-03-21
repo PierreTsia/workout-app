@@ -88,10 +88,12 @@ export function useAddExerciseToDay() {
       dayId,
       exercise,
       sortOrder,
+      weight = "0",
     }: {
       dayId: string
       exercise: Exercise
       sortOrder: number
+      weight?: string
     }) => {
       const { error } = await supabase.from("workout_exercises").insert({
         workout_day_id: dayId,
@@ -101,7 +103,7 @@ export function useAddExerciseToDay() {
         emoji_snapshot: exercise.emoji,
         sets: 3,
         reps: "12",
-        weight: "0",
+        weight,
         rest_seconds: 90,
         sort_order: sortOrder,
       })
@@ -187,6 +189,36 @@ export function useDeleteExercise() {
         .from("workout_exercises")
         .delete()
         .eq("id", id)
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({
+        queryKey: ["workout-exercises", variables.dayId],
+      })
+    },
+  })
+}
+
+export function useSwapExerciseInDay() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (vars: {
+      id: string
+      dayId: string
+      exercise: Exercise
+      weight: string
+    }) => {
+      const { error } = await supabase
+        .from("workout_exercises")
+        .update({
+          exercise_id: vars.exercise.id,
+          name_snapshot: vars.exercise.name,
+          muscle_snapshot: vars.exercise.muscle_group,
+          emoji_snapshot: vars.exercise.emoji,
+          weight: vars.weight,
+        })
+        .eq("id", vars.id)
       if (error) throw error
     },
     onSuccess: (_data, variables) => {

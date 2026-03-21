@@ -2,8 +2,10 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
+import { toast } from "sonner"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
@@ -21,6 +23,12 @@ import {
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
+import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
+import {
+  useAddExerciseToDay,
+  useDeleteExercise,
+  useSwapExerciseInDay,
+} from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
@@ -29,13 +37,24 @@ import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
-import { summarizeSessionLogs, templateToPreviewItems } from "@/lib/sessionSummary"
+import {
+  summarizeSessionLogs,
+  templateToPreviewItems,
+} from "@/lib/sessionSummary"
+import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
+import { canStartPreSession } from "@/lib/canStartPreSession"
+import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
+import { PreSessionExerciseList } from "@/components/workout/PreSessionExerciseList"
+import {
+  ExerciseEditScopeDialog,
+  type ExerciseEditScope,
+} from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
@@ -49,6 +68,74 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  emptyPreSessionPatch,
+  clonePreSessionPatch,
+  type PreSessionExercisePatch,
+} from "@/types/preSessionOverrides"
+import type { Exercise, WorkoutExercise } from "@/types/database"
+
+function templateWeightKgToString(kg: number): string {
+  if (!kg || kg <= 0) return "0"
+  return String(Math.round(kg * 10) / 10)
+}
+
+function isSyntheticRow(patch: PreSessionExercisePatch, rowId: string): boolean {
+  return patch.addedRows.some((r) => r.id === rowId)
+}
+
+function applySessionSwap(
+  prev: PreSessionExercisePatch,
+  row: WorkoutExercise,
+  picked: Exercise,
+  weightStr: string,
+): PreSessionExercisePatch {
+  const next = clonePreSessionPatch(prev)
+  const newRow: WorkoutExercise = {
+    ...row,
+    exercise_id: picked.id,
+    name_snapshot: picked.name,
+    muscle_snapshot: picked.muscle_group,
+    emoji_snapshot: picked.emoji,
+    weight: weightStr,
+  }
+  const addedIdx = next.addedRows.findIndex((r) => r.id === row.id)
+  if (addedIdx >= 0) {
+    next.addedRows[addedIdx] = newRow
+  } else {
+    next.swappedRows.set(row.id, newRow)
+  }
+  return next
+}
+
+function applySessionDelete(
+  prev: PreSessionExercisePatch,
+  row: WorkoutExercise,
+): PreSessionExercisePatch {
+  const next = clonePreSessionPatch(prev)
+  const addedIdx = next.addedRows.findIndex((r) => r.id === row.id)
+  if (addedIdx >= 0) {
+    next.addedRows.splice(addedIdx, 1)
+  } else {
+    next.deletedIds.add(row.id)
+    next.swappedRows.delete(row.id)
+  }
+  return next
+}
+
+function applySessionAdd(
+  prev: PreSessionExercisePatch,
+  row: WorkoutExercise,
+): PreSessionExercisePatch {
+  const next = clonePreSessionPatch(prev)
+  next.addedRows.push(row)
+  return next
+}
+
+type PendingScopeAction =
+  | { kind: "swap"; row: WorkoutExercise; picked: Exercise }
+  | { kind: "delete"; row: WorkoutExercise }
+  | { kind: "add"; picked: Exercise }
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
@@ -72,19 +159,43 @@ export function WorkoutPage() {
   } | null>(null)
   const [exitDialogOpen, setExitDialogOpen] = useState(false)
   const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
+  const [preSessionPatch, setPreSessionPatch] = useState<PreSessionExercisePatch>(
+    () => emptyPreSessionPatch(),
+  )
+  const preSessionPatchRef = useRef(preSessionPatch)
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false)
+  const [pendingScope, setPendingScope] = useState<PendingScopeAction | null>(
+    null,
+  )
+
+  const addExerciseMutation = useAddExerciseToDay()
+  const deleteExerciseMutation = useDeleteExercise()
+  const swapExerciseMutation = useSwapExerciseInDay()
+  const { data: exercisePool = [], isLoading: exercisePoolLoading } =
+    useExerciseLibrary()
 
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
-  const exercises = useMemo(
+  const baseExercises = useMemo(
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
+  )
+
+  const exercises = useMemo(
+    () => mergeWorkoutExercises(baseExercises, preSessionPatch),
+    [baseExercises, preSessionPatch],
   )
 
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
     [exercises],
   )
+
+  const scopeMutationPending =
+    addExerciseMutation.isPending ||
+    deleteExerciseMutation.isPending ||
+    swapExerciseMutation.isPending
   const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
@@ -96,10 +207,149 @@ export function WorkoutPage() {
 
   const previewItems = useMemo(() => {
     if (isDayDoneInCycle && sessionLogs && sessionLogs.length > 0) {
-      return summarizeSessionLogs(sessionLogs, exercises)
+      return summarizeSessionLogs(sessionLogs, baseExercises)
     }
-    return templateToPreviewItems(exercises)
-  }, [isDayDoneInCycle, sessionLogs, exercises])
+    if (isDayDoneInCycle) {
+      return templateToPreviewItems(baseExercises)
+    }
+    return []
+  }, [isDayDoneInCycle, sessionLogs, baseExercises])
+
+  useEffect(() => {
+    preSessionPatchRef.current = preSessionPatch
+  }, [preSessionPatch])
+
+  // Reset ephemeral pre-session edits when browsing another day (not during active session).
+  useEffect(() => {
+    if (session.isActive) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- patch is scoped to currentDayId; must reset when atom updates from carousel
+    setPreSessionPatch(emptyPreSessionPatch())
+    setScopeDialogOpen(false)
+    setPendingScope(null)
+  }, [session.currentDayId, session.isActive])
+
+  useEffect(() => {
+    const keep = new Set(exercises.map((e) => e.id))
+    setSession((prev) => {
+      const next = { ...prev.setsData }
+      let changed = false
+      for (const key of Object.keys(next)) {
+        if (!keep.has(key)) {
+          delete next[key]
+          changed = true
+        }
+      }
+      return changed ? { ...prev, setsData: next } : prev
+    })
+  }, [exercises, setSession])
+
+  const executeScopeChoice = useCallback(
+    async (scope: ExerciseEditScope) => {
+      if (!pendingScope || !session.currentDayId) return
+      const dayId = session.currentDayId
+      const patchNow = preSessionPatchRef.current
+
+      const refetchDayExercises = async () => {
+        await queryClient.refetchQueries({ queryKey: ["workout-exercises", dayId] })
+      }
+
+      try {
+        if (pendingScope.kind === "swap") {
+          const { row, picked } = pendingScope
+          const w = await fetchLastWeightsForExerciseIds([picked.id])
+          const weightStr = templateWeightKgToString(w[picked.id] ?? 0)
+          if (scope === "session") {
+            setPreSessionPatch((p) => applySessionSwap(p, row, picked, weightStr))
+          } else if (isSyntheticRow(patchNow, row.id)) {
+            await addExerciseMutation.mutateAsync({
+              dayId,
+              exercise: picked,
+              sortOrder: row.sort_order,
+              weight: weightStr,
+            })
+            await refetchDayExercises()
+            setPreSessionPatch((p) => {
+              const n = clonePreSessionPatch(p)
+              n.addedRows = n.addedRows.filter((r) => r.id !== row.id)
+              return n
+            })
+          } else {
+            await swapExerciseMutation.mutateAsync({
+              id: row.id,
+              dayId,
+              exercise: picked,
+              weight: weightStr,
+            })
+            await refetchDayExercises()
+            setPreSessionPatch(emptyPreSessionPatch())
+          }
+        } else if (pendingScope.kind === "delete") {
+          const { row } = pendingScope
+          if (scope === "session") {
+            setPreSessionPatch((p) => applySessionDelete(p, row))
+          } else if (isSyntheticRow(patchNow, row.id)) {
+            setPreSessionPatch((p) => applySessionDelete(p, row))
+          } else {
+            await deleteExerciseMutation.mutateAsync({ id: row.id, dayId })
+            await refetchDayExercises()
+            setPreSessionPatch(emptyPreSessionPatch())
+          }
+        } else {
+          const { picked } = pendingScope
+          const w = await fetchLastWeightsForExerciseIds([picked.id])
+          const weightStr = templateWeightKgToString(w[picked.id] ?? 0)
+          const maxSortSession =
+            exercises.length === 0
+              ? -1
+              : Math.max(...exercises.map((e) => e.sort_order))
+          const maxSortTemplate =
+            baseExercises.length === 0
+              ? -1
+              : Math.max(...baseExercises.map((e) => e.sort_order))
+          if (scope === "session") {
+            const newRow: WorkoutExercise = {
+              id: crypto.randomUUID(),
+              workout_day_id: dayId,
+              exercise_id: picked.id,
+              name_snapshot: picked.name,
+              muscle_snapshot: picked.muscle_group,
+              emoji_snapshot: picked.emoji,
+              sets: 3,
+              reps: "12",
+              weight: weightStr,
+              rest_seconds: 90,
+              sort_order: maxSortSession + 1,
+            }
+            setPreSessionPatch((p) => applySessionAdd(p, newRow))
+          } else {
+            await addExerciseMutation.mutateAsync({
+              dayId,
+              exercise: picked,
+              sortOrder: maxSortTemplate + 1,
+              weight: weightStr,
+            })
+            await refetchDayExercises()
+            setPreSessionPatch(emptyPreSessionPatch())
+          }
+        }
+        setScopeDialogOpen(false)
+        setPendingScope(null)
+      } catch {
+        toast.error(t("preSession.mutationError"))
+      }
+    },
+    [
+      pendingScope,
+      session.currentDayId,
+      exercises,
+      baseExercises,
+      queryClient,
+      addExerciseMutation,
+      deleteExerciseMutation,
+      swapExerciseMutation,
+      t,
+    ],
+  )
 
   const isViewingLockedDay = Boolean(
     session.isActive &&
@@ -273,6 +523,7 @@ export function WorkoutPage() {
   }
 
   function handleQuickWorkoutStart(dayId: string) {
+    setPreSessionPatch(emptyPreSessionPatch())
     setSession((prev) => ({
       ...prev,
       currentDayId: dayId,
@@ -328,6 +579,7 @@ export function WorkoutPage() {
     const shouldNavigateToSummary = finished && cycleProgress.isComplete && session.cycleId
     const cycleIdForNav = session.cycleId
 
+    setPreSessionPatch(emptyPreSessionPatch())
     setFinishedQuickInfo(null)
     setRest(null)
     setSession({
@@ -475,16 +727,47 @@ export function WorkoutPage() {
             />
 
             {/* Exercise list for selected day */}
-            {previewItems.length > 0 && (
+            {isDayDoneInCycle && previewItems.length > 0 && (
               <div className="px-4">
                 <ExerciseListPreview items={previewItems} />
+              </div>
+            )}
+            {!isDayDoneInCycle && (
+              <div className="px-4">
+                <PreSessionExerciseList
+                  exercises={exercises}
+                  exercisePool={exercisePool}
+                  poolLoading={exercisePoolLoading}
+                  onSwapExerciseChosen={(row, picked) => {
+                    setPendingScope({ kind: "swap", row, picked })
+                    setScopeDialogOpen(true)
+                  }}
+                  onDeleteRequested={(row) => {
+                    setPendingScope({ kind: "delete", row })
+                    setScopeDialogOpen(true)
+                  }}
+                  onAddExerciseChosen={(picked) => {
+                    setPendingScope({ kind: "add", picked })
+                    setScopeDialogOpen(true)
+                  }}
+                />
               </div>
             )}
           </div>
 
           {!isDayDoneInCycle && (
-            <div className="sticky bottom-0 border-t bg-background px-4 py-3">
-              <Button className="w-full gap-2" size="lg" onClick={() => startSession()}>
+            <div className="sticky bottom-0 space-y-2 border-t bg-background px-4 py-3">
+              {exercises.length > 0 && !canStartPreSession(exercises) ? (
+                <p className="text-center text-xs text-muted-foreground">
+                  {t("preSession.startBlocked")}
+                </p>
+              ) : null}
+              <Button
+                className="w-full gap-2"
+                size="lg"
+                disabled={!canStartPreSession(exercises)}
+                onClick={() => startSession()}
+              >
                 <Play className="h-5 w-5" />
                 {t("startWorkout")}
               </Button>
@@ -492,6 +775,29 @@ export function WorkoutPage() {
           )}
         </>
       )}
+
+      <ExerciseEditScopeDialog
+        open={scopeDialogOpen}
+        onOpenChange={(open) => {
+          setScopeDialogOpen(open)
+          if (!open) setPendingScope(null)
+        }}
+        title={
+          pendingScope?.kind === "swap"
+            ? t("preSession.scopeTitleSwap")
+            : pendingScope?.kind === "delete"
+              ? t("preSession.scopeTitleDelete")
+              : pendingScope?.kind === "add"
+                ? t("preSession.scopeTitleAdd")
+                : ""
+        }
+        description={t("preSession.scopeDescription")}
+        swapHint={pendingScope?.kind === "swap"}
+        isPending={scopeMutationPending}
+        onChoose={(scope) => {
+          void executeScopeChoice(scope)
+        }}
+      />
 
       <QuickWorkoutSheet
         open={quickSheetOpen}
