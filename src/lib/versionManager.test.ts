@@ -78,6 +78,7 @@ describe("handleVersionUpgrade", () => {
       localStorage.setItem("installPrompt", '{"dismissed":true}')
       localStorage.setItem("notification_permission_granted", "true")
       localStorage.setItem("sb-abc123-auth-token", '{"access_token":"..."}')
+      localStorage.setItem("theme", "light")
 
       const handleVersionUpgrade = await importFresh()
       await handleVersionUpgrade()
@@ -85,6 +86,7 @@ describe("handleVersionUpgrade", () => {
       expect(localStorage.getItem("locale")).toBe("fr")
       expect(localStorage.getItem("weightUnit")).toBe("lbs")
       expect(localStorage.getItem("workout-app-theme")).toBe("dark")
+      expect(localStorage.getItem("theme")).toBe("light")
       expect(localStorage.getItem("installPrompt")).not.toBeNull()
       expect(localStorage.getItem("notification_permission_granted")).toBe("true")
       expect(localStorage.getItem("sb-abc123-auth-token")).not.toBeNull()

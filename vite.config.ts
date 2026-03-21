@@ -5,7 +5,9 @@ import { VitePWA } from "vite-plugin-pwa"
 
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(Date.now().toString(36)),
+    __APP_VERSION__: JSON.stringify(
+      process.env.NODE_ENV === "production" ? Date.now().toString(36) : "dev",
+    ),
   },
   plugins: [
     react(),

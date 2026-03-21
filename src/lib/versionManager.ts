@@ -7,6 +7,7 @@ const ALWAYS_KEEP = new Set([
   "locale",
   "weightUnit",
   "workout-app-theme",
+  "theme",
   "installPrompt",
   "notification_permission_granted",
 ])
