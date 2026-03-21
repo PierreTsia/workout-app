@@ -37,7 +37,10 @@ import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
-import { summarizeSessionLogs } from "@/lib/sessionSummary"
+import {
+  summarizeSessionLogs,
+  templateToPreviewItems,
+} from "@/lib/sessionSummary"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
@@ -206,6 +209,9 @@ export function WorkoutPage() {
     if (isDayDoneInCycle && sessionLogs && sessionLogs.length > 0) {
       return summarizeSessionLogs(sessionLogs, baseExercises)
     }
+    if (isDayDoneInCycle) {
+      return templateToPreviewItems(baseExercises)
+    }
     return []
   }, [isDayDoneInCycle, sessionLogs, baseExercises])
 
@@ -243,6 +249,10 @@ export function WorkoutPage() {
       const dayId = session.currentDayId
       const patchNow = preSessionPatchRef.current
 
+      const refetchDayExercises = async () => {
+        await queryClient.refetchQueries({ queryKey: ["workout-exercises", dayId] })
+      }
+
       try {
         if (pendingScope.kind === "swap") {
           const { row, picked } = pendingScope
@@ -257,6 +267,7 @@ export function WorkoutPage() {
               sortOrder: row.sort_order,
               weight: weightStr,
             })
+            await refetchDayExercises()
             setPreSessionPatch((p) => {
               const n = clonePreSessionPatch(p)
               n.addedRows = n.addedRows.filter((r) => r.id !== row.id)
@@ -269,6 +280,7 @@ export function WorkoutPage() {
               exercise: picked,
               weight: weightStr,
             })
+            await refetchDayExercises()
             setPreSessionPatch(emptyPreSessionPatch())
           }
         } else if (pendingScope.kind === "delete") {
@@ -279,16 +291,21 @@ export function WorkoutPage() {
             setPreSessionPatch((p) => applySessionDelete(p, row))
           } else {
             await deleteExerciseMutation.mutateAsync({ id: row.id, dayId })
+            await refetchDayExercises()
             setPreSessionPatch(emptyPreSessionPatch())
           }
         } else {
           const { picked } = pendingScope
           const w = await fetchLastWeightsForExerciseIds([picked.id])
           const weightStr = templateWeightKgToString(w[picked.id] ?? 0)
-          const maxSort =
+          const maxSortSession =
             exercises.length === 0
               ? -1
               : Math.max(...exercises.map((e) => e.sort_order))
+          const maxSortTemplate =
+            baseExercises.length === 0
+              ? -1
+              : Math.max(...baseExercises.map((e) => e.sort_order))
           if (scope === "session") {
             const newRow: WorkoutExercise = {
               id: crypto.randomUUID(),
@@ -301,16 +318,17 @@ export function WorkoutPage() {
               reps: "12",
               weight: weightStr,
               rest_seconds: 90,
-              sort_order: maxSort + 1,
+              sort_order: maxSortSession + 1,
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
             await addExerciseMutation.mutateAsync({
               dayId,
               exercise: picked,
-              sortOrder: maxSort + 1,
+              sortOrder: maxSortTemplate + 1,
               weight: weightStr,
             })
+            await refetchDayExercises()
             setPreSessionPatch(emptyPreSessionPatch())
           }
         }
@@ -324,6 +342,8 @@ export function WorkoutPage() {
       pendingScope,
       session.currentDayId,
       exercises,
+      baseExercises,
+      queryClient,
       addExerciseMutation,
       deleteExerciseMutation,
       swapExerciseMutation,
