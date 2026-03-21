@@ -102,7 +102,7 @@ export function ExerciseDetail({
                   setFeedbackOpen(true)
                 }}
               >
-                <MessageSquare className="text-muted-foreground" />
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 {tFeedback("reportButton")}
               </DropdownMenuItem>
               {showWorkoutEdits ? (
@@ -113,7 +113,7 @@ export function ExerciseDetail({
                       setSwapPanelOpen(true)
                     }}
                   >
-                    <ArrowLeftRight className="text-muted-foreground" />
+                    <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
                     {t("preSession.swap")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -122,7 +122,7 @@ export function ExerciseDetail({
                       if (editSession) editSession.onDeleteRequested(exercise)
                     }}
                   >
-                    <Trash2 />
+                    <Trash2 className="h-4 w-4" />
                     {t("preSession.delete")}
                   </DropdownMenuItem>
                 </>

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+
 import {
   Dialog,
   DialogContent,
@@ -18,11 +18,9 @@ import {
 interface SessionNavProps {
   exercises: WorkoutExercise[]
   onFinish: () => void
-  /** Parent supplies sticky + border; omit outer chrome (e.g. in-session + Add row). */
-  attached?: boolean
 }
 
-export function SessionNav({ exercises, onFinish, attached = false }: SessionNavProps) {
+export function SessionNav({ exercises, onFinish }: SessionNavProps) {
   const { t } = useTranslation("workout")
   const [session, setSession] = useAtom(sessionAtom)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -66,10 +64,7 @@ export function SessionNav({ exercises, onFinish, attached = false }: SessionNav
   return (
     <>
       <div
-        className={cn(
-          !attached && "sticky bottom-0 border-t border-border bg-background px-4 py-3",
-          attached && "w-full",
-        )}
+        className="sticky bottom-0 border-t border-border bg-background px-4 py-3"
       >
         <div className="flex items-center justify-between gap-4">
           <Button

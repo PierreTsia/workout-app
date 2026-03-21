@@ -420,7 +420,7 @@ export function WorkoutPage() {
     days?.find((d) => d.id === activeSessionDayId)?.label ?? ""
 
   const openExerciseDeleteFlow = useCallback((row: WorkoutExercise) => {
-    const logged = session.setsData[row.id]?.some((s) => s.done) ?? false
+    const logged = session.isActive && (session.setsData[row.id]?.some((s) => s.done) ?? false)
     if (logged) {
       setDeleteLoggedWarnRow(row)
       setDeleteLoggedWarnOpen(true)
@@ -428,7 +428,7 @@ export function WorkoutPage() {
       setPendingScope({ kind: "delete", row })
       setScopeDialogOpen(true)
     }
-  }, [session.setsData])
+  }, [session.isActive, session.setsData])
 
   const exerciseDetailEditSession = useMemo(() => {
     if (!session.isActive || isViewingLockedDay) return null
@@ -910,7 +910,7 @@ export function WorkoutPage() {
                 ? t("preSession.scopeTitleAdd")
                 : ""
         }
-        description={t("preSession.scopeDescription")}
+        description={t(session.isActive ? "preSession.scopeDescriptionInSession" : "preSession.scopeDescription")}
         swapHint={pendingScope?.kind === "swap"}
         isPending={scopeMutationPending}
         onChoose={(scope) => {

@@ -98,6 +98,7 @@
   "preSession.scopeTitleDelete": "Remove exercise how?",
   "preSession.scopeTitleAdd": "Add exercise how?",
   "preSession.scopeDescription": "Just this session only changes your next run. Apply permanently updates this workout day for all future sessions. Past workouts stay logged under the exercises you used.",
+  "preSession.scopeDescriptionInSession": "Just this session applies only to the current workout. Apply permanently updates this workout day for all future sessions.",
   "preSession.scopeSwapHistoryHint": "Past sessions for this day stay under the previous exercise in history and progression charts.",
   "preSession.scopeSessionOnly": "Just this session",
   "preSession.scopePermanent": "Apply permanently",
