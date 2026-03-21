@@ -26,6 +26,10 @@
   "generate": "Generate program",
 
   "generating": "Generating your program...",
+  "genPhase1": "Analyzing your profile...",
+  "genPhase2": "Designing your split...",
+  "genPhase3": "Selecting exercises...",
+  "genPhase4": "Finalizing your program...",
   "errorNetwork": "Connection lost. Try again?",
   "errorTimeout": "Generation took too long. Try again?",
   "errorGeneric": "Something went wrong.",

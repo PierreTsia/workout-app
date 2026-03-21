@@ -26,6 +26,10 @@
   "generate": "Générer le programme",
 
   "generating": "Génération de votre programme...",
+  "genPhase1": "Analyse de votre profil...",
+  "genPhase2": "Conception de votre split...",
+  "genPhase3": "Sélection des exercices...",
+  "genPhase4": "Finalisation du programme...",
   "errorNetwork": "Connexion perdue. Réessayer ?",
   "errorTimeout": "La génération a pris trop de temps. Réessayer ?",
   "errorGeneric": "Une erreur est survenue.",
