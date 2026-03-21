@@ -6,25 +6,24 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ExerciseSwapPicker } from "@/components/generator/ExerciseSwapPicker"
+import { ExerciseSwapInlinePanel } from "@/components/workout/ExerciseSwapInlinePanel"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { Exercise, WorkoutExercise } from "@/types/database"
-
-export type ExerciseEditRowControlsLayout = "listRow" | "detail"
 
 export interface ExerciseEditRowControlsProps {
   exercise: WorkoutExercise
   exercisePool: Exercise[]
   poolLoading: boolean
   currentExerciseIds: string[]
-  layout: ExerciseEditRowControlsLayout
   onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => void
   onDeleteRequested: (row: WorkoutExercise) => void
   onSwapBrowseLibrary: (row: WorkoutExercise) => void
   onInspectDetails: (exerciseId: string) => void
+  /** Pre-session list: opens library sheet. In-session detail uses unified menu instead. */
+  showDetailsMenuItem?: boolean
 }
 
 export function ExerciseEditRowControls({
@@ -32,11 +31,11 @@ export function ExerciseEditRowControls({
   exercisePool,
   poolLoading,
   currentExerciseIds,
-  layout,
   onSwapExerciseChosen,
   onDeleteRequested,
   onSwapBrowseLibrary,
   onInspectDetails,
+  showDetailsMenuItem = true,
 }: ExerciseEditRowControlsProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
@@ -57,9 +56,12 @@ export function ExerciseEditRowControls({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onInspectDetails(ex.exercise_id)}>
-          {t("preSession.details")}
-        </DropdownMenuItem>
+        {showDetailsMenuItem ? (
+          <DropdownMenuItem onClick={() => onInspectDetails(ex.exercise_id)}>
+            {t("preSession.details")}
+          </DropdownMenuItem>
+        ) : null}
+        {showDetailsMenuItem ? <DropdownMenuSeparator /> : null}
         <DropdownMenuItem
           onClick={() => setSwapPanelOpen((v) => !v)}
         >
@@ -77,53 +79,16 @@ export function ExerciseEditRowControls({
 
   const swapPanel =
     swapPanelOpen && (
-      <div className={layout === "listRow" ? "pl-1" : ""}>
-        <Tabs defaultValue="same-muscle" className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="same-muscle" className="flex-1 text-xs">
-              {t("preSession.swapSameMuscle")}
-            </TabsTrigger>
-            <TabsTrigger value="all" className="flex-1 text-xs">
-              {t("preSession.swapAllExercises")}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="same-muscle">
-            <ExerciseSwapPicker
-              pool={exercisePool}
-              currentExerciseIds={currentExerciseIds}
-              muscleGroup={ex.muscle_snapshot}
-              onSelect={(picked) => {
-                onSwapExerciseChosen(ex, picked)
-                setSwapPanelOpen(false)
-              }}
-              onClose={() => setSwapPanelOpen(false)}
-            />
-          </TabsContent>
-          <TabsContent value="all">
-            <div className="rounded-lg border bg-card p-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => onSwapBrowseLibrary(ex)}
-              >
-                {t("preSession.swapBrowseLibrary")}
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+      <ExerciseSwapInlinePanel
+        className="pl-1"
+        exercise={ex}
+        exercisePool={exercisePool}
+        currentExerciseIds={currentExerciseIds}
+        onSwapExerciseChosen={onSwapExerciseChosen}
+        onSwapBrowseLibrary={onSwapBrowseLibrary}
+        onDismiss={() => setSwapPanelOpen(false)}
+      />
     )
-
-  if (layout === "detail") {
-    return (
-      <div className="w-full space-y-2">
-        <div className="flex justify-end">{menu}</div>
-        {swapPanel}
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-1">

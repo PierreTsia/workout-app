@@ -410,7 +410,6 @@ export function WorkoutPage() {
       onSwapBrowseLibrary: (row: WorkoutExercise) => {
         setSwapLibraryRowId(row.id)
       },
-      onInspectExercise: (id: string) => setInspectedExerciseId(id),
     }
   }, [
     session.isActive,
@@ -761,6 +760,23 @@ export function WorkoutPage() {
                         setSession((prev) => ({ ...prev, exerciseIndex: idx }))
                 }
               />
+              {!isViewingLockedDay ? (
+                <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/25 px-4 py-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("session.exercisesToolbar")}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={() => setAddExerciseSheetOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("preSession.addExercise")}
+                  </Button>
+                </div>
+              ) : null}
               <div className="flex-1 overflow-y-auto py-2">
                 {currentExercise && (
                   <ExerciseDetail
@@ -772,23 +788,7 @@ export function WorkoutPage() {
                 )}
               </div>
               {!isViewingLockedDay ? (
-                <div className="sticky bottom-0 z-10 space-y-2 border-t border-border bg-background px-4 py-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-1.5"
-                    onClick={() => setAddExerciseSheetOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {t("preSession.addExercise")}
-                  </Button>
-                  <SessionNav
-                    exercises={exercises}
-                    onFinish={handleFinish}
-                    attached
-                  />
-                </div>
+                <SessionNav exercises={exercises} onFinish={handleFinish} />
               ) : (
                 <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
                   {t("crossDayLockedFooter", { day: activeSessionDayLabel })}

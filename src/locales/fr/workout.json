@@ -88,6 +88,8 @@
   "cycleSummary.viewSummary": "Voir le bilan du cycle",
   "cycleSummary.notFound": "Cycle introuvable",
   "cycleSummary.errorLoading": "Impossible de charger les stats",
+  "session.exercisesToolbar": "Cette séance",
+  "session.menuEditInAdmin": "Modifier (admin)",
   "preSession.rowActionsLabel": "Actions sur l'exercice",
   "preSession.swap": "Remplacer l'exercice",
   "preSession.delete": "Retirer l'exercice",

@@ -38,7 +38,6 @@ export function PreSessionExerciseList({
           exercisePool={exercisePool}
           poolLoading={poolLoading}
           currentExerciseIds={currentExerciseIds}
-          layout="listRow"
           onSwapExerciseChosen={onSwapExerciseChosen}
           onDeleteRequested={onDeleteRequested}
           onSwapBrowseLibrary={onSwapBrowseLibrary}

@@ -88,6 +88,8 @@
   "cycleSummary.viewSummary": "View Cycle Summary",
   "cycleSummary.notFound": "Cycle not found",
   "cycleSummary.errorLoading": "Could not load stats",
+  "session.exercisesToolbar": "This workout",
+  "session.menuEditInAdmin": "Edit in admin",
   "preSession.rowActionsLabel": "Exercise actions",
   "preSession.swap": "Swap exercise",
   "preSession.delete": "Remove exercise",
