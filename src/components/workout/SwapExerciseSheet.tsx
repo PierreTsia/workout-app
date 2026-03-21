@@ -23,6 +23,7 @@ interface SwapExerciseSheetProps {
   onOpenChange: (open: boolean) => void
   currentExerciseIds: string[]
   onSelect: (exercise: Exercise) => void
+  title?: string
 }
 
 export function SwapExerciseSheet({
@@ -30,6 +31,7 @@ export function SwapExerciseSheet({
   onOpenChange,
   currentExerciseIds,
   onSelect,
+  title,
 }: SwapExerciseSheetProps) {
   const { t } = useTranslation("workout")
   const { t: tBuilder } = useTranslation("builder")
@@ -108,7 +110,7 @@ export function SwapExerciseSheet({
         )}
       >
         <SheetHeader className="shrink-0 px-4 pt-4">
-          <SheetTitle>{t("preSession.swapSheetTitle")}</SheetTitle>
+          <SheetTitle>{title ?? t("preSession.swapSheetTitle")}</SheetTitle>
         </SheetHeader>
 
         <div className="flex shrink-0 items-center border-b px-3 pr-2">

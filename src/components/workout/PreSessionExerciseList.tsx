@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseSwapPicker } from "@/components/generator/ExerciseSwapPicker"
-import { ExerciseAddPicker } from "@/components/generator/ExerciseAddPicker"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { Exercise, WorkoutExercise } from "@/types/database"
@@ -36,7 +35,7 @@ export function PreSessionExerciseList({
   const { formatWeight } = useWeightUnit()
   const [swappingRowId, setSwappingRowId] = useState<string | null>(null)
   const [swapSheetRowId, setSwapSheetRowId] = useState<string | null>(null)
-  const [addingOpen, setAddingOpen] = useState(false)
+  const [addSheetOpen, setAddSheetOpen] = useState(false)
 
   const currentExerciseIds = exercises.map((e) => e.exercise_id)
   const swapSheetRow = exercises.find((e) => e.id === swapSheetRowId) ?? null
@@ -131,29 +130,16 @@ export function PreSessionExerciseList({
         </div>
       ))}
 
-      {addingOpen ? (
-        <ExerciseAddPicker
-          pool={exercisePool}
-          currentExerciseIds={currentExerciseIds}
-          onSelect={(picked) => {
-            onAddExerciseChosen(picked)
-            setAddingOpen(false)
-          }}
-          onClose={() => setAddingOpen(false)}
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full gap-1.5"
-          disabled={poolLoading}
-          onClick={() => setAddingOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          {t("preSession.addExercise")}
-        </Button>
-      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full gap-1.5"
+        onClick={() => setAddSheetOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        {t("preSession.addExercise")}
+      </Button>
 
       <SwapExerciseSheet
         open={!!swapSheetRow}
@@ -167,6 +153,17 @@ export function PreSessionExerciseList({
             setSwappingRowId(null)
             setSwapSheetRowId(null)
           }
+        }}
+      />
+
+      <SwapExerciseSheet
+        open={addSheetOpen}
+        onOpenChange={setAddSheetOpen}
+        currentExerciseIds={currentExerciseIds}
+        title={t("preSession.addExercise")}
+        onSelect={(picked) => {
+          onAddExerciseChosen(picked)
+          setAddSheetOpen(false)
         }}
       />
     </div>
