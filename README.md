@@ -8,49 +8,71 @@ Built with React 19, TypeScript, Supabase, and Tailwind CSS.
 
 ## Features
 
-### Workout Session
-- Pick a training day, swipe through exercises via the exercise strip
-- Inline sets table with editable reps and weight per set
-- Full-screen rest timer overlay with countdown, audio alert, vibration, and push notifications
-- "Last session" reference shown per exercise so you know what you did last time
-- Session timer tracks total elapsed time; session summary at the end
+### Onboarding & programs
+- First-run **onboarding** (profile / equipment) before the main app
+- **Create program** flow: pick a **template**, start **blank**, or build an **AI-generated** multi-day program (constraints wizard, preview, confirm) via Supabase Edge Function + Gemini
+- Template path resolves **equipment swaps** using the exercise alternatives catalog where needed
+- **Onboarding guard**: main shell routes require an active program; users without one are guided through `/create-program`
 
-### Progression Tracking
-- Automatic PR detection using the Epley 1RM formula
-- PR badge displayed on the exercise strip when a new personal record is hit
-- `was_pr` flag persisted in set logs for historical reference
+### Workout session
+- Day selector and horizontal **exercise strip**; per-exercise **sets table** (reps, weight, done checkbox)
+- **RIR (reps in reserve)** per set, with **in-session load suggestions** for the next set based on the previous set’s RIR
+- Full-screen **rest timer** (countdown, audio, vibration, notifications) and **session timer**; **session summary** on completion
+- **Last session** reference per exercise
+- **Exercise detail**: structured **instructions**, YouTube demo (lazy thumbnails), illustration, **body-map** muscle highlight (`react-body-highlighter`), and an **exercise history** sheet (past sessions + trend chart)
+- **Quick workout**: generate a **single ad-hoc session** with AI (constraints + Edge Function) when you want something off-program
+- **Offline-first**: set logs and session completion are **queued** and synced when back online (see below)
 
-### History & Analytics
-- Stats dashboard: total sessions, total sets, PR count
-- Reverse-chronological session list with expandable set details
-- Per-exercise line charts (Recharts) showing estimated 1RM over time
+### Training cycles
+- Sessions can be linked to a **training cycle**; **cycle summary** route surfaces completion stats and history for a finished cycle
+- “Quick” / off-cycle sessions avoid attaching to the active cycle when appropriate
 
-### Workout Builder
-- Full CRUD for training days and exercises
-- Exercise library picker with search (cmdk)
-- Drag-and-drop reorder via dnd-kit
-- Online-only — shows an offline block state when disconnected
+### Progression & PRs
+- **Epley estimated 1RM** from logged sets; **automatic PR detection** with a **PR badge** on the exercise strip when you beat your previous best
+- `estimated_1rm`, `was_pr`, and **RIR** persisted on `set_logs` for history and suggestions
 
-### Offline-First Sync
-- `SyncService` queues set logs and session finishes in localStorage
-- Fingerprint-based deduplication prevents duplicate rows
-- Auto-drains on `online` event and on app load
-- Sync status chip in the UI
+### History & analytics
+- **Stats** dashboard (sessions, sets, PRs, etc.) and reverse-chronological **session list** with expandable details
+- Per-exercise **1RM-over-time** charts (Recharts)
+- **Workout overview** cards with muscle coverage / body-map style summaries where the UI presents them
 
-### PWA
-- Installable on mobile and desktop via `beforeinstallprompt`
-- Service worker powered by Workbox (app shell cache + NetworkFirst for Supabase API)
-- Standalone display mode
+### Workout library
+- Dedicated **`/library`** page: large **exercise catalog** (~600+ items) with search, **muscle group** and **equipment** filters, and **difficulty** badges / filtering where data exists
+- Rich catalog metadata: FR/EN names, instructions (JSON sections), YouTube URLs, illustrations, secondary muscles, provenance
 
-### Internationalization
-- FR / EN via react-i18next with 6 namespaces (`common`, `auth`, `workout`, `history`, `builder`, `settings`)
-- kg / lbs weight unit toggle — display-only preference, storage is always in kg
-- Locale-aware date and number formatting via `Intl`
+### Workout builder
+- Full **CRUD** for **programs** (workout days and slot exercises)
+- **Exercise library picker** (search + filters, cmdk) and **drag-and-drop** reorder (dnd-kit)
+- Snapshot fields on `workout_exercises` keep exercise copy stable when catalog content changes
+- **Online-only** editing with a clear offline state
 
-### Auth & Theming
-- Google OAuth via Supabase Auth, with AuthGuard on protected routes
-- Notification permission prompt on first sign-in
-- Dark / light mode toggle via next-themes
+### Exercise content & feedback
+- Users can **report content issues** from multiple entry points; **admins** triage feedback from the admin area
+
+### Offline-first sync
+- `SyncService` queues set logs and session finishes in **localStorage** with **fingerprint-based deduplication**
+- Queue **drains** on reconnect and on load when authenticated
+- **Sync status** chip in the UI
+
+### PWA & shell
+- Install prompt (banner + settings), **Workbox** service worker (app shell + runtime caching for Supabase API), standalone display
+- **Route-level error boundaries** for failed navigations / lazy chunks
+- Bottom nav + drawer **App shell** for workout, history, builder, library
+
+### Internationalization & theming
+- **FR / EN** via react-i18next with **per-feature namespaces** (e.g. workout, history, builder, onboarding, create-program, library, generator, admin, exercise, settings, errors)
+- **kg / lbs** display preference (storage in kg)
+- **Dark / light** theme via next-themes
+
+### Auth & admin
+- **Google OAuth** via Supabase Auth; **AuthGuard** on protected routes
+- Notification permission prompt for timer / alerts
+- **Admin**: exercise review (`/admin/exercises`) and **feedback triage** (`/admin/feedback`), gated by `admin_users`
+
+### Quality
+- **Vitest** + Testing Library (Epley, weight units, SyncService, hooks, key components)
+- **Playwright** E2E (login, workout, builder, onboarding paths as covered in `e2e/`)
+- **GitHub Actions**: lint, type-check, unit tests, E2E against **local Supabase**, deploy (e.g. Vercel)
 
 ---
 
@@ -96,12 +118,14 @@ Create a `.env` file from the example:
 cp .env.example .env
 ```
 
-Fill in your Supabase credentials:
+Fill in your Supabase credentials (hosted project):
 
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+For **local Supabase**, put `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from `supabase status` in **`.env.local`** (see [Local Supabase development](#local-supabase-development)).
 
 ### Development
 
@@ -116,14 +140,87 @@ npm run build
 npm run preview
 ```
 
-### Supabase (optional local setup)
+---
 
-```bash
-supabase start
-supabase db reset   # runs migrations + seed
-```
+## Local Supabase development
 
-Migrations live in `supabase/migrations/`. Seed data (24 exercises) is in `supabase/seed.sql`.
+Use a local stack so day-to-day usage and experiments do not write to production. Requires [Docker](https://docs.docker.com/get-docker/) and the [Supabase CLI](https://supabase.com/docs/guides/cli).
+
+### npm scripts
+
+| Script | Command |
+|--------|---------|
+| `npm run supabase:start` | `supabase start` — Postgres, Auth, Studio, Storage, etc. |
+| `npm run supabase:stop` | `supabase stop` — stops containers; data stays in Docker volumes |
+| `npm run supabase:reset` | `supabase db reset` — re-runs **all** migrations + `seed.sql` (**wipes local user data**) |
+
+### Typical workflow
+
+1. `npm run supabase:start`
+2. Copy **API URL** and **anon key** from `supabase status` into **`.env.local`** as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (point at `http://127.0.0.1:54321`, not `*.supabase.co`).
+3. `npm run dev`
+4. When you need a clean database: `npm run supabase:reset` (stack must already be running).
+
+The app reads Supabase URL/anon key from Vite env (`import.meta.env`). Restart `npm run dev` after changing env files.
+
+### Environment files (important)
+
+| File | Who reads it | Purpose |
+|------|----------------|---------|
+| **`.env.local`** | Vite (`npm run dev`, `npm run build` locally) | `VITE_*` for the browser client — use for local API URL + anon key |
+| **`.env`** (project root) | **Supabase CLI** when parsing `supabase/config.toml` | `env(...)` placeholders (e.g. Google OAuth for local Auth). **The CLI does not load `.env.local`.** |
+| **Vercel / CI** | Production builds | Set `VITE_*` in the dashboard; nothing from `.env.local` is deployed |
+
+Duplicate keys where both tools need them (e.g. Google client id/secret in **`.env`** for `supabase start`, plus whatever you use elsewhere).
+
+### Service URLs and ports (default)
+
+| Port | Service |
+|------|---------|
+| **54321** | REST / Auth / Edge Functions API (`VITE_SUPABASE_URL`) |
+| **54322** | Postgres (`postgresql://postgres:postgres@127.0.0.1:54322/postgres`) |
+| **54323** | [Supabase Studio](http://127.0.0.1:54323) — table editor, SQL, Auth users |
+| **54324** | [Inbucket](http://127.0.0.1:54324) — captures auth emails locally (magic links, etc.) |
+
+### Inspecting tables and data
+
+- **Studio** at `http://127.0.0.1:54323` is the default place to browse tables and run SQL.
+- Any Postgres client can use the DB URL above for heavier querying.
+
+### Google Sign-In locally
+
+`supabase/config.toml` enables Google when the corresponding vars exist in **project-root `.env`**. In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → your **Web** OAuth client:
+
+- **Authorized redirect URIs** must include exactly:  
+  `http://127.0.0.1:54321/auth/v1/callback`  
+  (Supabase Auth receives the OAuth callback here — **not** `http://127.0.0.1:5173/...`.)
+- Keep your hosted callback too if you use the same client for prod, e.g.  
+  `https://<project-ref>.supabase.co/auth/v1/callback`
+- **Authorized JavaScript origins** should include your dev app origin, e.g. `http://localhost:5173` and `http://127.0.0.1:5173`.
+
+After changing `config.toml` or `.env` auth vars, run `npm run supabase:stop` then `npm run supabase:start`.
+
+### Schema and seed
+
+- Migrations: `supabase/migrations/`
+- Seed data (e.g. exercise catalog): `supabase/seed.sql` (applied on `supabase db reset`)
+- Prefer **new migration files** for schema changes rather than only editing data in Studio, so git stays the source of truth.
+
+### Row Level Security (RLS)
+
+RLS policies apply to the **anon key + user JWT** used by the app. Studio often uses elevated access, so something can “work in Studio but fail in the app” when RLS blocks the client.
+
+### Edge Functions (e.g. AI generation)
+
+With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits **local** functions. Ensure secrets (e.g. `GEMINI_API_KEY`) are available to the local runtime (`supabase secrets` / serve workflow per [Supabase docs](https://supabase.com/docs/guides/functions)) or those calls will fail while the rest of the app works.
+
+### E2E tests
+
+Playwright tests expect local Supabase (see `e2e/`). Start the stack before `npm run test:e2e` when tests hit the API.
+
+### CLI vs linked remote
+
+`supabase link` can warn that local Docker image versions differ from the linked project. Usually safe to ignore for daily dev; upgrade the CLI or re-link when you want them aligned.
 
 ---
 
@@ -171,12 +268,12 @@ See `supabase/migrations/` for the full schema.
 
 Things that would make sense to tackle next, roughly ordered by impact:
 
-**Testing**
-- No tests exist today. Vitest + React Testing Library for unit/integration coverage on `SyncService`, hooks, and key components.
-- Playwright for E2E on critical flows (login, full workout session, builder CRUD).
+**Testing & CI**
+- Broaden unit/integration coverage (edge cases, fewer mocks, visual regression optional).
+- Expand Playwright coverage (AI flows, cycles, library) and keep local Supabase fixtures maintainable.
 
 **CI/CD**
-- GitHub Actions pipeline: lint, type-check, build, deploy.
+- Further harden pipeline (bundle budgets, preview deploys, scheduled E2E).
 
 **Performance**
 - Lazy-load routes (`React.lazy` + `Suspense`).
@@ -191,8 +288,8 @@ Things that would make sense to tackle next, roughly ordered by impact:
 **Accessibility**
 - Keyboard navigation audit, ARIA labels, screen reader testing.
 
-**Onboarding**
-- Guided first-use flow beyond the auto-bootstrap Push/Pull/Legs program.
+**Onboarding & programs**
+- Deeper coaching or analytics on top of the existing wizard (templates, blank, AI program).
 
 **Exercise Name Translations**
 - Exercise names are user-owned Supabase data and currently not translated. Could offer a translation layer or let users rename.
