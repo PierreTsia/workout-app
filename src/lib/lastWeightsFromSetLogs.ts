@@ -1,5 +1,21 @@
 import { supabase } from "@/lib/supabase"
 
+/**
+ * Rows must be ordered newest-first (e.g. `logged_at` desc). First occurrence per
+ * `exercise_id` wins — that is the latest set for that exercise.
+ */
+export function latestWeightPerExerciseFromRows(
+  rows: { exercise_id: string; weight_logged: number | string }[],
+): Record<string, number> {
+  const result: Record<string, number> = {}
+  for (const row of rows) {
+    if (!(row.exercise_id in result)) {
+      result[row.exercise_id] = Number(row.weight_logged)
+    }
+  }
+  return result
+}
+
 /** Latest logged weight (kg) per exercise_id from set_logs, same semantics as useLastWeights. */
 export async function fetchLastWeightsForExerciseIds(
   exerciseIds: string[],
@@ -17,11 +33,5 @@ export async function fetchLastWeightsForExerciseIds(
   if (error) throw error
   if (!data || data.length === 0) return {}
 
-  const result: Record<string, number> = {}
-  for (const row of data) {
-    if (!(row.exercise_id in result)) {
-      result[row.exercise_id] = Number(row.weight_logged)
-    }
-  }
-  return result
+  return latestWeightPerExerciseFromRows(data)
 }
