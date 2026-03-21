@@ -1,4 +1,4 @@
-import type { GenerateProgramResponse, ProgramDay } from "./gemini.ts"
+import type { GenerateProgramResponse } from "./gemini.ts"
 
 export interface CatalogEntry {
   id: string
