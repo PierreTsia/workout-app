@@ -9,7 +9,16 @@ import { Link, useNavigate } from "react-router-dom"
 import { Dumbbell, Loader2, Play } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
-import { sessionAtom, prFlagsAtom, sessionBest1RMAtom, isQuickWorkoutAtom, activeProgramIdAtom, authAtom, quickSheetOpenAtom } from "@/store/atoms"
+import {
+  sessionAtom,
+  prFlagsAtom,
+  sessionBest1RMAtom,
+  isQuickWorkoutAtom,
+  activeProgramIdAtom,
+  authAtom,
+  quickSheetOpenAtom,
+  restAtom,
+} from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -47,6 +56,7 @@ export function WorkoutPage() {
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
+  const setRest = useSetAtom(restAtom)
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const activeProgramId = useAtomValue(activeProgramIdAtom)
   const user = useAtomValue(authAtom)
@@ -258,6 +268,7 @@ export function WorkoutPage() {
     }
     setIsQuickWorkout(false)
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
+    setRest(null)
     setFinished(true)
   }
 
@@ -318,6 +329,7 @@ export function WorkoutPage() {
     const cycleIdForNav = session.cycleId
 
     setFinishedQuickInfo(null)
+    setRest(null)
     setSession({
       currentDayId: null,
       activeDayId: null,
