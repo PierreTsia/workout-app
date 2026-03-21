@@ -29,6 +29,7 @@
   "errorNetwork": "Connexion perdue. Réessayer ?",
   "errorTimeout": "La génération a pris trop de temps. Réessayer ?",
   "errorGeneric": "Une erreur est survenue.",
+  "errorQuota": "Vous avez atteint votre limite de génération IA. Essayez un modèle ou créez votre programme manuellement.",
   "retry": "Réessayer",
   "useTemplate": "Choisir un modèle",
   "startBlank": "Partir de zéro",

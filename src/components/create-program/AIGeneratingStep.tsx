@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAIGenerateProgram, isNetworkError } from "@/hooks/useAIGenerateProgram"
+import { useAIGenerateProgram, isNetworkError, isQuotaError } from "@/hooks/useAIGenerateProgram"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import type { GenerateProgramConstraints, AIGeneratedProgram } from "@/types/aiProgram"
 
@@ -38,22 +38,27 @@ export function AIGeneratingStep({
 
   if (mutation.isError) {
     const err = mutation.error
+    const quota = isQuotaError(err)
     const isNetwork = isNetworkError(err)
     const isTimeout = err instanceof Error && err.message === "timeout"
 
-    const message = isNetwork
-      ? t("errorNetwork")
-      : isTimeout
-        ? t("errorTimeout")
-        : t("errorGeneric")
+    const message = quota
+      ? t("errorQuota")
+      : isNetwork
+        ? t("errorNetwork")
+        : isTimeout
+          ? t("errorTimeout")
+          : t("errorGeneric")
 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6">
         <p className="text-center text-sm text-muted-foreground">{message}</p>
         <div className="flex flex-col gap-2 w-full max-w-xs">
-          <Button onClick={() => { mutation.reset(); retry() }}>
-            {t("retry")}
-          </Button>
+          {!quota && (
+            <Button onClick={() => { mutation.reset(); retry() }}>
+              {t("retry")}
+            </Button>
+          )}
           <Button variant="outline" onClick={onFallbackTemplate}>
             {t("useTemplate")}
           </Button>

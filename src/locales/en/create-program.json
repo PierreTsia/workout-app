@@ -29,6 +29,7 @@
   "errorNetwork": "Connection lost. Try again?",
   "errorTimeout": "Generation took too long. Try again?",
   "errorGeneric": "Something went wrong.",
+  "errorQuota": "You've reached your AI generation limit. Try a template or build from scratch instead.",
   "retry": "Retry",
   "useTemplate": "Pick a template instead",
   "startBlank": "Start from scratch",

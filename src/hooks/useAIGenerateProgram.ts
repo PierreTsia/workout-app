@@ -32,6 +32,11 @@ function isNetworkError(err: unknown): boolean {
   return false
 }
 
+function isQuotaError(err: unknown): boolean {
+  if (err instanceof Error && err.message.includes("quota_exceeded")) return true
+  return false
+}
+
 export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext) {
   return useMutation({
     mutationFn: async (
@@ -100,4 +105,4 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
   })
 }
 
-export { isNetworkError }
+export { isNetworkError, isQuotaError }
