@@ -14,42 +14,48 @@ import { initSyncListeners } from "@/lib/syncService"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { prepareThemeLocalStorage, THEME_STORAGE_KEY } from "@/lib/themeStorage"
+import { handleVersionUpgrade } from "@/lib/versionManager"
+import { listenForSwUpdate } from "@/lib/swReloadOnUpdate"
 
-initSyncListeners()
-prepareThemeLocalStorage(localStorage)
+listenForSwUpdate()
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    {/*
-      Preference order: localStorage (storageKey) > prefers-color-scheme > resolved default dark.
-      defaultTheme="system" means “no saved value” follows the OS; THEME_FALLBACK_RESOLVED handles
-      matchMedia failure in the inline boot script (index.html) + resolveThemeClassForBoot.
-    */}
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      storageKey={THEME_STORAGE_KEY}
-      themes={["light", "dark", "system"]}
-    >
-      <QueryClientProvider client={queryClient}>
-        <ErrorBoundary
-          fallbackRender={({ error, resetErrorBoundary }) => (
-            <ErrorFallback
-              error={
-                error instanceof Error
-                  ? error
-                  : new Error(String(error))
-              }
-              resetErrorBoundary={resetErrorBoundary}
-              variant="page"
-            />
-          )}
+// Purge stale caches/localStorage before React mounts so Jotai atoms read clean values.
+handleVersionUpgrade()
+  .catch((error) => {
+    console.error("Version upgrade failed; continuing app boot.", error)
+  })
+  .finally(() => {
+    initSyncListeners()
+    prepareThemeLocalStorage(localStorage)
+
+    createRoot(document.getElementById("root")!).render(
+      <StrictMode>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          storageKey={THEME_STORAGE_KEY}
+          themes={["light", "dark", "system"]}
         >
-          <RouterProvider router={router} />
-        </ErrorBoundary>
-        <Toaster />
-      </QueryClientProvider>
-    </ThemeProvider>
-  </StrictMode>,
-)
+          <QueryClientProvider client={queryClient}>
+            <ErrorBoundary
+              fallbackRender={({ error, resetErrorBoundary }) => (
+                <ErrorFallback
+                  error={
+                    error instanceof Error
+                      ? error
+                      : new Error(String(error))
+                  }
+                  resetErrorBoundary={resetErrorBoundary}
+                  variant="page"
+                />
+              )}
+            >
+              <RouterProvider router={router} />
+            </ErrorBoundary>
+            <Toaster />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </StrictMode>,
+    )
+  })

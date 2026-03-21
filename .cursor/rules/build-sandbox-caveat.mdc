@@ -1,0 +1,22 @@
+---
+description: Known sandbox restriction affecting `npm run build`. Read this before running build commands.
+globs: 
+alwaysApply: true
+---
+
+# Build Sandbox Caveat
+
+`npm run build` (which runs `tsc -b && vite build`) **will fail inside the Cursor sandbox** with this error:
+
+```
+Error: Unable to write the service worker file. 'Unexpected early exit.
+Unfinished hook action(s) on exit: (terser) renderChunk'
+```
+
+This is **not a project bug**. workbox-build uses `worker_threads` via terser, and the sandbox blocks that syscall.
+
+## What to do
+
+- Always run `npm run build` with `required_permissions: ["all"]`.
+- **Do NOT** check out `main` to verify — the error is identical on every branch.
+- For lightweight type-checking, prefer `npx tsc --noEmit` (works in the sandbox).
