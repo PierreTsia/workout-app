@@ -225,6 +225,7 @@ function parseConstraints(body: Record<string, unknown>): ProgramConstraints | n
     experience: String(experience),
     focusAreas: body.focusAreas ? String(body.focusAreas) : undefined,
     splitPreference: body.splitPreference ? String(body.splitPreference) : undefined,
+    locale: body.locale ? String(body.locale) : undefined,
   }
 }
 

@@ -150,6 +150,17 @@ describe("buildProgramPrompt", () => {
     expect(prompt).toContain("e1 (Bench Press)")
   })
 
+  it("includes language instruction for non-English locale", () => {
+    const prompt = buildProgramPrompt(catalog, null, [], { ...constraints, locale: "fr" }, false)
+    expect(prompt).toContain("French")
+    expect(prompt).toContain("rationale and day labels")
+  })
+
+  it("omits language instruction for English locale", () => {
+    const prompt = buildProgramPrompt(catalog, null, [], { ...constraints, locale: "en" }, false)
+    expect(prompt).not.toContain("rationale and day labels in")
+  })
+
   it("includes serialized catalog", () => {
     const prompt = buildProgramPrompt(catalog, null, [], constraints, false)
     expect(prompt).toContain("EXERCISE CATALOG")

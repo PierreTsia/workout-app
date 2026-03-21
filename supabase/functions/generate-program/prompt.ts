@@ -44,6 +44,7 @@ export interface ProgramConstraints {
   experience: string
   focusAreas?: string
   splitPreference?: string
+  locale?: string
 }
 
 export function getEquipmentValues(category: string): string[] {
@@ -110,6 +111,10 @@ export function buildProgramPrompt(
     "- Provide a brief rationale (1-2 sentences) explaining why this split suits the user.",
     `- Given the user's experience level (${constraints.experience}), prefer exercises whose difficulty_level matches or is one step above.`,
   )
+
+  if (constraints.locale && constraints.locale !== "en") {
+    lines.push(`- Write the rationale and day labels in ${constraints.locale === "fr" ? "French" : constraints.locale}. Exercise IDs stay unchanged.`)
+  }
 
   if (constraints.splitPreference && constraints.splitPreference !== "auto") {
     lines.push(`- The user prefers a ${constraints.splitPreference} split.`)

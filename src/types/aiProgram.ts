@@ -8,6 +8,7 @@ export interface GenerateProgramConstraints {
   experience: string
   focusAreas?: string
   splitPreference?: string
+  locale?: string
 }
 
 export interface AIGeneratedDay {

@@ -68,7 +68,7 @@ function ChipGroup<T extends string | number>({
 }
 
 export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
-  const { t } = useTranslation("create-program")
+  const { t, i18n } = useTranslation("create-program")
   const { data: profile } = useUserProfile()
 
   const form = useForm<ProgramConstraintsForm>({
@@ -105,6 +105,7 @@ export function AIConstraintStep({ onSubmit }: AIConstraintStepProps) {
       ...data,
       focusAreas: data.focusAreas || undefined,
       splitPreference: data.splitPreference === "auto" ? undefined : data.splitPreference,
+      locale: i18n.language,
     })
   }
 
