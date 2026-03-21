@@ -100,5 +100,10 @@
   "preSession.scopeSessionOnly": "Just this session",
   "preSession.scopePermanent": "Apply permanently",
   "preSession.startBlocked": "Each exercise needs at least one set before you can start.",
+  "preSession.swapSameMuscle": "Same muscle",
+  "preSession.swapAllExercises": "All exercises",
+  "preSession.swapSheetTitle": "Choose replacement",
+  "preSession.swapBrowseLibrary": "Browse full library",
+  "preSession.noResults": "No exercises found.",
   "preSession.mutationError": "Could not save. Check your connection and try again."
 }

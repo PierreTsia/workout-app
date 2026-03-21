@@ -8,11 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseSwapPicker } from "@/components/generator/ExerciseSwapPicker"
 import { ExerciseAddPicker } from "@/components/generator/ExerciseAddPicker"
+import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
-import type { Exercise } from "@/types/database"
-import type { WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExercise } from "@/types/database"
 
 export interface PreSessionExerciseListProps {
   exercises: WorkoutExercise[]
@@ -34,9 +35,11 @@ export function PreSessionExerciseList({
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
   const [swappingRowId, setSwappingRowId] = useState<string | null>(null)
+  const [swapSheetRowId, setSwapSheetRowId] = useState<string | null>(null)
   const [addingOpen, setAddingOpen] = useState(false)
 
   const currentExerciseIds = exercises.map((e) => e.exercise_id)
+  const swapSheetRow = exercises.find((e) => e.id === swapSheetRowId) ?? null
 
   return (
     <div className="space-y-2">
@@ -83,18 +86,46 @@ export function PreSessionExerciseList({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
           {swappingRowId === ex.id && (
             <div className="pl-1">
-              <ExerciseSwapPicker
-                pool={exercisePool}
-                currentExerciseIds={currentExerciseIds}
-                muscleGroup={ex.muscle_snapshot}
-                onSelect={(picked) => {
-                  onSwapExerciseChosen(ex, picked)
-                  setSwappingRowId(null)
-                }}
-                onClose={() => setSwappingRowId(null)}
-              />
+              <Tabs defaultValue="same-muscle" className="w-full">
+                <TabsList className="w-full">
+                  <TabsTrigger value="same-muscle" className="flex-1 text-xs">
+                    {t("preSession.swapSameMuscle")}
+                  </TabsTrigger>
+                  <TabsTrigger value="all" className="flex-1 text-xs">
+                    {t("preSession.swapAllExercises")}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="same-muscle">
+                  <ExerciseSwapPicker
+                    pool={exercisePool}
+                    currentExerciseIds={currentExerciseIds}
+                    muscleGroup={ex.muscle_snapshot}
+                    onSelect={(picked) => {
+                      onSwapExerciseChosen(ex, picked)
+                      setSwappingRowId(null)
+                    }}
+                    onClose={() => setSwappingRowId(null)}
+                  />
+                </TabsContent>
+                <TabsContent value="all">
+                  <div className="rounded-lg border bg-card p-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        setSwapSheetRowId(ex.id)
+                      }}
+                    >
+                      {t("preSession.swapBrowseLibrary")}
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </div>
@@ -123,6 +154,21 @@ export function PreSessionExerciseList({
           {t("preSession.addExercise")}
         </Button>
       )}
+
+      <SwapExerciseSheet
+        open={!!swapSheetRow}
+        onOpenChange={(open) => {
+          if (!open) setSwapSheetRowId(null)
+        }}
+        currentExerciseIds={currentExerciseIds}
+        onSelect={(picked) => {
+          if (swapSheetRow) {
+            onSwapExerciseChosen(swapSheetRow, picked)
+            setSwappingRowId(null)
+            setSwapSheetRowId(null)
+          }
+        }}
+      />
     </div>
   )
 }

@@ -100,5 +100,10 @@
   "preSession.scopeSessionOnly": "Cette séance uniquement",
   "preSession.scopePermanent": "Appliquer en permanent",
   "preSession.startBlocked": "Chaque exercice doit avoir au moins une série avant de démarrer.",
+  "preSession.swapSameMuscle": "Même muscle",
+  "preSession.swapAllExercises": "Tous les exercices",
+  "preSession.swapSheetTitle": "Choisir un remplacement",
+  "preSession.swapBrowseLibrary": "Parcourir la bibliothèque",
+  "preSession.noResults": "Aucun exercice trouvé.",
   "preSession.mutationError": "Enregistrement impossible. Vérifiez la connexion et réessayez."
 }
