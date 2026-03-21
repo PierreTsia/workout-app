@@ -5,24 +5,37 @@ import { Badge } from "@/components/ui/badge"
 import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
-import type { WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { BodyMap } from "@/components/body-map/BodyMap"
+import { ExerciseEditRowControls } from "@/components/workout/ExerciseEditRowControls"
 import { SetsTable } from "./SetsTable"
+
+export interface ExerciseDetailEditSessionProps {
+  exercisePool: Exercise[]
+  poolLoading: boolean
+  allExercises: WorkoutExercise[]
+  onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => void
+  onDeleteRequested: (row: WorkoutExercise) => void
+  onSwapBrowseLibrary: (row: WorkoutExercise) => void
+  onInspectExercise: (exerciseId: string) => void
+}
 
 interface ExerciseDetailProps {
   exercise: WorkoutExercise
   sessionId: string
   isReadOnly: boolean
+  editSession?: ExerciseDetailEditSessionProps | null
 }
 
 export function ExerciseDetail({
   exercise,
   sessionId,
   isReadOnly,
+  editSession = null,
 }: ExerciseDetailProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
@@ -32,9 +45,9 @@ export function ExerciseDetail({
   return (
     <div className="flex flex-col gap-4 px-4">
       <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
-          <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
+          <h2 className="min-w-0 flex-1 text-xl font-bold">{exercise.name_snapshot}</h2>
           <AdminOnly>
             <Link
               to={`/admin/exercises/${exercise.exercise_id}`}
@@ -48,6 +61,19 @@ export function ExerciseDetail({
             sourceScreen="workout"
           />
         </div>
+        {editSession && !isReadOnly ? (
+          <ExerciseEditRowControls
+            layout="detail"
+            exercise={exercise}
+            exercisePool={editSession.exercisePool}
+            poolLoading={editSession.poolLoading}
+            currentExerciseIds={editSession.allExercises.map((e) => e.exercise_id)}
+            onSwapExerciseChosen={editSession.onSwapExerciseChosen}
+            onDeleteRequested={editSession.onDeleteRequested}
+            onSwapBrowseLibrary={editSession.onSwapBrowseLibrary}
+            onInspectDetails={editSession.onInspectExercise}
+          />
+        ) : null}
         <Badge variant="secondary" className="w-fit text-xs">
           {exercise.muscle_snapshot}
         </Badge>

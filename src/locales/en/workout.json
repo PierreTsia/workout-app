@@ -107,5 +107,8 @@
   "preSession.details": "Details",
   "preSession.exerciseInfo": "View exercise details",
   "preSession.noResults": "No exercises found.",
-  "preSession.mutationError": "Could not save. Check your connection and try again."
+  "preSession.mutationError": "Could not save. Check your connection and try again.",
+  "preSession.deleteLoggedTitle": "Remove exercise with logged sets?",
+  "preSession.deleteLoggedDescription": "You have logged sets for this exercise. Deleting it will remove these records from this session.",
+  "preSession.deleteLoggedContinue": "Continue"
 }
