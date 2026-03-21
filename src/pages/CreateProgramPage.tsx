@@ -6,6 +6,7 @@ import { PathChoiceStep } from "@/components/create-program/PathChoiceStep"
 import { BlankProgramStep } from "@/components/create-program/BlankProgramStep"
 import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
 import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
+import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
 import type { GenerateProgramConstraints, AIGeneratedProgram } from "@/types/aiProgram"
 
 type WizardStep =
@@ -109,10 +110,12 @@ export function CreateProgramPage() {
           />
         )}
 
-        {step === "ai-preview" && aiResult && (
-          <div className="flex flex-1 items-center justify-center px-6 text-muted-foreground">
-            AI Preview Step (T46)
-          </div>
+        {step === "ai-preview" && aiResult && constraints && (
+          <AIProgramPreviewStep
+            program={aiResult}
+            constraints={constraints}
+            onRegenerate={() => setStep("ai-generating")}
+          />
         )}
 
         {step === "template-choice" && (
