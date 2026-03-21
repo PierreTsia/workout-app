@@ -4,19 +4,28 @@ import { useTranslation } from "react-i18next"
 import { ArrowLeft, Dumbbell } from "lucide-react"
 import { PathChoiceStep } from "@/components/create-program/PathChoiceStep"
 import { BlankProgramStep } from "@/components/create-program/BlankProgramStep"
+import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
+import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
+import type { GenerateProgramConstraints, AIGeneratedProgram } from "@/types/aiProgram"
 
-type WizardPath = "ai" | "template" | "blank" | null
-type WizardStep = "path-choice" | "ai-constraints" | "ai-generating" | "ai-preview" | "template-choice" | "template-preview" | "blank"
+type WizardStep =
+  | "path-choice"
+  | "ai-constraints"
+  | "ai-generating"
+  | "ai-preview"
+  | "template-choice"
+  | "template-preview"
+  | "blank"
 
 export function CreateProgramPage() {
   const { t } = useTranslation("create-program")
   const navigate = useNavigate()
 
-  const [path, setPath] = useState<WizardPath>(null)
   const [step, setStep] = useState<WizardStep>("path-choice")
+  const [constraints, setConstraints] = useState<GenerateProgramConstraints | null>(null)
+  const [aiResult, setAiResult] = useState<AIGeneratedProgram | null>(null)
 
   function handlePathSelect(selected: "ai" | "template" | "blank") {
-    setPath(selected)
     switch (selected) {
       case "ai":
         setStep("ai-constraints")
@@ -30,13 +39,40 @@ export function CreateProgramPage() {
     }
   }
 
+  function handleConstraintsSubmit(c: GenerateProgramConstraints) {
+    setConstraints(c)
+    setStep("ai-generating")
+  }
+
+  function handleAISuccess(result: AIGeneratedProgram) {
+    setAiResult(result)
+    setStep("ai-preview")
+  }
+
   function handleBack() {
-    if (step === "path-choice") {
-      navigate("/library")
-      return
+    switch (step) {
+      case "path-choice":
+        navigate("/library")
+        return
+      case "ai-constraints":
+        setStep("path-choice")
+        return
+      case "ai-generating":
+        setStep("ai-constraints")
+        return
+      case "ai-preview":
+        setStep("ai-constraints")
+        return
+      case "template-choice":
+        setStep("path-choice")
+        return
+      case "template-preview":
+        setStep("template-choice")
+        return
+      case "blank":
+        setStep("path-choice")
+        return
     }
-    setPath(null)
-    setStep("path-choice")
   }
 
   return (
@@ -61,8 +97,21 @@ export function CreateProgramPage() {
         {step === "blank" && <BlankProgramStep />}
 
         {step === "ai-constraints" && (
+          <AIConstraintStep onSubmit={handleConstraintsSubmit} />
+        )}
+
+        {step === "ai-generating" && constraints && (
+          <AIGeneratingStep
+            constraints={constraints}
+            onSuccess={handleAISuccess}
+            onFallbackTemplate={() => setStep("template-choice")}
+            onFallbackBlank={() => setStep("blank")}
+          />
+        )}
+
+        {step === "ai-preview" && aiResult && (
           <div className="flex flex-1 items-center justify-center px-6 text-muted-foreground">
-            AI Constraint Step (T45)
+            AI Preview Step (T46)
           </div>
         )}
 
