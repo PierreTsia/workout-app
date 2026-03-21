@@ -57,3 +57,11 @@ export function formatDuration(startIso: string, endIso: string): string {
   const m = totalMin % 60
   return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
 }
+
+export function formatDurationMs(ms: number): string {
+  const totalMin = Math.round(ms / 60_000)
+  if (totalMin < 60) return `${totalMin}m`
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
+}

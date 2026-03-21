@@ -70,5 +70,22 @@
   "estimatedSets_one": "~{{count}} série",
   "estimatedSets_other": "~{{count}} séries",
   "estimatedDuration": "~{{duration}}",
-  "lastSession": "Dernier : {{date}}"
+  "lastSession": "Dernier : {{date}}",
+  "cycleSummary.title": "Cycle terminé !",
+  "cycleSummary.subtitle": "Voici votre bilan",
+  "cycleSummary.sessions": "Séances",
+  "cycleSummary.duration": "Temps total",
+  "cycleSummary.sets": "Séries faites",
+  "cycleSummary.volume": "Volume soulevé",
+  "cycleSummary.prs": "Records personnels",
+  "cycleSummary.consistency": "Complété en",
+  "cycleSummary.days": "jours",
+  "cycleSummary.firstCycle": "Premier cycle — bon début !",
+  "cycleSummary.vsPrevious": "vs. cycle précédent",
+  "cycleSummary.startNewCycle": "Nouveau cycle",
+  "cycleSummary.backToWorkouts": "Retour aux entraînements",
+  "cycleSummary.cycleCompleteBadge": "Cycle terminé !",
+  "cycleSummary.viewSummary": "Voir le bilan du cycle",
+  "cycleSummary.notFound": "Cycle introuvable",
+  "cycleSummary.errorLoading": "Impossible de charger les stats"
 }

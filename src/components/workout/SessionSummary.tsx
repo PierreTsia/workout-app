@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useAtomValue } from "jotai"
-import { Trophy, Clock, Dumbbell, RotateCcw, Flame } from "lucide-react"
+import { Trophy, Clock, Dumbbell, RotateCcw, Flame, PartyPopper, Eye } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import { getEffectiveElapsed } from "@/lib/session"
@@ -32,6 +32,8 @@ interface SessionSummaryProps {
   onNewSession: () => void
   quickWorkoutDayId?: string
   quickWorkoutName?: string
+  cycleComplete?: boolean
+  cycleId?: string | null
 }
 
 export function SessionSummary({
@@ -42,6 +44,8 @@ export function SessionSummary({
   onNewSession,
   quickWorkoutDayId,
   quickWorkoutName,
+  cycleComplete,
+  cycleId,
 }: SessionSummaryProps) {
   const { t } = useTranslation("workout")
   const session = useAtomValue(sessionAtom)
@@ -54,6 +58,14 @@ export function SessionSummary({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">
       <Trophy className="h-16 w-16 text-primary" />
+
+      {cycleComplete && (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-400">
+          <PartyPopper className="h-4 w-4" />
+          {t("cycleSummary.cycleCompleteBadge")}
+        </span>
+      )}
+
       <h2 className="text-2xl font-bold">{t("sessionComplete")}</h2>
 
       <div className="grid w-full max-w-xs grid-cols-2 gap-4">
@@ -106,8 +118,17 @@ export function SessionSummary({
       )}
 
       <Button size="lg" onClick={onNewSession} className="mt-4 gap-2">
-        <RotateCcw className="h-4 w-4" />
-        {t("newSession")}
+        {cycleComplete && cycleId ? (
+          <>
+            <Eye className="h-4 w-4" />
+            {t("cycleSummary.viewSummary")}
+          </>
+        ) : (
+          <>
+            <RotateCcw className="h-4 w-4" />
+            {t("newSession")}
+          </>
+        )}
       </Button>
     </div>
   )
