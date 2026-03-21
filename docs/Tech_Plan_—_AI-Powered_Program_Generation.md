@@ -250,6 +250,8 @@ RULES:
 - Order exercises within each day: compound movements first, isolation last.
 - Group synergistic muscles on the same day (e.g. chest + triceps, back + biceps).
 - Distribute muscle groups across the week so no group is overtrained.
+- Given the user's experience level, prefer exercises whose difficulty_level matches
+  or is one step above — this supports progressive exercise complexity.
 - Provide a brief rationale (1-2 sentences) explaining why this split suits the user.
 {if splitPreference: - The user prefers a {splitPreference} split.}
 {if focusAreas: - The user wants to emphasize: {focusAreas}.}
@@ -459,45 +461,65 @@ This follows the same sequential insert pattern as `file:src/hooks/useGeneratePr
 
 ## Implementation Order
 
-### Phase 1 — Edge Function + Validation
+The implementation is split into two independent PRs to reduce review surface and deployment risk.
 
-1. Add `[functions.generate-program]` block to `file:supabase/config.toml`
-2. Create `supabase/functions/generate-program/gemini.ts` — `callGeminiProgram()` with nested schema
-3. Create `supabase/functions/generate-program/prompt.ts` — multi-day prompt builder with training gap detection
-4. Create `supabase/functions/generate-program/validate.ts` — `validateProgram()` with per-day + cross-day validation
-5. Create `supabase/functions/generate-program/index.ts` — orchestration (auth, DB queries, prompt, Gemini, validation)
-6. Test edge function locally via `supabase functions serve` + curl
+### PR A — Library Redesign (ships first, zero backend changes)
 
-### Phase 2 — Frontend Hook + Types
+1. Refactor `file:src/pages/LibraryPage.tsx` — remove `Tabs` wrapper, `ProgramsTab`, `QuickWorkoutTab`. Inline `MyWorkoutsTab` content directly (program list + create CTA + archived toggle).
+2. Update `file:src/locales/en/library.json` and `fr/library.json` — remove `tabPrograms`, `tabQuickWorkout`, `quickWorkout*` keys. Update CTA text to "Nouveau programme".
+3. Session guard: disable "Nouveau programme" CTA when `sessionAtom.isActive` with tooltip.
+4. Keep `CreateProgramDialog` for now — the CTA still opens the blank-program dialog. The navigation to `/create-program` happens in PR B.
+5. E2E test: library displays unified program list, create dialog works, archived toggle works.
 
-7. Create `src/types/aiProgram.ts` — `AIGeneratedProgram`, `AIGeneratedDay`, `GenerateProgramConstraints`
-8. Create `src/hooks/useAIGenerateProgram.ts` — mutation hook (invoke edge function, hydrate exercises, apply `buildExercise`)
-9. Create `src/components/create-program/schema.ts` — Zod schema for constraint validation
-10. Unit test: `useAIGenerateProgram` hydration and volume assignment logic
+### PR B — AI Engine + Creation Wizard (ships after PR A)
 
-### Phase 3 — Creation Wizard
+**Phase B1 — Edge Function + Validation**
 
-11. Create `src/pages/CreateProgramPage.tsx` — wizard shell with step management
-12. Create `src/components/create-program/PathChoiceStep.tsx` — 3 path cards
-13. Create `src/components/create-program/AIConstraintStep.tsx` — React Hook Form + Zod + profile prefill
-14. Create `src/components/create-program/AIGeneratingStep.tsx` — loading state + error handling
-15. Create `src/components/create-program/CoachRationale.tsx` — rationale display card
-16. Create `src/components/create-program/AIProgramPreviewStep.tsx` — progressive reveal + create action
-17. Create `src/components/create-program/TemplateChoiceStep.tsx` — reuse template components
-18. Create `src/components/create-program/TemplatePreviewStep.tsx` — template preview + create action
-19. Create `src/components/create-program/BlankProgramStep.tsx` — name input + create action
-20. Add `/create-program` route to `file:src/router/index.tsx`
+6. Add `[functions.generate-program]` block to `file:supabase/config.toml`
+7. Create `supabase/functions/generate-program/gemini.ts` — `callGeminiProgram()` with nested schema
+8. Create `supabase/functions/generate-program/prompt.ts` — multi-day prompt builder with training gap detection
+9. Create `supabase/functions/generate-program/validate.ts` — `validateProgram()` with per-day + cross-day validation
+10. Create `supabase/functions/generate-program/index.ts` — orchestration (auth, DB queries, prompt, Gemini, validation)
+11. Test edge function locally via `supabase functions serve` + curl
 
-### Phase 4 — Library Redesign + Polish
+**Phase B2 — Frontend Hook + Types**
 
-21. Refactor `file:src/pages/LibraryPage.tsx` — remove tabs, inline program list, nav to `/create-program`
-22. Update `file:src/locales/en/library.json` and `fr/library.json` — remove tab keys, update CTA text
-23. Create `src/locales/en/create-program.json` and `fr/create-program.json`
-24. Add `"create-program"` namespace to `file:src/lib/i18n.ts`
-25. Session guard: disable "Nouveau programme" CTA when `sessionAtom.isActive`
-26. E2E test: full AI generation flow (constraint -> preview -> create -> visible in library)
-27. E2E test: template path (select -> preview -> create)
-28. E2E test: blank path (name -> builder redirect)
+12. Create `src/types/aiProgram.ts` — `AIGeneratedProgram`, `AIGeneratedDay`, `GenerateProgramConstraints`
+13. Create `src/hooks/useAIGenerateProgram.ts` — mutation hook (invoke edge function, hydrate exercises, apply `buildExercise`)
+14. Create `src/components/create-program/schema.ts` — Zod schema for constraint validation
+15. Unit test: `useAIGenerateProgram` hydration and volume assignment logic
+
+**Phase B3 — Creation Wizard**
+
+16. Create `src/pages/CreateProgramPage.tsx` — wizard shell with step management
+17. Create `src/components/create-program/PathChoiceStep.tsx` — 3 path cards
+18. Create `src/components/create-program/AIConstraintStep.tsx` — React Hook Form + Zod + profile prefill
+19. Create `src/components/create-program/AIGeneratingStep.tsx` — loading state + error handling
+20. Create `src/components/create-program/CoachRationale.tsx` — rationale display card
+21. Create `src/components/create-program/AIProgramPreviewStep.tsx` — progressive reveal + create action
+22. Create `src/components/create-program/TemplateChoiceStep.tsx` — reuse template components
+23. Create `src/components/create-program/TemplatePreviewStep.tsx` — template preview + create action
+24. Create `src/components/create-program/BlankProgramStep.tsx` — name input + create action
+25. Add `/create-program` route to `file:src/router/index.tsx`
+26. Create `src/locales/en/create-program.json` and `fr/create-program.json`
+27. Add `"create-program"` namespace to `file:src/lib/i18n.ts`
+
+**Phase B4 — Integration + Polish**
+
+28. Update Library CTA: replace `CreateProgramDialog` trigger with navigation to `/create-program`
+29. E2E test: full AI generation flow (constraint -> preview -> create -> visible in library)
+30. E2E test: template path (select -> preview -> create)
+31. E2E test: blank path (name -> builder redirect)
+
+---
+
+## Resolved Challenges (from review)
+
+| Challenge | Resolution |
+|---|---|
+| **Scope bloat** — Library redesign + AI engine in one PR is too large to review | Split into PR A (Library UI, zero backend) and PR B (AI engine + wizard). PR A ships first, PR B builds on it. |
+| **Progression is subjective for the LLM** — sending exercise IDs isn't enough for load progression | Out of scope by design. The LLM selects exercises (composition); it does not prescribe weights. Load progression belongs at the session level, not program creation. The `difficulty_level` column gives the LLM a quantitative signal for exercise selection difficulty. A future "Smart Load Progression" epic would handle weight auto-suggestion. |
+| **Two-phase flow latency** — two LLM calls create a conversion-killing tunnel | Already resolved: single LLM call returns the full program (split + exercises). The UI progressively reveals split first, then exercises. Two display steps, one execution. |
 
 ---
 
