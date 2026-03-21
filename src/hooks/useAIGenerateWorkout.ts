@@ -19,6 +19,18 @@ function isNetworkError(err: unknown): boolean {
   return false
 }
 
+function isQuotaError(err: unknown): boolean {
+  if (err instanceof Error && err.message.includes("quota_exceeded")) return true
+  return false
+}
+
+function invokeErrorContext(err: unknown): Response | undefined {
+  if (typeof err !== "object" || err === null) return undefined
+  if (!("context" in err)) return undefined
+  const ctx = err.context
+  return ctx instanceof Response ? ctx : undefined
+}
+
 export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
   return useMutation({
     mutationFn: async (
@@ -35,7 +47,12 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
         },
       )
 
-      if (error) throw error
+      if (error) {
+        const ctx = invokeErrorContext(error)
+        if (ctx?.status === 429) throw new Error("quota_exceeded")
+        if (ctx?.status === 504) throw new Error("timeout")
+        throw error
+      }
 
       const { exerciseIds } = data as { exerciseIds: string[] }
       if (!exerciseIds?.length) {
@@ -79,4 +96,4 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
   })
 }
 
-export { isNetworkError }
+export { isNetworkError, isQuotaError }

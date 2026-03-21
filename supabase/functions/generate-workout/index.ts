@@ -1,3 +1,4 @@
+import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { callGemini } from "./gemini.ts"
@@ -27,12 +28,19 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "")
-    const userId = extractUserIdFromJwt(token)
-    if (!userId) {
+    const jwt = decodeJwt(token)
+    if (!jwt?.sub) {
       return jsonResponse({ error: "Could not extract user from token" }, 401)
     }
 
+    const userId = jwt.sub
+    const email = jwt.email?.toLowerCase() ?? null
     const supabase = createServiceClient()
+
+    const quotaResult = await checkQuota(supabase, userId, email, "workout")
+    if (!quotaResult.allowed) {
+      return jsonResponse({ error: "quota_exceeded" }, 429)
+    }
 
     // --- Parse request body ---
     const body = await req.json()
@@ -110,6 +118,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    supabase.from("ai_generation_log").insert({ user_id: userId, source: "workout" }).then()
+
     return jsonResponse({
       exerciseIds: result.exerciseIds,
       repaired: result.repaired,
@@ -126,17 +136,6 @@ Deno.serve(async (req) => {
 })
 
 // --- Helpers ---
-
-function extractUserIdFromJwt(token: string): string | null {
-  try {
-    const parts = token.split(".")
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(atob(parts[1]))
-    return typeof payload.sub === "string" ? payload.sub : null
-  } catch {
-    return null
-  }
-}
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

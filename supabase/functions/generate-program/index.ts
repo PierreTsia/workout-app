@@ -1,3 +1,4 @@
+import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { callGeminiProgram } from "./gemini.ts"
@@ -14,10 +15,6 @@ import {
 import { validateProgram } from "./validate.ts"
 
 const TRAINING_GAP_DAYS = 14
-const QUOTA_WHITELISTED = 5
-const QUOTA_REGULAR = 5
-const WINDOW_WHITELISTED_MS = 24 * 60 * 60 * 1000
-const WINDOW_REGULAR_MS = 30 * 24 * 60 * 60 * 1000
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,8 +37,7 @@ Deno.serve(async (req) => {
     const email = jwt.email?.toLowerCase() ?? null
     const supabase = createServiceClient()
 
-    // --- Quota check ---
-    const quotaResult = await checkQuota(supabase, userId, email)
+    const quotaResult = await checkQuota(supabase, userId, email, "program")
     if (!quotaResult.allowed) {
       return jsonResponse({ error: "quota_exceeded" }, 429)
     }
@@ -110,7 +106,7 @@ Deno.serve(async (req) => {
     }
 
     // Log successful generation for quota tracking (fire-and-forget)
-    supabase.from("ai_generation_log").insert({ user_id: userId }).then()
+    supabase.from("ai_generation_log").insert({ user_id: userId, source: "program" }).then()
 
     return jsonResponse({
       rationale: result.rationale,
@@ -133,65 +129,6 @@ Deno.serve(async (req) => {
 })
 
 // --- Helpers ---
-
-interface JwtPayload {
-  sub: string
-  email?: string
-}
-
-function base64UrlDecode(input: string): string {
-  let b64 = input.replace(/-/g, "+").replace(/_/g, "/")
-  while (b64.length % 4 !== 0) b64 += "="
-  return atob(b64)
-}
-
-function decodeJwt(token: string): JwtPayload | null {
-  try {
-    const parts = token.split(".")
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(base64UrlDecode(parts[1]))
-    if (typeof payload.sub !== "string") return null
-    return { sub: payload.sub, email: payload.email }
-  } catch {
-    return null
-  }
-}
-
-async function checkQuota(
-  supabase: ReturnType<typeof createServiceClient>,
-  userId: string,
-  email: string | null,
-): Promise<{ allowed: boolean }> {
-  const [whitelistResult, countResult] = await Promise.all([
-    email
-      ? supabase
-          .from("ai_whitelisted_users")
-          .select("email")
-          .eq("email", email)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    supabase
-      .from("ai_generation_log")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", new Date(Date.now() - WINDOW_REGULAR_MS).toISOString()),
-  ])
-
-  const isWhitelisted = !!whitelistResult.data
-  const totalCount = countResult.count ?? 0
-
-  if (isWhitelisted) {
-    const { count: recentCount } = await supabase
-      .from("ai_generation_log")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", new Date(Date.now() - WINDOW_WHITELISTED_MS).toISOString())
-
-    return { allowed: (recentCount ?? 0) < QUOTA_WHITELISTED }
-  }
-
-  return { allowed: totalCount < QUOTA_REGULAR }
-}
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

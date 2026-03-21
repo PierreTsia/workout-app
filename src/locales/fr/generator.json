@@ -32,6 +32,7 @@
   "aiGenerate": "Générer avec l'IA",
   "aiGenerating": "L'IA réfléchit…",
   "aiError": "La génération IA a échoué",
+  "errorQuota": "Tu as atteint ta limite de génération IA. Utilise la génération rapide à la place.",
   "aiFallback": "Utiliser la génération rapide ?",
   "networkError": "Erreur réseau — essaie la génération rapide",
   "quickWorkoutBadge": "⚡ Séance rapide",

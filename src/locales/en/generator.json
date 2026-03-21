@@ -32,6 +32,7 @@
   "aiGenerate": "AI Generate",
   "aiGenerating": "AI is thinking…",
   "aiError": "AI generation failed",
+  "errorQuota": "You've reached your AI generation limit. Try Quick Generate instead.",
   "aiFallback": "Use Quick Generate instead?",
   "networkError": "Network error — try Quick Generate",
   "quickWorkoutBadge": "⚡ Quick Workout",

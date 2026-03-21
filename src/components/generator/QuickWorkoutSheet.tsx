@@ -12,7 +12,11 @@ import { ConstraintStep } from "./ConstraintStep"
 import { PreviewStep } from "./PreviewStep"
 import { useExercisesForGenerator } from "@/hooks/useExercisesForGenerator"
 import { useCreateQuickWorkout } from "@/hooks/useCreateQuickWorkout"
-import { useAIGenerateWorkout, isNetworkError } from "@/hooks/useAIGenerateWorkout"
+import {
+  useAIGenerateWorkout,
+  isNetworkError,
+  isQuotaError,
+} from "@/hooks/useAIGenerateWorkout"
 import { generateWorkout } from "@/lib/generateWorkout"
 import type { GeneratorConstraints, GeneratedWorkout } from "@/types/generator"
 
@@ -60,7 +64,9 @@ export function QuickWorkoutSheet({
         setStep("preview")
       },
       onError: (err) => {
-        if (isNetworkError(err)) {
+        if (isQuotaError(err)) {
+          toast.error(t("errorQuota"))
+        } else if (isNetworkError(err)) {
           toast.error(t("networkError"))
         } else {
           toast.error(t("aiError"))
