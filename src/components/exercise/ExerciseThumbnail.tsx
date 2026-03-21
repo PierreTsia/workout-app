@@ -16,7 +16,16 @@ export function ExerciseThumbnail({
   const [error, setError] = useState(false)
 
   if (!imageUrl || error) {
-    return <span className={cn("flex shrink-0 items-center justify-center bg-muted text-center", className)}>{emoji}</span>
+    return (
+      <span
+        className={cn(
+          "@container flex shrink-0 items-center justify-center overflow-hidden bg-muted text-center leading-none [font-size:max(1rem,min(3rem,45cqw))]",
+          className,
+        )}
+      >
+        {emoji}
+      </span>
+    )
   }
 
   return (
