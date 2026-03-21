@@ -23,10 +23,12 @@ test.describe("Workout session — full flow", () => {
     const dayCard = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first()
     await expect(dayCard).toBeVisible({ timeout: 30_000 })
 
-    // Pre-session editable rows (PreSessionExerciseList — gap-2 + row actions trigger)
-    await expect(
-      page.getByRole("button", { name: "Exercise actions" }).first(),
-    ).toBeVisible({ timeout: 15_000 })
+    // PreSessionExerciseList: row menu (do not match on gap-* — layout classes change)
+    const exerciseRowMenu = page
+      .getByRole("button", { name: "Exercise actions" })
+      .first()
+    await expect(exerciseRowMenu).toBeVisible({ timeout: 20_000 })
+    await expect(exerciseRowMenu).toBeEnabled({ timeout: 20_000 })
 
     // Start the workout session
     const startButton = page.getByRole("button", { name: /start workout/i })
