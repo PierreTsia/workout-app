@@ -69,4 +69,48 @@ test.describe("In-session exercise editing", () => {
 
     await expect(stripButtons).toHaveCount(countBefore + 1, { timeout: T.short })
   })
+
+  test("session-only swap during active workout → detail title changes", async ({
+    page,
+  }) => {
+    await page.goto("/")
+    await dismissNotificationPrompt(page)
+
+    await expect(
+      page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ }).first(),
+    ).toBeVisible({ timeout: T.page })
+
+    await page.getByRole("button", { name: /start workout/i }).click()
+    await expect(
+      page.locator(".font-mono.tabular-nums.text-primary"),
+    ).toBeVisible({ timeout: T.dialog })
+
+    await expect(
+      page.locator("div.flex.overflow-x-auto > button").first(),
+    ).toBeVisible({ timeout: 15_000 })
+
+    const title = page.locator("h2.text-xl.font-bold")
+    const nameBefore = await title.innerText()
+
+    await page.getByRole("button", { name: "Exercise actions" }).click()
+    await page.getByRole("menuitem", { name: /swap exercise/i }).click()
+
+    await page.getByRole("tab", { name: /all exercises/i }).click()
+    await page.getByRole("button", { name: /browse full library/i }).click()
+
+    const swapSheet = page.getByRole("dialog", { name: /choose replacement/i })
+    await expect(swapSheet).toBeVisible({ timeout: T.dialog })
+    await waitPickerLoaded(swapSheet)
+
+    await swapSheet.locator("button.min-w-0.flex-1").first().click({
+      timeout: T.picker,
+    })
+
+    const scope = page.getByRole("dialog", { name: /apply swap how\?/i })
+    await expect(scope).toBeVisible({ timeout: T.dialog })
+    await scope.getByRole("button", { name: /just this session/i }).click()
+    await expect(scope).not.toBeVisible({ timeout: T.short })
+
+    await expect(title).not.toHaveText(nameBefore, { timeout: T.short })
+  })
 })
