@@ -69,6 +69,8 @@ GitHub: [issue #92](https://github.com/PierreTsia/workout-app/issues/92). Builds
 ## Success Criteria
 
 - **Numeric:** After a permanent add/delete/swap mid-session, `["workout-exercises", dayId]` reflects the change when online; session-only edits never write `workout_exercises`.
+- **Robustness (permanent swap / add):** The server path (or a defensive `mutationFn` round-trip) rejects targets that no longer exist in the canonical `exercises` catalog — the UI must not assume the client’s cached library is authoritative (stale pickers, removed rows, future “archived” flags). Failed validation surfaces a clear error, not a silent broken row or FK crash.
+- **UX (permanent mutations):** List updates feel immediate under fast repeated actions — use TanStack Query **optimistic updates** (or equivalent) for permanent **swap** and **delete** so the UI does not sit in a hybrid state between invalidate and refetch; rollback on error. Details: `file:docs/Tech_Plan_—_Pre-session_Exercise_Editing.md`.
 - **Qualitative:** Users cannot distinguish “which codebase path” they used — pre-session vs in-session scope dialogs and picker behavior match.
 - **Qualitative:** After any list mutation, the strip and detail show a consistent current exercise; no blank state from stale `exerciseIndex`.
 - **Qualitative:** Delete path that loses logged data always shows an explicit warning; no silent removal of stats the user cares about.
@@ -83,6 +85,8 @@ GitHub: [issue #92](https://github.com/PierreTsia/workout-app/issues/92). Builds
 | **Delete confirmation threshold** | Confirm only when `some(set => set.done)` vs any partial progress vs synced logs only — Tech Plan must pick one consistent rule. |
 | **Permanent apply failures mid-session** | Mirror pre-session: surface `preSession.mutationError` (or shared key), keep local session state recoverable. |
 | **#43 timeline** | Until shipped, same-muscle / full-library pickers suffice; document extension point for “suggested” section in picker or sheet. |
+| **Catalog validation (“validation de cible”)** | Permanent swap/add must verify the chosen `exercise_id` still exists (and matches whatever “active” rule the product adds later). Prefer **authoritative checks** on write (DB FK / trigger / RPC) plus client feedback; client-only checks are insufficient. |
+| **Refetch latency vs rapid taps** | Invalidate-only flows can show a transient **merged old+new** list if the user acts again before refetch completes; optimistic cache updates for swap/delete mitigate this. |
 
 ---
 
@@ -92,5 +96,7 @@ GitHub: [issue #92](https://github.com/PierreTsia/workout-app/issues/92). Builds
 2. **`exerciseIndex` is the critical pointer** — On delete, clamp or reassign index; on swap, index may stay the same; on add at end, optional product choice whether to **jump** to the new exercise (default: stay on current unless UX specifies).
 3. **Parity with #83** — “Apply permanently” copy and progression hints match pre-session; no new semantic for the same buttons.
 4. **Shared components** — Any new wrapper for “row actions” should accept the same callbacks/picker props as `PreSessionExerciseList` to satisfy the “100% shared” constraint; avoid forking `ExerciseSwapPicker` behavior per surface.
+5. **Target exercise validity** — Never trust that the picker’s snapshot of `exercises` matches Supabase at commit time; validate on apply (see Tech Plan: `useSwapExerciseInDay`, permanent add).
+6. **Optimistic list consistency** — Permanent **swap** and **delete** mutations used from `WorkoutPage` should use optimistic `queryClient` updates (with rollback) so rapid successive edits do not flash inconsistent lists.
 
 When ready, say **create tech plan** to continue.
