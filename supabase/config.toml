@@ -261,6 +261,9 @@ inspector_port = 8083
 [functions.generate-workout]
 verify_jwt = false
 
+[functions.generate-program]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

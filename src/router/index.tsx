@@ -12,6 +12,7 @@ import { OnboardingPage } from "@/pages/OnboardingPage"
 import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
 import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
 import { LibraryPage } from "@/pages/LibraryPage"
+import { CreateProgramPage } from "@/pages/CreateProgramPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
 import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
@@ -38,6 +39,10 @@ export const router = createBrowserRouter([
       {
         element: <OnboardingGuard />,
         children: [
+          {
+            path: "/create-program",
+            element: <CreateProgramPage />,
+          },
           {
             element: <AppShell />,
             children: [

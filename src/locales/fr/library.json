@@ -2,11 +2,6 @@
   "title": "Bibliothèque",
   "backToWorkout": "Retour à l'entraînement",
 
-  "tabMyWorkouts": "Mon entraînement",
-  "tabPrograms": "Programmes",
-  "tabQuickWorkout": "Séance rapide",
-  "comingSoon": "Bientôt",
-
   "myWorkoutsEmpty": "Aucun programme",
   "showArchived": "Afficher archivés",
   "active": "Actif",
@@ -37,15 +32,12 @@
   "filterEquipmentHome": "Maison",
   "filterEquipmentMinimal": "Minimal",
   "clearFilters": "Effacer les filtres",
-  "noTemplates": "Aucun programme ne correspond à vos filtres",
+  "noTemplates": "Aucun modèle ne correspond à vos filtres",
 
   "daysRange": "{{min}}–{{max}} jours",
   "exerciseCount": "{{count}} exercices",
   "setsReps": "{{sets}} × {{reps}}",
   "restSeconds": "{{seconds}}s repos",
-
-  "quickWorkoutTitle": "Séance rapide",
-  "quickWorkoutDescription": "Lancez une séance sans programme. Choisissez vos exercices, définissez vos répétitions, et c'est parti.",
 
   "savingProgram": "Sauvegarde du programme…",
   "startingProgram": "Démarrage du programme…",
@@ -55,7 +47,7 @@
   "programUnarchived": "Programme restauré",
   "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
 
-  "createProgram": "Créer un programme",
+  "createProgram": "Nouveau programme",
   "programName": "Nom du programme",
   "programNamePlaceholder": "Mon programme",
   "editProgram": "Modifier"

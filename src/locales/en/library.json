@@ -2,11 +2,6 @@
   "title": "Library",
   "backToWorkout": "Back to workout",
 
-  "tabMyWorkouts": "My Training",
-  "tabPrograms": "Programs",
-  "tabQuickWorkout": "Quick Workout",
-  "comingSoon": "Coming Soon",
-
   "myWorkoutsEmpty": "No programs yet",
   "showArchived": "Show archived",
   "active": "Active",
@@ -44,9 +39,6 @@
   "setsReps": "{{sets}} × {{reps}}",
   "restSeconds": "{{seconds}}s rest",
 
-  "quickWorkoutTitle": "Quick Workout",
-  "quickWorkoutDescription": "Start a one-off workout without a program. Pick exercises, set your reps, and go.",
-
   "savingProgram": "Saving program…",
   "startingProgram": "Starting program…",
   "programSaved": "Program saved",
@@ -55,7 +47,7 @@
   "programUnarchived": "Program restored",
   "errorGeneric": "Something went wrong. Please try again.",
 
-  "createProgram": "Create Program",
+  "createProgram": "New Program",
   "programName": "Program name",
   "programNamePlaceholder": "My Program",
   "editProgram": "Edit"

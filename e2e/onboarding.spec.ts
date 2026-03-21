@@ -146,10 +146,15 @@ test.describe("Onboarding", () => {
   test("change program flow from side drawer", async ({ page }) => {
     test.setTimeout(120_000)
 
+    const admin = getAdmin()
+    const userId = getTestUserId()
+    await admin.from("programs").insert({
+      user_id: userId, name: "Second Program", is_active: false,
+    })
+
     await page.goto("/")
     await dismissNotificationDialog(page)
 
-    // Wait for workout page to be loaded
     await page.waitForLoadState("networkidle")
     await expect(page).toHaveURL("/", { timeout: 10_000 })
 
@@ -161,11 +166,10 @@ test.describe("Onboarding", () => {
     await page.getByRole("link", { name: /Library/i }).click()
     await expect(page).toHaveURL(/\/library/, { timeout: 10_000 })
 
-    // --- Programs tab ---
-    await page.getByRole("tab", { name: /Programs/i }).click()
-    const firstStartButton = page.getByRole("button", { name: /Start/i }).first()
-    await expect(firstStartButton).toBeVisible({ timeout: 15_000 })
-    await firstStartButton.click()
+    // --- Click "Activate" on the inactive program ---
+    const activateButton = page.getByRole("button", { name: /Activate/i }).first()
+    await expect(activateButton).toBeVisible({ timeout: 15_000 })
+    await activateButton.click()
 
     // --- Confirm activation dialog ---
     await expect(page.getByText(/Switch program/i)).toBeVisible({ timeout: 5_000 })
