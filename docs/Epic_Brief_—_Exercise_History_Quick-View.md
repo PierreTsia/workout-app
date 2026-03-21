@@ -2,7 +2,7 @@
 
 ## Summary
 
-This epic delivers a **high-fidelity exercise history quick-view** reachable from the **active workout** screen: a clear History call-to-action on the exercise detail, opening a **sheet** that shows recent performance (sets, weight, reps, RIR with color-coded intensity), **relative dates**, and a **weight/reps trend** so users can pick loads without leaving the session. It incorporates the **GitHub #76** acceptance criteria and safety constraints (lazy loading, bounded queries, offline messaging, confirmed delete) and uses the **competitor reference** (labeled History control, summary header, chart, horizontally browsable past session cards) as the visual and information-architecture north star—implemented in **phases** so the first release can ship the checklist while reserving heavier analytics for follow-up within the same epic where practical.
+This epic delivers a **read-only, high-fidelity exercise history quick-view** reachable from the **active workout** screen: a clear History call-to-action on the exercise detail, opening a **sheet** that shows recent performance (sets, weight, reps, RIR with color-coded intensity), **relative dates**, and a **weight/reps trend** so users can pick loads without leaving the session. It follows **GitHub #76** constraints where they still apply (lazy loading, bounded queries, offline messaging). **Product decision:** the quick-view does **not** support editing or deleting past set logs from the sheet—corrections, if offered later, belong on a dedicated surface (see Out of scope). The **competitor reference** (labeled History control, summary header, chart, horizontally browsable past session cards) remains the visual north star, implemented in **phases** where scope allows.
 
 ---
 
@@ -24,7 +24,7 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 | History is “elsewhere” | Users break flow, forget what set they were on, or skip checking history entirely |
 | No at-a-glance intensity | Hard to judge whether today’s RIR/weight is appropriate vs recent sessions |
 | No bounded, session-oriented recap | Raw logs without grouping by **finished session** obscure “what did I do last Monday?” |
-| Fear of bad data | Without edit/delete from history, users tolerate polluted logs or avoid logging detail |
+| Logged mistakes | Users who mis-key a set must correct it elsewhere today; quick-view does not solve corrections (by design). |
 
 ---
 
@@ -35,9 +35,8 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 | In-session access | From active workout exercise view, user opens history in **one tap** without route change (sheet overlay) |
 | Correct data story | Sheet shows **last 5 completed sessions** for this exercise, ordered by **`sessions.finished_at` DESC**, each with sets (reps, weight, RIR) and **relative** session dates |
 | Visual quality | RIR (and RPE if ever captured) shown as **color-coded** badges; a **trend** (sparkline or line chart) for weight and/or reps over those sessions |
-| Performance & safety | History fetched **only when** the user opens the sheet; Supabase query is **bounded** (join + order + limit); **delete** requires explicit confirmation |
+| Performance & safety | History fetched **only when** the user opens the sheet; Supabase query is **bounded** (join + order + limit); sheet is **read-only** (no destructive actions). |
 | Offline honesty | When the client is offline (or history cannot load), user sees an explicit **“history unavailable”** state—not a silent empty screen |
-| Data hygiene | Each historical session block supports **Edit / Delete** (per set log or per row as defined in Tech Plan) so accidental entries can be fixed |
 
 ---
 
@@ -52,14 +51,13 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 5. **Trend strip** — At minimum a **sparkline** or compact **line chart** derived from the same bounded dataset (or a single additional bounded query) for progression feedback; align styling with app tokens (teal / semantic colors).
 6. **Empty & error states** — Friendly copy when the user has **no prior performance** for this exercise; explicit offline / load-failure messaging using [`file:src/hooks/useOnlineStatus.ts`](src/hooks/useOnlineStatus.ts) and failed query handling.
 7. **Insufficient data (sparse history)** — When the user has **some** data but not enough for a meaningful trend or optional summary tiles, the UI must **not** pretend there is a trend (see **Insufficient data policy** below).
-8. **Edit & delete** — Row or set-level overflow menu; **delete** flows through a confirmation dialog; **edit** opens inline editor or small form (Tech Plan specifies mutation path, including interaction with [`file:src/lib/syncService.ts`](src/lib/syncService.ts) / offline queue if applicable).
-9. **i18n** — New strings in EN and FR under the appropriate namespace (likely `workout` and/or `history`).
+8. **i18n** — New strings in EN and FR under the appropriate namespace (likely `workout` and/or `history`).
 
 ### Insufficient data policy
 
 | Situation | UX |
 |---|---|
-| **No completed sessions** with logs for this exercise | Primary **empty state**: encouraging copy (e.g. complete a workout to see history here). No chart, no session carousel, no Edit/Delete. |
+| **No completed sessions** with logs for this exercise | Primary **empty state**: encouraging copy (e.g. complete a workout to see history here). No chart, no session carousel. |
 | **Exactly one** past session | Show the **session card** (and set table) as usual. **Hide** the trend/sparkline region **or** replace it with a short **hint** (e.g. “Log this exercise again to see progression”) — do **not** draw a one-point “chart” that implies a trend. |
 | **Two or more** sessions | Show trend as designed (derived from the same bounded payload). |
 | **Fewer than five** sessions | Show **only** the sessions returned (1–4 cards). No placeholders, no fake sessions. |
@@ -78,7 +76,7 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 - Social sharing, export, or coach view.
 - New server-side ML or third-party charting SaaS.
 - RPE as a new logged field unless already planned elsewhere (RIR remains primary; brief stays extensible).
-- **Offline edit/delete** of historical set logs (see Tech Plan: online-only corrections unless the sync queue gains update/delete later).
+- **Editing or deleting** `set_logs` from the quick-view sheet (read-only surface; a future **admin** or **History**-level correction flow would be a separate decision).
 - Guaranteeing **numerical parity** between quick-view aggregates and every chart on [`file:src/pages/HistoryPage.tsx`](src/pages/HistoryPage.tsx) without an explicit reconciliation pass (document any known differences).
 
 ---
@@ -91,16 +89,14 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 | **Weight semantics** | `set_logs` store **kg**; the UI shows user **unit** preference via [`file:src/hooks/useWeightUnit.ts`](src/hooks/useWeightUnit.ts). | Every displayed weight in the sheet must convert consistently with `SetsTable` / history elsewhere. |
 | **Sessions with zero sets for this exercise** | RPC returns sessions that have `set_logs` for the exercise; “empty session” for this exercise should not appear. | Covered by join filter; verify in tests. |
 | **RIR null / legacy rows** | Older logs may predate RIR or have null. | Badge shows “—” or neutral styling; no crash. |
-| **Read-only workout** | `ExerciseDetail` supports `isReadOnly` (e.g. past session replay). | Either **hide** History CTA when edits are impossible, or show history **read-only** (no Edit/Delete) — product pick documented in implementation ticket. |
-| **Accessibility** | Sheet + horizontal scroll + menus must be keyboard and screen-reader usable. | Follow Radix patterns; label History CTA; test with VoiceOver / axe (see Testing Strategy in Tech Plan). |
-| **Analytics / PR flags** | Editing or deleting `set_logs` may desync **derived** stats (dashboards, PR badges) until queries refetch. | Tech Plan lists **query keys to invalidate** after mutations. |
+| **Read-only workout** | `ExerciseDetail` supports `isReadOnly` (e.g. past session replay). | History sheet is always read-only; CTA may stay visible for browsing past performance. |
+| **Accessibility** | Sheet + horizontal scroll must be keyboard and screen-reader usable. | Follow Radix patterns; label History CTA; test with VoiceOver / axe (see Testing Strategy in Tech Plan). |
 
 ---
 
 ## Success Criteria
 
 - **Numeric:** Opening the history sheet triggers **at most one primary history query** on first open (per exercise instance); query returns **≤ 5** sessions and only **finished** sessions, ordered by **`sessions.finished_at` DESC** (or equivalent documented join).
-- **Numeric:** 100% of delete actions from the sheet require a **confirmation** step before persistence.
 - **Qualitative:** User remains on the **active workout** route/view; closing the sheet restores the exact prior scroll/exercise focus.
 - **Qualitative:** Empty, offline, error, and **insufficient-data-for-trend** states are **explicit** and copy-reviewed in EN/FR — users never see a misleading chart.
 - **Qualitative:** Visual density and hierarchy are **competitive** with the provided reference: labeled History CTA, summary header, trend visible without scrolling on typical phone heights, session cards skimmable in **< 5 seconds**.
@@ -109,7 +105,7 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 
 ## Dependencies
 
-- **Shipped data model:** `sessions`, `set_logs`, RLS on both; offline queue behavior in [`file:src/lib/syncService.ts`](src/lib/syncService.ts) for any mutation from the sheet.
+- **Shipped data model:** `sessions`, `set_logs`, RLS on both; quick-view performs **reads** only (writes continue through existing session logging / sync).
 - **Shipped UI:** [`file:src/components/workout/ExerciseDetail.tsx`](src/components/workout/ExerciseDetail.tsx), [`file:src/components/workout/SetsTable.tsx`](src/components/workout/SetsTable.tsx), existing sheet components used elsewhere in workout flows.
 - **Issue tracker:** [GitHub #76](https://github.com/PierreTsia/workout-app/issues/76) — acceptance criteria and “Shadow Agent” constraints are **binding** for MVP within this epic.
 
@@ -126,9 +122,9 @@ This epic delivers a **high-fidelity exercise history quick-view** reachable fro
 
 Quality bar for this epic is defined in detail in **Testing Strategy** inside [`file:docs/Tech_Plan_—_Exercise_History_Quick-View.md`](docs/Tech_Plan_—_Exercise_History_Quick-View.md). At epic level we expect:
 
-- **Automated:** unit tests for pure helpers (relative time, RIR styling, trend point derivation), hook tests with mocked Supabase/RPC, and component tests for empty / offline / error / confirm-delete flows.
+- **Automated:** unit tests for pure helpers (relative time, RIR styling, trend point derivation), hook tests with mocked Supabase/RPC, and component tests for empty / offline / error flows.
 - **Data layer:** SQL or integration tests proving the RPC returns **at most five** sessions, **descending** `finished_at`, only **finished** sessions, and correct set ordering — **no** cross-user leakage under RLS.
-- **Manual / exploratory:** quick workout vs program session, FR+EN copy, weight unit toggle, and edit-after-delete refresh behavior.
+- **Manual / exploratory:** quick workout vs program session, FR+EN copy, weight unit toggle.
 
 ---
 

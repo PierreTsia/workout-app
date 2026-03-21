@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
   ArrowLeftRight,
+  BarChart3,
   EllipsisVertical,
   MessageSquare,
   Pencil,
@@ -28,6 +29,7 @@ import { FeedbackSheet } from "@/components/feedback/FeedbackSheet"
 import { BodyMap } from "@/components/body-map/BodyMap"
 import { ExerciseSwapInlinePanel } from "@/components/workout/ExerciseSwapInlinePanel"
 import { SetsTable } from "./SetsTable"
+import { ExerciseHistorySheet } from "@/components/workout/ExerciseHistorySheet"
 
 export interface ExerciseDetailEditSessionProps {
   exercisePool: Exercise[]
@@ -58,6 +60,7 @@ export function ExerciseDetail({
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly)
 
@@ -165,6 +168,33 @@ export function ExerciseDetail({
       />
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => setHistoryOpen(true)}
+          aria-label={t("historySheet.cta")}
+        >
+          <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
+          {t("historySheet.cta")}
+        </Button>
+      </div>
+
+      <ExerciseHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        exerciseId={exercise.exercise_id}
+        exerciseName={exercise.name_snapshot}
+        muscleLabel={exercise.muscle_snapshot}
+        bodyMapMuscleGroup={libExercise?.muscle_group ?? exercise.muscle_snapshot}
+        emojiSnapshot={exercise.emoji_snapshot}
+        imageUrl={libExercise?.image_url}
+        secondaryMuscles={libExercise?.secondary_muscles}
+        equipment={libExercise?.equipment}
+      />
 
       <SetsTable exercise={exercise} sessionId={sessionId} isReadOnly={isReadOnly} equipment={libExercise?.equipment} />
     </div>

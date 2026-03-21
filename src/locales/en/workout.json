@@ -113,5 +113,20 @@
   "preSession.mutationError": "Could not save. Check your connection and try again.",
   "preSession.deleteLoggedTitle": "Remove exercise with logged sets?",
   "preSession.deleteLoggedDescription": "You have logged sets for this exercise. Deleting it will remove these records from this session.",
-  "preSession.deleteLoggedContinue": "Continue"
+  "preSession.deleteLoggedContinue": "Continue",
+  "historySheet.cta": "History",
+  "historySheet.title": "History",
+  "historySheet.offline": "History unavailable while offline.",
+  "historySheet.loading": "Loading history…",
+  "historySheet.loadError": "Could not load history.",
+  "historySheet.retry": "Retry",
+  "historySheet.empty": "No prior performance for this exercise yet. Finish a workout to see it here.",
+  "historySheet.trendHint": "Log this exercise on more days to see a weight trend.",
+  "historySheet.sessionsRegion": "Past sessions",
+  "historySheet.refreshing": "Updating…",
+  "historySheet.chartCaption": "Best est. 1RM per session ({{unit}})",
+  "historySheet.chartAria": "Estimated 1RM trend from {{min}} to {{max}} across recent sessions",
+  "historySheet.epleyInfoLabel": "What does estimated 1RM mean?",
+  "historySheet.epleyInfoTitle": "Estimated 1RM (Epley)",
+  "historySheet.epleyInfoBody": "This line shows your best estimated one-rep max per workout — the weight you could likely lift for a single rep, inferred from what you actually logged (weight × reps).\n\nWe use the Epley formula, a common strength-training shortcut. It’s not lab-accurate, but it helps compare sessions when you lift heavier or use fewer reps."
 }

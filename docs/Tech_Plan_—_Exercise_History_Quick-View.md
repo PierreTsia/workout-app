@@ -12,8 +12,7 @@
 | RIR color mapping | Extract shared helper from `file:src/components/workout/RirDrawer.tsx` (`RIR_COLORS`) into e.g. `file:src/lib/rirStyles.ts` consumed by RirDrawer + history badges | Single source of truth; matches competitor yellow/orange/red ladder already used at log time. |
 | Trend visualization | Inline **SVG sparkline** or **recharts** line (`file:package.json` already includes `recharts`) — default to **SVG** unless the team wants parity with the competitor chart faster | Five session points do not require heavy chart config; recharts is available if timeline polish wins. |
 | Relative dates | `Intl.RelativeTimeFormat` + `date-fns` if already used; else native `RTF` with EN/FR locale from i18n | Consistent with “3 days ago” / “il y a 3 jours” requirement. |
-| Edit / delete of past logs | **Online-only** direct `supabase.from('set_logs').update` / `.delete` + query invalidation | `file:src/lib/syncService.ts` today **inserts** set_logs via queue; there is **no** queued update/delete path. Extending the offline queue for corrections is a separate epic-sized concern. |
-| Delete confirmation | `AlertDialog` (shadcn pattern) before `.delete()` | Hard requirement from #76. |
+| Mutations from sheet | **None** — quick-view is **read-only** | Avoids accidental data loss during a live session; keeps sync model simple (insert-only queue for new logs). Corrections, if ever added, should be a deliberate separate flow. |
 | Naming | New hook e.g. `useExerciseSessionHistorySheet` | Avoid collision with `file:src/hooks/useExerciseHistory.ts` (distinct exercises list, not session history). |
 
 ### Critical Constraints
@@ -29,14 +28,6 @@
 **E1RM / records / range (north star).** Phase 2 can add a second lazy query or compute client-side from the same RPC payload. “Current E1RM” should be defined as e.g. max estimated 1RM across **last 5 sessions’** set logs only — product call documented in a ticket.
 
 **RPC security.** Prefer **`SECURITY INVOKER`** (default) so RLS applies through the `sessions` / `set_logs` join. Avoid `SECURITY DEFINER` unless unavoidable; if used, harden with explicit `auth.uid()` checks, fixed `search_path`, and no broad `GRANT` on underlying tables.
-
-**Cache invalidation after mutations.** On successful `update` / `delete` of a `set_log`, invalidate at minimum:
-
-- `["exercise-session-history", exerciseId]`
-- `["last-session", exerciseId]` (used by [`file:src/hooks/useLastSession.ts`](src/hooks/useLastSession.ts))
-- `["best-1rm", exerciseId]` ([`file:src/hooks/useBest1RM.ts`](src/hooks/useBest1RM.ts))
-- `["pr-aggregates"]` ([`file:src/hooks/useStatsAggregates.ts`](src/hooks/useStatsAggregates.ts) — global set/PR counts from `set_logs`)
-- Audit other `queryKey` usages touching `set_logs` (e.g. history tabs, cycle stats) and invalidate where edits could change displayed totals.
 
 **Focus and modality.** Sheet uses Radix Dialog primitives — ensure **focus trap** and **restore focus** on close so the user returns to the History control without losing carousel position.
 
@@ -78,7 +69,7 @@ erDiagram
 ### Table notes
 
 - **Why RPC:** Guarantees the #76 constraint (“order by sessions.finished_at DESC limit 5”) without over-fetching all logs for an exercise on the client.
-- **Edit/delete:** Mutations target `set_logs.id` by primary key; after success, invalidate `["exercise-session-history", exerciseId]` (and any stats queries if needed).
+- **Read-only:** No `update`/`delete` from the sheet; no mutation-related cache invalidation from this feature.
 
 ---
 
@@ -107,7 +98,7 @@ graph TD
 |---|---|
 | `file:src/hooks/useExerciseSessionHistorySheet.ts` | TanStack Query: calls RPC when sheet `open` + online; maps errors; query key includes `exerciseId`. |
 | `file:src/components/workout/ExerciseHistorySheet.tsx` | Sheet layout: header, trend strip, horizontal scroll of session cards, empty/offline/error states. |
-| `file:src/components/workout/ExerciseHistorySessionCard.tsx` | One session’s date (relative) + mini set table + per-row `DropdownMenu` (Edit/Delete). |
+| `file:src/components/workout/ExerciseHistorySessionCard.tsx` | One session’s date (relative) + mini set table + RIR badges (read-only). |
 | `file:src/lib/rirStyles.ts` | `rirBadgeClass(rir: number \| null)` derived from existing `RIR_COLORS` semantics. |
 | `file:supabase/migrations/YYYYMMDDHHMMSS_exercise_history_sheet_rpc.sql` | RPC + `GRANT EXECUTE` to `authenticated`. |
 
@@ -125,20 +116,18 @@ Refactors:
 - Accepts `open`, `onOpenChange`, `exerciseId`, display snapshots (name, thumb, muscle, equipment).
 - If offline → static message, no query.
 - If online and open → run hook; skeleton while loading.
-- Renders trend from session-level summary points (e.g. max weight or top set per session — pick one rule and document in code comment) **only when** `sessionCount >= 2` and at least two trend points are numeric; otherwise follow **Insufficient data** below.
+- Renders trend from session-level summary points: **best estimated 1RM (kg) per session** using Epley from weight × reps (or stored `estimated_1rm` when present), **only when** `sessionCount >= 2` and at least two trend points are > 0; otherwise follow **Insufficient data** below.
 - Horizontal scroll region for session cards.
 
 **`ExerciseHistorySessionCard`**
 
 - Renders relative date for `finished_at`.
-- Table columns: set #, reps, weight (via `useWeightUnit`), RIR badge.
-- Edit: small form dialog or inline controlled inputs → `update` set_log.
-- Delete: `AlertDialog` → `delete` → `onSuccess` invalidate.
+- Table columns: set #, reps, weight (via `useWeightUnit`), RIR badge. No row actions.
 
 **`useExerciseSessionHistorySheet`**
 
 - `enabled: Boolean(open && !!exerciseId && isOnline && !!user)`.
-- Stale time short (e.g. 0–30s) so edits reflect quickly after invalidation.
+- Stale time short (e.g. 10–30s) so reopening the sheet after a finished session tends to show fresh data without hammering the API.
 
 ### Failure mode analysis
 
@@ -150,13 +139,9 @@ Refactors:
 | **One session only** | Render session card(s); **omit** sparkline/chart **or** show non-chart hint copy (same strings as Epic Brief). |
 | **Trend points < 2** (e.g. null weights) | Same as one-session: no misleading line; optional hint. |
 | **North-star metrics unavailable** | Tiles show “—”, hidden section, or “Not enough data” — implement consistently with Epic Brief. |
-| Delete rejected (RLS) | Toast error; keep row. |
-| Edit while session still syncing | Prefer disabling edit for rows not yet readable; if indistinguishable, show generic error (rare if only **finished** sessions). |
-| Auth expired mid-sheet | Mutation fails; show re-auth or “try again” messaging; do not leave UI implying success. |
 | User opens history, then finishes **another** session elsewhere (other tab / device) | Stale data until refetch — acceptable if stale time is low; optional `refetchOnWindowFocus` for the sheet query. |
 | `navigator.onLine` true but network broken (“lie-fi”) | Request fails → same path as RPC error, not empty state. |
-| Delete last set of an exercise in a session | Allowed if RLS permits; session row may still exist with other exercises — no orphan-session cleanup required in this epic. |
-| Very long rep strings (`reps_logged` is text) | Layout: truncate or wrap in session card; validation on edit can mirror `SetsTable` rules. |
+| Very long rep strings (`reps_logged` is text) | Layout: truncate or wrap in session card. |
 
 ---
 
@@ -171,7 +156,7 @@ Aligns with **Insufficient data policy** in the Epic Brief.
 | `sessions.length >= 2` but trend derivation yields < 2 usable y-values | Treat as `showTrend = false` (same hint as single session). |
 | Partial session list (< 5) | Normal layout; carousel width adapts; no empty placeholder cards. |
 
-**Trend derivation (recommended default):** one scalar per session = **max** `weight_logged` (kg) among sets in that session for the exercise (simple, matches “heavy set” intuition). If all weights are null/0, fall back to insufficient-data treatment.
+**Trend derivation:** one scalar per session = **max** over sets of estimated 1RM (kg): prefer `set_logs.estimated_1rm` if set; else `computeEpley1RM(weight_logged, reps)` (`file:src/lib/epley.ts`), same as live logging. Display uses `useWeightUnit` (kg/lbs). If every set yields 0, fall back to insufficient-data treatment.
 
 ---
 
@@ -182,7 +167,7 @@ Aligns with **Insufficient data policy** in the Epic Brief.
 | **Exercise identity** | History is keyed by **`exercise_id`**; swapping the exercise in the builder changes the active exercise — history sheet always reflects the **current** exercise’s id. |
 | **Quick workout vs program** | No special case if both write to `sessions` + `set_logs`; RPC filters by `user_id` + `exercise_id` only. |
 | **Dumbbell / bodyweight labels** | Reuse `SetsTable` weight column semantics (equipment prop from library) when rendering history weights so “per arm” / “added weight” matches live logging. |
-| **Read-only workout mode** | When `isReadOnly` on `ExerciseDetail`, either hide the History CTA or open sheet **without** Edit/Delete (mirror epic “Risks” table — pick one before merge). |
+| **Read-only workout mode** | History sheet is always read-only; CTA can remain for browsing. |
 | **Horizontal scroll a11y** | Use a labeled region (`aria-label` on scroll container); ensure session cards are not keyboard traps; document manual test step. |
 
 ---
@@ -206,15 +191,13 @@ Aligns with **Insufficient data policy** in the Epic Brief.
 | Offline | Opening sheet does **not** call RPC; user sees unavailable copy. |
 | Empty | Zero sessions → empty state string; no chart crash. |
 | Sparse | One session → chart/trend region absent or hint only; two sessions → chart renders. |
-| Delete | Choosing Delete opens confirm dialog; confirm calls `delete` and on success row disappears (mock mutation). **Cancel** leaves row and does not call delete. |
-| Edit | Save triggers `update` with expected payload; validation errors surfaced (if any). |
 
 ### Data / SQL tests
 
 | Target | What to prove |
 |---|---|
 | Migration defining RPC | **Explain** or integration test against local Supabase (if project uses it in CI): seeded users A and B — user A never sees user B’s sessions; `finished_at IS NULL` sessions excluded; limit 5; order `finished_at DESC`; sets ordered by `set_number`. |
-| RLS | Existing policies on `set_logs` remain sufficient for direct `update`/`delete` from the client for own rows; add a negative test if the suite supports second-user fixtures. |
+| RLS | RPC path respects `sessions.user_id = auth.uid()` and existing `set_logs` policies for **select**; add a negative test if the suite supports second-user fixtures. |
 
 ### End-to-end (Playwright)
 
