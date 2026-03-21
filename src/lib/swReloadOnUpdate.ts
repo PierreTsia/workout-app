@@ -20,7 +20,7 @@ export function listenForSwUpdate() {
 
   navigator.serviceWorker.ready.then((registration) => {
     setInterval(() => {
-      registration.update()
+      registration.update().catch(() => {})
     }, UPDATE_CHECK_INTERVAL_MS)
   })
 }

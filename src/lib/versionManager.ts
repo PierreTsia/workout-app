@@ -42,24 +42,32 @@ function hasActiveSession(): boolean {
 }
 
 async function purgeWorkboxCaches() {
-  if (!("caches" in window)) return
-  const names = await caches.keys()
-  await Promise.all(
-    names.map((name) => {
-      if (name === "supabase-api" || name.startsWith("workbox-precache")) {
-        return caches.delete(name)
-      }
-      return Promise.resolve()
-    }),
-  )
+  try {
+    if (!("caches" in window)) return
+    const names = await caches.keys()
+    await Promise.all(
+      names.map((name) => {
+        if (name === "supabase-api" || name.startsWith("workbox-precache")) {
+          return caches.delete(name)
+        }
+        return Promise.resolve()
+      }),
+    )
+  } catch {
+    // Cache API may be unavailable (e.g. opaque origin, SecurityError).
+  }
 }
 
 function purgeStaleLocalStorage(preserveSession: boolean) {
-  const keys = Object.keys(localStorage)
-  for (const key of keys) {
-    if (!shouldKeep(key, preserveSession)) {
-      localStorage.removeItem(key)
+  try {
+    const keys = Object.keys(localStorage)
+    for (const key of keys) {
+      if (!shouldKeep(key, preserveSession)) {
+        localStorage.removeItem(key)
+      }
     }
+  } catch {
+    // localStorage may throw SecurityError or QuotaExceededError.
   }
 }
 
@@ -70,18 +78,24 @@ function purgeStaleLocalStorage(preserveSession: boolean) {
  * Must run BEFORE React mounts so Jotai atomWithStorage reads see clean values.
  * Does NOT reload — the SW controllerchange listener handles that when
  * the service worker itself is swapped. This avoids a double-reload.
+ *
+ * Designed to never throw — all storage/cache operations are guarded.
  */
 export async function handleVersionUpgrade(): Promise<void> {
-  const stored = localStorage.getItem(VERSION_KEY)
-  const current = __APP_VERSION__
+  try {
+    const stored = localStorage.getItem(VERSION_KEY)
+    const current = __APP_VERSION__
 
-  if (stored === current) return
+    if (stored === current) return
 
-  if (stored !== null) {
-    const activeSession = hasActiveSession()
-    await purgeWorkboxCaches()
-    purgeStaleLocalStorage(activeSession)
+    if (stored !== null) {
+      const activeSession = hasActiveSession()
+      await purgeWorkboxCaches()
+      purgeStaleLocalStorage(activeSession)
+    }
+
+    localStorage.setItem(VERSION_KEY, current)
+  } catch {
+    // Best-effort: if storage is completely inaccessible, skip upgrade silently.
   }
-
-  localStorage.setItem(VERSION_KEY, current)
 }

@@ -20,38 +20,42 @@ import { listenForSwUpdate } from "@/lib/swReloadOnUpdate"
 listenForSwUpdate()
 
 // Purge stale caches/localStorage before React mounts so Jotai atoms read clean values.
-handleVersionUpgrade().then(() => {
-  initSyncListeners()
-  prepareThemeLocalStorage(localStorage)
+handleVersionUpgrade()
+  .catch((error) => {
+    console.error("Version upgrade failed; continuing app boot.", error)
+  })
+  .finally(() => {
+    initSyncListeners()
+    prepareThemeLocalStorage(localStorage)
 
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        storageKey={THEME_STORAGE_KEY}
-        themes={["light", "dark", "system"]}
-      >
-        <QueryClientProvider client={queryClient}>
-          <ErrorBoundary
-            fallbackRender={({ error, resetErrorBoundary }) => (
-              <ErrorFallback
-                error={
-                  error instanceof Error
-                    ? error
-                    : new Error(String(error))
-                }
-                resetErrorBoundary={resetErrorBoundary}
-                variant="page"
-              />
-            )}
-          >
-            <RouterProvider router={router} />
-          </ErrorBoundary>
-          <Toaster />
-        </QueryClientProvider>
-      </ThemeProvider>
-    </StrictMode>,
-  )
-})
+    createRoot(document.getElementById("root")!).render(
+      <StrictMode>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          storageKey={THEME_STORAGE_KEY}
+          themes={["light", "dark", "system"]}
+        >
+          <QueryClientProvider client={queryClient}>
+            <ErrorBoundary
+              fallbackRender={({ error, resetErrorBoundary }) => (
+                <ErrorFallback
+                  error={
+                    error instanceof Error
+                      ? error
+                      : new Error(String(error))
+                  }
+                  resetErrorBoundary={resetErrorBoundary}
+                  variant="page"
+                />
+              )}
+            >
+              <RouterProvider router={router} />
+            </ErrorBoundary>
+            <Toaster />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </StrictMode>,
+    )
+  })
