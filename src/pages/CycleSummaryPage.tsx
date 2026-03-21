@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import {
@@ -10,7 +10,6 @@ import {
   Flame,
   CalendarCheck,
   Loader2,
-  ArrowLeft,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useCycleStats } from "@/hooks/useCycleStats"
@@ -74,8 +73,8 @@ export function CycleSummaryPage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
         <Trophy className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-bold">{t("cycleSummary.notFound")}</h2>
-        <Button variant="outline" asChild>
-          <Link to="/">{t("cycleSummary.backToWorkouts")}</Link>
+        <Button variant="outline" onClick={() => navigate("/")}>
+          {t("cycleSummary.backToWorkouts")}
         </Button>
       </div>
     )
@@ -148,7 +147,7 @@ export function CycleSummaryPage() {
           : t("cycleSummary.firstCycle")}
       </p>
 
-      {/* CTAs */}
+      {/* CTA */}
       <div className="flex w-full max-w-sm flex-col gap-3 pt-2">
         <Button
           size="lg"
@@ -157,12 +156,6 @@ export function CycleSummaryPage() {
           disabled={finishCycle.isPending}
         >
           {t("cycleSummary.startNewCycle")}
-        </Button>
-        <Button variant="ghost" size="sm" className="gap-2" asChild>
-          <Link to="/">
-            <ArrowLeft className="h-4 w-4" />
-            {t("cycleSummary.backToWorkouts")}
-          </Link>
         </Button>
       </div>
     </div>

@@ -12,7 +12,7 @@ export function AppShell() {
   const { t } = useTranslation()
   const setDrawerOpen = useSetAtom(drawerOpenAtom)
   const { pathname } = useLocation()
-  const hidSessionTimer = pathname.startsWith("/cycle-summary")
+  const hideSessionChrome = pathname.startsWith("/cycle-summary")
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -25,10 +25,10 @@ export function AppShell() {
           >
             ☰
           </button>
-          {!hidSessionTimer && <SessionTimerChip />}
+          {!hideSessionChrome && <SessionTimerChip />}
         </div>
         <div className="flex items-center gap-2">
-          <RestTimerPill />
+          {!hideSessionChrome && <RestTimerPill />}
           <SyncStatusChip />
         </div>
       </header>
