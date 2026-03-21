@@ -113,5 +113,20 @@
   "preSession.mutationError": "Enregistrement impossible. Vérifiez la connexion et réessayez.",
   "preSession.deleteLoggedTitle": "Retirer un exercice avec des séries enregistrées ?",
   "preSession.deleteLoggedDescription": "Vous avez enregistré des séries pour cet exercice. Le supprimer effacera ces enregistrements pour cette séance.",
-  "preSession.deleteLoggedContinue": "Continuer"
+  "preSession.deleteLoggedContinue": "Continuer",
+  "historySheet.cta": "Historique",
+  "historySheet.title": "Historique",
+  "historySheet.offline": "Historique indisponible hors ligne.",
+  "historySheet.loading": "Chargement de l'historique…",
+  "historySheet.loadError": "Impossible de charger l'historique.",
+  "historySheet.retry": "Réessayer",
+  "historySheet.empty": "Pas encore d'historique pour cet exercice. Terminez une séance pour le voir ici.",
+  "historySheet.trendHint": "Enregistrez cet exercice sur plusieurs séances pour voir la tendance de votre 1RM estimé.",
+  "historySheet.sessionsRegion": "Séances passées",
+  "historySheet.refreshing": "Mise à jour…",
+  "historySheet.chartCaption": "Meilleur 1RM estimé par séance ({{unit}})",
+  "historySheet.chartAria": "Tendance du 1RM estimé de {{min}} à {{max}} sur les séances récentes",
+  "historySheet.epleyInfoLabel": "Qu’est-ce que le 1RM estimé ?",
+  "historySheet.epleyInfoTitle": "1RM estimé (formule d’Epley)",
+  "historySheet.epleyInfoBody": "Cette courbe montre votre meilleur 1RM estimé par séance — la charge que vous pourriez probablement soulever une seule fois, déduite de ce que vous avez réellement enregistré (poids × répétitions).\n\nNous utilisons la formule d’Epley, très répandue en musculation. Ce n’est pas une mesure de laboratoire, mais ça aide à comparer les séances quand vous chargez plus lourd ou faites moins de répétitions."
 }

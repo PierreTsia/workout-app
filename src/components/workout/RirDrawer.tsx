@@ -12,16 +12,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { RIR_TOGGLE_CLASSES } from "@/lib/rirStyles"
 
 const DEFAULT_RIR = 2
-
-const RIR_COLORS: Record<string, string> = {
-  "0": "border-red-500 text-red-400 data-[state=on]:bg-red-500 data-[state=on]:text-white",
-  "1": "border-orange-500 text-orange-400 data-[state=on]:bg-orange-500 data-[state=on]:text-white",
-  "2": "border-yellow-500 text-yellow-400 data-[state=on]:bg-yellow-500 data-[state=on]:text-white",
-  "3": "border-green-500 text-green-400 data-[state=on]:bg-green-500 data-[state=on]:text-white",
-  "4": "border-blue-500 text-blue-400 data-[state=on]:bg-blue-500 data-[state=on]:text-white",
-}
 
 interface SetInfo {
   setNumber: number
@@ -102,7 +95,7 @@ export function RirDrawer({ open, setInfo, onConfirm }: RirDrawerProps) {
               <div key={v} className="flex flex-col items-center gap-1">
                 <ToggleGroupItem
                   value={v}
-                  className={`h-12 w-12 rounded-full border-2 text-base font-semibold ${RIR_COLORS[v]}`}
+                  className={`h-12 w-12 rounded-full border-2 text-base font-semibold ${RIR_TOGGLE_CLASSES[v]}`}
                 >
                   {v === "4" ? "4+" : v}
                 </ToggleGroupItem>
