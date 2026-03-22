@@ -7,6 +7,10 @@ export type UserGender = "male" | "female" | "other" | "prefer_not_to_say"
 
 export interface UserProfile {
   user_id: string
+  /** When set, shown instead of OAuth `full_name` in the app shell. */
+  display_name: string | null
+  /** When set, shown instead of OAuth `avatar_url` (custom upload in `avatars` bucket). */
+  avatar_url: string | null
   age: number
   weight_kg: number
   gender: UserGender

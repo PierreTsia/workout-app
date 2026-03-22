@@ -15,6 +15,7 @@ import { LibraryPage } from "@/pages/LibraryPage"
 import { CreateProgramPage } from "@/pages/CreateProgramPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
 import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
+import { AccountPage } from "@/pages/AccountPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
@@ -61,6 +62,10 @@ export const router = createBrowserRouter([
               {
                 path: "/library",
                 element: <LibraryPage />,
+              },
+              {
+                path: "/account",
+                element: <AccountPage />,
               },
               {
                 path: "/cycle-summary/:cycleId",

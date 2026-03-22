@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap, History } from "lucide-react"
+import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap, History, UserRound } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,6 +32,8 @@ import {
 } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
+import { useUserProfile } from "@/hooks/useUserProfile"
+import { resolveAvatarUrl, resolveDisplayName } from "@/lib/userDisplay"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { IOSInstallModal } from "@/components/IOSInstallModal"
 import { isIOS, isStandalone } from "@/lib/platform"
@@ -71,6 +73,7 @@ export function SideDrawer() {
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
   const user = useAtomValue(authAtom)
+  const { data: profile } = useUserProfile()
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const { resolvedTheme, setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
@@ -119,24 +122,31 @@ export function SideDrawer() {
         </SheetHeader>
 
         <div className="flex flex-col gap-2 py-4">
-          <div className="flex items-center gap-3 px-2 pb-4">
+          <Link
+            to="/account"
+            onClick={closeDrawer}
+            className="flex items-center gap-3 rounded-lg px-2 py-2 pb-4 transition-colors hover:bg-muted/60"
+          >
             <Avatar>
               <AvatarImage
-                src={user?.user_metadata?.avatar_url}
-                alt={user?.user_metadata?.full_name ?? ""}
+                src={resolveAvatarUrl(user, profile)}
+                alt=""
                 referrerPolicy="no-referrer"
               />
-              <AvatarFallback>👤</AvatarFallback>
+              <AvatarFallback>
+                <UserRound className="h-5 w-5 text-muted-foreground" />
+              </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-foreground">
-                {user?.user_metadata?.full_name ?? t("common:guest")}
+                {user ? resolveDisplayName(user, profile) || t("common:guest") : t("common:guest")}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {user?.email ?? t("common:notSignedIn")}
               </p>
             </div>
-          </div>
+            <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
 
           <Separator />
 

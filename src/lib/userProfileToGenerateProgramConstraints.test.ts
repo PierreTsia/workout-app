@@ -5,6 +5,8 @@ import type { UserProfile } from "@/types/onboarding"
 function baseProfile(over: Partial<UserProfile> = {}): UserProfile {
   return {
     user_id: "",
+    display_name: null,
+    avatar_url: null,
     gender: "male",
     age: 30,
     weight_kg: 80,

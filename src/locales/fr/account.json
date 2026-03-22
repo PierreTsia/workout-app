@@ -1,0 +1,21 @@
+{
+  "title": "Compte",
+  "back": "Retour",
+  "identitySection": "Profil",
+  "displayName": "Nom affiché",
+  "displayNameHint": "Affiché dans le menu. Laissez vide pour utiliser le nom Google.",
+  "avatar": "Photo",
+  "changePhoto": "Changer la photo",
+  "removeCustomPhoto": "Supprimer la photo personnalisée",
+  "photoHint": "JPEG, PNG ou WebP — max 1,5 Mo.",
+  "trainingSection": "Profil d'entraînement",
+  "save": "Enregistrer",
+  "saving": "Enregistrement…",
+  "loadError": "Impossible de charger votre profil.",
+  "missingProfile": "Terminez l'onboarding pour modifier votre profil d'entraînement.",
+  "saved": "Profil mis à jour.",
+  "saveError": "Enregistrement impossible. Réessayez.",
+  "avatarTypeError": "Utilisez une image JPEG, PNG ou WebP.",
+  "avatarSizeError": "L'image doit faire moins de 1,5 Mo.",
+  "avatarUploadError": "Échec de l'envoi. Vérifiez la connexion et réessayez."
+}

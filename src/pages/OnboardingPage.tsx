@@ -92,6 +92,8 @@ export function OnboardingPage() {
 
     const profile: UserProfile = {
       user_id: "",
+      display_name: null,
+      avatar_url: null,
       gender: data.gender,
       age: data.age,
       weight_kg: data.weight,

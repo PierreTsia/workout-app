@@ -17,6 +17,7 @@ import enOnboarding from "@/locales/en/onboarding.json"
 import enLibrary from "@/locales/en/library.json"
 import enGenerator from "@/locales/en/generator.json"
 import enCreateProgram from "@/locales/en/create-program.json"
+import enAccount from "@/locales/en/account.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -33,6 +34,7 @@ import frOnboarding from "@/locales/fr/onboarding.json"
 import frLibrary from "@/locales/fr/library.json"
 import frGenerator from "@/locales/fr/generator.json"
 import frCreateProgram from "@/locales/fr/create-program.json"
+import frAccount from "@/locales/fr/account.json"
 
 i18n
   .use(LanguageDetector)
@@ -55,6 +57,7 @@ i18n
         library: enLibrary,
         generator: enGenerator,
         "create-program": enCreateProgram,
+        account: enAccount,
       },
       fr: {
         common: frCommon,
@@ -72,11 +75,12 @@ i18n
         library: frLibrary,
         generator: frGenerator,
         "create-program": frCreateProgram,
+        account: frAccount,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program", "account"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

@@ -1,0 +1,21 @@
+{
+  "title": "Account",
+  "back": "Back",
+  "identitySection": "Profile",
+  "displayName": "Display name",
+  "displayNameHint": "Shown in the menu. Leave empty to use your Google name.",
+  "avatar": "Photo",
+  "changePhoto": "Change photo",
+  "removeCustomPhoto": "Remove custom photo",
+  "photoHint": "JPEG, PNG or WebP — max 1.5 MB.",
+  "trainingSection": "Training profile",
+  "save": "Save changes",
+  "saving": "Saving…",
+  "loadError": "We could not load your profile.",
+  "missingProfile": "Complete onboarding first to edit your training profile.",
+  "saved": "Profile updated.",
+  "saveError": "Could not save. Try again.",
+  "avatarTypeError": "Use a JPEG, PNG, or WebP image.",
+  "avatarSizeError": "Image must be under 1.5 MB.",
+  "avatarUploadError": "Upload failed. Check your connection and try again."
+}
