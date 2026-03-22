@@ -7,9 +7,11 @@ describe("heatmapLevelFromTrainingMinutes", () => {
   })
 
   it("steps through bands", () => {
-    expect(heatmapLevelFromTrainingMinutes(10)).toBe(1)
-    expect(heatmapLevelFromTrainingMinutes(20)).toBe(2)
-    expect(heatmapLevelFromTrainingMinutes(40)).toBe(3)
-    expect(heatmapLevelFromTrainingMinutes(90)).toBe(4)
+    expect(heatmapLevelFromTrainingMinutes(8)).toBe(1)
+    expect(heatmapLevelFromTrainingMinutes(18)).toBe(2)
+    expect(heatmapLevelFromTrainingMinutes(30)).toBe(3)
+    expect(heatmapLevelFromTrainingMinutes(47)).toBe(4)
+    expect(heatmapLevelFromTrainingMinutes(80)).toBe(5)
+    expect(heatmapLevelFromTrainingMinutes(95)).toBe(6)
   })
 })

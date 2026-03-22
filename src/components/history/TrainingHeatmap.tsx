@@ -6,6 +6,17 @@ import type { TrainingDayDense } from "@/types/history"
 
 type HeatmapDayMeta = { session_count: number }
 
+/** Seven entries: empty + six primary shades (must match heatmapLevelFromTrainingMinutes max 6). */
+const TRAINING_HEATMAP_LEVELS = [
+  "bg-muted",
+  "bg-primary/14",
+  "bg-primary/28",
+  "bg-primary/42",
+  "bg-primary/56",
+  "bg-primary/70",
+  "bg-primary/85",
+] as const
+
 export function TrainingHeatmap({
   denseRange,
   endDate,
@@ -34,6 +45,7 @@ export function TrainingHeatmap({
       rangeDays={rangeDays}
       endDate={endDate ?? new Date()}
       weekStartsOn={weekStartsOn}
+      levelClassNames={[...TRAINING_HEATMAP_LEVELS]}
       getLevelForValue={heatmapLevelFromTrainingMinutes}
       cellSize={12}
       cellGap={3}
