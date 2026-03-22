@@ -33,6 +33,15 @@
     --ring: 174 100% 39%;
 
     --radius: 0.625rem;
+
+    /* History activity heatmap — distinct stops (not primary/opacity; those collapse on dark cards) */
+    --heatmap-0: hsl(240 8% 19%);
+    --heatmap-1: hsl(174 28% 16%);
+    --heatmap-2: hsl(174 42% 24%);
+    --heatmap-3: hsl(174 58% 33%);
+    --heatmap-4: hsl(174 72% 42%);
+    --heatmap-5: hsl(174 86% 52%);
+    --heatmap-6: hsl(168 92% 62%);
   }
 
   .dark {
@@ -63,6 +72,14 @@
     --border: 240 8% 19%;
     --input: 240 8% 19%;
     --ring: 174 100% 39%;
+
+    --heatmap-0: hsl(240 8% 19%);
+    --heatmap-1: hsl(174 28% 16%);
+    --heatmap-2: hsl(174 42% 24%);
+    --heatmap-3: hsl(174 58% 33%);
+    --heatmap-4: hsl(174 72% 42%);
+    --heatmap-5: hsl(174 86% 52%);
+    --heatmap-6: hsl(168 92% 62%);
   }
 
   .light {
@@ -93,6 +110,14 @@
     --border: 240 6% 85%;
     --input: 240 6% 85%;
     --ring: 174 100% 35%;
+
+    --heatmap-0: hsl(240 5% 92%);
+    --heatmap-1: hsl(174 28% 86%);
+    --heatmap-2: hsl(174 42% 72%);
+    --heatmap-3: hsl(174 58% 54%);
+    --heatmap-4: hsl(174 72% 40%);
+    --heatmap-5: hsl(174 80% 30%);
+    --heatmap-6: hsl(168 88% 24%);
   }
 }
 

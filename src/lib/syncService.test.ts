@@ -446,6 +446,8 @@ describe("SyncService", () => {
       )
       expect(calls).toContainEqual(["sessions"])
       expect(calls).toContainEqual(["pr-aggregates"])
+      expect(calls).toContainEqual(["training-activity-by-day"])
+      expect(calls).toContainEqual(["sessions-date-range"])
       expect(calls).toContainEqual(["last-session", "ex-A"])
       expect(calls).toContainEqual(["best-1rm", "ex-A"])
       expect(calls).toContainEqual(["exercise-trend", "ex-A"])

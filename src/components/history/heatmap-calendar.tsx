@@ -71,6 +71,8 @@ export type HeatmapCalendarProps = {
   }) => React.ReactNode
   renderTooltip?: (cell: HeatmapCell) => React.ReactNode
   className?: string
+  /** Map aggregated cell value → intensity level (0 = empty). Defaults to session-count tiers. */
+  getLevelForValue?: (value: number) => number
 }
 
 function startOfDay(d: Date) {
@@ -162,6 +164,7 @@ export function HeatmapCalendar({
   renderLegend,
   renderTooltip,
   className,
+  getLevelForValue,
 }: HeatmapCalendarProps) {
   const levels = levelClassNames ?? [
     "bg-muted",
@@ -185,6 +188,7 @@ export function HeatmapCalendar({
   const weekdayIndices = axisCfg.weekdayIndices ?? [1, 3, 5]
   const monthFormat = axisCfg.monthFormat ?? "short"
   const minWeekSpacing = axisCfg.minWeekSpacing ?? 3
+  const levelForValue = getLevelForValue ?? getLevel
 
   const valueMap = React.useMemo(() => {
     const map = new Map<string, { value: number; meta?: unknown }>()
@@ -215,7 +219,7 @@ export function HeatmapCalendar({
 
         const v = inRange ? (valueMap.get(key)?.value ?? 0) : 0
         const meta = inRange ? valueMap.get(key)?.meta : undefined
-        const lvl = inRange ? getLevel(v) : 0
+        const lvl = inRange ? levelForValue(v) : 0
 
         cells.push({
           date,
@@ -238,7 +242,7 @@ export function HeatmapCalendar({
       cols.push(cells.slice(i * 7, i * 7 + 7))
     }
     return cols
-  }, [valueMap, endDate, rangeDays, weekStartsOn, levelCount])
+  }, [valueMap, endDate, rangeDays, weekStartsOn, levelCount, levelForValue])
 
   const monthLabels = React.useMemo(() => {
     if (!showAxis || !showMonths) return [] as { colIndex: number; text: string }[]
