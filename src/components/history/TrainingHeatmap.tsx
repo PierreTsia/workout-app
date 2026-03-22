@@ -6,15 +6,15 @@ import type { TrainingDayDense } from "@/types/history"
 
 type HeatmapDayMeta = { session_count: number }
 
-/** Seven entries: empty + six primary shades (must match heatmapLevelFromTrainingMinutes max 6). */
-const TRAINING_HEATMAP_LEVELS = [
-  "bg-muted",
-  "bg-primary/14",
-  "bg-primary/28",
-  "bg-primary/42",
-  "bg-primary/56",
-  "bg-primary/70",
-  "bg-primary/85",
+/** Inline palette — avoids Tailwind `bg-primary/opacity`, which reads flat on dark cards. */
+const TRAINING_HEATMAP_PALETTE = [
+  "var(--heatmap-0)",
+  "var(--heatmap-1)",
+  "var(--heatmap-2)",
+  "var(--heatmap-3)",
+  "var(--heatmap-4)",
+  "var(--heatmap-5)",
+  "var(--heatmap-6)",
 ] as const
 
 export function TrainingHeatmap({
@@ -45,7 +45,7 @@ export function TrainingHeatmap({
       rangeDays={rangeDays}
       endDate={endDate ?? new Date()}
       weekStartsOn={weekStartsOn}
-      levelClassNames={[...TRAINING_HEATMAP_LEVELS]}
+      palette={[...TRAINING_HEATMAP_PALETTE]}
       getLevelForValue={heatmapLevelFromTrainingMinutes}
       cellSize={12}
       cellGap={3}
