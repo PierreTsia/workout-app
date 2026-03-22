@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import type { UserGender, UserGoal, UserExperience, UserEquipment } from "@/types/onboarding"
+import { DisplayNameTakenError } from "@/hooks/profileErrors"
 
 const LBS_TO_KG = 0.453592
 
@@ -51,7 +52,12 @@ export function useUpdateUserProfile() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        if (error.code === "23505") {
+          throw new DisplayNameTakenError()
+        }
+        throw error
+      }
       return data
     },
     onSuccess: () => {

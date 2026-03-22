@@ -19,6 +19,7 @@ import { assertAvatarFile, removeUserAvatarFiles, uploadUserAvatar } from "@/lib
 import { supabase } from "@/lib/supabase"
 import { resolveAvatarUrl } from "@/lib/userDisplay"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
+import { isDisplayNameTakenError } from "@/hooks/profileErrors"
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
 
@@ -146,7 +147,12 @@ export function AccountPage() {
       })
       setPendingAvatarFile(null)
       toast.success(t("account:saved"))
-    } catch {
+    } catch (e) {
+      if (isDisplayNameTakenError(e)) {
+        form.setError("display_name", { message: t("account:displayNameTaken") })
+        toast.error(t("account:displayNameTaken"))
+        return
+      }
       toast.error(t("account:saveError"))
     }
   }
