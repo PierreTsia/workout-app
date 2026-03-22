@@ -1,9 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
+import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { authAtom } from "@/store/atoms"
 
 export function useProgram(programId: string | null) {
+  const user = useAtomValue(authAtom)
+
   return useQuery({
-    queryKey: ["program", programId],
+    queryKey: ["program", user?.id ?? "", programId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("programs")
@@ -14,6 +18,7 @@ export function useProgram(programId: string | null) {
       if (error) throw error
       return data
     },
-    enabled: !!programId,
+    enabled: !!programId && !!user,
+    refetchOnMount: "always",
   })
 }

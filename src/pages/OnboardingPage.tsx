@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react"
-import { Navigate, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { userProfileToGenerateProgramConstraints } from "@/lib/userProfileToGenerateProgramConstraints"
-import { hasProgramAtom } from "@/store/atoms"
+import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
@@ -44,6 +44,7 @@ type AnalyticsStepName = keyof typeof ANALYTICS_STEP_INDEX
 export function OnboardingPage() {
   const { t, i18n } = useTranslation("onboarding")
   const hasProgram = useAtomValue(hasProgramAtom)
+  const hasProgramLoading = useAtomValue(hasProgramLoadingAtom)
   const navigate = useNavigate()
 
   const [step, setStep] = useState<WizardStep>("welcome")
@@ -64,14 +65,24 @@ export function OnboardingPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Do not redirect on every `hasProgram` render: blank/skip flows set hasProgram before
+  // `navigate("/builder/...")` runs after `await mutateAsync`, and `<Navigate to="/" />`
+  // would win and strand users on home. Only bounce users who already have a program
+  // but landed on early wizard steps (bookmark, refresh, duplicate tab).
+  useEffect(() => {
+    if (hasProgramLoading) return
+    if (!hasProgram) return
+    if (step === "welcome" || step === "questionnaire") {
+      navigate("/", { replace: true })
+    }
+  }, [hasProgram, hasProgramLoading, step, navigate])
+
   function trackStepCompleted(name: AnalyticsStepName, extra?: Record<string, unknown>) {
     trackEvent.mutate({
       eventType: "onboarding_step_completed",
       payload: { step: ANALYTICS_STEP_INDEX[name], step_name: name, ...extra },
     })
   }
-
-  if (hasProgram) return <Navigate to="/" replace />
 
   const isGenerating = generateProgram.isPending
 

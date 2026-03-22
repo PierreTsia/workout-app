@@ -57,8 +57,11 @@ test.describe("Feedback — happy path", () => {
       /* dialog didn't appear */
     }
 
-    const dayLabels = page.locator("p.font-semibold")
-    await expect(dayLabels.first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    const dayLabels = page.locator("div.flex-1 > p.font-semibold")
+    await expect(dayLabels.first()).toBeVisible({ timeout: 15_000 })
 
     await dayLabels.first().click()
 

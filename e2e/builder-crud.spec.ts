@@ -59,9 +59,12 @@ test.describe("Builder — CRUD", () => {
       /* dialog didn't appear */
     }
 
-    // Wait for existing day cards to render
-    const dayLabels = page.locator("p.font-semibold")
-    await expect(dayLabels.first()).toBeVisible({ timeout: 10_000 })
+    // Day list titles live in Card > flex-1 > p (avoid matching unrelated .font-semibold)
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    const dayLabels = page.locator("div.flex-1 > p.font-semibold")
+    await expect(dayLabels.first()).toBeVisible({ timeout: 15_000 })
     const initialCount = await dayLabels.count()
 
     // --- Create a new day ---
@@ -196,8 +199,11 @@ test.describe("Builder — CRUD", () => {
       /* dialog didn't appear */
     }
 
-    const dayLabels = page.locator("p.font-semibold")
-    await expect(dayLabels.first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    const dayLabels = page.locator("div.flex-1 > p.font-semibold")
+    await expect(dayLabels.first()).toBeVisible({ timeout: 15_000 })
     await dayLabels.first().click()
 
     const addExerciseButton = page.getByRole("button", {
