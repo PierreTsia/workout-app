@@ -1,5 +1,10 @@
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { test, expect } from "@playwright/test"
 import { createClient } from "@supabase/supabase-js"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const SUPABASE_URL = "http://127.0.0.1:54321"
 const SERVICE_ROLE_KEY =
@@ -9,10 +14,17 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
+function getTestUserId(): string {
+  return fs
+    .readFileSync(path.join(__dirname, "..", "playwright", ".auth", "test-user-id.txt"), "utf-8")
+    .trim()
+}
+
 async function getActiveProgramId(): Promise<string> {
   const { data } = await admin
     .from("programs")
     .select("id")
+    .eq("user_id", getTestUserId())
     .eq("is_active", true)
     .limit(1)
     .single()
