@@ -212,7 +212,15 @@ RLS policies apply to the **anon key + user JWT** used by the app. Studio often 
 
 ### Edge Functions (e.g. AI generation)
 
-With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits **local** functions. Ensure secrets (e.g. `GEMINI_API_KEY`) are available to the local runtime (`supabase secrets` / serve workflow per [Supabase docs](https://supabase.com/docs/guides/functions)) or those calls will fail while the rest of the app works.
+With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits **local** functions. The Gemini key is **not** read from the Vite app’s `.env.local` — it must be available to the **Edge runtime**.
+
+1. Copy `supabase/functions/.env.example` → `supabase/functions/.env`.
+2. Set `GEMINI_API_KEY=` to a key from [Google AI Studio](https://aistudio.google.com/apikey).
+3. Restart Docker so the functions container picks it up: `npm run supabase:stop` then `npm run supabase:start`.
+
+If you see `{ "error": "GEMINI_API_KEY is not set" }` from `generate-program` / `generate-workout`, the local `.env` is missing or the stack was not restarted after adding it.
+
+For **hosted** Supabase, set the same variable in the [Dashboard → Edge Functions → Secrets](https://supabase.com/dashboard/project/_/settings/functions) or via `supabase secrets set GEMINI_API_KEY=...` on a linked project. See [Supabase — Environment variables](https://supabase.com/docs/guides/functions/secrets).
 
 ### E2E tests
 

@@ -17,6 +17,8 @@ dist/
 build/
 .env
 .env.local
+# Edge function secrets (see supabase/functions/.env.example)
+supabase/functions/.env
 
 # Logs
 *.log
