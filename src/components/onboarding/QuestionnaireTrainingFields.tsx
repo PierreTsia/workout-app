@@ -19,7 +19,7 @@ import {
   Cake,
   Scale,
 } from "lucide-react"
-import type { Control } from "react-hook-form"
+import { useFormContext } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useAtomValue } from "jotai"
 import { weightUnitAtom } from "@/store/atoms"
@@ -89,11 +89,8 @@ const toggleItemClass =
   "rounded-lg border border-border px-4 py-2.5 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
 
 /** Shared training questionnaire fields (onboarding + account settings). */
-export function QuestionnaireTrainingFields<T extends QuestionnaireValues>({
-  control,
-}: {
-  control: Control<T>
-}) {
+export function QuestionnaireTrainingFields() {
+  const { control } = useFormContext<QuestionnaireValues>()
   const { t } = useTranslation("onboarding")
   const weightUnit = useAtomValue(weightUnitAtom)
 
@@ -288,7 +285,7 @@ export function QuestionnaireTrainingFields<T extends QuestionnaireValues>({
                 />
               </FormControl>
               <span className="min-w-[4rem] text-center text-sm font-medium">
-                {t("daysValue", { count: field.value })}
+                {t("daysValue", { count: Number(field.value) })}
               </span>
             </div>
           </FormItem>

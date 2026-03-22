@@ -294,7 +294,7 @@ export function AccountPage() {
 
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-4 text-sm font-semibold text-foreground">{t("account:trainingSection")}</h2>
-            <QuestionnaireTrainingFields control={form.control} />
+            <QuestionnaireTrainingFields />
           </section>
 
           <Button type="submit" size="lg" className="w-full" disabled={updateProfile.isPending}>

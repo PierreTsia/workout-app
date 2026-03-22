@@ -45,7 +45,7 @@ export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
       >
         <h1 className="text-2xl font-bold">{t("questionnaireTitle")}</h1>
 
-        <QuestionnaireTrainingFields control={form.control} />
+        <QuestionnaireTrainingFields />
 
         <Button type="submit" size="lg" className="mt-auto w-full">
           {t("next")}
