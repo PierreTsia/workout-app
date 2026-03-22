@@ -135,12 +135,15 @@ export function SideDrawer() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent side="left" className="w-72 bg-card">
-        <SheetHeader>
+      <SheetContent
+        side="left"
+        className="w-72 max-w-[min(18rem,100vw-1.5rem)] bg-card p-0 px-3 pb-5 pt-12"
+      >
+        <SheetHeader className="px-0">
           <SheetTitle className="text-foreground">{t("common:menu")}</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-2 py-4">
+        <div className="flex flex-col gap-2 pb-2 pt-1">
           <Link
             to="/account"
             onClick={closeDrawer}
@@ -239,7 +242,7 @@ export function SideDrawer() {
 
           <Separator />
 
-          <div className="flex flex-col gap-3 px-2 py-2">
+          <div className="flex flex-col gap-3 py-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-foreground">{t("common:darkMode")}</span>
               <Switch
