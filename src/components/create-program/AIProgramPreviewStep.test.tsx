@@ -6,6 +6,29 @@ import { authAtom } from "@/store/atoms"
 import type { User } from "@/types/auth"
 import { AIProgramPreviewStep } from "./AIProgramPreviewStep"
 import type { AIGeneratedProgram, GenerateProgramConstraints } from "@/types/aiProgram"
+import type { Exercise } from "@/types/database"
+
+function stubExercise(overrides: Partial<Exercise> = {}): Exercise {
+  return {
+    id: "ex-1",
+    name: "Bench",
+    muscle_group: "chest",
+    emoji: "🏋️",
+    is_system: true,
+    created_at: "",
+    youtube_url: null,
+    instructions: null,
+    image_url: null,
+    equipment: "barbell",
+    difficulty_level: null,
+    name_en: null,
+    source: null,
+    secondary_muscles: null,
+    reviewed_at: null,
+    reviewed_by: null,
+    ...overrides,
+  }
+}
 
 const mockNavigate = vi.fn()
 
@@ -29,15 +52,11 @@ const program: AIGeneratedProgram = {
       muscleFocus: "Chest",
       exercises: [
         {
-          exercise: {
-            id: "ex-1",
-            name: "Bench",
-            muscle_group: "chest",
-            emoji: "🏋️",
-          },
+          exercise: stubExercise(),
           sets: 3,
           reps: "8",
           restSeconds: 90,
+          isCompound: true,
         },
       ],
     },
