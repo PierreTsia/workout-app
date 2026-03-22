@@ -81,8 +81,8 @@ const expMeta: Record<string, OptionMeta> = {
 }
 const equipMeta: Record<string, OptionMeta> = {
   gym: { key: "equipmentGym", icon: Dumbbell },
-  minimal: { key: "equipmentMinimal", icon: Weight },
-  home: { key: "equipmentHome", icon: Home },
+  minimal: { key: "equipmentMinimal", icon: Home },
+  home: { key: "equipmentHome", icon: Weight },
 }
 
 const toggleItemClass =
