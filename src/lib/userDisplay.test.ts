@@ -49,14 +49,19 @@ describe("resolveDisplayName", () => {
     ).toBe("Custom")
   })
 
-  it("falls back to OAuth full_name", () => {
-    expect(resolveDisplayName(user({ user_metadata: { full_name: "OAuth Name" } }), baseProfile)).toBe(
-      "OAuth Name",
-    )
+  it("falls back to full email before OAuth full_name", () => {
+    expect(
+      resolveDisplayName(
+        user({ email: "x@y.co", user_metadata: { full_name: "OAuth Name" } }),
+        baseProfile,
+      ),
+    ).toBe("x@y.co")
   })
 
-  it("falls back to email local part", () => {
-    expect(resolveDisplayName(user({ user_metadata: {}, email: "x@y.co" }), baseProfile)).toBe("x")
+  it("falls back to OAuth full_name when email missing", () => {
+    expect(resolveDisplayName(user({ email: undefined, user_metadata: { full_name: "OAuth Name" } }), baseProfile)).toBe(
+      "OAuth Name",
+    )
   })
 })
 

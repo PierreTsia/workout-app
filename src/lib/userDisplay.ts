@@ -1,17 +1,20 @@
 import type { User } from "@supabase/supabase-js"
 import type { UserProfile } from "@/types/onboarding"
 
-/** Shown name: custom `user_profiles.display_name`, else OAuth `full_name`, else email local-part. */
+/**
+ * Shown name: `user_profiles.display_name`, else full auth email (unique), else OAuth `full_name`.
+ * Email before Google name so the default handle stays unique for social-style features.
+ */
 export function resolveDisplayName(
   user: User | null,
   profile: UserProfile | null | undefined,
 ): string {
   const custom = profile?.display_name?.trim()
   if (custom) return custom
+  const email = user?.email?.trim()
+  if (email) return email
   const meta = user?.user_metadata?.full_name
   if (typeof meta === "string" && meta.trim()) return meta.trim()
-  const email = user?.email
-  if (email) return email.split("@")[0] ?? email
   return ""
 }
 

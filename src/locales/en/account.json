@@ -3,7 +3,7 @@
   "back": "Back",
   "identitySection": "Profile",
   "displayName": "Display name",
-  "displayNameHint": "Shown in the menu. Leave empty to use your Google name. Must be unique (case-insensitive) if set — useful for future social features.",
+  "displayNameHint": "Defaults to your sign-in email (unique per user). Change it to a friendlier public name anytime; when not empty it must be unique (case-insensitive).",
   "displayNameTaken": "That display name is already taken. Try another.",
   "avatar": "Photo",
   "changePhoto": "Change photo",

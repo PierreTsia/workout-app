@@ -3,7 +3,7 @@
   "back": "Retour",
   "identitySection": "Profil",
   "displayName": "Nom affiché",
-  "displayNameHint": "Affiché dans le menu. Laissez vide pour utiliser le nom Google. Doit être unique (sans tenir compte des majuscules) si renseigné — utile pour des fonctions sociales plus tard.",
+  "displayNameHint": "Par défaut : votre e-mail de connexion (unique par utilisateur). Remplacez-le par un nom public plus lisible ; s'il n'est pas vide, il doit rester unique (insensible à la casse).",
   "displayNameTaken": "Ce nom est déjà pris. Essayez un autre.",
   "avatar": "Photo",
   "changePhoto": "Changer la photo",
