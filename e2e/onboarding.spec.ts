@@ -127,7 +127,7 @@ test.describe("Onboarding", () => {
     await expect(page).toHaveURL("/", { timeout: 30_000 })
   })
 
-  test("onboarding AI path shows AI constraint step", async ({ page }) => {
+  test("full AI onboarding flow", async ({ page }) => {
     test.setTimeout(120_000)
     const userId = getTestUserId()
 
@@ -152,12 +152,16 @@ test.describe("Onboarding", () => {
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
     await page.getByText("AI Generate").click()
 
-    // Onboarding skips the duplicate constraint form; uses questionnaire profile → AI generation
+    // Onboarding skips the duplicate constraint form; goes straight to generation
     await expect(page.getByText("Customize your program")).not.toBeVisible({ timeout: 2_000 })
-    const generatingOrError = page
-      .getByText(/Analyzing your profile|Designing your split|Selecting exercises|Finalizing your program/i)
-      .or(page.getByRole("button", { name: /Pick a template instead/i }))
-    await expect(generatingOrError).toBeVisible({ timeout: 30_000 })
+
+    // AI preview step — generation succeeded (requires GEMINI_API_KEY in supabase/functions/.env)
+    await expect(page.getByText("Your AI Program")).toBeVisible({ timeout: 60_000 })
+
+    await page.getByRole("button", { name: /Create Program/i }).click()
+
+    // Should redirect to home after program creation, same as template flow
+    await expect(page).toHaveURL("/", { timeout: 30_000 })
   })
 
   test("onboarding blank path opens builder", async ({ page }) => {
@@ -186,6 +190,7 @@ test.describe("Onboarding", () => {
     await page.getByText("Start from scratch").click()
 
     await expect(page).toHaveURL(/\/builder\//, { timeout: 30_000 })
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({ timeout: 15_000 })
   })
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {
