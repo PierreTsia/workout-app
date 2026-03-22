@@ -19,12 +19,17 @@ interface AIProgramPreviewStepProps {
   program: AIGeneratedProgram
   constraints: GenerateProgramConstraints
   onRegenerate: () => void
+  /** Post-create navigation (default: Library). Onboarding uses `/` for parity with template flow. */
+  successReplacePath?: string
+  onProgramCreated?: (programId: string) => void
 }
 
 export function AIProgramPreviewStep({
   program,
   constraints,
   onRegenerate,
+  successReplacePath = "/library",
+  onProgramCreated,
 }: AIProgramPreviewStepProps) {
   const { t } = useTranslation("create-program")
   const navigate = useNavigate()
@@ -101,7 +106,8 @@ export function AIProgramPreviewStep({
       qc.invalidateQueries({ queryKey: ["user-programs"] })
 
       toast.success(t("created"))
-      navigate("/library", { replace: true })
+      onProgramCreated?.(prog.id)
+      navigate(successReplacePath, { replace: true })
     } catch {
       toast.error(t("errorGeneric"))
       setIsCreating(false)

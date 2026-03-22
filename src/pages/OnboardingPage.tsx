@@ -12,27 +12,46 @@ import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
 import { TemplateRecommendationStep } from "@/components/onboarding/TemplateRecommendationStep"
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
+import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
+import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
+import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
+import type { AIGeneratedProgram, GenerateProgramConstraints } from "@/types/aiProgram"
 
-type Step = "welcome" | "questionnaire" | "path" | "recommendation" | "summary"
+type WizardStep =
+  | "welcome"
+  | "questionnaire"
+  | "path"
+  | "recommendation"
+  | "summary"
+  | "ai_constraints"
+  | "ai_generating"
+  | "ai_preview"
 
-const STEP_NAMES: Record<Step, string> = {
-  welcome: "welcome",
-  questionnaire: "questionnaire",
-  path: "path_choice",
-  recommendation: "template_recommendation",
-  summary: "program_summary",
-}
+const ANALYTICS_STEP_INDEX = {
+  welcome: 1,
+  questionnaire: 2,
+  path: 3,
+  template_recommendation: 4,
+  program_summary: 5,
+  ai_constraints: 4,
+  ai_generating: 5,
+  ai_preview: 6,
+} as const
+
+type AnalyticsStepName = keyof typeof ANALYTICS_STEP_INDEX
 
 export function OnboardingPage() {
   const { t } = useTranslation("onboarding")
   const hasProgram = useAtomValue(hasProgramAtom)
   const navigate = useNavigate()
 
-  const [step, setStep] = useState<Step>("welcome")
+  const [step, setStep] = useState<WizardStep>("welcome")
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<ProgramTemplate | null>(null)
+  const [aiConstraints, setAiConstraints] = useState<GenerateProgramConstraints | null>(null)
+  const [aiResult, setAiResult] = useState<AIGeneratedProgram | null>(null)
 
   const createProfile = useCreateUserProfile()
   const generateProgram = useGenerateProgram()
@@ -46,11 +65,10 @@ export function OnboardingPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function trackStepCompleted(stepKey: Step) {
-    const stepIndex = Object.keys(STEP_NAMES).indexOf(stepKey) + 1
+  function trackStepCompleted(name: AnalyticsStepName) {
     trackEvent.mutate({
       eventType: "onboarding_step_completed",
-      payload: { step: stepIndex, step_name: STEP_NAMES[stepKey] },
+      payload: { step: ANALYTICS_STEP_INDEX[name], step_name: name },
     })
   }
 
@@ -79,15 +97,20 @@ export function OnboardingPage() {
     setStep("path")
   }
 
-  async function handleSelfDirected() {
+  async function completeBlankProgramAndGoToBuilder(programPath: "self_directed" | "guided") {
     if (!profileData) return
-    trackStepCompleted("path")
     const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
     trackEvent.mutate({
       eventType: "program_created",
-      payload: { program_id: programId, template_id: null, path: "self_directed" },
+      payload: { program_id: programId, template_id: null, path: programPath },
     })
     navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
+  }
+
+  async function handleSelfDirected() {
+    if (!profileData) return
+    trackStepCompleted("path")
+    await completeBlankProgramAndGoToBuilder("self_directed")
   }
 
   async function handleSkipTemplate() {
@@ -96,17 +119,22 @@ export function OnboardingPage() {
       eventType: "onboarding_skipped",
       payload: { from_step: 4 },
     })
+    await completeBlankProgramAndGoToBuilder("guided")
+  }
+
+  async function handleAIFallbackBlank() {
+    if (!profileData) return
     const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
     trackEvent.mutate({
       eventType: "program_created",
-      payload: { program_id: programId, template_id: null, path: "guided" },
+      payload: { program_id: programId, template_id: null, path: "self_directed" },
     })
     navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
   }
 
   async function handleConfirmProgram() {
     if (!profileData || !selectedTemplate) return
-    trackStepCompleted("summary")
+    trackStepCompleted("program_summary")
     const programId = await generateProgram.mutateAsync({
       template: selectedTemplate,
       profile: profileData,
@@ -116,6 +144,26 @@ export function OnboardingPage() {
       payload: { program_id: programId, template_id: selectedTemplate.id, path: "guided" },
     })
     navigate("/", { replace: true })
+  }
+
+  function handleAIConstraintsSubmit(constraints: GenerateProgramConstraints) {
+    trackStepCompleted("ai_constraints")
+    setAiConstraints(constraints)
+    setStep("ai_generating")
+  }
+
+  function handleAISuccess(result: AIGeneratedProgram) {
+    trackStepCompleted("ai_generating")
+    setAiResult(result)
+    setStep("ai_preview")
+  }
+
+  function handleAIProgramCreated(programId: string) {
+    trackStepCompleted("ai_preview")
+    trackEvent.mutate({
+      eventType: "program_created",
+      payload: { program_id: programId, template_id: null, path: "ai" },
+    })
   }
 
   if (isGenerating) {
@@ -151,11 +199,17 @@ export function OnboardingPage() {
 
         {step === "path" && (
           <PathChoiceStep
-            onGuided={() => {
+            onAI={() => {
+              trackStepCompleted("path")
+              setAiConstraints(null)
+              setAiResult(null)
+              setStep("ai_constraints")
+            }}
+            onTemplate={() => {
               trackStepCompleted("path")
               setStep("recommendation")
             }}
-            onSelfDirected={handleSelfDirected}
+            onBlank={handleSelfDirected}
           />
         )}
 
@@ -163,7 +217,7 @@ export function OnboardingPage() {
           <TemplateRecommendationStep
             profile={profileData}
             onSelect={(tpl) => {
-              trackStepCompleted("recommendation")
+              trackStepCompleted("template_recommendation")
               trackEvent.mutate({
                 eventType: "template_selected",
                 payload: { template_id: tpl.id, template_name: tpl.name },
@@ -181,6 +235,29 @@ export function OnboardingPage() {
             profile={profileData}
             onConfirm={handleConfirmProgram}
             onBack={() => setStep("recommendation")}
+          />
+        )}
+
+        {step === "ai_constraints" && (
+          <AIConstraintStep onSubmit={handleAIConstraintsSubmit} />
+        )}
+
+        {step === "ai_generating" && aiConstraints && (
+          <AIGeneratingStep
+            constraints={aiConstraints}
+            onSuccess={handleAISuccess}
+            onFallbackTemplate={() => setStep("recommendation")}
+            onFallbackBlank={handleAIFallbackBlank}
+          />
+        )}
+
+        {step === "ai_preview" && aiResult && aiConstraints && (
+          <AIProgramPreviewStep
+            program={aiResult}
+            constraints={aiConstraints}
+            onRegenerate={() => setStep("ai_generating")}
+            successReplacePath="/"
+            onProgramCreated={handleAIProgramCreated}
           />
         )}
       </div>

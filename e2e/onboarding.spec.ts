@@ -110,7 +110,7 @@ test.describe("Onboarding", () => {
 
     // --- Path choice step ---
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
-    await page.getByText("Recommend me a program").click()
+    await page.getByText("From template").click()
 
     // --- Template recommendation step ---
     await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
@@ -125,6 +125,62 @@ test.describe("Onboarding", () => {
 
     // --- Should redirect to home after program generation ---
     await expect(page).toHaveURL("/", { timeout: 30_000 })
+  })
+
+  test("onboarding AI path shows AI constraint step", async ({ page }) => {
+    test.setTimeout(120_000)
+    const userId = getTestUserId()
+
+    await clearUserData(userId)
+
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
+
+    await dismissNotificationDialog(page)
+
+    await page.getByRole("button", { name: "Get Started" }).click()
+    await expect(page.getByText("About you")).toBeVisible({ timeout: 5_000 })
+
+    await page.getByRole("radio", { name: /Male/ }).click()
+    await page.getByPlaceholder("e.g. 28").fill("28")
+    await page.getByPlaceholder("e.g. 75").fill("80")
+    await page.getByRole("radio", { name: /General fitness/ }).click()
+    await page.getByRole("radio", { name: /Intermediate/ }).click()
+    await page.getByRole("radio", { name: /Full gym/ }).click()
+    await page.getByRole("button", { name: "Next" }).click()
+
+    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
+    await page.getByText("AI Generate").click()
+
+    await expect(page.getByText("Customize your program")).toBeVisible({ timeout: 10_000 })
+  })
+
+  test("onboarding blank path opens builder", async ({ page }) => {
+    test.setTimeout(120_000)
+    const userId = getTestUserId()
+
+    await clearUserData(userId)
+
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
+
+    await dismissNotificationDialog(page)
+
+    await page.getByRole("button", { name: "Get Started" }).click()
+    await expect(page.getByText("About you")).toBeVisible({ timeout: 5_000 })
+
+    await page.getByRole("radio", { name: /Male/ }).click()
+    await page.getByPlaceholder("e.g. 28").fill("28")
+    await page.getByPlaceholder("e.g. 75").fill("80")
+    await page.getByRole("radio", { name: /General fitness/ }).click()
+    await page.getByRole("radio", { name: /Intermediate/ }).click()
+    await page.getByRole("radio", { name: /Full gym/ }).click()
+    await page.getByRole("button", { name: "Next" }).click()
+
+    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
+    await page.getByText("Start from scratch").click()
+
+    await expect(page).toHaveURL(/\/builder\//, { timeout: 30_000 })
   })
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {

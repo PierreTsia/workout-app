@@ -33,10 +33,12 @@
   "next": "Next",
 
   "pathTitle": "How do you want to start?",
-  "guidedTitle": "Recommend me a program",
-  "guidedDescription": "We'll suggest a plan based on your goals and experience.",
-  "selfDirectedTitle": "I'll build my own",
-  "selfDirectedDescription": "Start with an empty program and add exercises yourself.",
+  "pathAITitle": "AI Generate",
+  "pathAIDescription": "Get a personalized program based on your goals",
+  "pathTemplateTitle": "From template",
+  "pathTemplateDescription": "Pick a proven program and make it yours",
+  "pathBlankTitle": "Start from scratch",
+  "pathBlankDescription": "Build your own program exercise by exercise",
 
   "recommendationTitle": "Recommended programs",
   "recommendedBadge": "Recommended",
