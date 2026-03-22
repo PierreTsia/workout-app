@@ -8,11 +8,12 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { accountProfileSchema, type AccountProfileFormValues } from "@/components/account/accountProfileSchema"
+import { AccountValidationMessage } from "@/components/account/AccountValidationMessage"
 import { QuestionnaireTrainingFields } from "@/components/onboarding/QuestionnaireTrainingFields"
 import { toQuestionnaireOutput } from "@/components/onboarding/schema"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { assertAvatarFile, removeUserAvatarFiles, uploadUserAvatar } from "@/lib/avatarUpload"
@@ -247,7 +248,7 @@ export function AccountPage() {
                     <Input autoComplete="nickname" placeholder="" {...field} />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">{t("account:displayNameHint")}</p>
-                  <FormMessage />
+                  <AccountValidationMessage />
                 </FormItem>
               )}
             />

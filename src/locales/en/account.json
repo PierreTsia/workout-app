@@ -19,5 +19,6 @@
   "saveError": "Could not save. Try again.",
   "avatarTypeError": "Use a JPEG, PNG, or WebP image.",
   "avatarSizeError": "Image must be under 1.5 MB.",
-  "avatarUploadError": "Upload failed. Check your connection and try again."
+  "avatarUploadError": "Upload failed. Check your connection and try again.",
+  "validationDisplayNameMax": "At most 80 characters."
 }

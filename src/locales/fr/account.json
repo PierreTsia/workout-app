@@ -19,5 +19,6 @@
   "saveError": "Enregistrement impossible. Réessayez.",
   "avatarTypeError": "Utilisez une image JPEG, PNG ou WebP.",
   "avatarSizeError": "L'image doit faire moins de 1,5 Mo.",
-  "avatarUploadError": "Échec de l'envoi. Vérifiez la connexion et réessayez."
+  "avatarUploadError": "Échec de l'envoi. Vérifiez la connexion et réessayez.",
+  "validationDisplayNameMax": "80 caractères maximum."
 }
