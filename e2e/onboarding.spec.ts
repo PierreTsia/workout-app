@@ -152,7 +152,12 @@ test.describe("Onboarding", () => {
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
     await page.getByText("AI Generate").click()
 
-    await expect(page.getByText("Customize your program")).toBeVisible({ timeout: 10_000 })
+    // Onboarding skips the duplicate constraint form; uses questionnaire profile → AI generation
+    await expect(page.getByText("Customize your program")).not.toBeVisible({ timeout: 2_000 })
+    const generatingOrError = page
+      .getByText(/Analyzing your profile|Designing your split|Selecting exercises|Finalizing your program/i)
+      .or(page.getByRole("button", { name: /Pick a template instead/i }))
+    await expect(generatingOrError).toBeVisible({ timeout: 30_000 })
   })
 
   test("onboarding blank path opens builder", async ({ page }) => {

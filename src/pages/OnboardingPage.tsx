@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { userProfileToGenerateProgramConstraints } from "@/lib/userProfileToGenerateProgramConstraints"
 import { hasProgramAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
@@ -12,7 +13,6 @@ import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
 import { TemplateRecommendationStep } from "@/components/onboarding/TemplateRecommendationStep"
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
-import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
 import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
 import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
@@ -25,7 +25,6 @@ type WizardStep =
   | "path"
   | "recommendation"
   | "summary"
-  | "ai_constraints"
   | "ai_generating"
   | "ai_preview"
 
@@ -43,7 +42,7 @@ const ANALYTICS_STEP_INDEX = {
 type AnalyticsStepName = keyof typeof ANALYTICS_STEP_INDEX
 
 export function OnboardingPage() {
-  const { t } = useTranslation("onboarding")
+  const { t, i18n } = useTranslation("onboarding")
   const hasProgram = useAtomValue(hasProgramAtom)
   const navigate = useNavigate()
 
@@ -65,10 +64,10 @@ export function OnboardingPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function trackStepCompleted(name: AnalyticsStepName) {
+  function trackStepCompleted(name: AnalyticsStepName, extra?: Record<string, unknown>) {
     trackEvent.mutate({
       eventType: "onboarding_step_completed",
-      payload: { step: ANALYTICS_STEP_INDEX[name], step_name: name },
+      payload: { step: ANALYTICS_STEP_INDEX[name], step_name: name, ...extra },
     })
   }
 
@@ -146,12 +145,6 @@ export function OnboardingPage() {
     navigate("/", { replace: true })
   }
 
-  function handleAIConstraintsSubmit(constraints: GenerateProgramConstraints) {
-    trackStepCompleted("ai_constraints")
-    setAiConstraints(constraints)
-    setStep("ai_generating")
-  }
-
   function handleAISuccess(result: AIGeneratedProgram) {
     trackStepCompleted("ai_generating")
     setAiResult(result)
@@ -200,10 +193,13 @@ export function OnboardingPage() {
         {step === "path" && (
           <PathChoiceStep
             onAI={() => {
+              if (!profileData) return
               trackStepCompleted("path")
-              setAiConstraints(null)
               setAiResult(null)
-              setStep("ai_constraints")
+              const constraints = userProfileToGenerateProgramConstraints(profileData, i18n.language)
+              setAiConstraints(constraints)
+              trackStepCompleted("ai_constraints", { source: "questionnaire_profile" })
+              setStep("ai_generating")
             }}
             onTemplate={() => {
               trackStepCompleted("path")
@@ -236,10 +232,6 @@ export function OnboardingPage() {
             onConfirm={handleConfirmProgram}
             onBack={() => setStep("recommendation")}
           />
-        )}
-
-        {step === "ai_constraints" && (
-          <AIConstraintStep onSubmit={handleAIConstraintsSubmit} />
         )}
 
         {step === "ai_generating" && aiConstraints && (
