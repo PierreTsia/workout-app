@@ -32,8 +32,8 @@ import "./load-env.js"
 import { createClient } from "@supabase/supabase-js"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-/** Script client shape (avoids createClient<> overload vs ReturnType mismatch in helpers). */
-type SeedSupabaseClient = SupabaseClient<any, "public", "public", any, any>
+/** Script client (untyped DB — seed targets dynamic local schema without generated types). */
+type SeedSupabaseClient = SupabaseClient
 
 const LOCAL_DEFAULT_SUPABASE = "http://127.0.0.1:54321"
 
