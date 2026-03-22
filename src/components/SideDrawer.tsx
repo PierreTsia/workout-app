@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap } from "lucide-react"
+import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap, History } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -141,12 +141,13 @@ export function SideDrawer() {
           <Separator />
 
           <nav className="flex flex-col gap-1 py-2">
-            <Button variant="ghost" className="justify-start" asChild>
+            <Button variant="ghost" className="justify-start gap-2" asChild>
               <Link to="/history" onClick={closeDrawer}>
+                <History className="h-4 w-4" />
                 {t("common:history")}
               </Link>
             </Button>
-            <Button variant="ghost" className="justify-start" asChild>
+            <Button variant="ghost" className="justify-start gap-2" asChild>
               <Link to="/library" onClick={closeDrawer}>
                 <Library className="h-4 w-4" />
                 {t("common:library")}
@@ -154,7 +155,7 @@ export function SideDrawer() {
             </Button>
             <Button
               variant="ghost"
-              className="justify-start"
+              className="justify-start gap-2"
               onClick={() => {
                 closeDrawer()
                 navigate("/")

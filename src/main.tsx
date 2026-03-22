@@ -1,4 +1,5 @@
 import "@/lib/i18n"
+import "react-day-picker/style.css"
 import "@/styles/globals.css"
 import "@/lib/supabase"
 

@@ -9,30 +9,179 @@
  *   2. npm run seed:history -- --user-id=<uuid>
  *      or SUPABASE_HISTORY_SEED_USER_ID=<uuid> npm run seed:history
  *
+ * List users on the target instance (service role):
+ *   npm run seed:history -- --list-users
+ *
  * Re-run safe: removes previous rows where workout_label_snapshot LIKE 'Local seed%'.
  *
- * Env: VITE_SUPABASE_URL (default http://127.0.0.1:54321), SUPABASE_SERVICE_ROLE_KEY
- * (defaults to local Supabase demo service role if unset).
+ * Target URL (this script does NOT read VITE_SUPABASE_URL — that often points at hosted prod):
+ *   1. --url=http://127.0.0.1:54321
+ *   2. SUPABASE_HISTORY_SEED_URL or SEED_SUPABASE_URL
+ *   3. default http://127.0.0.1:54321
+ *
+ * Service role key resolution:
+ *   - SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY: optional override for this script only (any URL).
+ *   - Loopback URL (127.0.0.1 / localhost): always use the local CLI
+ *     [demo service role](https://supabase.com/docs/guides/local-development/cli).
+ *     SUPABASE_SERVICE_ROLE_KEY from .env is IGNORED here — it is often your hosted project's key
+ *     and would cause "invalid JWT / signature is invalid" against local Auth.
+ *   - Non-local URL: SUPABASE_SERVICE_ROLE_KEY is required (or use SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY).
  */
 
 import "./load-env.js"
 import { createClient } from "@supabase/supabase-js"
+import type { SupabaseClient } from "@supabase/supabase-js"
+
+/** Script client shape (avoids createClient<> overload vs ReturnType mismatch in helpers). */
+type SeedSupabaseClient = SupabaseClient<any, "public", "public", any, any>
+
+const LOCAL_DEFAULT_SUPABASE = "http://127.0.0.1:54321"
 
 const LOCAL_DEMO_SERVICE_ROLE =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
 
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL?.replace("localhost", "127.0.0.1") ??
-  "http://127.0.0.1:54321"
-const SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? LOCAL_DEMO_SERVICE_ROLE
-
 const PREFIX = "Local seed"
+
+function normalizeSupabaseUrl(raw: string): string {
+  return raw.trim().replace(/^http:\/\/localhost\b/i, "http://127.0.0.1")
+}
+
+function parseUrlArg(): string | undefined {
+  const arg = process.argv.find((a) => a.startsWith("--url="))
+  const raw = arg?.split("=", 2)[1]?.trim()
+  if (!raw) return undefined
+  return normalizeSupabaseUrl(raw)
+}
+
+/**
+ * Local CLI / docker: 127.0.0.1, localhost, ::1. Anything else needs an explicit service role key.
+ */
+function isLocalLoopbackApi(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr)
+    return u.hostname === "127.0.0.1" || u.hostname === "localhost" || u.hostname === "::1"
+  } catch {
+    return false
+  }
+}
+
+function resolveSeedSupabaseUrl(): string {
+  const fromCli = parseUrlArg()
+  if (fromCli) return fromCli
+  const fromEnv =
+    process.env.SUPABASE_HISTORY_SEED_URL?.trim() || process.env.SEED_SUPABASE_URL?.trim()
+  if (fromEnv) return normalizeSupabaseUrl(fromEnv)
+  return LOCAL_DEFAULT_SUPABASE
+}
+
+function resolveServiceRoleKey(supabaseUrl: string): string {
+  const seedOverride = process.env.SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY?.trim()
+  if (seedOverride) return seedOverride
+
+  if (isLocalLoopbackApi(supabaseUrl)) {
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+      console.log(
+        "[seed:history] Using local demo service role for loopback URL (SUPABASE_SERVICE_ROLE_KEY in .env is ignored — it is usually the hosted key and breaks local Auth).",
+      )
+    }
+    return LOCAL_DEMO_SERVICE_ROLE
+  }
+
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  if (key) return key
+  console.error(
+    "Non-local Supabase URL requires SUPABASE_SERVICE_ROLE_KEY or SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY.\n" +
+      "(Do not commit service role keys.)\n" +
+      "Or omit SUPABASE_HISTORY_SEED_URL / --url to use the default local stack.",
+  )
+  process.exit(1)
+}
+
+function isJwtSignatureAuthError(message: string | undefined): boolean {
+  if (!message) return false
+  const m = message.toLowerCase()
+  return (
+    m.includes("invalid jwt") ||
+    m.includes("signature is invalid") ||
+    m.includes("parse or verify signature")
+  )
+}
+
+function printJwtKeyMismatchHint(supabaseUrl: string) {
+  if (!isLocalLoopbackApi(supabaseUrl)) return
+  console.error(
+    "\nLocal Auth rejected the JWT: your .env may set SUPABASE_SERVICE_ROLE_KEY to a **hosted** service role.\n" +
+      "This script now uses the **local demo** service role for 127.0.0.1 by default.\n" +
+      "If you changed local JWT secrets, set SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY from `supabase status`.\n",
+  )
+}
 
 function parseUserId(): string | undefined {
   const arg = process.argv.find((a) => a.startsWith("--user-id="))
   if (arg) return arg.split("=", 2)[1]?.trim()
   return process.env.SUPABASE_HISTORY_SEED_USER_ID?.trim()
+}
+
+function wantsListUsers(): boolean {
+  return process.argv.some((a) => a === "--list-users" || a === "--listUsers")
+}
+
+function printAuthUserHint(supabaseUrl: string) {
+  console.error(
+    `\nThe id must exist in auth.users on THIS Supabase project (script target: ${supabaseUrl}).\n` +
+      "Common mistakes: id copied from another env / hosted project, or local stack was reset after sign-in.\n" +
+      "Fix: sign in again on that instance, then run:\n" +
+      "  npm run seed:history -- --list-users\n" +
+      "and pass --user-id=… from that list.\n",
+  )
+}
+
+async function listAuthUsers(admin: SeedSupabaseClient, supabaseUrl: string) {
+  const { data, error } = await admin.auth.admin.listUsers({ perPage: 200, page: 1 })
+  if (error) {
+    console.error("listUsers failed:", error.message)
+    if (isJwtSignatureAuthError(error.message)) printJwtKeyMismatchHint(supabaseUrl)
+    process.exit(1)
+  }
+  const users = data?.users ?? []
+  if (users.length === 0) {
+    console.log("No users in auth.users on", supabaseUrl, "— sign in once (e.g. Google), then re-run.")
+    return
+  }
+  console.log(`Users on ${supabaseUrl} (${users.length} shown, first page):\n`)
+  for (const u of users) {
+    console.log(`  ${u.id}  ${u.email ?? "(no email)"}`)
+  }
+  console.log("\nThen: npm run seed:history -- --user-id=<uuid above>")
+}
+
+async function assertUserExistsForSessions(
+  admin: SeedSupabaseClient,
+  userId: string,
+  supabaseUrl: string,
+) {
+  const { data, error } = await admin.auth.admin.getUserById(userId)
+  if (error && isJwtSignatureAuthError(error.message)) {
+    console.error(`Auth admin API failed: ${error.message}`)
+    printJwtKeyMismatchHint(supabaseUrl)
+    process.exit(1)
+  }
+  if (error || !data?.user) {
+    console.error(
+      `No auth user with id ${userId} on ${supabaseUrl}.\n` +
+        (error ? `Auth API: ${error.message}\n` : ""),
+    )
+    printAuthUserHint(supabaseUrl)
+    const { data: list } = await admin.auth.admin.listUsers({ perPage: 20, page: 1 })
+    const found = list?.users ?? []
+    if (found.length > 0) {
+      console.error("First users on this instance:")
+      for (const u of found) {
+        console.error(`  ${u.id}  ${u.email ?? ""}`)
+      }
+    }
+    process.exit(1)
+  }
 }
 
 function atDaysAgo(daysAgo: number, startHourUTC: number, durationMin: number) {
@@ -55,19 +204,32 @@ type SessionSpec = {
 }
 
 async function main() {
+  const supabaseUrl = resolveSeedSupabaseUrl()
+  const serviceRoleKey = resolveServiceRoleKey(supabaseUrl)
+  console.log(`[seed:history] ${supabaseUrl}`)
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  }) as SeedSupabaseClient
+
+  if (wantsListUsers()) {
+    await listAuthUsers(admin, supabaseUrl)
+    return
+  }
+
   const userId = parseUserId()
   if (!userId) {
     console.error(
       "Missing user id. After Google sign-in, copy auth.users.id from Studio, then:\n" +
         "  npm run seed:history -- --user-id=<uuid>\n" +
-        "or set SUPABASE_HISTORY_SEED_USER_ID",
+        "or set SUPABASE_HISTORY_SEED_USER_ID\n\n" +
+        "To print ids on this instance:\n" +
+        "  npm run seed:history -- --list-users",
     )
     process.exit(1)
   }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  await assertUserExistsForSessions(admin, userId, supabaseUrl)
 
   const { error: delErr } = await admin
     .from("sessions")
@@ -165,6 +327,9 @@ async function main() {
       .single()
     if (sErr || !session) {
       console.error("Insert session failed:", sErr?.message)
+      if (sErr?.message?.includes("sessions_user_id_fkey")) {
+        printAuthUserHint(supabaseUrl)
+      }
       process.exit(1)
     }
 
