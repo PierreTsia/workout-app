@@ -345,6 +345,8 @@ export async function drainQueue(userId: string): Promise<void> {
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
   queryClient.invalidateQueries({ queryKey: ["pr-aggregates"] })
+  queryClient.invalidateQueries({ queryKey: ["training-activity-by-day"] })
+  queryClient.invalidateQueries({ queryKey: ["sessions-date-range"] })
   queryClient.invalidateQueries({ queryKey: ["active-cycle"] })
   queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
 

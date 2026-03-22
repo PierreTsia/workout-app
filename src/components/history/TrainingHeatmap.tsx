@@ -1,7 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { HeatmapCalendar, type HeatmapCell } from "@/components/history/heatmap-calendar"
+import { heatmapLevelFromTrainingMinutes } from "@/lib/heatmapLevelFromTrainingMinutes"
 import { weekStartsOnForLanguage } from "@/lib/weekStartsOnForLanguage"
 import type { TrainingDayDense } from "@/types/history"
+
+type HeatmapDayMeta = { session_count: number }
 
 export function TrainingHeatmap({
   denseRange,
@@ -19,8 +22,8 @@ export function TrainingHeatmap({
 
   const data = denseRange.map((d) => ({
     date: d.date,
-    value: d.session_count,
-    meta: { minutes: d.minutes },
+    value: d.minutes,
+    meta: { session_count: d.session_count } satisfies HeatmapDayMeta,
   }))
 
   return (
@@ -31,6 +34,7 @@ export function TrainingHeatmap({
       rangeDays={rangeDays}
       endDate={endDate ?? new Date()}
       weekStartsOn={weekStartsOn}
+      getLevelForValue={heatmapLevelFromTrainingMinutes}
       cellSize={12}
       cellGap={3}
       onCellClick={onCellClick}
@@ -40,12 +44,19 @@ export function TrainingHeatmap({
       }}
       renderTooltip={(cell) => {
         if (cell.disabled) return t("heatmapOutsideRange")
-        const sessions = cell.value
+        const meta = cell.meta as HeatmapDayMeta | undefined
+        const sessions = meta?.session_count ?? 0
+        const minutes = cell.value
         return (
           <div className="text-sm">
             <div className="font-medium">
-              {t("heatmapSession", { count: sessions })}
+              {t("heatmapTooltipMinutes", { minutes })}
             </div>
+            {sessions > 0 ? (
+              <div className="text-muted-foreground">
+                {t("heatmapSession", { count: sessions })}
+              </div>
+            ) : null}
             <div className="text-muted-foreground">{cell.label}</div>
           </div>
         )
