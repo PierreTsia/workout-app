@@ -21,6 +21,18 @@ import { supabase } from "@/lib/supabase"
 import { resolveAvatarUrl } from "@/lib/userDisplay"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import { isDisplayNameTakenError } from "@/hooks/profileErrors"
+import { useDeleteAccount } from "@/hooks/useDeleteAccount"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
 
@@ -34,9 +46,12 @@ export function AccountPage() {
   const queryClient = useQueryClient()
   const { data: profile, isLoading, isError } = useUserProfile()
   const updateProfile = useUpdateUserProfile()
+  const deleteAccount = useDeleteAccount()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
   /** Avoid resetting the form on every render / query refetch with the same server row (wipes edits & breaks submit). */
   const profileFormSyncKeyRef = useRef<string | null>(null)
 
@@ -169,6 +184,18 @@ export function AccountPage() {
     }
   }
 
+  async function handleDeleteAccount() {
+    try {
+      await deleteAccount.mutateAsync()
+      setDeleteDialogOpen(false)
+      toast.success(t("account:deleteAccountSuccess"))
+      await supabase.auth.signOut()
+      navigate("/login", { replace: true })
+    } catch {
+      toast.error(t("account:deleteAccountError"))
+    }
+  }
+
   if (isError) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-4 pb-8 pt-4">
@@ -275,6 +302,52 @@ export function AccountPage() {
           </Button>
         </form>
       </Form>
+
+      <section className="rounded-xl border border-destructive/40 bg-card p-4">
+        <h2 className="mb-1 text-sm font-semibold text-destructive">{t("account:dangerZone")}</h2>
+        <p className="mb-4 text-xs text-muted-foreground">{t("account:deleteAccountDescription")}</p>
+        <AlertDialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open)
+            if (!open) setDeleteConfirmText("")
+          }}
+        >
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm" disabled={deleteAccount.isPending}>
+              {t("account:deleteAccount")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("account:deleteAccountDialogTitle")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("account:deleteAccountDialogDescription")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex flex-col gap-1.5 py-2">
+              <p className="text-sm text-muted-foreground">
+                {t("account:deleteAccountTypePrompt", { word: "DELETE" })}
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("account:deleteAccountCancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteConfirmText !== "DELETE" || deleteAccount.isPending}
+                onClick={handleDeleteAccount}
+              >
+                {deleteAccount.isPending ? t("account:deleteAccountDeleting") : t("account:deleteAccountConfirm")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </section>
     </div>
   )
 }

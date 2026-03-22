@@ -21,5 +21,16 @@
   "avatarSizeError": "L'image doit faire moins de 1,5 Mo.",
   "avatarUploadError": "Échec de l'envoi. Vérifiez la connexion et réessayez.",
   "validationDisplayNameMin": "5 caractères minimum.",
-  "validationDisplayNameMax": "80 caractères maximum."
+  "validationDisplayNameMax": "80 caractères maximum.",
+  "dangerZone": "Zone dangereuse",
+  "deleteAccount": "Supprimer mon compte",
+  "deleteAccountDescription": "Supprime définitivement votre compte et toutes vos données (programmes, séances, profil). Cette action est irréversible.",
+  "deleteAccountDialogTitle": "Supprimer votre compte ?",
+  "deleteAccountDialogDescription": "Tous vos programmes, séances et votre profil seront effacés définitivement. Vous serez déconnecté immédiatement. Cette action est irréversible.",
+  "deleteAccountConfirm": "Oui, supprimer mon compte",
+  "deleteAccountCancel": "Annuler",
+  "deleteAccountDeleting": "Suppression…",
+  "deleteAccountTypePrompt": "Tapez {{word}} pour confirmer :",
+  "deleteAccountSuccess": "Votre compte a été supprimé.",
+  "deleteAccountError": "Impossible de supprimer votre compte. Réessayez ou contactez le support."
 }
