@@ -206,6 +206,24 @@ After changing `config.toml` or `.env` auth vars, run `npm run supabase:stop` th
 - Seed data (e.g. exercise catalog): `supabase/seed.sql` (applied on `supabase db reset`)
 - Prefer **new migration files** for schema changes rather than only editing data in Studio, so git stays the source of truth.
 
+### History / Activity / calendar dev data (local)
+
+Login is **Google-only** in the app, so session history cannot be tied to a fixed email in `seed.sql` for your real account. Use the **service-role** script instead:
+
+1. `npm run supabase:start` (or ensure local API is up).
+2. Sign in once with **Google**, then copy your user id from **Supabase Studio** → **Authentication** → **Users** (or run `select id, email from auth.users` in the SQL editor).
+3. Run:
+
+```bash
+npm run seed:history -- --user-id=<your-auth-uuid>
+```
+
+Or set `SUPABASE_HISTORY_SEED_USER_ID` in `.env.local` and run `npm run seed:history`.
+
+This inserts ~30+ **finished** sessions over the last ~90 days (labels `Local seed — …`) plus `set_logs`, after removing any previous `Local seed%` rows for that user. Safe to re-run.
+
+`VITE_SUPABASE_URL` defaults to `http://127.0.0.1:54321`; `SUPABASE_SERVICE_ROLE_KEY` defaults to the [local demo service role](https://supabase.com/docs/guides/local-development/cli) if unset (same as E2E).
+
 ### Row Level Security (RLS)
 
 RLS policies apply to the **anon key + user JWT** used by the app. Studio often uses elevated access, so something can “work in Studio but fail in the app” when RLS blocks the client.

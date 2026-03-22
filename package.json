@@ -20,7 +20,8 @@
     "enrich-instructions": "tsx scripts/enrich-instructions.ts",
     "enrich-difficulty": "tsx scripts/enrich-difficulty.ts",
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
-    "audit-muscles": "tsx scripts/audit-muscle-tags.ts"
+    "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
+    "seed:history": "tsx scripts/seed-local-history.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -22,8 +22,9 @@ Ship **Activity** as the default History tab: a **Calendar 11–style** card ([s
 | Monthly summary metrics | **Derive from the same RPC** rows filtered to **`visibleMonth`** (calendar nav: year + month), same filter as month-scoped totals in the metrics contract | Single SQL definition of “what happened on day D”; no second aggregation path for the same facts. |
 | Global StatsDashboard | **Keep [`file:src/components/history/StatsDashboard.tsx`](file:src/components/history/StatsDashboard.tsx) above tabs** for v1; label scopes in UI (“All time” vs “This month” inside Activity) | Lowest layout churn; Epic allows this option. **Refactor** [`file:src/hooks/useStatsAggregates.ts`](file:src/hooks/useStatsAggregates.ts) to call a **shared** `fetchGlobalStatsAggregates(supabase)` so logic is not duplicated when touching stats. |
 | Optional: global counts via RPC later | **Defer** unless we want one round-trip for everything | Nice-to-have: `get_global_training_stats()` mirroring current three counts—only if we unify further. |
-| Default selected day | **(B)** Last day in **visible month** with ≥1 finished session; else **today** (if today lies in visible month) else **first day of visible month** with empty-state footer. | Epic Brief recommendation; avoids selecting a date outside the grid when browsing past months. |
+| Default selected day | **(B)** Last day in **visible month** with ≥1 finished session; else **today** (if today lies in visible month) else **first day of visible month**. | Epic Brief recommendation; avoids selecting a date outside the grid when browsing past months. |
 | Month navigation + selection | When **`visibleMonth`** changes (prev/next month), **re-apply (B)** inside that month so `selectedDate` is always **in** `visibleMonth`. User’s explicit tap on a day overrides until month changes again. | Prevents footer listing sessions for a day that isn’t in the displayed grid. |
+| **Empty month vs empty day (footer)** | **`TrainingCalendarCard`** must never assume ≥1 session in `visibleMonth`. **(1) Empty month** — no finished sessions in `visibleMonth` → **dedicated** empty state (message ± icon), **not** a silent empty list. **(2) Empty day** — selected date has no sessions while other days in the month do → **shorter** day-scoped empty copy. Both **EN/FR** in `history` namespace. | Prevents runtime errors and confusing UX when the user arrows into a month with no history. |
 | Activity list under calendar | Reuse **SessionRow** pattern from [`file:src/components/history/SessionList.tsx`](file:src/components/history/SessionList.tsx) (extract shared **SessionCard** / pass `sessions: Session[]` for one day) | One visual language; consider extracting `SessionRow` to `file:src/components/history/SessionRow.tsx` to avoid circular imports. |
 | Collapsible defaults | **Mobile:** Monthly summary + Heatmap **closed**; **Desktop:** **open**. Use **controlled** `open` + `window.matchMedia` (or small hook) so crossing a breakpoint updates state—`defaultOpen` alone **does not** fix resize. Optional: remount with `key={breakpoint}` if simpler. | Matches Epic; avoids stuck open/closed after rotate or resize. |
 | Drawer icon | **`History` from `lucide-react`** (or `CalendarDays` if you prefer visual metaphor—pick one in implementation) + `className` with `gap-2` on the `Link` inner layout | Matches [`file:src/components/SideDrawer.tsx`](file:src/components/SideDrawer.tsx) Library / Quick workout pattern. |
@@ -37,6 +38,7 @@ Ship **Activity** as the default History tab: a **Calendar 11–style** card ([s
 - **HeatmapCalendar input:** Map RPC rows to `{ date: 'YYYY-MM-DD', value: number }` (value = **minutes** or **session count** per metrics contract—**minutes** preferred). The RPC returns **sparse** rows (days with activity only); **`TrainingHeatmap` must gap-fill** every day in `[p_from, p_to]` with `value: 0` before passing to `HeatmapCalendar`, **unless** the migration uses `generate_series` + `LEFT JOIN` to return dense rows (either approach is fine—pick one and stick to it).
 - **Calendar modifiers:** Use react-day-picker **modifiers** for “has session” (any day with `session_count > 0` from a **month-scoped** query or from in-memory map built from RPC range covering the displayed month).
 - **i18n:** [`file:package.json`](package.json) (`react-i18next`) — pass `i18n.language` into Calendar `locale` prop; weekday row must follow **locale first day of week** (react-day-picker locale objects).
+- **Empty states:** Footer session list = **always** either rows **or** a dedicated empty block—**never** rely on “zero height silence.” Guard data (`sessionsForSelectedDay ?? []`); no throwing hooks. Month-empty copy can be motivational (e.g. FR *« Aucune séance ce mois-ci — va soulever de la fonte ! »* / EN equivalent with matching tone).
 
 ---
 
@@ -196,14 +198,18 @@ graph TD
 
 **`ActivityTab`**
 - Owns **`visibleMonth`** (calendar page) and **`selectedDate`**; **monthly summary** always uses **`visibleMonth`** (year + month), never an inferred month from a stale selection.
-- On **`visibleMonth` change:** re-apply default **(B)**—last day in that month with a session (from buckets or month query), else first day of month with empty footer; reset after user picks a day only until the next month change.
+- On **`visibleMonth` change:** re-apply default **(B)**—last day in that month with a session (from buckets or month query), else first day of month. If the month has **no** finished sessions, **`hasSessionsInVisibleMonth`** is false → **`TrainingCalendarCard`** shows **month empty state** (not an error, not a bare list).
 - Calls `useTrainingActivityByDay` with range: e.g. **heatmap** = last **371** days (~53 weeks) or **365** days per [Fitness demo](https://heatmap-shadcn.vercel.app/#docs); ensure range **covers** `visibleMonth`.
 - Derives **monthly summary** from buckets filtered to **`visibleMonth`**.
 - **Collapsibles:** **controlled** `open` state synced to `matchMedia('(max-width: …)')` (breakpoint aligned with Tailwind `md` or `lg`) so resize/rotate updates correctly; see Key Decisions.
 
 **`TrainingCalendarCard`**
 - Renders **Calendar** with `mode="single"`, `selected`, `onSelect`, `month` controlled for prev/next if needed.
-- **Footer:** formatted full date (i18n), list of **Session** for that day (filter from **bounded** `useSessionHistoryForMonth` or filter from RPC + fetch session details—see Failure Modes).
+- **Footer — empty states (required):**
+  - **`monthHasNoSessions`:** When **`visibleMonth`** has **zero** finished sessions (from RPC buckets or month-scoped query), render a **dedicated empty state** in **`CardFooter`** (title + optional subtitle)—**not** a silent zero-row list. Example copy (finalize in `history` JSON): FR *« Aucune séance ce mois-ci »* / *« Va soulever de la fonte ! »*; EN *« No sessions this month »* + short motivating line. Calendar stays interactive (month nav, day selection).
+  - **`dayHasNoSessions`:** When the month **has** sessions elsewhere but **`selectedDate`** is a rest day, show a **shorter** empty message (e.g. FR *« Rien ce jour-là »* / EN *« Nothing logged that day »*)—must **not** reuse month-empty copy so scope is clear.
+  - **Robustness:** Day session list = `map` over **always-defined array** (`[]` default); loading skeleton while fetching; **`SessionRow` only when there are rows**—no invalid partial props.
+- **Footer (data row):** formatted full date (i18n), then empty state **or** **Session** list for `selectedDate` (bounded fetch — see Failure Modes).
 - **Modifiers:** `hasTraining` from map built from RPC.
 
 **`TrainingHeatmap`**
@@ -224,6 +230,8 @@ graph TD
 | `useSessionHistory` still loads all rows | **Do not** use full list for heatmap; for **day footer**, either **lazy** `useQuery` sessions-for-day (new hook with `.gte` / `.lte` on `started_at` or `finished_at`) or filter client-side only if we keep a **month-scoped** fetch. **Recommendation:** add `useSessionsForDateRange(fromIso, toIso)` with `.not('finished_at','is',null)` bounded to **visible month ± 1 day** for calendar list detail. |
 | User offline | Match existing History behavior; show loading/error from React Query. |
 | Calendar block incompatible with Vite | Fall back: hand-build Card + [`file:src/components/ui/calendar.tsx`](src/components/ui/calendar.tsx) from official `shadcn add calendar` and replicate Calendar 11 layout manually. |
+| **Month with zero sessions** (month arrows) | Stable UI: **month empty state** in footer—no React throw, no ghost list. When navigating to a month **with** data, **(B)** restores last active day or user’s tap. |
+| **Selected day has no session** (other days in month do) | Show **day empty state**; do **not** reuse month-empty copy. |
 
 ---
 
@@ -233,7 +241,7 @@ graph TD
 2. **Refactor:** `fetchGlobalStatsAggregates` + thin `useStatsAggregates`.
 3. **UI deps:** Install **calendar-11** block + **heatmap-calendar** files; fix imports / remove `use client` / remove Plus button.
 4. **History layout:** `HistoryPage` tabs + `ActivityTab` shell + Collapsibles.
-5. **`TrainingCalendarCard`** + session list + modifiers + default day (B).
+5. **`TrainingCalendarCard`** + session list + modifiers + default day (B) + **month / day empty states** + i18n keys.
 6. **`TrainingHeatmap`** + wire data; mobile collapsed sections.
 7. **`MonthlySummaryStrip`** + i18n EN/FR.
 8. **Drawer** icon.
@@ -244,10 +252,21 @@ graph TD
 
 ## Testing strategy
 
-- **Unit / component:** `TrainingCalendarCard` — change day, empty list, keyboard focus on calendar (if exposed by react-day-picker).
+- **Unit / component:** `TrainingCalendarCard` — change day; **navigate to month with zero sessions** → assert **month empty** message (not crash); **select rest day in a month that has sessions elsewhere** → **day empty** message; keyboard focus on calendar if exposed by react-day-picker.
 - **Hook:** Mock Supabase client returns fixed RPC rows; assert heatmap `data` mapping.
 - **SQL:** Local `supabase db reset` + seed script or manual inserts; `EXPLAIN ANALYZE` RPC.
 - **A11y:** VoiceOver: rest vs training day labels; visible focus on day cells.
+
+---
+
+## Local dev data (History / heatmap)
+
+The app’s **Google-only** login means `seed.sql` cannot attach sessions to your real account. Use the **service-role** script instead:
+
+- **`npm run seed:history -- --user-id=<auth.users.id>`** after copying your UUID from Supabase Studio (see [`file:README.md`](README.md) → *History / Activity / calendar dev data*).
+- Inserts **finished** sessions (`workout_label_snapshot` prefixed `Local seed — …`) and **`set_logs`** spread over ~90 days; **idempotent** (deletes prior `Local seed%` rows for that user).
+
+No change to `sql_paths` in [`file:supabase/config.toml`](supabase/config.toml)—this stays separate from the exercise catalogue seed so CI and `db reset` behaviour stay predictable.
 
 ---
 
