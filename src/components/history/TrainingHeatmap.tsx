@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { HeatmapCalendar, type HeatmapCell } from "@/components/history/heatmap-calendar"
+import { weekStartsOnForLanguage } from "@/lib/weekStartsOnForLanguage"
 import type { TrainingDayDense } from "@/types/history"
 
 export function TrainingHeatmap({
@@ -13,7 +14,8 @@ export function TrainingHeatmap({
   rangeDays?: number
   onCellClick?: (cell: HeatmapCell) => void
 }) {
-  const { t } = useTranslation("history")
+  const { t, i18n } = useTranslation("history")
+  const weekStartsOn = weekStartsOnForLanguage(i18n.language)
 
   const data = denseRange.map((d) => ({
     date: d.date,
@@ -28,7 +30,7 @@ export function TrainingHeatmap({
       data={data}
       rangeDays={rangeDays}
       endDate={endDate ?? new Date()}
-      weekStartsOn={1}
+      weekStartsOn={weekStartsOn}
       cellSize={12}
       cellGap={3}
       onCellClick={onCellClick}

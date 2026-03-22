@@ -87,9 +87,10 @@ export function ActivityTab() {
 
   const daySessions = useMemo(() => {
     if (!selectedDate) return []
-    return rangeSessions.filter(
-      (s) => formatSessionDayKeyInTimeZone(s.started_at, tz) === selectedKey,
-    )
+    return rangeSessions.filter((s) => {
+      if (!s.finished_at) return false
+      return formatSessionDayKeyInTimeZone(s.finished_at, tz) === selectedKey
+    })
   }, [rangeSessions, selectedDate, selectedKey, tz])
 
   const hasSessionsInVisibleMonth = (monthRows ?? []).some((r) => r.session_count > 0)

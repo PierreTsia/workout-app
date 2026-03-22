@@ -10,7 +10,7 @@ export function useTrainingActivityByDay(pFrom: string, pTo: string, tzOverride?
   const tz = tzOverride ?? getResolvedIANATimeZone()
 
   return useQuery({
-    queryKey: ["training-activity-by-day", pFrom, pTo, tz],
+    queryKey: ["training-activity-by-day", user?.id, pFrom, pTo, tz],
     queryFn: async (): Promise<TrainingDayBucketRow[]> => {
       const { data, error } = await supabase.rpc("get_training_activity_by_day", {
         p_from: pFrom,
