@@ -1,0 +1,35 @@
+{
+  "title": "Politique de confidentialité",
+  "lastUpdated": "Dernière mise à jour : mars 2026",
+  "backToApp": "Retour à l'appli",
+
+  "s1Title": "Qui sommes-nous",
+  "s1Body": "Cette appli est un projet personnel indépendant. Il n'y a pas d'entreprise derrière — juste un développeur. Pour toute question relative à la confidentialité : pierre.tsiakkaros@gmail.com.",
+
+  "s2Title": "Ce que nous collectons et pourquoi",
+  "s2Auth": "Identité de connexion (adresse e-mail, nom, photo de profil) via Google OAuth, traitée par Supabase Auth. Utilisée uniquement pour identifier votre compte.",
+  "s2Profile": "Profil d'entraînement (nom affiché, avatar, objectif, niveau, équipement, âge, poids) que vous saisissez volontairement. Utilisé pour personnaliser les entraînements et les suggestions IA.",
+  "s2Workout": "Données d'entraînement (programmes, séances, exercices, séries) que vous enregistrez dans l'appli. C'est le cœur du service.",
+  "s2Analytics": "Événements d'interaction (ex. fonctionnalités utilisées) stockés dans une table analytics_events. Ils nous aident à comprendre l'utilisation de l'appli.",
+  "s2AI": "Requêtes de génération d'entraînements et de programmes envoyées à l'API Google Gemini. Les invites incluent votre profil d'entraînement, mais pas votre nom ni votre e-mail.",
+  "s2Device": "Stockage local : une file de synchronisation hors ligne, des préférences (langue, thème, unité de poids) et un cache PWA. Rien de cela ne quitte votre appareil, sauf pour la synchronisation avec notre serveur.",
+
+  "s3Title": "Où vos données sont traitées",
+  "s3Body": "Vos données sont stockées chez Supabase (base de données, authentification, fichiers). Les requêtes de génération IA sont envoyées à Google Gemini. L'appli est hébergée sur Vercel. Ce sont les seuls sous-traitants. Nous ne vendons ni ne partageons vos données avec qui que ce soit d'autre.",
+
+  "s4Title": "Durée de conservation",
+  "s4Active": "Toutes les données d'entraînement, votre profil et votre avatar sont liés à votre compte et supprimés lors de la suppression de celui-ci.",
+  "s4Analytics": "Les événements analytiques sont pseudonymisés lors de la suppression du compte — votre identifiant utilisateur est retiré, mais l'enregistrement de l'événement subsiste sous forme agrégée. Nous ne conservons aucun événement pouvant être retracé jusqu'à vous personnellement.",
+  "s4Avatar": "Les fichiers avatar stockés dans notre espace de fichiers sont définitivement supprimés lors de la suppression de votre compte.",
+
+  "s5Title": "Vos droits",
+  "s5Access": "Accédez à vos données et corrigez-les à tout moment via les paramètres du compte.",
+  "s5Delete": "Supprimez votre compte et toutes les données associées depuis les paramètres du compte. La suppression est immédiate et irréversible.",
+  "s5Contact": "Pour toute autre demande (export de données, opposition, réclamation), écrivez à pierre.tsiakkaros@gmail.com.",
+
+  "s6Title": "Sécurité",
+  "s6Body": "Toutes les données sont protégées par la sécurité au niveau des lignes (RLS) en base de données — vous ne pouvez lire et modifier que vos propres enregistrements. Les connexions utilisent HTTPS. Nous ne stockons pas de mots de passe (Google gère l'authentification).",
+
+  "s7Title": "Modifications de cette politique",
+  "s7Body": "En cas de modification importante, nous mettrons à jour la date en haut de cette page. L'utilisation continue de l'appli après une modification vaut acceptation."
+}

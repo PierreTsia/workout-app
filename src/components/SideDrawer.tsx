@@ -306,6 +306,12 @@ export function SideDrawer() {
                 {t("common:about")}
               </Link>
             </Button>
+            <Button variant="ghost" className={cn(navRowClass, "h-10 text-muted-foreground hover:text-foreground")} size="sm" asChild>
+              <Link to="/privacy" onClick={closeDrawer} className="flex items-center">
+                <Shield className={navIconClass} strokeWidth={1.75} />
+                {t("common:privacy")}
+              </Link>
+            </Button>
             {showInstallButton && (
               <Button
                 variant="ghost"
