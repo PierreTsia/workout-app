@@ -3,7 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
 import { useTheme } from "next-themes"
 import { useTranslation } from "react-i18next"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import {
   Dialog,
   DialogContent,
@@ -137,13 +137,11 @@ export function SideDrawer() {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent
         side="left"
-        className="w-72 max-w-[min(18rem,100vw-1.5rem)] bg-card p-0 px-3 pb-5 pt-12"
+        className="w-72 max-w-[min(18rem,100vw-1.5rem)] bg-card p-0 px-3 pb-5 pt-11"
       >
-        <SheetHeader className="px-0">
-          <SheetTitle className="text-foreground">{t("common:menu")}</SheetTitle>
-        </SheetHeader>
+        <SheetTitle className="sr-only">{t("common:menu")}</SheetTitle>
 
-        <div className="flex flex-col gap-2 pb-2 pt-1">
+        <div className="flex flex-col gap-2 pb-2">
           <Link
             to="/account"
             onClick={closeDrawer}
