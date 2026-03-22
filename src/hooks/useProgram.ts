@@ -15,5 +15,6 @@ export function useProgram(programId: string | null) {
       return data
     },
     enabled: !!programId,
+    refetchOnMount: "always",
   })
 }

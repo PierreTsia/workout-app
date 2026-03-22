@@ -1,11 +1,12 @@
-import { Sparkles, Wrench } from "lucide-react"
+import { Sparkles, Copy, PenLine } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 interface PathChoiceStepProps {
-  onGuided: () => void
-  onSelfDirected: () => void
+  onAI: () => void
+  onTemplate: () => void
+  onBlank: () => void
 }
 
 function PathCard({
@@ -46,7 +47,7 @@ function PathCard({
   )
 }
 
-export function PathChoiceStep({ onGuided, onSelfDirected }: PathChoiceStepProps) {
+export function PathChoiceStep({ onAI, onTemplate, onBlank }: PathChoiceStepProps) {
   const { t } = useTranslation("onboarding")
 
   return (
@@ -55,15 +56,21 @@ export function PathChoiceStep({ onGuided, onSelfDirected }: PathChoiceStepProps
       <div className="grid w-full max-w-sm gap-4">
         <PathCard
           icon={Sparkles}
-          title={t("guidedTitle")}
-          description={t("guidedDescription")}
-          onClick={onGuided}
+          title={t("pathAITitle")}
+          description={t("pathAIDescription")}
+          onClick={onAI}
         />
         <PathCard
-          icon={Wrench}
-          title={t("selfDirectedTitle")}
-          description={t("selfDirectedDescription")}
-          onClick={onSelfDirected}
+          icon={Copy}
+          title={t("pathTemplateTitle")}
+          description={t("pathTemplateDescription")}
+          onClick={onTemplate}
+        />
+        <PathCard
+          icon={PenLine}
+          title={t("pathBlankTitle")}
+          description={t("pathBlankDescription")}
+          onClick={onBlank}
         />
       </div>
     </div>

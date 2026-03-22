@@ -110,7 +110,7 @@ test.describe("Onboarding", () => {
 
     // --- Path choice step ---
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
-    await page.getByText("Recommend me a program").click()
+    await page.getByText("From template").click()
 
     // --- Template recommendation step ---
     await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
@@ -125,6 +125,77 @@ test.describe("Onboarding", () => {
 
     // --- Should redirect to home after program generation ---
     await expect(page).toHaveURL("/", { timeout: 30_000 })
+  })
+
+  test("onboarding AI path — preview or template fallback", async ({ page }) => {
+    test.setTimeout(120_000)
+    const userId = getTestUserId()
+
+    await clearUserData(userId)
+
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
+
+    await dismissNotificationDialog(page)
+
+    await page.getByRole("button", { name: "Get Started" }).click()
+    await expect(page.getByText("About you")).toBeVisible({ timeout: 5_000 })
+
+    await page.getByRole("radio", { name: /Male/ }).click()
+    await page.getByPlaceholder("e.g. 28").fill("28")
+    await page.getByPlaceholder("e.g. 75").fill("80")
+    await page.getByRole("radio", { name: /General fitness/ }).click()
+    await page.getByRole("radio", { name: /Intermediate/ }).click()
+    await page.getByRole("radio", { name: /Full gym/ }).click()
+    await page.getByRole("button", { name: "Next" }).click()
+
+    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
+    await page.getByText("AI Generate").click()
+
+    // Onboarding skips the duplicate constraint form; goes straight to generation
+    await expect(page.getByText("Customize your program")).not.toBeVisible({ timeout: 2_000 })
+
+    // Local: GEMINI_API_KEY in supabase/functions/.env → preview. CI: no key → error UI + fallback.
+    const previewTitle = page.getByText("Your AI Program")
+    const templateFallback = page.getByRole("button", { name: /Pick a template instead/i })
+    await expect(previewTitle.or(templateFallback)).toBeVisible({ timeout: 60_000 })
+
+    if (await previewTitle.isVisible()) {
+      await page.getByRole("button", { name: /Create Program/i }).click()
+      await expect(page).toHaveURL("/", { timeout: 30_000 })
+    } else {
+      await templateFallback.click()
+      await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
+    }
+  })
+
+  test("onboarding blank path opens builder", async ({ page }) => {
+    test.setTimeout(120_000)
+    const userId = getTestUserId()
+
+    await clearUserData(userId)
+
+    await page.goto("/")
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
+
+    await dismissNotificationDialog(page)
+
+    await page.getByRole("button", { name: "Get Started" }).click()
+    await expect(page.getByText("About you")).toBeVisible({ timeout: 5_000 })
+
+    await page.getByRole("radio", { name: /Male/ }).click()
+    await page.getByPlaceholder("e.g. 28").fill("28")
+    await page.getByPlaceholder("e.g. 75").fill("80")
+    await page.getByRole("radio", { name: /General fitness/ }).click()
+    await page.getByRole("radio", { name: /Intermediate/ }).click()
+    await page.getByRole("radio", { name: /Full gym/ }).click()
+    await page.getByRole("button", { name: "Next" }).click()
+
+    await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
+    await page.getByText("Start from scratch").click()
+
+    await expect(page).toHaveURL(/\/builder\//, { timeout: 30_000 })
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({ timeout: 15_000 })
   })
 
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {

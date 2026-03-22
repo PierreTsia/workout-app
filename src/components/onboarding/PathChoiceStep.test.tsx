@@ -5,51 +5,65 @@ import { renderWithProviders } from "@/test/utils"
 import { PathChoiceStep } from "./PathChoiceStep"
 
 describe("PathChoiceStep", () => {
-  it("renders both path cards", () => {
-    renderWithProviders(
-      <PathChoiceStep onGuided={vi.fn()} onSelfDirected={vi.fn()} />,
+  function renderStep() {
+    return renderWithProviders(
+      <PathChoiceStep onAI={vi.fn()} onTemplate={vi.fn()} onBlank={vi.fn()} />,
     )
-    expect(screen.getByText("Recommend me a program")).toBeInTheDocument()
-    expect(screen.getByText("I'll build my own")).toBeInTheDocument()
+  }
+
+  it("renders all three path cards", () => {
+    renderStep()
+    expect(screen.getByText("AI Generate")).toBeInTheDocument()
+    expect(screen.getByText("From template")).toBeInTheDocument()
+    expect(screen.getByText("Start from scratch")).toBeInTheDocument()
   })
 
-  it("calls onGuided when guided card is clicked", async () => {
-    const onGuided = vi.fn()
+  it("calls onAI when AI card is clicked", async () => {
+    const onAI = vi.fn()
     renderWithProviders(
-      <PathChoiceStep onGuided={onGuided} onSelfDirected={vi.fn()} />,
+      <PathChoiceStep onAI={onAI} onTemplate={vi.fn()} onBlank={vi.fn()} />,
     )
-    await userEvent.click(screen.getByText("Recommend me a program"))
-    expect(onGuided).toHaveBeenCalledOnce()
+    await userEvent.click(screen.getByText("AI Generate"))
+    expect(onAI).toHaveBeenCalledOnce()
   })
 
-  it("calls onSelfDirected when self-directed card is clicked", async () => {
-    const onSelfDirected = vi.fn()
+  it("calls onTemplate when template card is clicked", async () => {
+    const onTemplate = vi.fn()
     renderWithProviders(
-      <PathChoiceStep onGuided={vi.fn()} onSelfDirected={onSelfDirected} />,
+      <PathChoiceStep onAI={vi.fn()} onTemplate={onTemplate} onBlank={vi.fn()} />,
     )
-    await userEvent.click(screen.getByText("I'll build my own"))
-    expect(onSelfDirected).toHaveBeenCalledOnce()
+    await userEvent.click(screen.getByText("From template"))
+    expect(onTemplate).toHaveBeenCalledOnce()
   })
 
-  it("activates guided card with Enter key", async () => {
-    const onGuided = vi.fn()
+  it("calls onBlank when blank card is clicked", async () => {
+    const onBlank = vi.fn()
     renderWithProviders(
-      <PathChoiceStep onGuided={onGuided} onSelfDirected={vi.fn()} />,
+      <PathChoiceStep onAI={vi.fn()} onTemplate={vi.fn()} onBlank={onBlank} />,
     )
-    const card = screen.getByText("Recommend me a program").closest("[role='button']") as HTMLElement
+    await userEvent.click(screen.getByText("Start from scratch"))
+    expect(onBlank).toHaveBeenCalledOnce()
+  })
+
+  it("activates template card with Enter key", async () => {
+    const onTemplate = vi.fn()
+    renderWithProviders(
+      <PathChoiceStep onAI={vi.fn()} onTemplate={onTemplate} onBlank={vi.fn()} />,
+    )
+    const card = screen.getByText("From template").closest("[role='button']") as HTMLElement
     card.focus()
     await userEvent.keyboard("{Enter}")
-    expect(onGuided).toHaveBeenCalledOnce()
+    expect(onTemplate).toHaveBeenCalledOnce()
   })
 
-  it("activates self-directed card with Space key", async () => {
-    const onSelfDirected = vi.fn()
+  it("activates blank card with Space key", async () => {
+    const onBlank = vi.fn()
     renderWithProviders(
-      <PathChoiceStep onGuided={vi.fn()} onSelfDirected={onSelfDirected} />,
+      <PathChoiceStep onAI={vi.fn()} onTemplate={vi.fn()} onBlank={onBlank} />,
     )
-    const card = screen.getByText("I'll build my own").closest("[role='button']") as HTMLElement
+    const card = screen.getByText("Start from scratch").closest("[role='button']") as HTMLElement
     card.focus()
     await userEvent.keyboard(" ")
-    expect(onSelfDirected).toHaveBeenCalledOnce()
+    expect(onBlank).toHaveBeenCalledOnce()
   })
 })

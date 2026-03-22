@@ -1,5 +1,10 @@
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { test, expect } from "@playwright/test"
 import { createClient } from "@supabase/supabase-js"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const SUPABASE_URL = "http://127.0.0.1:54321"
 const SERVICE_ROLE_KEY =
@@ -9,6 +14,12 @@ const TEST_EMAIL = "e2e-test@example.com"
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
+
+function getTestUserId(): string {
+  return fs
+    .readFileSync(path.join(__dirname, "..", "playwright", ".auth", "test-user-id.txt"), "utf-8")
+    .trim()
+}
 
 test.describe("Feedback — happy path", () => {
   test.afterAll(async () => {
@@ -44,6 +55,7 @@ test.describe("Feedback — happy path", () => {
     const { data: activeProgram } = await admin
       .from("programs")
       .select("id")
+      .eq("user_id", getTestUserId())
       .eq("is_active", true)
       .limit(1)
       .single()
@@ -57,8 +69,11 @@ test.describe("Feedback — happy path", () => {
       /* dialog didn't appear */
     }
 
-    const dayLabels = page.locator("p.font-semibold")
-    await expect(dayLabels.first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    const dayLabels = page.locator("div.flex-1 > p.font-semibold")
+    await expect(dayLabels.first()).toBeVisible({ timeout: 15_000 })
 
     await dayLabels.first().click()
 

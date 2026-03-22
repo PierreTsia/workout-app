@@ -33,10 +33,12 @@
   "next": "Suivant",
 
   "pathTitle": "Comment voulez-vous commencer ?",
-  "guidedTitle": "Recommandez-moi un programme",
-  "guidedDescription": "On vous suggère un plan adapté à vos objectifs et votre niveau.",
-  "selfDirectedTitle": "Je construis le mien",
-  "selfDirectedDescription": "Partez d'un programme vide et ajoutez vos exercices.",
+  "pathAITitle": "Génération IA",
+  "pathAIDescription": "Un programme personnalisé selon vos objectifs",
+  "pathTemplateTitle": "À partir d'un modèle",
+  "pathTemplateDescription": "Choisissez un programme éprouvé et adaptez-le",
+  "pathBlankTitle": "Partir de zéro",
+  "pathBlankDescription": "Créez votre programme exercice par exercice",
 
   "recommendationTitle": "Programmes recommandés",
   "recommendedBadge": "Recommandé",
