@@ -23,7 +23,6 @@ import {
   Shield,
   Library,
   ChevronDown,
-  ChevronRight,
   Zap,
   History,
   UserRound,
@@ -126,6 +125,14 @@ export function SideDrawer() {
     i18n.changeLanguage(v)
   }
 
+  const profileDisplayName = user
+    ? resolveDisplayName(user, profile) || t("common:guest")
+    : t("common:guest")
+  const userEmail = user?.email ?? null
+  const showEmailSubline =
+    userEmail !== null &&
+    profileDisplayName.trim().toLowerCase() !== userEmail.trim().toLowerCase()
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent side="left" className="w-72 bg-card">
@@ -139,40 +146,38 @@ export function SideDrawer() {
             onClick={closeDrawer}
             aria-label={t("account:openAccountAria")}
             className={
-              "group flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-3 py-3 " +
+              "group flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-2 py-2 " +
               "transition-colors hover:border-primary/35 hover:bg-muted/50 active:bg-muted/65 " +
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             }
           >
-            <Avatar className="h-12 w-12 shrink-0 border border-border">
+            <Avatar className="h-9 w-9 shrink-0 border border-border">
               <AvatarImage
                 src={resolveAvatarUrl(user, profile)}
                 alt=""
                 referrerPolicy="no-referrer"
               />
               <AvatarFallback>
-                <UserRound className="h-6 w-6 text-muted-foreground" />
+                <UserRound className="h-4 w-4 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate font-medium text-foreground">
-                {user ? resolveDisplayName(user, profile) || t("common:guest") : t("common:guest")}
+              <p className="line-clamp-2 break-words text-sm font-medium leading-snug text-foreground">
+                {profileDisplayName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user?.email ?? t("common:notSignedIn")}
-              </p>
+              {showEmailSubline ? (
+                <p className="mt-0.5 line-clamp-2 break-all text-[11px] leading-snug text-muted-foreground">
+                  {userEmail}
+                </p>
+              ) : user ? null : (
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{t("common:notSignedIn")}</p>
+              )}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <div
-                className="rounded-lg border border-primary/30 bg-primary/10 p-2.5 transition-colors group-hover:border-primary/45 group-hover:bg-primary/15"
-                aria-hidden
-              >
-                <Settings className="h-5 w-5 text-primary" />
-              </div>
-              <ChevronRight
-                className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
-                aria-hidden
-              />
+            <div
+              className="shrink-0 rounded-md border border-primary/30 bg-primary/10 p-1.5 transition-colors group-hover:border-primary/45 group-hover:bg-primary/15"
+              aria-hidden
+            >
+              <Settings className="h-4 w-4 text-primary" />
             </div>
           </Link>
 
