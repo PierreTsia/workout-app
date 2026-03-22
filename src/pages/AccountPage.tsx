@@ -37,6 +37,8 @@ export function AccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null)
+  /** Avoid resetting the form on every render / query refetch with the same server row (wipes edits & breaks submit). */
+  const profileFormSyncKeyRef = useRef<string | null>(null)
 
   const form = useForm<AccountProfileFormValues>({
     resolver: zodResolver(accountProfileSchema),
@@ -55,7 +57,14 @@ export function AccountPage() {
   })
 
   useEffect(() => {
-    if (!profile) return
+    if (!profile) {
+      profileFormSyncKeyRef.current = null
+      return
+    }
+    const syncKey = `${profile.user_id}:${profile.updated_at}:${weightUnit}`
+    if (profileFormSyncKeyRef.current === syncKey) return
+    profileFormSyncKeyRef.current = syncKey
+
     const weightDisplay =
       weightUnit === "lbs"
         ? String(Math.round((profile.weight_kg / LBS_TO_KG) * 10) / 10)
@@ -71,7 +80,9 @@ export function AccountPage() {
       age: String(profile.age),
       weight: weightDisplay,
     })
-  }, [profile, weightUnit, form])
+    // form.reset is stable; we only sync when server row version or weight unit changes (see syncKey above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally not depending on `form`
+  }, [profile, weightUnit])
 
   useEffect(() => {
     if (!pendingAvatarFile) {
