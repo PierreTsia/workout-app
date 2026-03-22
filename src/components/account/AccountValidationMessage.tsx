@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 
 /** Zod `message` tokens → `account` i18n keys (same idea as onboarding `TranslatedFormMessage`). */
 const ACCOUNT_VALIDATION_KEYS: Record<string, string> = {
+  DISPLAY_NAME_MIN_LEN: "validationDisplayNameMin",
   DISPLAY_NAME_MAX_LEN: "validationDisplayNameMax",
 }
 

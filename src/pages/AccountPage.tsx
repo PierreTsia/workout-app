@@ -70,7 +70,7 @@ export function AccountPage() {
         ? String(Math.round((profile.weight_kg / LBS_TO_KG) * 10) / 10)
         : String(profile.weight_kg)
     form.reset({
-      display_name: profile.display_name ?? "",
+      display_name: profile.display_name ?? user?.email ?? "",
       gender: profile.gender,
       goal: profile.goal,
       experience: profile.experience,

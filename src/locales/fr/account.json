@@ -4,7 +4,7 @@
   "back": "Retour",
   "identitySection": "Profil",
   "displayName": "Nom affiché",
-  "displayNameHint": "Par défaut : votre e-mail de connexion (unique par utilisateur). Remplacez-le par un nom public plus lisible ; s'il n'est pas vide, il doit rester unique (insensible à la casse).",
+  "displayNameHint": "Votre e-mail de connexion est utilisé par défaut. Choisissez un nom public plus lisible (min 5 caractères, unique, insensible à la casse).",
   "displayNameTaken": "Ce nom est déjà pris. Essayez un autre.",
   "avatar": "Photo",
   "changePhoto": "Changer la photo",
@@ -20,5 +20,6 @@
   "avatarTypeError": "Utilisez une image JPEG, PNG ou WebP.",
   "avatarSizeError": "L'image doit faire moins de 1,5 Mo.",
   "avatarUploadError": "Échec de l'envoi. Vérifiez la connexion et réessayez.",
+  "validationDisplayNameMin": "5 caractères minimum.",
   "validationDisplayNameMax": "80 caractères maximum."
 }
