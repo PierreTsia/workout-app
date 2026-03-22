@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react"
-import { useForm, FormProvider } from "react-hook-form"
+import { useForm, FormProvider, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Activity, AlertTriangle, Settings2, Upload, Wind } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -35,7 +35,10 @@ export function ExerciseEditForm({
     defaultValues: toFormValues(exercise),
   })
 
-  const { formState: { errors } } = methods
+  const { formState: { errors }, control } = methods
+
+  const youtubeUrl = useWatch({ control, name: "youtube_url" })
+  const imageUrl = useWatch({ control, name: "image_url" })
 
   const muscleGroups = filterOptions?.muscle_groups ?? []
   const equipmentOptions = filterOptions?.equipment ?? []
@@ -106,7 +109,7 @@ export function ExerciseEditForm({
                 placeholder="https://youtube.com/watch?v=..."
               />
             </Field>
-            <YouTubePreview url={methods.watch("youtube_url")} />
+            <YouTubePreview url={youtubeUrl} />
           </div>
           <div className="flex flex-col gap-3">
             <Field label={t("form.imageUrl")}>
@@ -124,7 +127,7 @@ export function ExerciseEditForm({
                 />
               </div>
             </Field>
-            <ImagePreview path={methods.watch("image_url")} version={imgVersion} />
+            <ImagePreview path={imageUrl} version={imgVersion} />
           </div>
         </div>
 

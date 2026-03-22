@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { StatsDashboard } from "@/components/history/StatsDashboard"
 import { SessionList } from "@/components/history/SessionList"
 import { ExerciseTab } from "@/components/history/ExerciseTab"
+import { ActivityTab } from "@/components/history/ActivityTab"
 
 export function HistoryPage() {
   const { t } = useTranslation("history")
@@ -37,8 +38,11 @@ export function HistoryPage() {
 
       <StatsDashboard />
 
-      <Tabs defaultValue="sessions">
+      <Tabs defaultValue="activity">
         <TabsList className="w-full">
+          <TabsTrigger value="activity" className="flex-1">
+            {t("activity")}
+          </TabsTrigger>
           <TabsTrigger value="sessions" className="flex-1">
             {t("sessions")}
           </TabsTrigger>
@@ -46,6 +50,10 @@ export function HistoryPage() {
             {t("byExercise")}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="activity" className="mt-3">
+          <ActivityTab />
+        </TabsContent>
 
         <TabsContent value="sessions" className="mt-3">
           <SessionList />

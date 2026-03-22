@@ -206,6 +206,39 @@ After changing `config.toml` or `.env` auth vars, run `npm run supabase:stop` th
 - Seed data (e.g. exercise catalog): `supabase/seed.sql` (applied on `supabase db reset`)
 - Prefer **new migration files** for schema changes rather than only editing data in Studio, so git stays the source of truth.
 
+### History / Activity / calendar dev data (local)
+
+Login is **Google-only** in the app, so session history cannot be tied to a fixed email in `seed.sql` for your real account. Use the **service-role** script instead:
+
+1. `npm run supabase:start` (or ensure local API is up).
+2. Sign in once with **Google**, then copy your user id from **Supabase Studio** → **Authentication** → **Users** (or run `select id, email from auth.users` in the SQL editor).
+3. Run:
+
+```bash
+npm run seed:history -- --user-id=<your-auth-uuid>
+```
+
+Or set `SUPABASE_HISTORY_SEED_USER_ID` in `.env.local` and run `npm run seed:history`.
+
+To **list user ids** on the same instance the script will hit:
+
+```bash
+npm run seed:history -- --list-users
+```
+
+**Target URL:** the script defaults to **`http://127.0.0.1:54321`** (local Supabase CLI). It **does not** read `VITE_SUPABASE_URL`, so a `.env` pointed at hosted prod will not send seed data to production.
+
+Override only when you mean it:
+
+- `SUPABASE_HISTORY_SEED_URL` or `SEED_SUPABASE_URL`, or
+- `npm run seed:history -- --url=https://….supabase.co --user-id=…` (then you **must** set `SUPABASE_SERVICE_ROLE_KEY` for that project).
+
+If you see `sessions_user_id_fkey`, the UUID is **not** in `auth.users` for that URL—typical causes: id from another Supabase project, or **`supabase db reset` cleared auth** so you must sign in again and use the new id.
+
+This inserts ~30+ **finished** sessions over the last ~90 days (labels `Local seed — …`) plus `set_logs`, after removing any previous `Local seed%` rows for that user. Safe to re-run.
+
+For **local** URLs (`127.0.0.1` / `localhost`), the script always uses the [local demo service role](https://supabase.com/docs/guides/local-development/cli). **`SUPABASE_SERVICE_ROLE_KEY` in `.env` is ignored** for loopback targets so a hosted project’s key does not get sent to local Auth (which would produce `invalid JWT` / `signature is invalid`). Override for this script only with **`SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY`** (e.g. if you changed local JWT secrets — use the service role from `supabase status`).
+
 ### Row Level Security (RLS)
 
 RLS policies apply to the **anon key + user JWT** used by the app. Studio often uses elevated access, so something can “work in Studio but fail in the app” when RLS blocks the client.
