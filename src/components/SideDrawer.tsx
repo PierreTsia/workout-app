@@ -16,7 +16,19 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, Download, Info, Shield, Library, ChevronDown, Zap, History, UserRound } from "lucide-react"
+import {
+  LogOut,
+  Download,
+  Info,
+  Shield,
+  Library,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  History,
+  UserRound,
+  Settings,
+} from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -68,7 +80,7 @@ function SegmentedButton<T extends string>({
 }
 
 export function SideDrawer() {
-  const { t, i18n } = useTranslation(["common", "settings"])
+  const { t, i18n } = useTranslation(["common", "settings", "account"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
@@ -125,19 +137,24 @@ export function SideDrawer() {
           <Link
             to="/account"
             onClick={closeDrawer}
-            className="flex items-center gap-3 rounded-lg px-2 py-2 pb-4 transition-colors hover:bg-muted/60"
+            aria-label={t("account:openAccountAria")}
+            className={
+              "group flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-3 py-3 " +
+              "transition-colors hover:border-primary/35 hover:bg-muted/50 active:bg-muted/65 " +
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            }
           >
-            <Avatar>
+            <Avatar className="h-12 w-12 shrink-0 border border-border">
               <AvatarImage
                 src={resolveAvatarUrl(user, profile)}
                 alt=""
                 referrerPolicy="no-referrer"
               />
               <AvatarFallback>
-                <UserRound className="h-5 w-5 text-muted-foreground" />
+                <UserRound className="h-6 w-6 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               <p className="truncate font-medium text-foreground">
                 {user ? resolveDisplayName(user, profile) || t("common:guest") : t("common:guest")}
               </p>
@@ -145,7 +162,18 @@ export function SideDrawer() {
                 {user?.email ?? t("common:notSignedIn")}
               </p>
             </div>
-            <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <div
+                className="rounded-lg border border-primary/30 bg-primary/10 p-2.5 transition-colors group-hover:border-primary/45 group-hover:bg-primary/15"
+                aria-hidden
+              >
+                <Settings className="h-5 w-5 text-primary" />
+              </div>
+              <ChevronRight
+                className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+                aria-hidden
+              />
+            </div>
           </Link>
 
           <Separator />
