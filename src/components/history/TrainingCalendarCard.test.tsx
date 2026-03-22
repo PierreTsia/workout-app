@@ -3,6 +3,10 @@ import { screen } from "@testing-library/react"
 import { TrainingCalendarCard } from "@/components/history/TrainingCalendarCard"
 import { renderWithProviders } from "@/test/utils"
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 describe("TrainingCalendarCard", () => {
   it("shows month empty state when the visible month has no sessions", () => {
     renderWithProviders(
