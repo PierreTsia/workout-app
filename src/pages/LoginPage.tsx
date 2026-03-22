@@ -40,6 +40,12 @@ export function LoginPage() {
       >
         {t("common:about")}
       </Link>
+      <Link
+        to="/privacy"
+        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        {t("common:privacy")}
+      </Link>
     </div>
   )
 }

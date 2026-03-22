@@ -1,0 +1,32 @@
+---
+description: Never create git commits unless the user explicitly asks
+alwaysApply: true
+---
+
+# No Commits Without Explicit Permission
+
+**Never run `git commit` (or `git push`) unless the user explicitly asks you to.**
+
+This means: do not commit at the end of a task "to wrap up", do not commit "for convenience", and do not commit as part of multi-step tasks unless a commit was part of the ask.
+
+## What to do instead
+
+Make your code changes, then stop. The user will ask to commit when they are ready.
+
+```
+// ❌ BAD — committing unprompted after a fix
+git add ... && git commit -m "fix: ..."
+
+// ✅ GOOD — leave changes unstaged, let the user decide
+(just apply the code changes and stop)
+```
+
+## If you already committed by mistake
+
+Soft-reset to put the changes back in the working tree:
+
+```bash
+git reset HEAD~1
+```
+
+Then inform the user what happened.

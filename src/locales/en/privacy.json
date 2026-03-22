@@ -1,0 +1,35 @@
+{
+  "title": "Privacy Policy",
+  "lastUpdated": "Last updated: March 2026",
+  "backToApp": "Back to app",
+
+  "s1Title": "Who we are",
+  "s1Body": "This app is an independent personal project. There is no company behind it — just one developer. For privacy questions, contact: pierre.tsiakkaros@gmail.com.",
+
+  "s2Title": "What we collect and why",
+  "s2Auth": "Sign-in identity (email address, name, profile photo) via Google OAuth, processed by Supabase Auth. We use this solely to identify your account.",
+  "s2Profile": "Training profile (display name, avatar, goal, experience, equipment, age, weight) that you enter voluntarily. Used to personalise workouts and AI suggestions.",
+  "s2Workout": "Workout data (programs, sessions, exercises, set logs) that you record in the app. This is the core of the service.",
+  "s2Analytics": "App interaction events (e.g. which features you use) stored in an analytics_events table. These help us understand how the app is used.",
+  "s2AI": "Workout and program generation requests sent to the Google Gemini API. Prompts include your training profile but not your name or email.",
+  "s2Device": "Local device storage: a sync queue for offline use, preferences (language, theme, weight unit), and a PWA cache. None of this leaves your device except to sync with our backend.",
+
+  "s3Title": "Where your data is processed",
+  "s3Body": "Your data is stored in Supabase (database, auth, file storage). AI generation requests are sent to Google Gemini. The app is hosted on Vercel. These are the only sub-processors. We do not sell or share your data with anyone else.",
+
+  "s4Title": "Retention",
+  "s4Active": "All workout data, your profile, and your avatar are linked to your account and deleted when you delete your account.",
+  "s4Analytics": "Analytics events are pseudonymised on account deletion — your user ID is removed but the event record remains in aggregate form. We do not retain any event that can be traced back to you personally.",
+  "s4Avatar": "Avatar files stored in our file storage are permanently deleted when you delete your account.",
+
+  "s5Title": "Your rights",
+  "s5Access": "Access and correct your data at any time via Account settings.",
+  "s5Delete": "Delete your account and all associated data from Account settings. Deletion is immediate and irreversible.",
+  "s5Contact": "For any other privacy request (data export, objection, complaint), email pierre.tsiakkaros@gmail.com.",
+
+  "s6Title": "Security",
+  "s6Body": "All data is protected by Row-Level Security in the database — you can only read and write your own records. Connections use HTTPS. We do not store passwords (Google handles authentication).",
+
+  "s7Title": "Changes to this policy",
+  "s7Body": "If we make material changes, we will update the date at the top of this page. Continued use of the app after a change constitutes acceptance."
+}

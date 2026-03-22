@@ -30,11 +30,14 @@ export function useCreateUserProfile() {
           ? Math.round(input.weight * LBS_TO_KG * 10) / 10
           : input.weight
 
+      const emailDefault = user.email?.trim() || null
+
       const { data, error } = await supabase
         .from("user_profiles")
         .upsert(
           {
             user_id: user.id,
+            display_name: emailDefault,
             gender: input.gender,
             age: input.age,
             weight_kg: weightKg,
