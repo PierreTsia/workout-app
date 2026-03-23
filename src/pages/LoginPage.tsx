@@ -25,6 +25,7 @@ export function LoginPage() {
   }
 
   const handleGoogleSignIn = () => {
+    sessionStorage.setItem("notification_prompt_after_oauth", "1")
     supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin },
