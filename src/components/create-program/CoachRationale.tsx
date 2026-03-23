@@ -3,10 +3,15 @@ import { useTranslation } from "react-i18next"
 
 interface CoachRationaleProps {
   rationale: string
+  /** i18n namespace for the title label (default: create-program). */
+  titleNs?: string
 }
 
-export function CoachRationale({ rationale }: CoachRationaleProps) {
-  const { t } = useTranslation("create-program")
+export function CoachRationale({
+  rationale,
+  titleNs = "create-program",
+}: CoachRationaleProps) {
+  const { t } = useTranslation(titleNs)
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">

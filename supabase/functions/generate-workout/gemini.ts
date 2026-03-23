@@ -15,21 +15,40 @@ interface GeminiResponse {
   error?: { message: string }
 }
 
-function extractJsonArray(raw: string): string[] {
-  let text = raw.trim()
+export interface GenerateWorkoutGeminiResponse {
+  exerciseIds: string[]
+  rationale: string
+}
 
-  // Strip markdown code fences if present
-  text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "")
-  text = text.trim()
+const RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    rationale: { type: "STRING" },
+    exerciseIds: {
+      type: "ARRAY",
+      items: { type: "STRING" },
+    },
+  },
+  required: ["rationale", "exerciseIds"],
+}
+
+function parseResponse(raw: string): GenerateWorkoutGeminiResponse {
+  let text = raw.trim()
+  text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
 
   try {
-    const parsed: unknown = JSON.parse(text)
-    if (!Array.isArray(parsed) || !parsed.every((v) => typeof v === "string")) {
-      throw new Error("Gemini response is not a string array")
+    const parsed = JSON.parse(text) as GenerateWorkoutGeminiResponse
+    if (typeof parsed.rationale !== "string" || !Array.isArray(parsed.exerciseIds)) {
+      throw new Error("Response missing rationale or exerciseIds array")
     }
-    return parsed as string[]
+    if (!parsed.exerciseIds.every((v) => typeof v === "string")) {
+      throw new Error("exerciseIds must be strings")
+    }
+    return {
+      rationale: parsed.rationale.trim(),
+      exerciseIds: parsed.exerciseIds,
+    }
   } catch (e) {
-    // Log raw text for debugging, truncate to avoid log spam
     console.error("Gemini raw output (first 500 chars):", text.slice(0, 500))
     throw new Error(
       `${e instanceof Error ? e.message : "JSON parse error"} | raw: ${text.slice(0, 200)}`,
@@ -37,7 +56,9 @@ function extractJsonArray(raw: string): string[] {
   }
 }
 
-export async function callGemini(prompt: string): Promise<string[]> {
+export async function callGemini(
+  prompt: string,
+): Promise<GenerateWorkoutGeminiResponse> {
   const apiKey = Deno.env.get("GEMINI_API_KEY")
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not set")
@@ -55,9 +76,9 @@ export async function callGemini(prompt: string): Promise<string[]> {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: {
           response_mime_type: "application/json",
-          response_schema: { type: "ARRAY", items: { type: "STRING" } },
+          response_schema: RESPONSE_SCHEMA,
           temperature: 0.8,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
           thinkingConfig: {
             thinkingBudget: 0,
           },
@@ -81,13 +102,12 @@ export async function callGemini(prompt: string): Promise<string[]> {
       throw new Error("Gemini returned empty response")
     }
 
-    // Gemini 2.5+ includes thinking parts — skip them and find the output
     const outputPart = parts.findLast((p) => !p.thought && p.text)
     if (!outputPart?.text) {
       throw new Error("Gemini returned no output text (only thinking)")
     }
 
-    return extractJsonArray(outputPart.text)
+    return parseResponse(outputPart.text)
   } finally {
     clearTimeout(timeout)
   }

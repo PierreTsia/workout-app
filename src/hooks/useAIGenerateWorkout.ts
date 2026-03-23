@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
+import i18n from "@/lib/i18n"
 import { supabase } from "@/lib/supabase"
 import { trimFocusAreas } from "@/lib/aiFocusAreas"
 import { buildExercise } from "@/lib/generateWorkout"
@@ -26,6 +27,12 @@ function isQuotaError(err: unknown): boolean {
   return false
 }
 
+/** Primary tag aligned with `supportedLngs` — matches generate-program `locale` usage. */
+function localeForAI(): "en" | "fr" {
+  const lng = (i18n.resolvedLanguage ?? i18n.language ?? "en").toLowerCase()
+  return lng.startsWith("fr") ? "fr" : "en"
+}
+
 function invokeErrorContext(err: unknown): Response | undefined {
   if (typeof err !== "object" || err === null) return undefined
   if (!("context" in err)) return undefined
@@ -43,6 +50,7 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
         duration: constraints.duration,
         equipmentCategories: constraints.equipmentCategories,
         muscleGroups: constraints.muscleGroups,
+        locale: localeForAI(),
       }
       if (focusAreas) body.focusAreas = focusAreas
 
@@ -58,7 +66,10 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
         throw error
       }
 
-      const { exerciseIds } = data as { exerciseIds: string[] }
+      const { exerciseIds, rationale } = data as {
+        exerciseIds: string[]
+        rationale?: string
+      }
       if (!exerciseIds?.length) {
         throw new Error("AI returned no exercises")
       }
@@ -97,10 +108,16 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
         constraints.equipmentCategories,
       )
 
+      const rationaleText =
+        typeof rationale === "string" && rationale.trim().length > 0
+          ? rationale.trim()
+          : undefined
+
       return {
         exercises: resolved.map((ex) => buildExercise(ex, setsPerExercise)),
         name: `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`,
         hasFallback: false,
+        ...(rationaleText ? { rationale: rationaleText } : {}),
       }
     },
     meta: { isNetworkError },

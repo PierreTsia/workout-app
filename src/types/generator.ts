@@ -25,4 +25,6 @@ export interface GeneratedWorkout {
   exercises: GeneratedExercise[]
   name: string
   hasFallback: boolean
+  /** Present when built via AI Generate; cleared after shuffle / Quick Generate. */
+  rationale?: string
 }

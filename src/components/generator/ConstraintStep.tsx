@@ -28,7 +28,6 @@ interface ConstraintStepProps {
   onGenerate: () => void
   onAIGenerate: () => void
   isLoading: boolean
-  isAILoading: boolean
 }
 
 export function ConstraintStep({
@@ -37,7 +36,6 @@ export function ConstraintStep({
   onGenerate,
   onAIGenerate,
   isLoading,
-  isAILoading,
 }: ConstraintStepProps) {
   const { t } = useTranslation("generator")
   const { data: filterOptions } = useExerciseFilterOptions()
@@ -188,7 +186,7 @@ export function ConstraintStep({
           className="flex-1"
           size="lg"
           onClick={onGenerate}
-          disabled={isLoading || isAILoading}
+          disabled={isLoading}
         >
           {isLoading ? t("generating") : t("generate")}
         </Button>
@@ -196,14 +194,12 @@ export function ConstraintStep({
           className="flex-1"
           size="lg"
           onClick={onAIGenerate}
-          disabled={
-            isAILoading || isLoading || !navigator.onLine || focusAreasTooLong
-          }
+          disabled={isLoading || !navigator.onLine || focusAreasTooLong}
           title={
             focusAreasTooLong ? t("focusAreasTooLong") : undefined
           }
         >
-          {isAILoading ? t("aiGenerating") : t("aiGenerate")}
+          {t("aiGenerate")}
         </Button>
       </div>
     </div>

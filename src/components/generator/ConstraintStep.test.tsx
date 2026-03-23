@@ -33,7 +33,6 @@ function setup(overrides: Partial<GeneratorConstraints> = {}) {
       onGenerate={onGenerate}
       onAIGenerate={onAIGenerate}
       isLoading={false}
-      isAILoading={false}
     />,
   )
   return { ...result, onChange, onGenerate, onAIGenerate }
@@ -156,7 +155,6 @@ describe("ConstraintStep", () => {
         onGenerate={onGenerate}
         onAIGenerate={vi.fn()}
         isLoading={true}
-        isAILoading={false}
       />,
     )
     expect(screen.getByText("Generating…")).toBeInTheDocument()

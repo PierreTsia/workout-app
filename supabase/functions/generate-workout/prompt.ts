@@ -109,6 +109,8 @@ export function buildPrompt(
     equipmentCategories: string[]
     muscleGroups: string[]
     focusAreas?: string
+    /** UI language for the rationale only (`en` | `fr`), same idea as generate-program. */
+    locale: "en" | "fr"
   },
 ): string {
   const targetCount = getTargetExerciseCount(constraints.duration)
@@ -123,12 +125,28 @@ export function buildPrompt(
     "",
     "RULES:",
     "- Return ONLY exercise IDs from the EXERCISE CATALOG below. Never invent IDs.",
-    `- Select exactly ${targetCount} exercises.`,
+    `- Select exactly ${targetCount} exercises (exerciseIds array length must equal ${targetCount}).`,
     "- Respect the user's equipment and muscle group constraints.",
     "- Order exercises: compound movements (those with secondary_muscles) first, isolation movements last.",
     "- Avoid exercises the user did in their last 5 sessions (listed below) unless the pool is too small.",
     "- Group synergistic muscles (e.g., chest + triceps, back + biceps) when the focus allows.",
     "- For full-body workouts, distribute exercises evenly across major muscle groups.",
+    "",
+    "OUTPUT FORMAT:",
+    "Return a JSON object with exactly two keys:",
+    `- exerciseIds: string[] — exactly ${targetCount} IDs from the catalog, in workout order.`,
+    "- rationale: string — 2–5 short sentences explaining your choices and order (equipment fit, muscle balance, compounds before isolations). Follow the LOCALE section below for the language of this field only.",
+    "",
+    "LOCALE:",
+    ...(constraints.locale === "fr"
+      ? [
+          "- The user's app is in French. Write the entire rationale in natural French.",
+          "- Do not write the rationale in English.",
+        ]
+      : [
+          "- The user's app is in English. Write the entire rationale in English.",
+        ]),
+    "- exerciseIds are opaque catalog IDs; never translate or alter them.",
   )
 
   if (profile) {
@@ -167,6 +185,7 @@ export function buildPrompt(
     `- Equipment: ${formatEquipmentLabelForPrompt(constraints.equipmentCategories)}`,
     `- Focus: ${focusLabel}`,
     `- Target exercise count: ${targetCount}`,
+    `- App locale: ${constraints.locale}`,
   )
 
   if (constraints.focusAreas) {

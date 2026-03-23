@@ -32,6 +32,13 @@ function parseEquipmentCategories(raw: unknown): string[] | null {
   return cats
 }
 
+function parseWorkoutLocale(raw: unknown): "en" | "fr" {
+  if (raw == null || raw === "") return "en"
+  const s = String(raw).trim().toLowerCase()
+  if (s.startsWith("fr")) return "fr"
+  return "en"
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -94,6 +101,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Invalid equipmentCategories" }, 400)
     }
 
+    const locale = parseWorkoutLocale(body.locale)
+
     const equipmentValues = getEquipmentValuesForCategories(parsedCategories)
     const targetCount = getTargetExerciseCount(duration)
     const isFullBody =
@@ -118,13 +127,15 @@ Deno.serve(async (req) => {
       equipmentCategories: parsedCategories,
       muscleGroups: muscleGroups as string[],
       focusAreas: focusParsed.focusAreas,
+      locale,
     })
 
     let llmOutput = await callGemini(prompt)
+    let rationale = llmOutput.rationale.trim()
 
     // --- Validate and repair ---
     let result = validateAndRepair(
-      llmOutput,
+      llmOutput.exerciseIds,
       catalog.map((e) => ({
         id: e.id,
         muscle_group: e.muscle_group,
@@ -136,12 +147,13 @@ Deno.serve(async (req) => {
     if (result.exerciseIds.length === 0) {
       const retryPrompt =
         prompt +
-        "\n\nPREVIOUS ATTEMPT FAILED: all returned IDs were invalid. " +
-        "Please return ONLY IDs from the EXERCISE CATALOG above."
+        "\n\nPREVIOUS ATTEMPT FAILED: all returned exerciseIds were invalid. " +
+        "Return a JSON object with exerciseIds (valid catalog IDs only) and rationale, as specified above."
 
       llmOutput = await callGemini(retryPrompt)
+      rationale = llmOutput.rationale.trim()
       result = validateAndRepair(
-        llmOutput,
+        llmOutput.exerciseIds,
         catalog.map((e) => ({
           id: e.id,
           muscle_group: e.muscle_group,
@@ -162,6 +174,7 @@ Deno.serve(async (req) => {
     return jsonResponse({
       exerciseIds: result.exerciseIds,
       repaired: result.repaired,
+      rationale,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
