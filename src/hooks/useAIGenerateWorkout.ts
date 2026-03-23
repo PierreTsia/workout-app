@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { trimFocusAreas } from "@/lib/aiFocusAreas"
 import { buildExercise } from "@/lib/generateWorkout"
+import { formatEquipmentLabelForName } from "@/lib/equipmentSelection"
 import { VOLUME_MAP } from "@/lib/generatorConfig"
 import type { Exercise } from "@/types/database"
 import type {
@@ -36,15 +38,17 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
     mutationFn: async (
       constraints: GeneratorConstraints,
     ): Promise<GeneratedWorkout> => {
+      const focusAreas = trimFocusAreas(constraints.focusAreas)
+      const body: Record<string, unknown> = {
+        duration: constraints.duration,
+        equipmentCategories: constraints.equipmentCategories,
+        muscleGroups: constraints.muscleGroups,
+      }
+      if (focusAreas) body.focusAreas = focusAreas
+
       const { data, error } = await supabase.functions.invoke(
         "generate-workout",
-        {
-          body: {
-            duration: constraints.duration,
-            equipmentCategory: constraints.equipmentCategory,
-            muscleGroups: constraints.muscleGroups,
-          },
-        },
+        { body },
       )
 
       if (error) {
@@ -86,9 +90,16 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
 
       const { setsPerExercise } = VOLUME_MAP[constraints.duration as Duration]
 
+      const focusLabel = constraints.muscleGroups.includes("full-body")
+        ? "Full Body"
+        : constraints.muscleGroups.join(" + ")
+      const equipLabel = formatEquipmentLabelForName(
+        constraints.equipmentCategories,
+      )
+
       return {
         exercises: resolved.map((ex) => buildExercise(ex, setsPerExercise)),
-        name: `AI: ${constraints.muscleGroups.includes("full-body") ? "Full Body" : constraints.muscleGroups.join(" + ")} / ${constraints.duration}min`,
+        name: `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`,
         hasFallback: false,
       }
     },

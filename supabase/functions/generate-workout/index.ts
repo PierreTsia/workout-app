@@ -1,17 +1,36 @@
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
+import { parseFocusAreasField } from "../_shared/aiFocusAreas.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { callGemini } from "./gemini.ts"
 import {
   buildPrompt,
   capCatalog,
-  getEquipmentValues,
+  getEquipmentValuesForCategories,
   getTargetExerciseCount,
   type CatalogExercise,
   type UserProfile,
   type RecentExercise,
 } from "./prompt.ts"
 import { validateAndRepair } from "./validate.ts"
+
+const ALLOWED_EQUIPMENT_CATEGORIES = new Set([
+  "bodyweight",
+  "dumbbells",
+  "full-gym",
+])
+
+function parseEquipmentCategories(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const cats: string[] = []
+  for (const x of raw) {
+    const c = String(x)
+    if (!ALLOWED_EQUIPMENT_CATEGORIES.has(c)) return null
+    cats.push(c)
+  }
+  if (cats.includes("full-gym") && cats.length !== 1) return null
+  return cats
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,20 +62,39 @@ Deno.serve(async (req) => {
     }
 
     // --- Parse request body ---
-    const body = await req.json()
-    const { duration, equipmentCategory, muscleGroups } = body
+    const body = (await req.json()) as Record<string, unknown>
+    const focusParsed = parseFocusAreasField(body)
+    if (focusParsed.error) {
+      return jsonResponse({ error: focusParsed.error }, 400)
+    }
 
-    if (!duration || !equipmentCategory || !muscleGroups) {
+    const { duration, muscleGroups, equipmentCategories } = body
+
+    if (
+      duration === undefined ||
+      duration === null ||
+      muscleGroups === undefined ||
+      equipmentCategories === undefined
+    ) {
       return jsonResponse(
         {
           error:
-            "Missing required fields: duration, equipmentCategory, muscleGroups",
+            "Missing required fields: duration, equipmentCategories, muscleGroups",
         },
         400,
       )
     }
 
-    const equipmentValues = getEquipmentValues(equipmentCategory)
+    if (!Array.isArray(muscleGroups)) {
+      return jsonResponse({ error: "Invalid muscleGroups" }, 400)
+    }
+
+    const parsedCategories = parseEquipmentCategories(equipmentCategories)
+    if (!parsedCategories) {
+      return jsonResponse({ error: "Invalid equipmentCategories" }, 400)
+    }
+
+    const equipmentValues = getEquipmentValuesForCategories(parsedCategories)
     const targetCount = getTargetExerciseCount(duration)
     const isFullBody =
       muscleGroups.length === 0 || muscleGroups.includes("full-body")
@@ -76,9 +114,10 @@ Deno.serve(async (req) => {
 
     // --- Build prompt and call Gemini ---
     const prompt = buildPrompt(catalog, profileResult, historyResult, {
-      duration,
-      equipmentCategory,
-      muscleGroups,
+      duration: Number(duration),
+      equipmentCategories: parsedCategories,
+      muscleGroups: muscleGroups as string[],
+      focusAreas: focusParsed.focusAreas,
     })
 
     let llmOutput = await callGemini(prompt)

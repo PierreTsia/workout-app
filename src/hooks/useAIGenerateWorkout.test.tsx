@@ -38,7 +38,7 @@ const EX: Exercise = {
 
 const CONSTRAINTS: GeneratorConstraints = {
   duration: 30,
-  equipmentCategory: "full-gym",
+  equipmentCategories: ["full-gym"],
   muscleGroups: ["full-body"],
 }
 

@@ -47,8 +47,21 @@ export interface RecentExercise {
   exercise_name_snapshot: string
 }
 
-export function getEquipmentValues(category: string): string[] {
-  return EQUIPMENT_CATEGORY_MAP[category] ?? []
+export function getEquipmentValuesForCategories(categories: string[]): string[] {
+  const uniq = new Set<string>()
+  for (const c of categories) {
+    const vals = EQUIPMENT_CATEGORY_MAP[c]
+    if (vals) for (const v of vals) uniq.add(v)
+  }
+  return [...uniq]
+}
+
+export function formatEquipmentLabelForPrompt(categories: string[]): string {
+  if (categories.length === 1 && categories[0] === "full-gym") return "Full gym"
+  const parts: string[] = []
+  if (categories.includes("bodyweight")) parts.push("Bodyweight")
+  if (categories.includes("dumbbells")) parts.push("Dumbbells")
+  return parts.join(" + ")
 }
 
 export function getTargetExerciseCount(duration: number): number {
@@ -93,8 +106,9 @@ export function buildPrompt(
   recentExercises: RecentExercise[],
   constraints: {
     duration: number
-    equipmentCategory: string
+    equipmentCategories: string[]
     muscleGroups: string[]
+    focusAreas?: string
   },
 ): string {
   const targetCount = getTargetExerciseCount(constraints.duration)
@@ -150,13 +164,16 @@ export function buildPrompt(
     "",
     "CONSTRAINTS:",
     `- Duration: ${constraints.duration} minutes`,
-    `- Equipment: ${constraints.equipmentCategory}`,
+    `- Equipment: ${formatEquipmentLabelForPrompt(constraints.equipmentCategories)}`,
     `- Focus: ${focusLabel}`,
     `- Target exercise count: ${targetCount}`,
-    "",
-    "EXERCISE CATALOG:",
-    serializeCatalog(catalog),
   )
+
+  if (constraints.focusAreas) {
+    lines.push(`- The user wants to emphasize: ${constraints.focusAreas}.`)
+  }
+
+  lines.push("", "EXERCISE CATALOG:", serializeCatalog(catalog))
 
   return lines.join("\n")
 }

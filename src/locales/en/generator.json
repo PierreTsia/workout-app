@@ -38,5 +38,9 @@
   "quickWorkoutBadge": "⚡ Quick Workout",
   "addExercise": "Add exercise",
   "addExerciseTitle": "Add an exercise",
-  "searchExercise": "Search…"
+  "searchExercise": "Search…",
+  "focusAreasLabel": "Preferences for AI (optional)",
+  "focusAreasPlaceholder": "e.g. use cables, avoid jumping",
+  "focusAreasHint": "Only used when you tap AI Generate. Quick Generate ignores this field.",
+  "focusAreasTooLong": "Shorten your preferences to 500 characters or less."
 }

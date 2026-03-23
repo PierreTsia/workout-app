@@ -38,5 +38,9 @@
   "quickWorkoutBadge": "⚡ Séance rapide",
   "addExercise": "Ajouter un exercice",
   "addExerciseTitle": "Ajouter un exercice",
-  "searchExercise": "Rechercher…"
+  "searchExercise": "Rechercher…",
+  "focusAreasLabel": "Préférences pour l'IA (optionnel)",
+  "focusAreasPlaceholder": "ex. cible les poulies, évite les sauts",
+  "focusAreasHint": "Utilisé uniquement avec Générer avec l'IA. La génération rapide ignore ce champ.",
+  "focusAreasTooLong": "Réduis tes préférences à 500 caractères ou moins."
 }

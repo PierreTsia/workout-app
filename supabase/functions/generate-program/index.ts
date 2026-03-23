@@ -1,4 +1,5 @@
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
+import { parseFocusAreasField } from "../_shared/aiFocusAreas.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { callGeminiProgram } from "./gemini.ts"
@@ -42,7 +43,17 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "quota_exceeded" }, 429)
     }
 
-    const body = await req.json()
+    const body = (await req.json()) as Record<string, unknown>
+    const focusParsed = parseFocusAreasField(body)
+    if (focusParsed.error) {
+      return jsonResponse({ error: focusParsed.error }, 400)
+    }
+    if (focusParsed.focusAreas !== undefined) {
+      body.focusAreas = focusParsed.focusAreas
+    } else {
+      delete body.focusAreas
+    }
+
     const constraints = parseConstraints(body)
     if (!constraints) {
       return jsonResponse(

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { AI_FOCUS_AREAS_MAX_LENGTH } from "@/lib/aiFocusAreas"
 
 export const programConstraintsSchema = z.object({
   daysPerWeek: z.number().int().min(2).max(7),
@@ -6,7 +7,14 @@ export const programConstraintsSchema = z.object({
   equipmentCategory: z.enum(["bodyweight", "dumbbells", "full-gym"]),
   goal: z.enum(["strength", "hypertrophy", "endurance", "general_fitness"]),
   experience: z.enum(["beginner", "intermediate", "advanced"]),
-  focusAreas: z.string().optional(),
+  focusAreas: z
+    .string()
+    .optional()
+    .refine(
+      (s) =>
+        s === undefined || s.trim().length <= AI_FOCUS_AREAS_MAX_LENGTH,
+      `Must be at most ${AI_FOCUS_AREAS_MAX_LENGTH} characters`,
+    ),
   splitPreference: z.string().optional(),
 })
 

@@ -30,7 +30,7 @@ interface QuickWorkoutSheetProps {
 
 const DEFAULT_CONSTRAINTS: GeneratorConstraints = {
   duration: 30,
-  equipmentCategory: "full-gym",
+  equipmentCategories: ["full-gym"],
   muscleGroups: ["full-body"],
 }
 
@@ -50,7 +50,7 @@ export function QuickWorkoutSheet({
   const { data: exercisePool = [], isLoading: isLoadingExercises } =
     useExercisesForGenerator(
       constraints.muscleGroups,
-      constraints.equipmentCategory,
+      constraints.equipmentCategories,
     )
 
   const createQuickWorkout = useCreateQuickWorkout()

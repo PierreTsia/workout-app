@@ -1,7 +1,13 @@
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
+import {
+  AI_FOCUS_AREAS_MAX_LENGTH,
+  isFocusAreasTooLong,
+} from "@/lib/aiFocusAreas"
+import { toggleEquipmentCategory } from "@/lib/equipmentSelection"
 import type {
   Duration,
   EquipmentCategory,
@@ -38,6 +44,8 @@ export function ConstraintStep({
   const muscleGroups = filterOptions?.muscle_groups ?? []
 
   const isFullBody = constraints.muscleGroups.includes("full-body")
+  const hasFullGym = constraints.equipmentCategories.includes("full-gym")
+  const focusAreasTooLong = isFocusAreasTooLong(constraints.focusAreas)
 
   function toggleMuscleGroup(group: string) {
     if (group === "full-body") {
@@ -56,6 +64,16 @@ export function ConstraintStep({
     onChange({
       ...constraints,
       muscleGroups: next.length === 0 ? ["full-body"] : next,
+    })
+  }
+
+  function handleEquipmentClick(key: EquipmentCategory) {
+    onChange({
+      ...constraints,
+      equipmentCategories: toggleEquipmentCategory(
+        key,
+        constraints.equipmentCategories,
+      ),
     })
   }
 
@@ -93,19 +111,23 @@ export function ConstraintStep({
           {t("equipment")}
         </span>
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
-          {EQUIPMENT_CATEGORIES.map((eq) => (
-            <button
-              key={eq.key}
-              type="button"
-              aria-pressed={constraints.equipmentCategory === eq.key}
-              onClick={() =>
-                onChange({ ...constraints, equipmentCategory: eq.key })
-              }
-              className={pillClass(constraints.equipmentCategory === eq.key)}
-            >
-              {t(`equipmentCategory.${eq.key}`, eq.label)}
-            </button>
-          ))}
+          {EQUIPMENT_CATEGORIES.map((eq) => {
+            const active =
+              eq.key === "full-gym"
+                ? hasFullGym
+                : !hasFullGym && constraints.equipmentCategories.includes(eq.key)
+            return (
+              <button
+                key={eq.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => handleEquipmentClick(eq.key)}
+                className={pillClass(active)}
+              >
+                {t(`equipmentCategory.${eq.key}`, eq.label)}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -140,6 +162,26 @@ export function ConstraintStep({
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          {t("focusAreasLabel")}
+        </span>
+        <Textarea
+          value={constraints.focusAreas ?? ""}
+          onChange={(e) =>
+            onChange({ ...constraints, focusAreas: e.target.value })
+          }
+          placeholder={t("focusAreasPlaceholder")}
+          maxLength={AI_FOCUS_AREAS_MAX_LENGTH}
+          rows={3}
+          className="resize-none text-sm"
+          aria-label={t("focusAreasLabel")}
+        />
+        <span className="text-xs text-muted-foreground">
+          {t("focusAreasHint")}
+        </span>
+      </div>
+
       <div className="flex gap-2">
         <Button
           variant="outline"
@@ -154,7 +196,12 @@ export function ConstraintStep({
           className="flex-1"
           size="lg"
           onClick={onAIGenerate}
-          disabled={isAILoading || isLoading || !navigator.onLine}
+          disabled={
+            isAILoading || isLoading || !navigator.onLine || focusAreasTooLong
+          }
+          title={
+            focusAreasTooLong ? t("focusAreasTooLong") : undefined
+          }
         >
           {isAILoading ? t("aiGenerating") : t("aiGenerate")}
         </Button>
