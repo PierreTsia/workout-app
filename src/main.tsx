@@ -17,6 +17,7 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { prepareThemeLocalStorage, THEME_STORAGE_KEY } from "@/lib/themeStorage"
 import { handleVersionUpgrade } from "@/lib/versionManager"
 import { listenForSwUpdate } from "@/lib/swReloadOnUpdate"
+import { Analytics } from "@vercel/analytics/react"
 
 listenForSwUpdate()
 
@@ -55,6 +56,7 @@ handleVersionUpgrade()
               <RouterProvider router={router} />
             </ErrorBoundary>
             <Toaster />
+            <Analytics />
           </QueryClientProvider>
         </ThemeProvider>
       </StrictMode>,
