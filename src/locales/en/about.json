@@ -1,15 +1,16 @@
 {
   "pageTitle": "About",
   "goToApp": "Go to app",
-  "heroTitle": "Workout",
-  "heroTagline": "Free, open-source workout tracker",
-  "storyTitle": "The Story",
-  "storyP1": "I built this because I was tired of gym apps that were either bloated with features I didn't need, locked behind subscriptions, or harvesting my data. I just wanted to log my sets, track my progress, and get on with my workout.",
-  "storyP2": "So I built exactly that — a simple, fast, no-BS workout tracker. It's free, it's open-source, and it always will be.",
+  "heroTitle": "GymLogic",
+  "heroTagline": "Strength training on your terms — free, open-source, built for real sessions.",
+  "storyTitle": "The story",
+  "storyP1": "I built this because I was tired of gym apps that were either bloated with features I didn't need, locked behind subscriptions, or harvesting my data. I wanted to log sets, track progress, and get on with training — without the noise.",
+  "storyP2": "So I built GymLogic: simple, fast, no-BS. It's free, it's open-source, and when you want help, AI can draft programs and workouts around your profile — you're always in control.",
   "featuresTitle": "What makes it different",
   "featurePwa": "Works offline — install it like a native app",
   "featureOpenSource": "Fully open-source — inspect, fork, contribute",
   "featurePrivacy": "Privacy-first — your data, your control",
+  "featureAi": "AI-powered programs & workouts when you want a head start",
   "featureFree": "Free forever — no subscriptions, no ads",
   "openSourceTitle": "Open Source",
   "openSourceDescription": "Licensed under MIT. The code is on GitHub — contributions, issues, and stars are welcome.",
@@ -19,5 +20,5 @@
   "supportComingSoon": "Donations coming soon",
   "creditsTitle": "Credits",
   "creditsCreator": "Built with <heart/> by <author>PierreTsia</author>",
-  "creditsAi": "🤖 AI-assisted development"
+  "creditsAi": "AI-assisted development"
 }

@@ -10,14 +10,18 @@ describe("AboutPage", () => {
 
   it("renders the hero section with app name and tagline", () => {
     renderAbout()
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Workout")
-    expect(screen.getByText("Free, open-source workout tracker")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("GymLogic")
+    expect(
+      screen.getByText(
+        "Strength training on your terms — free, open-source, built for real sessions.",
+      ),
+    ).toBeInTheDocument()
   })
 
   it("renders all section headings", () => {
     renderAbout()
     const expectedHeadings = [
-      "The Story",
+      "The story",
       "What makes it different",
       "Open Source",
       "Support the project",
@@ -31,12 +35,13 @@ describe("AboutPage", () => {
   it("renders the story paragraphs", () => {
     renderAbout()
     expect(screen.getByText(/I built this because/)).toBeInTheDocument()
-    expect(screen.getByText(/no-BS workout tracker/)).toBeInTheDocument()
+    expect(screen.getByText(/So I built GymLogic/)).toBeInTheDocument()
   })
 
-  it("renders all four feature items", () => {
+  it("renders all five feature items", () => {
     renderAbout()
     expect(screen.getByText(/Works offline/)).toBeInTheDocument()
+    expect(screen.getByText(/AI-powered programs/)).toBeInTheDocument()
     expect(screen.getByText(/Fully open-source/)).toBeInTheDocument()
     expect(screen.getByText(/Privacy-first/)).toBeInTheDocument()
     expect(screen.getByText(/Free forever/)).toBeInTheDocument()

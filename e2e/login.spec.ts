@@ -9,7 +9,9 @@ test.describe("Login — unauthenticated user", () => {
 
     await expect(page).toHaveURL(/\/login/)
     await expect(
-      page.getByRole("button", { name: /sign in with google/i }),
+      page.getByRole("button", {
+        name: /sign in with google|se connecter avec google/i,
+      }),
     ).toBeVisible()
   })
 })

@@ -1,15 +1,16 @@
 {
   "pageTitle": "À propos",
   "goToApp": "Aller à l'app",
-  "heroTitle": "Workout",
-  "heroTagline": "Tracker d'entraînement gratuit et open-source",
+  "heroTitle": "GymLogic",
+  "heroTagline": "La musculation à ton rythme — gratuit, open-source, pensé pour de vraies séances.",
   "storyTitle": "L'histoire",
-  "storyP1": "J'ai créé cette app parce que j'en avais marre des apps de muscu soit blindées de fonctions inutiles, soit payantes, soit qui aspirent mes données. Je voulais juste noter mes séries, suivre ma progression et passer à autre chose.",
-  "storyP2": "Alors j'ai construit exactement ça — un tracker d'entraînement simple, rapide, sans bullshit. C'est gratuit, c'est open-source, et ça le restera.",
+  "storyP1": "J'ai créé cette app parce que j'en avais marre des applis de salle soit surchargées, soit payantes, soit trop curieuses de mes données. Je voulais noter mes séries, suivre ma progression et passer à autre chose — sans le superflu.",
+  "storyP2": "Alors j'ai construit GymLogic : simple, rapide, sans bullshit. C'est gratuit, c'est open-source, et quand tu veux un coup de pouce, l'IA peut proposer programmes et séances autour de ton profil — tu restes aux commandes.",
   "featuresTitle": "Pourquoi c'est différent",
   "featurePwa": "Fonctionne hors-ligne — installe-le comme une app native",
   "featureOpenSource": "100% open-source — inspecte, fork, contribue",
   "featurePrivacy": "Vie privée d'abord — tes données, ton contrôle",
+  "featureAi": "Programmes et séances par IA quand tu veux gagner du temps",
   "featureFree": "Gratuit pour toujours — pas d'abonnement, pas de pub",
   "openSourceTitle": "Open Source",
   "openSourceDescription": "Sous licence MIT. Le code est sur GitHub — contributions, issues et étoiles bienvenues.",
@@ -19,5 +20,5 @@
   "supportComingSoon": "Dons bientôt disponibles",
   "creditsTitle": "Crédits",
   "creditsCreator": "Créé avec <heart/> par <author>PierreTsia</author>",
-  "creditsAi": "🤖 Développement assisté par IA"
+  "creditsAi": "Développement assisté par IA"
 }

@@ -14,6 +14,10 @@ const ANON_KEY =
 const TEST_EMAIL = "e2e-test@example.com"
 const TEST_PASSWORD = "e2e-test-password-123!"
 
+/** Must match `playwright.config.ts` baseURL (storage state origin) */
+const PLAYWRIGHT_APP_ORIGIN =
+  process.env.PLAYWRIGHT_TEST_BASE_URL ?? "http://localhost:4173"
+
 const AUTH_DIR = path.join(__dirname, "..", "playwright", ".auth")
 
 async function globalSetup() {
@@ -67,7 +71,7 @@ async function globalSetup() {
     cookies: [],
     origins: [
       {
-        origin: "http://localhost:5173",
+        origin: PLAYWRIGHT_APP_ORIGIN,
         localStorage: [
           {
             name: "sb-127-auth-token",
