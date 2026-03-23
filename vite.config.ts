@@ -13,11 +13,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["pwa-192x192.svg"],
+      includeAssets: ["pwa-192x192.svg", "og-image.png"],
       manifest: {
-        name: "Workout",
-        short_name: "Workout",
-        description: "Track your workouts",
+        name: "GymLogic",
+        short_name: "GymLogic",
+        description: "Strength training on your phone — log sessions, track PRs, offline sync.",
         theme_color: "#0f0f13",
         background_color: "#0f0f13",
         display: "standalone",
