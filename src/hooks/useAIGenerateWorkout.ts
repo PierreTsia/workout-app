@@ -1,6 +1,9 @@
 import { useMutation } from "@tanstack/react-query"
+import i18n from "@/lib/i18n"
 import { supabase } from "@/lib/supabase"
+import { trimFocusAreas } from "@/lib/aiFocusAreas"
 import { buildExercise } from "@/lib/generateWorkout"
+import { formatEquipmentLabelForName } from "@/lib/equipmentSelection"
 import { VOLUME_MAP } from "@/lib/generatorConfig"
 import type { Exercise } from "@/types/database"
 import type {
@@ -24,6 +27,12 @@ function isQuotaError(err: unknown): boolean {
   return false
 }
 
+/** Primary tag aligned with `supportedLngs` — matches generate-program `locale` usage. */
+function localeForAI(): "en" | "fr" {
+  const lng = (i18n.resolvedLanguage ?? i18n.language ?? "en").toLowerCase()
+  return lng.startsWith("fr") ? "fr" : "en"
+}
+
 function invokeErrorContext(err: unknown): Response | undefined {
   if (typeof err !== "object" || err === null) return undefined
   if (!("context" in err)) return undefined
@@ -36,15 +45,18 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
     mutationFn: async (
       constraints: GeneratorConstraints,
     ): Promise<GeneratedWorkout> => {
+      const focusAreas = trimFocusAreas(constraints.focusAreas)
+      const body: Record<string, unknown> = {
+        duration: constraints.duration,
+        equipmentCategories: constraints.equipmentCategories,
+        muscleGroups: constraints.muscleGroups,
+        locale: localeForAI(),
+      }
+      if (focusAreas) body.focusAreas = focusAreas
+
       const { data, error } = await supabase.functions.invoke(
         "generate-workout",
-        {
-          body: {
-            duration: constraints.duration,
-            equipmentCategory: constraints.equipmentCategory,
-            muscleGroups: constraints.muscleGroups,
-          },
-        },
+        { body },
       )
 
       if (error) {
@@ -54,7 +66,10 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
         throw error
       }
 
-      const { exerciseIds } = data as { exerciseIds: string[] }
+      const { exerciseIds, rationale } = data as {
+        exerciseIds: string[]
+        rationale?: string
+      }
       if (!exerciseIds?.length) {
         throw new Error("AI returned no exercises")
       }
@@ -86,10 +101,23 @@ export function useAIGenerateWorkout({ exercisePool }: AIGenerateContext) {
 
       const { setsPerExercise } = VOLUME_MAP[constraints.duration as Duration]
 
+      const focusLabel = constraints.muscleGroups.includes("full-body")
+        ? "Full Body"
+        : constraints.muscleGroups.join(" + ")
+      const equipLabel = formatEquipmentLabelForName(
+        constraints.equipmentCategories,
+      )
+
+      const rationaleText =
+        typeof rationale === "string" && rationale.trim().length > 0
+          ? rationale.trim()
+          : undefined
+
       return {
         exercises: resolved.map((ex) => buildExercise(ex, setsPerExercise)),
-        name: `AI: ${constraints.muscleGroups.includes("full-body") ? "Full Body" : constraints.muscleGroups.join(" + ")} / ${constraints.duration}min`,
+        name: `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`,
         hasFallback: false,
+        ...(rationaleText ? { rationale: rationaleText } : {}),
       }
     },
     meta: { isNetworkError },

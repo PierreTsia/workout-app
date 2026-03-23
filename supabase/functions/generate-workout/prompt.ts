@@ -47,8 +47,21 @@ export interface RecentExercise {
   exercise_name_snapshot: string
 }
 
-export function getEquipmentValues(category: string): string[] {
-  return EQUIPMENT_CATEGORY_MAP[category] ?? []
+export function getEquipmentValuesForCategories(categories: string[]): string[] {
+  const uniq = new Set<string>()
+  for (const c of categories) {
+    const vals = EQUIPMENT_CATEGORY_MAP[c]
+    if (vals) for (const v of vals) uniq.add(v)
+  }
+  return [...uniq]
+}
+
+export function formatEquipmentLabelForPrompt(categories: string[]): string {
+  if (categories.length === 1 && categories[0] === "full-gym") return "Full gym"
+  const parts: string[] = []
+  if (categories.includes("bodyweight")) parts.push("Bodyweight")
+  if (categories.includes("dumbbells")) parts.push("Dumbbells")
+  return parts.join(" + ")
 }
 
 export function getTargetExerciseCount(duration: number): number {
@@ -93,8 +106,11 @@ export function buildPrompt(
   recentExercises: RecentExercise[],
   constraints: {
     duration: number
-    equipmentCategory: string
+    equipmentCategories: string[]
     muscleGroups: string[]
+    focusAreas?: string
+    /** UI language for the rationale only (`en` | `fr`), same idea as generate-program. */
+    locale: "en" | "fr"
   },
 ): string {
   const targetCount = getTargetExerciseCount(constraints.duration)
@@ -109,12 +125,28 @@ export function buildPrompt(
     "",
     "RULES:",
     "- Return ONLY exercise IDs from the EXERCISE CATALOG below. Never invent IDs.",
-    `- Select exactly ${targetCount} exercises.`,
+    `- Select exactly ${targetCount} exercises (exerciseIds array length must equal ${targetCount}).`,
     "- Respect the user's equipment and muscle group constraints.",
     "- Order exercises: compound movements (those with secondary_muscles) first, isolation movements last.",
     "- Avoid exercises the user did in their last 5 sessions (listed below) unless the pool is too small.",
     "- Group synergistic muscles (e.g., chest + triceps, back + biceps) when the focus allows.",
     "- For full-body workouts, distribute exercises evenly across major muscle groups.",
+    "",
+    "OUTPUT FORMAT:",
+    "Return a JSON object with exactly two keys:",
+    `- exerciseIds: string[] — exactly ${targetCount} IDs from the catalog, in workout order.`,
+    "- rationale: string — 2–5 short sentences explaining your choices and order (equipment fit, muscle balance, compounds before isolations). Follow the LOCALE section below for the language of this field only.",
+    "",
+    "LOCALE:",
+    ...(constraints.locale === "fr"
+      ? [
+          "- The user's app is in French. Write the entire rationale in natural French.",
+          "- Do not write the rationale in English.",
+        ]
+      : [
+          "- The user's app is in English. Write the entire rationale in English.",
+        ]),
+    "- exerciseIds are opaque catalog IDs; never translate or alter them.",
   )
 
   if (profile) {
@@ -150,13 +182,17 @@ export function buildPrompt(
     "",
     "CONSTRAINTS:",
     `- Duration: ${constraints.duration} minutes`,
-    `- Equipment: ${constraints.equipmentCategory}`,
+    `- Equipment: ${formatEquipmentLabelForPrompt(constraints.equipmentCategories)}`,
     `- Focus: ${focusLabel}`,
     `- Target exercise count: ${targetCount}`,
-    "",
-    "EXERCISE CATALOG:",
-    serializeCatalog(catalog),
+    `- App locale: ${constraints.locale}`,
   )
+
+  if (constraints.focusAreas) {
+    lines.push(`- The user wants to emphasize: ${constraints.focusAreas}.`)
+  }
+
+  lines.push("", "EXERCISE CATALOG:", serializeCatalog(catalog))
 
   return lines.join("\n")
 }

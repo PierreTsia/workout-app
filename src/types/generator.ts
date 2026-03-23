@@ -6,8 +6,11 @@ export type EquipmentCategory = "bodyweight" | "dumbbells" | "full-gym"
 
 export interface GeneratorConstraints {
   duration: Duration
-  equipmentCategory: EquipmentCategory
+  /** At least one. If `"full-gym"` is present, it must be the only entry. */
+  equipmentCategories: EquipmentCategory[]
   muscleGroups: string[]
+  /** Optional AI hint (Quick Generate ignores). Max length enforced in UI and edge. */
+  focusAreas?: string
 }
 
 export interface GeneratedExercise {
@@ -22,4 +25,6 @@ export interface GeneratedWorkout {
   exercises: GeneratedExercise[]
   name: string
   hasFallback: boolean
+  /** Present when built via AI Generate; cleared after shuffle / Quick Generate. */
+  rationale?: string
 }

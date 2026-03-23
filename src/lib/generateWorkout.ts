@@ -5,7 +5,6 @@ import type {
   GeneratedExercise,
 } from "@/types/generator"
 import {
-  EQUIPMENT_CATEGORY_MAP,
   VOLUME_MAP,
   MAJOR_MUSCLE_GROUPS,
   COMPOUND_REPS,
@@ -13,6 +12,11 @@ import {
   ISOLATION_REPS,
   ISOLATION_REST_SECONDS,
 } from "./generatorConfig"
+import {
+  formatEquipmentLabelForName,
+  getEquipmentValuesForCategories,
+  isBodyweightOnlySelection,
+} from "./equipmentSelection"
 
 function isCompound(exercise: Exercise): boolean {
   return (exercise.secondary_muscles?.length ?? 0) > 0
@@ -104,8 +108,8 @@ export function generateWorkout(
   exercises: Exercise[],
   constraints: GeneratorConstraints,
 ): GeneratedWorkout {
-  const { duration, equipmentCategory, muscleGroups } = constraints
-  const equipmentValues = EQUIPMENT_CATEGORY_MAP[equipmentCategory]
+  const { duration, equipmentCategories, muscleGroups } = constraints
+  const equipmentValues = getEquipmentValuesForCategories(equipmentCategories)
   const { exerciseCount, setsPerExercise } = VOLUME_MAP[duration]
   const fullBody = isFullBody(muscleGroups)
 
@@ -117,7 +121,7 @@ export function generateWorkout(
 
   let hasFallback = false
 
-  if (pool.length < exerciseCount && equipmentCategory !== "bodyweight") {
+  if (pool.length < exerciseCount && !isBodyweightOnlySelection(equipmentCategories)) {
     const widened = exercises.filter(
       (e) =>
         [...equipmentValues, "bodyweight"].includes(e.equipment) &&
@@ -158,11 +162,6 @@ function buildName(constraints: GeneratorConstraints): string {
   const focus = fullBody
     ? "Full Body"
     : constraints.muscleGroups.join(" + ")
-  const equip =
-    constraints.equipmentCategory === "full-gym"
-      ? "Gym"
-      : constraints.equipmentCategory === "dumbbells"
-        ? "Dumbbells"
-        : "Bodyweight"
+  const equip = formatEquipmentLabelForName(constraints.equipmentCategories)
   return `Quick: ${focus} / ${equip} / ${constraints.duration}min`
 }

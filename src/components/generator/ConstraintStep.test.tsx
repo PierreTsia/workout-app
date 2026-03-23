@@ -19,7 +19,7 @@ vi.mock("@/hooks/useExerciseFilterOptions", () => ({
 function setup(overrides: Partial<GeneratorConstraints> = {}) {
   const constraints: GeneratorConstraints = {
     duration: 30,
-    equipmentCategory: "full-gym",
+    equipmentCategories: ["full-gym"],
     muscleGroups: ["full-body"],
     ...overrides,
   }
@@ -33,7 +33,6 @@ function setup(overrides: Partial<GeneratorConstraints> = {}) {
       onGenerate={onGenerate}
       onAIGenerate={onAIGenerate}
       isLoading={false}
-      isAILoading={false}
     />,
   )
   return { ...result, onChange, onGenerate, onAIGenerate }
@@ -77,7 +76,18 @@ describe("ConstraintStep", () => {
     const { onChange } = setup()
     await user.click(screen.getByText("Dumbbells"))
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ equipmentCategory: "dumbbells" }),
+      expect.objectContaining({ equipmentCategories: ["dumbbells"] }),
+    )
+  })
+
+  it("combines bodyweight and dumbbells when both toggles are selected", async () => {
+    const user = userEvent.setup()
+    const { onChange } = setup({ equipmentCategories: ["bodyweight"] })
+    await user.click(screen.getByText("Dumbbells"))
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        equipmentCategories: ["bodyweight", "dumbbells"],
+      }),
     )
   })
 
@@ -138,14 +148,13 @@ describe("ConstraintStep", () => {
       <ConstraintStep
         constraints={{
           duration: 30,
-          equipmentCategory: "full-gym",
+          equipmentCategories: ["full-gym"],
           muscleGroups: ["full-body"],
         }}
         onChange={onChange}
         onGenerate={onGenerate}
         onAIGenerate={vi.fn()}
         isLoading={true}
-        isAILoading={false}
       />,
     )
     expect(screen.getByText("Generating…")).toBeInTheDocument()

@@ -61,7 +61,7 @@ const fullGymPool = [CHEST_COMPOUND, CHEST_ISOLATION, BACK_COMPOUND, SHOULDER_IS
 describe("generateWorkout", () => {
   const baseConstraints: GeneratorConstraints = {
     duration: 15,
-    equipmentCategory: "full-gym",
+    equipmentCategories: ["full-gym"],
     muscleGroups: ["Pectoraux"],
   }
 
@@ -119,7 +119,7 @@ describe("generateWorkout", () => {
 
     const constraints: GeneratorConstraints = {
       duration: 45,
-      equipmentCategory: "full-gym",
+      equipmentCategories: ["full-gym"],
       muscleGroups: ["full-body"],
     }
 
@@ -137,7 +137,7 @@ describe("generateWorkout", () => {
 
     const constraints: GeneratorConstraints = {
       duration: 30,
-      equipmentCategory: "dumbbells",
+      equipmentCategories: ["dumbbells"],
       muscleGroups: ["Biceps"],
     }
 
@@ -174,7 +174,7 @@ describe("generateWorkout", () => {
 
     const constraints: GeneratorConstraints = {
       duration: 30,
-      equipmentCategory: "full-gym",
+      equipmentCategories: ["full-gym"],
       muscleGroups: ["Pectoraux", "Triceps"],
     }
 
@@ -193,7 +193,7 @@ describe("generateWorkout", () => {
 
     const constraints: GeneratorConstraints = {
       duration: 30,
-      equipmentCategory: "bodyweight",
+      equipmentCategories: ["bodyweight"],
       muscleGroups: ["Pectoraux"],
     }
 

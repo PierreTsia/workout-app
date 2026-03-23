@@ -41,12 +41,17 @@ const HISTORY: RecentExercise[] = [
   { exercise_id: "def", exercise_name_snapshot: "Squat" },
 ]
 
+const baseConstraints = {
+  duration: 30,
+  equipmentCategories: ["full-gym"] as string[],
+  muscleGroups: ["Pectoraux"],
+  locale: "en" as const,
+}
+
 describe("buildPrompt", () => {
   it("includes all sections when full context is provided", () => {
     const prompt = buildPrompt(CATALOG, PROFILE, HISTORY, {
-      duration: 30,
-      equipmentCategory: "full-gym",
-      muscleGroups: ["Pectoraux"],
+      ...baseConstraints,
     })
 
     expect(prompt).toContain("RULES:")
@@ -67,9 +72,7 @@ describe("buildPrompt", () => {
       gender: "prefer_not_to_say",
     }
     const prompt = buildPrompt(CATALOG, discreetProfile, [], {
-      duration: 30,
-      equipmentCategory: "full-gym",
-      muscleGroups: ["Pectoraux"],
+      ...baseConstraints,
     })
 
     expect(prompt).toContain("USER PROFILE:")
@@ -79,9 +82,7 @@ describe("buildPrompt", () => {
 
   it("omits USER PROFILE section when profile is null", () => {
     const prompt = buildPrompt(CATALOG, null, HISTORY, {
-      duration: 30,
-      equipmentCategory: "full-gym",
-      muscleGroups: ["Pectoraux"],
+      ...baseConstraints,
     })
 
     expect(prompt).not.toContain("USER PROFILE:")
@@ -90,9 +91,7 @@ describe("buildPrompt", () => {
 
   it("omits RECENT EXERCISES section when history is empty", () => {
     const prompt = buildPrompt(CATALOG, PROFILE, [], {
-      duration: 30,
-      equipmentCategory: "full-gym",
-      muscleGroups: ["Pectoraux"],
+      ...baseConstraints,
     })
 
     expect(prompt).not.toContain("RECENT EXERCISES")
@@ -101,8 +100,8 @@ describe("buildPrompt", () => {
 
   it("shows Full Body focus when muscleGroups includes full-body", () => {
     const prompt = buildPrompt(CATALOG, null, [], {
+      ...baseConstraints,
       duration: 45,
-      equipmentCategory: "full-gym",
       muscleGroups: ["full-body"],
     })
 
@@ -112,15 +111,45 @@ describe("buildPrompt", () => {
 
   it("uses compact keys in catalog serialization", () => {
     const prompt = buildPrompt(CATALOG, null, [], {
-      duration: 30,
-      equipmentCategory: "full-gym",
-      muscleGroups: ["Pectoraux"],
+      ...baseConstraints,
     })
 
     expect(prompt).toContain('"id"')
     expect(prompt).toContain('"n"')
     expect(prompt).toContain('"mg"')
     expect(prompt).toContain('"eq"')
+  })
+
+  it("includes focusAreas line when provided", () => {
+    const prompt = buildPrompt(CATALOG, null, [], {
+      ...baseConstraints,
+      equipmentCategories: ["bodyweight", "dumbbells"],
+      focusAreas: "prefer cables",
+    })
+
+    expect(prompt).toContain("The user wants to emphasize: prefer cables.")
+    expect(prompt).toContain("Equipment: Bodyweight + Dumbbells")
+  })
+
+  it("asks for French rationale when locale is fr", () => {
+    const prompt = buildPrompt(CATALOG, null, [], {
+      ...baseConstraints,
+      locale: "fr",
+    })
+
+    expect(prompt).toContain("LOCALE:")
+    expect(prompt).toContain("French")
+    expect(prompt).toContain("Do not write the rationale in English")
+    expect(prompt).toContain("App locale: fr")
+  })
+
+  it("asks for English rationale when locale is en", () => {
+    const prompt = buildPrompt(CATALOG, null, [], {
+      ...baseConstraints,
+    })
+
+    expect(prompt).toContain("Write the entire rationale in English")
+    expect(prompt).toContain("App locale: en")
   })
 })
 

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { RefreshCw, ArrowLeft, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { CoachRationale } from "@/components/create-program/CoachRationale"
 import { PreviewExerciseCard } from "./PreviewExerciseCard"
 import { ExerciseSwapPicker } from "./ExerciseSwapPicker"
 import { ExerciseAddPicker } from "./ExerciseAddPicker"
@@ -121,8 +122,13 @@ export function PreviewStep({
   )
 
   const handleStart = useCallback(() => {
-    onStart({ exercises, name, hasFallback: workout.hasFallback })
-  }, [exercises, name, workout.hasFallback, onStart])
+    onStart({
+      exercises,
+      name,
+      hasFallback: workout.hasFallback,
+      ...(workout.rationale ? { rationale: workout.rationale } : {}),
+    })
+  }, [exercises, name, workout.hasFallback, workout.rationale, onStart])
 
   const heatmapData = useMemo(
     () =>
@@ -156,6 +162,10 @@ export function PreviewStep({
         <div className="rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
           {t("fallbackNotice")}
         </div>
+      )}
+
+      {workout.rationale && (
+        <CoachRationale rationale={workout.rationale} titleNs="generator" />
       )}
 
       <Button

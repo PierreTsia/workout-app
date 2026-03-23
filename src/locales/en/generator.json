@@ -31,6 +31,15 @@
   },
   "aiGenerate": "AI Generate",
   "aiGenerating": "AI is thinking…",
+  "aiGenPhase1": "Scanning your exercise library…",
+  "aiGenPhase2": "Balancing muscle groups…",
+  "aiGenPhase3": "Ordering compounds and isolations…",
+  "aiGenPhase4": "Finalizing your session…",
+  "coachSays": "Coach's take",
+  "backToEdit": "Back to choices",
+  "retry": "Retry",
+  "useQuickGenerateInstead": "Use Quick Generate instead",
+  "errorTimeout": "Generation took too long. Try again?",
   "aiError": "AI generation failed",
   "errorQuota": "You've reached your AI generation limit. Try Quick Generate instead.",
   "aiFallback": "Use Quick Generate instead?",
@@ -38,5 +47,9 @@
   "quickWorkoutBadge": "⚡ Quick Workout",
   "addExercise": "Add exercise",
   "addExerciseTitle": "Add an exercise",
-  "searchExercise": "Search…"
+  "searchExercise": "Search…",
+  "focusAreasLabel": "Preferences for AI (optional)",
+  "focusAreasPlaceholder": "e.g. use cables, avoid jumping",
+  "focusAreasHint": "Only used when you tap AI Generate. Quick Generate ignores this field.",
+  "focusAreasTooLong": "Shorten your preferences to 500 characters or less."
 }

@@ -31,6 +31,15 @@
   },
   "aiGenerate": "Générer avec l'IA",
   "aiGenerating": "L'IA réfléchit…",
+  "aiGenPhase1": "Analyse de ta bibliothèque d'exercices…",
+  "aiGenPhase2": "Équilibre des groupes musculaires…",
+  "aiGenPhase3": "Ordre polyarticulaires / isolation…",
+  "aiGenPhase4": "Finalisation de ta séance…",
+  "coachSays": "Le mot du coach",
+  "backToEdit": "Retour aux choix",
+  "retry": "Réessayer",
+  "useQuickGenerateInstead": "Utiliser la génération rapide",
+  "errorTimeout": "La génération a pris trop de temps. Réessayer ?",
   "aiError": "La génération IA a échoué",
   "errorQuota": "Tu as atteint ta limite de génération IA. Utilise la génération rapide à la place.",
   "aiFallback": "Utiliser la génération rapide ?",
@@ -38,5 +47,9 @@
   "quickWorkoutBadge": "⚡ Séance rapide",
   "addExercise": "Ajouter un exercice",
   "addExerciseTitle": "Ajouter un exercice",
-  "searchExercise": "Rechercher…"
+  "searchExercise": "Rechercher…",
+  "focusAreasLabel": "Préférences pour l'IA (optionnel)",
+  "focusAreasPlaceholder": "ex. cible les poulies, évite les sauts",
+  "focusAreasHint": "Utilisé uniquement avec Générer avec l'IA. La génération rapide ignore ce champ.",
+  "focusAreasTooLong": "Réduis tes préférences à 500 caractères ou moins."
 }

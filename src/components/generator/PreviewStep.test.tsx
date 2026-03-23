@@ -75,6 +75,14 @@ function setup(workoutOverrides: Partial<GeneratedWorkout> = {}) {
 }
 
 describe("PreviewStep", () => {
+  it("shows coach rationale when workout was generated with AI", () => {
+    setup({ rationale: "Starting with compounds to maximize your time." })
+    expect(screen.getByText("Coach's take")).toBeInTheDocument()
+    expect(
+      screen.getByText("Starting with compounds to maximize your time."),
+    ).toBeInTheDocument()
+  })
+
   it("renders the workout name in an input", () => {
     setup()
     const input = screen.getByDisplayValue("Quick: Test Workout")

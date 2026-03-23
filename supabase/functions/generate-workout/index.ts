@@ -1,17 +1,43 @@
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
+import { parseFocusAreasField } from "../_shared/aiFocusAreas.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { callGemini } from "./gemini.ts"
 import {
   buildPrompt,
   capCatalog,
-  getEquipmentValues,
+  getEquipmentValuesForCategories,
   getTargetExerciseCount,
   type CatalogExercise,
   type UserProfile,
   type RecentExercise,
 } from "./prompt.ts"
 import { validateAndRepair } from "./validate.ts"
+
+const ALLOWED_EQUIPMENT_CATEGORIES = new Set([
+  "bodyweight",
+  "dumbbells",
+  "full-gym",
+])
+
+function parseEquipmentCategories(raw: unknown): string[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const cats: string[] = []
+  for (const x of raw) {
+    const c = String(x)
+    if (!ALLOWED_EQUIPMENT_CATEGORIES.has(c)) return null
+    cats.push(c)
+  }
+  if (cats.includes("full-gym") && cats.length !== 1) return null
+  return cats
+}
+
+function parseWorkoutLocale(raw: unknown): "en" | "fr" {
+  if (raw == null || raw === "") return "en"
+  const s = String(raw).trim().toLowerCase()
+  if (s.startsWith("fr")) return "fr"
+  return "en"
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,20 +69,41 @@ Deno.serve(async (req) => {
     }
 
     // --- Parse request body ---
-    const body = await req.json()
-    const { duration, equipmentCategory, muscleGroups } = body
+    const body = (await req.json()) as Record<string, unknown>
+    const focusParsed = parseFocusAreasField(body)
+    if (focusParsed.error) {
+      return jsonResponse({ error: focusParsed.error }, 400)
+    }
 
-    if (!duration || !equipmentCategory || !muscleGroups) {
+    const { duration, muscleGroups, equipmentCategories } = body
+
+    if (
+      duration === undefined ||
+      duration === null ||
+      muscleGroups === undefined ||
+      equipmentCategories === undefined
+    ) {
       return jsonResponse(
         {
           error:
-            "Missing required fields: duration, equipmentCategory, muscleGroups",
+            "Missing required fields: duration, equipmentCategories, muscleGroups",
         },
         400,
       )
     }
 
-    const equipmentValues = getEquipmentValues(equipmentCategory)
+    if (!Array.isArray(muscleGroups)) {
+      return jsonResponse({ error: "Invalid muscleGroups" }, 400)
+    }
+
+    const parsedCategories = parseEquipmentCategories(equipmentCategories)
+    if (!parsedCategories) {
+      return jsonResponse({ error: "Invalid equipmentCategories" }, 400)
+    }
+
+    const locale = parseWorkoutLocale(body.locale)
+
+    const equipmentValues = getEquipmentValuesForCategories(parsedCategories)
     const targetCount = getTargetExerciseCount(duration)
     const isFullBody =
       muscleGroups.length === 0 || muscleGroups.includes("full-body")
@@ -76,16 +123,19 @@ Deno.serve(async (req) => {
 
     // --- Build prompt and call Gemini ---
     const prompt = buildPrompt(catalog, profileResult, historyResult, {
-      duration,
-      equipmentCategory,
-      muscleGroups,
+      duration: Number(duration),
+      equipmentCategories: parsedCategories,
+      muscleGroups: muscleGroups as string[],
+      focusAreas: focusParsed.focusAreas,
+      locale,
     })
 
     let llmOutput = await callGemini(prompt)
+    let rationale = llmOutput.rationale.trim()
 
     // --- Validate and repair ---
     let result = validateAndRepair(
-      llmOutput,
+      llmOutput.exerciseIds,
       catalog.map((e) => ({
         id: e.id,
         muscle_group: e.muscle_group,
@@ -97,12 +147,13 @@ Deno.serve(async (req) => {
     if (result.exerciseIds.length === 0) {
       const retryPrompt =
         prompt +
-        "\n\nPREVIOUS ATTEMPT FAILED: all returned IDs were invalid. " +
-        "Please return ONLY IDs from the EXERCISE CATALOG above."
+        "\n\nPREVIOUS ATTEMPT FAILED: all returned exerciseIds were invalid. " +
+        "Return a JSON object with exerciseIds (valid catalog IDs only) and rationale, as specified above."
 
       llmOutput = await callGemini(retryPrompt)
+      rationale = llmOutput.rationale.trim()
       result = validateAndRepair(
-        llmOutput,
+        llmOutput.exerciseIds,
         catalog.map((e) => ({
           id: e.id,
           muscle_group: e.muscle_group,
@@ -123,6 +174,7 @@ Deno.serve(async (req) => {
     return jsonResponse({
       exerciseIds: result.exerciseIds,
       repaired: result.repaired,
+      rationale,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
