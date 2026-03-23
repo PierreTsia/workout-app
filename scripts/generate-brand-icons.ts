@@ -3,7 +3,7 @@
  * Run: npx tsx scripts/generate-brand-icons.ts
  */
 import sharp from "sharp"
-import { readFileSync, writeFileSync } from "fs"
+import { readFileSync } from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 
