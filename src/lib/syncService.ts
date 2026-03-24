@@ -33,6 +33,8 @@ export interface SessionFinishPayload {
   workoutLabelSnapshot: string
   startedAt: number
   finishedAt: number
+  /** Non-negative milliseconds of active training (excludes pause). */
+  activeDurationMs: number
   totalSetsDone: number
   hasSkippedSets: boolean
   cycleId?: string | null
@@ -344,6 +346,7 @@ export async function drainQueue(userId: string): Promise<void> {
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
+  queryClient.invalidateQueries({ queryKey: ["last-session-for-day"] })
   queryClient.invalidateQueries({ queryKey: ["pr-aggregates"] })
   queryClient.invalidateQueries({ queryKey: ["training-activity-by-day"] })
   queryClient.invalidateQueries({ queryKey: ["sessions-date-range"] })
@@ -379,6 +382,7 @@ async function ensureSession(
           workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
           started_at: new Date(p.startedAt).toISOString(),
           finished_at: new Date(p.finishedAt).toISOString(),
+          active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
           total_sets_done: p.totalSetsDone,
           has_skipped_sets: p.hasSkippedSets,
           cycle_id: p.cycleId ?? null,
@@ -472,6 +476,7 @@ async function processSessionFinish(
         workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
         started_at: new Date(p.startedAt).toISOString(),
         finished_at: new Date(p.finishedAt).toISOString(),
+        active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
         total_sets_done: p.totalSetsDone,
         has_skipped_sets: p.hasSkippedSets,
         cycle_id: p.cycleId ?? null,

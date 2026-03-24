@@ -44,6 +44,10 @@ interface ExerciseDetailProps {
   exercise: WorkoutExercise
   sessionId: string
   isReadOnly: boolean
+  /** When true, swap/delete session edits are hidden (workout timer paused). */
+  sessionPaused?: boolean
+  /** Shown when user tries to log sets while paused. */
+  onBlockedByPause?: () => void
   editSession?: ExerciseDetailEditSessionProps | null
 }
 
@@ -51,6 +55,8 @@ export function ExerciseDetail({
   exercise,
   sessionId,
   isReadOnly,
+  sessionPaused = false,
+  onBlockedByPause,
   editSession = null,
 }: ExerciseDetailProps) {
   const { t } = useTranslation("workout")
@@ -62,7 +68,7 @@ export function ExerciseDetail({
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
 
-  const showWorkoutEdits = Boolean(editSession && !isReadOnly)
+  const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)
 
   return (
     <div className="flex flex-col gap-4 px-4">
@@ -196,7 +202,13 @@ export function ExerciseDetail({
         equipment={libExercise?.equipment}
       />
 
-      <SetsTable exercise={exercise} sessionId={sessionId} isReadOnly={isReadOnly} equipment={libExercise?.equipment} />
+      <SetsTable
+        exercise={exercise}
+        sessionId={sessionId}
+        isReadOnly={isReadOnly}
+        equipment={libExercise?.equipment}
+        onBlockedByPause={onBlockedByPause}
+      />
     </div>
   )
 }

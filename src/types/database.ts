@@ -55,6 +55,8 @@ export interface Session {
   workout_label_snapshot: string
   started_at: string
   finished_at: string | null
+  /** Active training time excluding pause; null for legacy sessions. */
+  active_duration_ms: number | null
   total_sets_done: number
   has_skipped_sets: boolean
   cycle_id: string | null

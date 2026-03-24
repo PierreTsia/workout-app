@@ -1,6 +1,13 @@
-export function formatSessionRowDuration(startedAt: string, finishedAt: string | null): string {
+export function formatSessionRowDuration(
+  startedAt: string,
+  finishedAt: string | null,
+  activeDurationMs?: number | null,
+): string {
   if (!finishedAt) return "–"
-  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  const ms =
+    activeDurationMs != null && activeDurationMs >= 0
+      ? activeDurationMs
+      : new Date(finishedAt).getTime() - new Date(startedAt).getTime()
   const totalMin = Math.round(ms / 60_000)
   if (totalMin < 60) return `${totalMin}m`
   const h = Math.floor(totalMin / 60)

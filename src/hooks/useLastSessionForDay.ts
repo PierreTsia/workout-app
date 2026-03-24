@@ -5,6 +5,7 @@ interface LastSessionInfo {
   id: string
   started_at: string
   finished_at: string
+  active_duration_ms: number | null
   total_sets_done: number
   has_skipped_sets: boolean
 }
@@ -15,7 +16,9 @@ export function useLastSessionForDay(dayId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sessions")
-        .select("id, started_at, finished_at, total_sets_done, has_skipped_sets")
+        .select(
+          "id, started_at, finished_at, active_duration_ms, total_sets_done, has_skipped_sets",
+        )
         .eq("workout_day_id", dayId!)
         .not("finished_at", "is", null)
         .order("finished_at", { ascending: false })

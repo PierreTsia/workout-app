@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, afterEach } from "vitest"
-import { formatRelativeDate, formatDuration, formatDurationMs } from "@/lib/formatters"
+import {
+  formatRelativeDate,
+  formatDuration,
+  formatDurationMs,
+  formatSessionDurationForDisplay,
+} from "@/lib/formatters"
 
 describe("formatRelativeDate", () => {
   afterEach(() => vi.useRealTimers())
@@ -82,6 +87,28 @@ describe("formatDuration", () => {
     expect(
       formatDuration("2026-03-20T10:00:00Z", "2026-03-20T10:00:45Z"),
     ).toBe("1 min")
+  })
+})
+
+describe("formatSessionDurationForDisplay", () => {
+  it("uses active_duration_ms when set (excludes pause vs wall clock)", () => {
+    expect(
+      formatSessionDurationForDisplay(
+        "2026-03-20T10:00:00Z",
+        "2026-03-20T11:00:00Z",
+        30 * 60_000,
+      ),
+    ).toBe("30 min")
+  })
+
+  it("falls back to wall clock when active_duration_ms is null", () => {
+    expect(
+      formatSessionDurationForDisplay(
+        "2026-03-20T10:00:00Z",
+        "2026-03-20T11:00:00Z",
+        null,
+      ),
+    ).toBe("1h")
   })
 })
 

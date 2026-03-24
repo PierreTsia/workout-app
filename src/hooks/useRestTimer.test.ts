@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
-import { restAtom } from "@/store/atoms"
+import { restAtom, sessionAtom } from "@/store/atoms"
 import { useRestTimer } from "./useRestTimer"
 
 describe("useRestTimer", () => {
@@ -58,6 +58,125 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.remaining).toBe(80)
+  })
+
+  it("freezes rest when workout session is paused", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+      }))
+    })
+
+    expect(result.current.isPaused).toBe(true)
+    const frozenRemaining = result.current.remaining
+    expect(frozenRemaining).toBe(80)
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+
+    expect(result.current.remaining).toBe(frozenRemaining)
+  })
+
+  it("resumes rest countdown after workout session resumes", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+      }))
+    })
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    expect(result.current.remaining).toBe(75)
+  })
+
+  it("keeps user rest pause when session resumes if rest was paused before session", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      result.current.pause()
+    })
+    const userPausedRemaining = result.current.remaining
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+      }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+
+    expect(result.current.isPaused).toBe(true)
+    expect(result.current.remaining).toBe(userPausedRemaining)
   })
 
   it("pauses the timer", () => {

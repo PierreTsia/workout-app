@@ -62,13 +62,31 @@ export function formatRelativeDate(iso: string, locale = "en"): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
-export function formatDuration(startIso: string, endIso: string): string {
-  const ms = new Date(endIso).getTime() - new Date(startIso).getTime()
+/** Same rules as `formatDuration` but from a millisecond length (workout card, summaries). */
+export function formatDurationFromMs(ms: number): string {
   const totalMin = Math.round(ms / 60_000)
   if (totalMin < 60) return `${totalMin} min`
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
   return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
+}
+
+export function formatDuration(startIso: string, endIso: string): string {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime()
+  return formatDurationFromMs(ms)
+}
+
+/** Prefer wall-clock when `active_duration_ms` is null (legacy sessions). */
+export function formatSessionDurationForDisplay(
+  startedAt: string,
+  finishedAt: string,
+  activeDurationMs: number | null | undefined,
+): string {
+  const ms =
+    activeDurationMs != null && activeDurationMs >= 0
+      ? activeDurationMs
+      : new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  return formatDurationFromMs(ms)
 }
 
 export function formatDurationMs(ms: number): string {

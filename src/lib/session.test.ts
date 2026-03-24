@@ -1,5 +1,19 @@
-import { describe, it, expect } from "vitest"
-import { getEffectiveElapsed } from "./session"
+import { describe, it, expect, vi, afterEach } from "vitest"
+import type { SessionState } from "@/store/atoms"
+import { getEffectiveElapsed, resumeSessionFromPause } from "./session"
+
+const BASE_SESSION: SessionState = {
+  currentDayId: "d",
+  activeDayId: "d",
+  exerciseIndex: 0,
+  setsData: {},
+  startedAt: 1000,
+  isActive: true,
+  totalSetsDone: 0,
+  pausedAt: null,
+  accumulatedPause: 0,
+  cycleId: null,
+}
 
 describe("getEffectiveElapsed", () => {
   const T0 = 1_000_000
@@ -52,5 +66,24 @@ describe("getEffectiveElapsed", () => {
         T0 + 15_000,
       ),
     ).toBe(15_000)
+  })
+})
+
+describe("resumeSessionFromPause", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("returns the same reference when not paused", () => {
+    expect(resumeSessionFromPause(BASE_SESSION)).toBe(BASE_SESSION)
+  })
+
+  it("clears pausedAt and folds pause into accumulatedPause", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(5000)
+    const paused = { ...BASE_SESSION, pausedAt: 2000, accumulatedPause: 100 }
+    const out = resumeSessionFromPause(paused)
+    expect(out.pausedAt).toBeNull()
+    expect(out.accumulatedPause).toBe(100 + 3000)
   })
 })

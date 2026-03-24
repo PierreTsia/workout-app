@@ -18,9 +18,15 @@ import {
 interface SessionNavProps {
   exercises: WorkoutExercise[]
   onFinish: () => void
+  /** When the workout timer is paused, forward/next/finish attempts call this instead. */
+  onBlockedByPause?: () => void
 }
 
-export function SessionNav({ exercises, onFinish }: SessionNavProps) {
+export function SessionNav({
+  exercises,
+  onFinish,
+  onBlockedByPause,
+}: SessionNavProps) {
   const { t } = useTranslation("workout")
   const [session, setSession] = useAtom(sessionAtom)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -38,6 +44,10 @@ export function SessionNav({ exercises, onFinish }: SessionNavProps) {
   }
 
   function next() {
+    if (session.pausedAt != null) {
+      onBlockedByPause?.()
+      return
+    }
     if (isLast) {
       handleFinishAttempt()
       return
@@ -46,6 +56,10 @@ export function SessionNav({ exercises, onFinish }: SessionNavProps) {
   }
 
   function handleFinishAttempt() {
+    if (session.pausedAt != null) {
+      onBlockedByPause?.()
+      return
+    }
     const skipped = daySets().filter((s) => !s.done).length
     if (skipped > 0) {
       setConfirmOpen(true)

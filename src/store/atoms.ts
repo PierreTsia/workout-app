@@ -62,6 +62,8 @@ export interface RestState {
   durationSeconds: number
   pausedAt: number | null
   accumulatedPause: number
+  /** True when `pausedAt` was set because the workout session was paused (not the rest drawer). */
+  pausedForWorkoutSession?: boolean
 }
 
 export const restAtom = atomWithStorage<RestState | null>("rest", null)

@@ -8,7 +8,10 @@ import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { BodyMap } from "@/components/body-map/BodyMap"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { formatRelativeDate, formatDuration } from "@/lib/formatters"
+import {
+  formatRelativeDate,
+  formatSessionDurationForDisplay,
+} from "@/lib/formatters"
 
 interface WorkoutDayCardProps {
   day: WorkoutDay
@@ -106,7 +109,11 @@ export function WorkoutDayCard({
             </Badge>
             <Badge variant="secondary" className="gap-1.5">
               <Timer className="h-3 w-3" />
-              {formatDuration(lastSession.started_at, lastSession.finished_at)}
+              {formatSessionDurationForDisplay(
+                lastSession.started_at,
+                lastSession.finished_at,
+                lastSession.active_duration_ms,
+              )}
             </Badge>
           </>
         ) : !isCycleDone && exercises ? (
@@ -119,7 +126,11 @@ export function WorkoutDayCard({
               <Badge variant="outline" className="gap-1.5 text-muted-foreground">
                 <Timer className="h-3 w-3" />
                 {t("estimatedDuration", {
-                  duration: formatDuration(lastSession.started_at, lastSession.finished_at),
+                  duration: formatSessionDurationForDisplay(
+                    lastSession.started_at,
+                    lastSession.finished_at,
+                    lastSession.active_duration_ms,
+                  ),
                 })}
               </Badge>
             )}
