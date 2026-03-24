@@ -33,6 +33,12 @@ export function WorkoutDayCard({
     [exercises],
   )
 
+  const lastSessionDateLabel = lastSession
+    ? t("lastSession", {
+        date: formatRelativeDate(lastSession.finished_at, i18n.language),
+      })
+    : null
+
   return (
     <div
       className={cn(
@@ -44,13 +50,13 @@ export function WorkoutDayCard({
     >
       {/* Header: date badge + cycle done */}
       <div className="mb-1 flex items-center justify-between">
-        {isCycleDone && lastSession ? (
+        {isCycleDone && lastSessionDateLabel ? (
           <Badge variant="secondary" className="text-[11px] font-medium">
-            {formatRelativeDate(lastSession.finished_at, i18n.language)}
+            {lastSessionDateLabel}
           </Badge>
-        ) : !isCycleDone && lastSession ? (
+        ) : !isCycleDone && lastSessionDateLabel ? (
           <span className="text-[11px] text-muted-foreground">
-            {t("lastSession", { date: formatRelativeDate(lastSession.finished_at, i18n.language) })}
+            {lastSessionDateLabel}
           </span>
         ) : (
           <span />

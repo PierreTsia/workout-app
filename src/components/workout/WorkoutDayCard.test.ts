@@ -10,6 +10,13 @@ describe("formatRelativeDate", () => {
     expect(formatRelativeDate("2026-03-20T10:00:00Z", "en")).toBe("Today")
   })
 
+  it('returns "Yesterday" when the session was under 24h ago but on the previous calendar day', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-03-24T09:57:00Z"))
+    expect(formatRelativeDate("2026-03-23T21:30:00Z", "en")).toBe("Yesterday")
+    expect(formatRelativeDate("2026-03-23T21:30:00Z", "fr")).toBe("Hier")
+  })
+
   it('returns "Yesterday" for a timestamp from one day ago', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-03-20T18:00:00Z"))

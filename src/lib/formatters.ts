@@ -41,11 +41,24 @@ function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {
   return fmt
 }
 
+/**
+ * Calendar-day distance from `then` to `now` in the user's local timezone
+ * (0 = same local calendar day). Not the same as floor(elapsed ms / 24h), which
+ * mislabels "yesterday evening" as "today" when fewer than 24h have passed.
+ */
+function diffLocalCalendarDays(now: Date, then: Date): number {
+  const startThen = new Date(then.getFullYear(), then.getMonth(), then.getDate())
+  const startNow = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Math.round((startNow.getTime() - startThen.getTime()) / 86_400_000)
+}
+
 export function formatRelativeDate(iso: string, locale = "en"): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.floor(diff / 86_400_000)
+  const then = new Date(iso)
+  const now = new Date()
+  const days = Math.max(0, diffLocalCalendarDays(now, then))
   const fmt = getRelativeFormatter(locale)
-  const raw = days < 7 ? fmt.format(-days, "day") : fmt.format(-Math.floor(days / 7), "week")
+  const raw =
+    days < 7 ? fmt.format(-days, "day") : fmt.format(-Math.floor(days / 7), "week")
   return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
