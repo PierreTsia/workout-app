@@ -1,7 +1,8 @@
 {
   "setNumber": "#",
   "reps": "Reps",
-  "durationHeader": "Timer",
+  "durationHeader": "Sec.",
+  "durationTargetLabel": "Target duration in seconds",
   "durationStart": "Start",
   "durationStopEarly": "End early",
   "durationLog": "Log set",

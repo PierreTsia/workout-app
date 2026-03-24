@@ -19,6 +19,8 @@ export type SessionSetRowDuration = {
   rir?: number
   /** Wall-clock ms when countdown started; UI derives elapsed from Date.now() - timerStartedAt */
   timerStartedAt: number | null
+  /** Actual duration logged when the set was completed (seconds). */
+  loggedSeconds?: number
 }
 
 export type SessionSetRow = SessionSetRowReps | SessionSetRowDuration

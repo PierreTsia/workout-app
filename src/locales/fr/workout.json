@@ -1,7 +1,8 @@
 {
   "setNumber": "#",
   "reps": "Reps",
-  "durationHeader": "Chrono",
+  "durationHeader": "Sec.",
+  "durationTargetLabel": "Durée cible en secondes",
   "durationStart": "Démarrer",
   "durationStopEarly": "Arrêter avant",
   "durationLog": "Enregistrer",

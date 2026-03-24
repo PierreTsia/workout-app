@@ -156,6 +156,10 @@ INSERT INTO exercises (name, muscle_group, emoji, is_system, equipment, name_en)
   ('Squat au poids du corps', 'Quadriceps', '🦵', true, 'bodyweight', 'Bodyweight Squat'),
   ('Fentes haltères', 'Quadriceps', '🦵', true, 'dumbbell', 'Dumbbell Lunges'),
   ('Gainage planche', 'Abdos', '🔥', true, 'bodyweight', 'Plank'),
+  ('Gainage planche latérale', 'Abdos', '🔥', true, 'bodyweight', 'Side Plank'),
+  ('Hollow hold', 'Abdos', '🔥', true, 'bodyweight', 'Hollow Hold'),
+  ('Chaise au mur', 'Quadriceps', '🦵', true, 'bodyweight', 'Wall Sit'),
+  ('L-sit', 'Abdos', '🔥', true, 'bodyweight', 'L-Sit'),
   ('Crunchs', 'Abdos', '🔥', true, 'bodyweight', 'Crunches'),
   ('Développé haltères', 'Pectoraux', '🏋️', true, 'dumbbell', 'Dumbbell Bench Press'),
   ('Rowing haltère', 'Dos', '🚣', true, 'dumbbell', 'Dumbbell Row'),
@@ -567,3 +571,13 @@ ON CONFLICT (name) DO NOTHING;
 -- Days and exercises for these 6 templates are inserted by migrations
 -- 20260315210000 and 20260315220000. No duplication needed here since
 -- template_days/template_exercises have no unique constraints.
+
+-- =========================================================================
+-- Duration exercise classification (mirrors prod measurement-updates.sql)
+-- =========================================================================
+
+UPDATE exercises SET measurement_type = 'duration', default_duration_seconds = 30 WHERE name = 'Gainage planche';
+UPDATE exercises SET measurement_type = 'duration', default_duration_seconds = 30 WHERE name = 'Gainage planche latérale';
+UPDATE exercises SET measurement_type = 'duration', default_duration_seconds = 30 WHERE name = 'Hollow hold';
+UPDATE exercises SET measurement_type = 'duration', default_duration_seconds = 30 WHERE name = 'Chaise au mur';
+UPDATE exercises SET measurement_type = 'duration', default_duration_seconds = 20 WHERE name = 'L-sit';

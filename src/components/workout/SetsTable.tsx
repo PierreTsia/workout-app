@@ -22,6 +22,7 @@ import {
   type SessionSetRowDuration,
   type SessionSetRowReps,
 } from "@/lib/sessionSetRow"
+import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
 interface SetsTableProps {
@@ -67,6 +68,34 @@ export function SetsTable({
 
   const isWorkoutPaused = session.pausedAt != null
   const pendingRirForUi = isWorkoutPaused ? null : pendingSetIdx
+
+  // Migrate legacy reps rows to duration rows when the library confirms this is
+  // a duration exercise. This happens when setsData was hydrated before the
+  // library query resolved (reps is the fallback kind).
+  useEffect(() => {
+    if (!libExercise || libExercise.measurement_type !== "duration") return
+    setSession((prev) => {
+      const existing = (prev.setsData[exercise.id] ?? []).map(
+        normalizeSessionSetRow,
+      )
+      if (existing.every((r) => r.kind === "duration")) return prev
+      const targetSeconds = resolveTargetSecondsForRow(exercise, libExercise)
+      const fixed = existing.map((r): SessionSetRow => {
+        if (r.kind === "duration") return r
+        return {
+          kind: "duration",
+          targetSeconds,
+          weight: r.weight,
+          done: r.done,
+          timerStartedAt: null,
+        }
+      })
+      return {
+        ...prev,
+        setsData: { ...prev.setsData, [exercise.id]: fixed },
+      }
+    })
+  }, [libExercise, exercise, setSession])
 
   const pauseStartRef = useRef<number | null>(null)
   useEffect(() => {
@@ -302,6 +331,7 @@ export function SetsTable({
         ...currentSet,
         done: true,
         timerStartedAt: null,
+        loggedSeconds: durationSeconds,
       }
 
       setRest({
@@ -399,58 +429,98 @@ export function SetsTable({
   if (rows.length === 0) return null
 
   if (isDurationExercise) {
+    // Index of the row whose timer is currently ticking (at most one at a time).
+    const activeTimerIdx = rows.findIndex(
+      (r) => r.kind === "duration" && r.timerStartedAt != null && !r.done,
+    )
+
     return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-[2rem_1fr] gap-2 px-1 text-xs font-medium text-muted-foreground">
+      <div className="space-y-1">
+        <div className="grid grid-cols-[2rem_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
           <span className="text-center">{t("setNumber")}</span>
-          <span>{t("durationHeader")}</span>
+          <span className="text-center">{t("durationHeader")}</span>
+          <span />
         </div>
+
         {rows.map((set, idx) => (
           <div
             key={idx}
             className={cn(
-              "rounded-md px-1 py-2 transition-colors",
+              "grid grid-cols-[2rem_1fr_2.5rem] items-center gap-2 rounded-md px-1 py-1.5 transition-colors",
               set.kind === "duration" && set.done && "bg-primary/10",
             )}
           >
-            <div className="grid grid-cols-[2rem_1fr] items-start gap-2">
-              <span className="pt-2 text-center text-sm font-medium text-muted-foreground">
-                {idx + 1}
-              </span>
-              {set.kind === "duration" ? (
-                <DurationSetTimer
-                  targetSeconds={set.targetSeconds}
-                  timerStartedAt={set.timerStartedAt}
-                  disabled={!session.isActive || isReadOnly}
-                  isWorkoutPaused={isWorkoutPaused}
-                  isDone={set.done}
-                  onStart={() => {
-                    setSession((prev) => {
-                      const exerciseSets = [
-                        ...(prev.setsData[exercise.id] ?? []),
-                      ].map((r) => normalizeSessionSetRow(r))
-                      const cur = exerciseSets[idx]
-                      if (!cur || !isDurationRow(cur) || cur.done) return prev
-                      exerciseSets[idx] = {
-                        ...cur,
-                        timerStartedAt: Date.now(),
-                      }
-                      return {
-                        ...prev,
-                        setsData: {
-                          ...prev.setsData,
-                          [exercise.id]: exerciseSets,
-                        },
-                      }
-                    })
-                  }}
-                  onLog={(seconds) => completeDurationSet(idx, seconds)}
-                  onBlockedByPause={onBlockedByPause}
-                />
-              ) : null}
-            </div>
+            <span className="text-center text-sm font-medium text-muted-foreground">
+              {idx + 1}
+            </span>
+
+            {set.kind === "duration" && set.done ? (
+              <>
+                <span className="text-center font-mono text-sm tabular-nums text-muted-foreground">
+                  {set.loggedSeconds != null
+                    ? formatSecondsMMSS(set.loggedSeconds)
+                    : "—"}
+                </span>
+                <div className="flex justify-center">
+                  <Checkbox checked disabled />
+                </div>
+              </>
+            ) : set.kind === "duration" ? (
+              <DurationSetTimer
+                targetSeconds={set.targetSeconds}
+                timerStartedAt={set.timerStartedAt}
+                disabled={
+                  !session.isActive ||
+                  isReadOnly ||
+                  (activeTimerIdx !== -1 && activeTimerIdx !== idx)
+                }
+                isWorkoutPaused={isWorkoutPaused}
+                onUpdateTarget={(seconds) => {
+                  if (isReadOnly || isWorkoutPaused) return
+                  setSession((prev) => {
+                    const exerciseSets = [
+                      ...(prev.setsData[exercise.id] ?? []),
+                    ].map((r) => normalizeSessionSetRow(r))
+                    const cur = exerciseSets[idx]
+                    if (!cur || !isDurationRow(cur) || cur.done) return prev
+                    exerciseSets[idx] = { ...cur, targetSeconds: seconds }
+                    return {
+                      ...prev,
+                      setsData: {
+                        ...prev.setsData,
+                        [exercise.id]: exerciseSets,
+                      },
+                    }
+                  })
+                }}
+                onStart={() => {
+                  setRest(null)
+                  setSession((prev) => {
+                    const exerciseSets = [
+                      ...(prev.setsData[exercise.id] ?? []),
+                    ].map((r) => normalizeSessionSetRow(r))
+                    const cur = exerciseSets[idx]
+                    if (!cur || !isDurationRow(cur) || cur.done) return prev
+                    exerciseSets[idx] = {
+                      ...cur,
+                      timerStartedAt: Date.now(),
+                    }
+                    return {
+                      ...prev,
+                      setsData: {
+                        ...prev.setsData,
+                        [exercise.id]: exerciseSets,
+                      },
+                    }
+                  })
+                }}
+                onLog={(seconds) => completeDurationSet(idx, seconds)}
+                onBlockedByPause={onBlockedByPause}
+              />
+            ) : null}
           </div>
         ))}
+
         <div className="flex items-center justify-center gap-1 pt-1">
           <Button
             variant="ghost"
