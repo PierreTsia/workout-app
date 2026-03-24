@@ -8,7 +8,7 @@ import { createRoot } from "react-dom/client"
 import { ThemeProvider } from "next-themes"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider } from "react-router-dom"
-import { ErrorBoundary } from "react-error-boundary"
+import { ErrorBoundary } from "@sentry/react"
 import { router } from "@/router"
 import { queryClient } from "@/lib/queryClient"
 import { initSyncListeners } from "@/lib/syncService"
@@ -18,7 +18,9 @@ import { prepareThemeLocalStorage, THEME_STORAGE_KEY } from "@/lib/themeStorage"
 import { handleVersionUpgrade } from "@/lib/versionManager"
 import { listenForSwUpdate } from "@/lib/swReloadOnUpdate"
 import { Analytics } from "@vercel/analytics/react"
+import { initSentry } from "@/lib/sentry"
 
+initSentry()
 listenForSwUpdate()
 
 // Purge stale caches/localStorage before React mounts so Jotai atoms read clean values.
@@ -41,17 +43,18 @@ handleVersionUpgrade()
         >
           <QueryClientProvider client={queryClient}>
             <ErrorBoundary
-              fallbackRender={({ error, resetErrorBoundary }) => (
+              fallback={({ error, resetError }) => (
                 <ErrorFallback
                   error={
                     error instanceof Error
                       ? error
                       : new Error(String(error))
                   }
-                  resetErrorBoundary={resetErrorBoundary}
+                  resetErrorBoundary={resetError}
                   variant="page"
                 />
               )}
+              showDialog={false}
             >
               <RouterProvider router={router} />
             </ErrorBoundary>

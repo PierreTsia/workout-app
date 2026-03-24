@@ -14,6 +14,7 @@ import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
 import { LibraryPage } from "@/pages/LibraryPage"
 import { CreateProgramPage } from "@/pages/CreateProgramPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
+import { AdminHomePage } from "@/pages/AdminHomePage"
 import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { AccountPage } from "@/pages/AccountPage"
 import { PrivacyPage } from "@/pages/PrivacyPage"
@@ -80,6 +81,10 @@ export const router = createBrowserRouter([
               {
                 element: <AdminGuard />,
                 children: [
+                  {
+                    path: "/admin",
+                    element: <AdminHomePage />,
+                  },
                   {
                     path: "/admin/exercises",
                     element: <AdminExercisesPage />,

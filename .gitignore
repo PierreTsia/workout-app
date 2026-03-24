@@ -34,3 +34,6 @@ playwright/.auth/
 playwright-report/
 test-results/
 .env*.local
+
+# Sentry Config File
+.env.sentry-build-plugin

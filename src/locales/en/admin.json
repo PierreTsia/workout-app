@@ -1,5 +1,12 @@
 {
   "title": "Admin",
+  "overview": "Overview",
+  "homeDescription": "Internal tools — only visible to admins.",
+  "sentryTest": {
+    "heading": "Sentry test",
+    "hint": "Throws a test error to verify error reporting. Remove this section when you are done.",
+    "button": "Break the world"
+  },
   "exercises": "Exercises",
   "exercisesDescription": "Manage exercise content — instructions, videos, images",
   "backToList": "Back to list",
