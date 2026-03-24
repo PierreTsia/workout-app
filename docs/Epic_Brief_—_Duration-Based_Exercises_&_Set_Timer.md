@@ -2,7 +2,7 @@
 
 ## Summary
 
-Introduce a first-class **measurement mode** for exercises: **reps + load** (today's default) vs **duration** (time-under-tension for holds, planks, wall sits, etc.). The builder and live session stop forcing "reps" where time is the meaningful variable. For duration exercises, each set is paired with an **auto-validating countdown timer** — the user starts the hold, the timer counts down and **auto-completes with haptic/sound feedback** when the target is reached, logging the set with zero extra taps. An **AI-assisted batch script** (same operational pattern as `file:scripts/enrich-difficulty.ts`) classifies the **600+ production exercises** into rep-based vs duration-based. A simple **product-level default** (e.g. 30 s) is applied to all duration exercises; the user can override this once per exercise in the Builder. Session summaries and history surfaces **show duration** where applicable, not misleading "rep" counts.
+Introduce a first-class **measurement mode** for exercises: **reps + load** (today's default) vs **duration** (time-under-tension for holds, planks, wall sits, etc.). The builder and live session stop forcing "reps" where time is the meaningful variable. For duration exercises, each set uses a **countdown timer**: when time is up, **strong haptic + sound** fire, and the user **must tap** a prominent **Terminer / Loguer** button to record the set — **no auto-log** (avoids corrupting stats if the user stopped early). Program templates store **`target_duration_seconds`** on `WorkoutExercise` (nullable → fallback to `exercises.default_duration_seconds`). An **offline-first AI pipeline** classifies exercises from a **local CSV export** (never direct LLM writes to prod); output is audited, then applied via a **reviewed SQL migration**. Session summaries and history show **duration** where applicable, not misleading "rep" counts.
 
 ---
 
@@ -34,11 +34,11 @@ Introduce a first-class **measurement mode** for exercises: **reps + load** (tod
 | Goal | Measure |
 | --- | --- |
 | Model duration vs reps at exercise + set level | Schema uses **separate columns** (`reps_logged` vs `duration_seconds`) — no overloading; clean stats and aggregates |
-| Classify production exercises | **≥ 95%** of catalog rows have a non-null `measurement_type` after running the enrichment script |
-| Auto-validating per-set timer | For duration mode, countdown reaches target → haptic/sound → "Set done?" → auto-log; **manual override** available (end early / extend) but not the primary path |
-| Builder + session UX | Builder shows duration-oriented default (editable); session renders countdown timer instead of reps input |
-| Honest summaries | Session summary and history rows show **time** (e.g. `45s` / `1:00`) for duration sets, not fake reps |
-| Auditable AI run | Script outputs a **CSV audit** with classification and reasoning; **dry-run** and **--force** semantics consistent with `file:scripts/enrich-difficulty.ts` |
+| Classify production exercises | **≥ 95%** of catalog rows have a non-null `measurement_type` after the enrichment pipeline |
+| Per-set timer + honest log | Countdown → **strong haptic + sound** at zero → user **always taps** to log; logs **actual** duration (early stop supported) |
+| Builder + program flexibility | `WorkoutExercise.target_duration_seconds` overrides exercise default when set; **NULL** falls back to `exercises.default_duration_seconds` |
+| Honest summaries | Session summary and history rows show **time** for duration sets, not fake reps |
+| Safe AI pipeline | **Export → local script → audit CSV → human review → SQL migration** — no LLM direct write to prod |
 
 ---
 
@@ -53,22 +53,51 @@ Introduce a first-class **measurement mode** for exercises: **reps + load** (tod
 
 This is the only clean path for SQL aggregates, charts, and future analytics. Overloading `reps_logged` with time strings would corrupt every existing history/stats query.
 
-### 2. Auto-validating timer, not Start → Stop → Save
+### 2. Timer completes with feedback — log only on explicit tap (no auto-log)
 
 The per-set timer flow for duration exercises:
 
-1. User taps **Start** — countdown begins from target duration (e.g. 30 s).
-2. Timer reaches zero → **haptic vibration + sound** → prompt: "Set terminé ?"
-3. User taps **Confirm** (or it auto-confirms after brief delay) → set logged with `duration_seconds`.
-4. **Override paths** (not primary): tap to end early (logs actual time), tap to extend, or manual MM:SS entry after the fact.
+1. User taps **Start** — countdown begins from the target (from `WorkoutExercise.target_duration_seconds` or exercise default).
+2. Timer reaches zero → **strong haptic + sound** (user notices even in a hold).
+3. User taps a **large** **Terminer** / **Loguer** (or equivalent) — **only then** is the set persisted with `duration_seconds` (typically the target; or actual elapsed if they tapped "end early" before zero).
+4. **Early stop:** user can end before zero — log **actual** seconds, not the planned target (avoids a "1 min badge" when they collapsed at 45 s).
 
-One tap to start, one tap (or zero) to confirm. No "Stop" button in the happy path.
+**No auto-log, no auto-confirm delay.** Automation would eventually log a duration the user did not earn; explicit completion is also a retention-positive "check the box" moment.
 
-### 3. AI script classifies only — no hold-time proposals
+### 3. `WorkoutExercise.target_duration_seconds` (nullable)
 
-The enrichment script's **only job** is the binary classification: `reps` vs `duration`. It does **not** propose per-exercise or per-tier default hold times — that's too subjective and unreliable for an LLM to get right across 600+ exercises.
+Add **`target_duration_seconds`** on `WorkoutExercise` (the row that links an exercise to a program day / template).
 
-Instead: a **single product-level default** (e.g. **30 s**) is applied to all newly-classified duration exercises. The user can edit this value **once per exercise in the Builder**, and that override persists. Simple, auditable, user-controlled.
+- **If NOT NULL:** use this as the session countdown target (e.g. template "Core Strength" forces a **60 s** plank even when `exercises.default_duration_seconds` is 30).
+- **If NULL:** resolve from **`exercises.default_duration_seconds`** (and product fallback, e.g. 30 s).
+
+Best of both worlds: catalog default + per-program overrides.
+
+### 4. AI classification pipeline — staging / export only, never direct prod write
+
+Do **not** point the LLM at production with service-role writes. Process:
+
+1. **Export** the exercise catalog to **CSV** (from staging or local snapshot).
+2. Run the **classification script locally** against that file (Groq / etc.) → **audit CSV** (classification + reasoning).
+3. **Manual validation** of the audit (spot-checks, edge cases).
+4. Generate a **SQL migration** (`UPDATE exercises SET … WHERE id = …`) and apply to prod **after review** — same safety as any schema/data change.
+
+Slower than one-shot API writes, but avoids corrupting **600+** rows on a single model hallucination.
+
+### 5. AI script classifies only — no hold-time proposals
+
+The script's **only job** is binary classification: `reps` vs `duration`. It does **not** propose per-exercise hold times.
+
+A **single product-level default** (e.g. **30 s**) applies to newly classified duration exercises in the generated SQL / app defaults. Users refine **`default_duration_seconds`** on the exercise and **`target_duration_seconds`** on program rows in the Builder.
+
+### 6. Catalog naming: **Plank** vs **Planche** (strict separation)
+
+| Term | Meaning | Audience |
+| --- | --- | --- |
+| **Plank** (e.g. label: gainage / abdominal hold) | Classic **front hold** — abs, accessible | Beginner / intermediate |
+| **Planche** (calisthenics) | Advanced straight-body **horizontal** hold on hands — shoulders, balance, very technical | Advanced only |
+
+They must **not** be conflated in the catalog: different movement profiles and user expectations. Use **"Plank"** (or localized equivalent + clear subtitle) for the common hold; keep **"Planche"** as a **separate** advanced exercise entry. Applies to seeds, translations, and search — not only issue #134 wording.
 
 ---
 
@@ -76,49 +105,47 @@ Instead: a **single product-level default** (e.g. **30 s**) is applied to all ne
 
 **In scope:**
 
-1. **Data model** — Add `measurement_type` (text, `'reps'` | `'duration'`, default `'reps'`) to `exercises` table. Add nullable `duration_seconds` (integer) to `set_logs` — mutually exclusive with `reps_logged`. Add `default_duration_seconds` (integer, nullable) to `exercises` for the Builder default. Extend `WorkoutExercise` with duration target for templates. Supabase migration + `file:src/types/database.ts` updates.
-2. **Client session state** — Extend `setsData` (see `file:src/store/atoms.ts` / `SetsTable`) so each row can represent **duration mode** and logged seconds; sync payloads in `file:src/lib/syncService.ts` updated accordingly.
-3. **Builder UI** — Where exercises are edited (templates using `WorkoutExercise`), **conditionally render**: reps + weight + RIR when `reps` mode; **duration target** (editable, defaults to `default_duration_seconds` or 30 s) when duration mode. Preserve existing behavior for reps-only exercises.
-4. **In-session UI — auto-validating timer** — For duration exercises: countdown from target, haptic/sound on completion, "Set done?" auto-log flow. Manual override for early stop / extend. Respect global workout pause rules already used in `SetsTable`. Large tap targets, one-hand usable during a hold.
-5. **Session summary & history** — `file:src/components/workout/SessionSummary.tsx`, `file:src/components/history/SessionRow.tsx`, and related formatters show **duration** for duration sets; no misleading "× reps" for holds.
-6. **AI classification script** — New script under `scripts/` (e.g. `scripts/enrich-measurement-type.ts`) using the same env pattern as `file:scripts/enrich-difficulty.ts` (GROQ, Supabase service role, dry-run, audit CSV, idempotent). **Scope limited to binary classification** (reps vs duration) with confidence/reasoning in CSV. Does **not** propose hold times. Sets `default_duration_seconds` to the product constant (30 s) for all duration-classified exercises.
-7. **Spot-check** — Top-N exercises manually reviewed post-run (same spirit as difficulty instruction spot-checks).
-8. **Types & migrations** — Supabase migrations + `file:src/types/database.ts` updates; RLS/policy review if new columns are user-visible only through existing APIs.
+1. **Data model** — `exercises`: `measurement_type` (`'reps'` \| `'duration'`, default `'reps'`), `default_duration_seconds` (nullable). `set_logs`: nullable `duration_seconds`, mutually exclusive with `reps_logged`. **`WorkoutExercise`:** nullable **`target_duration_seconds`** (NULL → use `exercises.default_duration_seconds`). Supabase migrations + `file:src/types/database.ts` updates.
+2. **Client session state** — Extend `setsData` / `SetsTable` for duration mode and logged seconds; `file:src/lib/syncService.ts` payloads updated.
+3. **Builder UI** — Reps + weight + RIR vs duration target; **`target_duration_seconds`** on template row when applicable; fallback behavior documented in UI copy.
+4. **In-session UI** — Countdown, strong haptic + sound at zero, **large** log button, **no auto-log**; early-stop logs actual elapsed time. Respect global workout pause rules.
+5. **Session summary & history** — Duration shown for duration sets; no fake "× reps" for holds.
+6. **AI classification script** — Runs on **exported CSV**; outputs audit CSV; **does not** connect to prod for writes. Follow-up: **SQL** `UPDATE` migration generated and applied after human review.
+7. **Spot-check** — Top-N exercises manually reviewed post-classification (same spirit as difficulty spot-checks).
+8. **Types & migrations** — RLS/policy review as needed.
 
 **Out of scope:**
 
-- Replacing **rest timer** or **global session timer** (`SessionTimerChip`, pause semantics) — reuse existing rules; only add per-set duration UX.
-- Full **video / audio** guided timed workouts.
-- **Per-exercise** custom timer sounds or metronome.
-- AI-proposed **per-exercise or per-tier hold times** — the script classifies; the user sets duration targets.
-- Changing **AI workout generator** / **program generator** prompts in the same ticket (downstream once catalog is tagged).
+- **Direct LLM → production** database writes for classification.
+- Replacing **rest timer** or **global session timer** — reuse existing rules.
+- Full **video / audio** guided timed workouts; per-exercise custom sounds (beyond default haptic/sound).
+- AI-proposed **per-exercise hold times** — the script classifies only.
+- Changing **AI workout generator** / **program generator** prompts in the same ticket (downstream).
 
 ---
 
 ## Success Criteria
 
-- **Numeric:** After running the enrichment script (non–dry-run), **≥ 95%** of exercises have a defined `measurement_type`; duration exercises have `default_duration_seconds` set to the product constant.
-- **Qualitative:** A **plank**-style exercise shows **duration countdown** in session, not a reps field; **bench press**-style exercises unchanged.
-- **Qualitative:** Completing a duration set: countdown → haptic → auto-log. Appears correctly in **session summary** and **history** rows as time, not reps.
-- **Qualitative:** Per-set timer is **usable with one hand** during a hold (large tap targets, readable, respects workout pause).
-- **Qualitative:** Script is **safe to re-run** (idempotent, auditable CSV, dry-run).
+- **Numeric:** After running the full pipeline and applying reviewed SQL, **≥ 95%** of exercises have a defined `measurement_type`; duration rows get sensible defaults.
+- **Qualitative:** A **plank**-style exercise shows **duration countdown** in session, not reps; **bench press** unchanged.
+- **Qualitative:** Completing a duration set requires **explicit tap** to log; **early stop** yields correct seconds, not the planned target.
+- **Qualitative:** **Plank** and **Planche** are not confused in the catalog or UI copy.
+- **Qualitative:** No production data mutation from the LLM without **audit + migration** in the loop.
 
 ---
 
 ## Dependencies
 
-- **Exercise Difficulty Levels (done):** `difficulty_level` on `Exercise` exists but is **not consumed by the classification script** — script only answers reps vs duration. **Epic:** `file:docs/done/Epic_Brief_—_Exercise_Difficulty_Levels.md`.
-- **Session active duration (done / unrelated):** `sessions.active_duration_ms` does not replace set-level duration; no merge of concepts. **Reference:** `file:docs/Tech_Plan_—_Session_Duration_Excludes_Pause.md`.
-- **Reference implementation for scripts:** `file:scripts/enrich-difficulty.ts` (Groq, CSV audit, dry-run, `--force`).
+- **Exercise Difficulty Levels (done):** `difficulty_level` on `Exercise` — not used by the classification script. **Epic:** `file:docs/done/Epic_Brief_—_Exercise_Difficulty_Levels.md`.
+- **Session active duration (done / unrelated):** `sessions.active_duration_ms` vs set-level duration — **Reference:** `file:docs/Tech_Plan_—_Session_Duration_Excludes_Pause.md`.
+- **Operational pattern:** `file:scripts/enrich-difficulty.ts` is a **reference** for LLM + CSV audit patterns; **this epic's** classification uses a **stricter** no-direct-prod-write pipeline.
 
 ---
 
 ## Open questions (for Tech Plan)
 
-1. **Builder template storage:** Should `WorkoutExercise` store a per-template `target_duration_seconds` (overriding the exercise default), or always read from `exercises.default_duration_seconds`?
-2. **AI script target:** Run against **production** only via service role (with ops review), or **staging** export first — ops decision.
-3. **Auto-confirm delay:** Should the "Set done?" prompt auto-confirm after N seconds of no interaction, or always require a tap? UX tradeoff: zero-friction vs accidental logs.
-4. **Issue #134 acceptance criteria** mention "Planche" — likely **Plank**-style holds; **planche** is a distinct exercise — confirm copy in tickets.
+1. **Export source:** Staging Supabase project vs `pg_dump` / admin export — pick one for reproducibility.
+2. **Localization:** Exact strings for **Plank** / **Planche** in `fr` (and other locales) to avoid search collisions.
 
 ---
 
