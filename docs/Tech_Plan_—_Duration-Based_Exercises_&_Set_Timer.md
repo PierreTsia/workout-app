@@ -2,7 +2,7 @@
 
 ## Architectural Approach
 
-Ship **measurement mode** end-to-end: **DB constraints** enforce reps vs duration at rest, **Jotai session state** carries parallel shapes per set row, **`syncService`** extends `SetLogPayload` and insert path, and **UI** branches in the builder (`ExerciseDetailEditor`) and live session (`SetsTable` + new timer surface). **Aggregates** (`get_cycle_stats`, history RPCs) already guard volume with `reps_logged ~ '^\d+$'` in places — extend explicitly so duration rows never enter volume math. **Classification** is a **local-only** pipeline: CSV in → LLM → audit CSV → hand-reviewed SQL migration — no production writes from the script.
+Ship **measurement mode** end-to-end: **DB constraints** enforce reps vs duration at rest, **Jotai session state** carries parallel shapes per set row, **`syncService`** extends `SetLogPayload` and insert path, and **UI** branches in the builder (`ExerciseDetailEditor`) and live session (`SetsTable` + new timer surface). **Aggregates** (`get_cycle_stats`, history RPCs) must treat **`duration_seconds IS NOT NULL`** as a hard exclude from volume (explicit `CASE` / `WHERE`); legacy digit-only filters are not sufficient once reps can be NULL. **Classification** is a **local-only** pipeline: CSV in → LLM → audit CSV → hand-reviewed SQL migration — no production writes from the script.
 
 ### Key Decisions
 
@@ -10,10 +10,11 @@ Ship **measurement mode** end-to-end: **DB constraints** enforce reps vs duratio
 | --- | --- | --- |
 | Set log shape | Add nullable `duration_seconds` (integer ≥ 1); make `reps_logged` **nullable**; add `CHECK` mutual exclusivity | Matches Epic Brief; avoids corrupting `reps_logged` text; keeps SQL aggregates honest |
 | `SetLogPayload` | Discriminated: either reps path (`repsLogged`, `estimatedOneRM`, …) or duration path (`durationSeconds`, `repsLogged` omitted / null) | Single queue item type; `processSetLog` maps to DB columns |
-| Session `setsData` row | Extend union: reps sets keep `{ reps, weight, done, rir? }`; duration sets add `mode: 'duration'`, `targetSeconds`, `elapsedSeconds?`, timer phase enum | `file:src/store/atoms.ts` today is a flat shape — needs a discriminant or parallel optional fields with `measurementType` on parent exercise |
+| Session `setsData` row | Reps: `{ reps, weight, done, rir? }`. Duration: `targetSeconds`, `done`, optional `weight`, plus **timer anchor** — `timerStartedAt: number \| null` (epoch ms) while running; **do not** persist only `secondsRemaining` (see Timer drift below) | Derived UI: `elapsed = Date.now() - timerStartedAt` (cap at target for countdown display); survives tab sleep / brief crash if state is in Jotai + optional `sessionStorage` snapshot |
+| Timer drift / recovery | Store **`timerStartedAt`** (ms), not a decrementing counter | iOS kill, lock screen, or throttled `setInterval` would skew a pure `secondsRemaining`; wall-clock delta is the only robust approach |
 | Resolve target seconds | `coalesce(workout_exercises.target_duration_seconds, exercises.default_duration_seconds, 30)` client-side when hydrating session | Epic Brief: template override → catalog default → product constant |
 | PR / e1RM for duration | V1: `was_pr = false`, `estimated_1rm = null` for duration inserts; no time-based PR in this epic | Avoids bogus Epley; follow-up epic can define “longest hold” PRs |
-| Volume SQL | Keep volume = `weight * reps` only where `reps_logged` is numeric string; add `AND duration_seconds IS NULL` (or equivalent) where functions cast `reps_logged` | `file:supabase/migrations/20260320130000_create_get_cycle_stats.sql` already filters digit-only reps |
+| Volume SQL | **Explicit exclusion:** volume terms must use `CASE` / filters so rows with `duration_seconds IS NOT NULL` contribute **zero** volume — never rely on implicit `reps_logged` shape alone | Defensive against bad rows and future columns; same for PR counts if they imply load×reps |
 | AI pipeline | `scripts/classify-measurement-type.ts`: read **local CSV**, write `scripts/data/measurement-audit.csv`, optional `--emit-sql` to print `UPDATE` statements; **no** Supabase write in default path | Epic: never LLM → prod |
 | Export source | **Staging** or local DB: `COPY (SELECT … FROM exercises) TO STDOUT CSV HEADER` / Supabase Table CSV export; same columns as prod schema version | Reproducible; prod export only after migration applied in lower env |
 | Haptics / sound | Web: `navigator.vibrate()` (strong pattern: `[200, 100, 200]`); `new Audio()` or short beep from `/public` | No native app; PWA-friendly; degrade gracefully if denied |
@@ -22,6 +23,7 @@ Ship **measurement mode** end-to-end: **DB constraints** enforce reps vs duratio
 
 - **Offline queue:** `SetLogPayload` lives in `localStorage` (`file:src/lib/syncService.ts`). Adding fields is backward-compatible if old queued items are drained first; bumping queue schema is **not** required if new fields are optional — but duration rows **must** send `durationSeconds` and omit/null reps for inserts. Document migration order: ship DB migration before client that only emits duration payloads.
 - **`reps_logged` NOT NULL today:** Migration must `ALTER COLUMN reps_logged DROP NOT NULL` and backfill is unnecessary (no rows with duration yet). Existing rows stay non-null reps.
+- **CHECK constraint rollout:** Mutual-exclusivity `CHECK` on `set_logs` can **fail on existing prod data** if any legacy row has bad data (e.g. `reps_logged` already NULL from a past bug). Use **`ADD CONSTRAINT … NOT VALID`**, then `SELECT` to list violating rows and fix or delete, then **`ALTER TABLE set_logs VALIDATE CONSTRAINT …`**. Avoids a long table lock up front and makes failures a **data audit step**, not a surprise deploy abort.
 - **`summarizeSessionLogs`** (`file:src/lib/sessionSummary.ts`) assumes `reps_logged` for labels — must branch on `duration_seconds` for preview strings (e.g. `45s` / `1:00`).
 - **`SessionRow`** (`file:src/components/history/SessionRow.tsx`) grid shows Reps / Weight / 1RM — duration sets need a column or merged cell (e.g. “Durée” + seconds, hide 1RM or show `–`).
 - **Exercise fetch:** Session and builder must load `measurement_type`, `default_duration_seconds` with exercises; extend Supabase `select()` wherever `WorkoutExercise` / `Exercise` are loaded (e.g. `WorkoutPage`, program queries).
@@ -75,10 +77,23 @@ ALTER TABLE set_logs
   ADD COLUMN duration_seconds integer
     CHECK (duration_seconds IS NULL OR duration_seconds > 0);
 
-ALTER TABLE set_logs ADD CONSTRAINT set_logs_reps_or_duration_chk CHECK (
-  (duration_seconds IS NULL AND reps_logged IS NOT NULL)
-  OR (duration_seconds IS NOT NULL AND reps_logged IS NULL)
-);
+-- Mutual exclusivity: add NOT VALID first so existing rows are not scanned
+-- under a blocking validation in one shot; then audit, fix, validate.
+ALTER TABLE set_logs
+  ADD CONSTRAINT set_logs_reps_or_duration_chk CHECK (
+    (duration_seconds IS NULL AND reps_logged IS NOT NULL)
+    OR (duration_seconds IS NOT NULL AND reps_logged IS NULL)
+  ) NOT VALID;
+
+-- Example audit before VALIDATE:
+-- SELECT id, session_id, reps_logged, duration_seconds
+-- FROM set_logs
+-- WHERE NOT (
+--   (duration_seconds IS NULL AND reps_logged IS NOT NULL)
+--   OR (duration_seconds IS NOT NULL AND reps_logged IS NULL)
+-- );
+
+ALTER TABLE set_logs VALIDATE CONSTRAINT set_logs_reps_or_duration_chk;
 ```
 
 ### TypeScript (`file:src/types/database.ts`)
@@ -133,7 +148,7 @@ graph TD
 
 | File | Purpose |
 | --- | --- |
-| `src/components/workout/DurationSetTimer.tsx` (or similar) | Countdown UI, strong vibrate + sound at 0, large “Terminer / Loguer”, early-stop → actual seconds; respects `onBlockedByPause` from parent |
+| `src/components/workout/DurationSetTimer.tsx` (or similar) | Countdown from **`timerStartedAt` + `targetSeconds`** (recompute each frame or on interval tick); strong vibrate + sound at 0; large “Terminer / Loguer”; early-stop uses `floor((Date.now() - timerStartedAt) / 1000)`; respects `onBlockedByPause` from parent |
 | `scripts/classify-measurement-type.ts` | Read CSV, call Groq, write audit CSV; optional `--emit-sql` |
 | `scripts/data/exercises-export.sample.csv` | Document expected CSV columns (optional) |
 | `supabase/migrations/YYYYMMDDHHMMSS_duration_measurement.sql` | Columns + constraints + `get_cycle_stats` / any RPC updates |
@@ -170,13 +185,18 @@ graph TD
 | LLM misclassifies bench as duration | Caught in CSV audit + manual review before SQL apply |
 | `navigator.vibrate` unsupported | Skip vibration; rely on sound + visible “time’s up” UI |
 | Migration applied before client deploy | Old clients only insert reps rows — OK; new column default allows old inserts if any |
+| App reload mid-hold | If session state is restored from `sessionStorage` / Jotai rehydration, `timerStartedAt` still yields correct elapsed; pure `secondsRemaining` would be wrong |
 
 ---
 
 ## SQL / RPC follow-ups
 
-- **`get_cycle_stats`** (`file:supabase/migrations/20260320130000_create_get_cycle_stats.sql`): Change volume line to exclude duration rows, e.g. `AND sl.duration_seconds IS NULL AND sl.reps_logged ~ '^\d+$'` (redundant but explicit).
-- **`get_exercise_history_for_sheet`** and any function selecting `set_logs`: ensure selects include `duration_seconds`; client or SQL formatting for display.
+**Principle:** Volume and any “load × reps” metric must **ignore duration rows** in a way that is obvious in the SQL text — use **`duration_seconds IS NOT NULL` as the primary filter** (or `CASE WHEN sl.duration_seconds IS NULL THEN … ELSE 0 END` for line contributions).
+
+- **`get_cycle_stats`** (`file:supabase/migrations/20260320130000_create_get_cycle_stats.sql`): Replace the volume `SUM` with an explicit form, e.g.  
+  `SUM(CASE WHEN sl.duration_seconds IS NULL AND sl.reps_logged ~ '^\d+$' THEN sl.weight_logged * sl.reps_logged::int ELSE 0 END)`  
+  and similarly for **PR count** if `was_pr` should only apply to rep-based sets in V1 (or document if duration PRs are excluded).
+- **`get_exercise_history_for_sheet`** (and any RPC touching `set_logs` for aggregates): same volume rule; include `duration_seconds` in selects for display; no implicit reliance on `reps_logged ~ '^\d+$'` alone once `duration_seconds` exists.
 - **Regenerate** Supabase types if using codegen (`database.types.ts` if present).
 
 ---
@@ -197,7 +217,7 @@ graph TD
 
 - **Unit:** `sessionSummary` with mixed logs; `syncService` insert payload for duration; atoms reducers for duration set rows.
 - **Component:** `SetsTable` / timer: pause blocks log; complete logs `durationSeconds`; early stop logs elapsed < target.
-- **SQL:** migration applies cleanly; `CHECK` rejects both NULL reps and NULL duration.
+- **SQL:** migration applies cleanly; `NOT VALID` → audit → `VALIDATE CONSTRAINT` path tested on a copy of prod-like data; aggregates return unchanged volume for legacy-only sessions.
 
 ---
 
