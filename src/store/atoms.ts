@@ -1,12 +1,13 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import type { User } from "@/types/auth"
+import type { SessionSetRow } from "@/lib/sessionSetRow"
 
 export interface SessionState {
   currentDayId: string | null
   activeDayId: string | null
   exerciseIndex: number
-  setsData: Record<string, Array<{ reps: string; weight: string; done: boolean; rir?: number }>>
+  setsData: Record<string, SessionSetRow[]>
   startedAt: number | null
   isActive: boolean
   totalSetsDone: number

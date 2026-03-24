@@ -22,6 +22,10 @@ export interface Exercise {
   secondary_muscles: string[] | null
   reviewed_at: string | null
   reviewed_by: string | null
+  /** Rep-based vs time-based holds; omitted in older clients (treat as reps). */
+  measurement_type?: "reps" | "duration"
+  /** Default hold length (seconds) when measurement_type is duration; null uses app fallback. */
+  default_duration_seconds?: number | null
 }
 
 export interface WorkoutDay {
@@ -46,6 +50,8 @@ export interface WorkoutExercise {
   weight: string
   rest_seconds: number
   sort_order: number
+  /** Per-template override for duration exercises; null uses exercise.default_duration_seconds. */
+  target_duration_seconds?: number | null
 }
 
 export interface Session {
@@ -76,7 +82,9 @@ export interface SetLog {
   exercise_id: string
   exercise_name_snapshot: string
   set_number: number
-  reps_logged: string
+  reps_logged: string | null
+  /** Time-based set; mutually exclusive with reps_logged in DB. */
+  duration_seconds: number | null
   weight_logged: number
   estimated_1rm: number | null
   was_pr: boolean

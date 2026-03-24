@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
+import { DEFAULT_DURATION_FALLBACK_SEC } from "@/lib/sessionSetRow"
 
 interface ExerciseDetailEditorProps {
   dayId: string
@@ -20,6 +21,8 @@ interface FormState {
   reps: string
   weight: string
   rest_seconds: string
+  /** Template override seconds for duration exercises */
+  target_duration_seconds: string
 }
 
 export function ExerciseDetailEditor({
@@ -39,6 +42,7 @@ export function ExerciseDetailEditor({
     reps: "",
     weight: "",
     rest_seconds: "",
+    target_duration_seconds: "",
   })
   const [trackedExerciseId, setTrackedExerciseId] = useState(exerciseId)
   const [trackedUnit, setTrackedUnit] = useState(unit)
@@ -48,11 +52,17 @@ export function ExerciseDetailEditor({
     setTrackedUnit(unit)
     if (exercise) {
       const displayWeight = Math.round(toDisplay(Number(exercise.weight)) * 10) / 10
+      const lib = libExercise
+      const targetSec =
+        exercise.target_duration_seconds ??
+        lib?.default_duration_seconds ??
+        DEFAULT_DURATION_FALLBACK_SEC
       setForm({
         sets: String(exercise.sets),
         reps: exercise.reps,
         weight: String(displayWeight),
         rest_seconds: String(exercise.rest_seconds),
+        target_duration_seconds: String(targetSec),
       })
     }
   }
@@ -67,14 +77,21 @@ export function ExerciseDetailEditor({
         const restSeconds = parseInt(updated.rest_seconds, 10)
         const weightKg = toKg(Number(updated.weight) || 0)
         onMutationStateChange("saving")
+        const isDuration = libExercise?.measurement_type === "duration"
+        const targetSec = parseInt(updated.target_duration_seconds, 10)
         updateExercise.mutate(
           {
             id: exerciseId,
             dayId,
             sets: isNaN(sets) ? undefined : sets,
-            reps: updated.reps || undefined,
+            reps: isDuration ? undefined : updated.reps || undefined,
             weight: updated.weight ? String(Math.round(weightKg * 10) / 10) : undefined,
             rest_seconds: isNaN(restSeconds) ? undefined : restSeconds,
+            target_duration_seconds: isDuration
+              ? isNaN(targetSec)
+                ? null
+                : targetSec
+              : undefined,
           },
           {
             onSuccess: () => onMutationStateChange("saved"),
@@ -83,7 +100,7 @@ export function ExerciseDetailEditor({
         )
       }, 500)
     },
-    [exerciseId, dayId, updateExercise, onMutationStateChange, toKg],
+    [exerciseId, dayId, updateExercise, onMutationStateChange, toKg, libExercise?.measurement_type],
   )
 
   useEffect(() => {
@@ -130,13 +147,26 @@ export function ExerciseDetailEditor({
           />
         </FieldGroup>
 
-        <FieldGroup label={t("reps")}>
-          <Input
-            value={form.reps}
-            onChange={(e) => handleChange("reps", e.target.value)}
-            placeholder={t("placeholderReps")}
-          />
-        </FieldGroup>
+        {libExercise?.measurement_type === "duration" ? (
+          <FieldGroup label={t("targetDurationSeconds")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={form.target_duration_seconds}
+              onChange={(e) => handleChange("target_duration_seconds", e.target.value)}
+              placeholder={String(DEFAULT_DURATION_FALLBACK_SEC)}
+            />
+          </FieldGroup>
+        ) : (
+          <FieldGroup label={t("reps")}>
+            <Input
+              value={form.reps}
+              onChange={(e) => handleChange("reps", e.target.value)}
+              placeholder={t("placeholderReps")}
+            />
+          </FieldGroup>
+        )}
 
         <FieldGroup label={t("weightLabel", { unit })}>
           <Input

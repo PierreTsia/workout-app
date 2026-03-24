@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
-import { formatDate } from "@/lib/formatters"
+import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
 import { formatSessionRowDuration } from "@/lib/sessionRowDuration"
 import type { Session, SetLog } from "@/types/database"
 
@@ -53,9 +53,14 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
             <span />
             {group.sets.map((s) => {
               const e1rm =
-                s.estimated_1rm != null
-                  ? Number(s.estimated_1rm)
-                  : computeEpley1RM(Number(s.weight_logged), parseInt(s.reps_logged, 10))
+                s.duration_seconds != null
+                  ? 0
+                  : s.estimated_1rm != null
+                    ? Number(s.estimated_1rm)
+                    : computeEpley1RM(
+                        Number(s.weight_logged),
+                        parseInt(s.reps_logged ?? "0", 10),
+                      )
               return (
                 <SetRow key={s.id} set={s} e1rm={e1rm} formatWeight={formatWeight} prLabel={t("pr")} />
               )
@@ -81,7 +86,11 @@ function SetRow({
   return (
     <>
       <span className="tabular-nums">{set.set_number}</span>
-      <span className="tabular-nums">{set.reps_logged}</span>
+      <span className="tabular-nums">
+        {set.duration_seconds != null
+          ? formatSecondsMMSS(set.duration_seconds)
+          : (set.reps_logged ?? "–")}
+      </span>
       <span className="tabular-nums">{formatWeight(Number(set.weight_logged))}</span>
       <span className="tabular-nums">{e1rm > 0 ? `${Math.round(e1rm)}` : "–"}</span>
       {set.was_pr ? (

@@ -14,7 +14,8 @@ import type { WorkoutDay } from "@/types/database"
 // Payload types (unchanged from stub)
 // ---------------------------------------------------------------------------
 
-export interface SetLogPayload {
+/** Rep-based set log (existing behavior). */
+export type SetLogPayloadReps = {
   sessionId: string
   exerciseId: string
   exerciseNameSnapshot: string
@@ -26,6 +27,19 @@ export interface SetLogPayload {
   loggedAt: number
   rir?: number
 }
+
+/** Time-based set log; mutually exclusive with reps fields at rest. */
+export type SetLogPayloadDuration = {
+  sessionId: string
+  exerciseId: string
+  exerciseNameSnapshot: string
+  setNumber: number
+  weightLogged: number
+  loggedAt: number
+  durationSeconds: number
+}
+
+export type SetLogPayload = SetLogPayloadReps | SetLogPayloadDuration
 
 export interface SessionFinishPayload {
   sessionId: string
@@ -437,18 +451,35 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
 
     if (existing && existing.length > 0) return true // Already synced
 
-    const { error } = await supabase.from("set_logs").insert({
+    const base = {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
       exercise_name_snapshot: p.exerciseNameSnapshot,
       set_number: p.setNumber,
-      reps_logged: p.repsLogged,
       weight_logged: p.weightLogged,
-      estimated_1rm: p.estimatedOneRM || null,
-      was_pr: p.wasPr,
       logged_at: new Date(p.loggedAt).toISOString(),
-      rir: p.rir ?? null,
-    })
+    }
+
+    const row =
+      "durationSeconds" in p
+        ? {
+            ...base,
+            reps_logged: null,
+            duration_seconds: p.durationSeconds,
+            estimated_1rm: null,
+            was_pr: false,
+            rir: null,
+          }
+        : {
+            ...base,
+            reps_logged: p.repsLogged,
+            duration_seconds: null,
+            estimated_1rm: p.estimatedOneRM || null,
+            was_pr: p.wasPr,
+            rir: p.rir ?? null,
+          }
+
+    const { error } = await supabase.from("set_logs").insert(row)
 
     if (error) {
       console.error("[SyncService] set_log insert failed", error)

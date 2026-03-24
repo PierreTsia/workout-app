@@ -20,6 +20,10 @@ vi.mock("@/hooks/useWeightUnit", () => ({
   useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value }),
 }))
 
+vi.mock("@/hooks/useExerciseFromLibrary", () => ({
+  useExerciseFromLibrary: () => ({ data: undefined }),
+}))
+
 let mockRirValue = 2
 
 vi.mock("@/components/workout/RirDrawer", () => ({
@@ -51,6 +55,7 @@ const EXERCISE: WorkoutExercise = {
   weight: "60",
   rest_seconds: 90,
   sort_order: 0,
+  target_duration_seconds: null,
 }
 
 const BASE_SESSION: SessionState = {

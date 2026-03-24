@@ -1,6 +1,11 @@
 {
   "setNumber": "#",
   "reps": "Reps",
+  "durationHeader": "Timer",
+  "durationStart": "Start",
+  "durationStopEarly": "End early",
+  "durationLog": "Log set",
+  "durationDone": "Done",
   "weight": "Weight",
   "done": "✓",
   "setCount_one": "{{count}} set",

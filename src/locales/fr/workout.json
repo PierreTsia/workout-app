@@ -1,6 +1,11 @@
 {
   "setNumber": "#",
   "reps": "Reps",
+  "durationHeader": "Chrono",
+  "durationStart": "Démarrer",
+  "durationStopEarly": "Arrêter avant",
+  "durationLog": "Enregistrer",
+  "durationDone": "Fait",
   "weight": "Poids",
   "done": "✓",
   "setCount_one": "{{count}} série",

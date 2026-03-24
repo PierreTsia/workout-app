@@ -19,6 +19,7 @@
     "enrich-illustrations": "tsx scripts/enrich-illustrations.ts",
     "enrich-instructions": "tsx scripts/enrich-instructions.ts",
     "enrich-difficulty": "tsx scripts/enrich-difficulty.ts",
+    "classify-measurement-type": "tsx scripts/classify-measurement-type.ts",
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
     "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
     "seed:history": "tsx scripts/seed-local-history.ts"
