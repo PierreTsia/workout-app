@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { useAtom } from "jotai"
 import { Timer, Pause, Play } from "lucide-react"
 import { sessionAtom } from "@/store/atoms"
-import { getEffectiveElapsed } from "@/lib/session"
+import { getEffectiveElapsed, resumeSessionFromPause } from "@/lib/session"
 import { Button } from "@/components/ui/button"
 
 function formatElapsed(ms: number): string {
@@ -48,14 +48,7 @@ export function SessionTimerChip() {
 
   const togglePause = useCallback(() => {
     setSession((prev) => {
-      if (prev.pausedAt != null) {
-        const pauseDuration = Date.now() - prev.pausedAt
-        return {
-          ...prev,
-          pausedAt: null,
-          accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
-        }
-      }
+      if (prev.pausedAt != null) return resumeSessionFromPause(prev)
       return { ...prev, pausedAt: Date.now() }
     })
   }, [setSession])

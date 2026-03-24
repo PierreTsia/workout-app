@@ -20,9 +20,17 @@ interface SetsTableProps {
   sessionId: string
   isReadOnly: boolean
   equipment?: string
+  /** Called when the user tries to log sets while the workout timer is paused. */
+  onBlockedByPause?: () => void
 }
 
-export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTableProps) {
+export function SetsTable({
+  exercise,
+  sessionId,
+  isReadOnly,
+  equipment,
+  onBlockedByPause,
+}: SetsTableProps) {
   const { t } = useTranslation("workout")
   const { unit, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
@@ -34,6 +42,8 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
   const rows = session.setsData[exercise.id] ?? []
+  const isWorkoutPaused = session.pausedAt != null
+  const pendingRirForUi = isWorkoutPaused ? null : pendingSetIdx
 
   const weightLabel =
     equipment === "dumbbell"
@@ -48,6 +58,10 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
     value: string,
   ) {
     if (isReadOnly) return
+    if (isWorkoutPaused) {
+      onBlockedByPause?.()
+      return
+    }
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
       exerciseSets[setIdx] = { ...exerciseSets[setIdx], [field]: value }
@@ -60,6 +74,10 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
 
   function handleCheckboxChange(setIdx: number) {
     if (isReadOnly) return
+    if (isWorkoutPaused) {
+      onBlockedByPause?.()
+      return
+    }
     const currentSet = rows[setIdx]
 
     if (currentSet.done) {
@@ -82,6 +100,10 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
     (rir: number) => {
       const setIdx = pendingSetIdx
       if (setIdx === null) return
+      if (session.pausedAt != null) {
+        onBlockedByPause?.()
+        return
+      }
       setPendingSetIdx(null)
 
       const exerciseSets = [...(session.setsData[exercise.id] ?? [])]
@@ -170,11 +192,17 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
       setRest,
       setPrFlags,
       setSessionBest,
+      onBlockedByPause,
+      session.pausedAt,
     ],
   )
 
   function removeLastSet() {
     if (isReadOnly) return
+    if (isWorkoutPaused) {
+      onBlockedByPause?.()
+      return
+    }
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
       const removed = exerciseSets.pop()
@@ -189,6 +217,10 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
 
   function addSet() {
     if (isReadOnly) return
+    if (isWorkoutPaused) {
+      onBlockedByPause?.()
+      return
+    }
     const lastRow = rows[rows.length - 1]
     setSession((prev) => {
       const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
@@ -232,7 +264,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
             value={set.reps}
             onChange={(e) => updateField(idx, "reps", e.target.value)}
             className="h-8 text-center"
-            disabled={set.done || isReadOnly}
+            disabled={set.done || isReadOnly || isWorkoutPaused}
           />
           <Input
             type="text"
@@ -240,13 +272,13 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
             value={set.weight}
             onChange={(e) => updateField(idx, "weight", e.target.value)}
             className="h-8 text-center"
-            disabled={set.done || isReadOnly}
+            disabled={set.done || isReadOnly || isWorkoutPaused}
           />
           <div className="flex justify-center">
             <Checkbox
               checked={set.done}
               onCheckedChange={() => handleCheckboxChange(idx)}
-              disabled={!session.isActive || isReadOnly}
+              disabled={!session.isActive || isReadOnly || isWorkoutPaused}
             />
           </div>
         </div>
@@ -261,7 +293,12 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
             removeLastSet()
             ;(e.currentTarget as HTMLButtonElement).blur()
           }}
-          disabled={rows.length <= 1 || isReadOnly || rows[rows.length - 1]?.done}
+          disabled={
+            rows.length <= 1 ||
+            isReadOnly ||
+            isWorkoutPaused ||
+            rows[rows.length - 1]?.done
+          }
           aria-label={t("removeLastSet")}
         >
           <Minus className="h-4 w-4" />
@@ -274,7 +311,7 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
           size="icon"
           className="h-8 w-8 text-muted-foreground"
           onClick={addSet}
-          disabled={isReadOnly}
+          disabled={isReadOnly || isWorkoutPaused}
           aria-label={t("addSet")}
         >
           <Plus className="h-4 w-4" />
@@ -282,14 +319,14 @@ export function SetsTable({ exercise, sessionId, isReadOnly, equipment }: SetsTa
       </div>
 
       <RirDrawer
-        key={pendingSetIdx ?? "closed"}
-        open={pendingSetIdx !== null}
+        key={pendingRirForUi ?? "closed"}
+        open={pendingRirForUi !== null}
         setInfo={
-          pendingSetIdx !== null
+          pendingRirForUi !== null
             ? {
-                setNumber: pendingSetIdx + 1,
-                reps: rows[pendingSetIdx]?.reps ?? "",
-                weight: rows[pendingSetIdx]?.weight ?? "",
+                setNumber: pendingRirForUi + 1,
+                reps: rows[pendingRirForUi]?.reps ?? "",
+                weight: rows[pendingRirForUi]?.weight ?? "",
                 unit,
               }
             : null

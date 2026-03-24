@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react"
-import { useAtom } from "jotai"
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react"
+import { useAtom, useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
-import { restAtom, type RestState } from "@/store/atoms"
+import { restAtom, sessionAtom, type RestState } from "@/store/atoms"
 
 let audioCtx: AudioContext | null = null
 function getAudioCtx(): AudioContext {
@@ -46,17 +53,28 @@ export function formatSeconds(s: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
 }
 
-function getEffectiveElapsed(rest: RestState, now: number): number {
+function getEffectiveElapsed(
+  rest: RestState,
+  now: number,
+  sessionPausedAt: number | null,
+): number {
   const accPause = rest.accumulatedPause ?? 0
   if (rest.pausedAt != null) {
     return rest.pausedAt - rest.startedAt - accPause
   }
+  if (sessionPausedAt != null) {
+    return sessionPausedAt - rest.startedAt - accPause
+  }
   return now - rest.startedAt - accPause
 }
 
-function computeTimerState(rest: RestState | null, now: number) {
+function computeTimerState(
+  rest: RestState | null,
+  now: number,
+  sessionPausedAt: number | null,
+) {
   if (!rest) return { remaining: 0, progress: 0 }
-  const elapsedMs = getEffectiveElapsed(rest, now)
+  const elapsedMs = getEffectiveElapsed(rest, now, sessionPausedAt)
   const elapsedSec = elapsedMs / 1000
   const remaining = Math.max(0, Math.ceil(rest.durationSeconds - elapsedSec))
   const progress = rest.durationSeconds > 0
@@ -68,18 +86,44 @@ function computeTimerState(rest: RestState | null, now: number) {
 export function useRestTimer() {
   const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)
+  const session = useAtomValue(sessionAtom)
+  const sessionPausedAt = session.pausedAt
   const [now, setNow] = useState(Date.now)
   const hasNotifiedRef = useRef(false)
   const hasWarned10sRef = useRef(false)
   const lastStartedAtRef = useRef<number | null>(null)
 
-  const isPaused = rest?.pausedAt != null
+  const isTimerFrozen = rest?.pausedAt != null || sessionPausedAt != null
   const isActive = rest != null
 
   const { remaining, progress } = useMemo(
-    () => computeTimerState(rest, now),
-    [rest, now],
+    () => computeTimerState(rest, now, sessionPausedAt),
+    [rest, now, sessionPausedAt],
   )
+
+  useLayoutEffect(() => {
+    if (sessionPausedAt != null) {
+      setRest((r) => {
+        if (!r || r.pausedAt != null) return r
+        return {
+          ...r,
+          pausedAt: sessionPausedAt,
+          pausedForWorkoutSession: true,
+        }
+      })
+      return
+    }
+    setRest((r) => {
+      if (!r || !r.pausedForWorkoutSession || r.pausedAt == null) return r
+      const pauseDuration = Date.now() - r.pausedAt
+      return {
+        ...r,
+        pausedAt: null,
+        pausedForWorkoutSession: undefined,
+        accumulatedPause: (r.accumulatedPause ?? 0) + pauseDuration,
+      }
+    })
+  }, [sessionPausedAt, setRest])
 
   useEffect(() => {
     if (!rest) {
@@ -98,7 +142,7 @@ export function useRestTimer() {
     function tick() {
       setNow(Date.now())
 
-      const state = computeTimerState(rest, Date.now())
+      const state = computeTimerState(rest, Date.now(), sessionPausedAt)
 
       if (state.remaining <= 10 && state.remaining > 0 && !hasWarned10sRef.current) {
         hasWarned10sRef.current = true
@@ -121,46 +165,53 @@ export function useRestTimer() {
     }
 
     tick()
-    if (!isPaused) {
+    if (!isTimerFrozen) {
       const id = setInterval(tick, 250)
       return () => clearInterval(id)
     }
-  }, [rest, setRest, t, isPaused])
+  }, [rest, setRest, t, isTimerFrozen, sessionPausedAt])
 
   const pause = useCallback(() => {
+    if (sessionPausedAt != null) return
     setRest((prev) => {
       if (!prev || prev.pausedAt != null) return prev
       return { ...prev, pausedAt: Date.now() }
     })
-  }, [setRest])
+  }, [sessionPausedAt, setRest])
 
   const resume = useCallback(() => {
     setRest((prev) => {
       if (!prev || prev.pausedAt == null) return prev
+      if (sessionPausedAt != null && prev.pausedForWorkoutSession) return prev
       const pauseDuration = Date.now() - prev.pausedAt
       return {
         ...prev,
         pausedAt: null,
+        pausedForWorkoutSession: undefined,
         accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
       }
     })
-  }, [setRest])
+  }, [setRest, sessionPausedAt])
 
   const skip = useCallback(() => {
     setRest(null)
   }, [setRest])
 
   const togglePause = useCallback(() => {
-    if (isPaused) {
+    if (sessionPausedAt != null) {
+      if (rest?.pausedAt != null && !rest.pausedForWorkoutSession) resume()
+      return
+    }
+    if (rest?.pausedAt != null) {
       resume()
     } else {
       pause()
     }
-  }, [isPaused, pause, resume])
+  }, [sessionPausedAt, rest, pause, resume])
 
   return {
     isActive,
-    isPaused,
+    isPaused: isTimerFrozen,
     remaining,
     progress,
     pause,

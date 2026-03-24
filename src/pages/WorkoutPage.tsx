@@ -8,7 +8,7 @@ import {
 import { toast } from "sonner"
 import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
-import { Dumbbell, Loader2, Play, Plus } from "lucide-react"
+import { AlertTriangle, Dumbbell, Loader2, Play, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -63,10 +63,12 @@ import {
   type ExerciseEditScope,
 } from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
+import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAlertDialog"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -200,6 +202,22 @@ export function WorkoutPage() {
   const [deleteLoggedWarnOpen, setDeleteLoggedWarnOpen] = useState(false)
   const [deleteLoggedWarnRow, setDeleteLoggedWarnRow] =
     useState<WorkoutExercise | null>(null)
+  /** Bump on each blocked action so reopen works after dismiss; `open` is derived vs pause + dismiss generation. */
+  const pauseBlockNonceRef = useRef(0)
+  const [pauseBlockNonce, setPauseBlockNonce] = useState(0)
+  const [pauseBlockClosedAtNonce, setPauseBlockClosedAtNonce] = useState(0)
+
+  const pauseBlockedDialogOpen =
+    session.pausedAt != null && pauseBlockNonce > pauseBlockClosedAtNonce
+
+  const openPauseBlocked = useCallback(() => {
+    pauseBlockNonceRef.current += 1
+    setPauseBlockNonce(pauseBlockNonceRef.current)
+  }, [])
+
+  const dismissPauseBlockedDialog = useCallback(() => {
+    setPauseBlockClosedAtNonce(pauseBlockNonceRef.current)
+  }, [])
 
   const addExerciseMutation = useAddExerciseToDay()
   const deleteExerciseMutation = useDeleteExercise()
@@ -774,11 +792,14 @@ export function WorkoutPage() {
         /* ── Active session ── */
         <>
           {isViewingLockedDay && (
-            <div className="mx-4 mt-3 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-              <p>{t("crossDayReadOnlyTitle")}</p>
-              <p className="text-xs text-amber-200/90">
-                {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
-              </p>
+            <div className="px-4 pt-3 pb-0">
+              <Alert variant="warning" className="mb-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>{t("crossDayReadOnlyTitle")}</AlertTitle>
+                <AlertDescription className="text-xs opacity-90">
+                  {t("crossDayReadOnlyBody", { day: activeSessionDayLabel })}
+                </AlertDescription>
+              </Alert>
             </div>
           )}
 
@@ -799,6 +820,16 @@ export function WorkoutPage() {
             </div>
           ) : (
             <>
+              {!isViewingLockedDay && session.pausedAt != null && (
+                <div className="px-4 pt-2">
+                  <Alert variant="warning" className="my-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-sm leading-relaxed">
+                      {t("pausedWorkoutBanner")}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
               <ExerciseStrip
                 exercises={exercises}
                 activeIndex={displayIndex}
@@ -809,8 +840,13 @@ export function WorkoutPage() {
                           dayId: session.currentDayId,
                           index: idx,
                         })
-                    : (idx) =>
+                    : (idx) => {
+                        if (session.pausedAt != null) {
+                          openPauseBlocked()
+                          return
+                        }
                         setSession((prev) => ({ ...prev, exerciseIndex: idx }))
+                      }
                 }
               />
               {!isViewingLockedDay ? (
@@ -823,7 +859,13 @@ export function WorkoutPage() {
                     variant="secondary"
                     size="sm"
                     className="shrink-0 gap-1.5"
-                    onClick={() => setAddExerciseSheetOpen(true)}
+                    onClick={() => {
+                      if (session.pausedAt != null) {
+                        openPauseBlocked()
+                        return
+                      }
+                      setAddExerciseSheetOpen(true)
+                    }}
                   >
                     <Plus className="h-4 w-4" />
                     {t("preSession.addExercise")}
@@ -836,12 +878,18 @@ export function WorkoutPage() {
                     exercise={currentExercise}
                     sessionId={sessionId}
                     isReadOnly={isViewingLockedDay}
+                    sessionPaused={!isViewingLockedDay && session.pausedAt != null}
+                    onBlockedByPause={openPauseBlocked}
                     editSession={exerciseDetailEditSession}
                   />
                 )}
               </div>
               {!isViewingLockedDay ? (
-                <SessionNav exercises={exercises} onFinish={handleFinish} />
+                <SessionNav
+                  exercises={exercises}
+                  onFinish={handleFinish}
+                  onBlockedByPause={openPauseBlocked}
+                />
               ) : (
                 <div className="sticky bottom-0 border-t bg-background px-4 py-3 text-sm text-muted-foreground">
                   {t("crossDayLockedFooter", { day: activeSessionDayLabel })}
@@ -849,6 +897,12 @@ export function WorkoutPage() {
               )}
             </>
           )}
+          <PausedWorkoutAlertDialog
+            open={pauseBlockedDialogOpen}
+            onOpenChange={(open) => {
+              if (!open) dismissPauseBlockedDialog()
+            }}
+          />
         </>
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */

@@ -12,3 +12,14 @@ export function getEffectiveElapsed(
   const currentPause = session.pausedAt ? now - session.pausedAt : 0
   return now - session.startedAt - accumulated - currentPause
 }
+
+/** Clears session pause and folds elapsed pause into `accumulatedPause`. */
+export function resumeSessionFromPause(prev: SessionState): SessionState {
+  if (prev.pausedAt == null) return prev
+  const pauseDuration = Date.now() - prev.pausedAt
+  return {
+    ...prev,
+    pausedAt: null,
+    accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
+  }
+}
