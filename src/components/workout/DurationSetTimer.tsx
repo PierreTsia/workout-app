@@ -153,13 +153,15 @@ export function DurationSetTimer({
             variant="ghost"
             size="icon"
             className="h-9 w-9 text-destructive"
-            disabled={!canInteract}
+            disabled={!canInteract || remaining === 0}
             aria-label={t("durationStopEarly")}
             onClick={() => {
               if (isWorkoutPaused) {
                 onBlockedByPause?.()
                 return
               }
+              // Target reached: auto-log effect handles completion; avoid racing a second log.
+              if (elapsedSec >= targetSeconds) return
               onLog(Math.max(1, Math.min(elapsedSec, targetSeconds)))
             }}
           >

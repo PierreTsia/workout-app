@@ -1,5 +1,5 @@
 -- Duration-based exercises: measurement mode, template targets, set_logs duration column.
--- CHECK on set_logs uses NOT VALID first; validate after ensuring no violating legacy rows.
+-- set_logs CHECK is added NOT VALID, then validated in this same migration once legacy rows are compatible.
 
 -- exercises
 ALTER TABLE exercises

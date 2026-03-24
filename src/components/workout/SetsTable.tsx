@@ -98,6 +98,8 @@ export function SetsTable({
   }, [libExercise, exercise, setSession])
 
   const pauseStartRef = useRef<number | null>(null)
+  /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */
+  const durationCompleteLockRef = useRef<string | null>(null)
   useEffect(() => {
     if (session.pausedAt != null) {
       pauseStartRef.current = session.pausedAt
@@ -308,49 +310,70 @@ export function SetsTable({
         onBlockedByPause?.()
         return
       }
-      const exerciseSets = [...(session.setsData[exercise.id] ?? [])].map((r) =>
-        normalizeSessionSetRow(r),
-      )
-      const currentSet = exerciseSets[setIdx]
-      if (!currentSet || !isDurationRow(currentSet) || currentSet.done) return
 
-      const displayWeight = Number(currentSet.weight) || 0
-      const weightKg = toKg(displayWeight)
+      const lockKey = `${sessionId}:${exercise.id}:${setIdx}`
+      if (durationCompleteLockRef.current === lockKey) return
+      durationCompleteLockRef.current = lockKey
 
-      enqueueSetLog({
-        sessionId,
-        exerciseId: exercise.exercise_id,
-        exerciseNameSnapshot: exercise.name_snapshot,
-        setNumber: setIdx + 1,
-        weightLogged: weightKg,
-        loggedAt: Date.now(),
-        durationSeconds,
+      let weightKgForLog = 0
+      let didMarkDone = false
+
+      setSession((prev) => {
+        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+          normalizeSessionSetRow(r),
+        )
+        const currentSet = exerciseSets[setIdx]
+        if (!currentSet || !isDurationRow(currentSet) || currentSet.done) {
+          durationCompleteLockRef.current = null
+          return prev
+        }
+
+        const displayWeight = Number(currentSet.weight) || 0
+        weightKgForLog = toKg(displayWeight)
+        didMarkDone = true
+
+        exerciseSets[setIdx] = {
+          ...currentSet,
+          done: true,
+          timerStartedAt: null,
+          loggedSeconds: durationSeconds,
+        }
+
+        return {
+          ...prev,
+          setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+          totalSetsDone: prev.totalSetsDone + 1,
+        }
       })
 
-      exerciseSets[setIdx] = {
-        ...currentSet,
-        done: true,
-        timerStartedAt: null,
-        loggedSeconds: durationSeconds,
+      if (!didMarkDone) {
+        return
       }
 
-      setRest({
-        startedAt: Date.now(),
-        durationSeconds: exercise.rest_seconds,
-        pausedAt: null,
-        accumulatedPause: 0,
-      })
+      try {
+        enqueueSetLog({
+          sessionId,
+          exerciseId: exercise.exercise_id,
+          exerciseNameSnapshot: exercise.name_snapshot,
+          setNumber: setIdx + 1,
+          weightLogged: weightKgForLog,
+          loggedAt: Date.now(),
+          durationSeconds,
+        })
 
-      setSession((prev) => ({
-        ...prev,
-        setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
-        totalSetsDone: prev.totalSetsDone + 1,
-      }))
+        setRest({
+          startedAt: Date.now(),
+          durationSeconds: exercise.rest_seconds,
+          pausedAt: null,
+          accumulatedPause: 0,
+        })
+      } finally {
+        durationCompleteLockRef.current = null
+      }
     },
     [
       exercise,
       sessionId,
-      session.setsData,
       toKg,
       setSession,
       setRest,
