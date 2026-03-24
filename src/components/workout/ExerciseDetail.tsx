@@ -200,6 +200,7 @@ export function ExerciseDetail({
         imageUrl={libExercise?.image_url}
         secondaryMuscles={libExercise?.secondary_muscles}
         equipment={libExercise?.equipment}
+        measurementType={libExercise?.measurement_type ?? "reps"}
       />
 
       <SetsTable

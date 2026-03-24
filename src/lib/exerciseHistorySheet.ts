@@ -137,3 +137,18 @@ export function trendBestE1RmKgPerSessionOldestFirst(
     return best
   })
 }
+
+/** Longest hold (seconds) per session for duration exercises — oldest → newest. */
+export function trendBestDurationSecondsPerSessionOldestFirst(
+  sessions: ExerciseHistorySessionRow[],
+): number[] {
+  const chronological = [...sessions].reverse()
+  return chronological.map((sess) => {
+    let best = 0
+    for (const st of sess.sets) {
+      const d = st.duration_seconds
+      if (d != null && Number.isFinite(d) && d > best) best = d
+    }
+    return best
+  })
+}
