@@ -33,6 +33,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
+import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
@@ -597,13 +598,20 @@ export function WorkoutPage() {
     const daySets = exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
     const hasSkipped = daySets.some((s) => !s.done)
 
+    const finishedAt = Date.now()
+    const activeDurationMs = Math.max(
+      0,
+      Math.round(getEffectiveElapsed(session, finishedAt)),
+    )
+
     enqueueSessionFinish({
       sessionId,
       workoutDayId: activeSessionDayId ?? "",
       workoutLabelSnapshot:
         days?.find((d) => d.id === activeSessionDayId)?.label ?? "",
       startedAt: session.startedAt ?? Date.now(),
-      finishedAt: Date.now(),
+      finishedAt,
+      activeDurationMs,
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,

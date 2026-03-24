@@ -319,6 +319,7 @@ async function main() {
         workout_label_snapshot: spec.label,
         started_at,
         finished_at,
+        active_duration_ms: spec.durationMin * 60_000,
         total_sets_done: spec.totalSets,
         has_skipped_sets: false,
         cycle_id: null,

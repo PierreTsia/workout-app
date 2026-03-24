@@ -119,7 +119,13 @@ export function SessionRow({ session: s }: { session: Session }) {
               month: "short",
               day: "numeric",
             })}{" "}
-            · {formatSessionRowDuration(s.started_at, s.finished_at)} · {s.total_sets_done}{" "}
+            ·{" "}
+            {formatSessionRowDuration(
+              s.started_at,
+              s.finished_at,
+              s.active_duration_ms,
+            )}{" "}
+            · {s.total_sets_done}{" "}
             {t("sets")}
           </p>
         </div>

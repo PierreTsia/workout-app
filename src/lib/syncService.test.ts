@@ -106,6 +106,7 @@ function makeSessionFinishPayload(
     workoutLabelSnapshot: "Push Day",
     startedAt: 1000,
     finishedAt: 2000,
+    activeDurationMs: 1000,
     totalSetsDone: 5,
     hasSkippedSets: false,
     ...overrides,
@@ -326,7 +327,10 @@ describe("SyncService", () => {
       // ensureSession sees the session_finish item and upserts with full data
       const upsertArg = sessionsChain.upsert.mock.calls[0]?.[0]
       expect(upsertArg).toEqual(
-        expect.objectContaining({ finished_at: expect.any(String) }),
+        expect.objectContaining({
+          finished_at: expect.any(String),
+          active_duration_ms: 1000,
+        }),
       )
     })
 
@@ -445,6 +449,7 @@ describe("SyncService", () => {
         (c: unknown[]) => (c[0] as { queryKey: string[] }).queryKey,
       )
       expect(calls).toContainEqual(["sessions"])
+      expect(calls).toContainEqual(["last-session-for-day"])
       expect(calls).toContainEqual(["pr-aggregates"])
       expect(calls).toContainEqual(["training-activity-by-day"])
       expect(calls).toContainEqual(["sessions-date-range"])
