@@ -46,10 +46,10 @@ export function DurationSetTimer({
   }, [targetSeconds])
 
   useEffect(() => {
-    if (timerStartedAt == null) return
+    if (timerStartedAt == null || isWorkoutPaused) return
     const id = window.setInterval(() => setNowTick(Date.now()), 250)
     return () => window.clearInterval(id)
-  }, [timerStartedAt])
+  }, [timerStartedAt, isWorkoutPaused])
 
   useEffect(() => {
     alarmFiredRef.current = false
@@ -77,6 +77,11 @@ export function DurationSetTimer({
       g.connect(ctx.destination)
       g.gain.value = 0.08
       o.frequency.value = 880
+      o.onended = () => {
+        void ctx.close().catch(() => {
+          /* ignore */
+        })
+      }
       o.start()
       o.stop(ctx.currentTime + 0.15)
     } catch {

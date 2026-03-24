@@ -69,13 +69,15 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
 
   const chartDataDuration = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => ({
-      date: formatDate(log.logged_at, i18n.language, {
-        month: "short",
-        day: "numeric",
-      }),
-      durationSec: log.duration_seconds ?? 0,
-    }))
+    return logs
+      .filter((log) => log.duration_seconds != null)
+      .map((log) => ({
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
+        durationSec: Number(log.duration_seconds),
+      }))
   }, [logs, i18n.language])
 
   const tableRowsReps = useMemo(() => {

@@ -27,6 +27,7 @@ import { createClient } from "@supabase/supabase-js"
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
+import { parseCsv } from "./csv-parse.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, "..")
@@ -116,30 +117,29 @@ function rowsToCsv(rows: Row[]): string {
   return [header, ...lines].join("\n") + "\n"
 }
 
-function parseCsv(content: string): Row[] {
-  const lines = content.trim().split(/\r?\n/)
-  if (lines.length < 2) return []
-  const header = lines[0].split(",").map((h) => h.trim().toLowerCase())
-  const idIdx = header.indexOf("id")
-  const nameIdx = header.indexOf("name")
+function parseExerciseCsv(content: string): Row[] {
+  const { headers, rows } = parseCsv(content.trim())
+  if (headers.length === 0) return []
+  const headerLower = headers.map((h) => h.trim().toLowerCase())
+  const idIdx = headerLower.indexOf("id")
+  const nameIdx = headerLower.indexOf("name")
   if (idIdx < 0 || nameIdx < 0) {
     console.error("CSV must include id and name columns")
     process.exit(1)
   }
-  const nameEnIdx = header.indexOf("name_en")
-  const mgIdx = header.indexOf("muscle_group")
-  const eqIdx = header.indexOf("equipment")
+  const nameEnIdx = headerLower.indexOf("name_en")
+  const mgIdx = headerLower.indexOf("muscle_group")
+  const eqIdx = headerLower.indexOf("equipment")
+  const cell = (row: Record<string, string>, i: number) =>
+    i >= 0 ? (row[headers[i]!] ?? "").trim() : ""
   const out: Row[] = []
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",")
-    if (cols.length < 2) continue
+  for (const row of rows) {
     out.push({
-      id: (cols[idIdx] ?? "").trim(),
-      name: (cols[nameIdx] ?? "").trim(),
-      name_en:
-        nameEnIdx >= 0 ? (cols[nameEnIdx] ?? "").trim() : "",
-      muscle_group: mgIdx >= 0 ? (cols[mgIdx] ?? "").trim() : "",
-      equipment: eqIdx >= 0 ? (cols[eqIdx] ?? "").trim() : "",
+      id: cell(row, idIdx),
+      name: cell(row, nameIdx),
+      name_en: nameEnIdx >= 0 ? cell(row, nameEnIdx) : "",
+      muscle_group: mgIdx >= 0 ? cell(row, mgIdx) : "",
+      equipment: eqIdx >= 0 ? cell(row, eqIdx) : "",
     })
   }
   return out.filter((r) => r.id && r.name)
@@ -345,7 +345,7 @@ async function main() {
       ? INPUT_PATH!
       : path.join(root, INPUT_PATH!)
     const content = fs.readFileSync(abs, "utf8")
-    rows = parseCsv(content)
+    rows = parseExerciseCsv(content)
   }
 
   await runClassification(rows)
