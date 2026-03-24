@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from "vitest"
-import { act, screen } from "@testing-library/react"
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
+import { act, fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { sessionAtom, restAtom, type SessionState } from "@/store/atoms"
-import type { WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExercise } from "@/types/database"
 import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
@@ -20,8 +20,10 @@ vi.mock("@/hooks/useWeightUnit", () => ({
   useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value }),
 }))
 
+let mockLibExercise: Exercise | undefined = undefined
+
 vi.mock("@/hooks/useExerciseFromLibrary", () => ({
-  useExerciseFromLibrary: () => ({ data: undefined }),
+  useExerciseFromLibrary: () => ({ data: mockLibExercise }),
 }))
 
 let mockRirValue = 2
@@ -80,6 +82,7 @@ describe("SetsTable", () => {
   beforeEach(() => {
     enqueueSetLogMock.mockClear()
     mockRirValue = 2
+    mockLibExercise = undefined
   })
 
   it("locks all controls when rendered as read-only", async () => {
@@ -393,5 +396,208 @@ describe("SetsTable", () => {
 
     const removeButton = screen.getByRole("button", { name: "Remove last set" })
     expect(removeButton).not.toBeDisabled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Duration exercise tests
+// ---------------------------------------------------------------------------
+
+const DURATION_LIB_EXERCISE: Exercise = {
+  id: "library-ex-dur",
+  name: "Plank",
+  muscle_group: "Core",
+  emoji: "🔥",
+  is_system: true,
+  created_at: "2024-01-01T00:00:00Z",
+  youtube_url: null,
+  instructions: null,
+  image_url: null,
+  equipment: "bodyweight",
+  difficulty_level: null,
+  name_en: "Plank",
+  source: null,
+  secondary_muscles: null,
+  reviewed_at: null,
+  reviewed_by: null,
+  measurement_type: "duration",
+  default_duration_seconds: 3,
+}
+
+const DURATION_EXERCISE: WorkoutExercise = {
+  id: "workout-ex-dur",
+  workout_day_id: "day-a",
+  exercise_id: "library-ex-dur",
+  name_snapshot: "Plank",
+  muscle_snapshot: "Core",
+  emoji_snapshot: "🔥",
+  sets: 2,
+  reps: "1",
+  weight: "0",
+  rest_seconds: 60,
+  sort_order: 0,
+  target_duration_seconds: 3,
+}
+
+// targetSeconds: 3 keeps fake-timer tests fast (3 × 250 ms interval ticks)
+const BASE_DURATION_SESSION: SessionState = {
+  ...BASE_SESSION,
+  setsData: {
+    "workout-ex-dur": [
+      { kind: "duration", targetSeconds: 3, weight: "0", done: false, timerStartedAt: null },
+      { kind: "duration", targetSeconds: 3, weight: "0", done: false, timerStartedAt: null },
+    ],
+  },
+  totalSetsDone: 0,
+}
+
+describe("SetsTable – duration exercises", () => {
+  beforeEach(() => {
+    enqueueSetLogMock.mockClear()
+    mockLibExercise = DURATION_LIB_EXERCISE
+  })
+
+  afterEach(() => {
+    mockLibExercise = undefined
+    vi.useRealTimers()
+  })
+
+  it("renders a Play button for each incomplete duration row", () => {
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+    })
+
+    const playButtons = screen.getAllByRole("button", { name: "Start" })
+    expect(playButtons).toHaveLength(2)
+    playButtons.forEach((btn) => expect(btn).not.toBeDisabled())
+  })
+
+  it("clicking Play sets timerStartedAt on the correct row", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+    })
+
+    const before = Date.now()
+    await user.click(screen.getAllByRole("button", { name: "Start" })[0])
+    const after = Date.now()
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
+    expect(rows[0].timerStartedAt).toBeGreaterThanOrEqual(before)
+    expect(rows[0].timerStartedAt).toBeLessThanOrEqual(after)
+    expect(rows[1].timerStartedAt).toBeNull()
+  })
+
+  it("disables other Play buttons while a timer is running", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+    })
+
+    await user.click(screen.getAllByRole("button", { name: "Start" })[0])
+
+    // Row 0 is running — shows "End early"; row 1 still shows "Start" but disabled
+    expect(screen.getByRole("button", { name: "End early" })).toBeInTheDocument()
+    const remainingPlay = screen.getAllByRole("button", { name: "Start" })
+    expect(remainingPlay).toHaveLength(1)
+    expect(remainingPlay[0]).toBeDisabled()
+  })
+
+  it("clears rest timer when Play is tapped", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+      store.set(restAtom, {
+        startedAt: Date.now(),
+        durationSeconds: 60,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+
+    await user.click(screen.getAllByRole("button", { name: "Start" })[0])
+
+    expect(store.get(restAtom)).toBeNull()
+  })
+
+  it("auto-completes and enqueues set log when countdown reaches zero", () => {
+    vi.useFakeTimers()
+    const T0 = 1_000_000
+    vi.setSystemTime(T0)
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+    })
+
+    act(() => {
+      fireEvent.click(screen.getAllByRole("button", { name: "Start" })[0])
+    })
+
+    expect(store.get(sessionAtom).setsData["workout-ex-dur"][0].timerStartedAt).toBe(T0)
+
+    // Advance past targetSeconds (3 s)
+    act(() => {
+      vi.advanceTimersByTime(3_250)
+    })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
+    expect(rows[0].done).toBe(true)
+    expect(rows[0].loggedSeconds).toBe(3)
+    expect(enqueueSetLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        exerciseId: "library-ex-dur",
+        setNumber: 1,
+        durationSeconds: 3,
+      }),
+    )
+  })
+
+  it("End early button logs elapsed seconds and marks set done", () => {
+    vi.useFakeTimers()
+    const T0 = 1_000_000
+    vi.setSystemTime(T0)
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={DURATION_EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_DURATION_SESSION)
+    })
+
+    act(() => {
+      fireEvent.click(screen.getAllByRole("button", { name: "Start" })[0])
+    })
+
+    // Advance 1 s (well within targetSeconds: 3)
+    act(() => {
+      vi.advanceTimersByTime(1_250)
+    })
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "End early" }))
+    })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
+    expect(rows[0].done).toBe(true)
+    expect(rows[0].loggedSeconds).toBe(1)
+    expect(enqueueSetLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ durationSeconds: 1 }),
+    )
   })
 })
