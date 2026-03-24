@@ -1,5 +1,12 @@
 {
   "title": "Admin",
+  "overview": "Vue d'ensemble",
+  "homeDescription": "Outils internes — réservés aux administrateurs.",
+  "sentryTest": {
+    "heading": "Test Sentry",
+    "hint": "Déclenche une erreur de test pour vérifier le suivi des erreurs. Retirez cette section une fois terminé.",
+    "button": "Tout casser"
+  },
   "exercises": "Exercices",
   "exercisesDescription": "Gérer le contenu des exercices — instructions, vidéos, images",
   "backToList": "Retour à la liste",

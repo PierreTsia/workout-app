@@ -86,7 +86,7 @@ function SegmentedButton<T extends string>({
 }
 
 export function SideDrawer() {
-  const { t, i18n } = useTranslation(["common", "settings", "account"])
+  const { t, i18n } = useTranslation(["common", "settings", "account", "admin"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
@@ -242,6 +242,11 @@ export function SideDrawer() {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="mt-0.5 flex flex-col gap-0.5 border-l border-border/40 pl-4 ml-4">
+                    <Button variant="ghost" size="sm" className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground" asChild>
+                      <Link to="/admin" onClick={closeDrawer}>
+                        {t("admin:overview")}
+                      </Link>
+                    </Button>
                     <Button variant="ghost" size="sm" className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground" asChild>
                       <Link to="/admin/exercises" onClick={closeDrawer}>
                         {t("common:adminExercises")}
