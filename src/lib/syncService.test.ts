@@ -80,8 +80,8 @@ const USER_ID = "user-123"
 const DETERMINISTIC_UUID = "det-uuid-1"
 
 function makeSetLogPayload(
-  overrides: Partial<import("./syncService").SetLogPayload> = {},
-): import("./syncService").SetLogPayload {
+  overrides: Partial<import("./syncService").SetLogPayloadReps> = {},
+): import("./syncService").SetLogPayloadReps {
   return {
     sessionId: "local-session-1",
     exerciseId: "ex-1",
@@ -492,6 +492,32 @@ describe("SyncService", () => {
       expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
       const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
       expect(insertArg).toEqual(expect.objectContaining({ rir: null }))
+    })
+
+    it("inserts duration set with null reps and null estimated_1rm", async () => {
+      enqueueSetLog({
+        sessionId: "local-session-1",
+        exerciseId: "ex-1",
+        exerciseNameSnapshot: "Plank",
+        setNumber: 1,
+        weightLogged: 0,
+        loggedAt: 1000,
+        durationSeconds: 45,
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
+      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
+      expect(insertArg).toEqual(
+        expect.objectContaining({
+          reps_logged: null,
+          duration_seconds: 45,
+          estimated_1rm: null,
+          was_pr: false,
+          rir: null,
+        }),
+      )
     })
   })
 

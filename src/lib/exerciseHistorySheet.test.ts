@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   parseExerciseHistorySheetPayload,
   setEstimated1RmKg,
+  trendBestDurationSecondsPerSessionOldestFirst,
   trendBestE1RmKgPerSessionOldestFirst,
 } from "./exerciseHistorySheet"
 
@@ -16,6 +17,7 @@ describe("parseExerciseHistorySheetPayload", () => {
             id: "l1",
             set_number: 1,
             reps_logged: "10",
+            duration_seconds: null,
             weight_logged: 40,
             rir: 2,
             estimated_1rm: 50,
@@ -41,6 +43,7 @@ describe("setEstimated1RmKg", () => {
       id: "1",
       set_number: 1,
       reps_logged: "10",
+      duration_seconds: null,
       weight_logged: 40,
       rir: null,
       estimated_1rm: 55.5,
@@ -53,6 +56,7 @@ describe("setEstimated1RmKg", () => {
       id: "1",
       set_number: 1,
       reps_logged: "10",
+      duration_seconds: null,
       weight_logged: 100,
       rir: null,
       estimated_1rm: null,
@@ -69,14 +73,30 @@ describe("trendBestE1RmKgPerSessionOldestFirst", () => {
         session_id: "new",
         finished_at: "2025-02-01T00:00:00.000Z",
         sets: [
-          { id: "a", set_number: 1, reps_logged: "5", weight_logged: 100, rir: 1, estimated_1rm: null },
+          {
+            id: "a",
+            set_number: 1,
+            reps_logged: "5",
+            duration_seconds: null,
+            weight_logged: 100,
+            rir: 1,
+            estimated_1rm: null,
+          },
         ],
       },
       {
         session_id: "old",
         finished_at: "2025-01-01T00:00:00.000Z",
         sets: [
-          { id: "b", set_number: 1, reps_logged: "10", weight_logged: 100, rir: 2, estimated_1rm: null },
+          {
+            id: "b",
+            set_number: 1,
+            reps_logged: "10",
+            duration_seconds: null,
+            weight_logged: 100,
+            rir: 2,
+            estimated_1rm: null,
+          },
         ],
       },
     ]
@@ -85,5 +105,52 @@ describe("trendBestE1RmKgPerSessionOldestFirst", () => {
     const eNew = setEstimated1RmKg(sessions[0].sets[0])
     expect(eOld).toBeGreaterThan(eNew)
     expect(trendBestE1RmKgPerSessionOldestFirst(sessions)).toEqual([eOld, eNew])
+  })
+})
+
+describe("trendBestDurationSecondsPerSessionOldestFirst", () => {
+  it("reverses to chronological and takes longest hold per session", () => {
+    const sessions = [
+      {
+        session_id: "new",
+        finished_at: "2025-02-01T00:00:00.000Z",
+        sets: [
+          {
+            id: "a",
+            set_number: 1,
+            reps_logged: null,
+            duration_seconds: 20,
+            weight_logged: 0,
+            rir: null,
+            estimated_1rm: null,
+          },
+        ],
+      },
+      {
+        session_id: "old",
+        finished_at: "2025-01-01T00:00:00.000Z",
+        sets: [
+          {
+            id: "b",
+            set_number: 1,
+            reps_logged: null,
+            duration_seconds: 45,
+            weight_logged: 0,
+            rir: null,
+            estimated_1rm: null,
+          },
+          {
+            id: "c",
+            set_number: 2,
+            reps_logged: null,
+            duration_seconds: 30,
+            weight_logged: 0,
+            rir: null,
+            estimated_1rm: null,
+          },
+        ],
+      },
+    ]
+    expect(trendBestDurationSecondsPerSessionOldestFirst(sessions)).toEqual([45, 20])
   })
 })

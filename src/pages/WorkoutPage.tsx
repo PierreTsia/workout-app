@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -43,6 +44,12 @@ import {
   templateToPreviewItems,
 } from "@/lib/sessionSummary"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
+import {
+  buildInitialSetRowsForExercise,
+  mapRowsUpdateWeight,
+  migrateSessionSetsData,
+  type SessionSetRow,
+} from "@/lib/sessionSetRow"
 import {
   clearSessionExercisePatchStorage,
   getInitialPreSessionPatchForHydration,
@@ -109,6 +116,7 @@ function applySessionSwap(
     muscle_snapshot: picked.muscle_group,
     emoji_snapshot: picked.emoji,
     weight: weightStr,
+    target_duration_seconds: null,
   }
   const addedIdx = next.addedRows.findIndex((r) => r.id === row.id)
   if (addedIdx >= 0) {
@@ -225,6 +233,14 @@ export function WorkoutPage() {
   const { data: exercisePool = [], isLoading: exercisePoolLoading } =
     useExerciseLibrary()
 
+  const exerciseById = useMemo(() => {
+    const m = new Map<string, Exercise>()
+    for (const e of exercisePool) {
+      m.set(e.id, e)
+    }
+    return m
+  }, [exercisePool])
+
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
@@ -275,6 +291,18 @@ export function WorkoutPage() {
     }
     return []
   }, [isDayDoneInCycle, sessionLogs, baseExercises])
+
+  useLayoutEffect(() => {
+    setSession((prev) => {
+      const next = migrateSessionSetsData(
+        prev.setsData as unknown as Record<string, unknown[]>,
+      )
+      if (JSON.stringify(prev.setsData) === JSON.stringify(next)) {
+        return prev
+      }
+      return { ...prev, setsData: next }
+    })
+  }, [setSession])
 
   useEffect(() => {
     preSessionPatchRef.current = preSessionPatch
@@ -404,6 +432,7 @@ export function WorkoutPage() {
               weight: weightStr,
               rest_seconds: 90,
               sort_order: maxSortSession + 1,
+              target_duration_seconds: null,
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
@@ -516,10 +545,7 @@ export function WorkoutPage() {
     if (exercises.length === 0) return
 
     let hasChanges = false
-    const patch: Record<
-      string,
-      Array<{ reps: string; weight: string; done: boolean }>
-    > = {}
+    const patch: Record<string, SessionSetRow[]> = {}
 
     for (const ex of exercises) {
       const existing = session.setsData[ex.id]
@@ -527,16 +553,17 @@ export function WorkoutPage() {
       const historyWeight = lastWeights[ex.exercise_id] ?? 0
       const effectiveWeightKg =
         storedWeight > 0 ? storedWeight : historyWeight
+      const lib = exerciseById.get(ex.exercise_id)
 
       if (!existing) {
         const displayWeight = String(
           Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
         )
-        patch[ex.id] = Array.from({ length: ex.sets }, () => ({
-          reps: ex.reps,
-          weight: displayWeight,
-          done: false,
-        }))
+        patch[ex.id] = buildInitialSetRowsForExercise(
+          ex,
+          lib,
+          displayWeight,
+        )
         hasChanges = true
       } else if (storedWeight === 0 && historyWeight > 0) {
         const allUntouched = existing.every(
@@ -546,7 +573,7 @@ export function WorkoutPage() {
           const displayWeight = String(
             Math.round(toDisplay(historyWeight) * 10) / 10,
           )
-          patch[ex.id] = existing.map((s) => ({ ...s, weight: displayWeight }))
+          patch[ex.id] = mapRowsUpdateWeight(existing, displayWeight)
           hasChanges = true
         }
       }
@@ -558,7 +585,14 @@ export function WorkoutPage() {
         setsData: { ...prev.setsData, ...patch },
       }))
     }
-  }, [exercises, session.setsData, setSession, toDisplay, lastWeights])
+  }, [
+    exercises,
+    session.setsData,
+    setSession,
+    toDisplay,
+    lastWeights,
+    exerciseById,
+  ])
 
   useEffect(() => {
     if (!session.isActive || session.activeDayId || !session.currentDayId) return

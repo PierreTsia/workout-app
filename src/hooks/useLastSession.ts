@@ -15,7 +15,7 @@ export function useLastSession(exerciseId: string | undefined) {
 
   return useQuery<LastSessionSummary | null>({
     queryKey: ["last-session", exerciseId],
-    queryFn: async () => {
+    queryFn: async (): Promise<LastSessionSummary | null> => {
       const { data, error } = await supabase
         .from("set_logs")
         .select("set_number, reps_logged, weight_logged, session_id")
@@ -38,11 +38,15 @@ export function useLastSession(exerciseId: string | undefined) {
       const repsValues = sessionLogs.map((l) => l.reps_logged)
       const allSameReps = repsValues.every((r) => r === repsValues[0])
 
+      const reps: string = allSameReps
+        ? (repsValues[0] ?? "")
+        : repsValues.map((r) => r ?? "").join("/")
+
       return {
         sets: sessionLogs.length,
-        reps: allSameReps ? repsValues[0] : repsValues.join("/"),
+        reps,
         weight: Number(sessionLogs[0].weight_logged),
-      }
+      } satisfies LastSessionSummary
     },
     enabled: !!exerciseId && !!user,
   })

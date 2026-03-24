@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -8,11 +8,21 @@ import { computeEpley1RM } from "@/lib/epley"
 import { computeIntraSessionSuggestion } from "@/lib/rirSuggestion"
 import { useBest1RM } from "@/hooks/useBest1RM"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import type { WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { RirDrawer } from "@/components/workout/RirDrawer"
+import { DurationSetTimer } from "@/components/workout/DurationSetTimer"
+import {
+  normalizeSessionSetRow,
+  resolveTargetSecondsForRow,
+  type SessionSetRow,
+  type SessionSetRowDuration,
+  type SessionSetRowReps,
+} from "@/lib/sessionSetRow"
+import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
 interface SetsTableProps {
@@ -24,6 +34,14 @@ interface SetsTableProps {
   onBlockedByPause?: () => void
 }
 
+function isRepsRow(r: SessionSetRow): r is SessionSetRowReps {
+  return r.kind === "reps"
+}
+
+function isDurationRow(r: SessionSetRow): r is SessionSetRowDuration {
+  return r.kind === "duration"
+}
+
 export function SetsTable({
   exercise,
   sessionId,
@@ -33,17 +51,90 @@ export function SetsTable({
 }: SetsTableProps) {
   const { t } = useTranslation("workout")
   const { unit, toKg } = useWeightUnit()
+  const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [session, setSession] = useAtom(sessionAtom)
   const setRest = useSetAtom(restAtom)
   const setPrFlags = useSetAtom(prFlagsAtom)
   const [sessionBest, setSessionBest] = useAtom(sessionBest1RMAtom)
-  const { data: historicalBest = 0, isSuccess: best1RMReady } = useBest1RM(exercise.exercise_id)
+  const { data: historicalBest = 0, isSuccess: best1RMReady } = useBest1RM(
+    exercise.exercise_id,
+  )
 
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
-  const rows = session.setsData[exercise.id] ?? []
+  const rawRows = session.setsData[exercise.id] ?? []
+  const rows: SessionSetRow[] = rawRows.map((r) => normalizeSessionSetRow(r))
+  const isDurationExercise = libExercise?.measurement_type === "duration"
+
   const isWorkoutPaused = session.pausedAt != null
   const pendingRirForUi = isWorkoutPaused ? null : pendingSetIdx
+
+  // Migrate legacy reps rows to duration rows when the library confirms this is
+  // a duration exercise. This happens when setsData was hydrated before the
+  // library query resolved (reps is the fallback kind).
+  useEffect(() => {
+    if (!libExercise || libExercise.measurement_type !== "duration") return
+    setSession((prev) => {
+      const existing = (prev.setsData[exercise.id] ?? []).map(
+        normalizeSessionSetRow,
+      )
+      if (existing.every((r) => r.kind === "duration")) return prev
+      const targetSeconds = resolveTargetSecondsForRow(exercise, libExercise)
+      const fixed = existing.map((r): SessionSetRow => {
+        if (r.kind === "duration") return r
+        return {
+          kind: "duration",
+          targetSeconds,
+          weight: r.weight,
+          done: r.done,
+          timerStartedAt: null,
+        }
+      })
+      return {
+        ...prev,
+        setsData: { ...prev.setsData, [exercise.id]: fixed },
+      }
+    })
+  }, [libExercise, exercise, setSession])
+
+  const pauseStartRef = useRef<number | null>(null)
+  /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */
+  const durationCompleteLockRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (session.pausedAt != null) {
+      pauseStartRef.current = session.pausedAt
+    } else if (pauseStartRef.current != null) {
+      const pauseMs = Date.now() - pauseStartRef.current
+      pauseStartRef.current = null
+      if (pauseMs <= 0 || !isDurationExercise) return
+      setSession((prev) => {
+        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((row) =>
+          normalizeSessionSetRow(row),
+        )
+        let changed = false
+        for (let i = 0; i < exerciseSets.length; i++) {
+          const r = exerciseSets[i]
+          if (
+            isDurationRow(r) &&
+            r.timerStartedAt != null &&
+            !r.done
+          ) {
+            exerciseSets[i] = {
+              ...r,
+              timerStartedAt: r.timerStartedAt + pauseMs,
+            }
+            changed = true
+          }
+        }
+        return changed
+          ? {
+              ...prev,
+              setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+            }
+          : prev
+      })
+    }
+  }, [session.pausedAt, exercise.id, isDurationExercise, setSession])
 
   const weightLabel =
     equipment === "dumbbell"
@@ -63,8 +154,12 @@ export function SetsTable({
       return
     }
     setSession((prev) => {
-      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
-      exerciseSets[setIdx] = { ...exerciseSets[setIdx], [field]: value }
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+        normalizeSessionSetRow(r),
+      )
+      const cur = exerciseSets[setIdx]
+      if (!cur || !isRepsRow(cur)) return prev
+      exerciseSets[setIdx] = { ...cur, [field]: value }
       return {
         ...prev,
         setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
@@ -79,11 +174,16 @@ export function SetsTable({
       return
     }
     const currentSet = rows[setIdx]
+    if (!currentSet || !isRepsRow(currentSet)) return
 
     if (currentSet.done) {
       setSession((prev) => {
-        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
-        exerciseSets[setIdx] = { ...exerciseSets[setIdx], done: false, rir: undefined }
+        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+          normalizeSessionSetRow(r),
+        )
+        const cur = exerciseSets[setIdx]
+        if (!cur || !isRepsRow(cur)) return prev
+        exerciseSets[setIdx] = { ...cur, done: false, rir: undefined }
         return {
           ...prev,
           setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
@@ -106,9 +206,11 @@ export function SetsTable({
       }
       setPendingSetIdx(null)
 
-      const exerciseSets = [...(session.setsData[exercise.id] ?? [])]
+      const exerciseSets = [...(session.setsData[exercise.id] ?? [])].map((r) =>
+        normalizeSessionSetRow(r),
+      )
       const currentSet = exerciseSets[setIdx]
-      if (!currentSet || currentSet.done) return
+      if (!currentSet || !isRepsRow(currentSet) || currentSet.done) return
 
       const displayWeight = Number(currentSet.weight) || 0
       const weightKg = toKg(displayWeight)
@@ -119,7 +221,8 @@ export function SetsTable({
         historicalBest,
         sessionBest[exercise.exercise_id] ?? 0,
       )
-      const wasPr = best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
+      const wasPr =
+        best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
 
       if (wasPr) {
         setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
@@ -157,17 +260,20 @@ export function SetsTable({
 
       const nextIdx = setIdx + 1
       if (nextIdx < exerciseSets.length && !exerciseSets[nextIdx].done) {
-        const suggestion = computeIntraSessionSuggestion(
-          rir,
-          displayWeight,
-          currentSet.reps,
-          unit,
-          equipment,
-        )
-        exerciseSets[nextIdx] = {
-          ...exerciseSets[nextIdx],
-          weight: String(suggestion.weight),
-          reps: suggestion.reps,
+        const nextRow = exerciseSets[nextIdx]
+        if (isRepsRow(nextRow)) {
+          const suggestion = computeIntraSessionSuggestion(
+            rir,
+            displayWeight,
+            currentSet.reps,
+            unit,
+            equipment,
+          )
+          exerciseSets[nextIdx] = {
+            ...nextRow,
+            weight: String(suggestion.weight),
+            reps: suggestion.reps,
+          }
         }
       }
 
@@ -197,6 +303,86 @@ export function SetsTable({
     ],
   )
 
+  const completeDurationSet = useCallback(
+    (setIdx: number, durationSeconds: number) => {
+      if (isReadOnly) return
+      if (session.pausedAt != null) {
+        onBlockedByPause?.()
+        return
+      }
+
+      const lockKey = `${sessionId}:${exercise.id}:${setIdx}`
+      if (durationCompleteLockRef.current === lockKey) return
+      durationCompleteLockRef.current = lockKey
+
+      let weightKgForLog = 0
+      let didMarkDone = false
+
+      setSession((prev) => {
+        const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+          normalizeSessionSetRow(r),
+        )
+        const currentSet = exerciseSets[setIdx]
+        if (!currentSet || !isDurationRow(currentSet) || currentSet.done) {
+          durationCompleteLockRef.current = null
+          return prev
+        }
+
+        const displayWeight = Number(currentSet.weight) || 0
+        weightKgForLog = toKg(displayWeight)
+        didMarkDone = true
+
+        exerciseSets[setIdx] = {
+          ...currentSet,
+          done: true,
+          timerStartedAt: null,
+          loggedSeconds: durationSeconds,
+        }
+
+        return {
+          ...prev,
+          setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+          totalSetsDone: prev.totalSetsDone + 1,
+        }
+      })
+
+      if (!didMarkDone) {
+        return
+      }
+
+      try {
+        enqueueSetLog({
+          sessionId,
+          exerciseId: exercise.exercise_id,
+          exerciseNameSnapshot: exercise.name_snapshot,
+          setNumber: setIdx + 1,
+          weightLogged: weightKgForLog,
+          loggedAt: Date.now(),
+          durationSeconds,
+        })
+
+        setRest({
+          startedAt: Date.now(),
+          durationSeconds: exercise.rest_seconds,
+          pausedAt: null,
+          accumulatedPause: 0,
+        })
+      } finally {
+        durationCompleteLockRef.current = null
+      }
+    },
+    [
+      exercise,
+      sessionId,
+      toKg,
+      setSession,
+      setRest,
+      isReadOnly,
+      session.pausedAt,
+      onBlockedByPause,
+    ],
+  )
+
   function removeLastSet() {
     if (isReadOnly) return
     if (isWorkoutPaused) {
@@ -204,9 +390,11 @@ export function SetsTable({
       return
     }
     setSession((prev) => {
-      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+        normalizeSessionSetRow(r),
+      )
       const removed = exerciseSets.pop()
-      const delta = removed?.done ? -1 : 0
+      const delta = removed && (isRepsRow(removed) || isDurationRow(removed)) && removed.done ? -1 : 0
       return {
         ...prev,
         setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
@@ -223,12 +411,37 @@ export function SetsTable({
     }
     const lastRow = rows[rows.length - 1]
     setSession((prev) => {
-      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])]
-      exerciseSets.push({
-        reps: lastRow?.reps ?? exercise.reps,
-        weight: lastRow?.weight ?? exercise.weight,
-        done: false,
-      })
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+        normalizeSessionSetRow(r),
+      )
+      if (isDurationExercise && libExercise) {
+        const ts =
+          lastRow && isDurationRow(lastRow)
+            ? lastRow.targetSeconds
+            : resolveTargetSecondsForRow(exercise, libExercise)
+        const w =
+          lastRow?.kind === "duration" || lastRow?.kind === "reps"
+            ? lastRow.weight
+            : exercise.weight
+        exerciseSets.push({
+          kind: "duration",
+          targetSeconds: ts,
+          weight: w,
+          done: false,
+          timerStartedAt: null,
+        })
+      } else {
+        const lr = lastRow
+        exerciseSets.push({
+          kind: "reps",
+          reps: lr && isRepsRow(lr) ? lr.reps : exercise.reps,
+          weight:
+            lr && (isRepsRow(lr) || isDurationRow(lr))
+              ? lr.weight
+              : exercise.weight,
+          done: false,
+        })
+      }
       return {
         ...prev,
         setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
@@ -238,12 +451,151 @@ export function SetsTable({
 
   if (rows.length === 0) return null
 
+  if (isDurationExercise) {
+    // Index of the row whose timer is currently ticking (at most one at a time).
+    const activeTimerIdx = rows.findIndex(
+      (r) => r.kind === "duration" && r.timerStartedAt != null && !r.done,
+    )
+
+    return (
+      <div className="space-y-1">
+        <div className="grid grid-cols-[2rem_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
+          <span className="text-center">{t("setNumber")}</span>
+          <span className="text-center">{t("durationHeader")}</span>
+          <span />
+        </div>
+
+        {rows.map((set, idx) => (
+          <div
+            key={idx}
+            className={cn(
+              "grid grid-cols-[2rem_1fr_2.5rem] items-center gap-2 rounded-md px-1 py-1.5 transition-colors",
+              set.kind === "duration" && set.done && "bg-primary/10",
+            )}
+          >
+            <span className="text-center text-sm font-medium text-muted-foreground">
+              {idx + 1}
+            </span>
+
+            {set.kind === "duration" && set.done ? (
+              <>
+                <span className="text-center font-mono text-sm tabular-nums text-muted-foreground">
+                  {set.loggedSeconds != null
+                    ? formatSecondsMMSS(set.loggedSeconds)
+                    : "—"}
+                </span>
+                <div className="flex justify-center">
+                  <Checkbox checked disabled />
+                </div>
+              </>
+            ) : set.kind === "duration" ? (
+              <DurationSetTimer
+                targetSeconds={set.targetSeconds}
+                timerStartedAt={set.timerStartedAt}
+                disabled={
+                  !session.isActive ||
+                  isReadOnly ||
+                  (activeTimerIdx !== -1 && activeTimerIdx !== idx)
+                }
+                isWorkoutPaused={isWorkoutPaused}
+                onUpdateTarget={(seconds) => {
+                  if (isReadOnly || isWorkoutPaused) return
+                  setSession((prev) => {
+                    const exerciseSets = [
+                      ...(prev.setsData[exercise.id] ?? []),
+                    ].map((r) => normalizeSessionSetRow(r))
+                    const cur = exerciseSets[idx]
+                    if (!cur || !isDurationRow(cur) || cur.done) return prev
+                    exerciseSets[idx] = { ...cur, targetSeconds: seconds }
+                    return {
+                      ...prev,
+                      setsData: {
+                        ...prev.setsData,
+                        [exercise.id]: exerciseSets,
+                      },
+                    }
+                  })
+                }}
+                onStart={() => {
+                  setRest(null)
+                  setSession((prev) => {
+                    const exerciseSets = [
+                      ...(prev.setsData[exercise.id] ?? []),
+                    ].map((r) => normalizeSessionSetRow(r))
+                    const cur = exerciseSets[idx]
+                    if (!cur || !isDurationRow(cur) || cur.done) return prev
+                    exerciseSets[idx] = {
+                      ...cur,
+                      timerStartedAt: Date.now(),
+                    }
+                    return {
+                      ...prev,
+                      setsData: {
+                        ...prev.setsData,
+                        [exercise.id]: exerciseSets,
+                      },
+                    }
+                  })
+                }}
+                onLog={(seconds) => completeDurationSet(idx, seconds)}
+                onBlockedByPause={onBlockedByPause}
+              />
+            ) : null}
+          </div>
+        ))}
+
+        <div className="flex items-center justify-center gap-1 pt-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground active:text-destructive"
+            onClick={(e) => {
+              removeLastSet()
+              ;(e.currentTarget as HTMLButtonElement).blur()
+            }}
+            disabled={
+              rows.length <= 1 ||
+              isReadOnly ||
+              isWorkoutPaused ||
+              (rows[rows.length - 1]?.kind === "duration" &&
+                rows[rows.length - 1].done)
+            }
+            aria-label={t("removeLastSet")}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {t("setCount", { count: rows.length })}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={addSet}
+            disabled={isReadOnly || isWorkoutPaused}
+            aria-label={t("addSet")}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1">
       <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
         <span className="text-center">{t("setNumber")}</span>
         <span>{t("reps")}</span>
-        <span className={equipment === "dumbbell" || equipment === "bodyweight" ? "" : "capitalize"}>{weightLabel}</span>
+        <span
+          className={
+            equipment === "dumbbell" || equipment === "bodyweight"
+              ? ""
+              : "capitalize"
+          }
+        >
+          {weightLabel}
+        </span>
         <span className="text-center">{t("done")}</span>
       </div>
 
@@ -252,35 +604,39 @@ export function SetsTable({
           key={idx}
           className={cn(
             "grid grid-cols-[2rem_1fr_1fr_2.5rem] items-center gap-2 rounded-md px-1 py-1.5 transition-colors",
-            set.done && "bg-primary/10",
+            isRepsRow(set) && set.done && "bg-primary/10",
           )}
         >
           <span className="text-center text-sm font-medium text-muted-foreground">
             {idx + 1}
           </span>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={set.reps}
-            onChange={(e) => updateField(idx, "reps", e.target.value)}
-            className="h-8 text-center"
-            disabled={set.done || isReadOnly || isWorkoutPaused}
-          />
-          <Input
-            type="text"
-            inputMode="decimal"
-            value={set.weight}
-            onChange={(e) => updateField(idx, "weight", e.target.value)}
-            className="h-8 text-center"
-            disabled={set.done || isReadOnly || isWorkoutPaused}
-          />
-          <div className="flex justify-center">
-            <Checkbox
-              checked={set.done}
-              onCheckedChange={() => handleCheckboxChange(idx)}
-              disabled={!session.isActive || isReadOnly || isWorkoutPaused}
-            />
-          </div>
+          {isRepsRow(set) ? (
+            <>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={set.reps}
+                onChange={(e) => updateField(idx, "reps", e.target.value)}
+                className="h-8 text-center"
+                disabled={set.done || isReadOnly || isWorkoutPaused}
+              />
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={set.weight}
+                onChange={(e) => updateField(idx, "weight", e.target.value)}
+                className="h-8 text-center"
+                disabled={set.done || isReadOnly || isWorkoutPaused}
+              />
+              <div className="flex justify-center">
+                <Checkbox
+                  checked={set.done}
+                  onCheckedChange={() => handleCheckboxChange(idx)}
+                  disabled={!session.isActive || isReadOnly || isWorkoutPaused}
+                />
+              </div>
+            </>
+          ) : null}
         </div>
       ))}
 
@@ -322,11 +678,11 @@ export function SetsTable({
         key={pendingRirForUi ?? "closed"}
         open={pendingRirForUi !== null}
         setInfo={
-          pendingRirForUi !== null
+          pendingRirForUi !== null && isRepsRow(rows[pendingRirForUi])
             ? {
                 setNumber: pendingRirForUi + 1,
-                reps: rows[pendingRirForUi]?.reps ?? "",
-                weight: rows[pendingRirForUi]?.weight ?? "",
+                reps: rows[pendingRirForUi].reps,
+                weight: rows[pendingRirForUi].weight,
                 unit,
               }
             : null

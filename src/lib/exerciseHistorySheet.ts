@@ -3,7 +3,8 @@ import { computeEpley1RM } from "@/lib/epley"
 export interface ExerciseHistorySetRow {
   id: string
   set_number: number
-  reps_logged: string
+  reps_logged: string | null
+  duration_seconds: number | null
   weight_logged: number
   rir: number | null
   estimated_1rm: number | null
@@ -23,11 +24,25 @@ function parseSet(raw: unknown): ExerciseHistorySetRow | null {
   if (!isRecord(raw)) return null
   const id = raw.id
   const set_number = raw.set_number
-  const reps_logged = raw.reps_logged
+  const reps_logged =
+    raw.reps_logged === null || raw.reps_logged === undefined
+      ? null
+      : typeof raw.reps_logged === "string"
+        ? raw.reps_logged
+        : String(raw.reps_logged)
+  const duration_raw = raw.duration_seconds
+  const duration_seconds =
+    duration_raw === null || duration_raw === undefined
+      ? null
+      : typeof duration_raw === "number"
+        ? duration_raw
+        : Number(duration_raw)
   const weight_logged = raw.weight_logged
   if (typeof id !== "string") return null
   if (typeof set_number !== "number") return null
-  if (typeof reps_logged !== "string") return null
+  if (reps_logged === null && (duration_seconds === null || Number.isNaN(duration_seconds))) {
+    return null
+  }
   const w =
     typeof weight_logged === "number"
       ? weight_logged
@@ -51,6 +66,10 @@ function parseSet(raw: unknown): ExerciseHistorySetRow | null {
     id,
     set_number,
     reps_logged,
+    duration_seconds:
+      duration_seconds !== null && Number.isFinite(duration_seconds)
+        ? duration_seconds
+        : null,
     weight_logged: w,
     rir,
     estimated_1rm:
@@ -89,6 +108,7 @@ export function parseExerciseHistorySheetPayload(data: unknown): ExerciseHistory
 
 /** Estimated 1RM (kg) for one logged set — prefers stored value, else Epley from weight × reps. */
 export function setEstimated1RmKg(set: ExerciseHistorySetRow): number {
+  if (set.duration_seconds != null) return 0
   if (
     set.estimated_1rm != null &&
     Number.isFinite(set.estimated_1rm) &&
@@ -96,7 +116,7 @@ export function setEstimated1RmKg(set: ExerciseHistorySetRow): number {
   ) {
     return set.estimated_1rm
   }
-  const reps = parseInt(String(set.reps_logged), 10)
+  const reps = parseInt(String(set.reps_logged ?? "0"), 10)
   return computeEpley1RM(set.weight_logged, reps)
 }
 
@@ -113,6 +133,21 @@ export function trendBestE1RmKgPerSessionOldestFirst(
     for (const st of sess.sets) {
       const e = setEstimated1RmKg(st)
       if (e > best) best = e
+    }
+    return best
+  })
+}
+
+/** Longest hold (seconds) per session for duration exercises — oldest → newest. */
+export function trendBestDurationSecondsPerSessionOldestFirst(
+  sessions: ExerciseHistorySessionRow[],
+): number[] {
+  const chronological = [...sessions].reverse()
+  return chronological.map((sess) => {
+    let best = 0
+    for (const st of sess.sets) {
+      const d = st.duration_seconds
+      if (d != null && Number.isFinite(d) && d > best) best = d
     }
     return best
   })

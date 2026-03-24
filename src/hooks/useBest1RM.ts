@@ -12,7 +12,7 @@ export function useBest1RM(exerciseId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("set_logs")
-        .select("reps_logged, weight_logged, estimated_1rm")
+        .select("reps_logged, weight_logged, estimated_1rm, duration_seconds")
         .eq("exercise_id", exerciseId!)
 
       if (error) throw error
@@ -20,6 +20,7 @@ export function useBest1RM(exerciseId: string | undefined) {
 
       let best = 0
       for (const row of data) {
+        if (row.duration_seconds != null) continue
         const rm =
           row.estimated_1rm != null
             ? Number(row.estimated_1rm)

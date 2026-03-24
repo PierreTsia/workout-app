@@ -31,6 +31,7 @@
   "oneRm": "1RM",
   "pr": "PR",
   "date": "Date",
+  "holdDuration": "Durée",
   "noData": "Pas encore de données pour cet exercice.",
   "loadingSets": "Chargement des séries…",
   "noSetsRecorded": "Aucune série enregistrée.",

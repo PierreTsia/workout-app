@@ -12,7 +12,10 @@ import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseSessionHistorySheet } from "@/hooks/useExerciseSessionHistorySheet"
-import { trendBestE1RmKgPerSessionOldestFirst } from "@/lib/exerciseHistorySheet"
+import {
+  trendBestDurationSecondsPerSessionOldestFirst,
+  trendBestE1RmKgPerSessionOldestFirst,
+} from "@/lib/exerciseHistorySheet"
 import { ExerciseHistoryTrendChart } from "@/components/workout/ExerciseHistoryTrendChart"
 import { ExerciseHistorySessionCard } from "@/components/workout/ExerciseHistorySessionCard"
 import { BodyMap } from "@/components/body-map/BodyMap"
@@ -31,6 +34,8 @@ interface ExerciseHistorySheetProps {
   imageUrl?: string | null
   secondaryMuscles?: string[] | null
   equipment?: string
+  /** From exercise library; affects columns and trend chart. */
+  measurementType?: "reps" | "duration"
 }
 
 export function ExerciseHistorySheet({
@@ -44,6 +49,7 @@ export function ExerciseHistorySheet({
   imageUrl,
   secondaryMuscles,
   equipment,
+  measurementType = "reps",
 }: ExerciseHistorySheetProps) {
   const { t, i18n } = useTranslation("workout")
   const isOnline = useOnlineStatus()
@@ -52,9 +58,13 @@ export function ExerciseHistorySheet({
     useExerciseSessionHistorySheet(open, exerciseId)
 
   const sessions = data ?? []
+  const isDuration = measurementType === "duration"
   const seriesKg = trendBestE1RmKgPerSessionOldestFirst(sessions)
-  const seriesDisplay = seriesKg.map((kg) => toDisplay(kg))
-  const positiveCount = seriesDisplay.filter((v) => v > 0).length
+  const seriesDurationSec = trendBestDurationSecondsPerSessionOldestFirst(sessions)
+  const seriesForChart = isDuration
+    ? seriesDurationSec
+    : seriesKg.map((kg) => toDisplay(kg))
+  const positiveCount = seriesForChart.filter((v) => v > 0).length
   const showTrend = sessions.length >= 2 && positiveCount >= 2
   const chronologicalSessions = [...sessions].reverse()
   const trendXLabels = chronologicalSessions.map((s) =>
@@ -120,14 +130,17 @@ export function ExerciseHistorySheet({
               {showTrend ? (
                 <div className="mb-4 w-full">
                   <ExerciseHistoryTrendChart
-                    valuesDisplay={seriesDisplay}
+                    variant={isDuration ? "duration" : "e1rm"}
+                    valuesDisplay={seriesForChart}
                     xLabels={trendXLabels}
                     unit={unit}
                   />
                 </div>
               ) : (
                 <p className="mb-4 text-center text-xs text-muted-foreground">
-                  {t("historySheet.trendHint")}
+                  {isDuration
+                    ? t("historySheet.trendHintDuration")
+                    : t("historySheet.trendHint")}
                 </p>
               )}
 
@@ -140,6 +153,7 @@ export function ExerciseHistorySheet({
                     key={s.session_id}
                     session={s}
                     equipment={equipment}
+                    measurementType={measurementType}
                   />
                 ))}
               </div>

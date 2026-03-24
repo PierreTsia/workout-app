@@ -3,7 +3,11 @@ import { summarizeSessionLogs, templateToPreviewItems } from "./sessionSummary"
 import type { SetLog, WorkoutExercise } from "@/types/database"
 
 const makeLog = (
-  overrides: Partial<SetLog> & Pick<SetLog, "exercise_id" | "exercise_name_snapshot" | "set_number" | "reps_logged" | "weight_logged">,
+  overrides: Partial<SetLog> &
+    Pick<
+      SetLog,
+      "exercise_id" | "exercise_name_snapshot" | "set_number" | "weight_logged"
+    > & { reps_logged?: string | null; duration_seconds?: number | null },
 ): SetLog => ({
   id: "log-1",
   session_id: "sess-1",
@@ -11,6 +15,8 @@ const makeLog = (
   was_pr: false,
   logged_at: "2026-03-20T10:00:00Z",
   rir: null,
+  reps_logged: null,
+  duration_seconds: null,
   ...overrides,
 })
 
@@ -26,6 +32,7 @@ const makeExercise = (
   weight: "60",
   rest_seconds: 90,
   sort_order: 0,
+  target_duration_seconds: null,
   ...overrides,
 })
 

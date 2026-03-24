@@ -106,6 +106,7 @@ export function useAddExerciseToDay() {
         weight,
         rest_seconds: 90,
         sort_order: sortOrder,
+        target_duration_seconds: null,
       })
       if (error) throw error
     },
@@ -141,6 +142,7 @@ export function useAddExercisesToDay() {
         weight: "0",
         rest_seconds: 90,
         sort_order: startSortOrder + i,
+        target_duration_seconds: null,
       }))
       const { error } = await supabase.from("workout_exercises").insert(rows)
       if (error) throw error
@@ -164,6 +166,7 @@ export function useUpdateExercise() {
       reps?: string
       weight?: string
       rest_seconds?: number
+      target_duration_seconds?: number | null
     }) => {
       const { id, dayId: _, ...fields } = vars
       const { error } = await supabase

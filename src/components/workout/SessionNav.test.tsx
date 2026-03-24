@@ -19,6 +19,7 @@ function makeExercise(id: string): WorkoutExercise {
     weight: "60",
     rest_seconds: 90,
     sort_order: 0,
+    target_duration_seconds: null,
   }
 }
 
@@ -72,7 +73,7 @@ describe("SessionNav", () => {
         ...BASE_SESSION,
         exerciseIndex: 0,
         setsData: {
-          "ex-1": [{ reps: "10", weight: "60", done: false }],
+          "ex-1": [{ kind: "reps", reps: "10", weight: "60", done: false }],
         },
       })
     })
@@ -95,9 +96,9 @@ describe("SessionNav", () => {
         ...BASE_SESSION,
         exerciseIndex: 0,
         setsData: {
-          "ex-1": [{ reps: "10", weight: "60", done: true }],
-          "ex-2": [{ reps: "10", weight: "60", done: true }],
-          "ex-3": [{ reps: "10", weight: "60", done: true }],
+          "ex-1": [{ kind: "reps", reps: "10", weight: "60", done: true }],
+          "ex-2": [{ kind: "reps", reps: "10", weight: "60", done: true }],
+          "ex-3": [{ kind: "reps", reps: "10", weight: "60", done: true }],
         },
       })
     })

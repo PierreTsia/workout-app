@@ -4,6 +4,7 @@
   "editExercise": "Modifier l'exercice",
   "sets": "Séries",
   "reps": "Reps",
+  "targetDurationSeconds": "Maintien (sec)",
   "weightLabel": "Poids ({{unit}})",
   "restSeconds": "Repos (secondes)",
   "placeholderReps": "ex. 8-12",
