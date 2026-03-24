@@ -1,9 +1,11 @@
 import { useMemo } from "react"
+import { enUS, fr } from "date-fns/locale"
 import { useTranslation } from "react-i18next"
 import { SessionRow } from "@/components/history/SessionRow"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
 import { formatDate } from "@/lib/formatters"
+import { weekStartsOnForLanguage } from "@/lib/weekStartsOnForLanguage"
 import type { Session } from "@/types/database"
 import type { TrainingDayBucketRow } from "@/types/history"
 
@@ -27,6 +29,8 @@ export function TrainingCalendarCard({
   hasSessionsInVisibleMonth: boolean
 }) {
   const { t, i18n } = useTranslation("history")
+  const locale = i18n.language.startsWith("fr") ? fr : enUS
+  const weekStartsOn = weekStartsOnForLanguage(i18n.language)
 
   const trainingDates = useMemo(() => {
     return monthRows
@@ -55,6 +59,8 @@ export function TrainingCalendarCard({
           <div className="h-[320px] w-full max-w-sm animate-pulse rounded-md bg-muted/30" />
         ) : (
           <Calendar
+            locale={locale}
+            weekStartsOn={weekStartsOn}
             mode="single"
             month={visibleMonth}
             onMonthChange={onVisibleMonthChange}

@@ -51,6 +51,7 @@ import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
+import { useAdvanceWorkoutDayOnDateRollover } from "@/hooks/useAdvanceWorkoutDayOnDateRollover"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -159,6 +160,14 @@ export function WorkoutPage() {
   const { data: activeCycle } = useActiveCycle(activeProgramId)
   const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
   const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? [])
+  useAdvanceWorkoutDayOnDateRollover({
+    isSessionActive: session.isActive,
+    currentDayId: session.currentDayId,
+    completedDayIds: cycleProgress.completedDayIds,
+    nextDayId: cycleProgress.nextDayId,
+    setSession,
+    queryClient,
+  })
   const [finished, setFinished] = useState(false)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
