@@ -63,9 +63,9 @@ describe("completedExerciseIdsAtom", () => {
       exerciseIndex: 0,
       setsData: {
         "exercise-1": [
-          { reps: "10", weight: "50", done: true },
-          { reps: "10", weight: "50", done: true },
-          { reps: "10", weight: "50", done: true },
+          { kind: "reps", reps: "10", weight: "50", done: true },
+          { kind: "reps", reps: "10", weight: "50", done: true },
+          { kind: "reps", reps: "10", weight: "50", done: true },
         ],
       },
       startedAt: Date.now(),

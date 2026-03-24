@@ -99,9 +99,9 @@ describe("ExerciseStrip", () => {
         exerciseIndex: 1,
         setsData: {
           "ex-1": [
-            { reps: "10", weight: "60", done: true },
-            { reps: "10", weight: "60", done: true },
-            { reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
           ],
         },
         startedAt: Date.now(),
@@ -133,9 +133,9 @@ describe("ExerciseStrip", () => {
         exerciseIndex: 0,
         setsData: {
           "ex-1": [
-            { reps: "10", weight: "60", done: true },
-            { reps: "10", weight: "60", done: false },
-            { reps: "10", weight: "60", done: false },
+            { kind: "reps", reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: false },
+            { kind: "reps", reps: "10", weight: "60", done: false },
           ],
         },
         startedAt: Date.now(),
@@ -167,14 +167,14 @@ describe("ExerciseStrip", () => {
         exerciseIndex: 2,
         setsData: {
           "ex-1": [
-            { reps: "10", weight: "60", done: true },
-            { reps: "10", weight: "60", done: true },
-            { reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
+            { kind: "reps", reps: "10", weight: "60", done: true },
           ],
           "ex-2": [
-            { reps: "8", weight: "80", done: true },
-            { reps: "8", weight: "80", done: true },
-            { reps: "8", weight: "80", done: true },
+            { kind: "reps", reps: "8", weight: "80", done: true },
+            { kind: "reps", reps: "8", weight: "80", done: true },
+            { kind: "reps", reps: "8", weight: "80", done: true },
           ],
         },
         startedAt: Date.now(),

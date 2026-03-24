@@ -66,8 +66,8 @@ const BASE_SESSION: SessionState = {
   exerciseIndex: 0,
   setsData: {
     "workout-ex-1": [
-      { reps: "10", weight: "60", done: false },
-      { reps: "10", weight: "60", done: false },
+      { kind: "reps", reps: "10", weight: "60", done: false },
+      { kind: "reps", reps: "10", weight: "60", done: false },
     ],
   },
   startedAt: Date.now(),
@@ -152,8 +152,8 @@ describe("SetsTable", () => {
       ...BASE_SESSION,
       setsData: {
         "workout-ex-1": [
-          { reps: "10", weight: "60", done: true, rir: 2 },
-          { reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
+          { kind: "reps", reps: "10", weight: "60", done: false },
         ],
       },
       totalSetsDone: 1,
@@ -191,6 +191,8 @@ describe("SetsTable", () => {
 
     const next = store.get(sessionAtom)
     const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.kind).toBe("reps")
+    if (set2.kind !== "reps") throw new Error("expected reps row")
     expect(set2.weight).toBe("60")
     expect(set2.reps).toBe("10")
   })
@@ -211,6 +213,8 @@ describe("SetsTable", () => {
 
     const next = store.get(sessionAtom)
     const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.kind).toBe("reps")
+    if (set2.kind !== "reps") throw new Error("expected reps row")
     expect(set2.weight).toBe("62.5")
   })
 
@@ -230,6 +234,8 @@ describe("SetsTable", () => {
 
     const next = store.get(sessionAtom)
     const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.kind).toBe("reps")
+    if (set2.kind !== "reps") throw new Error("expected reps row")
     expect(set2.weight).toBe("57.5")
   })
 
@@ -238,7 +244,7 @@ describe("SetsTable", () => {
     const singleSetSession: SessionState = {
       ...BASE_SESSION,
       setsData: {
-        "workout-ex-1": [{ reps: "10", weight: "60", done: false }],
+        "workout-ex-1": [{ kind: "reps", reps: "10", weight: "60", done: false }],
       },
     }
 
@@ -285,8 +291,8 @@ describe("SetsTable", () => {
       ...BASE_SESSION,
       setsData: {
         "workout-ex-1": [
-          { reps: "10", weight: "60", done: true, rir: 2 },
-          { reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
+          { kind: "reps", reps: "10", weight: "60", done: false },
         ],
       },
       totalSetsDone: 1,
@@ -360,6 +366,8 @@ describe("SetsTable", () => {
 
     const next = store.get(sessionAtom)
     const set2 = next.setsData["workout-ex-1"][1]
+    expect(set2.kind).toBe("reps")
+    if (set2.kind !== "reps") throw new Error("expected reps row")
     expect(set2.weight).toBe("62")
   })
 
@@ -368,8 +376,8 @@ describe("SetsTable", () => {
       ...BASE_SESSION,
       setsData: {
         "workout-ex-1": [
-          { reps: "10", weight: "60", done: false },
-          { reps: "10", weight: "60", done: true, rir: 2 },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
         ],
       },
       totalSetsDone: 1,
@@ -489,9 +497,14 @@ describe("SetsTable – duration exercises", () => {
     const after = Date.now()
 
     const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
-    expect(rows[0].timerStartedAt).toBeGreaterThanOrEqual(before)
-    expect(rows[0].timerStartedAt).toBeLessThanOrEqual(after)
-    expect(rows[1].timerStartedAt).toBeNull()
+    const r0 = rows[0]
+    const r1 = rows[1]
+    expect(r0.kind).toBe("duration")
+    expect(r1.kind).toBe("duration")
+    if (r0.kind !== "duration" || r1.kind !== "duration") throw new Error("expected duration rows")
+    expect(r0.timerStartedAt).toBeGreaterThanOrEqual(before)
+    expect(r0.timerStartedAt).toBeLessThanOrEqual(after)
+    expect(r1.timerStartedAt).toBeNull()
   })
 
   it("disables other Play buttons while a timer is running", async () => {
@@ -548,7 +561,10 @@ describe("SetsTable – duration exercises", () => {
       fireEvent.click(screen.getAllByRole("button", { name: "Start" })[0])
     })
 
-    expect(store.get(sessionAtom).setsData["workout-ex-dur"][0].timerStartedAt).toBe(T0)
+    const row0 = store.get(sessionAtom).setsData["workout-ex-dur"][0]
+    expect(row0.kind).toBe("duration")
+    if (row0.kind !== "duration") throw new Error("expected duration row")
+    expect(row0.timerStartedAt).toBe(T0)
 
     // Advance past targetSeconds (3 s)
     act(() => {
@@ -556,8 +572,11 @@ describe("SetsTable – duration exercises", () => {
     })
 
     const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
-    expect(rows[0].done).toBe(true)
-    expect(rows[0].loggedSeconds).toBe(3)
+    const done0 = rows[0]
+    expect(done0.kind).toBe("duration")
+    if (done0.kind !== "duration") throw new Error("expected duration row")
+    expect(done0.done).toBe(true)
+    expect(done0.loggedSeconds).toBe(3)
     expect(enqueueSetLogMock).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "session-1",
@@ -594,8 +613,11 @@ describe("SetsTable – duration exercises", () => {
     })
 
     const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
-    expect(rows[0].done).toBe(true)
-    expect(rows[0].loggedSeconds).toBe(1)
+    const done0 = rows[0]
+    expect(done0.kind).toBe("duration")
+    if (done0.kind !== "duration") throw new Error("expected duration row")
+    expect(done0.done).toBe(true)
+    expect(done0.loggedSeconds).toBe(1)
     expect(enqueueSetLogMock).toHaveBeenCalledWith(
       expect.objectContaining({ durationSeconds: 1 }),
     )
