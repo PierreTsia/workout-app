@@ -51,6 +51,8 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
+        // Default 2 MiB fails when the main chunk exceeds the limit (e.g. PostHog + app code).
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         runtimeCaching: [
           {
