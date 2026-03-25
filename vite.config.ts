@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       includeAssets: ["pwa-192x192.svg", "og-image.png"],
       manifest: {
         name: "GymLogic",
