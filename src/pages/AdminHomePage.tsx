@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { PostHogTestCaptureButton } from "@/components/admin/PostHogTestCaptureButton"
 import { SentryTestErrorButton } from "@/components/admin/SentryTestErrorButton"
 
 export function AdminHomePage() {
@@ -37,6 +38,24 @@ export function AdminHomePage() {
         </p>
         <div className="mt-3">
           <SentryTestErrorButton />
+        </div>
+      </section>
+
+      <section
+        className="rounded-lg border border-border/80 border-dashed bg-muted/30 p-4"
+        aria-labelledby="admin-posthog-test-heading"
+      >
+        <h2
+          id="admin-posthog-test-heading"
+          className="text-sm font-semibold text-foreground"
+        >
+          {t("posthogTest.heading")}
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("posthogTest.hint")}
+        </p>
+        <div className="mt-3">
+          <PostHogTestCaptureButton />
         </div>
       </section>
     </div>
