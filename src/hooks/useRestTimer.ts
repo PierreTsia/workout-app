@@ -157,7 +157,13 @@ export function useRestTimer() {
           navigator.vibrate([200, 100, 200])
         }
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-          new Notification(t("restOverNotif"), { body: t("restOverBody") })
+          try {
+            navigator.serviceWorker?.ready
+              .then((reg) => reg.showNotification(t("restOverNotif"), { body: t("restOverBody") }))
+              .catch(() => {})
+          } catch {
+            // Notification API unavailable or restricted — silent fallback
+          }
         }
 
         setTimeout(() => setRest(null), 1200)
