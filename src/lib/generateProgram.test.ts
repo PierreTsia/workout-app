@@ -10,7 +10,7 @@ describe("adaptForExperience", () => {
   describe("beginner", () => {
     it("uses max reps, at least 3 sets, +15s rest", () => {
       const result = adaptForExperience(REP_RANGE, BASE_SETS, BASE_REST, "beginner")
-      expect(result).toEqual({ reps: "12", sets: 3, restSeconds: 105 })
+      expect(result).toEqual({ reps: "12", sets: 3, restSeconds: 105, repRangeMin: 8, repRangeMax: 12 })
     })
 
     it("bumps sets to 3 when base is lower", () => {
@@ -27,7 +27,7 @@ describe("adaptForExperience", () => {
   describe("intermediate", () => {
     it("uses midpoint reps, 3-4 sets, base rest", () => {
       const result = adaptForExperience(REP_RANGE, BASE_SETS, BASE_REST, "intermediate")
-      expect(result).toEqual({ reps: "10", sets: 3, restSeconds: 90 })
+      expect(result).toEqual({ reps: "10", sets: 3, restSeconds: 90, repRangeMin: 8, repRangeMax: 12 })
     })
 
     it("caps sets at 4", () => {
@@ -44,7 +44,7 @@ describe("adaptForExperience", () => {
   describe("advanced", () => {
     it("uses min reps, baseSets+1, -15s rest", () => {
       const result = adaptForExperience(REP_RANGE, BASE_SETS, BASE_REST, "advanced")
-      expect(result).toEqual({ reps: "8", sets: 4, restSeconds: 75 })
+      expect(result).toEqual({ reps: "8", sets: 4, restSeconds: 75, repRangeMin: 8, repRangeMax: 12 })
     })
 
     it("caps sets at 5", () => {
@@ -61,12 +61,12 @@ describe("adaptForExperience", () => {
   describe("non-numeric rep range", () => {
     it("returns values as-is for plank-style ranges", () => {
       const result = adaptForExperience("30-60s", 3, 60, "advanced")
-      expect(result).toEqual({ reps: "30-60s", sets: 3, restSeconds: 60 })
+      expect(result).toEqual({ reps: "30-60s", sets: 3, restSeconds: 60, repRangeMin: null, repRangeMax: null })
     })
 
     it("returns values as-is for single-number strings", () => {
       const result = adaptForExperience("AMRAP", 3, 60, "beginner")
-      expect(result).toEqual({ reps: "AMRAP", sets: 3, restSeconds: 60 })
+      expect(result).toEqual({ reps: "AMRAP", sets: 3, restSeconds: 60, repRangeMin: null, repRangeMax: null })
     })
   })
 })

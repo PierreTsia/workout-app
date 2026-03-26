@@ -107,6 +107,11 @@ export function useAddExerciseToDay() {
         rest_seconds: 90,
         sort_order: sortOrder,
         target_duration_seconds: null,
+        rep_range_min: 8,
+        rep_range_max: 12,
+        set_range_min: 2,
+        set_range_max: 5,
+        max_weight_reached: false,
       })
       if (error) throw error
     },
@@ -143,6 +148,11 @@ export function useAddExercisesToDay() {
         rest_seconds: 90,
         sort_order: startSortOrder + i,
         target_duration_seconds: null,
+        rep_range_min: 8,
+        rep_range_max: 12,
+        set_range_min: 2,
+        set_range_max: 5,
+        max_weight_reached: false,
       }))
       const { error } = await supabase.from("workout_exercises").insert(rows)
       if (error) throw error
@@ -167,6 +177,12 @@ export function useUpdateExercise() {
       weight?: string
       rest_seconds?: number
       target_duration_seconds?: number | null
+      rep_range_min?: number
+      rep_range_max?: number
+      set_range_min?: number
+      set_range_max?: number
+      weight_increment?: number | null
+      max_weight_reached?: boolean
     }) => {
       const { id, dayId: _, ...fields } = vars
       const { error } = await supabase
@@ -220,6 +236,7 @@ export function useSwapExerciseInDay() {
           muscle_snapshot: vars.exercise.muscle_group,
           emoji_snapshot: vars.exercise.emoji,
           weight: vars.weight,
+          max_weight_reached: false,
         })
         .eq("id", vars.id)
       if (error) throw error

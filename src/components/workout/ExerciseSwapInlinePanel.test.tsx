@@ -38,6 +38,12 @@ const ROW: WorkoutExercise = {
   weight: "60",
   rest_seconds: 90,
   sort_order: 0,
+  rep_range_min: 6,
+  rep_range_max: 10,
+  set_range_min: 2,
+  set_range_max: 5,
+  weight_increment: null,
+  max_weight_reached: false,
 }
 
 const POOL: Exercise[] = [

@@ -28,6 +28,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
     limit: vi.fn(() => chain),
     insert: vi.fn(() => chain),
     upsert: vi.fn(() => chain),
+    update: vi.fn(() => chain),
     then: vi.fn((resolve: (v: unknown) => void) =>
       resolve({ data: resolveWith.data ?? null, error: resolveWith.error ?? null }),
     ),
@@ -38,6 +39,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
 let sessionsChain = createChain()
 let setLogsSelectChain = createChain({ data: [] })
 let setLogsInsertChain = createChain()
+let workoutExercisesChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -131,6 +133,7 @@ let enqueueSetLog: typeof import("./syncService").enqueueSetLog
 let enqueueSessionFinish: typeof import("./syncService").enqueueSessionFinish
 let drainQueue: typeof import("./syncService").drainQueue
 let scheduleImmediateDrain: typeof import("./syncService").scheduleImmediateDrain
+let filterValidProgressionTargets: typeof import("./syncService").filterValidProgressionTargets
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -172,6 +175,7 @@ describe("SyncService", () => {
     sessionsChain = createChain()
     setLogsSelectChain = createChain({ data: [] })
     setLogsInsertChain = createChain()
+    workoutExercisesChain = createChain()
 
     let setLogsCallIndex = 0
     mockFrom.mockImplementation((table: string) => {
@@ -182,6 +186,7 @@ describe("SyncService", () => {
         setLogsCallIndex++
         return chain
       }
+      if (table === "workout_exercises") return workoutExercisesChain
       return createChain()
     })
 
@@ -190,6 +195,7 @@ describe("SyncService", () => {
     enqueueSessionFinish = mod.enqueueSessionFinish
     drainQueue = mod.drainQueue
     scheduleImmediateDrain = mod.scheduleImmediateDrain
+    filterValidProgressionTargets = mod.filterValidProgressionTargets
   })
 
   afterEach(() => {
@@ -383,6 +389,7 @@ describe("SyncService", () => {
           setLogsCallIndex++
           return chain
         }
+        if (table === "workout_exercises") return workoutExercisesChain
         return createChain()
       })
 
@@ -446,19 +453,22 @@ describe("SyncService", () => {
       await drainQueue(USER_ID)
 
       const calls = mockQueryClient.invalidateQueries.mock.calls.map(
-        (c: unknown[]) => (c[0] as { queryKey: string[] }).queryKey,
+        (c: unknown[]) => (c[0] as { queryKey?: string[]; predicate?: unknown }),
       )
-      expect(calls).toContainEqual(["sessions"])
-      expect(calls).toContainEqual(["last-session-for-day"])
-      expect(calls).toContainEqual(["pr-aggregates"])
-      expect(calls).toContainEqual(["training-activity-by-day"])
-      expect(calls).toContainEqual(["sessions-date-range"])
-      expect(calls).toContainEqual(["last-session", "ex-A"])
-      expect(calls).toContainEqual(["best-1rm", "ex-A"])
-      expect(calls).toContainEqual(["exercise-trend", "ex-A"])
-      expect(calls).toContainEqual(["last-session", "ex-B"])
-      expect(calls).toContainEqual(["best-1rm", "ex-B"])
-      expect(calls).toContainEqual(["exercise-trend", "ex-B"])
+      const keyMatches = calls.filter((c) => c.queryKey).map((c) => c.queryKey)
+      expect(keyMatches).toContainEqual(["sessions"])
+      expect(keyMatches).toContainEqual(["last-session-for-day"])
+      expect(keyMatches).toContainEqual(["pr-aggregates"])
+      expect(keyMatches).toContainEqual(["training-activity-by-day"])
+      expect(keyMatches).toContainEqual(["sessions-date-range"])
+      expect(keyMatches).toContainEqual(["last-session", "ex-A"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "ex-A"])
+      expect(keyMatches).toContainEqual(["best-1rm", "ex-A"])
+      expect(keyMatches).toContainEqual(["exercise-trend", "ex-A"])
+      expect(keyMatches).toContainEqual(["last-session", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "ex-B"])
+      expect(keyMatches).toContainEqual(["best-1rm", "ex-B"])
+      expect(keyMatches).toContainEqual(["exercise-trend", "ex-B"])
     })
 
     it("transitions syncStatusAtom through syncing → synced (all drained) or syncing → failed", async () => {
@@ -565,6 +575,73 @@ describe("SyncService", () => {
       // Queue should remain untouched — no userId means no drain
       const queue = readQueue()
       expect(queue).toHaveLength(1)
+    })
+  })
+
+  // =========================================================================
+  // filterValidProgressionTargets
+  // =========================================================================
+
+  describe("filterValidProgressionTargets", () => {
+    function makeTarget(
+      overrides: Partial<import("./syncService").ProgressionTarget> = {},
+    ): import("./syncService").ProgressionTarget {
+      return {
+        workoutExerciseId: "we-1",
+        reps: 10,
+        weight: 80,
+        sets: 3,
+        ...overrides,
+      }
+    }
+
+    it("returns empty array when targets is undefined", () => {
+      expect(filterValidProgressionTargets(undefined)).toEqual([])
+    })
+
+    it("returns empty array when targets is empty", () => {
+      expect(filterValidProgressionTargets([])).toEqual([])
+    })
+
+    it("keeps a fully valid target", () => {
+      const targets = [makeTarget()]
+      expect(filterValidProgressionTargets(targets)).toHaveLength(1)
+    })
+
+    it("drops target with NaN reps", () => {
+      expect(filterValidProgressionTargets([makeTarget({ reps: NaN })])).toEqual([])
+    })
+
+    it("drops target with NaN weight", () => {
+      expect(filterValidProgressionTargets([makeTarget({ weight: NaN })])).toEqual([])
+    })
+
+    it("drops target with NaN sets", () => {
+      expect(filterValidProgressionTargets([makeTarget({ sets: NaN })])).toEqual([])
+    })
+
+    it("drops target with zero reps", () => {
+      expect(filterValidProgressionTargets([makeTarget({ reps: 0 })])).toEqual([])
+    })
+
+    it("drops target with zero sets", () => {
+      expect(filterValidProgressionTargets([makeTarget({ sets: 0 })])).toEqual([])
+    })
+
+    it("keeps target with zero weight (bodyweight exercise)", () => {
+      const targets = [makeTarget({ weight: 0 })]
+      expect(filterValidProgressionTargets(targets)).toHaveLength(1)
+    })
+
+    it("filters mixed valid and invalid targets", () => {
+      const targets = [
+        makeTarget({ reps: 10 }),
+        makeTarget({ reps: NaN }),
+        makeTarget({ sets: 0 }),
+      ]
+      const result = filterValidProgressionTargets(targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].reps).toBe(10)
     })
   })
 })

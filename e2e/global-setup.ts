@@ -123,20 +123,43 @@ async function globalSetup() {
     .select("id, name, muscle_group, emoji")
     .limit(3)
   if (exercises && exercises.length >= 3) {
-    await admin.from("workout_exercises").insert(
-      days!.map((day, i) => ({
-        workout_day_id: day.id,
-        exercise_id: exercises[i].id,
-        name_snapshot: exercises[i].name,
-        muscle_snapshot: exercises[i].muscle_group ?? "",
-        emoji_snapshot: exercises[i].emoji ?? "🏋️",
-        sets: 3,
-        reps: "10",
-        weight: "0",
-        rest_seconds: 90,
-        sort_order: 0,
-      })),
-    )
+    const weRows = days!.map((day, i) => ({
+      workout_day_id: day.id,
+      exercise_id: exercises[i].id,
+      name_snapshot: exercises[i].name,
+      muscle_snapshot: exercises[i].muscle_group ?? "",
+      emoji_snapshot: exercises[i].emoji ?? "🏋️",
+      sets: 3,
+      reps: "10",
+      weight: "0",
+      rest_seconds: 90,
+      sort_order: 0,
+      rep_range_min: 8,
+      rep_range_max: 12,
+      set_range_min: 2,
+      set_range_max: 5,
+    }))
+
+    // Add exercise[0] to day 2 as well so the progression E2E test
+    // can complete day 1, then start day 2 and see the pill (same exercise_id).
+    weRows.push({
+      workout_day_id: days![1].id,
+      exercise_id: exercises[0].id,
+      name_snapshot: exercises[0].name,
+      muscle_snapshot: exercises[0].muscle_group ?? "",
+      emoji_snapshot: exercises[0].emoji ?? "🏋️",
+      sets: 3,
+      reps: "10",
+      weight: "0",
+      rest_seconds: 90,
+      sort_order: 1,
+      rep_range_min: 8,
+      rep_range_max: 12,
+      set_range_min: 2,
+      set_range_max: 5,
+    })
+
+    await admin.from("workout_exercises").insert(weRows)
   }
 
   fs.mkdirSync(AUTH_DIR, { recursive: true })

@@ -115,6 +115,11 @@ export function useGenerateProgram() {
                 weight: "0",
                 rest_seconds: adapted.restSeconds,
                 sort_order: idx,
+                rep_range_min: adapted.repRangeMin ?? 8,
+                rep_range_max: adapted.repRangeMax ?? 12,
+                set_range_min: Math.max(1, adapted.sets - 1),
+                set_range_max: Math.min(6, adapted.sets + 2),
+                max_weight_reached: false,
               }
             }),
           )
