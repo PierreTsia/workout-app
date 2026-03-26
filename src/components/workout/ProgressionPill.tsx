@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   Trophy,
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { ProgressionSuggestion, ProgressionRule } from "@/lib/progression"
 import { cn } from "@/lib/utils"
@@ -49,16 +50,16 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Badge
+          variant="outline"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none transition-colors",
+            "cursor-pointer gap-1.5 py-1 text-[11px] font-medium",
             COLOR_MAP[suggestion.rule],
           )}
         >
           <Icon className="h-3 w-3 shrink-0" aria-hidden />
           {shortLabel}
-        </button>
+        </Badge>
       </PopoverTrigger>
       <PopoverContent side="top" align="end" className="w-64 space-y-2 p-3 text-sm">
         <p className="font-medium">{t(suggestion.reasonKey)}</p>

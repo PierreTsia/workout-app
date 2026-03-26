@@ -130,7 +130,7 @@ export function SetsTable({
         return prev
       }
 
-      let updated: SessionSetRow[] = exerciseSets.map((r) => {
+      const updated: SessionSetRow[] = exerciseSets.map((r) => {
         if (!isRepsRow(r) || r.done) return r
         return { ...r, reps: sugReps, weight: sugWeight }
       })
