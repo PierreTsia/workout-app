@@ -51,16 +51,30 @@ async function seedProgram(userId: string) {
     .select("id")
   const { data: exercises } = await admin.from("exercises").select("id, name, muscle_group, emoji").limit(3)
   if (exercises && exercises.length >= 3 && insertedDays) {
-    await admin.from("workout_exercises").insert(
-      insertedDays.map((day, i) => ({
-        workout_day_id: day.id,
-        exercise_id: exercises[i].id,
-        name_snapshot: exercises[i].name,
-        muscle_snapshot: exercises[i].muscle_group ?? "",
-        emoji_snapshot: exercises[i].emoji ?? "🏋️",
-        sets: 3, reps: "10", weight: "0", rest_seconds: 90, sort_order: 0,
-      })),
-    )
+    const weRows = insertedDays.map((day, i) => ({
+      workout_day_id: day.id,
+      exercise_id: exercises[i].id,
+      name_snapshot: exercises[i].name,
+      muscle_snapshot: exercises[i].muscle_group ?? "",
+      emoji_snapshot: exercises[i].emoji ?? "🏋️",
+      sets: 3, reps: "10", weight: "0", rest_seconds: 90, sort_order: 0,
+      rep_range_min: 8, rep_range_max: 12,
+      set_range_min: 2, set_range_max: 5,
+    }))
+
+    // Mirror global-setup: add exercise[0] to day 2 for the progression E2E test
+    weRows.push({
+      workout_day_id: insertedDays[1].id,
+      exercise_id: exercises[0].id,
+      name_snapshot: exercises[0].name,
+      muscle_snapshot: exercises[0].muscle_group ?? "",
+      emoji_snapshot: exercises[0].emoji ?? "🏋️",
+      sets: 3, reps: "10", weight: "0", rest_seconds: 90, sort_order: 1,
+      rep_range_min: 8, rep_range_max: 12,
+      set_range_min: 2, set_range_max: 5,
+    })
+
+    await admin.from("workout_exercises").insert(weRows)
   }
 }
 
@@ -127,11 +141,32 @@ test.describe("Onboarding", () => {
     await expect(page).toHaveURL("/", { timeout: 30_000 })
   })
 
-  test("onboarding AI path — preview or template fallback", async ({ page }) => {
+  test("onboarding AI path — mocked edge function", async ({ page }) => {
     test.setTimeout(120_000)
     const userId = getTestUserId()
+    const admin = getAdmin()
 
     await clearUserData(userId)
+
+    const { data: exercises } = await admin
+      .from("exercises")
+      .select("id")
+      .limit(4)
+    const ids = (exercises ?? []).map((e) => e.id)
+
+    await page.route("**/functions/v1/generate-program", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          rationale: "E2E mock program for testing",
+          days: [
+            { label: "Push", muscle_focus: "chest", exercise_ids: ids.slice(0, 2) },
+            { label: "Pull", muscle_focus: "back", exercise_ids: ids.slice(2, 4) },
+          ],
+        }),
+      }),
+    )
 
     await page.goto("/")
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
@@ -152,21 +187,9 @@ test.describe("Onboarding", () => {
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
     await page.getByText("AI Generate").click()
 
-    // Onboarding skips the duplicate constraint form; goes straight to generation
-    await expect(page.getByText("Customize your program")).not.toBeVisible({ timeout: 2_000 })
-
-    // Local: GEMINI_API_KEY in supabase/functions/.env → preview. CI: no key → error UI + fallback.
-    const previewTitle = page.getByText("Your AI Program")
-    const templateFallback = page.getByRole("button", { name: /Pick a template instead/i })
-    await expect(previewTitle.or(templateFallback)).toBeVisible({ timeout: 60_000 })
-
-    if (await previewTitle.isVisible()) {
-      await page.getByRole("button", { name: /Create Program/i }).click()
-      await expect(page).toHaveURL("/", { timeout: 30_000 })
-    } else {
-      await templateFallback.click()
-      await expect(page.getByText("Recommended programs")).toBeVisible({ timeout: 10_000 })
-    }
+    await expect(page.getByText("Your AI Program")).toBeVisible({ timeout: 30_000 })
+    await page.getByRole("button", { name: /Create Program/i }).click()
+    await expect(page).toHaveURL("/", { timeout: 30_000 })
   })
 
   test("onboarding blank path opens builder", async ({ page }) => {

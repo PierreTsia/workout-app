@@ -80,18 +80,26 @@ export function AIProgramPreviewStep({
 
         if (dayError) throw dayError
 
-        const rows = day.exercises.map((ge, idx) => ({
-          workout_day_id: insertedDay.id,
-          exercise_id: ge.exercise.id,
-          name_snapshot: ge.exercise.name,
-          muscle_snapshot: ge.exercise.muscle_group,
-          emoji_snapshot: ge.exercise.emoji ?? "🏋️",
-          sets: ge.sets,
-          reps: ge.reps,
-          weight: "0",
-          rest_seconds: ge.restSeconds,
-          sort_order: idx,
-        }))
+        const rows = day.exercises.map((ge, idx) => {
+          const repsNum = parseInt(ge.reps, 10)
+          return {
+            workout_day_id: insertedDay.id,
+            exercise_id: ge.exercise.id,
+            name_snapshot: ge.exercise.name,
+            muscle_snapshot: ge.exercise.muscle_group,
+            emoji_snapshot: ge.exercise.emoji ?? "🏋️",
+            sets: ge.sets,
+            reps: ge.reps,
+            weight: "0",
+            rest_seconds: ge.restSeconds,
+            sort_order: idx,
+            rep_range_min: isNaN(repsNum) ? 8 : Math.max(1, repsNum - 2),
+            rep_range_max: isNaN(repsNum) ? 12 : repsNum + 2,
+            set_range_min: Math.max(1, ge.sets - 1),
+            set_range_max: Math.min(6, ge.sets + 2),
+            max_weight_reached: false,
+          }
+        })
 
         const { error: exError } = await supabase
           .from("workout_exercises")
