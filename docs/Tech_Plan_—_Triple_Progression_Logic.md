@@ -11,7 +11,7 @@
 | Pill interaction | Tap opens `Popover` with full rationale | Tooltips are hover-only — useless on mobile. Popover is the established pattern (`RirDrawer` info icon uses `file:src/components/ui/popover.tsx`) |
 | Force weight UX | Inline text link inside the Pill, visible only during REPS_UP | Discoverable without noise; only shown when relevant. Rejected: dropdown menu action (low visibility), long-press (poor discoverability on mobile) |
 | Pill visual style | Muted `bg-muted/50` with `border-l-2 border-primary`; HOLD: `border-muted-foreground/30`; PLATEAU: `border-amber-500/70` | Consistent with app's minimalist dark theme. Text carries information, not color. Rejected: color-coded per rule type (too busy for a coaching note) |
-| Progression persistence | Direct Supabase `UPDATE` on session finish, `await`ed before session reset | Best-effort write — if offline, old values persist safely. Rejected: sync queue item type (overcomplicates `file:src/lib/syncService.ts` for marginal offline benefit) |
+| Progression persistence | Piggyback on `session_finish` sync queue item — progression targets computed before enqueue, written by `processSessionFinish` in the same drain cycle | Atomic with session finish: if session write fails, progression retries with it. If offline, both queue and retry together. Rejected: direct `await` before session reset (risks inconsistent state if Supabase is down but local state already cleared); separate queue item type (unnecessary indirection — one item, one drain) |
 | Range columns | NOT NULL after migration backfill | Zero cold-start gaps. Every reps-based exercise always has ranges. Duration exercises get ranges too (ignored by engine) to avoid nullable complexity |
 | Builder config | Collapsible section in `ExerciseDetailEditor`, collapsed by default | Power users can tune; most users never see it. Uses existing `Collapsible` from `file:src/components/ui/collapsible.tsx` |
 | No new dependencies | Uses existing `Popover`, `Collapsible`, `Switch`, `Badge` from `src/components/ui/` | Zero bundle impact |
@@ -219,9 +219,10 @@ graph TD
 
     subgraph finish ["Session Finish"]
         WP --> HF["handleFinish()"]
-        HF --> Sync["enqueueSessionFinish()"]
         HF --> EngineF["computeNextSessionTarget() × N"]
-        EngineF --> Persist["supabase.from('workout_exercises').update()"]
+        EngineF --> Enqueue["enqueueSessionFinish(payload + progressionTargets)"]
+        Enqueue --> Drain["scheduleImmediateDrain()"]
+        Drain --> Process["processSessionFinish: upsert session + update WE"]
     end
 
     subgraph builder ["Builder"]
@@ -301,7 +302,8 @@ graph TD
 | `file:src/lib/generateWorkout.ts` | Quick workout exercise rows include default ranges |
 | `file:src/components/workout/SetsTable.tsx` | Import and render `ProgressionPill` at top of component, above column headers. Pass suggestion + force handler |
 | `file:src/components/builder/ExerciseDetailEditor.tsx` | Add collapsible "Progression Settings" section |
-| `file:src/pages/WorkoutPage.tsx` | `handleFinish()`: after `enqueueSessionFinish`, compute progression for each exercise and batch-update `workout_exercises` |
+| `file:src/pages/WorkoutPage.tsx` | `handleFinish()`: compute progression targets from `setsData` BEFORE enqueue, pass them as part of the `SessionFinishPayload` |
+| `file:src/lib/syncService.ts` | Extend `SessionFinishPayload` with optional `progressionTargets`. `processSessionFinish` writes both the session upsert AND the `workout_exercises` batch update in the same drain cycle. If either fails, the entire item stays in the queue for retry |
 | `file:src/locales/en/workout.json` | Add keys: `progression.repsUp`, `progression.weightUp`, `progression.setsUp`, `progression.holdIncomplete`, `progression.holdNearFailure`, `progression.plateau`, `progression.forceWeight`, `progression.popover.*` |
 | `file:src/locales/fr/workout.json` | French translations for all progression keys |
 | `file:src/locales/en/builder.json` | Add keys: `progressionSettings`, `repRange`, `setRange`, `weightIncrement`, `maxWeightReached` |
@@ -313,38 +315,44 @@ graph TD
 sequenceDiagram
     participant User
     participant WP as WorkoutPage
-    participant Sync as syncService
     participant Engine as progression.ts
+    participant Sync as syncService
     participant DB as Supabase
 
     User->>WP: Tap Finish
-    WP->>Sync: enqueueSessionFinish()
-    WP->>Sync: scheduleImmediateDrain()
     loop Each reps-based exercise
         WP->>Engine: computeNextSessionTarget(prescription, setsData)
         Engine-->>WP: ProgressionSuggestion
     end
-    WP->>DB: batch update workout_exercises (reps, weight, sets)
-    Note over WP,DB: await — must complete before session reset
-    WP->>WP: reset session atom
-    WP->>WP: render SessionSummary
+    WP->>Sync: enqueueSessionFinish(payload + progressionTargets)
+    WP->>Sync: scheduleImmediateDrain()
+    WP->>WP: reset session atom + render SessionSummary
+    Note over Sync,DB: Drain happens async (or on next online)
+    Sync->>DB: upsert sessions row
+    Sync->>DB: batch update workout_exercises (reps, weight, sets)
+    Note over Sync,DB: If either fails, entire item stays in queue for retry
 ```
 
-**Implementation detail:** The engine receives `setsData` (the in-memory session rows) directly — no need to query `set_logs` since we have the data in the atom. This avoids a race with the sync queue (set_logs may not be flushed yet). The `setsData[exercise.id]` array maps directly to `SetPerformance[]`.
+**Implementation details:**
+
+- The engine receives `setsData` (the in-memory session rows) directly — no need to query `set_logs` since we have the data in the atom. This avoids a race with the sync queue (set_logs may not be flushed yet). The `setsData[exercise.id]` array maps directly to `SetPerformance[]`.
+- Progression targets are computed synchronously in `handleFinish()` BEFORE enqueue. By the time we call `enqueueSessionFinish`, the payload already contains the progression targets. The session atom can then be reset immediately — the queue owns the data from this point.
+- `processSessionFinish` in `file:src/lib/syncService.ts` writes both the `sessions` upsert and the `workout_exercises` batch update. If the WE update fails, the entire queue item survives for retry — no partial state.
+- `SessionFinishPayload` gains an optional `progressionTargets: Array<{ workoutExerciseId: string, reps: string, weight: string, sets: number }>` field. Existing payloads without this field (from older app versions or mid-session crashes) are processed normally — the progression update is simply skipped.
 
 ### Failure Mode Analysis
 
 | Failure | Behavior |
 |---|---|
 | No history for exercise (first session ever) | `useProgressionSuggestion` returns null → Pill not rendered. Sets use template defaults. |
-| Progression update fails on session finish (offline/error) | Catch error, log warning, continue with session reset. Old `workout_exercises` values persist — user gets the correct suggestion next time when update succeeds. |
+| Progression update fails on session finish (offline/error) | Entire `session_finish` queue item stays for retry (progression targets are part of the payload). Next `drainQueue` (on reconnect or background sync) retries both session upsert and WE update atomically. Old `workout_exercises` values persist until retry succeeds — safe. |
 | User swaps exercise pre-session | Swapped exercise has no history → no suggestion → no Pill. Clean. |
 | User manually overrides weight/reps mid-session | `setsData` records actual values. Session finish progression reads `setsData`, not the prescription. Next session reflects what the user actually did. |
 | `reps` field is non-numeric (e.g. "10-12") | Migration backfill falls through to default 8-12. Engine reads integer `rep_range_min/max`, never parses `reps` text. |
 | Duration exercise | `useProgressionSuggestion` checks `measurement_type`, returns null. No Pill rendered. |
 | Force weight increase tapped but Supabase fails | Toast error via existing global mutation error handler. Values unchanged, user can retry or manually edit inputs. |
 | All dimensions maxed (PLATEAU) | Pill shows positive CTA with "Try AI generator" button. No values change. User can manually override or generate a new program. |
-| Race: user finishes and immediately starts new session | Progression update is `await`ed before session atom reset. New session cannot start until update completes or times out. |
+| Race: user finishes and immediately starts new session | Progression targets are already enqueued (in the sync queue). Session atom is reset immediately. If the queue hasn't drained yet, the new session starts with old WE values — but the queue will catch up and update WE before the *next* session after that. Acceptable: one session of stale targets in extreme edge case (finish → immediately start → offline). |
 | Memoization stale after force weight | Force weight triggers a query invalidation on `["workout-exercises", dayId]` which causes `useProgressionSuggestion` to recompute. Pill updates immediately. |
 
 ### Test Plan
