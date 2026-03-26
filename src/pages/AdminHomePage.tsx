@@ -19,6 +19,9 @@ export function AdminHomePage() {
           <Link to="/admin/exercises">{t("common:adminExercises")}</Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/enrichment">{t("enrichment.navLabel")}</Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
           <Link to="/admin/feedback">{t("common:adminFeedback")}</Link>
         </Button>
       </div>

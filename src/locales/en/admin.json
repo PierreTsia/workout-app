@@ -14,6 +14,14 @@
     "sent": "Test event sent",
     "notConfigured": "PostHog is not initialized (check env vars)."
   },
+  "enrichment": {
+    "title": "Image Enrichment",
+    "navLabel": "Illustrations",
+    "description": "Batch-add illustrations to exercises that don't have one yet.",
+    "allDone": "All exercises have images!",
+    "allDoneHint": "Nothing left in the queue — nice work.",
+    "backToAdmin": "Back to admin"
+  },
   "exercises": "Exercises",
   "exercisesDescription": "Manage exercise content — instructions, videos, images",
   "backToList": "Back to list",
