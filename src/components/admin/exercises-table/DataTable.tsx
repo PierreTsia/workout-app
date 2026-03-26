@@ -22,16 +22,17 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { Exercise } from "@/types/database"
+import { normalizeForSearch } from "@/lib/search"
 import { getColumns } from "./columns"
 import { DataTableToolbar } from "./DataTableToolbar"
 import { DataTablePagination } from "./DataTablePagination"
 
 const globalFilterFn: FilterFn<Exercise> = (row, _columnId, filterValue: string) => {
-  const search = filterValue.toLowerCase()
-  const name = row.original.name.toLowerCase()
-  const nameEn = (row.original.name_en ?? "").toLowerCase()
-  const muscle = row.original.muscle_group.toLowerCase()
-  return name.includes(search) || nameEn.includes(search) || muscle.includes(search)
+  const term = normalizeForSearch(filterValue)
+  const name = normalizeForSearch(row.original.name)
+  const nameEn = normalizeForSearch(row.original.name_en ?? "")
+  const muscle = normalizeForSearch(row.original.muscle_group)
+  return name.includes(term) || nameEn.includes(term) || muscle.includes(term)
 }
 
 interface DataTableProps {

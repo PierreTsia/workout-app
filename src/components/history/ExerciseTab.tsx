@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { ChevronsUpDown, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import { normalizeForSearch } from "@/lib/search"
 import { useExerciseHistory } from "@/hooks/useExerciseHistory"
 import { ExerciseChart } from "@/components/history/ExerciseChart"
 
@@ -20,8 +21,16 @@ export function ExerciseTab() {
   const { data: exercises, isLoading } = useExerciseHistory()
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
 
   const selectedExercise = exercises?.find((e) => e.id === selectedId)
+
+  const filtered = useMemo(() => {
+    if (!exercises) return []
+    const term = normalizeForSearch(search.trim())
+    if (term.length === 0) return exercises
+    return exercises.filter((e) => normalizeForSearch(e.name).includes(term))
+  }, [exercises, search])
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,18 +48,23 @@ export function ExerciseTab() {
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <Command>
-            <CommandInput placeholder={t("searchExercises")} />
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder={t("searchExercises")}
+              value={search}
+              onValueChange={setSearch}
+            />
             <CommandList>
               <CommandEmpty>{t("noExercisesFound")}</CommandEmpty>
               <CommandGroup>
-                {exercises?.map((ex) => (
+                {filtered.map((ex) => (
                   <CommandItem
                     key={ex.id}
                     value={ex.name}
                     onSelect={() => {
                       setSelectedId(ex.id === selectedId ? null : ex.id)
                       setOpen(false)
+                      setSearch("")
                     }}
                   >
                     <Check

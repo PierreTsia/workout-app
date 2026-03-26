@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { normalizeForSearch } from "@/lib/search"
 import { Input } from "@/components/ui/input"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import type { Exercise } from "@/types/database"
@@ -26,12 +27,12 @@ export function ExerciseAddPicker({
     const available = pool.filter(
       (e) => !currentExerciseIds.includes(e.id),
     )
-    const term = search.trim().toLowerCase()
+    const term = normalizeForSearch(search.trim())
     if (term.length === 0) return available
     return available.filter(
       (e) =>
-        e.name.toLowerCase().includes(term) ||
-        e.name_en?.toLowerCase().includes(term),
+        normalizeForSearch(e.name).includes(term) ||
+        normalizeForSearch(e.name_en ?? "").includes(term),
     )
   }, [pool, currentExerciseIds, search])
 
