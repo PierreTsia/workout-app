@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
-import { Copy, Check } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Copy, Check, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ImageDropZone } from "@/components/admin/enrichment/ImageDropZone"
@@ -69,15 +70,23 @@ export function EnrichmentCard({ exercise }: EnrichmentCardProps) {
         </div>
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleCopyPrompt}
-        className="gap-2 self-start"
-      >
-        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-        {copied ? "Copied!" : "Copy prompt"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCopyPrompt}
+          className="gap-2"
+        >
+          {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy prompt"}
+        </Button>
+        <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" asChild>
+          <Link to={`/admin/exercises/${exercise.id}`}>
+            <ExternalLink className="h-3.5 w-3.5" />
+            Details
+          </Link>
+        </Button>
+      </div>
 
       <ImageDropZone
         onFileSelected={(file) => mutation.mutate(file)}
