@@ -83,7 +83,7 @@ export function ExerciseDetailEditor({
         set_range_min: String(exercise.set_range_min),
         set_range_max: String(exercise.set_range_max),
         weight_increment: exercise.weight_increment != null ? String(exercise.weight_increment) : "",
-        max_weight_reached: exercise.max_weight_reached,
+        max_weight_reached: exercise.max_weight_reached ?? false,
       })
     }
   }
