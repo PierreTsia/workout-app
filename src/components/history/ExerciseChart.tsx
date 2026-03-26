@@ -31,15 +31,11 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   const isDuration = exercise?.measurement_type === "duration"
   const loading = logsLoading || exerciseLoading
 
-  const chartConfigReps = useMemo<ChartConfig>(
+  const chartConfigE1rm = useMemo<ChartConfig>(
     () => ({
-      weight: {
-        label: `${t("weightUnit")} (${unit})`,
+      e1rm: {
+        label: `${t("oneRm")} (${unit})`,
         color: "hsl(var(--primary))",
-      },
-      reps: {
-        label: t("history:reps", { defaultValue: "Reps" }),
-        color: "hsl(var(--muted-foreground))",
       },
     }),
     [t, unit],
@@ -55,16 +51,23 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
     [t],
   )
 
-  const chartDataReps = useMemo(() => {
+  const chartDataE1rm = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => ({
-      date: formatDate(log.logged_at, i18n.language, {
-        month: "short",
-        day: "numeric",
-      }),
-      weight: Math.round(toDisplay(Number(log.weight_logged)) * 10) / 10,
-      reps: parseInt(log.reps_logged ?? "0", 10) || 0,
-    }))
+    return logs.map((log) => {
+      const w = Number(log.weight_logged)
+      const r = parseInt(log.reps_logged ?? "0", 10)
+      const e1rm =
+        log.estimated_1rm != null
+          ? Number(log.estimated_1rm)
+          : computeEpley1RM(w, r)
+      return {
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
+        e1rm: Math.round(toDisplay(e1rm) * 10) / 10,
+      }
+    })
   }, [logs, i18n.language, toDisplay])
 
   const chartDataDuration = useMemo(() => {
@@ -202,8 +205,8 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <ChartContainer config={chartConfigReps} className="aspect-[2/1] w-full">
-        <LineChart data={chartDataReps} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+      <ChartContainer config={chartConfigE1rm} className="aspect-[2/1] w-full">
+        <LineChart data={chartDataE1rm} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="date"
@@ -212,36 +215,17 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             fontSize={11}
           />
           <YAxis
-            yAxisId="weight"
             tickLine={false}
             axisLine={false}
             fontSize={11}
             width={40}
           />
-          <YAxis
-            yAxisId="reps"
-            orientation="right"
-            tickLine={false}
-            axisLine={false}
-            fontSize={11}
-            width={30}
-          />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Line
-            yAxisId="weight"
-            dataKey="weight"
+            dataKey="e1rm"
             type="monotone"
-            stroke="var(--color-weight)"
+            stroke="var(--color-e1rm)"
             strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            yAxisId="reps"
-            dataKey="reps"
-            type="monotone"
-            stroke="var(--color-reps)"
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
             dot={false}
           />
         </LineChart>
