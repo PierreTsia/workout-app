@@ -24,26 +24,14 @@ export function useExerciseLibraryPaginated({
   const query = useInfiniteQuery({
     queryKey: ["exercise-library-paginated", search.trim(), muscleGroup, equipmentKey, difficultyKey],
     queryFn: async ({ pageParam }) => {
-      const from = pageParam * PAGE_SIZE
-      const to = from + PAGE_SIZE - 1
-      let q = supabase.from("exercises").select("*")
-
-      const term = search.trim()
-      if (term.length > 0) {
-        q = q.or(`name.ilike.%${term}%,name_en.ilike.%${term}%`)
-      }
-      if (muscleGroup) {
-        q = q.eq("muscle_group", muscleGroup)
-      }
-      if (equipment.length > 0) {
-        q = q.in("equipment", equipmentKey)
-      }
-      if (difficulty.length > 0) {
-        q = q.in("difficulty_level", difficultyKey)
-      }
-
-      q = q.order("muscle_group").order("name").range(from, to)
-      const { data, error } = await q
+      const { data, error } = await supabase.rpc("search_exercises", {
+        search_term: search.trim(),
+        filter_muscle_group: muscleGroup ?? undefined,
+        filter_equipment: equipmentKey.length > 0 ? equipmentKey : undefined,
+        filter_difficulty: difficultyKey.length > 0 ? difficultyKey : undefined,
+        page_offset: pageParam * PAGE_SIZE,
+        page_limit: PAGE_SIZE,
+      })
       if (error) throw error
       return (data ?? []) as Exercise[]
     },
