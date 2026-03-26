@@ -1,9 +1,15 @@
+import type { ReactNode } from "react"
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest"
-import { act, fireEvent, screen } from "@testing-library/react"
+import { render, act, fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { renderWithProviders } from "@/test/utils"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createStore, Provider as JotaiProvider } from "jotai"
+import { I18nextProvider } from "react-i18next"
+import { MemoryRouter } from "react-router-dom"
+import { renderWithProviders, createTestI18n } from "@/test/utils"
 import { sessionAtom, restAtom, type SessionState } from "@/store/atoms"
 import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { ProgressionSuggestion } from "@/lib/progression"
 import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
@@ -410,6 +416,187 @@ describe("SetsTable", () => {
 
     const removeButton = screen.getByRole("button", { name: "Remove last set" })
     expect(removeButton).not.toBeDisabled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Auto-apply progression suggestion tests
+// ---------------------------------------------------------------------------
+
+/**
+ * Render SetsTable with the session atom pre-populated so that the auto-apply
+ * useEffect fires with actual data on mount.
+ */
+function renderWithPreloadedSession(
+  session: SessionState,
+  props: {
+    exercise?: WorkoutExercise
+    sessionId?: string
+    isReadOnly?: boolean
+    equipment?: string
+    suggestion?: ProgressionSuggestion | null
+  } = {},
+) {
+  const store = createStore()
+  store.set(sessionAtom, session)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
+  })
+  const i18nInstance = createTestI18n()
+
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <JotaiProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <I18nextProvider i18n={i18nInstance}>
+            <MemoryRouter>{children}</MemoryRouter>
+          </I18nextProvider>
+        </QueryClientProvider>
+      </JotaiProvider>
+    )
+  }
+
+  const result = render(
+    <SetsTable
+      exercise={props.exercise ?? EXERCISE}
+      sessionId={props.sessionId ?? "s-1"}
+      isReadOnly={props.isReadOnly ?? false}
+      equipment={props.equipment}
+      suggestion={props.suggestion}
+    />,
+    { wrapper: Wrapper },
+  )
+
+  return { ...result, store }
+}
+
+describe("SetsTable – auto-apply progression", () => {
+  beforeEach(() => {
+    enqueueSetLogMock.mockClear()
+    mockLibExercise = undefined
+  })
+
+  it("auto-applies suggestion reps and weight to all undone sets", async () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 12,
+      weight: 65,
+      sets: 2,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+    }
+    const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
+
+    await waitFor(() => {
+      const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+      expect(rows[0]).toMatchObject({ reps: "12", weight: "65" })
+      expect(rows[1]).toMatchObject({ reps: "12", weight: "65" })
+    })
+  })
+
+  it("is a no-op when suggestion already matches current sets", () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 10,
+      weight: 60,
+      sets: 2,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+    }
+    const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({ reps: "10", weight: "60" })
+  })
+
+  it("skips auto-apply when a set is already done", () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 12,
+      weight: 65,
+      sets: 2,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+    }
+    const sessionWithDone: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+        ],
+      },
+      totalSetsDone: 1,
+    }
+    const { store } = renderWithPreloadedSession(sessionWithDone, { suggestion })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows[0]).toMatchObject({ reps: "10", weight: "60" })
+    expect(rows[1]).toMatchObject({ reps: "10", weight: "60" })
+  })
+
+  it("skips auto-apply when isReadOnly", () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 12,
+      weight: 65,
+      sets: 2,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+    }
+    const { store } = renderWithPreloadedSession(BASE_SESSION, {
+      suggestion,
+      isReadOnly: true,
+    })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows[0]).toMatchObject({ reps: "10", weight: "60" })
+  })
+
+  it("skips auto-apply for duration exercises", () => {
+    mockLibExercise = DURATION_LIB_EXERCISE
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 12,
+      weight: 65,
+      sets: 2,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+    }
+    const { store } = renderWithPreloadedSession(BASE_DURATION_SESSION, {
+      exercise: DURATION_EXERCISE,
+      suggestion,
+    })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-dur"]
+    expect(rows[0]).toMatchObject({ kind: "duration" })
+  })
+
+  it("adds rows when SETS_UP suggests more sets than currently exist", async () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "SETS_UP",
+      reps: 8,
+      weight: 60,
+      sets: 4,
+      reasonKey: "progression.setsUp",
+      delta: "+1 set",
+    }
+    const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
+
+    await waitFor(() => {
+      const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+      expect(rows).toHaveLength(4)
+      expect(rows[2]).toMatchObject({ kind: "reps", reps: "8", weight: "60", done: false })
+      expect(rows[3]).toMatchObject({ kind: "reps", reps: "8", weight: "60", done: false })
+    })
+  })
+
+  it("does nothing when suggestion is null", () => {
+    const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion: null })
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows[0]).toMatchObject({ reps: "10", weight: "60" })
   })
 })
 

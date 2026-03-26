@@ -48,6 +48,14 @@ export interface ProgressionTarget {
   sets: number
 }
 
+export function filterValidProgressionTargets(
+  targets: ProgressionTarget[] | undefined,
+): ProgressionTarget[] {
+  return (targets ?? []).filter(
+    (t) => !isNaN(t.reps) && !isNaN(t.weight) && !isNaN(t.sets) && t.reps > 0 && t.sets > 0,
+  )
+}
+
 export interface SessionFinishPayload {
   sessionId: string
   workoutDayId: string
@@ -529,9 +537,7 @@ async function processSessionFinish(
       return false
     }
 
-    const validTargets = (p.progressionTargets ?? []).filter(
-      (t) => !isNaN(t.reps) && !isNaN(t.weight) && !isNaN(t.sets) && t.reps > 0 && t.sets > 0,
-    )
+    const validTargets = filterValidProgressionTargets(p.progressionTargets)
 
     if (validTargets.length > 0) {
       const results = await Promise.all(
