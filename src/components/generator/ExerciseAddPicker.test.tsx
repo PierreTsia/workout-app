@@ -72,6 +72,26 @@ describe("ExerciseAddPicker", () => {
     expect(screen.queryByText("Pec Fly")).not.toBeInTheDocument()
   })
 
+  it("matches exercises ignoring diacritics", async () => {
+    const user = userEvent.setup()
+    const onSelect = vi.fn()
+    const onClose = vi.fn()
+    renderWithProviders(
+      <ExerciseAddPicker
+        pool={[
+          fakeExercise({ id: "dev", name: "Développé couché", muscle_group: "Pectoraux" }),
+          fakeExercise({ id: "curl", name: "Bicep Curl", muscle_group: "Biceps" }),
+        ]}
+        currentExerciseIds={[]}
+        onSelect={onSelect}
+        onClose={onClose}
+      />,
+    )
+    await user.type(screen.getByPlaceholderText("Search…"), "developpe")
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
+    expect(screen.queryByText("Bicep Curl")).not.toBeInTheDocument()
+  })
+
   it("shows empty state when search matches nothing", async () => {
     const user = userEvent.setup()
     setup()
