@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { ProgressionSuggestion, ProgressionRule } from "@/lib/progression"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { cn } from "@/lib/utils"
 
 const ICON_MAP: Record<ProgressionRule, React.ElementType> = {
@@ -39,13 +40,20 @@ interface ProgressionPillProps {
 
 export function ProgressionPill({ suggestion }: ProgressionPillProps) {
   const { t } = useTranslation("workout")
+  const { toDisplay, unit } = useWeightUnit()
   const Icon = ICON_MAP[suggestion.rule]
   const wasAutoApplied = APPLIED_RULES.has(suggestion.rule)
 
-  const shortLabel =
-    suggestion.delta !== "—"
-      ? `${t(suggestion.reasonKey)} ${suggestion.delta}`
-      : t(suggestion.reasonKey)
+  const displayWeight = Math.round(toDisplay(suggestion.weight) * 10) / 10
+
+  const shortLabel = (() => {
+    if (suggestion.delta === "—") return t(suggestion.reasonKey)
+    if (suggestion.rule === "WEIGHT_UP") {
+      const displayIncrement = Math.round(toDisplay(Number(suggestion.delta)) * 10) / 10
+      return `${t(suggestion.reasonKey)} +${displayIncrement} ${unit}`
+    }
+    return `${t(suggestion.reasonKey)} ${suggestion.delta}`
+  })()
 
   return (
     <Popover>
@@ -66,8 +74,9 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
         <p className="text-muted-foreground">
           {t(`${suggestion.reasonKey}Detail`, {
             reps: suggestion.reps,
-            weight: suggestion.weight,
+            weight: displayWeight,
             sets: suggestion.sets,
+            unit,
           })}
         </p>
         {wasAutoApplied && (

@@ -78,10 +78,10 @@ export function ExerciseDetailEditor({
         weight: String(displayWeight),
         rest_seconds: String(exercise.rest_seconds),
         target_duration_seconds: String(targetSec),
-        rep_range_min: String(exercise.rep_range_min),
-        rep_range_max: String(exercise.rep_range_max),
-        set_range_min: String(exercise.set_range_min),
-        set_range_max: String(exercise.set_range_max),
+        rep_range_min: exercise.rep_range_min != null ? String(exercise.rep_range_min) : "",
+        rep_range_max: exercise.rep_range_max != null ? String(exercise.rep_range_max) : "",
+        set_range_min: exercise.set_range_min != null ? String(exercise.set_range_min) : "",
+        set_range_max: exercise.set_range_max != null ? String(exercise.set_range_max) : "",
         weight_increment: exercise.weight_increment != null ? String(exercise.weight_increment) : "",
         max_weight_reached: exercise.max_weight_reached ?? false,
       })
@@ -123,7 +123,7 @@ export function ExerciseDetailEditor({
             rep_range_max: isNaN(repMax) ? undefined : repMax,
             set_range_min: isNaN(setMin) ? undefined : setMin,
             set_range_max: isNaN(setMax) ? undefined : setMax,
-            weight_increment: isNaN(wInc) || updated.weight_increment === "" ? null : wInc,
+            weight_increment: isNaN(wInc) || updated.weight_increment === "" || wInc <= 0 ? null : wInc,
             max_weight_reached: updated.max_weight_reached,
           },
           {
@@ -269,7 +269,7 @@ export function ExerciseDetailEditor({
                 <Input
                   type="number"
                   inputMode="decimal"
-                  min={0}
+                  min={0.25}
                   step={0.5}
                   value={form.weight_increment}
                   onChange={(e) => handleChange("weight_increment", e.target.value)}

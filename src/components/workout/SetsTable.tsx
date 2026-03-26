@@ -53,7 +53,7 @@ export function SetsTable({
   suggestion = null,
 }: SetsTableProps) {
   const { t } = useTranslation("workout")
-  const { unit, toKg } = useWeightUnit()
+  const { unit, toKg, toDisplay } = useWeightUnit()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [session, setSession] = useAtom(sessionAtom)
   const setRest = useSetAtom(restAtom)
@@ -119,7 +119,7 @@ export function SetsTable({
       }
 
       const sugReps = String(suggestion.reps)
-      const sugWeight = String(suggestion.weight)
+      const sugWeight = String(Math.round(toDisplay(suggestion.weight) * 10) / 10)
 
       const alreadyMatches =
         exerciseSets.every(
@@ -152,7 +152,7 @@ export function SetsTable({
         setsData: { ...prev.setsData, [exercise.id]: updated },
       }
     })
-  }, [suggestion, exercise.id, isReadOnly, isDurationExercise, setSession])
+  }, [suggestion, exercise.id, isReadOnly, isDurationExercise, setSession, toDisplay])
 
   const pauseStartRef = useRef<number | null>(null)
   /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */

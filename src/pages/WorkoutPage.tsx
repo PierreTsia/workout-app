@@ -160,7 +160,7 @@ type PendingScopeAction =
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
-  const { toDisplay } = useWeightUnit()
+  const { toDisplay, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
@@ -678,7 +678,7 @@ export function WorkoutPage() {
         .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "reps" } => r.kind === "reps")
         .map((r) => ({
           reps: parseInt(r.reps, 10) || 0,
-          weight: Number(r.weight) || 0,
+          weight: toKg(Number(r.weight) || 0),
           completed: r.done,
           rir: (r as { rir?: number }).rir ?? null,
         }))

@@ -23,7 +23,7 @@ vi.mock("@/hooks/useBest1RM", () => ({
 }))
 
 vi.mock("@/hooks/useWeightUnit", () => ({
-  useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value }),
+  useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value, toDisplay: (kg: number) => kg }),
 }))
 
 let mockLibExercise: Exercise | undefined = undefined

@@ -29,12 +29,16 @@ UPDATE workout_exercises SET
   set_range_min = GREATEST(1, sets - 1),
   set_range_max = LEAST(6, sets + 2);
 
--- Step 3: Enforce NOT NULL now that every row has values
+-- Step 3: Enforce NOT NULL with sensible DEFAULTs (protects future insert paths)
 ALTER TABLE workout_exercises
   ALTER COLUMN rep_range_min SET NOT NULL,
+  ALTER COLUMN rep_range_min SET DEFAULT 8,
   ALTER COLUMN rep_range_max SET NOT NULL,
+  ALTER COLUMN rep_range_max SET DEFAULT 12,
   ALTER COLUMN set_range_min SET NOT NULL,
-  ALTER COLUMN set_range_max SET NOT NULL;
+  ALTER COLUMN set_range_min SET DEFAULT 2,
+  ALTER COLUMN set_range_max SET NOT NULL,
+  ALTER COLUMN set_range_max SET DEFAULT 5;
 
 -- Step 4: Constraints
 ALTER TABLE workout_exercises

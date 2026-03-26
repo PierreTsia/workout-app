@@ -123,7 +123,7 @@ export function computeNextSessionTarget(
       weight: nextWeight,
       sets: currentSets,
       reasonKey: "progression.weightUp",
-      delta: `+${weightIncrement}kg`,
+      delta: String(weightIncrement),
     }
   }
 
