@@ -44,6 +44,8 @@ This epic implements a "Triple Progression" system (Reps x Weight x Sets) that t
 | Surface transparent rationale                         | Every suggestion includes a human-readable reason ("Max reps hit — increase weight")                              |
 | Handle equipment ceilings gracefully                  | Users can flag `max_weight_reached` per exercise, triggering the Sets progression path                            |
 | Maintain full user control                            | All suggestions are overridable; manual input always takes precedence                                             |
+| Allow forced progression on compounds                 | Users can force a weight increase before hitting rep_range_max — no one gets stuck behind a rigid rule            |
+| Zero cold-start gaps                                  | 100% of reps-based workout_exercises rows have non-null rep/set ranges after migration and on every creation path |
 
 
 ---
@@ -52,24 +54,25 @@ This epic implements a "Triple Progression" system (Reps x Weight x Sets) that t
 
 **In scope:**
 
-1. **Schema migration** — Add `rep_range_min`, `rep_range_max`, `set_range_min`, `set_range_max`, `weight_increment`, and `max_weight_reached` columns to `workout_exercises`. All nullable except `max_weight_reached` (boolean, default false). Backfill existing rows with ranges inferred from current `reps` and `sets` values (e.g. reps "5" → range 3-6, reps "10" → range 8-12). Exact inference formula defined in the Tech Plan.
+1. **Schema migration** — Add `rep_range_min`, `rep_range_max`, `set_range_min`, `set_range_max`, `weight_increment`, and `max_weight_reached` columns to `workout_exercises`. `rep_range_min/max` and `set_range_min/max` are NOT NULL after migration — zero NULLs allowed on reps-based exercises. `max_weight_reached` boolean NOT NULL DEFAULT false. `weight_increment` nullable (engine uses sensible defaults when NULL). Backfill existing rows with ranges inferred from current `reps` and `sets` values (e.g. reps "5" → range 3-6, reps "10" → range 8-12). Exercises with no parseable reps get the safe default 8-12 / 3-5. Exact inference formula defined in the Tech Plan.
 2. **Program generation update** — Preserve `rep_range` from `template_exercises` when inserting `workout_exercises` rows. Parse "8-12" into `rep_range_min: 8, rep_range_max: 12`. Derive `set_range_min` from template `sets` count, `set_range_max` from `sets + 2` (capped reasonably).
-3. **Quick workout / manual exercises** — Apply inferred default ranges when adding exercises manually or via quick workout generation.
+3. **Quick workout / manual exercises** — Every code path that creates a `workout_exercises` row (quick workout generation, manual add, exercise swap) must populate rep/set ranges. No NULL ranges, ever. Default: 8-12 reps / 3-5 sets when no template context is available.
 4. **Pure progression engine** — Deterministic `computeNextSessionTarget()` function. Takes the current prescription + last session's per-set performance + average RIR → returns suggested reps, weight, sets, and a human-readable reason.
 5. **Progression rules** (ordered by priority):
-  - **HOLD** — Not all sets completed at target, or avg RIR < 1 (safety gate) → keep current targets. Reason: "Consolidate — not all sets hit target" or "Near failure — hold steady before progressing."
-  - **REPS UP** — All sets completed at target but reps < `rep_range_max` → reps + 1. Reason: "Volume progression — increase reps."
-  - **WEIGHT UP** — All sets hit `rep_range_max` AND `max_weight_reached` is false → weight + increment, reps reset to `rep_range_min`. Reason: "Intensity progression — increase weight, reset reps."
-  - **SETS UP** — All sets hit `rep_range_max` AND `max_weight_reached` is true AND sets < `set_range_max` → sets + 1, reps reset to `rep_range_min`. Reason: "Density progression — add a set."
-  - **PLATEAU** — All dimensions maxed → hold. Reason: "All progression paths exhausted. Consider deload or program change."
-6. **RIR integration** — Triple Progression is the primary cross-session engine. The existing RIR-based cross-session suggestion (avg RIR → weight bump) is superseded for exercises with ranges. Intra-session RIR adjustments (`file:src/lib/rirSuggestion.ts`) remain untouched. RIR < 1 average acts as a safety gate that blocks weight/set increases even when rep targets are met.
-7. **History hook** — Fetch per-set detail (reps, weight, completed, rir) for the most recent finished session containing a given exercise.
-8. **Suggestion hook** — Combines the history hook with the `WorkoutExercise` prescription → calls the engine → returns a typed suggestion or null.
-9. **Progression Pill UI** — Compact badge above the set rows in `SetsTable` when a suggestion exists. Displays the action ("+2.5kg", "+1 rep", "+1 set") and short reason. Tap opens a tooltip with the full rationale.
-10. **Session finish persistence** — On session completion, compute next targets for each exercise and update `workout_exercises` rows (`reps`, `weight`, `sets`). Ensures the correct values are pre-loaded for the next session.
-11. **Builder configuration** — Minimal "Progression Settings" section in the exercise edit sheet: rep range (min/max), set range (min/max), weight increment input, and a `max_weight_reached` toggle.
-12. **i18n** — EN + FR strings for all progression reasons, pill labels, tooltip content, and builder labels.
-13. **Test suite** — Exhaustive unit tests covering the 4 regression cases from the issue, the RIR safety gate, NULL ranges, duration exercises (excluded), first-ever session (no history), and the plateau scenario.
+   - **HOLD** — Not all sets completed at target, or avg RIR < 1 (safety gate) → keep current targets. Reason: "Consolidate — not all sets hit target" or "Near failure — hold steady before progressing."
+   - **REPS UP** — All sets completed at target but reps < `rep_range_max` → reps + 1. Reason: "Volume progression — increase reps."
+   - **WEIGHT UP** — All sets hit `rep_range_max` AND `max_weight_reached` is false → weight + increment, reps reset to `rep_range_min`. Reason: "Intensity progression — increase weight, reset reps."
+   - **SETS UP** — All sets hit `rep_range_max` AND `max_weight_reached` is true AND sets < `set_range_max` → sets + 1, reps reset to `rep_range_min`. Reason: "Density progression — add a set."
+   - **PLATEAU** — All dimensions maxed → hold. Reason: positive CTA, not a dead end. E.g. "You've maxed out this format — try the AI program generator for a fresh cycle!" (links to the program generation flow).
+6. **Forced progression** — On compound lifts, grinding from 8 to 12 reps at a given weight can take months. Users must be able to force a weight increase before hitting `rep_range_max`. The Progression Pill exposes a "Force weight increase" action. When triggered: weight + increment, reps stay at their current value (no reset to min), and the engine recalculates from the new baseline going forward. This is an explicit user override, not an engine-initiated suggestion.
+7. **RIR integration** — Triple Progression is the primary cross-session engine. The existing RIR-based cross-session suggestion (avg RIR → weight bump) is superseded for exercises with ranges. Intra-session RIR adjustments (`file:src/lib/rirSuggestion.ts`) remain untouched. RIR < 1 average acts as a safety gate that blocks weight/set increases even when rep targets are met.
+8. **History hook** — Fetch per-set detail (reps, weight, completed, rir) for the most recent finished session containing a given exercise.
+9. **Suggestion hook** — Combines the history hook with the `WorkoutExercise` prescription → calls the engine → returns a typed suggestion or null.
+10. **Progression Pill UI** — Compact badge above the set rows in `SetsTable` when a suggestion exists. Displays the action ("+2.5kg", "+1 rep", "+1 set") and short reason. Tap opens a tooltip with the full rationale. Includes a "Force weight increase" action for user-initiated overrides (see rule 6).
+11. **Session finish persistence** — On session completion, compute next targets for each exercise and update `workout_exercises` rows (`reps`, `weight`, `sets`). Ensures the correct values are pre-loaded for the next session.
+12. **Builder configuration** — Minimal "Progression Settings" section in the exercise edit sheet: rep range (min/max), set range (min/max), weight increment input, and a `max_weight_reached` toggle.
+13. **i18n** — EN + FR strings for all progression reasons, pill labels, tooltip content, builder labels, and plateau CTA.
+14. **Test suite** — Exhaustive unit tests covering the 4 regression cases from the issue, the RIR safety gate, forced progression, duration exercises (excluded), first-ever session (no history), and the plateau scenario.
 
 **Out of scope:**
 
@@ -93,7 +96,9 @@ This epic implements a "Triple Progression" system (Reps x Weight x Sets) that t
 - **Qualitative:** A user can read the Progression Pill and understand *why* the suggestion was made without needing external knowledge of training theory
 - **Qualitative:** Suggestions always resolve to real plate increments (2.5 kg / 5 lbs default; user-configurable per exercise)
 - **Qualitative:** Manual override is always available — suggestions never block input
+- **Qualitative:** "Force weight increase" is accessible from the Progression Pill — no user is stuck waiting months to clear a rep range on heavy compounds
 - **Qualitative:** The RIR safety gate prevents premature weight increases when the user is training near failure (avg RIR < 1 → hold)
+- **Qualitative:** The plateau message is a positive CTA (links to AI program generator), not a dead end
 
 ---
 
