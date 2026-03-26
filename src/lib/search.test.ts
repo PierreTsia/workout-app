@@ -15,7 +15,7 @@ describe("normalizeForSearch", () => {
   })
 
   it("strips circumflex accents", () => {
-    expect(normalizeForSearch("Élévation latérale")).toBe("elevation laterale")
+    expect(normalizeForSearch("Être côte à côte")).toBe("etre cote a cote")
   })
 
   it("strips cedillas", () => {
