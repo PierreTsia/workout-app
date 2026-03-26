@@ -14,6 +14,14 @@
     "sent": "Événement de test envoyé",
     "notConfigured": "PostHog n'est pas initialisé (vérifiez les variables d'environnement)."
   },
+  "enrichment": {
+    "title": "Enrichissement images",
+    "navLabel": "Illustrations",
+    "description": "Ajouter des illustrations aux exercices qui n'en ont pas encore.",
+    "allDone": "Tous les exercices ont une image !",
+    "allDoneHint": "Plus rien dans la file — bien joué.",
+    "backToAdmin": "Retour à l'admin"
+  },
   "exercises": "Exercices",
   "exercisesDescription": "Gérer le contenu des exercices — instructions, vidéos, images",
   "backToList": "Retour à la liste",
