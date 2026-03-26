@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { ChevronDown } from "lucide-react"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
@@ -23,6 +26,12 @@ interface FormState {
   rest_seconds: string
   /** Template override seconds for duration exercises */
   target_duration_seconds: string
+  rep_range_min: string
+  rep_range_max: string
+  set_range_min: string
+  set_range_max: string
+  weight_increment: string
+  max_weight_reached: boolean
 }
 
 export function ExerciseDetailEditor({
@@ -43,6 +52,12 @@ export function ExerciseDetailEditor({
     weight: "",
     rest_seconds: "",
     target_duration_seconds: "",
+    rep_range_min: "",
+    rep_range_max: "",
+    set_range_min: "",
+    set_range_max: "",
+    weight_increment: "",
+    max_weight_reached: false,
   })
   const [trackedExerciseId, setTrackedExerciseId] = useState(exerciseId)
   const [trackedUnit, setTrackedUnit] = useState(unit)
@@ -63,6 +78,12 @@ export function ExerciseDetailEditor({
         weight: String(displayWeight),
         rest_seconds: String(exercise.rest_seconds),
         target_duration_seconds: String(targetSec),
+        rep_range_min: String(exercise.rep_range_min),
+        rep_range_max: String(exercise.rep_range_max),
+        set_range_min: String(exercise.set_range_min),
+        set_range_max: String(exercise.set_range_max),
+        weight_increment: exercise.weight_increment != null ? String(exercise.weight_increment) : "",
+        max_weight_reached: exercise.max_weight_reached,
       })
     }
   }
@@ -79,6 +100,12 @@ export function ExerciseDetailEditor({
         onMutationStateChange("saving")
         const isDuration = libExercise?.measurement_type === "duration"
         const targetSec = parseInt(updated.target_duration_seconds, 10)
+        const repMin = parseInt(updated.rep_range_min, 10)
+        const repMax = parseInt(updated.rep_range_max, 10)
+        const setMin = parseInt(updated.set_range_min, 10)
+        const setMax = parseInt(updated.set_range_max, 10)
+        const wInc = parseFloat(updated.weight_increment)
+
         updateExercise.mutate(
           {
             id: exerciseId,
@@ -92,6 +119,12 @@ export function ExerciseDetailEditor({
                 ? null
                 : targetSec
               : undefined,
+            rep_range_min: isNaN(repMin) ? undefined : repMin,
+            rep_range_max: isNaN(repMax) ? undefined : repMax,
+            set_range_min: isNaN(setMin) ? undefined : setMin,
+            set_range_max: isNaN(setMax) ? undefined : setMax,
+            weight_increment: isNaN(wInc) || updated.weight_increment === "" ? null : wInc,
+            max_weight_reached: updated.max_weight_reached,
           },
           {
             onSuccess: () => onMutationStateChange("saved"),
@@ -187,6 +220,76 @@ export function ExerciseDetailEditor({
           />
         </FieldGroup>
       </div>
+
+      {libExercise?.measurement_type !== "duration" && (
+        <Collapsible>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent/50">
+            {t("progressionSettings")}
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform [[data-state=open]>&]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <div className="grid grid-cols-2 gap-4">
+              <FieldGroup label={t("repRangeMin")}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={form.rep_range_min}
+                  onChange={(e) => handleChange("rep_range_min", e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup label={t("repRangeMax")}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={form.rep_range_max}
+                  onChange={(e) => handleChange("rep_range_max", e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup label={t("setRangeMin")}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={form.set_range_min}
+                  onChange={(e) => handleChange("set_range_min", e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup label={t("setRangeMax")}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={form.set_range_max}
+                  onChange={(e) => handleChange("set_range_max", e.target.value)}
+                />
+              </FieldGroup>
+              <FieldGroup label={t("weightIncrement")}>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step={0.5}
+                  value={form.weight_increment}
+                  onChange={(e) => handleChange("weight_increment", e.target.value)}
+                  placeholder={t("weightIncrementPlaceholder")}
+                />
+              </FieldGroup>
+              <FieldGroup label={t("maxWeightReached")}>
+                <Switch
+                  checked={form.max_weight_reached}
+                  onCheckedChange={(checked) => {
+                    const next = { ...form, max_weight_reached: checked }
+                    setForm(next)
+                    flush(next)
+                  }}
+                />
+              </FieldGroup>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   )
 }

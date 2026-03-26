@@ -24,6 +24,7 @@ import {
 } from "@/lib/sessionSetRow"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import type { ProgressionSuggestion } from "@/lib/progression"
 
 interface SetsTableProps {
   exercise: WorkoutExercise
@@ -32,6 +33,7 @@ interface SetsTableProps {
   equipment?: string
   /** Called when the user tries to log sets while the workout timer is paused. */
   onBlockedByPause?: () => void
+  suggestion?: ProgressionSuggestion | null
 }
 
 function isRepsRow(r: SessionSetRow): r is SessionSetRowReps {
@@ -48,6 +50,7 @@ export function SetsTable({
   isReadOnly,
   equipment,
   onBlockedByPause,
+  suggestion = null,
 }: SetsTableProps) {
   const { t } = useTranslation("workout")
   const { unit, toKg } = useWeightUnit()
@@ -96,6 +99,60 @@ export function SetsTable({
       }
     })
   }, [libExercise, exercise, setSession])
+
+  // Auto-apply progression suggestion to pre-fill set rows.
+  // The pill becomes purely informational; the user can still override any value.
+  const appliedProgressionRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!suggestion) return
+    if (isReadOnly || isDurationExercise) return
+    const key = `${exercise.id}:${suggestion.reps}:${suggestion.weight}:${suggestion.sets}`
+    if (appliedProgressionRef.current === key) return
+
+    setSession((prev) => {
+      const exerciseSets = [...(prev.setsData[exercise.id] ?? [])].map((r) =>
+        normalizeSessionSetRow(r),
+      )
+      if (exerciseSets.some((r) => r.done)) {
+        appliedProgressionRef.current = key
+        return prev
+      }
+
+      const sugReps = String(suggestion.reps)
+      const sugWeight = String(suggestion.weight)
+
+      const alreadyMatches =
+        exerciseSets.every(
+          (r) => !isRepsRow(r) || (r.reps === sugReps && r.weight === sugWeight),
+        ) && exerciseSets.length >= suggestion.sets
+      if (alreadyMatches) {
+        appliedProgressionRef.current = key
+        return prev
+      }
+
+      let updated: SessionSetRow[] = exerciseSets.map((r) => {
+        if (!isRepsRow(r) || r.done) return r
+        return { ...r, reps: sugReps, weight: sugWeight }
+      })
+
+      if (suggestion.sets > updated.length) {
+        for (let i = updated.length; i < suggestion.sets; i++) {
+          updated.push({
+            kind: "reps" as const,
+            reps: sugReps,
+            weight: sugWeight,
+            done: false,
+          })
+        }
+      }
+
+      appliedProgressionRef.current = key
+      return {
+        ...prev,
+        setsData: { ...prev.setsData, [exercise.id]: updated },
+      }
+    })
+  }, [suggestion, exercise.id, isReadOnly, isDurationExercise, setSession])
 
   const pauseStartRef = useRef<number | null>(null)
   /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */

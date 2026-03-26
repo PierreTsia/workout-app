@@ -57,5 +57,13 @@
   "renameProgram": "Rename",
   "invalidProgram": "Program not found",
   "goToLibrary": "Go to Library",
-  "programActivated": "Program activated"
+  "programActivated": "Program activated",
+  "progressionSettings": "Progression settings",
+  "repRangeMin": "Min reps",
+  "repRangeMax": "Max reps",
+  "setRangeMin": "Min sets",
+  "setRangeMax": "Max sets",
+  "weightIncrement": "Weight step",
+  "weightIncrementPlaceholder": "Auto",
+  "maxWeightReached": "Weight maxed"
 }

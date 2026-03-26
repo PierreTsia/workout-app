@@ -58,6 +58,12 @@ const EXERCISE: WorkoutExercise = {
   rest_seconds: 90,
   sort_order: 0,
   target_duration_seconds: null,
+  rep_range_min: 8,
+  rep_range_max: 12,
+  set_range_min: 2,
+  set_range_max: 5,
+  weight_increment: null,
+  max_weight_reached: false,
 }
 
 const BASE_SESSION: SessionState = {
@@ -445,6 +451,12 @@ const DURATION_EXERCISE: WorkoutExercise = {
   rest_seconds: 60,
   sort_order: 0,
   target_duration_seconds: 3,
+  rep_range_min: 1,
+  rep_range_max: 1,
+  set_range_min: 2,
+  set_range_max: 4,
+  weight_increment: null,
+  max_weight_reached: false,
 }
 
 // targetSeconds: 3 keeps fake-timer tests fast (3 × 250 ms interval ticks)

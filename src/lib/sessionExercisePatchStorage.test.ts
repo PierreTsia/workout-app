@@ -19,6 +19,12 @@ const row = (id: string): WorkoutExercise => ({
   weight: "0",
   rest_seconds: 60,
   sort_order: 0,
+  rep_range_min: 8,
+  rep_range_max: 12,
+  set_range_min: 2,
+  set_range_max: 5,
+  weight_increment: null,
+  max_weight_reached: false,
 })
 
 describe("sessionExercisePatchStorage", () => {

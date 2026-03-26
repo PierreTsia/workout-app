@@ -21,6 +21,7 @@ import {
 import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
+import { useProgressionSuggestion } from "@/hooks/useProgressionSuggestion"
 import type { Exercise, WorkoutExercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -30,6 +31,7 @@ import { BodyMap } from "@/components/body-map/BodyMap"
 import { ExerciseSwapInlinePanel } from "@/components/workout/ExerciseSwapInlinePanel"
 import { SetsTable } from "./SetsTable"
 import { ExerciseHistorySheet } from "@/components/workout/ExerciseHistorySheet"
+import { ProgressionPill } from "@/components/workout/ProgressionPill"
 
 export interface ExerciseDetailEditSessionProps {
   exercisePool: Exercise[]
@@ -67,6 +69,11 @@ export function ExerciseDetail({
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const suggestion = useProgressionSuggestion(
+    exercise,
+    libExercise?.measurement_type,
+    libExercise?.equipment,
+  )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)
 
@@ -175,7 +182,7 @@ export function ExerciseDetail({
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex items-center justify-between gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -187,6 +194,9 @@ export function ExerciseDetail({
           <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
           {t("historySheet.cta")}
         </Button>
+        {suggestion && !isReadOnly && (
+          <ProgressionPill suggestion={suggestion} />
+        )}
       </div>
 
       <ExerciseHistorySheet
@@ -209,6 +219,7 @@ export function ExerciseDetail({
         isReadOnly={isReadOnly}
         equipment={libExercise?.equipment}
         onBlockedByPause={onBlockedByPause}
+        suggestion={suggestion}
       />
     </div>
   )

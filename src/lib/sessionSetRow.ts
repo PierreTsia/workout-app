@@ -95,9 +95,10 @@ export function buildInitialSetRowsForExercise(
       timerStartedAt: null,
     }))
   }
+  const safeReps = row.reps != null && row.reps !== "null" && row.reps !== "NaN" ? row.reps : "12"
   return Array.from({ length: row.sets }, () => ({
     kind: "reps" as const,
-    reps: row.reps,
+    reps: safeReps,
     weight: displayWeight,
     done: false,
   }))

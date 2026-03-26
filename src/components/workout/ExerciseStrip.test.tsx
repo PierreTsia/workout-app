@@ -23,6 +23,12 @@ const EXERCISES: WorkoutExercise[] = [
     weight: "60",
     rest_seconds: 90,
     sort_order: 0,
+    rep_range_min: 8,
+    rep_range_max: 12,
+    set_range_min: 2,
+    set_range_max: 5,
+    weight_increment: null,
+    max_weight_reached: false,
   },
   {
     id: "ex-2",
@@ -36,6 +42,12 @@ const EXERCISES: WorkoutExercise[] = [
     weight: "80",
     rest_seconds: 120,
     sort_order: 1,
+    rep_range_min: 8,
+    rep_range_max: 12,
+    set_range_min: 2,
+    set_range_max: 5,
+    weight_increment: null,
+    max_weight_reached: false,
   },
   {
     id: "ex-3",
@@ -49,6 +61,12 @@ const EXERCISES: WorkoutExercise[] = [
     weight: "100",
     rest_seconds: 180,
     sort_order: 2,
+    rep_range_min: 8,
+    rep_range_max: 12,
+    set_range_min: 2,
+    set_range_max: 5,
+    weight_increment: null,
+    max_weight_reached: false,
   },
 ]
 

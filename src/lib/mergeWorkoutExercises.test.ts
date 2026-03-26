@@ -16,6 +16,12 @@ function row(
     reps: "10",
     weight: "0",
     rest_seconds: 60,
+    rep_range_min: 8,
+    rep_range_max: 12,
+    set_range_min: 2,
+    set_range_max: 5,
+    weight_increment: null,
+    max_weight_reached: false,
     ...partial,
   }
 }

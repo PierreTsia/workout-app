@@ -1,9 +1,11 @@
 import type { UserExperience, UserEquipment, ExerciseAlternative } from "@/types/onboarding"
 
-interface RepRangeResult {
+export interface RepRangeResult {
   reps: string
   sets: number
   restSeconds: number
+  repRangeMin: number | null
+  repRangeMax: number | null
 }
 
 /**
@@ -25,7 +27,7 @@ export function adaptForExperience(
   const parsed = parseRepRange(repRange)
 
   if (!parsed) {
-    return { reps: repRange, sets: baseSets, restSeconds: baseRest }
+    return { reps: repRange, sets: baseSets, restSeconds: baseRest, repRangeMin: null, repRangeMax: null }
   }
 
   switch (experience) {
@@ -34,18 +36,24 @@ export function adaptForExperience(
         reps: String(parsed.max),
         sets: Math.max(baseSets, 3),
         restSeconds: baseRest + 15,
+        repRangeMin: parsed.min,
+        repRangeMax: parsed.max,
       }
     case "intermediate":
       return {
         reps: String(Math.round((parsed.min + parsed.max) / 2)),
         sets: Math.min(Math.max(baseSets, 3), 4),
         restSeconds: baseRest,
+        repRangeMin: parsed.min,
+        repRangeMax: parsed.max,
       }
     case "advanced":
       return {
         reps: String(parsed.min),
         sets: Math.min(baseSets + 1, 5),
         restSeconds: Math.max(baseRest - 15, 30),
+        repRangeMin: parsed.min,
+        repRangeMax: parsed.max,
       }
   }
 }

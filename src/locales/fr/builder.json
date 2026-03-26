@@ -57,5 +57,13 @@
   "renameProgram": "Renommer",
   "invalidProgram": "Programme introuvable",
   "goToLibrary": "Aller à la bibliothèque",
-  "programActivated": "Programme activé"
+  "programActivated": "Programme activé",
+  "progressionSettings": "Réglages de progression",
+  "repRangeMin": "Reps min",
+  "repRangeMax": "Reps max",
+  "setRangeMin": "Séries min",
+  "setRangeMax": "Séries max",
+  "weightIncrement": "Palier de poids",
+  "weightIncrementPlaceholder": "Auto",
+  "maxWeightReached": "Poids max atteint"
 }

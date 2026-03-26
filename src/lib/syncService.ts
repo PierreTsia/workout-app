@@ -41,6 +41,13 @@ export type SetLogPayloadDuration = {
 
 export type SetLogPayload = SetLogPayloadReps | SetLogPayloadDuration
 
+export interface ProgressionTarget {
+  workoutExerciseId: string
+  reps: number
+  weight: number
+  sets: number
+}
+
 export interface SessionFinishPayload {
   sessionId: string
   workoutDayId: string
@@ -52,6 +59,7 @@ export interface SessionFinishPayload {
   totalSetsDone: number
   hasSkippedSets: boolean
   cycleId?: string | null
+  progressionTargets?: ProgressionTarget[]
 }
 
 // ---------------------------------------------------------------------------
@@ -356,11 +364,13 @@ export async function drainQueue(userId: string): Promise<void> {
   // Cache invalidation for all touched exercises
   for (const exId of exerciseIds) {
     queryClient.invalidateQueries({ queryKey: ["last-session", exId] })
+    queryClient.invalidateQueries({ queryKey: ["last-session-detail", exId] })
     queryClient.invalidateQueries({ queryKey: ["best-1rm", exId] })
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
   queryClient.invalidateQueries({ queryKey: ["last-session-for-day"] })
+  queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "workout-exercises" })
   queryClient.invalidateQueries({ queryKey: ["pr-aggregates"] })
   queryClient.invalidateQueries({ queryKey: ["training-activity-by-day"] })
   queryClient.invalidateQueries({ queryKey: ["sessions-date-range"] })
@@ -498,7 +508,6 @@ async function processSessionFinish(
 ): Promise<boolean> {
   const p = item.payload as SessionFinishPayload
   try {
-    // Upsert with full data (covers both "session already exists" and "new session")
     const { error } = await supabase.from("sessions").upsert(
       {
         id: item.realSessionId,
@@ -519,6 +528,31 @@ async function processSessionFinish(
       console.error("[SyncService] session finish upsert failed", error)
       return false
     }
+
+    const validTargets = (p.progressionTargets ?? []).filter(
+      (t) => !isNaN(t.reps) && !isNaN(t.weight) && !isNaN(t.sets) && t.reps > 0 && t.sets > 0,
+    )
+
+    if (validTargets.length > 0) {
+      const results = await Promise.all(
+        validTargets.map((t) =>
+          supabase
+            .from("workout_exercises")
+            .update({
+              reps: String(t.reps),
+              weight: String(t.weight),
+              sets: t.sets,
+            })
+            .eq("id", t.workoutExerciseId),
+        ),
+      )
+      const failed = results.find((r) => r.error)
+      if (failed?.error) {
+        console.error("[SyncService] progression target update failed", failed.error)
+        return false
+      }
+    }
+
     return true
   } catch (e) {
     console.error("[SyncService] processSessionFinish error", e)

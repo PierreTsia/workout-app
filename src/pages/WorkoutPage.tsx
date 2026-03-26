@@ -33,7 +33,8 @@ import {
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } from "@/lib/syncService"
+import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance } from "@/lib/progression"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
@@ -48,6 +49,7 @@ import {
   buildInitialSetRowsForExercise,
   mapRowsUpdateWeight,
   migrateSessionSetsData,
+  normalizeSessionSetRow,
   type SessionSetRow,
 } from "@/lib/sessionSetRow"
 import {
@@ -433,6 +435,12 @@ export function WorkoutPage() {
               rest_seconds: 90,
               sort_order: maxSortSession + 1,
               target_duration_seconds: null,
+              rep_range_min: 8,
+              rep_range_max: 12,
+              set_range_min: 2,
+              set_range_max: 5,
+              weight_increment: null,
+              max_weight_reached: false,
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
@@ -656,6 +664,63 @@ export function WorkoutPage() {
       Math.round(getEffectiveElapsed(session, finishedAt)),
     )
 
+    const progressionTargets: ProgressionTarget[] = []
+    for (const ex of exercises) {
+      const lib = exerciseById.get(ex.exercise_id)
+      if (lib?.measurement_type === "duration") continue
+
+      const currentReps = parseInt(ex.reps, 10)
+      if (isNaN(currentReps)) continue
+
+      const rawRows = session.setsData[ex.id] ?? []
+      const performance: SetPerformance[] = rawRows
+        .map((r) => normalizeSessionSetRow(r))
+        .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "reps" } => r.kind === "reps")
+        .map((r) => ({
+          reps: parseInt(r.reps, 10) || 0,
+          weight: Number(r.weight) || 0,
+          completed: r.done,
+          rir: (r as { rir?: number }).rir ?? null,
+        }))
+
+      if (performance.length === 0) continue
+
+      const maxPerformanceWeight = Math.max(0, ...performance.map((s) => s.weight))
+      const templateWeight = Number(ex.weight) || 0
+      const currentWeight = maxPerformanceWeight > 0 ? maxPerformanceWeight : templateWeight
+
+      const prescription: ProgressionPrescription = {
+        currentReps,
+        currentWeight,
+        currentSets: ex.sets,
+        repRangeMin: ex.rep_range_min ?? Math.max(1, currentReps - 2),
+        repRangeMax: ex.rep_range_max ?? currentReps + 2,
+        setRangeMin: ex.set_range_min ?? Math.max(1, ex.sets - 1),
+        setRangeMax: ex.set_range_max ?? Math.min(6, ex.sets + 2),
+        weightIncrement: resolveWeightIncrement(ex.weight_increment ?? null, lib?.equipment),
+        maxWeightReached: ex.max_weight_reached ?? false,
+      }
+
+      const suggestion = computeNextSessionTarget(prescription, performance)
+      if (
+        suggestion &&
+        suggestion.rule !== "HOLD_INCOMPLETE" &&
+        suggestion.rule !== "HOLD_NEAR_FAILURE" &&
+        !isNaN(suggestion.reps) &&
+        !isNaN(suggestion.weight) &&
+        !isNaN(suggestion.sets) &&
+        suggestion.reps > 0 &&
+        suggestion.sets > 0
+      ) {
+        progressionTargets.push({
+          workoutExerciseId: ex.id,
+          reps: suggestion.reps,
+          weight: suggestion.weight,
+          sets: suggestion.sets,
+        })
+      }
+    }
+
     enqueueSessionFinish({
       sessionId,
       workoutDayId: activeSessionDayId ?? "",
@@ -667,6 +732,7 @@ export function WorkoutPage() {
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
+      progressionTargets: progressionTargets.length > 0 ? progressionTargets : undefined,
     })
     scheduleImmediateDrain()
 

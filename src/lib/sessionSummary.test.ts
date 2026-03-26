@@ -33,6 +33,12 @@ const makeExercise = (
   rest_seconds: 90,
   sort_order: 0,
   target_duration_seconds: null,
+  rep_range_min: 8,
+  rep_range_max: 12,
+  set_range_min: 2,
+  set_range_max: 5,
+  weight_increment: null,
+  max_weight_reached: false,
   ...overrides,
 })
 

@@ -52,6 +52,14 @@ export interface WorkoutExercise {
   sort_order: number
   /** Per-template override for duration exercises; null uses exercise.default_duration_seconds. */
   target_duration_seconds?: number | null
+  /** Triple Progression range boundaries. Present after migration; undefined on legacy rows. */
+  rep_range_min?: number
+  rep_range_max?: number
+  set_range_min?: number
+  set_range_max?: number
+  /** Per-exercise weight increment override (kg). Null/undefined = engine uses default (2.5 barbell / 2.0 dumbbell). */
+  weight_increment?: number | null
+  max_weight_reached?: boolean
 }
 
 export interface Session {
