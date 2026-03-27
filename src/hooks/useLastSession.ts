@@ -12,20 +12,20 @@ export interface LastSessionSummary {
 
 export function useLastSession(
   exerciseId: string | undefined,
-  currentSessionId?: string,
+  sessionStartedAt?: number | null,
 ) {
   const user = useAtomValue(authAtom)
 
   return useQuery<LastSessionSummary | null>({
-    queryKey: ["last-session", exerciseId, currentSessionId],
+    queryKey: ["last-session", exerciseId, sessionStartedAt ?? null],
     queryFn: async (): Promise<LastSessionSummary | null> => {
       let query = supabase
         .from("set_logs")
         .select("set_number, reps_logged, weight_logged, session_id")
         .eq("exercise_id", exerciseId!)
 
-      if (currentSessionId) {
-        query = query.neq("session_id", currentSessionId)
+      if (sessionStartedAt) {
+        query = query.lt("logged_at", new Date(sessionStartedAt).toISOString())
       }
 
       const { data, error } = await query
