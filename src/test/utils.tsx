@@ -53,7 +53,6 @@ export function createTestI18n() {
     },
     defaultNS: "common",
     interpolation: { escapeValue: false },
-    initImmediate: false,
   })
   return instance
 }
