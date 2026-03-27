@@ -14,6 +14,8 @@
   "signOut": "Sign out",
   "unsavedTitle": "Unsaved workout data",
   "unsavedDescription": "You have workout data that hasn't synced yet. It will be saved locally and synced when you sign back in. Sign out anyway?",
+  "activeSessionTitle": "Workout in progress",
+  "activeSessionDescription": "You have a workout session running. Signing out will end it and your progress will be lost. Sign out anyway?",
   "offline": "Offline",
   "syncing": "Syncing…",
   "synced": "Synced",

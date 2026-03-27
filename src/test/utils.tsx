@@ -24,6 +24,7 @@ import enGenerator from "@/locales/en/generator.json"
 import enCreateProgram from "@/locales/en/create-program.json"
 import enAccount from "@/locales/en/account.json"
 import enPrivacy from "@/locales/en/privacy.json"
+import enAdmin from "@/locales/en/admin.json"
 
 export function createTestI18n() {
   const instance = i18n.createInstance()
@@ -47,6 +48,7 @@ export function createTestI18n() {
         "create-program": enCreateProgram,
         account: enAccount,
         privacy: enPrivacy,
+        admin: enAdmin,
       },
     },
     defaultNS: "common",

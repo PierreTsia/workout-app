@@ -38,6 +38,7 @@ import {
   drawerOpenAtom,
   localeAtom,
   queueSyncMetaAtom,
+  sessionAtom,
   weightUnitAtom,
   quickSheetOpenAtom,
 } from "@/store/atoms"
@@ -93,6 +94,7 @@ export function SideDrawer() {
   const user = useAtomValue(authAtom)
   const { data: profile } = useUserProfile()
   const queueMeta = useAtomValue(queueSyncMetaAtom)
+  const session = useAtomValue(sessionAtom)
   const { resolvedTheme, setTheme } = useTheme()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
   const [iosModalOpen, setIosModalOpen] = useState(false)
@@ -113,7 +115,7 @@ export function SideDrawer() {
   }
 
   function handleSignOut() {
-    if (queueMeta.pendingCount > 0) {
+    if (session.isActive || queueMeta.pendingCount > 0) {
       setSignOutConfirmOpen(true)
       return
     }
@@ -349,8 +351,16 @@ export function SideDrawer() {
       <Dialog open={signOutConfirmOpen} onOpenChange={setSignOutConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("common:unsavedTitle")}</DialogTitle>
-            <DialogDescription>{t("common:unsavedDescription")}</DialogDescription>
+            <DialogTitle>
+              {session.isActive
+                ? t("common:activeSessionTitle")
+                : t("common:unsavedTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {session.isActive
+                ? t("common:activeSessionDescription")
+                : t("common:unsavedDescription")}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setSignOutConfirmOpen(false)}>

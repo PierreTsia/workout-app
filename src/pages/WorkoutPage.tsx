@@ -186,7 +186,7 @@ export function WorkoutPage() {
     dayId: string
     name: string
   } | null>(null)
-  const [exitDialogOpen, setExitDialogOpen] = useState(false)
+
   const [quickSheetOpen, setQuickSheetOpen] = useAtom(quickSheetOpenAtom)
   const [preSessionPatch, setPreSessionPatch] = useState<PreSessionExercisePatch>(
     () => {
@@ -607,25 +607,7 @@ export function WorkoutPage() {
     setSession((prev) => ({ ...prev, activeDayId: prev.currentDayId }))
   }, [session.activeDayId, session.currentDayId, session.isActive, setSession])
 
-  const handlePopState = useCallback(() => {
-    setExitDialogOpen(true)
-  }, [])
 
-  useEffect(() => {
-    history.pushState(null, "", location.href)
-    window.addEventListener("popstate", handlePopState)
-    return () => window.removeEventListener("popstate", handlePopState)
-  }, [handlePopState])
-
-  function handleCancel() {
-    setExitDialogOpen(false)
-    history.pushState(null, "", location.href)
-  }
-
-  function handleExit() {
-    setExitDialogOpen(false)
-    window.close()
-  }
 
   const daySetsDone = useMemo(() => {
     return exercises.flatMap((ex) => session.setsData[ex.id] ?? []).filter(
@@ -1095,24 +1077,6 @@ export function WorkoutPage() {
         onStart={handleQuickWorkoutStart}
       />
 
-      <Dialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("exitTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("exitDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={handleCancel}>
-              {t("common:cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleExit}>
-              {t("exit")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <SwapExerciseSheet
         open={!!swapLibraryRow}

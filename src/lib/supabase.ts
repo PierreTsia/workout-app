@@ -8,8 +8,20 @@ import {
   hasProgramAtom,
   hasProgramLoadingAtom,
   activeProgramIdAtom,
+  sessionAtom,
+  defaultSessionState,
+  restAtom,
+  syncStatusAtom,
+  queueSyncMetaAtom,
+  prFlagsAtom,
+  sessionBest1RMAtom,
+  isQuickWorkoutAtom,
+  drawerOpenAtom,
+  quickSheetOpenAtom,
 } from "@/store/atoms"
 import { drainQueue } from "@/lib/syncService"
+import { clearSessionExercisePatchStorage } from "@/lib/sessionExercisePatchStorage"
+import { queryClient } from "@/lib/queryClient"
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -67,6 +79,27 @@ supabase.auth.getSession().then(({ data: { session } }) => {
   }
 })
 
+export function clearUserState() {
+  store.set(isAdminAtom, false)
+  store.set(isAdminLoadingAtom, false)
+  store.set(hasProgramAtom, false)
+  store.set(hasProgramLoadingAtom, false)
+  store.set(activeProgramIdAtom, null)
+
+  store.set(sessionAtom, defaultSessionState)
+  store.set(restAtom, null)
+  store.set(syncStatusAtom, "idle")
+  store.set(queueSyncMetaAtom, { pendingCount: 0 })
+  store.set(prFlagsAtom, {})
+  store.set(sessionBest1RMAtom, {})
+  store.set(isQuickWorkoutAtom, false)
+  store.set(drawerOpenAtom, false)
+  store.set(quickSheetOpenAtom, false)
+
+  clearSessionExercisePatchStorage()
+  queryClient.clear()
+}
+
 supabase.auth.onAuthStateChange((event, session) => {
   store.set(authAtom, session?.user ?? null)
   if (event === "SIGNED_IN" && session?.user) {
@@ -75,10 +108,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     checkProgramStatus(session.user.id)
   }
   if (event === "SIGNED_OUT") {
-    store.set(isAdminAtom, false)
-    store.set(isAdminLoadingAtom, false)
-    store.set(hasProgramAtom, false)
-    store.set(hasProgramLoadingAtom, false)
-    store.set(activeProgramIdAtom, null)
+    clearUserState()
   }
 })

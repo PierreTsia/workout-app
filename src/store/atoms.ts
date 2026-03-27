@@ -16,7 +16,7 @@ export interface SessionState {
   cycleId: string | null
 }
 
-const defaultSessionState: SessionState = {
+export const defaultSessionState: SessionState = {
   currentDayId: null,
   activeDayId: null,
   exerciseIndex: 0,

@@ -30,9 +30,7 @@
   "finishSessionTitle": "Terminer la séance ?",
   "skippedSets_one": "Vous avez {{count}} série non complétée. Terminer quand même ?",
   "skippedSets_other": "Vous avez {{count}} séries non complétées. Terminer quand même ?",
-  "exitTitle": "Quitter l'appli ?",
-  "exitDescription": "L'état de votre séance est sauvegardé automatiquement.",
-  "exit": "Quitter",
+
   "settingUp": "Configuration du programme...",
   "noProgram": "Pas encore de programme",
   "bootstrapError": "Impossible de créer un programme par défaut. Essayez le Créateur.",
