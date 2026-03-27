@@ -30,9 +30,7 @@
   "finishSessionTitle": "Finish session?",
   "skippedSets_one": "You have {{count}} skipped set. Finish anyway?",
   "skippedSets_other": "You have {{count}} skipped sets. Finish anyway?",
-  "exitTitle": "Exit app?",
-  "exitDescription": "Your session state is automatically saved.",
-  "exit": "Exit",
+
   "settingUp": "Setting up your program...",
   "noProgram": "No workout program yet",
   "bootstrapError": "Could not create a default program. Try the Builder instead.",
