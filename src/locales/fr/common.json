@@ -14,6 +14,8 @@
   "signOut": "Se déconnecter",
   "unsavedTitle": "Données non synchronisées",
   "unsavedDescription": "Des données d'entraînement n'ont pas encore été synchronisées. Elles seront sauvegardées localement et synchronisées à la prochaine connexion. Se déconnecter quand même ?",
+  "activeSessionTitle": "Séance en cours",
+  "activeSessionDescription": "Une séance d'entraînement est en cours. La déconnexion y mettra fin et votre progression sera perdue. Se déconnecter quand même ?",
   "offline": "Hors ligne",
   "syncing": "Synchro…",
   "synced": "Synchronisé",
