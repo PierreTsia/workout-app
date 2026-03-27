@@ -14,21 +14,32 @@ function makeSuggestion(
   overrides: Partial<ProgressionSuggestion> = {},
 ): ProgressionSuggestion {
   const defaults: Record<ProgressionRule, Omit<ProgressionSuggestion, "rule">> = {
-    REPS_UP: { reps: 11, weight: 80, sets: 3, reasonKey: "progression.repsUp", delta: "+1 rep" },
+    REPS_UP: { reps: 11, weight: 80, sets: 3, reasonKey: "progression.repsUp", delta: "+1 rep", volumeType: "reps" },
+    DURATION_UP: {
+      reps: 0,
+      weight: 0,
+      sets: 3,
+      reasonKey: "progression.durationUp",
+      delta: "+5s",
+      volumeType: "duration",
+      duration: 35,
+    },
     WEIGHT_UP: {
       reps: 8,
       weight: 82.5,
       sets: 3,
       reasonKey: "progression.weightUp",
       delta: "+2.5kg",
+      volumeType: "reps",
     },
-    SETS_UP: { reps: 8, weight: 80, sets: 4, reasonKey: "progression.setsUp", delta: "+1 set" },
+    SETS_UP: { reps: 8, weight: 80, sets: 4, reasonKey: "progression.setsUp", delta: "+1 set", volumeType: "reps" },
     HOLD_INCOMPLETE: {
       reps: 10,
       weight: 80,
       sets: 3,
       reasonKey: "progression.holdIncomplete",
       delta: "—",
+      volumeType: "reps",
     },
     HOLD_NEAR_FAILURE: {
       reps: 10,
@@ -36,8 +47,9 @@ function makeSuggestion(
       sets: 3,
       reasonKey: "progression.holdNearFailure",
       delta: "—",
+      volumeType: "reps",
     },
-    PLATEAU: { reps: 12, weight: 100, sets: 5, reasonKey: "progression.plateau", delta: "—" },
+    PLATEAU: { reps: 12, weight: 100, sets: 5, reasonKey: "progression.plateau", delta: "—", volumeType: "reps" },
   }
   return { rule, ...defaults[rule], ...overrides }
 }
@@ -56,7 +68,7 @@ function renderPill(rule: ProgressionRule, overrides?: Partial<ProgressionSugges
 // ---------------------------------------------------------------------------
 
 describe("ProgressionPill", () => {
-  const progressRules: ProgressionRule[] = ["REPS_UP", "WEIGHT_UP", "SETS_UP"]
+  const progressRules: ProgressionRule[] = ["REPS_UP", "DURATION_UP", "WEIGHT_UP", "SETS_UP"]
   const holdRules: ProgressionRule[] = ["HOLD_INCOMPLETE", "HOLD_NEAR_FAILURE"]
 
   it.each(progressRules)("renders %s with emerald styling", (rule) => {
@@ -125,5 +137,30 @@ describe("ProgressionPill", () => {
     const link = screen.getByRole("link", { name: /AI program generator/i })
     expect(link).toBeTruthy()
     expect(link.getAttribute("href")).toBe("/create-program")
+  })
+
+  it("renders DURATION_UP with emerald styling and +5s delta", () => {
+    renderPill("DURATION_UP")
+    expect(screen.getByText(/\+5s/)).toBeTruthy()
+    const badge = screen.getByText(/Duration up/i).closest("div[class]")!
+    expect(badge.className).toMatch(/emerald/)
+  })
+
+  it("shows autoAppliedHint for DURATION_UP", async () => {
+    const user = userEvent.setup()
+    renderPill("DURATION_UP")
+
+    await openPopover(user, screen.getByText(/Duration up/i))
+
+    expect(screen.getByText(/Already applied/i)).toBeTruthy()
+  })
+
+  it("opens popover with duration-specific detail text on click", async () => {
+    const user = userEvent.setup()
+    renderPill("DURATION_UP")
+
+    await openPopover(user, screen.getByText(/Duration up/i))
+
+    expect(screen.getByText(/nailed every set/i)).toBeTruthy()
   })
 })

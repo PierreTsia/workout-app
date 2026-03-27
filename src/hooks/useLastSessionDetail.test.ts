@@ -187,4 +187,67 @@ describe("useLastSessionDetail", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(setLogsChain.lt).not.toHaveBeenCalled()
   })
+
+  it("returns duration rows with durationSeconds when measurementType is 'duration'", async () => {
+    setLogsChain = createChain({
+      data: [
+        makeLog({ reps_logged: null, duration_seconds: 30, weight_logged: 0 }),
+        makeLog({ reps_logged: null, duration_seconds: 25, weight_logged: 0 }),
+      ],
+    })
+
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("ex-1", null, "duration"),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toHaveLength(2)
+    expect(result.current.data![0].durationSeconds).toBe(30)
+    expect(result.current.data![1].durationSeconds).toBe(25)
+    expect(result.current.data![0].reps).toBe(0)
+  })
+
+  it("filters out reps rows when measurementType is 'duration'", async () => {
+    setLogsChain = createChain({
+      data: [
+        makeLog({ reps_logged: "10", duration_seconds: null }),
+        makeLog({ reps_logged: null, duration_seconds: 30 }),
+      ],
+    })
+
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("ex-1", null, "duration"),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toHaveLength(1)
+    expect(result.current.data![0].durationSeconds).toBe(30)
+  })
+
+  it("default measurementType still filters out duration rows (backward compat)", async () => {
+    setLogsChain = createChain({
+      data: [
+        makeLog({ reps_logged: "10", duration_seconds: null }),
+        makeLog({ reps_logged: null, duration_seconds: 30 }),
+      ],
+    })
+
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("ex-1"),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toHaveLength(1)
+    expect(result.current.data![0].reps).toBe(10)
+    expect(result.current.data![0].durationSeconds).toBeUndefined()
+  })
 })
