@@ -144,10 +144,11 @@ export function computeNextSessionTarget(
 
   if (!allAtMax) {
     const nextVolume = Math.min(volume.current + volume.increment, volume.max)
+    const actualDelta = nextVolume - volume.current
     const delta =
       volume.type === "duration"
-        ? `+${volume.increment}s`
-        : `+${volume.increment} rep`
+        ? `+${actualDelta}s`
+        : `+${actualDelta} rep`
     return makeSuggestion(
       volumeRule,
       nextVolume,

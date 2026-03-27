@@ -21,6 +21,8 @@ WHERE we.exercise_id = e.id
 ALTER TABLE workout_exercises
   ADD CONSTRAINT we_duration_range_chk
     CHECK (duration_range_min_seconds IS NULL OR duration_range_min_seconds > 0),
+  ADD CONSTRAINT we_duration_range_max_chk
+    CHECK (duration_range_max_seconds IS NULL OR duration_range_max_seconds > 0),
   ADD CONSTRAINT we_duration_range_order_chk
     CHECK (duration_range_min_seconds IS NULL OR duration_range_max_seconds IS NULL
            OR duration_range_min_seconds <= duration_range_max_seconds),

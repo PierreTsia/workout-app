@@ -128,7 +128,7 @@ export function SetsTable({
         const sugDuration = suggestion.duration ?? 0
         const alreadyMatches =
           exerciseSets.every(
-            (r) => !isDurationRow(r) || (r.targetSeconds === sugDuration && r.weight === sugWeight),
+            (r) => isDurationRow(r) && r.targetSeconds === sugDuration && r.weight === sugWeight,
           ) && exerciseSets.length >= suggestion.sets
         if (alreadyMatches) {
           appliedProgressionRef.current = key

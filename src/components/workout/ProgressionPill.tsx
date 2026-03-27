@@ -75,13 +75,18 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
       <PopoverContent side="top" align="end" className="w-64 space-y-2 p-3 text-sm">
         <p className="font-medium">{t(suggestion.reasonKey)}</p>
         <p className="text-muted-foreground">
-          {t(`${suggestion.reasonKey}Detail`, {
-            reps: suggestion.volumeType === "duration" ? (suggestion.duration ?? 0) : suggestion.reps,
-            weight: displayWeight,
-            sets: suggestion.sets,
-            unit,
-            duration: suggestion.duration ?? 0,
-          })}
+          {t(
+            suggestion.volumeType === "duration" && suggestion.rule !== "DURATION_UP"
+              ? `${suggestion.reasonKey}DetailDuration`
+              : `${suggestion.reasonKey}Detail`,
+            {
+              reps: suggestion.reps,
+              weight: displayWeight,
+              sets: suggestion.sets,
+              unit,
+              duration: suggestion.duration ?? 0,
+            },
+          )}
         </p>
         {wasAutoApplied && (
           <p className="text-[11px] text-muted-foreground/70 italic">

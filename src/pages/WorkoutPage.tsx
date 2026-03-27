@@ -676,7 +676,7 @@ export function WorkoutPage() {
             reps: 0,
             weight: toKg(Number(r.weight) || 0),
             completed: r.done,
-            rir: null,
+            rir: (r as { rir?: number }).rir ?? null,
             durationSeconds: r.loggedSeconds ?? r.targetSeconds ?? 0,
           }))
       } else {
