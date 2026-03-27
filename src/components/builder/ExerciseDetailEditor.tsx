@@ -32,6 +32,9 @@ interface FormState {
   set_range_max: string
   weight_increment: string
   max_weight_reached: boolean
+  duration_range_min_seconds: string
+  duration_range_max_seconds: string
+  duration_increment_seconds: string
 }
 
 export function ExerciseDetailEditor({
@@ -58,6 +61,9 @@ export function ExerciseDetailEditor({
     set_range_max: "",
     weight_increment: "",
     max_weight_reached: false,
+    duration_range_min_seconds: "",
+    duration_range_max_seconds: "",
+    duration_increment_seconds: "",
   })
   const [trackedExerciseId, setTrackedExerciseId] = useState(exerciseId)
   const [trackedUnit, setTrackedUnit] = useState(unit)
@@ -84,6 +90,9 @@ export function ExerciseDetailEditor({
         set_range_max: exercise.set_range_max != null ? String(exercise.set_range_max) : "",
         weight_increment: exercise.weight_increment != null ? String(exercise.weight_increment) : "",
         max_weight_reached: exercise.max_weight_reached ?? false,
+        duration_range_min_seconds: exercise.duration_range_min_seconds != null ? String(exercise.duration_range_min_seconds) : "",
+        duration_range_max_seconds: exercise.duration_range_max_seconds != null ? String(exercise.duration_range_max_seconds) : "",
+        duration_increment_seconds: exercise.duration_increment_seconds != null ? String(exercise.duration_increment_seconds) : "",
       })
     }
   }
@@ -105,6 +114,9 @@ export function ExerciseDetailEditor({
         const setMin = parseInt(updated.set_range_min, 10)
         const setMax = parseInt(updated.set_range_max, 10)
         const wInc = parseFloat(updated.weight_increment)
+        const durMin = parseInt(updated.duration_range_min_seconds, 10)
+        const durMax = parseInt(updated.duration_range_max_seconds, 10)
+        const durInc = parseInt(updated.duration_increment_seconds, 10)
 
         updateExercise.mutate(
           {
@@ -125,6 +137,9 @@ export function ExerciseDetailEditor({
             set_range_max: isNaN(setMax) ? undefined : setMax,
             weight_increment: isNaN(wInc) || updated.weight_increment === "" || wInc <= 0 ? null : wInc,
             max_weight_reached: updated.max_weight_reached,
+            duration_range_min_seconds: isDuration ? (isNaN(durMin) ? null : durMin) : undefined,
+            duration_range_max_seconds: isDuration ? (isNaN(durMax) ? null : durMax) : undefined,
+            duration_increment_seconds: isDuration ? (isNaN(durInc) ? null : durInc) : undefined,
           },
           {
             onSuccess: () => onMutationStateChange("saved"),
@@ -221,75 +236,110 @@ export function ExerciseDetailEditor({
         </FieldGroup>
       </div>
 
-      {libExercise?.measurement_type !== "duration" && (
-        <Collapsible>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent/50">
-            {t("progressionSettings")}
-            <ChevronDown className="h-4 w-4 shrink-0 transition-transform [[data-state=open]>&]:rotate-180" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-3">
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label={t("repRangeMin")}>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={form.rep_range_min}
-                  onChange={(e) => handleChange("rep_range_min", e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup label={t("repRangeMax")}>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={form.rep_range_max}
-                  onChange={(e) => handleChange("rep_range_max", e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup label={t("setRangeMin")}>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={form.set_range_min}
-                  onChange={(e) => handleChange("set_range_min", e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup label={t("setRangeMax")}>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={form.set_range_max}
-                  onChange={(e) => handleChange("set_range_max", e.target.value)}
-                />
-              </FieldGroup>
-              <FieldGroup label={t("weightIncrement")}>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0.25}
-                  step={0.5}
-                  value={form.weight_increment}
-                  onChange={(e) => handleChange("weight_increment", e.target.value)}
-                  placeholder={t("weightIncrementPlaceholder")}
-                />
-              </FieldGroup>
-              <FieldGroup label={t("maxWeightReached")}>
-                <Switch
-                  checked={form.max_weight_reached}
-                  onCheckedChange={(checked) => {
-                    const next = { ...form, max_weight_reached: checked }
-                    setForm(next)
-                    flush(next)
-                  }}
-                />
-              </FieldGroup>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+      <Collapsible>
+        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent/50">
+          {t("progressionSettings")}
+          <ChevronDown className="h-4 w-4 shrink-0 transition-transform [[data-state=open]>&]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-2 gap-4">
+            {libExercise?.measurement_type === "duration" ? (
+              <>
+                <FieldGroup label={t("durationRangeMin")}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={form.duration_range_min_seconds}
+                    onChange={(e) => handleChange("duration_range_min_seconds", e.target.value)}
+                    placeholder="20"
+                  />
+                </FieldGroup>
+                <FieldGroup label={t("durationRangeMax")}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={form.duration_range_max_seconds}
+                    onChange={(e) => handleChange("duration_range_max_seconds", e.target.value)}
+                    placeholder="45"
+                  />
+                </FieldGroup>
+                <FieldGroup label={t("durationIncrement")}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={form.duration_increment_seconds}
+                    onChange={(e) => handleChange("duration_increment_seconds", e.target.value)}
+                    placeholder="5"
+                  />
+                </FieldGroup>
+              </>
+            ) : (
+              <>
+                <FieldGroup label={t("repRangeMin")}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={form.rep_range_min}
+                    onChange={(e) => handleChange("rep_range_min", e.target.value)}
+                  />
+                </FieldGroup>
+                <FieldGroup label={t("repRangeMax")}>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={form.rep_range_max}
+                    onChange={(e) => handleChange("rep_range_max", e.target.value)}
+                  />
+                </FieldGroup>
+              </>
+            )}
+            <FieldGroup label={t("setRangeMin")}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={form.set_range_min}
+                onChange={(e) => handleChange("set_range_min", e.target.value)}
+              />
+            </FieldGroup>
+            <FieldGroup label={t("setRangeMax")}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={form.set_range_max}
+                onChange={(e) => handleChange("set_range_max", e.target.value)}
+              />
+            </FieldGroup>
+            <FieldGroup label={t("weightIncrement")}>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0.25}
+                step={0.5}
+                value={form.weight_increment}
+                onChange={(e) => handleChange("weight_increment", e.target.value)}
+                placeholder={t("weightIncrementPlaceholder")}
+              />
+            </FieldGroup>
+            <FieldGroup label={t("maxWeightReached")}>
+              <Switch
+                checked={form.max_weight_reached}
+                onCheckedChange={(checked) => {
+                  const next = { ...form, max_weight_reached: checked }
+                  setForm(next)
+                  flush(next)
+                }}
+              />
+            </FieldGroup>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   )
 }

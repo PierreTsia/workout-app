@@ -60,6 +60,10 @@ export interface WorkoutExercise {
   /** Per-exercise weight increment override (kg). Null/undefined = engine uses default (2.5 barbell / 2.0 dumbbell). */
   weight_increment?: number | null
   max_weight_reached?: boolean
+  /** Duration progression range boundaries. Nullable — only meaningful for duration exercises. */
+  duration_range_min_seconds?: number | null
+  duration_range_max_seconds?: number | null
+  duration_increment_seconds?: number | null
 }
 
 export interface Session {

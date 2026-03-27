@@ -104,6 +104,10 @@ export function useGenerateProgram() {
                 profile.experience,
               )
 
+              const isDuration = exercise?.measurement_type === "duration"
+              const isBodyweight = exercise?.equipment === "bodyweight"
+              const defaultSec = exercise?.default_duration_seconds ?? 30
+
               return {
                 workout_day_id: insertedDay.id,
                 exercise_id: resolvedId,
@@ -111,15 +115,19 @@ export function useGenerateProgram() {
                 muscle_snapshot: exercise?.muscle_group ?? "",
                 emoji_snapshot: exercise?.emoji ?? "🏋️",
                 sets: adapted.sets,
-                reps: adapted.reps,
+                reps: isDuration ? "0" : adapted.reps,
                 weight: "0",
                 rest_seconds: adapted.restSeconds,
                 sort_order: idx,
+                target_duration_seconds: isDuration ? defaultSec : null,
                 rep_range_min: adapted.repRangeMin ?? 8,
                 rep_range_max: adapted.repRangeMax ?? 12,
                 set_range_min: Math.max(1, adapted.sets - 1),
                 set_range_max: Math.min(6, adapted.sets + 2),
-                max_weight_reached: false,
+                max_weight_reached: isBodyweight ? true : false,
+                duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
+                duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+                duration_increment_seconds: isDuration ? 5 : null,
               }
             }),
           )

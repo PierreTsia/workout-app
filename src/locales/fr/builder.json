@@ -65,5 +65,8 @@
   "setRangeMax": "Séries max",
   "weightIncrement": "Palier de poids",
   "weightIncrementPlaceholder": "Auto",
-  "maxWeightReached": "Poids max atteint"
+  "maxWeightReached": "Poids max atteint",
+  "durationRangeMin": "Maintien min (sec)",
+  "durationRangeMax": "Maintien max (sec)",
+  "durationIncrement": "Palier maintien (sec)"
 }

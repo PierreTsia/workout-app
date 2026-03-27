@@ -4,21 +4,37 @@ import {
   resolveWeightIncrement,
   type ProgressionPrescription,
   type SetPerformance,
+  type VolumePrescription,
 } from "./progression"
+
+function makeVolume(
+  overrides: Partial<VolumePrescription> = {},
+): VolumePrescription {
+  return {
+    type: "reps",
+    current: 8,
+    min: 8,
+    max: 12,
+    increment: 1,
+    ...overrides,
+  }
+}
 
 function makePrescription(
   overrides: Partial<ProgressionPrescription> = {},
 ): ProgressionPrescription {
+  const vol = overrides.volume ?? makeVolume()
   return {
-    currentReps: 8,
+    volume: vol,
     currentWeight: 80,
     currentSets: 3,
-    repRangeMin: 8,
-    repRangeMax: 12,
     setRangeMin: 3,
     setRangeMax: 5,
     weightIncrement: 2.5,
     maxWeightReached: false,
+    currentReps: vol.type === "reps" ? vol.current : 0,
+    repRangeMin: vol.type === "reps" ? vol.min : 0,
+    repRangeMax: vol.type === "reps" ? vol.max : 0,
     ...overrides,
   }
 }
@@ -37,6 +53,20 @@ function makeSets(
   }))
 }
 
+function makeDurationSets(
+  count: number,
+  durationSeconds: number,
+  weight = 0,
+): SetPerformance[] {
+  return Array.from({ length: count }, () => ({
+    reps: 0,
+    weight,
+    completed: true,
+    rir: null,
+    durationSeconds,
+  }))
+}
+
 describe("computeNextSessionTarget", () => {
   it("returns null when no last performance", () => {
     expect(computeNextSessionTarget(makePrescription(), null)).toBeNull()
@@ -47,7 +77,7 @@ describe("computeNextSessionTarget", () => {
   })
 
   it("REPS_UP — classical volumetric progression (3×8 → 3×9)", () => {
-    const rx = makePrescription({ currentReps: 8 })
+    const rx = makePrescription({ volume: makeVolume({ current: 8 }) })
     const perf = makeSets(3, 8, 80)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -55,10 +85,11 @@ describe("computeNextSessionTarget", () => {
     expect(result.reps).toBe(9)
     expect(result.weight).toBe(80)
     expect(result.sets).toBe(3)
+    expect(result.volumeType).toBe("reps")
   })
 
   it("WEIGHT_UP — intensity jump when all sets hit rep_range_max (3×12 → 3×8 @ +2.5kg)", () => {
-    const rx = makePrescription({ currentReps: 12 })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }) })
     const perf = makeSets(3, 12, 80)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -70,7 +101,7 @@ describe("computeNextSessionTarget", () => {
 
   it("SETS_UP — density progression at equipment ceiling (3×12 @ 30kg → 4×8 @ 30kg)", () => {
     const rx = makePrescription({
-      currentReps: 12,
+      volume: makeVolume({ current: 12 }),
       currentWeight: 30,
       currentSets: 3,
       maxWeightReached: true,
@@ -85,7 +116,7 @@ describe("computeNextSessionTarget", () => {
   })
 
   it("HOLD_NEAR_FAILURE — safety gate when avg RIR < 1", () => {
-    const rx = makePrescription({ currentReps: 12 })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }) })
     const perf = makeSets(3, 12, 80, 0.5)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -110,7 +141,7 @@ describe("computeNextSessionTarget", () => {
   })
 
   it("HOLD_INCOMPLETE — all completed but some sets missed target reps", () => {
-    const rx = makePrescription({ currentReps: 10 })
+    const rx = makePrescription({ volume: makeVolume({ current: 10 }) })
     const perf: SetPerformance[] = [
       { reps: 10, weight: 80, completed: true, rir: 2 },
       { reps: 9, weight: 80, completed: true, rir: 2 },
@@ -123,7 +154,7 @@ describe("computeNextSessionTarget", () => {
 
   it("PLATEAU — all dimensions maxed", () => {
     const rx = makePrescription({
-      currentReps: 12,
+      volume: makeVolume({ current: 12 }),
       currentWeight: 30,
       currentSets: 5,
       maxWeightReached: true,
@@ -139,7 +170,7 @@ describe("computeNextSessionTarget", () => {
   })
 
   it("RIR boundary — avg RIR = 1.0 does NOT trigger hold (threshold is < 1)", () => {
-    const rx = makePrescription({ currentReps: 12 })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }) })
     const perf = makeSets(3, 12, 80, 1)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -147,7 +178,7 @@ describe("computeNextSessionTarget", () => {
   })
 
   it("null RIR on all sets — RIR safety gate is skipped", () => {
-    const rx = makePrescription({ currentReps: 12 })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }) })
     const perf = makeSets(3, 12, 80, null)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -158,7 +189,7 @@ describe("computeNextSessionTarget", () => {
     const inc = resolveWeightIncrement(null, "dumbbell")
     expect(inc).toBe(2)
 
-    const rx = makePrescription({ currentReps: 12, weightIncrement: inc })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }), weightIncrement: inc })
     const perf = makeSets(3, 12, 80)
     const result = computeNextSessionTarget(rx, perf)!
 
@@ -170,11 +201,131 @@ describe("computeNextSessionTarget", () => {
     const inc = resolveWeightIncrement(1.25)
     expect(inc).toBe(1.25)
 
-    const rx = makePrescription({ currentReps: 12, weightIncrement: 1.25 })
+    const rx = makePrescription({ volume: makeVolume({ current: 12 }), weightIncrement: 1.25 })
     const perf = makeSets(3, 12, 80)
     const result = computeNextSessionTarget(rx, perf)!
 
     expect(result.weight).toBe(81.25)
+  })
+})
+
+describe("computeNextSessionTarget — duration exercises", () => {
+  function durationVolume(overrides: Partial<VolumePrescription> = {}): VolumePrescription {
+    return {
+      type: "duration",
+      current: 30,
+      min: 20,
+      max: 45,
+      increment: 5,
+      ...overrides,
+    }
+  }
+
+  it("DURATION_UP — all sets completed at target, not at max (3×30s → 3×35s)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 30 }),
+      currentWeight: 0,
+      maxWeightReached: true,
+    })
+    const perf = makeDurationSets(3, 30)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("DURATION_UP")
+    expect(result.duration).toBe(35)
+    expect(result.reps).toBe(0)
+    expect(result.weight).toBe(0)
+    expect(result.sets).toBe(3)
+    expect(result.volumeType).toBe("duration")
+    expect(result.delta).toBe("+5s")
+  })
+
+  it("HOLD_INCOMPLETE — not all duration sets completed", () => {
+    const rx = makePrescription({
+      volume: durationVolume(),
+      currentSets: 3,
+      currentWeight: 0,
+    })
+    const perf: SetPerformance[] = [
+      { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 30 },
+      { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 30 },
+      { reps: 0, weight: 0, completed: false, rir: null, durationSeconds: 15 },
+    ]
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("HOLD_INCOMPLETE")
+    expect(result.volumeType).toBe("duration")
+  })
+
+  it("HOLD_INCOMPLETE — completed but duration below target", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 30 }),
+      currentSets: 3,
+      currentWeight: 0,
+    })
+    const perf: SetPerformance[] = [
+      { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 30 },
+      { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 25 },
+      { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 28 },
+    ]
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("HOLD_INCOMPLETE")
+  })
+
+  it("WEIGHT_UP — all sets at max duration, maxWeightReached=false (loadable exercise)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 45 }),
+      currentWeight: 5,
+      maxWeightReached: false,
+      weightIncrement: 2.5,
+    })
+    const perf = makeDurationSets(3, 45, 5)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(7.5)
+    expect(result.duration).toBe(20)
+    expect(result.sets).toBe(3)
+  })
+
+  it("SETS_UP — all at max duration, maxWeightReached=true, sets < setRangeMax", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 45 }),
+      currentWeight: 0,
+      currentSets: 3,
+      maxWeightReached: true,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(3, 45)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.duration).toBe(20)
+    expect(result.sets).toBe(4)
+  })
+
+  it("PLATEAU — all dimensions maxed for duration exercise", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 45 }),
+      currentWeight: 0,
+      currentSets: 5,
+      maxWeightReached: true,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(5, 45)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.duration).toBe(45)
+    expect(result.sets).toBe(5)
+  })
+
+  it("first session for duration — returns null", () => {
+    const rx = makePrescription({
+      volume: durationVolume(),
+      currentWeight: 0,
+    })
+    expect(computeNextSessionTarget(rx, null)).toBeNull()
   })
 })
 

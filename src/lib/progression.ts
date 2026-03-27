@@ -2,20 +2,33 @@ export type ProgressionRule =
   | "HOLD_INCOMPLETE"
   | "HOLD_NEAR_FAILURE"
   | "REPS_UP"
+  | "DURATION_UP"
   | "WEIGHT_UP"
   | "SETS_UP"
   | "PLATEAU"
 
+export interface VolumePrescription {
+  type: "reps" | "duration"
+  current: number
+  min: number
+  max: number
+  increment: number
+}
+
 export interface ProgressionPrescription {
-  currentReps: number
+  volume: VolumePrescription
   currentWeight: number
   currentSets: number
-  repRangeMin: number
-  repRangeMax: number
   setRangeMin: number
   setRangeMax: number
   weightIncrement: number
   maxWeightReached: boolean
+  /** @deprecated Use volume.current — kept for backward compat */
+  currentReps: number
+  /** @deprecated Use volume.min */
+  repRangeMin: number
+  /** @deprecated Use volume.max */
+  repRangeMax: number
 }
 
 export interface SetPerformance {
@@ -23,6 +36,7 @@ export interface SetPerformance {
   weight: number
   completed: boolean
   rir: number | null
+  durationSeconds?: number
 }
 
 export interface ProgressionSuggestion {
@@ -32,6 +46,8 @@ export interface ProgressionSuggestion {
   sets: number
   reasonKey: string
   delta: string
+  volumeType: "reps" | "duration"
+  duration?: number
 }
 
 const DEFAULT_INCREMENT_KG = 2.5
@@ -58,92 +74,120 @@ export function computeNextSessionTarget(
 ): ProgressionSuggestion | null {
   if (!lastPerformance || lastPerformance.length === 0) return null
 
-  const { currentReps, currentWeight, currentSets } = prescription
-  const { repRangeMin, repRangeMax, setRangeMax, maxWeightReached, weightIncrement } =
-    prescription
+  const { volume, currentWeight, currentSets } = prescription
+  const { setRangeMax, maxWeightReached, weightIncrement } = prescription
+
+  const volumeValue = (s: SetPerformance) =>
+    volume.type === "duration" ? (s.durationSeconds ?? 0) : s.reps
+
+  const volumeRule: "REPS_UP" | "DURATION_UP" =
+    volume.type === "duration" ? "DURATION_UP" : "REPS_UP"
+
+  const makeSuggestion = (
+    rule: ProgressionRule,
+    vol: number,
+    weight: number,
+    sets: number,
+    reasonKey: string,
+    delta: string,
+  ): ProgressionSuggestion => ({
+    rule,
+    reps: volume.type === "reps" ? vol : 0,
+    weight,
+    sets,
+    reasonKey,
+    delta,
+    volumeType: volume.type,
+    duration: volume.type === "duration" ? vol : undefined,
+  })
 
   const completedSets = lastPerformance.filter((s) => s.completed)
   const allCompleted = completedSets.length >= currentSets
 
   if (!allCompleted) {
-    return {
-      rule: "HOLD_INCOMPLETE",
-      reps: currentReps,
-      weight: currentWeight,
-      sets: currentSets,
-      reasonKey: "progression.holdIncomplete",
-      delta: "—",
-    }
+    return makeSuggestion(
+      "HOLD_INCOMPLETE",
+      volume.current,
+      currentWeight,
+      currentSets,
+      "progression.holdIncomplete",
+      "—",
+    )
   }
 
   const avgRir = averageRir(completedSets)
   if (avgRir != null && avgRir < RIR_SAFETY_THRESHOLD) {
-    return {
-      rule: "HOLD_NEAR_FAILURE",
-      reps: currentReps,
-      weight: currentWeight,
-      sets: currentSets,
-      reasonKey: "progression.holdNearFailure",
-      delta: "—",
-    }
+    return makeSuggestion(
+      "HOLD_NEAR_FAILURE",
+      volume.current,
+      currentWeight,
+      currentSets,
+      "progression.holdNearFailure",
+      "—",
+    )
   }
 
-  const allHitTargetReps = completedSets.every((s) => s.reps >= currentReps)
+  const allHitTarget = completedSets.every((s) => volumeValue(s) >= volume.current)
 
-  if (!allHitTargetReps) {
-    return {
-      rule: "HOLD_INCOMPLETE",
-      reps: currentReps,
-      weight: currentWeight,
-      sets: currentSets,
-      reasonKey: "progression.holdIncomplete",
-      delta: "—",
-    }
+  if (!allHitTarget) {
+    return makeSuggestion(
+      "HOLD_INCOMPLETE",
+      volume.current,
+      currentWeight,
+      currentSets,
+      "progression.holdIncomplete",
+      "—",
+    )
   }
 
-  const allAtMaxReps = completedSets.every((s) => s.reps >= repRangeMax)
+  const allAtMax = completedSets.every((s) => volumeValue(s) >= volume.max)
 
-  if (!allAtMaxReps) {
-    const nextReps = Math.min(currentReps + 1, repRangeMax)
-    return {
-      rule: "REPS_UP",
-      reps: nextReps,
-      weight: currentWeight,
-      sets: currentSets,
-      reasonKey: "progression.repsUp",
-      delta: `+1 rep`,
-    }
+  if (!allAtMax) {
+    const nextVolume = Math.min(volume.current + volume.increment, volume.max)
+    const actualDelta = nextVolume - volume.current
+    const delta =
+      volume.type === "duration"
+        ? `+${actualDelta}s`
+        : `+${actualDelta} rep`
+    return makeSuggestion(
+      volumeRule,
+      nextVolume,
+      currentWeight,
+      currentSets,
+      volume.type === "duration" ? "progression.durationUp" : "progression.repsUp",
+      delta,
+    )
   }
 
   if (!maxWeightReached) {
     const nextWeight = currentWeight + weightIncrement
-    return {
-      rule: "WEIGHT_UP",
-      reps: repRangeMin,
-      weight: nextWeight,
-      sets: currentSets,
-      reasonKey: "progression.weightUp",
-      delta: String(weightIncrement),
-    }
+    return makeSuggestion(
+      "WEIGHT_UP",
+      volume.min,
+      nextWeight,
+      currentSets,
+      "progression.weightUp",
+      String(weightIncrement),
+    )
   }
 
   if (currentSets < setRangeMax) {
-    return {
-      rule: "SETS_UP",
-      reps: repRangeMin,
-      weight: currentWeight,
-      sets: currentSets + 1,
-      reasonKey: "progression.setsUp",
-      delta: `+1 set`,
-    }
+    return makeSuggestion(
+      "SETS_UP",
+      volume.min,
+      currentWeight,
+      currentSets + 1,
+      "progression.setsUp",
+      "+1 set",
+    )
   }
 
-  return {
-    rule: "PLATEAU",
-    reps: currentReps,
-    weight: currentWeight,
-    sets: currentSets,
-    reasonKey: "progression.plateau",
-    delta: "—",
-  }
+  return makeSuggestion(
+    "PLATEAU",
+    volume.current,
+    currentWeight,
+    currentSets,
+    "progression.plateau",
+    "—",
+  )
 }

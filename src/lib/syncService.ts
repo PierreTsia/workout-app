@@ -46,14 +46,18 @@ export interface ProgressionTarget {
   reps: number
   weight: number
   sets: number
+  /** When present, this is a duration exercise target — write target_duration_seconds, not reps. */
+  targetDurationSeconds?: number
 }
 
 export function filterValidProgressionTargets(
   targets: ProgressionTarget[] | undefined,
 ): ProgressionTarget[] {
-  return (targets ?? []).filter(
-    (t) => !isNaN(t.reps) && !isNaN(t.weight) && !isNaN(t.sets) && t.reps > 0 && t.sets > 0,
-  )
+  return (targets ?? []).filter((t) => {
+    if (isNaN(t.weight) || isNaN(t.sets) || t.sets <= 0) return false
+    if (t.targetDurationSeconds != null) return t.targetDurationSeconds > 0
+    return !isNaN(t.reps) && t.reps > 0
+  })
 }
 
 export interface SessionFinishPayload {
@@ -541,16 +545,17 @@ async function processSessionFinish(
 
     if (validTargets.length > 0) {
       const results = await Promise.all(
-        validTargets.map((t) =>
-          supabase
+        validTargets.map((t) => {
+          const shared = { weight: String(t.weight), sets: t.sets }
+          const fields =
+            t.targetDurationSeconds != null
+              ? { ...shared, target_duration_seconds: t.targetDurationSeconds }
+              : { ...shared, reps: String(t.reps) }
+          return supabase
             .from("workout_exercises")
-            .update({
-              reps: String(t.reps),
-              weight: String(t.weight),
-              sets: t.sets,
-            })
-            .eq("id", t.workoutExerciseId),
-        ),
+            .update(fields)
+            .eq("id", t.workoutExerciseId)
+        }),
       )
       const failed = results.find((r) => r.error)
       if (failed?.error) {

@@ -65,5 +65,8 @@
   "setRangeMax": "Max sets",
   "weightIncrement": "Weight step",
   "weightIncrementPlaceholder": "Auto",
-  "maxWeightReached": "Weight maxed"
+  "maxWeightReached": "Weight maxed",
+  "durationRangeMin": "Min hold (sec)",
+  "durationRangeMax": "Max hold (sec)",
+  "durationIncrement": "Hold step (sec)"
 }

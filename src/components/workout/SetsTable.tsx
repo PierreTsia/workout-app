@@ -105,8 +105,12 @@ export function SetsTable({
   const appliedProgressionRef = useRef<string | null>(null)
   useEffect(() => {
     if (!suggestion) return
-    if (isReadOnly || isDurationExercise) return
-    const key = `${exercise.id}:${suggestion.reps}:${suggestion.weight}:${suggestion.sets}`
+    if (isReadOnly) return
+
+    const isDurationSuggestion = suggestion.volumeType === "duration"
+    const key = isDurationSuggestion
+      ? `${exercise.id}:dur:${suggestion.duration}:${suggestion.weight}:${suggestion.sets}`
+      : `${exercise.id}:${suggestion.reps}:${suggestion.weight}:${suggestion.sets}`
     if (appliedProgressionRef.current === key) return
 
     setSession((prev) => {
@@ -118,8 +122,44 @@ export function SetsTable({
         return prev
       }
 
-      const sugReps = String(suggestion.reps)
       const sugWeight = String(Math.round(toDisplay(suggestion.weight) * 10) / 10)
+
+      if (isDurationSuggestion) {
+        const sugDuration = suggestion.duration ?? 0
+        const alreadyMatches =
+          exerciseSets.every(
+            (r) => isDurationRow(r) && r.targetSeconds === sugDuration && r.weight === sugWeight,
+          ) && exerciseSets.length >= suggestion.sets
+        if (alreadyMatches) {
+          appliedProgressionRef.current = key
+          return prev
+        }
+
+        const updated: SessionSetRow[] = exerciseSets.map((r) => {
+          if (!isDurationRow(r) || r.done) return r
+          return { ...r, targetSeconds: sugDuration, weight: sugWeight }
+        })
+
+        if (suggestion.sets > updated.length) {
+          for (let i = updated.length; i < suggestion.sets; i++) {
+            updated.push({
+              kind: "duration" as const,
+              targetSeconds: sugDuration,
+              weight: sugWeight,
+              done: false,
+              timerStartedAt: null,
+            })
+          }
+        }
+
+        appliedProgressionRef.current = key
+        return {
+          ...prev,
+          setsData: { ...prev.setsData, [exercise.id]: updated },
+        }
+      }
+
+      const sugReps = String(suggestion.reps)
 
       const alreadyMatches =
         exerciseSets.every(
@@ -152,7 +192,7 @@ export function SetsTable({
         setsData: { ...prev.setsData, [exercise.id]: updated },
       }
     })
-  }, [suggestion, exercise.id, isReadOnly, isDurationExercise, setSession, toDisplay])
+  }, [suggestion, exercise.id, isReadOnly, setSession, toDisplay])
 
   const pauseStartRef = useRef<number | null>(null)
   /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */

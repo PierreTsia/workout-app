@@ -76,6 +76,7 @@ export function ExerciseDetail({
     libExercise?.measurement_type,
     libExercise?.equipment,
     sessionStartedAt,
+    libExercise,
   )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)
