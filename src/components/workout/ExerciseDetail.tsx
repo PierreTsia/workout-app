@@ -64,7 +64,7 @@ export function ExerciseDetail({
   const { t } = useTranslation("workout")
   const { t: tFeedback } = useTranslation("feedback")
   const { formatWeight } = useWeightUnit()
-  const { data: lastSession } = useLastSession(exercise.exercise_id)
+  const { data: lastSession } = useLastSession(exercise.exercise_id, sessionId)
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -73,6 +73,7 @@ export function ExerciseDetail({
     exercise,
     libExercise?.measurement_type,
     libExercise?.equipment,
+    sessionId,
   )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)
