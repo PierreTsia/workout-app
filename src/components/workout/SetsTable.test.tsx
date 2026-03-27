@@ -484,6 +484,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 2,
       reasonKey: "progression.repsUp",
       delta: "+1 rep",
+      volumeType: "reps",
     }
     const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
 
@@ -502,6 +503,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 2,
       reasonKey: "progression.repsUp",
       delta: "+1 rep",
+      volumeType: "reps",
     }
     const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
 
@@ -518,6 +520,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 2,
       reasonKey: "progression.repsUp",
       delta: "+1 rep",
+      volumeType: "reps",
     }
     const sessionWithDone: SessionState = {
       ...BASE_SESSION,
@@ -544,6 +547,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 2,
       reasonKey: "progression.repsUp",
       delta: "+1 rep",
+      volumeType: "reps",
     }
     const { store } = renderWithPreloadedSession(BASE_SESSION, {
       suggestion,
@@ -563,6 +567,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 2,
       reasonKey: "progression.repsUp",
       delta: "+1 rep",
+      volumeType: "reps",
     }
     const { store } = renderWithPreloadedSession(BASE_DURATION_SESSION, {
       exercise: DURATION_EXERCISE,
@@ -581,6 +586,7 @@ describe("SetsTable – auto-apply progression", () => {
       sets: 4,
       reasonKey: "progression.setsUp",
       delta: "+1 set",
+      volumeType: "reps",
     }
     const { store } = renderWithPreloadedSession(BASE_SESSION, { suggestion })
 
