@@ -959,6 +959,7 @@ export function WorkoutPage() {
                   <ExerciseDetail
                     exercise={currentExercise}
                     sessionId={sessionId}
+                    sessionStartedAt={session.startedAt}
                     isReadOnly={isViewingLockedDay}
                     sessionPaused={!isViewingLockedDay && session.pausedAt != null}
                     onBlockedByPause={openPauseBlocked}

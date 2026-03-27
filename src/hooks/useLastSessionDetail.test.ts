@@ -14,6 +14,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
   } = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
+    lt: vi.fn(() => chain),
     order: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     then: vi.fn((resolve: (v: unknown) => void) =>
@@ -155,5 +156,35 @@ describe("useLastSessionDetail", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toHaveLength(1)
     expect(result.current.data![0].reps).toBe(0)
+  })
+
+  it("calls .lt to exclude current-session logs when sessionStartedAt is provided", async () => {
+    setLogsChain = createChain({ data: [] })
+    const startedAt = new Date("2026-03-27T14:00:00Z").getTime()
+
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("ex-1", startedAt),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(setLogsChain.lt).toHaveBeenCalledWith(
+      "logged_at",
+      new Date(startedAt).toISOString(),
+    )
+  })
+
+  it("does not call .lt when sessionStartedAt is omitted", async () => {
+    setLogsChain = createChain({ data: [] })
+
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(setLogsChain.lt).not.toHaveBeenCalled()
   })
 })

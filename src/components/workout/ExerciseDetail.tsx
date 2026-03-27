@@ -45,6 +45,7 @@ export interface ExerciseDetailEditSessionProps {
 interface ExerciseDetailProps {
   exercise: WorkoutExercise
   sessionId: string
+  sessionStartedAt?: number | null
   isReadOnly: boolean
   /** When true, swap/delete session edits are hidden (workout timer paused). */
   sessionPaused?: boolean
@@ -56,6 +57,7 @@ interface ExerciseDetailProps {
 export function ExerciseDetail({
   exercise,
   sessionId,
+  sessionStartedAt,
   isReadOnly,
   sessionPaused = false,
   onBlockedByPause,
@@ -64,7 +66,7 @@ export function ExerciseDetail({
   const { t } = useTranslation("workout")
   const { t: tFeedback } = useTranslation("feedback")
   const { formatWeight } = useWeightUnit()
-  const { data: lastSession } = useLastSession(exercise.exercise_id)
+  const { data: lastSession } = useLastSession(exercise.exercise_id, sessionStartedAt)
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -73,6 +75,7 @@ export function ExerciseDetail({
     exercise,
     libExercise?.measurement_type,
     libExercise?.equipment,
+    sessionStartedAt,
   )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)

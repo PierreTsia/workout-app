@@ -4,17 +4,26 @@ import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import type { SetPerformance } from "@/lib/progression"
 
-export function useLastSessionDetail(exerciseId: string | undefined) {
+export function useLastSessionDetail(
+  exerciseId: string | undefined,
+  sessionStartedAt?: number | null,
+) {
   const user = useAtomValue(authAtom)
 
   return useQuery<SetPerformance[] | null>({
-    queryKey: ["last-session-detail", exerciseId],
+    queryKey: ["last-session-detail", exerciseId, sessionStartedAt ?? null],
     staleTime: 30_000,
     queryFn: async (): Promise<SetPerformance[] | null> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("set_logs")
         .select("set_number, reps_logged, weight_logged, rir, session_id, duration_seconds")
         .eq("exercise_id", exerciseId!)
+
+      if (sessionStartedAt) {
+        query = query.lt("logged_at", new Date(sessionStartedAt).toISOString())
+      }
+
+      const { data, error } = await query
         .order("logged_at", { ascending: false })
         .limit(20)
 

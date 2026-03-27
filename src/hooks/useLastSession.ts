@@ -10,16 +10,25 @@ export interface LastSessionSummary {
   weight: number
 }
 
-export function useLastSession(exerciseId: string | undefined) {
+export function useLastSession(
+  exerciseId: string | undefined,
+  sessionStartedAt?: number | null,
+) {
   const user = useAtomValue(authAtom)
 
   return useQuery<LastSessionSummary | null>({
-    queryKey: ["last-session", exerciseId],
+    queryKey: ["last-session", exerciseId, sessionStartedAt ?? null],
     queryFn: async (): Promise<LastSessionSummary | null> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("set_logs")
         .select("set_number, reps_logged, weight_logged, session_id")
         .eq("exercise_id", exerciseId!)
+
+      if (sessionStartedAt) {
+        query = query.lt("logged_at", new Date(sessionStartedAt).toISOString())
+      }
+
+      const { data, error } = await query
         .order("logged_at", { ascending: false })
         .limit(20)
 

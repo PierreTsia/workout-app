@@ -12,8 +12,12 @@ export function useProgressionSuggestion(
   exercise: WorkoutExercise,
   measurementType?: "reps" | "duration",
   equipment?: string,
+  sessionStartedAt?: number | null,
 ): ProgressionSuggestion | null {
-  const { data: lastPerformance } = useLastSessionDetail(exercise.exercise_id)
+  const { data: lastPerformance } = useLastSessionDetail(
+    exercise.exercise_id,
+    sessionStartedAt,
+  )
 
   return useMemo(() => {
     if (measurementType === "duration") return null
