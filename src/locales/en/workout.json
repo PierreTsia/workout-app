@@ -154,7 +154,11 @@
   "progression.setsUpDetail": "Weight maxed out — added a set: {{sets}}×{{reps}} @ {{weight}} {{unit}}.",
   "progression.plateau": "Plateau reached",
   "progression.plateauDetail": "All dimensions maxed at {{sets}}×{{reps}} @ {{weight}} {{unit}}. Time for a new stimulus!",
+  "progression.durationUp": "Duration up",
+  "progression.durationUpDetail": "You nailed every set last time — bumped to {{duration}}s for {{sets}} sets at {{weight}} {{unit}}.",
   "progression.autoAppliedHint": "Already applied — edit any value to override.",
   "progression.tryGenerator": "Try the AI program generator for a new cycle",
+  "autoDetectLoading": "{{name}}: you logged weight — unlock weight progression?",
+  "autoDetectLoadingAction": "Unlock",
   "historySheet.epleyInfoBody": "This line shows your best estimated one-rep max per workout — the weight you could likely lift for a single rep, inferred from what you actually logged (weight × reps).\n\nWe use the Epley formula, a common strength-training shortcut. It’s not lab-accurate, but it helps compare sessions when you lift heavier or use fewer reps."
 }

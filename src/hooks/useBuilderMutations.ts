@@ -95,6 +95,10 @@ export function useAddExerciseToDay() {
       sortOrder: number
       weight?: string
     }) => {
+      const isDuration = exercise.measurement_type === "duration"
+      const isBodyweight = exercise.equipment === "bodyweight"
+      const defaultSec = exercise.default_duration_seconds ?? 30
+
       const { error } = await supabase.from("workout_exercises").insert({
         workout_day_id: dayId,
         exercise_id: exercise.id,
@@ -102,16 +106,19 @@ export function useAddExerciseToDay() {
         muscle_snapshot: exercise.muscle_group,
         emoji_snapshot: exercise.emoji,
         sets: 3,
-        reps: "12",
+        reps: isDuration ? "0" : "12",
         weight,
         rest_seconds: 90,
         sort_order: sortOrder,
-        target_duration_seconds: null,
-        rep_range_min: 8,
-        rep_range_max: 12,
+        target_duration_seconds: isDuration ? defaultSec : null,
+        rep_range_min: isDuration ? 0 : 8,
+        rep_range_max: isDuration ? 0 : 12,
         set_range_min: 2,
         set_range_max: 5,
-        max_weight_reached: false,
+        max_weight_reached: isBodyweight ? true : false,
+        duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
+        duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+        duration_increment_seconds: isDuration ? 5 : null,
       })
       if (error) throw error
     },
@@ -136,24 +143,32 @@ export function useAddExercisesToDay() {
       exercises: Exercise[]
       startSortOrder: number
     }) => {
-      const rows = exercises.map((exercise, i) => ({
-        workout_day_id: dayId,
-        exercise_id: exercise.id,
-        name_snapshot: exercise.name,
-        muscle_snapshot: exercise.muscle_group,
-        emoji_snapshot: exercise.emoji,
-        sets: 3,
-        reps: "12",
-        weight: "0",
-        rest_seconds: 90,
-        sort_order: startSortOrder + i,
-        target_duration_seconds: null,
-        rep_range_min: 8,
-        rep_range_max: 12,
-        set_range_min: 2,
-        set_range_max: 5,
-        max_weight_reached: false,
-      }))
+      const rows = exercises.map((exercise, i) => {
+        const isDuration = exercise.measurement_type === "duration"
+        const isBodyweight = exercise.equipment === "bodyweight"
+        const defaultSec = exercise.default_duration_seconds ?? 30
+        return {
+          workout_day_id: dayId,
+          exercise_id: exercise.id,
+          name_snapshot: exercise.name,
+          muscle_snapshot: exercise.muscle_group,
+          emoji_snapshot: exercise.emoji,
+          sets: 3,
+          reps: isDuration ? "0" : "12",
+          weight: "0",
+          rest_seconds: 90,
+          sort_order: startSortOrder + i,
+          target_duration_seconds: isDuration ? defaultSec : null,
+          rep_range_min: isDuration ? 0 : 8,
+          rep_range_max: isDuration ? 0 : 12,
+          set_range_min: 2,
+          set_range_max: 5,
+          max_weight_reached: isBodyweight ? true : false,
+          duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
+          duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+          duration_increment_seconds: isDuration ? 5 : null,
+        }
+      })
       const { error } = await supabase.from("workout_exercises").insert(rows)
       if (error) throw error
     },
@@ -183,6 +198,9 @@ export function useUpdateExercise() {
       set_range_max?: number
       weight_increment?: number | null
       max_weight_reached?: boolean
+      duration_range_min_seconds?: number | null
+      duration_range_max_seconds?: number | null
+      duration_increment_seconds?: number | null
     }) => {
       const { id, dayId: _, ...fields } = vars
       const { error } = await supabase

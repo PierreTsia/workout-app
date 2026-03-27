@@ -7,11 +7,12 @@ import type { SetPerformance } from "@/lib/progression"
 export function useLastSessionDetail(
   exerciseId: string | undefined,
   sessionStartedAt?: number | null,
+  measurementType?: "reps" | "duration",
 ) {
   const user = useAtomValue(authAtom)
 
   return useQuery<SetPerformance[] | null>({
-    queryKey: ["last-session-detail", exerciseId, sessionStartedAt ?? null],
+    queryKey: ["last-session-detail", exerciseId, sessionStartedAt ?? null, measurementType ?? "reps"],
     staleTime: 30_000,
     queryFn: async (): Promise<SetPerformance[] | null> => {
       let query = supabase
@@ -35,14 +36,31 @@ export function useLastSessionDetail(
         (l) => (l as { session_id: string }).session_id === latestSessionId,
       )
 
+      const isDuration = measurementType === "duration"
+
       return sessionLogs
-        .filter((l) => (l as { duration_seconds: number | null }).duration_seconds == null)
+        .filter((l) => {
+          const dur = (l as { duration_seconds: number | null }).duration_seconds
+          return isDuration ? dur != null : dur == null
+        })
         .map((l) => {
           const row = l as {
             reps_logged: string | null
             weight_logged: number
             rir: number | null
+            duration_seconds: number | null
           }
+
+          if (isDuration) {
+            return {
+              reps: 0,
+              weight: Number(row.weight_logged) || 0,
+              completed: true,
+              rir: row.rir,
+              durationSeconds: row.duration_seconds ?? 0,
+            } satisfies SetPerformance
+          }
+
           const reps = parseInt(String(row.reps_logged), 10)
           return {
             reps: isNaN(reps) ? 0 : reps,

@@ -152,8 +152,12 @@
   "progression.setsUpDetail": "Poids au max — série ajoutée : {{sets}}×{{reps}} @ {{weight}} {{unit}}.",
   "progression.plateau": "Plateau atteint",
   "progression.plateauDetail": "Toutes les dimensions sont au max à {{sets}}×{{reps}} @ {{weight}} {{unit}}. Place à un nouveau stimulus !",
+  "progression.durationUp": "Durée en hausse",
+  "progression.durationUpDetail": "Toutes les séries réussies — passé à {{duration}}s pour {{sets}} séries à {{weight}} {{unit}}.",
   "progression.autoAppliedHint": "Déjà appliqué — modifie n'importe quelle valeur si besoin.",
   "progression.tryGenerator": "Essaye le générateur IA pour un nouveau cycle",
+  "autoDetectLoading": "{{name}} : poids ajouté — débloquer la progression de charge ?",
+  "autoDetectLoadingAction": "Débloquer",
   "historySheet.epleyInfoLabel": "Qu’est-ce que le 1RM estimé ?",
   "historySheet.epleyInfoTitle": "1RM estimé (formule d’Epley)",
   "historySheet.epleyInfoBody": "Cette courbe montre votre meilleur 1RM estimé par séance — la charge que vous pourriez probablement soulever une seule fois, déduite de ce que vous avez réellement enregistré (poids × répétitions).\n\nNous utilisons la formule d’Epley, très répandue en musculation. Ce n’est pas une mesure de laboratoire, mais ça aide à comparer les séances quand vous chargez plus lourd ou faites moins de répétitions."

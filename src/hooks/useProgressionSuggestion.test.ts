@@ -54,12 +54,26 @@ describe("useProgressionSuggestion", () => {
     mockLastPerformance = null
   })
 
-  it("returns null for duration exercises", () => {
-    mockLastPerformance = [makePerf()]
+  it("returns a duration suggestion for duration exercises with history", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 0, durationSeconds: 30 }),
+      makePerf({ reps: 0, durationSeconds: 30 }),
+      makePerf({ reps: 0, durationSeconds: 30 }),
+    ]
+    const ex = makeExercise({
+      target_duration_seconds: 30,
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 45,
+      duration_increment_seconds: 5,
+      max_weight_reached: true,
+    })
     const { result } = renderHookWithProviders(() =>
-      useProgressionSuggestion(makeExercise(), "duration"),
+      useProgressionSuggestion(ex, "duration"),
     )
-    expect(result.current).toBeNull()
+    expect(result.current).not.toBeNull()
+    expect(result.current!.volumeType).toBe("duration")
+    expect(result.current!.rule).toBe("DURATION_UP")
+    expect(result.current!.duration).toBe(35)
   })
 
   it("returns null when lastPerformance is null (no prior session)", () => {

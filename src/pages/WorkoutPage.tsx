@@ -34,7 +34,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } from "@/lib/syncService"
-import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance } from "@/lib/progression"
+import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance, type VolumePrescription } from "@/lib/progression"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
@@ -647,23 +647,57 @@ export function WorkoutPage() {
     )
 
     const progressionTargets: ProgressionTarget[] = []
+    const autoDetectLoadingExercises: WorkoutExercise[] = []
+
     for (const ex of exercises) {
       const lib = exerciseById.get(ex.exercise_id)
-      if (lib?.measurement_type === "duration") continue
-
-      const currentReps = parseInt(ex.reps, 10)
-      if (isNaN(currentReps)) continue
-
+      const isDuration = lib?.measurement_type === "duration"
       const rawRows = session.setsData[ex.id] ?? []
-      const performance: SetPerformance[] = rawRows
-        .map((r) => normalizeSessionSetRow(r))
-        .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "reps" } => r.kind === "reps")
-        .map((r) => ({
-          reps: parseInt(r.reps, 10) || 0,
-          weight: toKg(Number(r.weight) || 0),
-          completed: r.done,
-          rir: (r as { rir?: number }).rir ?? null,
-        }))
+      const normalized = rawRows.map((r) => normalizeSessionSetRow(r))
+
+      let volume: VolumePrescription
+      let performance: SetPerformance[]
+
+      if (isDuration) {
+        const target =
+          ex.target_duration_seconds ??
+          lib?.default_duration_seconds ??
+          30
+        volume = {
+          type: "duration",
+          current: target,
+          min: ex.duration_range_min_seconds ?? Math.max(5, target - 10),
+          max: ex.duration_range_max_seconds ?? target + 15,
+          increment: ex.duration_increment_seconds ?? 5,
+        }
+        performance = normalized
+          .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "duration" } => r.kind === "duration")
+          .map((r) => ({
+            reps: 0,
+            weight: toKg(Number(r.weight) || 0),
+            completed: r.done,
+            rir: null,
+            durationSeconds: r.loggedSeconds ?? r.targetSeconds ?? 0,
+          }))
+      } else {
+        const currentReps = parseInt(ex.reps, 10)
+        if (isNaN(currentReps)) continue
+        volume = {
+          type: "reps",
+          current: currentReps,
+          min: ex.rep_range_min ?? Math.max(1, currentReps - 2),
+          max: ex.rep_range_max ?? currentReps + 2,
+          increment: 1,
+        }
+        performance = normalized
+          .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "reps" } => r.kind === "reps")
+          .map((r) => ({
+            reps: parseInt(r.reps, 10) || 0,
+            weight: toKg(Number(r.weight) || 0),
+            completed: r.done,
+            rir: (r as { rir?: number }).rir ?? null,
+          }))
+      }
 
       if (performance.length === 0) continue
 
@@ -672,15 +706,16 @@ export function WorkoutPage() {
       const currentWeight = maxPerformanceWeight > 0 ? maxPerformanceWeight : templateWeight
 
       const prescription: ProgressionPrescription = {
-        currentReps,
+        volume,
         currentWeight,
         currentSets: ex.sets,
-        repRangeMin: ex.rep_range_min ?? Math.max(1, currentReps - 2),
-        repRangeMax: ex.rep_range_max ?? currentReps + 2,
         setRangeMin: ex.set_range_min ?? Math.max(1, ex.sets - 1),
         setRangeMax: ex.set_range_max ?? Math.min(6, ex.sets + 2),
         weightIncrement: resolveWeightIncrement(ex.weight_increment ?? null, lib?.equipment),
         maxWeightReached: ex.max_weight_reached ?? false,
+        currentReps: volume.type === "reps" ? volume.current : 0,
+        repRangeMin: volume.type === "reps" ? volume.min : 0,
+        repRangeMax: volume.type === "reps" ? volume.max : 0,
       }
 
       const suggestion = computeNextSessionTarget(prescription, performance)
@@ -688,19 +723,49 @@ export function WorkoutPage() {
         suggestion &&
         suggestion.rule !== "HOLD_INCOMPLETE" &&
         suggestion.rule !== "HOLD_NEAR_FAILURE" &&
-        !isNaN(suggestion.reps) &&
         !isNaN(suggestion.weight) &&
         !isNaN(suggestion.sets) &&
-        suggestion.reps > 0 &&
         suggestion.sets > 0
       ) {
-        progressionTargets.push({
+        const target: ProgressionTarget = {
           workoutExerciseId: ex.id,
           reps: suggestion.reps,
           weight: suggestion.weight,
           sets: suggestion.sets,
-        })
+        }
+        if (isDuration && suggestion.duration != null) {
+          target.targetDurationSeconds = suggestion.duration
+        }
+        if (!isDuration && (isNaN(suggestion.reps) || suggestion.reps <= 0)) continue
+        progressionTargets.push(target)
       }
+
+      // Auto-detect loading: if exercise has max_weight_reached=true but user logged weight > 0
+      if (ex.max_weight_reached === true) {
+        const hasWeight = rawRows.some((r) => Number(r.weight) > 0)
+        if (hasWeight) {
+          autoDetectLoadingExercises.push(ex)
+        }
+      }
+    }
+
+    for (const ex of autoDetectLoadingExercises) {
+      toast(t("autoDetectLoading", { name: ex.name_snapshot }), {
+        action: {
+          label: t("autoDetectLoadingAction"),
+          onClick: () => {
+            const dayId = ex.workout_day_id
+            supabase
+              .from("workout_exercises")
+              .update({ max_weight_reached: false })
+              .eq("id", ex.id)
+              .then(() => {
+                queryClient.invalidateQueries({ queryKey: ["workout-exercises", dayId] })
+              })
+          },
+        },
+        duration: 8000,
+      })
     }
 
     enqueueSessionFinish({
