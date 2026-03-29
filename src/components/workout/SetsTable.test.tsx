@@ -10,6 +10,7 @@ import { renderWithProviders, createTestI18n } from "@/test/utils"
 import { sessionAtom, restAtom, type SessionState } from "@/store/atoms"
 import type { Exercise, WorkoutExercise } from "@/types/database"
 import type { ProgressionSuggestion } from "@/lib/progression"
+import type { SessionSetRow } from "@/lib/sessionSetRow"
 import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
@@ -826,5 +827,240 @@ describe("SetsTable – duration exercises", () => {
     expect(enqueueSetLogMock).toHaveBeenCalledWith(
       expect.objectContaining({ durationSeconds: 1 }),
     )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T50 — Cascade batch update & manual override integration tests
+// ---------------------------------------------------------------------------
+
+const FIVE_SET_SESSION: SessionState = {
+  ...BASE_SESSION,
+  setsData: {
+    "workout-ex-1": [
+      { kind: "reps", reps: "10", weight: "80", done: false },
+      { kind: "reps", reps: "10", weight: "80", done: false },
+      { kind: "reps", reps: "10", weight: "80", done: false },
+      { kind: "reps", reps: "10", weight: "80", done: false },
+      { kind: "reps", reps: "10", weight: "80", done: false },
+    ],
+  },
+}
+
+const EXERCISE_80KG: WorkoutExercise = {
+  ...EXERCISE,
+  weight: "80",
+  sets: 5,
+}
+
+describe("SetsTable – cascade batch update (T50)", () => {
+  beforeEach(() => {
+    enqueueSetLogMock.mockClear()
+    mockLibExercise = undefined
+  })
+
+  it("batch update: all remaining sets get suggestions after RIR confirm", async () => {
+    mockRirValue = 0
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE_80KG} sessionId="s-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, FIVE_SET_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows[0].done).toBe(true)
+    // Cascade deload: 80 → 77.5 → 75 (capped), 75, 75
+    expect(rows[1]).toMatchObject({ kind: "reps", weight: "77.5", reps: "10" })
+    expect(rows[2]).toMatchObject({ kind: "reps", weight: "75", reps: "10" })
+    expect(rows[3]).toMatchObject({ kind: "reps", weight: "75", reps: "10" })
+    expect(rows[4]).toMatchObject({ kind: "reps", weight: "75", reps: "10" })
+  })
+
+  it("manual override respected: manuallyEdited set is skipped by cascade", async () => {
+    mockRirValue = 0
+    const user = userEvent.setup()
+    const sessionWithManualEdit: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "80", done: false },
+          { kind: "reps", reps: "10", weight: "80", done: false },
+          { kind: "reps", reps: "10", weight: "80", done: false, manuallyEdited: true },
+          { kind: "reps", reps: "10", weight: "80", done: false },
+          { kind: "reps", reps: "10", weight: "80", done: false },
+        ],
+      },
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE_80KG} sessionId="s-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, sessionWithManualEdit)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    // Set 3 (idx 2) was manuallyEdited — should be untouched
+    expect(rows[2]).toMatchObject({ kind: "reps", weight: "80", reps: "10", manuallyEdited: true })
+    // Other remaining sets should be updated
+    expect(rows[1]).toMatchObject({ kind: "reps", weight: "77.5", reps: "10" })
+    expect(rows[3]).toMatchObject({ kind: "reps", weight: "75", reps: "10" })
+    expect(rows[4]).toMatchObject({ kind: "reps", weight: "75", reps: "10" })
+  })
+
+  it("cascade cap: deload stops compounding after 2 steps", async () => {
+    mockRirValue = 0
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE_80KG} sessionId="s-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, FIVE_SET_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    // After 2 deload steps (77.5 → 75), rest stays at 75
+    expect(Number(rows[1].kind === "reps" && rows[1].weight)).toBe(77.5)
+    expect(Number(rows[2].kind === "reps" && rows[2].weight)).toBe(75)
+    expect(Number(rows[3].kind === "reps" && rows[3].weight)).toBe(75)
+    expect(Number(rows[4].kind === "reps" && rows[4].weight)).toBe(75)
+  })
+
+  it("reps-only equipment: weight suppressed, reps adjust", async () => {
+    mockRirValue = 0
+    const user = userEvent.setup()
+    const bodyweightExercise: WorkoutExercise = {
+      ...EXERCISE_80KG,
+      weight: "0",
+      reps: "15-25",
+      rep_range_min: 15,
+      rep_range_max: 25,
+    }
+    const bodyweightSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "20", weight: "0", done: false },
+          { kind: "reps", reps: "20", weight: "0", done: false },
+          { kind: "reps", reps: "20", weight: "0", done: false },
+        ],
+      },
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={bodyweightExercise} sessionId="s-1" isReadOnly={false} equipment="bodyweight" />,
+    )
+    act(() => {
+      store.set(sessionAtom, bodyweightSession)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    // bodyweight RIR 0 → reps-only, proportional deload: round(20*0.85)=17, min(17,19)=17
+    expect(rows[1]).toMatchObject({ kind: "reps", weight: "0" })
+    expect(Number(rows[1].kind === "reps" && rows[1].reps)).toBeLessThan(20)
+  })
+
+  it("non-numeric reps passthrough: AMRAP prescription does not crash", async () => {
+    mockRirValue = 2
+    const user = userEvent.setup()
+    const amrapExercise: WorkoutExercise = {
+      ...EXERCISE_80KG,
+      reps: "AMRAP",
+      rep_range_min: undefined,
+      rep_range_max: undefined,
+    }
+    const amrapSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "12", weight: "60", done: false },
+          { kind: "reps", reps: "12", weight: "60", done: false },
+        ],
+      },
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={amrapExercise} sessionId="s-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, amrapSession)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    expect(rows[0].done).toBe(true)
+    expect(rows[1].kind).toBe("reps")
+  })
+
+  it("duration sets are not affected by cascade batch update", async () => {
+    mockRirValue = 2
+    mockLibExercise = undefined
+    const user = userEvent.setup()
+    const mixedSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "80", done: false },
+          { kind: "duration", targetSeconds: 30, weight: "0", done: false, timerStartedAt: null } as SessionSetRow,
+          { kind: "reps", reps: "10", weight: "80", done: false },
+        ],
+      },
+    }
+
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE_80KG} sessionId="s-1" isReadOnly={false} equipment="barbell" />,
+    )
+    act(() => {
+      store.set(sessionAtom, mixedSession)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    // Duration row should be untouched
+    expect(rows[1]).toMatchObject({ kind: "duration", targetSeconds: 30 })
+    // Reps row at idx 2 should be updated (hold for RIR 2)
+    expect(rows[2]).toMatchObject({ kind: "reps", weight: "80", reps: "10" })
+  })
+
+  it("updateField sets manuallyEdited flag when value changes", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="s-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const repsInputs = screen.getAllByDisplayValue("10")
+    await user.clear(repsInputs[0])
+    await user.type(repsInputs[0], "8")
+
+    const rows = store.get(sessionAtom).setsData["workout-ex-1"]
+    const set1 = rows[0] as { manuallyEdited?: boolean }
+    expect(set1.manuallyEdited).toBe(true)
   })
 })

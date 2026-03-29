@@ -5,7 +5,10 @@ import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
 import { computeEpley1RM } from "@/lib/epley"
-import { computeIntraSessionSuggestionLegacy as computeIntraSessionSuggestion } from "@/lib/rirSuggestion"
+import {
+  computeCascadeSuggestions,
+  parseTargetRepRange,
+} from "@/lib/rirSuggestion"
 import { useBest1RM } from "@/hooks/useBest1RM"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
@@ -256,7 +259,12 @@ export function SetsTable({
       )
       const cur = exerciseSets[setIdx]
       if (!cur || !isRepsRow(cur)) return prev
-      exerciseSets[setIdx] = { ...cur, [field]: value }
+      if (cur[field] === value) return prev
+      exerciseSets[setIdx] = {
+        ...cur,
+        [field]: value,
+        ...(!cur.done && { manuallyEdited: true }),
+      }
       return {
         ...prev,
         setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
@@ -355,28 +363,51 @@ export function SetsTable({
         accumulatedPause: 0,
       })
 
-      const nextIdx = setIdx + 1
-      if (nextIdx < exerciseSets.length && !exerciseSets[nextIdx].done) {
-        const nextRow = exerciseSets[nextIdx]
-        if (isRepsRow(nextRow)) {
-          const suggestion = computeIntraSessionSuggestion(
-            rir,
-            displayWeight,
-            currentSet.reps,
-            unit,
-            equipment,
-          )
-          exerciseSets[nextIdx] = {
-            ...nextRow,
-            weight: String(suggestion.weight),
-            reps: suggestion.reps,
-          }
-        }
-      }
+      const completedSets = exerciseSets
+        .slice(0, setIdx + 1)
+        .filter(
+          (row): row is SessionSetRowReps & { rir: number } =>
+            row.done && isRepsRow(row) && row.rir !== undefined,
+        )
+        .map(({ reps, weight, rir }) => ({
+          reps: parseInt(reps, 10) || 0,
+          weight: Number(weight) || 0,
+          rir,
+        }))
+
+      const targetRepRange = parseTargetRepRange(exercise)
+
+      const eligible = exerciseSets
+        .map((row, i) => ({ row, i }))
+        .filter(
+          ({ row, i }) =>
+            i > setIdx && !row.done && isRepsRow(row) && !row.manuallyEdited,
+        )
+
+      const suggestions =
+        eligible.length > 0 && completedSets.length > 0
+          ? computeCascadeSuggestions(
+              completedSets,
+              eligible.length,
+              targetRepRange,
+              unit,
+              equipment ?? "",
+            )
+          : []
+
+      const suggestionByIdx = new Map(
+        eligible.map(({ i }, j) => [i, suggestions[j]] as const),
+      )
+
+      const updatedSets = exerciseSets.map((row, i) => {
+        const suggestion = suggestionByIdx.get(i)
+        if (!suggestion || !isRepsRow(row)) return row
+        return { ...row, weight: String(suggestion.weight), reps: suggestion.reps }
+      })
 
       setSession((prev) => ({
         ...prev,
-        setsData: { ...prev.setsData, [exercise.id]: exerciseSets },
+        setsData: { ...prev.setsData, [exercise.id]: updatedSets },
         totalSetsDone: prev.totalSetsDone + 1,
       }))
     },

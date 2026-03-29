@@ -286,26 +286,3 @@ export function computeCascadeSuggestions(
   return results
 }
 
-// ---------------------------------------------------------------------------
-// Legacy shim (keeps SetsTable build-green until T50 rewires)
-// ---------------------------------------------------------------------------
-
-/** Old 5-arg signature — kept for SetsTable until T50 rewires to the new ctx-based API. */
-export function computeIntraSessionSuggestionLegacy(
-  prevRir: number,
-  prevWeight: number,
-  prevReps: string,
-  unit: WeightUnit,
-  equipment?: string,
-): IntraSessionSuggestion {
-  return computeIntraSessionSuggestion({
-    completedSets: [],
-    currentRir: prevRir,
-    currentWeight: prevWeight,
-    currentReps: parseInt(prevReps, 10) || 0,
-    targetRepRange: null,
-    unit,
-    equipment: equipment ?? "",
-    tier: getAdjustmentTier(equipment ?? "", prevWeight),
-  })
-}
