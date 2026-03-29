@@ -66,17 +66,11 @@ export function buildBodyMapData(
     }
   }
 
-  const result: IExerciseData[] = []
-  for (const [slug, freq] of frequencyBySlug) {
-    const names = exercisesBySlug.get(slug)!
-    result.push({
-      name: [...names].join(", "),
-      muscles: [slug as Muscle],
-      frequency: freq,
-    })
-  }
-
-  return result
+  return [...frequencyBySlug].map(([slug, freq]) => ({
+    name: [...exercisesBySlug.get(slug)!].join(", "),
+    muscles: [slug as Muscle],
+    frequency: freq,
+  }))
 }
 
 /**
@@ -88,21 +82,16 @@ export function buildSingleExerciseData(
   muscleGroup: string,
   secondaryMuscles?: string[] | null,
 ): IExerciseData[] {
-  const data: IExerciseData[] = []
-
   const primarySlugs = mapMuscleToSlugs(muscleGroup)
-  if (primarySlugs.length > 0) {
-    data.push({ name: muscleGroup, muscles: primarySlugs, frequency: 2 })
-  }
+  const primary: IExerciseData[] =
+    primarySlugs.length > 0
+      ? [{ name: muscleGroup, muscles: primarySlugs, frequency: 2 }]
+      : []
 
-  if (secondaryMuscles) {
-    for (const sec of secondaryMuscles) {
-      const slugs = mapMuscleToSlugs(sec)
-      if (slugs.length > 0) {
-        data.push({ name: sec, muscles: slugs, frequency: 1 })
-      }
-    }
-  }
+  const secondary: IExerciseData[] = (secondaryMuscles ?? [])
+    .map((sec) => ({ name: sec, muscles: mapMuscleToSlugs(sec) }))
+    .filter(({ muscles }) => muscles.length > 0)
+    .map(({ name, muscles }) => ({ name, muscles, frequency: 1 }))
 
-  return data
+  return [...primary, ...secondary]
 }

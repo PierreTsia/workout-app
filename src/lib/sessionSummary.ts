@@ -1,4 +1,5 @@
 import { formatSecondsMMSS } from "@/lib/formatters"
+import { groupBy } from "@/lib/utils"
 import type { SetLog, WorkoutExercise } from "@/types/database"
 
 function setLogDisplayValue(log: SetLog): string {
@@ -60,36 +61,19 @@ export function summarizeSessionLogs(
   logs: SetLog[],
   templateExercises: WorkoutExercise[],
 ): ExercisePreviewItem[] {
-  const grouped = new Map<
-    string,
-    {
-      name: string
-      reps: string[]
-      maxWeight: number
-      /** True if any set for this exercise was logged as duration (not reps). */
-      hasDuration: boolean
-    }
-  >()
+  const logsByExercise = groupBy(logs, (log) => log.exercise_id)
 
-  for (const log of logs) {
-    let entry = grouped.get(log.exercise_id)
-    if (!entry) {
-      entry = {
-        name: log.exercise_name_snapshot,
-        reps: [],
-        maxWeight: 0,
-        hasDuration: false,
-      }
-      grouped.set(log.exercise_id, entry)
-    }
-    if (log.duration_seconds != null) {
-      entry.hasDuration = true
-    }
-    entry.reps.push(setLogDisplayValue(log))
-    if (log.weight_logged > entry.maxWeight) {
-      entry.maxWeight = log.weight_logged
-    }
-  }
+  const grouped = new Map(
+    [...logsByExercise].map(([exerciseId, exerciseLogs]) => [
+      exerciseId,
+      {
+        name: exerciseLogs[0].exercise_name_snapshot,
+        reps: exerciseLogs.map(setLogDisplayValue),
+        maxWeight: Math.max(...exerciseLogs.map((l) => l.weight_logged)),
+        hasDuration: exerciseLogs.some((l) => l.duration_seconds != null),
+      },
+    ]),
+  )
 
   const emojiByExerciseId = new Map<string, string>()
   const orderByExerciseId = new Map<string, number>()
@@ -98,22 +82,19 @@ export function summarizeSessionLogs(
     orderByExerciseId.set(ex.exercise_id, ex.sort_order)
   }
 
-  const items: ExercisePreviewItem[] = []
-  for (const [exerciseId, entry] of grouped) {
-    const repsLabel = repsRangeLabel(
-      entry.reps,
-      entry.hasDuration ? "duration" : "reps",
-    )
-
-    items.push({
+  const items: ExercisePreviewItem[] = [...grouped].map(
+    ([exerciseId, entry]) => ({
       id: exerciseId,
       emoji: emojiByExerciseId.get(exerciseId) ?? "🏋️",
       name: entry.name,
       sets: entry.reps.length,
-      reps: repsLabel,
+      reps: repsRangeLabel(
+        entry.reps,
+        entry.hasDuration ? "duration" : "reps",
+      ),
       maxWeight: entry.maxWeight,
-    })
-  }
+    }),
+  )
 
   items.sort(
     (a, b) =>

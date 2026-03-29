@@ -1,4 +1,5 @@
 import type { Exercise } from "@/types/database"
+import { groupBy } from "@/lib/utils"
 import type {
   GeneratorConstraints,
   GeneratedWorkout,
@@ -55,25 +56,19 @@ function pickDistributed(
   targetCount: number,
   groups: readonly string[],
 ): Exercise[] {
-  const byGroup = new Map<string, Exercise[]>()
-  for (const ex of pool) {
-    const list = byGroup.get(ex.muscle_group) ?? []
-    list.push(ex)
-    byGroup.set(ex.muscle_group, list)
-  }
+  const byGroup = groupBy(pool, (ex) => ex.muscle_group)
 
   const availableGroups = groups.filter((g) => byGroup.has(g))
   if (availableGroups.length === 0) return pickWithVariety(pool, targetCount)
 
   const perGroup = Math.max(1, Math.floor(targetCount / availableGroups.length))
   const remainder = targetCount - perGroup * availableGroups.length
-  const picked: Exercise[] = []
 
-  for (let i = 0; i < availableGroups.length; i++) {
-    const groupPool = shuffleArray(byGroup.get(availableGroups[i]) ?? [])
+  const picked = availableGroups.flatMap((group, i) => {
+    const groupPool = shuffleArray(byGroup.get(group) ?? [])
     const take = perGroup + (i < remainder ? 1 : 0)
-    picked.push(...groupPool.slice(0, take))
-  }
+    return groupPool.slice(0, take)
+  })
 
   if (picked.length < targetCount) {
     const pickedIds = new Set(picked.map((e) => e.id))

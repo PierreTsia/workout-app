@@ -138,22 +138,23 @@ export function SetsTable({
           return prev
         }
 
-        const updated: SessionSetRow[] = exerciseSets.map((r) => {
+        const mapped: SessionSetRow[] = exerciseSets.map((r) => {
           if (!isDurationRow(r) || r.done) return r
           return { ...r, targetSeconds: sugDuration, weight: sugWeight }
         })
 
-        if (suggestion.sets > updated.length) {
-          for (let i = updated.length; i < suggestion.sets; i++) {
-            updated.push({
+        const updated = mapped.concat(
+          Array.from(
+            { length: Math.max(0, suggestion.sets - mapped.length) },
+            (): SessionSetRow => ({
               kind: "duration" as const,
               targetSeconds: sugDuration,
               weight: sugWeight,
               done: false,
               timerStartedAt: null,
-            })
-          }
-        }
+            }),
+          ),
+        )
 
         appliedProgressionRef.current = key
         return {
@@ -173,21 +174,22 @@ export function SetsTable({
         return prev
       }
 
-      const updated: SessionSetRow[] = exerciseSets.map((r) => {
+      const mapped: SessionSetRow[] = exerciseSets.map((r) => {
         if (!isRepsRow(r) || r.done) return r
         return { ...r, reps: sugReps, weight: sugWeight }
       })
 
-      if (suggestion.sets > updated.length) {
-        for (let i = updated.length; i < suggestion.sets; i++) {
-          updated.push({
+      const updated = mapped.concat(
+        Array.from(
+          { length: Math.max(0, suggestion.sets - mapped.length) },
+          (): SessionSetRow => ({
             kind: "reps" as const,
             reps: sugReps,
             weight: sugWeight,
             done: false,
-          })
-        }
-      }
+          }),
+        ),
+      )
 
       appliedProgressionRef.current = key
       return {

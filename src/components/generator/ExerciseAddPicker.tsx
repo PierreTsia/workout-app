@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Search } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, groupBy } from "@/lib/utils"
 import { normalizeForSearch } from "@/lib/search"
 import { Input } from "@/components/ui/input"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -36,15 +36,10 @@ export function ExerciseAddPicker({
     )
   }, [pool, currentExerciseIds, search])
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Exercise[]>()
-    for (const ex of candidates) {
-      const list = map.get(ex.muscle_group) ?? []
-      list.push(ex)
-      map.set(ex.muscle_group, list)
-    }
-    return map
-  }, [candidates])
+  const grouped = useMemo(
+    () => groupBy(candidates, (ex) => ex.muscle_group),
+    [candidates],
+  )
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card p-3">

@@ -210,9 +210,8 @@ export function HeatmapCalendar({
     const totalDays = Math.ceil((end.getTime() - firstWeek.getTime()) / 86400000) + 1
     const weeks = Math.ceil(totalDays / 7)
 
-    const cells: HeatmapCell[] = []
-    for (let w = 0; w < weeks; w++) {
-      for (let d = 0; d < 7; d++) {
+    return Array.from({ length: weeks }, (_, w) =>
+      Array.from({ length: 7 }, (_, d) => {
         const date = addDays(firstWeek, w * 7 + d)
         const inRange = date >= start && date <= end
         const key = toLocalDayKey(date)
@@ -221,7 +220,7 @@ export function HeatmapCalendar({
         const meta = inRange ? valueMap.get(key)?.meta : undefined
         const lvl = inRange ? levelForValue(v) : 0
 
-        cells.push({
+        return {
           date,
           key,
           value: v,
@@ -233,15 +232,9 @@ export function HeatmapCalendar({
             month: "short",
             day: "numeric",
           }),
-        })
-      }
-    }
-
-    const cols: HeatmapCell[][] = []
-    for (let i = 0; i < weeks; i++) {
-      cols.push(cells.slice(i * 7, i * 7 + 7))
-    }
-    return cols
+        }
+      }),
+    )
   }, [valueMap, endDate, rangeDays, weekStartsOn, levelCount, levelForValue])
 
   const monthLabels = React.useMemo(() => {

@@ -6,10 +6,8 @@ export function deriveEquipmentContexts(
   template: ProgramTemplate,
   alternatives: ExerciseAlternative[],
 ): UserEquipment[] {
-  const contexts: UserEquipment[] = ["gym"]
-
-  for (const ctx of ["home", "minimal"] as const) {
-    const allCovered = template.template_days.every((day) =>
+  const extra = (["home", "minimal"] as const).filter((ctx) =>
+    template.template_days.every((day) =>
       day.template_exercises.every((te) => {
         const eq = te.exercise?.equipment?.toLowerCase() ?? ""
         if (BODYWEIGHT_EQUIPMENT.includes(eq)) return true
@@ -17,9 +15,7 @@ export function deriveEquipmentContexts(
           (a) => a.exercise_id === te.exercise_id && a.equipment_context === ctx,
         )
       }),
-    )
-    if (allCovered) contexts.push(ctx)
-  }
-
-  return contexts
+    ),
+  )
+  return ["gym", ...extra]
 }
