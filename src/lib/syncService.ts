@@ -215,13 +215,14 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   }
 
   const meta = resolveSessionMeta(userId, payload.sessionId)
-  const composite = `${meta.realId}|${payload.exerciseId}|${payload.setNumber}|${payload.loggedAt}`
+  const composite = `${meta.realId}|${payload.exerciseId}|${payload.setNumber}`
 
   const queue = getQueue(userId)
-
-  // Local dedupe — skip if identical fingerprint already queued
   const fp = fingerprint(composite)
-  if (queue.some((item) => item.fingerprint === fp)) return
+
+  // Replace any existing queue item for the same (session, exercise, set)
+  // so that uncheck → re-check overwrites with the latest values.
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
 
   const item: QueueItem = {
     type: "set_log",
@@ -232,8 +233,8 @@ export function enqueueSetLog(payload: SetLogPayload): void {
     fingerprint: fp,
   }
 
-  queue.push(item)
-  setQueue(userId, queue)
+  filtered.push(item)
+  setQueue(userId, filtered)
   updatePendingCount(userId)
 }
 
@@ -461,18 +462,6 @@ async function ensureSession(
 async function processSetLog(item: QueueItem): Promise<boolean> {
   const p = item.payload as SetLogPayload
   try {
-    // Dedupe check
-    const { data: existing } = await supabase
-      .from("set_logs")
-      .select("id")
-      .eq("session_id", item.realSessionId)
-      .eq("exercise_id", p.exerciseId)
-      .eq("set_number", p.setNumber)
-      .eq("logged_at", new Date(p.loggedAt).toISOString())
-      .limit(1)
-
-    if (existing && existing.length > 0) return true // Already synced
-
     const base = {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
@@ -501,10 +490,14 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
             rir: p.rir ?? null,
           }
 
-    const { error } = await supabase.from("set_logs").insert(row)
+    const { error } = await supabase
+      .from("set_logs")
+      .upsert(row, {
+        onConflict: "session_id,exercise_id,set_number",
+      })
 
     if (error) {
-      console.error("[SyncService] set_log insert failed", error)
+      console.error("[SyncService] set_log upsert failed", error)
       return false
     }
     return true

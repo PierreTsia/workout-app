@@ -37,8 +37,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
 }
 
 let sessionsChain = createChain()
-let setLogsSelectChain = createChain({ data: [] })
-let setLogsInsertChain = createChain()
+let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
 
 const mockFrom = vi.fn()
@@ -173,19 +172,12 @@ describe("SyncService", () => {
 
     // Fresh chains per test
     sessionsChain = createChain()
-    setLogsSelectChain = createChain({ data: [] })
-    setLogsInsertChain = createChain()
+    setLogsChain = createChain()
     workoutExercisesChain = createChain()
 
-    let setLogsCallIndex = 0
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
-      if (table === "set_logs") {
-        // First call = select (dedupe), second = insert
-        const chain = setLogsCallIndex % 2 === 0 ? setLogsSelectChain : setLogsInsertChain
-        setLogsCallIndex++
-        return chain
-      }
+      if (table === "set_logs") return setLogsChain
       if (table === "workout_exercises") return workoutExercisesChain
       return createChain()
     })
@@ -249,6 +241,18 @@ describe("SyncService", () => {
       expect(readQueue()).toHaveLength(2)
     })
 
+    it("replaces existing queue item when the same set is re-logged (toggle fix)", () => {
+      enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000, rir: 2 }))
+      expect(readQueue()).toHaveLength(1)
+
+      enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 5000, rir: 1 }))
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].payload.loggedAt).toBe(5000)
+      expect(queue[0].payload.rir).toBe(1)
+    })
+
     it("updates queueSyncMetaAtom pendingCount after enqueue", () => {
       enqueueSetLog(makeSetLogPayload())
 
@@ -310,17 +314,15 @@ describe("SyncService", () => {
   // =========================================================================
 
   describe("drainQueue", () => {
-    it("drains 2 set_logs from the same session — upsert once, insert twice, queue empty", async () => {
+    it("drains 2 set_logs from the same session — session upsert once, set_logs upsert twice, queue empty", async () => {
       enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
       enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
 
       await drainQueue(USER_ID)
 
       expect(readQueue()).toHaveLength(0)
-      // sessions.upsert called once for ensureSession
       expect(sessionsChain.upsert).toHaveBeenCalledTimes(1)
-      // set_logs.insert called twice (one per set_log)
-      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(2)
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(2)
     })
 
     it("drains set_log + session_finish — session upserted with finish data", async () => {
@@ -344,17 +346,17 @@ describe("SyncService", () => {
       enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
       enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
 
-      // First set_log insert succeeds, second fails
-      let insertCallIndex = 0
-      setLogsInsertChain.then.mockImplementation(
+      // First set_log upsert succeeds, second fails
+      let upsertCallIndex = 0
+      setLogsChain.then.mockImplementation(
         (resolve: (v: unknown) => void) => {
-          insertCallIndex++
-          if (insertCallIndex <= 1) {
+          upsertCallIndex++
+          if (upsertCallIndex <= 1) {
             return resolve({ data: null, error: null })
           }
           return resolve({
             data: null,
-            error: { message: "insert failed" },
+            error: { message: "upsert failed" },
           })
         },
       )
@@ -373,31 +375,19 @@ describe("SyncService", () => {
       expect(failCall).toBeDefined()
     })
 
-    it("treats an existing row (server dedupe) as success and removes item", async () => {
+    it("upserts set_log with onConflict on the unique constraint", async () => {
       enqueueSetLog(makeSetLogPayload())
-
-      // Select returns an existing row → dedupe
-      setLogsSelectChain = createChain({ data: [{ id: "existing-row" }] })
-      let setLogsCallIndex = 0
-      mockFrom.mockImplementation((table: string) => {
-        if (table === "sessions") return sessionsChain
-        if (table === "set_logs") {
-          const chain =
-            setLogsCallIndex % 2 === 0
-              ? setLogsSelectChain
-              : setLogsInsertChain
-          setLogsCallIndex++
-          return chain
-        }
-        if (table === "workout_exercises") return workoutExercisesChain
-        return createChain()
-      })
 
       await drainQueue(USER_ID)
 
-      expect(readQueue()).toHaveLength(0)
-      // insert should never have been called
-      expect(setLogsInsertChain.insert).not.toHaveBeenCalled()
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      const [row, opts] = setLogsChain.upsert.mock.calls[0]
+      expect(opts).toEqual({ onConflict: "session_id,exercise_id,set_number" })
+      expect(row).toEqual(expect.objectContaining({
+        session_id: DETERMINISTIC_UUID,
+        exercise_id: "ex-1",
+        set_number: 1,
+      }))
     })
 
     it("returns immediately on empty queue without calling Supabase", async () => {
@@ -425,12 +415,8 @@ describe("SyncService", () => {
 
       // Let the first one finish
       resolveUpsert({ data: null, error: null })
-      // Also resolve the subsequent set_logs chains
-      setLogsSelectChain.then.mockImplementation(
-        (resolve: (v: unknown) => void) =>
-          resolve({ data: [], error: null }),
-      )
-      setLogsInsertChain.then.mockImplementation(
+      // Also resolve the subsequent set_logs chain
+      setLogsChain.then.mockImplementation(
         (resolve: (v: unknown) => void) =>
           resolve({ data: null, error: null }),
       )
@@ -484,14 +470,14 @@ describe("SyncService", () => {
       expect(statusCalls[1]).toBe("synced")
     })
 
-    it("passes rir value through to the set_logs insert", async () => {
+    it("passes rir value through to the set_logs upsert", async () => {
       enqueueSetLog(makeSetLogPayload({ rir: 3 }))
 
       await drainQueue(USER_ID)
 
-      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
-      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
-      expect(insertArg).toEqual(expect.objectContaining({ rir: 3 }))
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(expect.objectContaining({ rir: 3 }))
     })
 
     it("maps undefined rir to null for old payloads without rir field", async () => {
@@ -499,12 +485,12 @@ describe("SyncService", () => {
 
       await drainQueue(USER_ID)
 
-      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
-      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
-      expect(insertArg).toEqual(expect.objectContaining({ rir: null }))
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(expect.objectContaining({ rir: null }))
     })
 
-    it("inserts duration set with null reps and null estimated_1rm", async () => {
+    it("upserts duration set with null reps and null estimated_1rm", async () => {
       enqueueSetLog({
         sessionId: "local-session-1",
         exerciseId: "ex-1",
@@ -517,9 +503,9 @@ describe("SyncService", () => {
 
       await drainQueue(USER_ID)
 
-      expect(setLogsInsertChain.insert).toHaveBeenCalledTimes(1)
-      const insertArg = setLogsInsertChain.insert.mock.calls[0][0]
-      expect(insertArg).toEqual(
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
         expect.objectContaining({
           reps_logged: null,
           duration_seconds: 45,
