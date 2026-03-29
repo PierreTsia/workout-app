@@ -11,18 +11,15 @@ import { formatSessionRowDuration } from "@/lib/sessionRowDuration"
 import type { Session, SetLog } from "@/types/database"
 
 function groupByExercise(logs: SetLog[]) {
-  const groups: { name: string; sets: SetLog[] }[] = []
-  let current: { name: string; sets: SetLog[] } | null = null
-
-  for (const log of logs) {
-    if (!current || current.name !== log.exercise_name_snapshot) {
-      current = { name: log.exercise_name_snapshot, sets: [] }
-      groups.push(current)
+  return logs.reduce<{ name: string; sets: SetLog[] }[]>((groups, log) => {
+    const last = groups.at(-1)
+    if (last && last.name === log.exercise_name_snapshot) {
+      last.sets.push(log)
+    } else {
+      groups.push({ name: log.exercise_name_snapshot, sets: [log] })
     }
-    current.sets.push(log)
-  }
-
-  return groups
+    return groups
+  }, [])
 }
 
 function SessionSetLogs({ sessionId }: { sessionId: string }) {

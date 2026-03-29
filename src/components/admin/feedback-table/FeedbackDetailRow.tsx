@@ -10,17 +10,12 @@ function parseErrorDetails(
   errorDetails: Record<string, string[]>,
   t: (key: string) => string,
 ): { field: string; options: string[] }[] {
-  const entries: { field: string; options: string[] }[] = []
-
-  for (const [field, options] of Object.entries(errorDetails)) {
-    if (!Array.isArray(options)) continue
-    entries.push({
+  return Object.entries(errorDetails)
+    .filter((entry): entry is [string, string[]] => Array.isArray(entry[1]))
+    .map(([field, options]) => ({
       field: t(`feedback.fields.${field}`),
       options: options.map((opt) => t(`feedback.errorOptions.${opt}`)),
-    })
-  }
-
-  return entries
+    }))
 }
 
 export function FeedbackDetailRow({ feedback }: FeedbackDetailRowProps) {

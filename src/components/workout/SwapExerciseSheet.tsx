@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { groupBy } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 import { Info, Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated"
@@ -87,16 +88,14 @@ export function SwapExerciseSheet({
 
   const excludeSet = useMemo(() => new Set(currentExerciseIds), [currentExerciseIds])
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Exercise[]>()
-    for (const ex of paginatedData ?? []) {
-      if (excludeSet.has(ex.id)) continue
-      const list = map.get(ex.muscle_group) ?? []
-      list.push(ex)
-      map.set(ex.muscle_group, list)
-    }
-    return map
-  }, [paginatedData, excludeSet])
+  const grouped = useMemo(
+    () =>
+      groupBy(
+        (paginatedData ?? []).filter((ex) => !excludeSet.has(ex.id)),
+        (ex) => ex.muscle_group,
+      ),
+    [paginatedData, excludeSet],
+  )
 
   const activeFilterCount =
     (selectedMuscleGroup ? 1 : 0) + selectedEquipment.length + selectedDifficulty.length

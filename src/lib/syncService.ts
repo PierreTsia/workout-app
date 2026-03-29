@@ -1,4 +1,5 @@
 import { getDefaultStore } from "jotai"
+import { groupBy } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { queryClient } from "@/lib/queryClient"
 import {
@@ -309,13 +310,7 @@ export async function drainQueue(userId: string): Promise<void> {
   const exerciseIds = new Set<string>()
   const ensuredSessions = new Set<string>()
 
-  // Group by realSessionId to ensure session rows exist before set_logs
-  const sessionGroups = new Map<string, QueueItem[]>()
-  for (const item of queue) {
-    const group = sessionGroups.get(item.realSessionId) ?? []
-    group.push(item)
-    sessionGroups.set(item.realSessionId, group)
-  }
+  const sessionGroups = groupBy(queue, (item) => item.realSessionId)
 
   const surviving: QueueItem[] = []
 

@@ -87,23 +87,18 @@ function parseSession(raw: unknown): ExerciseHistorySessionRow | null {
   if (typeof session_id !== "string") return null
   if (typeof finished_at !== "string") return null
   if (!Array.isArray(setsRaw)) return null
-  const sets: ExerciseHistorySetRow[] = []
-  for (const s of setsRaw) {
-    const row = parseSet(s)
-    if (row) sets.push(row)
-  }
+  const sets = setsRaw
+    .map(parseSet)
+    .filter((r): r is ExerciseHistorySetRow => r !== null)
   return { session_id, finished_at, sets }
 }
 
 /** Parses RPC jsonb result from get_exercise_history_for_sheet. */
 export function parseExerciseHistorySheetPayload(data: unknown): ExerciseHistorySessionRow[] {
   if (!Array.isArray(data)) return []
-  const out: ExerciseHistorySessionRow[] = []
-  for (const row of data) {
-    const s = parseSession(row)
-    if (s) out.push(s)
-  }
-  return out
+  return data
+    .map(parseSession)
+    .filter((s): s is ExerciseHistorySessionRow => s !== null)
 }
 
 /** Estimated 1RM (kg) for one logged set — prefers stored value, else Epley from weight × reps. */
