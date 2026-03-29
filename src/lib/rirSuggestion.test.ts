@@ -130,6 +130,16 @@ describe("parseTargetRepRange", () => {
     })
     expect(parseTargetRepRange(ex)).toEqual({ min: 6, max: 10 })
   })
+
+  it("normalises swapped min > max in structured fields", () => {
+    const ex = makeExercise({ rep_range_min: 12, rep_range_max: 8 })
+    expect(parseTargetRepRange(ex)).toEqual({ min: 8, max: 12 })
+  })
+
+  it("normalises swapped range string like '12-8'", () => {
+    const ex = makeExercise({ reps: "12-8" })
+    expect(parseTargetRepRange(ex)).toEqual({ min: 8, max: 12 })
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -195,6 +205,14 @@ describe("computeIntraSessionSuggestion — weight-first", () => {
         makeCtx({ currentRir: 0, currentWeight: 2.5 }),
       )
       expect(r).toEqual({ weight: 2.5, reps: "10" })
+    })
+
+    it("never increases weight on deload when currentWeight < increment", () => {
+      const r = computeIntraSessionSuggestion(
+        makeCtx({ currentRir: 0, currentWeight: 1 }),
+      )
+      expect(r.weight).toBeLessThanOrEqual(1)
+      expect(r).toEqual({ weight: 1, reps: "10" })
     })
 
     it("returns 0 weight when currentWeight is 0", () => {

@@ -88,11 +88,17 @@ export function parseTargetRepRange(
     exercise.rep_range_min > 0 &&
     exercise.rep_range_max > 0
   ) {
-    return { min: exercise.rep_range_min, max: exercise.rep_range_max }
+    const lo = Math.min(exercise.rep_range_min, exercise.rep_range_max)
+    const hi = Math.max(exercise.rep_range_min, exercise.rep_range_max)
+    return { min: lo, max: hi }
   }
 
   const match = RANGE_RE.exec(exercise.reps)
-  if (match) return { min: Number(match[1]), max: Number(match[2]) }
+  if (match) {
+    const a = Number(match[1])
+    const b = Number(match[2])
+    return { min: Math.min(a, b), max: Math.max(a, b) }
+  }
 
   if (FIXED_RE.test(exercise.reps)) {
     const n = Number(exercise.reps)
@@ -162,7 +168,7 @@ function weightFirstRule(
 
   switch (bucket) {
     case "failure": {
-      const newWeight = w <= 0 ? 0 : Math.max(inc, w - inc)
+      const newWeight = w <= 0 ? 0 : Math.min(w, Math.max(inc, w - inc))
       return {
         weight: newWeight,
         reps: shortfall ? String(reps) : String(reps),
