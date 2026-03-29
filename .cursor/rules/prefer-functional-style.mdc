@@ -1,0 +1,56 @@
+---
+description: Prefer declarative array transforms over imperative loops with mutable accumulators
+globs: "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+# Prefer Functional Style
+
+Use `.filter()`, `.map()`, `.reduce()`, `.flatMap()` over `for` loops that push into mutable arrays. All intermediate variables should be `const`.
+
+## What to avoid
+
+```typescript
+// ❌ Mutable accumulator + for loop
+const results: Item[] = []
+for (let i = 0; i < items.length; i++) {
+  if (items[i].active) {
+    results.push(transform(items[i]))
+  }
+}
+```
+
+## What to write instead
+
+```typescript
+// ✅ Declarative pipeline
+const results = items
+  .filter((item) => item.active)
+  .map(transform)
+```
+
+## Index-aware filtering
+
+When you need the original index alongside filtered items, use `.map()` to pair values with indices first:
+
+```typescript
+// ✅ Preserves original indices without mutation
+const eligible = items
+  .map((item, i) => ({ item, i }))
+  .filter(({ item }) => item.active)
+
+// Turn results into a lookup for O(1) application
+const updateByIdx = new Map(
+  eligible.map(({ i }, j) => [i, suggestions[j]] as const),
+)
+
+const updated = items.map((item, i) => {
+  const patch = updateByIdx.get(i)
+  return patch ? { ...item, ...patch } : item
+})
+```
+
+## Exceptions
+
+- Performance-critical hot paths where allocation matters (profiled, not assumed)
+- Early-exit logic that `.find()` or `.some()` can't express

@@ -9,6 +9,7 @@ export type SessionSetRowReps = {
   weight: string
   done: boolean
   rir?: number
+  manuallyEdited?: boolean
 }
 
 export type SessionSetRowDuration = {
@@ -21,6 +22,7 @@ export type SessionSetRowDuration = {
   timerStartedAt: number | null
   /** Actual duration logged when the set was completed (seconds). */
   loggedSeconds?: number
+  manuallyEdited?: boolean
 }
 
 export type SessionSetRow = SessionSetRowReps | SessionSetRowDuration
