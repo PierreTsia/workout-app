@@ -65,9 +65,10 @@ function setup(workoutOverrides: Partial<GeneratedWorkout> = {}) {
       workout={workout}
       exercisePool={POOL}
       onStart={onStart}
+      onSave={vi.fn()}
       onShuffle={onShuffle}
       onBack={onBack}
-      isStarting={false}
+      isBusy={false}
     />,
   )
 

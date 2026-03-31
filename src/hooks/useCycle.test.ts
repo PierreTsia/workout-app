@@ -34,6 +34,7 @@ const makeDays = (ids: string[]): WorkoutDay[] =>
     emoji: "💪",
     sort_order: i,
     created_at: "2026-01-01T00:00:00.000Z",
+    saved_at: null,
   }))
 
 describe("deriveCycleProgress", () => {

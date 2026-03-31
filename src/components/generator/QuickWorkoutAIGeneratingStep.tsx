@@ -66,7 +66,6 @@ export function QuickWorkoutAIGeneratingStep({
   useEffect(() => {
     if (inflight.current || exercisePool.length === 0) return
     inflight.current = true
-    setCatchError(null)
 
     mutation
       .mutateAsync(constraints)
