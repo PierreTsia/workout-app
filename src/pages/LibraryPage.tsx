@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft } from "lucide-react"
 import { MyWorkoutsTab } from "@/components/library/MyWorkoutsTab"
+import { SavedWorkoutsSection } from "@/components/library/SavedWorkoutsSection"
 
 export function LibraryPage() {
   const { t } = useTranslation("library")
@@ -20,6 +21,7 @@ export function LibraryPage() {
         <h1 className="text-xl font-bold">{t("title")}</h1>
       </div>
 
+      <SavedWorkoutsSection />
       <MyWorkoutsTab />
     </div>
   )

@@ -51,5 +51,8 @@
   "focusAreasLabel": "Préférences pour l'IA (optionnel)",
   "focusAreasPlaceholder": "ex. cible les poulies, évite les sauts",
   "focusAreasHint": "Utilisé uniquement avec Générer avec l'IA. La génération rapide ignore ce champ.",
+  "saveForLater": "Garder pour plus tard",
+  "savingDraft": "Sauvegarde…",
+  "draftSaved": "Séance sauvegardée ! Retrouve-la dans ta bibliothèque.",
   "focusAreasTooLong": "Réduis tes préférences à 500 caractères ou moins."
 }

@@ -1,14 +1,20 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import type { GeneratedWorkout } from "@/types/generator"
 
+interface CreateQuickWorkoutInput {
+  workout: GeneratedWorkout
+  saveAsDraft?: boolean
+}
+
 export function useCreateQuickWorkout() {
   const user = useAtomValue(authAtom)
+  const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (workout: GeneratedWorkout) => {
+    mutationFn: async ({ workout, saveAsDraft }: CreateQuickWorkoutInput) => {
       if (!user) throw new Error("Not authenticated")
 
       const { data: day, error: dayError } = await supabase
@@ -19,6 +25,7 @@ export function useCreateQuickWorkout() {
           label: workout.name,
           emoji: "⚡",
           sort_order: 0,
+          ...(saveAsDraft ? { saved_at: new Date().toISOString() } : {}),
         })
         .select("id")
         .single()
@@ -57,7 +64,12 @@ export function useCreateQuickWorkout() {
         .insert(exerciseRows)
       if (exError) throw exError
 
-      return { dayId: day.id }
+      return { dayId: day.id, wasDraft: !!saveAsDraft }
+    },
+    onSuccess: ({ wasDraft }) => {
+      if (wasDraft) {
+        queryClient.invalidateQueries({ queryKey: ["saved-workouts"] })
+      }
     },
   })
 }
