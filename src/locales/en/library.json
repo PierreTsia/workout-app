@@ -47,6 +47,7 @@
   "programUnarchived": "Program restored",
   "errorGeneric": "Something went wrong. Please try again.",
 
+  "myPrograms": "My Programs",
   "createProgram": "New Program",
   "programName": "Program name",
   "programNamePlaceholder": "My Program",

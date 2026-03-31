@@ -104,7 +104,7 @@ function SavedWorkoutCard({
   ]
 
   return (
-    <Card className="flex flex-col gap-2 p-3">
+    <Card className="flex flex-col gap-2 border-primary/20 p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
           <span className="text-sm font-semibold">{workout.label}</span>

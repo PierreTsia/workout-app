@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Loader2, Plus } from "lucide-react"
+import { Dumbbell, Loader2, Plus } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { sessionAtom } from "@/store/atoms"
@@ -76,6 +76,13 @@ export function MyWorkoutsTab() {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Dumbbell className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-sm font-semibold text-foreground">
+          {t("myPrograms")}
+        </h2>
+      </div>
+
       <Button
         className="w-full gap-2"
         variant="outline"
