@@ -47,8 +47,16 @@
   "programUnarchived": "Program restored",
   "errorGeneric": "Something went wrong. Please try again.",
 
+  "myPrograms": "My Programs",
   "createProgram": "New Program",
   "programName": "Program name",
   "programNamePlaceholder": "My Program",
-  "editProgram": "Edit"
+  "editProgram": "Edit",
+
+  "savedWorkouts": "Saved Workouts",
+  "exerciseCountLabel": "exercises",
+  "savedOn": "Saved {{date}}",
+  "startSavedWorkout": "Start Workout",
+  "draftDeleted": "Saved workout removed",
+  "noSavedWorkouts": "No saved workouts"
 }

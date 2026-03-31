@@ -47,8 +47,16 @@
   "programUnarchived": "Programme restauré",
   "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
 
+  "myPrograms": "Mes programmes",
   "createProgram": "Nouveau programme",
   "programName": "Nom du programme",
   "programNamePlaceholder": "Mon programme",
-  "editProgram": "Modifier"
+  "editProgram": "Modifier",
+
+  "savedWorkouts": "Séances sauvegardées",
+  "exerciseCountLabel": "exercices",
+  "savedOn": "Sauvegardée le {{date}}",
+  "startSavedWorkout": "Démarrer la séance",
+  "draftDeleted": "Séance sauvegardée supprimée",
+  "noSavedWorkouts": "Aucune séance sauvegardée"
 }

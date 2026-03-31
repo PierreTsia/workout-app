@@ -36,6 +36,7 @@ export interface WorkoutDay {
   emoji: string
   sort_order: number
   created_at: string
+  saved_at: string | null
 }
 
 export interface WorkoutExercise {

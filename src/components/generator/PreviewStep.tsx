@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { RefreshCw, ArrowLeft, Plus } from "lucide-react"
+import { RefreshCw, ArrowLeft, Plus, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CoachRationale } from "@/components/create-program/CoachRationale"
@@ -23,9 +23,10 @@ interface PreviewStepProps {
   workout: GeneratedWorkout
   exercisePool: Exercise[]
   onStart: (workout: GeneratedWorkout) => void
+  onSave: (workout: GeneratedWorkout) => void
   onShuffle: () => void
   onBack: () => void
-  isStarting: boolean
+  isBusy: boolean
 }
 
 const SHUFFLE_COOLDOWN_MS = 1000
@@ -34,9 +35,10 @@ export function PreviewStep({
   workout,
   exercisePool,
   onStart,
+  onSave,
   onShuffle,
   onBack,
-  isStarting,
+  isBusy,
 }: PreviewStepProps) {
   const { t } = useTranslation("generator")
   const [exercises, setExercises] = useState<GeneratedExercise[]>(
@@ -121,14 +123,23 @@ export function PreviewStep({
     [],
   )
 
-  const handleStart = useCallback(() => {
-    onStart({
+  const currentWorkout = useMemo(
+    (): GeneratedWorkout => ({
       exercises,
       name,
       hasFallback: workout.hasFallback,
       ...(workout.rationale ? { rationale: workout.rationale } : {}),
-    })
-  }, [exercises, name, workout.hasFallback, workout.rationale, onStart])
+    }),
+    [exercises, name, workout.hasFallback, workout.rationale],
+  )
+
+  const handleStart = useCallback(() => {
+    onStart(currentWorkout)
+  }, [currentWorkout, onStart])
+
+  const handleSave = useCallback(() => {
+    onSave(currentWorkout)
+  }, [currentWorkout, onSave])
 
   const heatmapData = useMemo(
     () =>
@@ -168,14 +179,26 @@ export function PreviewStep({
         <CoachRationale rationale={workout.rationale} titleNs="generator" />
       )}
 
-      <Button
-        className="w-full"
-        size="lg"
-        onClick={handleStart}
-        disabled={exercises.length === 0 || isStarting}
-      >
-        {isStarting ? t("starting") : t("startWorkout")}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          className="flex-1"
+          size="lg"
+          onClick={handleStart}
+          disabled={exercises.length === 0 || isBusy}
+        >
+          {t("startWorkout")}
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={handleSave}
+          disabled={exercises.length === 0 || isBusy}
+          className="gap-1.5"
+        >
+          <Bookmark className="h-4 w-4" />
+          {t("saveForLater")}
+        </Button>
+      </div>
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">

@@ -18,7 +18,10 @@ interface AIGenerateContext {
 
 function isNetworkError(err: unknown): boolean {
   if (err instanceof TypeError && err.message.includes("fetch")) return true
-  if (err instanceof Error && err.name === "FunctionsFetchError") return true
+  if (!(err instanceof Error)) return false
+  if (err.name === "FunctionsFetchError") return true
+  if (err.name === "FunctionsRelayError") return true
+  if (err.message.includes("name resolution")) return true
   return false
 }
 

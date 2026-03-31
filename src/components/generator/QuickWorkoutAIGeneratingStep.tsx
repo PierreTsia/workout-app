@@ -1,6 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
 import { ArrowLeft, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateWorkout } from "@/lib/generateWorkout"
@@ -35,6 +34,7 @@ export function QuickWorkoutAIGeneratingStep({
   const inflight = useRef(false)
   const mounted = useRef(true)
   const [attempt, retry] = useReducer((n: number) => n + 1, 0)
+  const [catchError, setCatchError] = useState<Error | null>(null)
 
   const phases = [
     t("aiGenPhase1"),
@@ -73,12 +73,8 @@ export function QuickWorkoutAIGeneratingStep({
         if (mounted.current) onSuccess(result)
       })
       .catch((err: unknown) => {
-        if (isQuotaError(err)) {
-          toast.error(t("errorQuota"))
-        } else if (isNetworkError(err)) {
-          toast.error(t("networkError"))
-        } else {
-          toast.error(t("aiError"))
+        if (mounted.current) {
+          setCatchError(err instanceof Error ? err : new Error(String(err)))
         }
       })
       .finally(() => {
@@ -103,11 +99,12 @@ export function QuickWorkoutAIGeneratingStep({
     )
   }
 
-  if (mutation.isError) {
-    const err = mutation.error
-    const quota = isQuotaError(err)
-    const isNetwork = isNetworkError(err)
-    const isTimeout = err instanceof Error && err.message === "timeout"
+  const effectiveError = mutation.error ?? catchError
+  if (mutation.isError || catchError) {
+    const quota = isQuotaError(effectiveError)
+    const isNetwork = isNetworkError(effectiveError)
+    const isTimeout =
+      effectiveError instanceof Error && effectiveError.message === "timeout"
 
     const message = quota
       ? t("errorQuota")
@@ -116,6 +113,11 @@ export function QuickWorkoutAIGeneratingStep({
         : isTimeout
           ? t("errorTimeout")
           : t("aiError")
+
+    const resetAll = () => {
+      mutation.reset()
+      setCatchError(null)
+    }
 
     return (
       <div className="flex flex-col gap-4 p-4">
@@ -131,14 +133,14 @@ export function QuickWorkoutAIGeneratingStep({
         <p className="text-center text-sm text-muted-foreground">{message}</p>
         <div className="flex flex-col gap-2">
           {!quota && (
-            <Button onClick={() => { mutation.reset(); retry() }}>
+            <Button onClick={() => { resetAll(); retry() }}>
               {t("retry")}
             </Button>
           )}
           <Button
             variant="outline"
             onClick={() => {
-              mutation.reset()
+              resetAll()
               onFallbackQuickGenerate(generateWorkout(exercisePool, constraints))
             }}
           >

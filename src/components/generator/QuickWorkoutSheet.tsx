@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import {
   Drawer,
   DrawerContent,
@@ -84,16 +85,36 @@ export function QuickWorkoutSheet({
 
   const handleStart = useCallback(
     (workout: GeneratedWorkout) => {
-      createQuickWorkout.mutate(workout, {
-        onSuccess: ({ dayId }) => {
-          onStart(dayId)
-          onOpenChange(false)
-          setStep("constraints")
-          setGeneratedWorkout(null)
+      createQuickWorkout.mutate(
+        { workout },
+        {
+          onSuccess: ({ dayId }) => {
+            onStart(dayId)
+            onOpenChange(false)
+            setStep("constraints")
+            setGeneratedWorkout(null)
+          },
         },
-      })
+      )
     },
     [createQuickWorkout, onStart, onOpenChange],
+  )
+
+  const handleSave = useCallback(
+    (workout: GeneratedWorkout) => {
+      createQuickWorkout.mutate(
+        { workout, saveAsDraft: true },
+        {
+          onSuccess: () => {
+            toast.success(t("draftSaved"))
+            onOpenChange(false)
+            setStep("constraints")
+            setGeneratedWorkout(null)
+          },
+        },
+      )
+    },
+    [createQuickWorkout, onOpenChange, t],
   )
 
   const handleBackFromPreview = useCallback(() => {
@@ -144,9 +165,10 @@ export function QuickWorkoutSheet({
               workout={generatedWorkout}
               exercisePool={exercisePool}
               onStart={handleStart}
+              onSave={handleSave}
               onShuffle={handleShuffle}
               onBack={handleBackFromPreview}
-              isStarting={createQuickWorkout.isPending}
+              isBusy={createQuickWorkout.isPending}
             />
           )}
         </div>
