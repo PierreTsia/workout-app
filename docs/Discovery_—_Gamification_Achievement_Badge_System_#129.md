@@ -206,7 +206,7 @@ Each rank gets a unique icon generated via AI (transparent PNG). Assets are stor
 | `id` | `uuid` PK | Default `gen_random_uuid()` |
 | `user_id` | `uuid FK → auth.users` | `ON DELETE CASCADE` |
 | `tier_id` | `uuid FK → achievement_tiers.id` | `ON DELETE CASCADE` |
-| `unlocked_at` | `timestamptz NOT NULL DEFAULT now()` | When the achievement was granted |
+| `granted_at` | `timestamptz NOT NULL DEFAULT now()` | When the achievement was granted |
 | `UNIQUE(user_id, tier_id)` | | Idempotency — same achievement can't be granted twice |
 
 **RLS:** `user_achievements` → users can `SELECT` their own rows. `achievement_groups` and `achievement_tiers` → public `SELECT` (definitions are not user-specific). All `INSERT`/`UPDATE`/`DELETE` on `user_achievements` restricted to service role (RPC runs as `SECURITY DEFINER`).
@@ -220,22 +220,11 @@ ALTER TABLE user_profiles
 
 The user's equipped title. Nullable — no title equipped by default. The referenced `achievement_tiers` row provides the localized title text (`title_fr`, `title_en`) and `rank` for styling.
 
-**Ownership validation (server-side):** When setting a title, enforce ownership via RLS policy on `user_profiles`:
+**Ownership validation (server-side):** Enforced via a `BEFORE UPDATE OF active_title_tier_id` trigger on `user_profiles`. The trigger only fires when the column actually changes, and raises a `check_violation` if the user doesn't own the referenced tier. This is a data-validation trigger (like a CHECK constraint referencing another table), not the business-logic trigger we rejected for badge granting.
 
-```sql
-CREATE POLICY "users can update their own profile title"
-  ON user_profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (
-    active_title_tier_id IS NULL
-    OR EXISTS (
-      SELECT 1 FROM user_achievements
-      WHERE user_id = auth.uid() AND tier_id = active_title_tier_id
-    )
-  );
-```
+The existing `FOR ALL` RLS policy on `user_profiles` is untouched. The frontend can do a plain `supabase.from('user_profiles').update(...)` — the trigger rejects it at the DB layer if the user doesn't own the tier.
 
-This means the frontend can do a plain `supabase.from('user_profiles').update(...)` — Postgres rejects it at the RLS layer if the user doesn't own the tier. No RPC needed for this operation, no client-side validation to bypass.
+See Tech Plan for the full trigger SQL.
 
 **Display:** Shown under `display_name` wherever the user's identity appears:
 - Account page header (below name, styled with rank color)
@@ -719,10 +708,10 @@ This leverages the same idempotent RPC we already built. It computes metrics fro
 | 16 | Session summary: newly unlocked badges section | S | Reads from RPC response already in memory; thin presentational component |
 | 17 | Account page header: active title + badge showcase (X/25 counter + top-rank icons) | S | Reads from `useBadgeStatus` cache + `user_profiles`; thin component |
 | 18 | DB migration: add `active_title_tier_id uuid` FK to `user_profiles` | XS | Nullable, `ON DELETE SET NULL` |
-| 19 | "Equip/Unequip title" action in `BadgeDetailSheet` | S | Plain `update` on `user_profiles.active_title_tier_id`; ownership enforced by RLS `WITH CHECK` policy — no RPC needed |
+| 19 | "Equip/Unequip title" action in `BadgeDetailSheet` | S | Plain `update` on `user_profiles.active_title_tier_id`; ownership enforced by `BEFORE UPDATE` trigger — no RPC needed |
 | 20 | CSS badge frames: 5 rank classes (`badge-frame-{rank}`) + CSS custom properties | S | Pure CSS, no images; powers frame, overlay glow, and particle colors |
 | 21 | AI icon generation (25 transparent PNGs) + upload to Supabase Storage | M | Using prompts from this doc; 5 per group × 5 groups |
-| 22 | i18n keys (FR + EN): overlay messages, grid labels, detail sheet text, title system | S | New `gamification` namespace |
+| 22 | i18n keys (FR + EN): overlay messages, grid labels, detail sheet text, title system | S | New `achievements` namespace |
 | 23 | Unit tests: RPCs (integration test via seed data + session finish + RPC call) | M | Critical — validate metric computation + idempotency |
 | 24 | Update seed migration with `icon_asset_url` after image upload | XS | Once icons are in Storage |
 | 25 | Post-migration script: retroactive badge grant for existing users | XS | `SELECT check_and_grant_achievements(id) FROM user_profiles;` — runs once after deploy |
