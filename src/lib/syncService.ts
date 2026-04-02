@@ -575,16 +575,17 @@ async function processSessionFinish(
     }
 
     try {
-      const { data } = await supabase.rpc("check_and_grant_achievements", {
+      const { data, error } = await supabase.rpc("check_and_grant_achievements", {
         p_user_id: userId,
       })
+      if (error) throw error
       const unlocked = (data ?? []) as UnlockedAchievement[]
       if (unlocked.length > 0) {
         pushAchievementsToQueue(unlocked)
         store.set(lastSessionBadgesAtom, unlocked)
       }
-    } catch {
-      // Swallowed — session is already saved, badge check is non-critical
+    } catch (e) {
+      console.warn("[SyncService] badge check failed (non-critical)", e)
     }
 
     return true
