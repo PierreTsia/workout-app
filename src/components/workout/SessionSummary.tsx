@@ -8,6 +8,7 @@ import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { SaveAsProgramPrompt } from "@/components/generator/SaveAsProgramPrompt"
+import { SessionBadges } from "@/components/achievements/SessionBadges"
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000)
@@ -106,6 +107,8 @@ export function SessionSummary({
           </div>
         </div>
       )}
+
+      <SessionBadges />
 
       {quickWorkoutDayId && (
         <div className="w-full max-w-xs">

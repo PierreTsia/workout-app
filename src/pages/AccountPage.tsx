@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { AccountBadgeShowcase } from "@/components/achievements/AccountBadgeShowcase"
+import { BadgeGrid } from "@/components/achievements/BadgeGrid"
 
 const LBS_TO_KG = 0.453592
 
@@ -292,6 +294,8 @@ export function AccountPage() {
             />
           </section>
 
+          <AccountBadgeShowcase />
+
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-4 text-sm font-semibold text-foreground">{t("account:trainingSection")}</h2>
             <QuestionnaireTrainingFields />
@@ -302,6 +306,8 @@ export function AccountPage() {
           </Button>
         </form>
       </Form>
+
+      <BadgeGrid />
 
       <section className="rounded-xl border border-destructive/40 bg-card p-4">
         <h2 className="mb-1 text-sm font-semibold text-destructive">{t("account:dangerZone")}</h2>

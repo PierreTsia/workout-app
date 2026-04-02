@@ -1,0 +1,32 @@
+{
+  "allAchievements": "Succès",
+  "locked": "Verrouillé",
+  "unlocked": "Débloqué !",
+  "newAchievement": "Nouveau succès",
+  "progress": "{{current}} / {{target}}",
+  "progressLabel": "Progression",
+  "equipTitle": "Équiper le titre",
+  "unequipTitle": "Retirer le titre",
+  "titleEquipped": "Titre équipé !",
+  "titleRemoved": "Titre retiré.",
+  "titleError": "Impossible de mettre à jour le titre. Réessaye.",
+  "moreToGo": "Encore {{count}}",
+  "unlockedOn": "Débloqué le {{date}}",
+  "unlockedCount": "{{count}} / {{total}} débloqués",
+  "nextMilestone": "Suivant : {{title}}",
+  "showcase": "Succès",
+  "ranks": {
+    "bronze": "Bronze",
+    "silver": "Argent",
+    "gold": "Or",
+    "platinum": "Platine",
+    "diamond": "Diamant"
+  },
+  "groups": {
+    "consistency_streak": "Régularité",
+    "volume_king": "Volume",
+    "rhythm_master": "Rythme",
+    "record_hunter": "Records",
+    "exercise_variety": "Variété"
+  }
+}
