@@ -94,7 +94,7 @@ export function getRestElapsedSeconds(
 ): number | null {
   if (!rest) return null
   const elapsedMs = getEffectiveElapsed(rest, Date.now(), sessionPausedAt)
-  return Math.max(0, Math.round(elapsedMs / 1000))
+  return Math.max(0, Math.floor(elapsedMs / 1000))
 }
 
 export function useRestTimer() {

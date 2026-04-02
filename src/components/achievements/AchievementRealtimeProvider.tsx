@@ -18,7 +18,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
   const { data: badgeRows } = useBadgeStatus()
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !badgeRows) return
 
     const channel = supabase
       .channel("achievements")
@@ -32,7 +32,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
         },
         (payload) => {
           const tierId = payload.new.tier_id as string
-          const match = badgeRows?.find((r) => r.tier_id === tierId)
+          const match = badgeRows.find((r) => r.tier_id === tierId)
           if (!match) return
 
           const unlocked: UnlockedAchievement = {
