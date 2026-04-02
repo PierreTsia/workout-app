@@ -37,9 +37,38 @@ export function BadgeGrid() {
 
   const groupSlugs = [...new Set(rows.map((r) => r.group_slug))]
 
+  const topPerGroup = groupSlugs
+    .map((slug) => {
+      const tiers = groups[slug] ?? []
+      return [...tiers].reverse().find((t) => t.is_unlocked) ?? tiers[0]
+    })
+    .filter(Boolean) as BadgeStatusRow[]
+
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
+        {/* Top-per-group summary row */}
+        {topPerGroup.length > 0 && (
+          <div className="flex justify-center gap-3 pb-2">
+            {topPerGroup.map((tier) => (
+              <button
+                key={tier.group_slug}
+                type="button"
+                onClick={() => setSelected(tier)}
+                className="transition-transform active:scale-95"
+              >
+                <BadgeIcon
+                  rank={tier.rank}
+                  iconUrl={tier.icon_asset_url}
+                  size="sm"
+                  locked={!tier.is_unlocked}
+                  alt={i18n.language === "fr" ? tier.title_fr : tier.title_en}
+                />
+              </button>
+            ))}
+          </div>
+        )}
+
         {groupSlugs.map((slug) => {
           const tiers = groups[slug] ?? []
           const groupName =

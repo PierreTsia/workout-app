@@ -14,6 +14,7 @@
   "unlockedOn": "Unlocked on {{date}}",
   "unlockedCount": "{{count}} / {{total}} unlocked",
   "nextMilestone": "Next: {{title}}",
+  "noTitle": "No title equipped",
   "showcase": "Achievements",
   "ranks": {
     "bronze": "Bronze",

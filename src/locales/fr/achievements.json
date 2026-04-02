@@ -14,6 +14,7 @@
   "unlockedOn": "Débloqué le {{date}}",
   "unlockedCount": "{{count}} / {{total}} débloqués",
   "nextMilestone": "Suivant : {{title}}",
+  "noTitle": "Aucun titre équipé",
   "showcase": "Succès",
   "ranks": {
     "bronze": "Bronze",
