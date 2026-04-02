@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { accountProfileSchema, type AccountProfileFormValues } from "@/components/account/accountProfileSchema"
 import { AccountValidationMessage } from "@/components/account/AccountValidationMessage"
+import { ProfileHeader } from "@/components/account/ProfileHeader"
 import { QuestionnaireTrainingFields } from "@/components/onboarding/QuestionnaireTrainingFields"
 import { toQuestionnaireOutput } from "@/components/onboarding/schema"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { BadgeGrid } from "@/components/achievements/BadgeGrid"
 
 const LBS_TO_KG = 0.453592
 
@@ -218,6 +220,7 @@ export function AccountPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-10 pt-4">
+      {/* Nav bar */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -230,15 +233,22 @@ export function AccountPage() {
         <h1 className="text-xl font-bold">{t("account:title")}</h1>
       </div>
 
+      {/* 1. Profile hero */}
+      <ProfileHeader />
+
+      {/* 2. Achievements */}
+      <BadgeGrid />
+
+      {/* 3. Profile & Training settings */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-4 text-sm font-semibold text-foreground">{t("account:identitySection")}</h2>
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-              <Avatar className="h-24 w-24 border border-border">
+              <Avatar className="h-20 w-20 border border-border">
                 <AvatarImage src={avatarSrc} alt="" referrerPolicy="no-referrer" />
                 <AvatarFallback>
-                  <UserRound className="h-10 w-10 text-muted-foreground" />
+                  <UserRound className="h-8 w-8 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex w-full flex-col gap-2">
@@ -303,6 +313,7 @@ export function AccountPage() {
         </form>
       </Form>
 
+      {/* 4. Danger zone */}
       <section className="rounded-xl border border-destructive/40 bg-card p-4">
         <h2 className="mb-1 text-sm font-semibold text-destructive">{t("account:dangerZone")}</h2>
         <p className="mb-4 text-xs text-muted-foreground">{t("account:deleteAccountDescription")}</p>

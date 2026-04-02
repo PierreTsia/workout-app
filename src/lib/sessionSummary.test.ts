@@ -15,6 +15,7 @@ const makeLog = (
   was_pr: false,
   logged_at: "2026-03-20T10:00:00Z",
   rir: null,
+  rest_seconds: null,
   reps_logged: null,
   duration_seconds: null,
   ...overrides,

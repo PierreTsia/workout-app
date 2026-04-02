@@ -38,6 +38,7 @@ const mockProfile: UserProfile = {
   equipment: "gym" as const,
   training_days_per_week: 4,
   session_duration_minutes: 60,
+  active_title_tier_id: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 }

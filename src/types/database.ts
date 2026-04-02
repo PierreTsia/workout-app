@@ -103,6 +103,7 @@ export interface SetLog {
   was_pr: boolean
   logged_at: string
   rir: number | null
+  rest_seconds: number | null
 }
 
 export interface CycleStats {

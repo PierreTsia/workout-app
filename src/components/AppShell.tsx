@@ -7,6 +7,8 @@ import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
 import { InstallBanner } from "@/components/InstallBanner"
 import { RestTimerPill } from "@/components/RestTimerPill"
+import { AchievementRealtimeProvider } from "@/components/achievements/AchievementRealtimeProvider"
+import { AchievementUnlockOverlay } from "@/components/achievements/AchievementUnlockOverlay"
 
 export function AppShell() {
   const { t } = useTranslation()
@@ -15,30 +17,33 @@ export function AppShell() {
   const hideSessionChrome = pathname.startsWith("/cycle-summary")
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-background px-4 pb-2 pt-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="text-2xl text-muted-foreground"
-            aria-label={t("openMenu")}
-          >
-            ☰
-          </button>
-          {!hideSessionChrome && <SessionTimerChip />}
-        </div>
-        <div className="flex items-center gap-2">
-          {!hideSessionChrome && <RestTimerPill />}
-          <SyncStatusChip />
-        </div>
-      </header>
+    <AchievementRealtimeProvider>
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="sticky top-0 z-10 flex items-center justify-between bg-background px-4 pb-2 pt-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="text-2xl text-muted-foreground"
+              aria-label={t("openMenu")}
+            >
+              ☰
+            </button>
+            {!hideSessionChrome && <SessionTimerChip />}
+          </div>
+          <div className="flex items-center gap-2">
+            {!hideSessionChrome && <RestTimerPill />}
+            <SyncStatusChip />
+          </div>
+        </header>
 
-      <SideDrawer />
-      <InstallBanner />
+        <SideDrawer />
+        <InstallBanner />
+        <AchievementUnlockOverlay />
 
-      <main className="flex flex-1 flex-col">
-        <Outlet />
-      </main>
-    </div>
+        <main className="flex flex-1 flex-col">
+          <Outlet />
+        </main>
+      </div>
+    </AchievementRealtimeProvider>
   )
 }

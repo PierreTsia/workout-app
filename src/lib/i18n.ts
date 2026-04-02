@@ -19,6 +19,7 @@ import enGenerator from "@/locales/en/generator.json"
 import enCreateProgram from "@/locales/en/create-program.json"
 import enAccount from "@/locales/en/account.json"
 import enPrivacy from "@/locales/en/privacy.json"
+import enAchievements from "@/locales/en/achievements.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -37,6 +38,7 @@ import frGenerator from "@/locales/fr/generator.json"
 import frCreateProgram from "@/locales/fr/create-program.json"
 import frAccount from "@/locales/fr/account.json"
 import frPrivacy from "@/locales/fr/privacy.json"
+import frAchievements from "@/locales/fr/achievements.json"
 
 i18n
   .use(LanguageDetector)
@@ -61,6 +63,7 @@ i18n
         "create-program": enCreateProgram,
         account: enAccount,
         privacy: enPrivacy,
+        achievements: enAchievements,
       },
       fr: {
         common: frCommon,
@@ -80,11 +83,12 @@ i18n
         "create-program": frCreateProgram,
         account: frAccount,
         privacy: frPrivacy,
+        achievements: frAchievements,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program", "account", "privacy"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program", "account", "privacy", "achievements"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

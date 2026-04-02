@@ -1,0 +1,47 @@
+{
+  "allAchievements": "Achievements",
+  "locked": "Locked",
+  "unlocked": "Unlocked!",
+  "newAchievement": "New achievement",
+  "progress": "{{current}} / {{target}}",
+  "progressLabel": "Progress",
+  "equipTitle": "Equip title",
+  "unequipTitle": "Unequip title",
+  "titleEquipped": "Title equipped!",
+  "titleRemoved": "Title removed.",
+  "titleError": "Could not update title. Try again.",
+  "moreToGo": "{{count}} more to go",
+  "unlockedOn": "Unlocked on {{date}}",
+  "unlockedCount": "{{count}} / {{total}} unlocked",
+  "nextMilestone": "Next: {{title}}",
+  "noTitle": "No title equipped",
+  "showcase": "Achievements",
+  "ranks": {
+    "bronze": "Bronze",
+    "silver": "Silver",
+    "gold": "Gold",
+    "platinum": "Platinum",
+    "diamond": "Diamond"
+  },
+  "groups": {
+    "consistency_streak": "Consistency",
+    "volume_king": "Volume",
+    "rhythm_master": "Rhythm",
+    "record_hunter": "Records",
+    "exercise_variety": "Variety"
+  },
+  "groupDescriptions": {
+    "consistency_streak": "Total finished workout sessions",
+    "volume_king": "Total volume lifted (kg)",
+    "rhythm_master": "Rest times respected (≥ 80% of prescribed)",
+    "record_hunter": "Personal records broken",
+    "exercise_variety": "Distinct exercises used"
+  },
+  "thresholdHint": {
+    "consistency_streak": "Complete {{target}} sessions",
+    "volume_king": "Lift {{target}} kg total",
+    "rhythm_master": "Respect rest time on {{target}} sets",
+    "record_hunter": "Break {{target}} personal records",
+    "exercise_variety": "Use {{target}} different exercises"
+  }
+}

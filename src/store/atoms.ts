@@ -2,6 +2,7 @@ import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
 import type { User } from "@/types/auth"
 import type { SessionSetRow } from "@/lib/sessionSetRow"
+import type { UnlockedAchievement } from "@/types/achievements"
 
 export interface SessionState {
   currentDayId: string | null
@@ -99,3 +100,12 @@ export const isQuickWorkoutAtom = atomWithStorage<boolean>(
 )
 
 export const quickSheetOpenAtom = atom(false)
+
+/** Overlay queue — consumed on display, shift on dismiss. */
+export const achievementUnlockQueueAtom = atom<UnlockedAchievement[]>([])
+
+/** Tier IDs already shown this session — prevents Realtime + RPC overlap duplicates. In-memory only (reset on reload). */
+export const achievementShownIdsAtom = atom<Set<string>>(new Set<string>())
+
+/** Populated by processSessionFinish, read by SessionBadges, cleared on next session start. */
+export const lastSessionBadgesAtom = atom<UnlockedAchievement[]>([])

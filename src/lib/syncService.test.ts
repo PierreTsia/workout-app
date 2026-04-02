@@ -9,6 +9,9 @@ const SESSION_ATOM = Symbol("sessionAtom")
 const SYNC_STATUS_ATOM = Symbol("syncStatusAtom")
 const QUEUE_SYNC_META_ATOM = Symbol("queueSyncMetaAtom")
 const ACTIVE_PROGRAM_ID_ATOM = Symbol("activeProgramIdAtom")
+const ACHIEVEMENT_UNLOCK_QUEUE_ATOM = Symbol("achievementUnlockQueueAtom")
+const ACHIEVEMENT_SHOWN_IDS_ATOM = Symbol("achievementShownIdsAtom")
+const LAST_SESSION_BADGES_ATOM = Symbol("lastSessionBadgesAtom")
 
 // ---------------------------------------------------------------------------
 // Module-scope mock objects (survive vi.resetModules)
@@ -42,7 +45,8 @@ let workoutExercisesChain = createChain()
 
 const mockFrom = vi.fn()
 
-const mockSupabase = { from: mockFrom }
+const mockRpc = vi.fn().mockResolvedValue({ data: [], error: null })
+const mockSupabase = { from: mockFrom, rpc: mockRpc }
 
 const mockQueryClient = {
   invalidateQueries: vi.fn(),
@@ -63,6 +67,9 @@ vi.mock("@/store/atoms", () => ({
   syncStatusAtom: SYNC_STATUS_ATOM,
   queueSyncMetaAtom: QUEUE_SYNC_META_ATOM,
   activeProgramIdAtom: ACTIVE_PROGRAM_ID_ATOM,
+  achievementUnlockQueueAtom: ACHIEVEMENT_UNLOCK_QUEUE_ATOM,
+  achievementShownIdsAtom: ACHIEVEMENT_SHOWN_IDS_ATOM,
+  lastSessionBadgesAtom: LAST_SESSION_BADGES_ATOM,
 }))
 
 vi.mock("@/lib/supabase", () => ({
@@ -164,6 +171,9 @@ describe("SyncService", () => {
         }
       if (atom === SYNC_STATUS_ATOM) return "idle"
       if (atom === ACTIVE_PROGRAM_ID_ATOM) return "program-1"
+      if (atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM) return []
+      if (atom === ACHIEVEMENT_SHOWN_IDS_ATOM) return new Set()
+      if (atom === LAST_SESSION_BADGES_ATOM) return []
       return undefined
     })
     mockStore.set.mockImplementation(() => {})
@@ -514,6 +524,88 @@ describe("SyncService", () => {
           rir: null,
         }),
       )
+    })
+
+    it("includes rest_seconds in upsert row when provided", async () => {
+      enqueueSetLog(makeSetLogPayload({ restSeconds: 85 }))
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(expect.objectContaining({ rest_seconds: 85 }))
+    })
+
+    it("maps undefined restSeconds to null", async () => {
+      enqueueSetLog(makeSetLogPayload())
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(expect.objectContaining({ rest_seconds: null }))
+    })
+
+    it("calls check_and_grant_achievements RPC after session finish", async () => {
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      expect(mockRpc).toHaveBeenCalledWith("check_and_grant_achievements", {
+        p_user_id: USER_ID,
+      })
+    })
+
+    it("returns true even when achievement RPC fails", async () => {
+      mockRpc.mockRejectedValueOnce(new Error("RPC failed"))
+      vi.spyOn(console, "error").mockImplementation(() => {})
+
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("pushes RPC response into achievement queue and lastSessionBadgesAtom", async () => {
+      const mockBadges = [
+        {
+          tier_id: "tier-1",
+          group_slug: "consistency_streak",
+          rank: "bronze",
+          title_en: "The Sore Apprentice",
+          title_fr: "Apprenti Courbaturé",
+          icon_asset_url: null,
+        },
+      ]
+      mockRpc.mockResolvedValueOnce({ data: mockBadges, error: null })
+
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      const queueSetCall = mockStore.set.mock.calls.find(
+        ([atom]) => atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM,
+      )
+      expect(queueSetCall).toBeDefined()
+
+      const badgesSetCall = mockStore.set.mock.calls.find(
+        ([atom]) => atom === LAST_SESSION_BADGES_ATOM,
+      )
+      expect(badgesSetCall).toBeDefined()
+    })
+
+    it("does not call RPC when session upsert fails", async () => {
+      sessionsChain.then.mockImplementation(
+        (resolve: (v: unknown) => void) =>
+          resolve({ data: null, error: { message: "upsert failed" } }),
+      )
+      vi.spyOn(console, "error").mockImplementation(() => {})
+
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      expect(mockRpc).not.toHaveBeenCalled()
     })
   })
 

@@ -25,6 +25,7 @@ import enCreateProgram from "@/locales/en/create-program.json"
 import enAccount from "@/locales/en/account.json"
 import enPrivacy from "@/locales/en/privacy.json"
 import enAdmin from "@/locales/en/admin.json"
+import enAchievements from "@/locales/en/achievements.json"
 
 export function createTestI18n() {
   const instance = i18n.createInstance()
@@ -49,6 +50,7 @@ export function createTestI18n() {
         account: enAccount,
         privacy: enPrivacy,
         admin: enAdmin,
+        achievements: enAchievements,
       },
     },
     defaultNS: "common",

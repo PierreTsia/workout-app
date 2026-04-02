@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
+import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
   computeCascadeSuggestions,
@@ -59,6 +60,7 @@ export function SetsTable({
   const { unit, toKg, toDisplay } = useWeightUnit()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [session, setSession] = useAtom(sessionAtom)
+  const restSnapshot = useAtomValue(restAtom)
   const setRest = useSetAtom(restAtom)
   const setPrFlags = useSetAtom(prFlagsAtom)
   const [sessionBest, setSessionBest] = useAtom(sessionBest1RMAtom)
@@ -343,6 +345,8 @@ export function SetsTable({
         ),
       }))
 
+      const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
+
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
@@ -354,6 +358,7 @@ export function SetsTable({
         wasPr,
         loggedAt: Date.now(),
         rir,
+        restSeconds,
       })
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
@@ -430,6 +435,7 @@ export function SetsTable({
       setSessionBest,
       onBlockedByPause,
       session.pausedAt,
+      restSnapshot,
     ],
   )
 
@@ -481,6 +487,8 @@ export function SetsTable({
       }
 
       try {
+        const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
+
         enqueueSetLog({
           sessionId,
           exerciseId: exercise.exercise_id,
@@ -489,6 +497,7 @@ export function SetsTable({
           weightLogged: weightKgForLog,
           loggedAt: Date.now(),
           durationSeconds,
+          restSeconds,
         })
 
         setRest({
@@ -510,6 +519,7 @@ export function SetsTable({
       isReadOnly,
       session.pausedAt,
       onBlockedByPause,
+      restSnapshot,
     ],
   )
 

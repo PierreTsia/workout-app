@@ -18,6 +18,9 @@ import {
   isQuickWorkoutAtom,
   drawerOpenAtom,
   quickSheetOpenAtom,
+  achievementUnlockQueueAtom,
+  achievementShownIdsAtom,
+  lastSessionBadgesAtom,
 } from "@/store/atoms"
 import { drainQueue } from "@/lib/syncService"
 import { clearSessionExercisePatchStorage } from "@/lib/sessionExercisePatchStorage"
@@ -95,6 +98,9 @@ export function clearUserState() {
   store.set(isQuickWorkoutAtom, false)
   store.set(drawerOpenAtom, false)
   store.set(quickSheetOpenAtom, false)
+  store.set(achievementUnlockQueueAtom, [])
+  store.set(achievementShownIdsAtom, new Set())
+  store.set(lastSessionBadgesAtom, [])
 
   clearSessionExercisePatchStorage()
   queryClient.clear()

@@ -8,7 +8,11 @@ import {
   syncStatusAtom,
   queueSyncMetaAtom,
   activeProgramIdAtom,
+  achievementUnlockQueueAtom,
+  achievementShownIdsAtom,
+  lastSessionBadgesAtom,
 } from "@/store/atoms"
+import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
 
 // ---------------------------------------------------------------------------
@@ -27,6 +31,7 @@ export type SetLogPayloadReps = {
   wasPr: boolean
   loggedAt: number
   rir?: number
+  restSeconds?: number | null
 }
 
 /** Time-based set log; mutually exclusive with reps fields at rest. */
@@ -38,6 +43,7 @@ export type SetLogPayloadDuration = {
   weightLogged: number
   loggedAt: number
   durationSeconds: number
+  restSeconds?: number | null
 }
 
 export type SetLogPayload = SetLogPayloadReps | SetLogPayloadDuration
@@ -103,6 +109,20 @@ const store = getDefaultStore()
 
 function getUserId(): string | null {
   return store.get(authAtom)?.id ?? null
+}
+
+/** Deduplicate and push newly unlocked achievements into the overlay queue. */
+export function pushAchievementsToQueue(items: UnlockedAchievement[]): void {
+  const shown = store.get(achievementShownIdsAtom)
+  const queue = store.get(achievementUnlockQueueAtom)
+  const existingIds = new Set([
+    ...shown,
+    ...queue.map((a) => a.tier_id),
+  ])
+  const fresh = items.filter((a) => !existingIds.has(a.tier_id))
+  if (fresh.length > 0) {
+    store.set(achievementUnlockQueueAtom, [...queue, ...fresh])
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -475,6 +495,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
             estimated_1rm: null,
             was_pr: false,
             rir: null,
+            rest_seconds: p.restSeconds ?? null,
           }
         : {
             ...base,
@@ -483,6 +504,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
             estimated_1rm: p.estimatedOneRM || null,
             was_pr: p.wasPr,
             rir: p.rir ?? null,
+            rest_seconds: p.restSeconds ?? null,
           }
 
     const { error } = await supabase
@@ -550,6 +572,20 @@ async function processSessionFinish(
         console.error("[SyncService] progression target update failed", failed.error)
         return false
       }
+    }
+
+    try {
+      const { data, error } = await supabase.rpc("check_and_grant_achievements", {
+        p_user_id: userId,
+      })
+      if (error) throw error
+      const unlocked = (data ?? []) as UnlockedAchievement[]
+      if (unlocked.length > 0) {
+        pushAchievementsToQueue(unlocked)
+        store.set(lastSessionBadgesAtom, unlocked)
+      }
+    } catch (e) {
+      console.warn("[SyncService] badge check failed (non-critical)", e)
     }
 
     return true
