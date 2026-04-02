@@ -62,7 +62,7 @@ const rankGlowClass: Record<AchievementRank, string> = {
 }
 
 export function AchievementUnlockOverlay() {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation("achievements")
   const [queue, setQueue] = useAtom(achievementUnlockQueueAtom)
   const setShownIds = useSetAtom(achievementShownIdsAtom)
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -167,8 +167,8 @@ export function AchievementUnlockOverlay() {
             >
               {rank}
             </span>
-            <p className="text-sm text-muted-foreground capitalize">
-              {current.group_slug.replace(/_/g, " ")}
+            <p className="text-sm text-muted-foreground">
+              {t(`groupDescriptions.${current.group_slug}`)}
             </p>
           </div>
 

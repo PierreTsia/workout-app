@@ -104,9 +104,18 @@ export function BadgeDetailDrawer({ badge, onClose }: BadgeDetailDrawerProps) {
           </span>
 
           <p className="text-sm text-muted-foreground">{groupName}</p>
+          <p className="max-w-xs text-center text-xs text-muted-foreground/70">
+            {t(`groupDescriptions.${badge.group_slug}`)}
+          </p>
         </DrawerHeader>
 
         <div className="flex flex-col items-center gap-4 px-6 pb-8">
+          <p className="text-sm font-medium text-foreground/80">
+            {t(`thresholdHint.${badge.group_slug}`, {
+              target: Math.floor(badge.threshold_value),
+            })}
+          </p>
+
           {badge.is_unlocked && unlockedDate ? (
             <p className="text-sm text-muted-foreground">
               {t("unlockedOn", { date: unlockedDate })}

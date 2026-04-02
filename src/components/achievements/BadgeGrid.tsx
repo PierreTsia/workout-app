@@ -54,7 +54,12 @@ export function BadgeGrid() {
           return (
             <div key={slug} className="rounded-xl border border-border bg-card p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">{groupName}</h3>
+                <div>
+                  <h3 className="text-sm font-semibold">{groupName}</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t(`groupDescriptions.${slug}`)}
+                  </p>
+                </div>
                 {highestUnlocked && (
                   <span
                     className={cn(

@@ -28,5 +28,19 @@
     "rhythm_master": "Rythme",
     "record_hunter": "Records",
     "exercise_variety": "Variété"
+  },
+  "groupDescriptions": {
+    "consistency_streak": "Nombre total de séances terminées",
+    "volume_king": "Volume total soulevé (kg)",
+    "rhythm_master": "Temps de repos respectés (≥ 80% du prescrit)",
+    "record_hunter": "Records personnels battus",
+    "exercise_variety": "Exercices distincts utilisés"
+  },
+  "thresholdHint": {
+    "consistency_streak": "Terminer {{target}} séances",
+    "volume_king": "Soulever {{target}} kg au total",
+    "rhythm_master": "Respecter le repos sur {{target}} séries",
+    "record_hunter": "Battre {{target}} records personnels",
+    "exercise_variety": "Utiliser {{target}} exercices différents"
   }
 }
