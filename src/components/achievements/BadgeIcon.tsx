@@ -7,12 +7,6 @@ const sizeClasses = {
   lg: "h-28 w-28",
 } as const
 
-const iconSizeClasses = {
-  sm: "h-5 w-5",
-  md: "h-9 w-9",
-  lg: "h-16 w-16",
-} as const
-
 const placeholderSize = {
   sm: "text-base",
   md: "text-2xl",
@@ -42,6 +36,7 @@ export function BadgeIcon({
         "badge-frame",
         `badge-frame-${rank}`,
         sizeClasses[size],
+        "overflow-hidden",
         locked && "grayscale opacity-40",
         className,
       )}
@@ -50,7 +45,7 @@ export function BadgeIcon({
         <img
           src={iconUrl}
           alt={alt}
-          className={cn("object-contain", iconSizeClasses[size])}
+          className="h-full w-full object-cover"
         />
       ) : (
         <span className={cn(placeholderSize[size], locked ? "opacity-30" : "opacity-60")}>
