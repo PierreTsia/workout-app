@@ -139,3 +139,63 @@
     display: none;
   }
 }
+
+/* ===== Achievement Unlock Overlay ===== */
+
+@keyframes badge-reveal {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes rank-glow {
+  0% { opacity: 0; }
+  40% { opacity: 0.8; }
+  100% { opacity: 0.35; }
+}
+
+@keyframes particle-burst {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes text-slide-up {
+  0% { transform: translateY(16px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.achievement-badge-reveal {
+  animation: badge-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.achievement-rank-glow {
+  animation: rank-glow 0.8s 0.2s ease-out forwards;
+  pointer-events: none;
+}
+
+.achievement-particle-burst {
+  animation: particle-burst 0.7s 0.3s ease-out forwards;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.achievement-text-entrance {
+  animation: text-slide-up 0.4s 0.35s ease-out both;
+}
+
+/* Rank glow colors — radial gradient per rank */
+.achievement-glow-bronze {
+  background: radial-gradient(circle at center, rgba(180, 120, 60, 0.35) 0%, transparent 70%);
+}
+.achievement-glow-silver {
+  background: radial-gradient(circle at center, rgba(200, 200, 220, 0.3) 0%, transparent 70%);
+}
+.achievement-glow-gold {
+  background: radial-gradient(circle at center, rgba(234, 179, 8, 0.4) 0%, transparent 70%);
+}
+.achievement-glow-platinum {
+  background: radial-gradient(circle at center, rgba(148, 163, 184, 0.4) 0%, transparent 70%);
+}
+.achievement-glow-diamond {
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.4) 0%, rgba(103, 232, 249, 0.15) 50%, transparent 70%);
+}

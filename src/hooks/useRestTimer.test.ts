@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
 import { restAtom, sessionAtom } from "@/store/atoms"
-import { useRestTimer } from "./useRestTimer"
+import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
+import type { RestState } from "@/store/atoms"
 
 describe("useRestTimer", () => {
   beforeEach(() => {
@@ -342,5 +343,71 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.progress).toBe(1)
+  })
+})
+
+describe("getRestElapsedSeconds", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("returns null when rest is null", () => {
+    expect(getRestElapsedSeconds(null, null)).toBeNull()
+  })
+
+  it("returns elapsed seconds for active rest", () => {
+    const rest: RestState = {
+      startedAt: Date.now() - 30_000,
+      durationSeconds: 90,
+      pausedAt: null,
+      accumulatedPause: 0,
+    }
+    expect(getRestElapsedSeconds(rest, null)).toBe(30)
+  })
+
+  it("accounts for accumulated pause", () => {
+    const rest: RestState = {
+      startedAt: Date.now() - 40_000,
+      durationSeconds: 90,
+      pausedAt: null,
+      accumulatedPause: 10_000,
+    }
+    expect(getRestElapsedSeconds(rest, null)).toBe(30)
+  })
+
+  it("freezes at pausedAt when rest is paused", () => {
+    const now = Date.now()
+    const rest: RestState = {
+      startedAt: now - 20_000,
+      durationSeconds: 90,
+      pausedAt: now - 5_000,
+      accumulatedPause: 0,
+    }
+    expect(getRestElapsedSeconds(rest, null)).toBe(15)
+  })
+
+  it("freezes at sessionPausedAt when session is paused", () => {
+    const now = Date.now()
+    const rest: RestState = {
+      startedAt: now - 25_000,
+      durationSeconds: 90,
+      pausedAt: null,
+      accumulatedPause: 0,
+    }
+    expect(getRestElapsedSeconds(rest, now - 5_000)).toBe(20)
+  })
+
+  it("clamps to 0 when elapsed would be negative", () => {
+    const rest: RestState = {
+      startedAt: Date.now() + 5_000,
+      durationSeconds: 90,
+      pausedAt: null,
+      accumulatedPause: 0,
+    }
+    expect(getRestElapsedSeconds(rest, null)).toBe(0)
   })
 })

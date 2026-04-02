@@ -83,6 +83,20 @@ function computeTimerState(
   return { remaining, progress }
 }
 
+/**
+ * Returns effective rest elapsed in whole seconds (pause-aware), or `null`
+ * when no rest timer is active. Reads from a snapshot — safe to call before
+ * the atom is reset.
+ */
+export function getRestElapsedSeconds(
+  rest: RestState | null,
+  sessionPausedAt: number | null,
+): number | null {
+  if (!rest) return null
+  const elapsedMs = getEffectiveElapsed(rest, Date.now(), sessionPausedAt)
+  return Math.max(0, Math.round(elapsedMs / 1000))
+}
+
 export function useRestTimer() {
   const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)

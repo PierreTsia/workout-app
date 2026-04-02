@@ -19,6 +19,7 @@ export interface UserProfile {
   equipment: UserEquipment
   training_days_per_week: number
   session_duration_minutes: number
+  active_title_tier_id: string | null
   created_at: string
   updated_at: string
 }
