@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils"
 import type { AchievementRank } from "@/types/achievements"
 
 const AUTO_DISMISS_MS = 4_000
-const QUEUE_GAP_MS = 500
 
 let audioCtx: AudioContext | null = null
 function getAudioCtx(): AudioContext {
@@ -82,7 +81,7 @@ export function AchievementUnlockOverlay() {
     setQueue((prev) => {
       const dismissed = prev[0]
       if (dismissed) {
-        setShownIds((ids) => new Set([...ids, dismissed.tier_id]))
+        setShownIds((ids: Set<string>) => new Set([...ids, dismissed.tier_id]))
       }
       return prev.slice(1)
     })
