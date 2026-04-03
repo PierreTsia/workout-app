@@ -26,13 +26,22 @@ export type UseBestPerformanceArgs = {
   equipment: string | undefined
 }
 
+type SessionEmbed = { started_at: string; finished_at: string | null }
+
 type SetLogWithSession = {
   reps_logged: string | null
   weight_logged: number
   estimated_1rm: number | null
   duration_seconds: number | null
   session_id: string
-  sessions: { started_at: string; finished_at: string | null } | null
+  sessions: SessionEmbed | SessionEmbed[] | null
+}
+
+function normalizeSessionEmbed(
+  s: SetLogWithSession["sessions"],
+): SessionEmbed | null {
+  if (!s) return null
+  return Array.isArray(s) ? (s[0] ?? null) : s
 }
 
 export function bestPerformanceQueryKey(
@@ -99,7 +108,10 @@ export async function fetchBestPerformance(
 
   const logs = (rawLogs ?? []) as SetLogWithSession[]
 
-  const finishedRows = logs.filter((r) => r.sessions?.finished_at != null)
+  const finishedRows = logs.filter((r) => {
+    const sess = normalizeSessionEmbed(r.sessions)
+    return sess?.finished_at != null
+  })
 
   const otherSessionRows = finishedRows.filter((r) => r.session_id !== realId)
 
@@ -108,12 +120,12 @@ export async function fetchBestPerformance(
     return Math.max(max, s)
   }, 0)
 
-  const hasPriorSession = finishedRows.some(
-    (r) =>
-      r.session_id !== realId &&
-      r.sessions?.started_at &&
-      new Date(r.sessions.started_at).getTime() < currentStartMs,
-  )
+  const hasPriorSession = finishedRows.some((r) => {
+    if (r.session_id === realId) return false
+    const sess = normalizeSessionEmbed(r.sessions)
+    if (!sess?.started_at) return false
+    return new Date(sess.started_at).getTime() < currentStartMs
+  })
 
   return { bestValue, hasPriorSession, modality }
 }

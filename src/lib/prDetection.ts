@@ -76,9 +76,6 @@ export function scoreLiveDurationSet(durationSeconds: number): number {
     : 0
 }
 
-export function isPositivePrScore(
-  score: number,
-  _modality: PrModality,
-): boolean {
+export function isPositivePrScore(score: number): boolean {
   return score > 0
 }

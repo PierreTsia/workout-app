@@ -361,7 +361,7 @@ export function SetsTable({
         perfFetched &&
         hasPriorSession &&
         currentScore > runningBest &&
-        isPositivePrScore(currentScore, modality)
+        isPositivePrScore(currentScore)
 
       if (wasPr) {
         setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
