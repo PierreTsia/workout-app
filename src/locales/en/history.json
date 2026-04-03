@@ -41,5 +41,51 @@
   "statSessions": "Sessions",
   "statSets": "Sets",
   "statPrs": "PRs",
-  "sets": "sets"
+  "sets": "sets",
+  "balance": {
+    "tab": "Balance",
+    "windowDays": "Last {{days}} days",
+    "notEnoughDataTitle": "Not enough data yet",
+    "notEnoughDataBody": "Finish at least three sessions with logged sets in the last {{days}} days to unlock your balance score.",
+    "loadError": "Could not load balance data.",
+    "band": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "attention": "Needs attention",
+      "imbalanced": "Imbalanced"
+    },
+    "summary": {
+      "excellent": "Your training load is spread very evenly across the major muscle groups.",
+      "good": "Solid balance overall. A few groups can still catch up.",
+      "attention": "Training focus is uneven. Consider bringing up lagging muscle groups.",
+      "imbalanced": "Volume is heavily concentrated in a few areas. Prioritise neglected groups."
+    },
+    "deltaUp": "+{{value}}%",
+    "deltaDown": "-{{value}}%",
+    "deltaSame": "Same as previous period",
+    "insightsTitle": "Insights",
+    "insightUntrained": "No work logged for {{weak}} while {{strong}} has volume — add complementary work for the weaker side.",
+    "insightSkewed": "{{strong}} has much more volume than {{weak}} — consider rebalancing this pair.",
+    "zeroVolume": "No logged sets for {{muscle}} in this window.",
+    "breakdownTitle": "Per-muscle breakdown",
+    "colMuscle": "Muscle",
+    "colSets": "Sets (weighted)",
+    "colVolume": "Volume (kg)",
+    "colShare": "Share",
+    "muscles": {
+      "Pectoraux": "Chest",
+      "Dos": "Back",
+      "Épaules": "Shoulders",
+      "Biceps": "Biceps",
+      "Triceps": "Triceps",
+      "Quadriceps": "Quads",
+      "Ischios": "Hamstrings",
+      "Fessiers": "Glutes",
+      "Adducteurs": "Adductors",
+      "Mollets": "Calves",
+      "Abdos": "Abs",
+      "Trapèzes": "Traps",
+      "Lombaires": "Lower back"
+    }
+  }
 }

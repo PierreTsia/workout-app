@@ -41,5 +41,51 @@
   "statSessions": "Séances",
   "statSets": "Séries",
   "statPrs": "PRs",
-  "sets": "séries"
+  "sets": "séries",
+  "balance": {
+    "tab": "Équilibre",
+    "windowDays": "{{days}} derniers jours",
+    "notEnoughDataTitle": "Pas assez de données",
+    "notEnoughDataBody": "Termine au moins trois séances avec des séries enregistrées sur les {{days}} derniers jours pour afficher ton score d'équilibre.",
+    "loadError": "Impossible de charger l'équilibre d'entraînement.",
+    "band": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "attention": "À surveiller",
+      "imbalanced": "Déséquilibré"
+    },
+    "summary": {
+      "excellent": "Ta charge est très bien répartie sur les grands groupes musculaires.",
+      "good": "Bon équilibre global. Quelques groupes peuvent encore monter.",
+      "attention": "La répartition est inégale. Pense aux groupes les moins sollicités.",
+      "imbalanced": "Le volume est concentré sur peu de zones. Priorise les groupes négligés."
+    },
+    "deltaUp": "+{{value}} %",
+    "deltaDown": "-{{value}} %",
+    "deltaSame": "Identique à la période précédente",
+    "insightsTitle": "Analyse",
+    "insightUntrained": "Aucun travail enregistré pour {{weak}} alors que {{strong}} a du volume — ajoute des mouvements complémentaires.",
+    "insightSkewed": "{{strong}} a beaucoup plus de volume que {{weak}} — rééquilibre cette paire.",
+    "zeroVolume": "Aucune série enregistrée pour {{muscle}} sur cette période.",
+    "breakdownTitle": "Détail par muscle",
+    "colMuscle": "Muscle",
+    "colSets": "Séries (pondérées)",
+    "colVolume": "Volume (kg)",
+    "colShare": "Part",
+    "muscles": {
+      "Pectoraux": "Pectoraux",
+      "Dos": "Dos",
+      "Épaules": "Épaules",
+      "Biceps": "Biceps",
+      "Triceps": "Triceps",
+      "Quadriceps": "Quadriceps",
+      "Ischios": "Ischios",
+      "Fessiers": "Fessiers",
+      "Adducteurs": "Adducteurs",
+      "Mollets": "Mollets",
+      "Abdos": "Abdos",
+      "Trapèzes": "Trapèzes",
+      "Lombaires": "Lombaires"
+    }
+  }
 }
