@@ -20,7 +20,9 @@ import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { formatDate, formatDurationMs } from "@/lib/formatters"
 import { StatCard } from "@/components/cycle-summary/StatCard"
 import { Button } from "@/components/ui/button"
-import type { Cycle } from "@/types/database"
+import type { Cycle, WorkoutDay } from "@/types/database"
+
+const EMPTY_DAYS: WorkoutDay[] = []
 
 export function CycleSummaryPage() {
   const { cycleId } = useParams<{ cycleId: string }>()
@@ -50,7 +52,7 @@ export function CycleSummaryPage() {
     previousCycle?.id,
   )
   const { data: days } = useWorkoutDays(programId)
-  const cycleProgress = useCycleProgress(cycleId ?? null, days ?? [])
+  const cycleProgress = useCycleProgress(cycleId ?? null, days ?? EMPTY_DAYS)
 
   const isLoading = cycleLoading || statsLoading
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAtom } from "jotai"
 import { sessionAtom } from "@/store/atoms"
 import type { WorkoutDay } from "@/types/database"
@@ -26,6 +26,7 @@ export function WorkoutDayCarousel({
 
   const selectedDayId = session.currentDayId
   const completedSet = new Set(completedDayIds)
+  const carouselOpts = useMemo(() => ({ align: "start" as const, containScroll: false as const }), [])
 
   // Validate currentDayId on mount / when days change — reset if stale
   useEffect(() => {
@@ -83,7 +84,7 @@ export function WorkoutDayCarousel({
     <div className="space-y-3">
       <Carousel
         setApi={setApi}
-        opts={{ align: "start", containScroll: false }}
+        opts={carouselOpts}
         className="px-4"
       >
         <CarouselContent className="-ml-3">
