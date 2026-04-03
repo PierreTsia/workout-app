@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next"
 import { useTranslation } from "react-i18next"
 import {
   type BalanceBand,
@@ -8,7 +9,7 @@ import {
 import type { VolumeByMuscleRow } from "@/lib/volumeByMuscleGroup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-function muscleLabel(t: (k: string, o?: object) => string, m: MuscleTaxonomy) {
+function muscleLabel(t: TFunction<"history">, m: MuscleTaxonomy) {
   return t(`balance.muscles.${m}`, { defaultValue: m })
 }
 

@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown } from "lucide-react"
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-function muscleLabel(t: (k: string, o?: object) => string, key: string) {
+function muscleLabel(t: TFunction<"history">, key: string) {
   return t(`balance.muscles.${key}`, { defaultValue: key })
 }
 

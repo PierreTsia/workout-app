@@ -80,7 +80,7 @@ export interface PairInsight {
 export function computePairInsights(
   setsByMuscle: Readonly<Record<string, number>>,
 ): PairInsight[] {
-  return AGONIST_PAIRS.flatMap((pair) => {
+  return AGONIST_PAIRS.flatMap((pair): PairInsight[] => {
     const a = setsByMuscle[pair.a] ?? 0
     const b = setsByMuscle[pair.b] ?? 0
 
