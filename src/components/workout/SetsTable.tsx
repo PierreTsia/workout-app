@@ -1,16 +1,22 @@
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom, restAtom, prFlagsAtom, sessionBest1RMAtom } from "@/store/atoms"
+import { sessionAtom, restAtom, prFlagsAtom, sessionBestPerformanceAtom } from "@/store/atoms"
 import { enqueueSetLog } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
+  getPrModality,
+  isPositivePrScore,
+  scoreLiveDurationSet,
+  scoreLiveRepSet,
+} from "@/lib/prDetection"
+import {
   computeCascadeSuggestions,
   parseTargetRepRange,
 } from "@/lib/rirSuggestion"
-import { useBest1RM } from "@/hooks/useBest1RM"
+import { useBestPerformance } from "@/hooks/useBestPerformance"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import type { WorkoutExercise } from "@/types/database"
@@ -33,6 +39,8 @@ import type { ProgressionSuggestion } from "@/lib/progression"
 interface SetsTableProps {
   exercise: WorkoutExercise
   sessionId: string
+  /** Client session start (`sessionAtom.startedAt`) for PR prior-session logic when the DB row is missing. */
+  sessionStartedAtMs?: number | null
   isReadOnly: boolean
   equipment?: string
   /** Called when the user tries to log sets while the workout timer is paused. */
@@ -51,6 +59,7 @@ function isDurationRow(r: SessionSetRow): r is SessionSetRowDuration {
 export function SetsTable({
   exercise,
   sessionId,
+  sessionStartedAtMs = null,
   isReadOnly,
   equipment,
   onBlockedByPause,
@@ -63,10 +72,27 @@ export function SetsTable({
   const restSnapshot = useAtomValue(restAtom)
   const setRest = useSetAtom(restAtom)
   const setPrFlags = useSetAtom(prFlagsAtom)
-  const [sessionBest, setSessionBest] = useAtom(sessionBest1RMAtom)
-  const { data: historicalBest = 0, isSuccess: best1RMReady } = useBest1RM(
-    exercise.exercise_id,
+  const [sessionBest, setSessionBest] = useAtom(sessionBestPerformanceAtom)
+
+  const modality = useMemo(
+    () =>
+      getPrModality({
+        measurement_type: libExercise?.measurement_type ?? "reps",
+        equipment: libExercise?.equipment ?? equipment,
+      }),
+    [libExercise?.measurement_type, libExercise?.equipment, equipment],
   )
+
+  const { data: perfData, isFetched: perfFetched } = useBestPerformance({
+    exerciseId: exercise.exercise_id,
+    localSessionId: sessionId,
+    sessionStartedAtMs,
+    measurementType: libExercise?.measurement_type,
+    equipment: libExercise?.equipment ?? equipment,
+  })
+
+  const historicalBest = perfData?.bestValue ?? 0
+  const hasPriorSession = perfData?.hasPriorSession ?? false
 
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
@@ -325,13 +351,17 @@ export function SetsTable({
       const weightKg = toKg(displayWeight)
       const reps = parseInt(currentSet.reps, 10)
       const estimatedOneRM = computeEpley1RM(weightKg, reps)
+      const currentScore = scoreLiveRepSet(weightKg, reps, modality)
 
       const runningBest = Math.max(
         historicalBest,
         sessionBest[exercise.exercise_id] ?? 0,
       )
       const wasPr =
-        best1RMReady && estimatedOneRM > runningBest && estimatedOneRM > 0
+        perfFetched &&
+        hasPriorSession &&
+        currentScore > runningBest &&
+        isPositivePrScore(currentScore)
 
       if (wasPr) {
         setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
@@ -341,7 +371,7 @@ export function SetsTable({
         ...prev,
         [exercise.exercise_id]: Math.max(
           prev[exercise.exercise_id] ?? 0,
-          estimatedOneRM,
+          currentScore,
         ),
       }))
 
@@ -428,7 +458,9 @@ export function SetsTable({
       equipment,
       historicalBest,
       sessionBest,
-      best1RMReady,
+      perfFetched,
+      hasPriorSession,
+      modality,
       setSession,
       setRest,
       setPrFlags,
@@ -489,6 +521,29 @@ export function SetsTable({
       try {
         const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
 
+        const currentScore = scoreLiveDurationSet(durationSeconds)
+        const runningBest = Math.max(
+          historicalBest,
+          sessionBest[exercise.exercise_id] ?? 0,
+        )
+        const wasPr =
+          perfFetched &&
+          hasPriorSession &&
+          currentScore > runningBest &&
+          currentScore > 0
+
+        if (wasPr) {
+          setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
+        }
+
+        setSessionBest((prev) => ({
+          ...prev,
+          [exercise.exercise_id]: Math.max(
+            prev[exercise.exercise_id] ?? 0,
+            currentScore,
+          ),
+        }))
+
         enqueueSetLog({
           sessionId,
           exerciseId: exercise.exercise_id,
@@ -497,6 +552,7 @@ export function SetsTable({
           weightLogged: weightKgForLog,
           loggedAt: Date.now(),
           durationSeconds,
+          wasPr,
           restSeconds,
         })
 
@@ -516,6 +572,12 @@ export function SetsTable({
       toKg,
       setSession,
       setRest,
+      setPrFlags,
+      setSessionBest,
+      historicalBest,
+      sessionBest,
+      perfFetched,
+      hasPriorSession,
       isReadOnly,
       session.pausedAt,
       onBlockedByPause,

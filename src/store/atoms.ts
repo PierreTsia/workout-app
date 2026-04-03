@@ -81,7 +81,8 @@ export const queueSyncMetaAtom = atomWithStorage<{
 
 export const prFlagsAtom = atom<Record<string, boolean>>({})
 
-export const sessionBest1RMAtom = atom<Record<string, number>>({})
+/** Best PR-relevant score per `exercise_id` this session (1RM, reps, or seconds — matches `PrModality`). */
+export const sessionBestPerformanceAtom = atom<Record<string, number>>({})
 
 export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
   "installPrompt",

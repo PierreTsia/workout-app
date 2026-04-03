@@ -14,7 +14,7 @@ import {
   syncStatusAtom,
   queueSyncMetaAtom,
   prFlagsAtom,
-  sessionBest1RMAtom,
+  sessionBestPerformanceAtom,
   isQuickWorkoutAtom,
   drawerOpenAtom,
   quickSheetOpenAtom,
@@ -94,7 +94,7 @@ export function clearUserState() {
   store.set(syncStatusAtom, "idle")
   store.set(queueSyncMetaAtom, { pendingCount: 0 })
   store.set(prFlagsAtom, {})
-  store.set(sessionBest1RMAtom, {})
+  store.set(sessionBestPerformanceAtom, {})
   store.set(isQuickWorkoutAtom, false)
   store.set(drawerOpenAtom, false)
   store.set(quickSheetOpenAtom, false)

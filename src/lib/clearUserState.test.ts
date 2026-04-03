@@ -7,7 +7,7 @@ import {
   syncStatusAtom,
   queueSyncMetaAtom,
   prFlagsAtom,
-  sessionBest1RMAtom,
+  sessionBestPerformanceAtom,
   isQuickWorkoutAtom,
   drawerOpenAtom,
   quickSheetOpenAtom,
@@ -61,7 +61,7 @@ function dirtyState() {
   store.set(syncStatusAtom, "syncing")
   store.set(queueSyncMetaAtom, { pendingCount: 3 })
   store.set(prFlagsAtom, { "ex-1": true })
-  store.set(sessionBest1RMAtom, { "ex-1": 100 })
+    store.set(sessionBestPerformanceAtom, { "ex-1": 100 })
   store.set(isQuickWorkoutAtom, true)
   store.set(drawerOpenAtom, true)
   store.set(quickSheetOpenAtom, true)
@@ -88,7 +88,7 @@ describe("clearUserState", () => {
     expect(store.get(syncStatusAtom)).toBe("idle")
     expect(store.get(queueSyncMetaAtom)).toEqual({ pendingCount: 0 })
     expect(store.get(prFlagsAtom)).toEqual({})
-    expect(store.get(sessionBest1RMAtom)).toEqual({})
+    expect(store.get(sessionBestPerformanceAtom)).toEqual({})
     expect(store.get(isQuickWorkoutAtom)).toBe(false)
     expect(store.get(drawerOpenAtom)).toBe(false)
     expect(store.get(quickSheetOpenAtom)).toBe(false)

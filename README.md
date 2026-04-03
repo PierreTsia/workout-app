@@ -277,7 +277,7 @@ src/
 │   ├── AppShell.tsx   # Layout shell with bottom nav
 │   ├── SideDrawer.tsx # Settings, theme, language, weight unit, install, sign out
 │   └── SyncStatusChip.tsx
-├── hooks/             # 16 hooks (useWorkoutDays, useLastSession, useBest1RM, useWeightUnit, etc.)
+├── hooks/             # 17 hooks (useWorkoutDays, useLastSession, useBestPerformance, useWeightUnit, etc.)
 ├── lib/               # supabase client, syncService, epley 1RM, i18n init, formatters, query client
 ├── locales/           # en/ and fr/ JSON translation files (6 namespaces each)
 ├── pages/             # LoginPage, WorkoutPage, HistoryPage, BuilderPage

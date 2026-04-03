@@ -43,6 +43,8 @@ export type SetLogPayloadDuration = {
   weightLogged: number
   loggedAt: number
   durationSeconds: number
+  /** Omitted on legacy queued payloads — treated as false in `processSetLog`. */
+  wasPr?: boolean
   restSeconds?: number | null
 }
 
@@ -217,6 +219,14 @@ function resolveSessionMeta(
   allMeta[localSessionId] = meta
   setSessionMeta(userId, allMeta)
   return meta
+}
+
+/** Stable UUID for the active workout; matches `realSessionId` used when enqueueing set logs. */
+export function getSessionRealId(
+  userId: string,
+  localSessionId: string,
+): string {
+  return resolveSessionMeta(userId, localSessionId).realId
 }
 
 // ---------------------------------------------------------------------------
@@ -493,7 +503,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
             reps_logged: null,
             duration_seconds: p.durationSeconds,
             estimated_1rm: null,
-            was_pr: false,
+            was_pr: p.wasPr === true,
             rir: null,
             rest_seconds: p.restSeconds ?? null,
           }

@@ -22,7 +22,8 @@
     "classify-measurement-type": "tsx scripts/classify-measurement-type.ts",
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
     "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
-    "seed:history": "tsx scripts/seed-local-history.ts"
+    "seed:history": "tsx scripts/seed-local-history.ts",
+    "backfill:was-pr": "tsx scripts/backfill-was-pr.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

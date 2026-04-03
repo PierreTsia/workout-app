@@ -19,8 +19,15 @@ vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: (...args: unknown[]) => enqueueSetLogMock(...args),
 }))
 
-vi.mock("@/hooks/useBest1RM", () => ({
-  useBest1RM: () => ({ data: 0, isSuccess: true }),
+vi.mock("@/hooks/useBestPerformance", () => ({
+  useBestPerformance: () => ({
+    data: {
+      bestValue: 0,
+      hasPriorSession: true,
+      modality: "weighted_reps" as const,
+    },
+    isFetched: true,
+  }),
 }))
 
 vi.mock("@/hooks/useWeightUnit", () => ({
