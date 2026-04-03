@@ -44,6 +44,7 @@
   "sets": "séries",
   "balance": {
     "tab": "Équilibre",
+    "bodyMapIntensityHint": "L’intensité de la couleur indique le volume relatif sur la période (par rapport à tes autres muscles).",
     "windowDays": "{{days}} derniers jours",
     "notEnoughDataTitle": "Pas assez de données",
     "notEnoughDataBody": "Termine au moins trois séances avec des séries enregistrées sur les {{days}} derniers jours pour afficher ton score d'équilibre.",

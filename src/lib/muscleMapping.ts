@@ -1,6 +1,44 @@
 import type { Muscle, IExerciseData } from "react-body-highlighter"
 
 /**
+ * Number of intensity steps for volume-based body maps (Balance tab).
+ * Must match `BODY_MAP_INTENSITY_COLORS.length` in `BodyMap.tsx`.
+ */
+export const BODY_MAP_VOLUME_BUCKET_COUNT = 7
+
+/**
+ * Maps raw aggregated frequencies to 1..bucketCount so react-body-highlighter
+ * can pick distinct colors (it uses frequency as a 1-based index into highlightedColors).
+ */
+export function bucketBodyMapFrequencies(
+  data: IExerciseData[],
+  bucketCount: number,
+): IExerciseData[] {
+  if (bucketCount < 1) return data
+
+  const positiveFreqs = data
+    .map((r) => r.frequency ?? 0)
+    .filter((f) => f > 0)
+
+  if (positiveFreqs.length === 0) return data
+
+  const min = Math.min(...positiveFreqs)
+  const max = Math.max(...positiveFreqs)
+  const span = max - min
+  const middle = Math.max(1, Math.ceil(bucketCount / 2))
+
+  return data.map((r) => {
+    const f = r.frequency ?? 0
+    if (f <= 0) return r
+    if (span === 0) return { ...r, frequency: middle }
+    const t = (f - min) / span
+    const bucket = 1 + Math.round((bucketCount - 1) * t)
+    const clamped = Math.min(bucketCount, Math.max(1, bucket))
+    return { ...r, frequency: clamped }
+  })
+}
+
+/**
  * Maps French muscle taxonomy values (from `exercises.muscle_group`)
  * to SVG region slugs consumed by react-body-highlighter.
  *
