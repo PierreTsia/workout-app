@@ -83,11 +83,13 @@ export async function fetchBestPerformance(
 
   const realId = getSessionRealId(userId, args.localSessionId)
 
-  const { data: sessionRow } = await supabase
+  const { data: sessionRow, error: sessionErr } = await supabase
     .from("sessions")
     .select("started_at")
     .eq("id", realId)
     .maybeSingle()
+
+  if (sessionErr) throw sessionErr
 
   const currentStartMs = sessionRow?.started_at
     ? new Date(sessionRow.started_at).getTime()
@@ -108,24 +110,19 @@ export async function fetchBestPerformance(
 
   const logs = (rawLogs ?? []) as SetLogWithSession[]
 
-  const finishedRows = logs.filter((r) => {
+  const priorSessionRows = logs.filter((r) => {
+    if (r.session_id === realId) return false
     const sess = normalizeSessionEmbed(r.sessions)
-    return sess?.finished_at != null
+    if (!sess?.finished_at || !sess.started_at) return false
+    return new Date(sess.started_at).getTime() < currentStartMs
   })
 
-  const otherSessionRows = finishedRows.filter((r) => r.session_id !== realId)
-
-  const bestValue = otherSessionRows.reduce((max, r) => {
+  const bestValue = priorSessionRows.reduce((max, r) => {
     const s = scoreSetLogRow(r, modality)
     return Math.max(max, s)
   }, 0)
 
-  const hasPriorSession = finishedRows.some((r) => {
-    if (r.session_id === realId) return false
-    const sess = normalizeSessionEmbed(r.sessions)
-    if (!sess?.started_at) return false
-    return new Date(sess.started_at).getTime() < currentStartMs
-  })
+  const hasPriorSession = priorSessionRows.length > 0
 
   return { bestValue, hasPriorSession, modality }
 }

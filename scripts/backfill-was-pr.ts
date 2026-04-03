@@ -202,16 +202,12 @@ async function main() {
   }
 
   let written = 0
-  for (const batch of chunk(updates, 80)) {
-    const results = await Promise.all(
-      batch.map((u) =>
-        supabase.from("set_logs").update({ was_pr: u.was_pr }).eq("id", u.id),
-      ),
-    )
-    for (const res of results) {
-      if (res.error) throw res.error
-      written += 1
-    }
+  for (const batch of chunk(updates, 500)) {
+    const { error } = await supabase
+      .from("set_logs")
+      .upsert(batch, { onConflict: "id" })
+    if (error) throw error
+    written += batch.length
   }
   console.log(`Updated ${written} set_logs`)
 
