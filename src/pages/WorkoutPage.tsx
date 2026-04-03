@@ -39,6 +39,7 @@ import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
+import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import {
@@ -272,6 +273,12 @@ export function WorkoutPage() {
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
     [exercises],
+  )
+
+  const { data: stripLibraryRows = [] } = useExerciseBatch(exerciseIds)
+  const stripLibraryById = useMemo(
+    () => new Map(stripLibraryRows.map((e) => [e.id, e] as const)),
+    [stripLibraryRows],
   )
 
   const scopeMutationPending =
@@ -999,6 +1006,7 @@ export function WorkoutPage() {
               )}
               <ExerciseStrip
                 exercises={exercises}
+                libraryById={stripLibraryById}
                 activeIndex={displayIndex}
                 onSelectIndex={
                   isViewingLockedDay

@@ -1,20 +1,22 @@
 import { useAtomValue } from "jotai"
-import { useRef, useEffect } from "react"
+import { forwardRef, useEffect, useRef } from "react"
 import { Check } from "lucide-react"
 import { prFlagsAtom, completedExerciseIdsAtom } from "@/store/atoms"
-import type { WorkoutExercise } from "@/types/database"
-import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
+import type { Exercise, WorkoutExercise } from "@/types/database"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { cn } from "@/lib/utils"
 
 interface ExerciseStripProps {
   exercises: WorkoutExercise[]
+  /** Batched library rows for strip thumbnails (avoids N `/exercises` calls). */
+  libraryById: ReadonlyMap<string, Exercise>
   activeIndex: number
   onSelectIndex: (idx: number) => void
 }
 
 export function ExerciseStrip({
   exercises,
+  libraryById,
   activeIndex,
   onSelectIndex,
 }: ExerciseStripProps) {
@@ -40,6 +42,7 @@ export function ExerciseStrip({
         <StripItem
           key={ex.id}
           exercise={ex}
+          libraryExercise={libraryById.get(ex.exercise_id)}
           isActive={idx === activeIndex}
           hasPr={!!prFlags[ex.exercise_id]}
           isCompleted={completedIds.has(ex.id)}
@@ -51,10 +54,9 @@ export function ExerciseStrip({
   )
 }
 
-import { forwardRef } from "react"
-
 interface StripItemProps {
   exercise: WorkoutExercise
+  libraryExercise: Exercise | undefined
   isActive: boolean
   hasPr: boolean
   isCompleted: boolean
@@ -62,9 +64,10 @@ interface StripItemProps {
 }
 
 const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
-  function StripItem({ exercise, isActive, hasPr, isCompleted, onSelect }, ref) {
-    const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
-
+  function StripItem(
+    { exercise, libraryExercise, isActive, hasPr, isCompleted, onSelect },
+    ref,
+  ) {
     return (
       <button
         ref={ref}
@@ -86,7 +89,7 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
           <span className="absolute right-1 top-1 z-10 text-xs drop-shadow">🏆</span>
         )}
         <ExerciseThumbnail
-          imageUrl={libExercise?.image_url}
+          imageUrl={libraryExercise?.image_url}
           emoji={exercise.emoji_snapshot}
           className="aspect-[4/3] w-full rounded-none"
         />

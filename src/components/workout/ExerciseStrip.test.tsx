@@ -3,12 +3,11 @@ import { act, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { sessionAtom, prFlagsAtom } from "@/store/atoms"
-import type { WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExercise } from "@/types/database"
 import { ExerciseStrip } from "./ExerciseStrip"
 
-vi.mock("@/hooks/useExerciseFromLibrary", () => ({
-  useExerciseFromLibrary: () => ({ data: null }),
-}))
+/** Strip tests only assert labels/overlays; thumbnails use snapshots without library rows. */
+const emptyLibraryById: ReadonlyMap<string, Exercise> = new Map()
 
 const EXERCISES: WorkoutExercise[] = [
   {
@@ -75,6 +74,7 @@ describe("ExerciseStrip", () => {
     renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
       />,
@@ -89,6 +89,7 @@ describe("ExerciseStrip", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
       />,
@@ -105,6 +106,7 @@ describe("ExerciseStrip", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={1}
         onSelectIndex={() => {}}
       />,
@@ -139,6 +141,7 @@ describe("ExerciseStrip", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
       />,
@@ -173,6 +176,7 @@ describe("ExerciseStrip", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={2}
         onSelectIndex={() => {}}
       />,
@@ -214,6 +218,7 @@ describe("ExerciseStrip", () => {
     renderWithProviders(
       <ExerciseStrip
         exercises={EXERCISES}
+        libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={onSelectIndex}
       />,
