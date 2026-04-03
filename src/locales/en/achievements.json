@@ -33,14 +33,14 @@
   "groupDescriptions": {
     "consistency_streak": "Total finished workout sessions",
     "volume_king": "Total volume lifted (kg)",
-    "rhythm_master": "Rest times respected (≥ 80% of prescribed)",
+    "rhythm_master": "Calendar weeks with 3+ sessions",
     "record_hunter": "Personal records broken",
     "exercise_variety": "Distinct exercises used"
   },
   "thresholdHint": {
     "consistency_streak": "Complete {{target}} sessions",
     "volume_king": "Lift {{target}} kg total",
-    "rhythm_master": "Respect rest time on {{target}} sets",
+    "rhythm_master": "Complete {{target}} weeks with 3+ sessions",
     "record_hunter": "Break {{target}} personal records",
     "exercise_variety": "Use {{target}} different exercises"
   }

@@ -33,14 +33,14 @@
   "groupDescriptions": {
     "consistency_streak": "Nombre total de séances terminées",
     "volume_king": "Volume total soulevé (kg)",
-    "rhythm_master": "Temps de repos respectés (≥ 80% du prescrit)",
+    "rhythm_master": "Semaines calendaires avec 3+ séances",
     "record_hunter": "Records personnels battus",
     "exercise_variety": "Exercices distincts utilisés"
   },
   "thresholdHint": {
     "consistency_streak": "Terminer {{target}} séances",
     "volume_king": "Soulever {{target}} kg au total",
-    "rhythm_master": "Respecter le repos sur {{target}} séries",
+    "rhythm_master": "Compléter {{target}} semaines avec 3+ séances",
     "record_hunter": "Battre {{target}} records personnels",
     "exercise_variety": "Utiliser {{target}} exercices différents"
   }
