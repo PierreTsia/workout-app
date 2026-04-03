@@ -1,4 +1,6 @@
+import { useState, useCallback } from "react"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { AchievementRank } from "@/types/achievements"
 
 const sizeClasses = {
@@ -20,6 +22,8 @@ interface BadgeIconProps {
   locked?: boolean
   className?: string
   alt?: string
+  /** Skip lazy loading (e.g. for the unlock overlay where the badge is immediately visible). */
+  eager?: boolean
 }
 
 export function BadgeIcon({
@@ -29,26 +33,55 @@ export function BadgeIcon({
   locked = false,
   className,
   alt = "",
+  eager = false,
 }: BadgeIconProps) {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+
+  const handleLoad = useCallback(() => setLoaded(true), [])
+  const handleError = useCallback(() => {
+    setError(true)
+    setLoaded(true)
+  }, [])
+
+  const showImage = iconUrl && !error
+
   return (
     <div
       className={cn(
         "badge-frame",
         `badge-frame-${rank}`,
         sizeClasses[size],
-        "overflow-hidden",
+        "relative overflow-hidden",
         locked && "grayscale opacity-40",
         className,
       )}
     >
-      {iconUrl ? (
-        <img
-          src={iconUrl}
-          alt={alt}
-          className="h-full w-full object-cover"
-        />
+      {showImage ? (
+        <>
+          {!loaded && (
+            <Skeleton className="absolute inset-0 h-full w-full rounded-full" />
+          )}
+          <img
+            src={iconUrl}
+            alt={alt}
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            onLoad={handleLoad}
+            onError={handleError}
+            className={cn(
+              "h-full w-full object-cover transition-opacity duration-300",
+              loaded ? "opacity-100" : "opacity-0",
+            )}
+          />
+        </>
       ) : (
-        <span className={cn(placeholderSize[size], locked ? "opacity-30" : "opacity-60")}>
+        <span
+          className={cn(
+            placeholderSize[size],
+            locked ? "opacity-30" : "opacity-60",
+          )}
+        >
           🏆
         </span>
       )}
