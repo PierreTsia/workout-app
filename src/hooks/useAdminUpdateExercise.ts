@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
+import { EXERCISES_BATCH_QUERY_KEY } from "@/hooks/useExerciseBatch"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import type { Exercise } from "@/types/database"
@@ -32,6 +33,7 @@ export function useAdminUpdateExercise(exerciseId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exercise", exerciseId] })
+      queryClient.invalidateQueries({ queryKey: [EXERCISES_BATCH_QUERY_KEY] })
       queryClient.invalidateQueries({ queryKey: ["admin-exercises"] })
       queryClient.invalidateQueries({ queryKey: ["exercise-library-paginated"] })
     },

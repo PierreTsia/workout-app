@@ -23,9 +23,8 @@ export function useLastSessionForDay(dayId: string | null) {
         .not("finished_at", "is", null)
         .order("finished_at", { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
-      if (error?.code === "PGRST116") return null
       if (error) throw error
       return data
     },
