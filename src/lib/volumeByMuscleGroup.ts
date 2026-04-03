@@ -56,7 +56,6 @@ export function muscleRowsToBodyMapExercises(
     name: m.muscle_group,
     muscleGroup: m.muscle_group,
     sets: Math.max(0, m.total_sets),
-    secondaryMuscles: undefined as string[] | null | undefined,
   }))
 }
 

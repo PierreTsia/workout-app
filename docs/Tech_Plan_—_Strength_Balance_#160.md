@@ -11,7 +11,7 @@
 | Balance score input | **Weighted set credits** (primary 1, secondary 0.5 each) | Issue’s CV score is over per-muscle set distribution; weights must match RPC so UI and math stay consistent |
 | Volume / duration sets | Exclude duration sets; safe reps cast | Same `duration_seconds IS NULL` + `reps_logged ~ '^\d+$'` pattern as [`get_cycle_stats`](supabase/migrations/20260325120000_restore_get_cycle_stats_active_duration.sql) |
 | Period comparison | RPC param **`p_offset_days`** (0 = current window, 30 = previous 30d block) | One function, two calls from the client; windows are `[now - offset - days, now - offset)` |
-| RPC return shape | **JSON** `{ finished_sessions, muscles[] }` | Carries session threshold for “not enough data” without a second round-trip |
+| RPC return shape | **JSON** `{ finished_sessions, muscles[] }` | `finished_sessions` = finished sessions in the window that have **≥1 `set_log`** (matches “logged sets” copy); caps: `p_days` / `p_offset_days` clamped to **1–365** |
 | Gauge | **Custom SVG** half-arc | No new chart tuning; Recharts kept available for future variants |
 
 ### Critical Constraints

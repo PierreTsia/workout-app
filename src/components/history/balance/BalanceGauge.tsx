@@ -46,15 +46,15 @@ export function BalanceGauge({
   const cy = 100
   const r = 80
 
+  const gaugeLabel = `${score} ${bandLabel}`
+
   return (
-    <div
-      className={cn("relative flex flex-col items-center", className)}
-      aria-label={`${score} ${bandLabel}`}
-    >
+    <div className={cn("relative flex flex-col items-center", className)}>
       <svg
         viewBox="0 0 200 112"
         className="w-full max-w-[220px]"
         role="img"
+        aria-label={gaugeLabel}
       >
         <path
           d={describeArc(cx, cy, r, 100)}

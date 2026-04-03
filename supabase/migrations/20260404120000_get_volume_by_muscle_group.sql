@@ -1,6 +1,8 @@
 -- Volume and set credits by muscle group over a rolling window (Training Balance #160).
 -- Primary muscle: 1 set credit + full volume (when reps-based).
--- Each taxonomy secondary: 0.5 set credit + 0.5 volume (matches client body-map weighting convention).
+-- Each taxonomy secondary: 0.5 set credit + 0.5 volume per set (per-set weighting).
+-- Note: exercise detail views use buildBodyMapData(), which applies ceil(sets/2) per exercise
+-- aggregate for secondaries — a different shape than this per-set RPC.
 
 CREATE OR REPLACE FUNCTION get_volume_by_muscle_group(
   p_user_id uuid,
@@ -14,8 +16,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_end   timestamptz := now() - make_interval(days => GREATEST(p_offset_days, 0));
-  v_start timestamptz := v_end - make_interval(days => GREATEST(p_days, 1));
+  v_days_clamped int := LEAST(GREATEST(p_days, 1), 365);
+  v_offset_clamped int := LEAST(GREATEST(p_offset_days, 0), 365);
+  v_end timestamptz := now() - make_interval(days => v_offset_clamped);
+  v_start timestamptz := v_end - make_interval(days => v_days_clamped);
   v_finished_sessions int;
   v_muscles json;
 BEGIN
@@ -24,13 +28,15 @@ BEGIN
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  SELECT COUNT(*)::int
+  -- Aligns with UI copy: only sessions that actually contain set_logs in the window.
+  SELECT COUNT(DISTINCT s.id)::int
   INTO v_finished_sessions
   FROM sessions s
   WHERE s.user_id = p_user_id
     AND s.finished_at IS NOT NULL
     AND s.finished_at >= v_start
-    AND s.finished_at < v_end;
+    AND s.finished_at < v_end
+    AND EXISTS (SELECT 1 FROM set_logs sl WHERE sl.session_id = s.id);
 
   WITH taxonomy AS (
     SELECT unnest(
