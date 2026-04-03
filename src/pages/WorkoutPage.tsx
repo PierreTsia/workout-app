@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import {
   sessionAtom,
   prFlagsAtom,
-  sessionBest1RMAtom,
+  sessionBestPerformanceAtom,
   isQuickWorkoutAtom,
   activeProgramIdAtom,
   authAtom,
@@ -38,6 +38,7 @@ import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPresc
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession } from "@/lib/cycle"
+import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import {
@@ -165,7 +166,7 @@ export function WorkoutPage() {
   const { toDisplay, toKg } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
-  const setSessionBest1RM = useSetAtom(sessionBest1RMAtom)
+  const setSessionBestPerformance = useSetAtom(sessionBestPerformanceAtom)
   const setRest = useSetAtom(restAtom)
   const [isQuickWorkout, setIsQuickWorkout] = useAtom(isQuickWorkoutAtom)
   const activeProgramId = useAtomValue(activeProgramIdAtom)
@@ -552,6 +553,26 @@ export function WorkoutPage() {
   }, [session.isActive, session.startedAt])
 
   useEffect(() => {
+    if (!session.isActive || !user?.id || !currentExercise) return
+    const lib = exerciseById.get(currentExercise.exercise_id)
+    void prefetchBestPerformance(queryClient, user.id, {
+      exerciseId: currentExercise.exercise_id,
+      localSessionId: sessionId,
+      sessionStartedAtMs: session.startedAt,
+      measurementType: lib?.measurement_type,
+      equipment: lib?.equipment,
+    })
+  }, [
+    session.isActive,
+    user?.id,
+    currentExercise,
+    sessionId,
+    session.startedAt,
+    exerciseById,
+    queryClient,
+  ])
+
+  useEffect(() => {
     if (exercises.length === 0) return
 
     setSession((prev) => {
@@ -881,7 +902,7 @@ export function WorkoutPage() {
       accumulatedPause: 0,
     })
     setPrFlags({})
-    setSessionBest1RM({})
+    setSessionBestPerformance({})
     setFinished(false)
 
     if (shouldNavigateToSummary && cycleIdForNav) {

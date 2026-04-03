@@ -509,6 +509,7 @@ describe("SyncService", () => {
         weightLogged: 0,
         loggedAt: 1000,
         durationSeconds: 45,
+        wasPr: false,
       })
 
       await drainQueue(USER_ID)

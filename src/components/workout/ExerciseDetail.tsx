@@ -220,6 +220,7 @@ export function ExerciseDetail({
       <SetsTable
         exercise={exercise}
         sessionId={sessionId}
+        sessionStartedAtMs={sessionStartedAt ?? null}
         isReadOnly={isReadOnly}
         equipment={libExercise?.equipment}
         onBlockedByPause={onBlockedByPause}
