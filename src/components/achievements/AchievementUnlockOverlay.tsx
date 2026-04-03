@@ -7,6 +7,7 @@ import {
   achievementShownIdsAtom,
 } from "@/store/atoms"
 import { cn } from "@/lib/utils"
+import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import type { AchievementRank } from "@/types/achievements"
 
 const AUTO_DISMISS_MS = 4_000
@@ -143,15 +144,13 @@ export function AchievementUnlockOverlay() {
                 rank === "diamond" && "border-purple-400",
               )}
             >
-              {current.icon_asset_url ? (
-                <img
-                  src={current.icon_asset_url}
-                  alt={title}
-                  className="h-16 w-16 object-contain"
-                />
-              ) : (
-                <span className="text-4xl">🏆</span>
-              )}
+              <BadgeIcon
+                rank={rank}
+                iconUrl={current.icon_asset_url}
+                size="lg"
+                alt={title}
+                eager
+              />
             </div>
           </div>
 
