@@ -93,7 +93,9 @@ import {
   clonePreSessionPatch,
   type PreSessionExercisePatch,
 } from "@/types/preSessionOverrides"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
+
+const EMPTY_DAYS: WorkoutDay[] = []
 
 function templateWeightKgToString(kg: number): string {
   if (!kg || kg <= 0) return "0"
@@ -172,7 +174,7 @@ export function WorkoutPage() {
   const queryClient = useQueryClient()
   const { data: activeCycle } = useActiveCycle(activeProgramId)
   const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
-  const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? [])
+  const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? EMPTY_DAYS)
   useAdvanceWorkoutDayOnDateRollover({
     isSessionActive: session.isActive,
     currentDayId: session.currentDayId,
@@ -552,50 +554,47 @@ export function WorkoutPage() {
   useEffect(() => {
     if (exercises.length === 0) return
 
-    let hasChanges = false
-    const patch: Record<string, SessionSetRow[]> = {}
+    setSession((prev) => {
+      let hasChanges = false
+      const patch: Record<string, SessionSetRow[]> = {}
 
-    for (const ex of exercises) {
-      const existing = session.setsData[ex.id]
-      const storedWeight = Number(ex.weight)
-      const historyWeight = lastWeights[ex.exercise_id] ?? 0
-      const effectiveWeightKg =
-        storedWeight > 0 ? storedWeight : historyWeight
-      const lib = exerciseById.get(ex.exercise_id)
+      for (const ex of exercises) {
+        const existing = prev.setsData[ex.id]
+        const storedWeight = Number(ex.weight)
+        const historyWeight = lastWeights[ex.exercise_id] ?? 0
+        const effectiveWeightKg =
+          storedWeight > 0 ? storedWeight : historyWeight
+        const lib = exerciseById.get(ex.exercise_id)
 
-      if (!existing) {
-        const displayWeight = String(
-          Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
-        )
-        patch[ex.id] = buildInitialSetRowsForExercise(
-          ex,
-          lib,
-          displayWeight,
-        )
-        hasChanges = true
-      } else if (storedWeight === 0 && historyWeight > 0) {
-        const allUntouched = existing.every(
-          (s) => s.weight === "0" && !s.done,
-        )
-        if (allUntouched) {
+        if (!existing) {
           const displayWeight = String(
-            Math.round(toDisplay(historyWeight) * 10) / 10,
+            Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
           )
-          patch[ex.id] = mapRowsUpdateWeight(existing, displayWeight)
+          patch[ex.id] = buildInitialSetRowsForExercise(
+            ex,
+            lib,
+            displayWeight,
+          )
           hasChanges = true
+        } else if (storedWeight === 0 && historyWeight > 0) {
+          const allUntouched = existing.every(
+            (s) => s.weight === "0" && !s.done,
+          )
+          if (allUntouched) {
+            const displayWeight = String(
+              Math.round(toDisplay(historyWeight) * 10) / 10,
+            )
+            patch[ex.id] = mapRowsUpdateWeight(existing, displayWeight)
+            hasChanges = true
+          }
         }
       }
-    }
 
-    if (hasChanges) {
-      setSession((prev) => ({
-        ...prev,
-        setsData: { ...prev.setsData, ...patch },
-      }))
-    }
+      if (!hasChanges) return prev
+      return { ...prev, setsData: { ...prev.setsData, ...patch } }
+    })
   }, [
     exercises,
-    session.setsData,
     setSession,
     toDisplay,
     lastWeights,
