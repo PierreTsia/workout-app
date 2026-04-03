@@ -1,11 +1,105 @@
+import {
+  Label,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  RadialBar,
+  RadialBarChart,
+} from "recharts"
+
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
 import type { BalanceBand } from "@/lib/trainingBalance"
 import { cn } from "@/lib/utils"
 
-const BAND_STROKE: Record<BalanceBand, string> = {
-  excellent: "stroke-emerald-500",
-  good: "stroke-lime-500",
-  attention: "stroke-amber-500",
-  imbalanced: "stroke-destructive",
+const BAND_COLOR: Record<BalanceBand, string> = {
+  excellent: "hsl(142 71% 45%)",
+  good: "hsl(84 81% 44%)",
+  attention: "hsl(38 92% 50%)",
+  imbalanced: "hsl(0 72% 71%)",
+}
+
+/** Semicircle filling a 2:1 box. Center on the bottom edge, radius = half width. */
+function gaugeLayout(width: number, height: number) {
+  const cx = width / 2
+  const cy = height
+  const outer = Math.max(0, width / 2 - 0.5)
+  const inner = outer * 0.76
+  const scoreY = cy - inner * 0.48
+  const sublabelY = scoreY + 26
+  return { cx, cy, outer, inner, scoreY, sublabelY }
+}
+
+interface BalanceGaugeRadialProps {
+  width?: number
+  height?: number
+  clamped: number
+  bandLabel: string
+  chartData: Array<{ score: number; fill: string }>
+}
+
+function BalanceGaugeRadialChart({
+  width = 0,
+  height = 0,
+  clamped,
+  bandLabel,
+  chartData,
+}: BalanceGaugeRadialProps) {
+  const layout =
+    width > 0 && height > 0 ? gaugeLayout(width, height) : null
+
+  if (!layout) {
+    return null
+  }
+
+  const { cx, cy, outer, inner, scoreY, sublabelY } = layout
+
+  return (
+    <RadialBarChart
+      width={width}
+      height={height}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      data={chartData}
+      startAngle={180}
+      endAngle={0}
+      cx={cx}
+      cy={cy}
+      innerRadius={inner}
+      outerRadius={outer}
+    >
+      <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+      <RadialBar
+        dataKey="score"
+        background
+        cornerRadius={6}
+        className="stroke-transparent"
+      />
+      <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+        <Label
+          content={() => (
+            <g>
+              <text
+                x={cx}
+                y={scoreY}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-foreground text-4xl font-bold tabular-nums"
+              >
+                {clamped}
+              </text>
+              <text
+                x={cx}
+                y={sublabelY}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-muted-foreground text-xs font-medium"
+              >
+                {bandLabel}
+              </text>
+            </g>
+          )}
+        />
+      </PolarRadiusAxis>
+    </RadialBarChart>
+  )
 }
 
 interface BalanceGaugeProps {
@@ -17,23 +111,6 @@ interface BalanceGaugeProps {
   className?: string
 }
 
-function describeArc(
-  cx: number,
-  cy: number,
-  r: number,
-  score: number,
-): string {
-  const clamped = Math.min(100, Math.max(0, score))
-  const startAngle = Math.PI
-  const endAngle = Math.PI * (1 - clamped / 100)
-  const x1 = cx + r * Math.cos(startAngle)
-  const y1 = cy - r * Math.sin(startAngle)
-  const x2 = cx + r * Math.cos(endAngle)
-  const y2 = cy - r * Math.sin(endAngle)
-  const largeArc = clamped > 50 ? 1 : 0
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`
-}
-
 export function BalanceGauge({
   score,
   band,
@@ -42,53 +119,50 @@ export function BalanceGauge({
   deltaLabel,
   className,
 }: BalanceGaugeProps) {
-  const cx = 100
-  const cy = 100
-  const r = 80
-
+  const clamped = Math.min(100, Math.max(0, score))
   const gaugeLabel = `${score} ${bandLabel}`
 
+  const chartData = [{ score: clamped, fill: "var(--color-balance)" }]
+
+  const chartConfig = {
+    score: { label: "Score" },
+    balance: {
+      label: bandLabel,
+      color: BAND_COLOR[band],
+    },
+  } satisfies ChartConfig
+
   return (
-    <div className={cn("relative flex flex-col items-center", className)}>
-      <svg
-        viewBox="0 0 200 112"
-        className="w-full max-w-[220px]"
-        role="img"
-        aria-label={gaugeLabel}
+    <div
+      className={cn(
+        "relative flex w-full min-w-0 flex-col items-stretch",
+        className,
+      )}
+      role="img"
+      aria-label={gaugeLabel}
+    >
+      <ChartContainer
+        config={chartConfig}
+        className="mx-auto w-full min-w-0 aspect-[2/1] [&_.recharts-responsive-container]:h-full [&_.recharts-responsive-container]:min-h-[168px] [&_.recharts-wrapper]:h-full [&_.recharts-wrapper]:w-full"
       >
-        <path
-          d={describeArc(cx, cy, r, 100)}
-          fill="none"
-          className="stroke-muted"
-          strokeWidth={12}
-          strokeLinecap="round"
+        <BalanceGaugeRadialChart
+          clamped={clamped}
+          bandLabel={bandLabel}
+          chartData={chartData}
         />
-        <path
-          d={describeArc(cx, cy, r, score)}
-          fill="none"
-          className={cn(BAND_STROKE[band])}
-          strokeWidth={12}
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="-mt-14 flex flex-col items-center gap-1 text-center">
-        <span className="text-4xl font-bold tabular-nums">{score}</span>
-        <span className="text-xs font-medium text-muted-foreground">
-          {bandLabel}
+      </ChartContainer>
+      {deltaPct !== null && deltaLabel ? (
+        <span
+          className={cn(
+            "-mt-2 text-center text-xs font-semibold tabular-nums",
+            deltaPct > 0 && "text-emerald-600 dark:text-emerald-400",
+            deltaPct < 0 && "text-destructive",
+            deltaPct === 0 && "text-muted-foreground",
+          )}
+        >
+          {deltaLabel}
         </span>
-        {deltaPct !== null && deltaLabel ? (
-          <span
-            className={cn(
-              "text-xs font-semibold tabular-nums",
-              deltaPct > 0 && "text-emerald-600 dark:text-emerald-400",
-              deltaPct < 0 && "text-destructive",
-              deltaPct === 0 && "text-muted-foreground",
-            )}
-          >
-            {deltaLabel}
-          </span>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   )
 }
