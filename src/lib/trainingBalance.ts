@@ -42,18 +42,23 @@ export function balanceBandFromScore(score: number): BalanceBand {
 }
 
 /**
- * Coefficient of variation of per-muscle set weights (13 values, zeros included).
- * Returns 0–100; 100 = perfectly even, 0 = undefined or no training.
+ * Balance score from coefficient of variation on **log1p(set weights)** (13 values, zeros included).
+ *
+ * Raw CV on linear sets made typical programs look “broken” (e.g. ~23 for 12/13 muscles with
+ * volume) because one zero plus 66 vs 6 spread explodes σ/μ. `log1p` compresses large counts,
+ * keeps ln(1+0)=0 so neglected groups still hurt, and matches the product intent: unevenness
+ * without implying “almost no training”.
  */
 export function computeBalanceScore(setsPerMuscle: readonly number[]): number {
   const n = setsPerMuscle.length
   if (n === 0) return 0
 
-  const mean = setsPerMuscle.reduce((s, x) => s + x, 0) / n
+  const transformed = setsPerMuscle.map((x) => Math.log1p(Math.max(0, x)))
+  const mean = transformed.reduce((s, x) => s + x, 0) / n
   if (mean === 0) return 0
 
   const variance =
-    setsPerMuscle.reduce((s, x) => s + (x - mean) ** 2, 0) / n
+    transformed.reduce((s, x) => s + (x - mean) ** 2, 0) / n
   const std = Math.sqrt(variance)
   const cv = std / mean
 

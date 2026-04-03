@@ -35,6 +35,14 @@ describe("computeBalanceScore", () => {
     const all = MUSCLE_TAXONOMY.map(() => 10)
     expect(computeBalanceScore(some)).toBeLessThan(computeBalanceScore(all))
   })
+
+  it("does not collapse to ~20 for strong coverage with uneven volume (log1p CV)", () => {
+    const taxonomyOrder = [
+      48, 39, 66, 53, 43, 13, 18, 12, 0, 7, 27, 6, 10.5,
+    ] as const
+    expect(taxonomyOrder.length).toBe(13)
+    expect(computeBalanceScore(taxonomyOrder)).toBe(62)
+  })
 })
 
 describe("balanceBandFromScore", () => {
