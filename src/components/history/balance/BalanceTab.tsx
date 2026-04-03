@@ -109,14 +109,16 @@ export function BalanceTab() {
         {t("balance.windowDays", { days: WINDOW_DAYS })}
       </p>
 
-      <div className="grid gap-6 md:grid-cols-2 md:items-start">
-        <BalanceGauge
-          score={derived.score}
-          band={derived.band}
-          bandLabel={derived.bandLabel}
-          deltaPct={derived.deltaPct}
-          deltaLabel={derived.deltaLabel}
-        />
+      <div className="grid min-w-0 gap-6 md:grid-cols-2 md:items-start">
+        <div className="min-w-0 w-full">
+          <BalanceGauge
+            score={derived.score}
+            band={derived.band}
+            bandLabel={derived.bandLabel}
+            deltaPct={derived.deltaPct}
+            deltaLabel={derived.deltaLabel}
+          />
+        </div>
         <div className="flex flex-col items-center gap-2 md:items-end">
           <BodyMap
             data={derived.bodyMapData}
