@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   mapMuscleToSlugs,
+  bucketBodyMapFrequencies,
   buildBodyMapData,
   buildSingleExerciseData,
 } from "./muscleMapping"
@@ -120,5 +121,38 @@ describe("buildBodyMapData", () => {
 
     const chest = data.find((d) => d.muscles.includes("chest"))
     expect(chest!.name).toBe("Bench Press, Cable Fly")
+  })
+})
+
+describe("bucketBodyMapFrequencies", () => {
+  it("maps min..max raw frequencies to 1..bucketCount", () => {
+    const data = [
+      { name: "a", muscles: ["chest" as const], frequency: 10 },
+      { name: "b", muscles: ["biceps" as const], frequency: 20 },
+      { name: "c", muscles: ["triceps" as const], frequency: 40 },
+    ]
+    const out = bucketBodyMapFrequencies(data, 5)
+    expect(out.find((r) => r.muscles[0] === "chest")!.frequency).toBe(1)
+    expect(out.find((r) => r.muscles[0] === "biceps")!.frequency).toBe(2)
+    expect(out.find((r) => r.muscles[0] === "triceps")!.frequency).toBe(5)
+  })
+
+  it("uses middle bucket when all positive frequencies are equal", () => {
+    const data = [
+      { name: "a", muscles: ["chest" as const], frequency: 5 },
+      { name: "b", muscles: ["biceps" as const], frequency: 5 },
+    ]
+    const out = bucketBodyMapFrequencies(data, 7)
+    expect(out.every((r) => r.frequency === 4)).toBe(true)
+  })
+
+  it("keeps zero frequency and middle-buckets a lone positive value", () => {
+    const data = [
+      { name: "a", muscles: ["chest" as const], frequency: 0 },
+      { name: "b", muscles: ["biceps" as const], frequency: 8 },
+    ]
+    const out = bucketBodyMapFrequencies(data, 5)
+    expect(out[0].frequency).toBe(0)
+    expect(out[1].frequency).toBe(3)
   })
 })

@@ -13,7 +13,7 @@ import {
   bodyMapDataFromMuscleVolume,
   hasEnoughBalanceData,
 } from "@/lib/volumeByMuscleGroup"
-import { BodyMap } from "@/components/body-map/BodyMap"
+import { BodyMap, BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/BodyMap"
 import { BalanceGauge } from "./BalanceGauge"
 import { BalanceInsights } from "./BalanceInsights"
 import { MuscleBreakdownTable } from "./MuscleBreakdownTable"
@@ -117,8 +117,15 @@ export function BalanceTab() {
           deltaPct={derived.deltaPct}
           deltaLabel={derived.deltaLabel}
         />
-        <div className="flex justify-center md:justify-end">
-          <BodyMap data={derived.bodyMapData} className="max-w-[280px]" />
+        <div className="flex flex-col items-center gap-2 md:items-end">
+          <BodyMap
+            data={derived.bodyMapData}
+            highlightedColors={BODY_MAP_INTENSITY_COLORS}
+            className="max-w-[280px]"
+          />
+          <p className="max-w-[280px] text-center text-xs text-muted-foreground md:text-right">
+            {t("balance.bodyMapIntensityHint")}
+          </p>
         </div>
       </div>
 

@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { buildBodyMapData } from "@/lib/muscleMapping"
+import {
+  BODY_MAP_VOLUME_BUCKET_COUNT,
+  bucketBodyMapFrequencies,
+  buildBodyMapData,
+} from "@/lib/muscleMapping"
 
 export interface VolumeByMuscleRow {
   muscle_group: string
@@ -60,5 +64,6 @@ export function muscleRowsToBodyMapExercises(
 }
 
 export function bodyMapDataFromMuscleVolume(muscles: readonly VolumeByMuscleRow[]) {
-  return buildBodyMapData(muscleRowsToBodyMapExercises(muscles))
+  const raw = buildBodyMapData(muscleRowsToBodyMapExercises(muscles))
+  return bucketBodyMapFrequencies(raw, BODY_MAP_VOLUME_BUCKET_COUNT)
 }

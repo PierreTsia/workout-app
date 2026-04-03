@@ -44,6 +44,7 @@
   "sets": "sets",
   "balance": {
     "tab": "Balance",
+    "bodyMapIntensityHint": "Muscle color strength reflects relative volume in this period (within your own split).",
     "windowDays": "Last {{days}} days",
     "notEnoughDataTitle": "Not enough data yet",
     "notEnoughDataBody": "Finish at least three sessions with logged sets in the last {{days}} days to unlock your balance score.",
