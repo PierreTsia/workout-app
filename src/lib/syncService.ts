@@ -326,14 +326,13 @@ export function scheduleImmediateDrain(): void {
 // Drain
 // ---------------------------------------------------------------------------
 
-let draining = false
+/** Serializes drains so concurrent callers wait in line instead of no-op'ing (lost flush). */
+let drainChain: Promise<void> = Promise.resolve()
 
-export async function drainQueue(userId: string): Promise<void> {
-  if (draining) return
+async function drainQueueOnce(userId: string): Promise<void> {
   const queue = getQueue(userId)
   if (queue.length === 0) return
 
-  draining = true
   store.set(syncStatusAtom, "syncing")
 
   const allMeta = getSessionMeta(userId)
@@ -414,8 +413,14 @@ export async function drainQueue(userId: string): Promise<void> {
   queryClient.invalidateQueries({ queryKey: ["sessions-date-range"] })
   queryClient.invalidateQueries({ queryKey: ["active-cycle"] })
   queryClient.invalidateQueries({ queryKey: ["cycle-sessions"] })
+}
 
-  draining = false
+export function drainQueue(userId: string): Promise<void> {
+  const task = drainChain.then(() => drainQueueOnce(userId))
+  drainChain = task.catch((e) => {
+    console.error("[SyncService] drainQueue failed", e)
+  })
+  return task
 }
 
 // ---------------------------------------------------------------------------

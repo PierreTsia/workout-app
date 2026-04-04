@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { drainQueue } from "@/lib/syncService"
 import { authAtom } from "@/store/atoms"
 
 interface SaveAsProgramInput {
@@ -36,8 +37,17 @@ export function useSaveAsProgram() {
 
       return { programId: program.id }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["programs"] })
+    onSuccess: async (data) => {
+      if (!user) return
+      // Library uses useUserPrograms → ["user-programs", id]; old ["programs"] matched nothing.
+      qc.invalidateQueries({ queryKey: ["user-programs"] })
+      qc.invalidateQueries({
+        queryKey: ["workout-days", user.id, data.programId],
+      })
+      // Finish + save can overlap: first drain may still be running; wait so history reflects DB.
+      await drainQueue(user.id)
+      qc.invalidateQueries({ queryKey: ["sessions"] })
+      qc.invalidateQueries({ queryKey: ["sessions-date-range"] })
     },
   })
 }
