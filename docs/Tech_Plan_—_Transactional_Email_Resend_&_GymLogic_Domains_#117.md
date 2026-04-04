@@ -215,4 +215,31 @@ Before enabling production traffic:
 
 ---
 
-When you are ready, say **split into tickets** to break this into implementation tickets (DNS/Resend ops, migration + Edge Function, webhooks, i18n, phase-2 feedback + unsubscribe).
+## Implementation tickets
+
+| Ticket | Title | Type |
+|---|---|---|
+| [T55](T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md) | Resend, Cloudflare DNS & domain setup | No-code |
+| [T56](T56_—_DB_Migration_Transactional_Email_Log_&_Preferences.md) | DB migration: logs + preferences | Code |
+| [T57](T57_—_Edge_Function_send-transactional-email_Welcome_Path.md) | Edge Function welcome path | Code |
+| [T58](T58_—_Supabase_Secrets_Webhooks_&_Deliverability_QA_(No-Code).md) | Secrets, webhooks, deliverability QA | No-code |
+| [T59](T59_—_i18n_admin@gymlogic.me_Contact_Copy.md) | i18n `admin@gymlogic.me` | Code |
+| [T60](T60_—_Feedback_Lifecycle_Emails_&_Unsubscribe.md) | Feedback emails + unsubscribe | Code |
+
+```mermaid
+graph LR
+  T55[T55 DNS Resend]
+  T56[T56 Migration]
+  T57[T57 Edge welcome]
+  T58[T58 Secrets webhooks QA]
+  T59[T59 i18n]
+  T60[T60 Feedback mail]
+  T55 --> T58
+  T56 --> T57
+  T57 --> T58
+  T56 --> T60
+  T57 --> T60
+  T58 --> T60
+```
+
+**Suggested order:** T55 and T56 in parallel → T57 → T58 → T59 in parallel with T57/T58 → T60 last.
