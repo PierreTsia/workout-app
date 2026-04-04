@@ -64,6 +64,7 @@ import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { useAdvanceWorkoutDayOnDateRollover } from "@/hooks/useAdvanceWorkoutDayOnDateRollover"
+import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsToExerciseList"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
@@ -350,20 +351,7 @@ export function WorkoutPage() {
     setPendingScope(null)
   }, [session.currentDayId, session.isActive])
 
-  useEffect(() => {
-    const keep = new Set(exercises.map((e) => e.id))
-    setSession((prev) => {
-      const next = { ...prev.setsData }
-      let changed = false
-      for (const key of Object.keys(next)) {
-        if (!keep.has(key)) {
-          delete next[key]
-          changed = true
-        }
-      }
-      return changed ? { ...prev, setsData: next } : prev
-    })
-  }, [exercises, setSession])
+  usePruneSessionSetsToExerciseList(exercises, exercisesLoading, setSession)
 
   const executeScopeChoice = useCallback(
     async (scope: ExerciseEditScope) => {

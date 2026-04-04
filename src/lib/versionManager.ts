@@ -21,22 +21,41 @@ const SESSION_KEEP = new Set([
   "isQuickWorkout",
 ])
 
-function shouldKeep(key: string, hasActiveSession: boolean): boolean {
+function shouldKeep(key: string, preserveSessionBundle: boolean): boolean {
   if (key === VERSION_KEY) return true
   if (ALWAYS_KEEP.has(key)) return true
   if (key.startsWith("sb-") && key.endsWith("-auth-token")) return true
   // Unsynced offline data must never be lost.
   if (key.startsWith("offlineQueue:") || key.startsWith("sessionMeta:")) return true
-  if (hasActiveSession && SESSION_KEEP.has(key)) return true
+  if (preserveSessionBundle && SESSION_KEEP.has(key)) return true
   return false
 }
 
-function hasActiveSession(): boolean {
+/**
+ * True when dropping `SESSION_KEEP` keys would risk losing recoverable workout UI state.
+ * Not only `isActive`: after finish we set `isActive: false` while `setsData` still holds
+ * the last session until the user starts a new one; an upgrade in between must not wipe.
+ */
+function shouldPreserveSessionBundleKeys(): boolean {
   try {
     const raw = localStorage.getItem("session")
     if (!raw) return false
-    const parsed = JSON.parse(raw) as { isActive?: boolean }
-    return parsed.isActive === true
+    const parsed = JSON.parse(raw) as {
+      isActive?: boolean
+      totalSetsDone?: number
+      setsData?: Record<string, unknown>
+    }
+    if (parsed.isActive === true) return true
+    if (typeof parsed.totalSetsDone === "number" && parsed.totalSetsDone > 0) {
+      return true
+    }
+    const sd = parsed.setsData
+    if (sd && typeof sd === "object") {
+      return Object.values(sd).some(
+        (rows) => Array.isArray(rows) && rows.length > 0,
+      )
+    }
+    return false
   } catch {
     return false
   }
@@ -59,11 +78,11 @@ async function purgeWorkboxCaches() {
   }
 }
 
-function purgeStaleLocalStorage(preserveSession: boolean) {
+function purgeStaleLocalStorage(preserveSessionBundle: boolean) {
   try {
     const keys = Object.keys(localStorage)
     for (const key of keys) {
-      if (!shouldKeep(key, preserveSession)) {
+      if (!shouldKeep(key, preserveSessionBundle)) {
         localStorage.removeItem(key)
       }
     }
@@ -90,9 +109,9 @@ export async function handleVersionUpgrade(): Promise<void> {
     if (stored === current) return
 
     if (stored !== null) {
-      const activeSession = hasActiveSession()
+      const preserveSessionBundle = shouldPreserveSessionBundleKeys()
       await purgeWorkboxCaches()
-      purgeStaleLocalStorage(activeSession)
+      purgeStaleLocalStorage(preserveSessionBundle)
     }
 
     localStorage.setItem(VERSION_KEY, current)
