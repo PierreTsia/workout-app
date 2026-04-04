@@ -55,6 +55,7 @@ Establish **gymlogic.me** as the trusted email surface for GymLogic: automated *
 3. **Onboarding send**
    - **Trigger:** New user created in Supabase Auth (covers OAuth and any future email/password path). Implementation options to decide in Tech Plan: **Database Webhook** on `auth.users` → Edge Function, **Auth Hook** (if available/plan-appropriate), or **Postgres trigger** + `pg_net` / queue — must guarantee **idempotency** (no duplicate welcome emails on profile updates).
    - **Content:** One generic welcome email (subject + HTML or React email template); FR/EN can be phase 2 if English-only V1 is acceptable.
+   - **Cold start / template weight:** The **first** mail from a new domain to Gmail, Outlook, or similar is unforgiving: large images, heavy assets, or bloated HTML increase the odds of landing in **Spam**. Keep the welcome template **text-first**, minimal inline images (or none for V1), and avoid rich “marketing” layouts until sending reputation is established.
 
 4. **Supabase Edge Function**
    - New function (e.g. `send-transactional-email` or split per event) using Resend SDK; `RESEND_API_KEY` from Supabase secrets.
@@ -76,6 +77,7 @@ Establish **gymlogic.me** as the trusted email surface for GymLogic: automated *
 
 - **On feedback submit:** After `INSERT` into `exercise_content_feedback`, send user a short “we received your report” email (from no-reply or a `notifications@` address if introduced later).
 - **On resolve:** When admin sets status to resolved (existing admin flow), email the reporter if `user_email` is present — content must avoid leaking internal notes; optional “thank you, we’ve updated content” template.
+- **Unsubscribe (mandatory if lifecycle feedback mail ships):** These messages are **not** strictly account-critical. Every feedback-related email must expose a **visible “Unsubscribe” / “Stop these emails”** link early in the body (and implement it: preference in DB, one-click token, or list-unsubscribe header per Tech Plan). Without an easy opt-out, **“Report spam”** rates rise even for a legitimate product.
 
 ---
 
@@ -85,6 +87,17 @@ Establish **gymlogic.me** as the trusted email surface for GymLogic: automated *
 - **DNS:** Third-party check (e.g. MXToolbox or `dig`) shows SPF/DKIM alignment for the chosen From domain.
 - **Qualitative:** Product copy lists **admin@gymlogic.me** in the agreed screens; onboarding email matches brand tone and includes no-reply expectations.
 - **Engineering:** Runbook below completed once end-to-end; secrets rotation path documented.
+- **Deliverability (before prod):** Onboarding (and any lifecycle mail) **passes manual checks** in Gmail, Outlook, and iCloud inboxes — see **Deliverability testing** below.
+
+---
+
+## Deliverability testing (pre-production)
+
+*Carry this into the Tech Plan as an explicit QA gate; do not treat “Resend says delivered” as sufficient.*
+
+- **Accounts:** Send real test messages to at least **Gmail**, **Microsoft Outlook / Hotmail**, and **iCloud** addresses before enabling production traffic.
+- **Checks:** Inbox vs **Spam/Junk** for the **first** message from the domain (cold start), not only subsequent ones; compare after tightening DMARC if applicable.
+- **Tooling:** Use Resend’s dashboard plus provider “Show original” / headers if a message misbehaves; keep a short log of test dates and outcomes.
 
 ---
 
@@ -128,6 +141,7 @@ Establish **gymlogic.me** as the trusted email surface for GymLogic: automated *
 
 1. **On insert:** DB webhook on `exercise_content_feedback` or call from existing insert path (if centralized) → Edge Function → Resend to `user_email`.
 2. **On resolve:** Subscribe to `UPDATE` where `status` becomes `resolved` and `resolved_at` is set → Edge Function → email; guard against duplicate sends if status flips multiple times.
+3. **Unsubscribe:** If these emails exist, implement opt-out end-to-end (see Scope — nice-to-have); do not ship lifecycle feedback mail without it.
 
 ---
 
@@ -137,6 +151,9 @@ Establish **gymlogic.me** as the trusted email surface for GymLogic: automated *
 - **Idempotency:** Mandatory for welcome email; consider `email_outbox` table or Resend metadata.
 - **i18n:** Onboarding V1 English-only is simplest; FR requires template duplication or locale passed from `user_profiles` / `raw_user_meta_data`.
 - **Privacy:** Feedback emails must not include internal admin notes; align with `file:docs/done/Epic_Brief_—_Compliance_Legal_Privacy_and_Account_Deletion.md` if personal data is included.
+- **Cold start template:** Welcome email stays lightweight (avoid heavy images/assets on first send); richer branding can wait until metrics look stable.
+- **Feedback mail:** If shipped, **unsubscribe** is non-negotiable (visible early + honored); expect Tech Plan to cover storage for preferences or signed tokens.
+- **Deliverability testing:** Block prod until **Gmail + Outlook + iCloud** spot-checks pass for onboarding (and lifecycle mail if enabled); document results.
 - **Existing issue:** Link implementation PRs to [issue #117](https://github.com/PierreTsia/workout-app/issues/117) and update checklist items (DNS, Vercel, Supabase, test send).
 
 ---
