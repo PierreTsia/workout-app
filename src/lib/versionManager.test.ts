@@ -124,6 +124,33 @@ describe("handleVersionUpgrade", () => {
       expect(localStorage.getItem("isQuickWorkout")).toBeNull()
     })
 
+    it("preserves session keys when workout finished but session summary not dismissed (setsData still present)", async () => {
+      setVersion("v2")
+      localStorage.setItem("app_version", "v1")
+      localStorage.setItem(
+        "session",
+        JSON.stringify({
+          isActive: false,
+          currentDayId: "day-1",
+          startedAt: Date.now(),
+          totalSetsDone: 4,
+          setsData: {
+            "we-1": [
+              { kind: "reps", reps: "10", weight: "50", done: true },
+            ],
+          },
+        }),
+      )
+      localStorage.setItem("rest", JSON.stringify(null))
+      localStorage.setItem("queueSyncMeta", '{"pendingCount":0}')
+
+      const handleVersionUpgrade = await importFresh()
+      await handleVersionUpgrade()
+
+      expect(localStorage.getItem("session")).not.toBeNull()
+      expect(localStorage.getItem("queueSyncMeta")).not.toBeNull()
+    })
+
     it("preserves session keys when user is mid-workout", async () => {
       setVersion("v2")
       localStorage.setItem("app_version", "v1")

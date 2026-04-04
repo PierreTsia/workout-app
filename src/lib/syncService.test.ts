@@ -406,7 +406,8 @@ describe("SyncService", () => {
       expect(mockFrom).not.toHaveBeenCalled()
     })
 
-    it("guards against re-entrant calls via the draining flag", async () => {
+    it("serializes concurrent drainQueue calls (second waits for first)", async () => {
+      vi.useRealTimers()
       enqueueSetLog(makeSetLogPayload())
 
       // Make the first drain hang by never resolving the upsert
@@ -420,19 +421,21 @@ describe("SyncService", () => {
       const first = drainQueue(USER_ID)
       const second = drainQueue(USER_ID)
 
-      // Second call should be a no-op and resolve immediately
-      await second
+      let secondResolved = false
+      const secondDone = second.then(() => {
+        secondResolved = true
+      })
 
-      // Let the first one finish
+      await new Promise((r) => setTimeout(r, 0))
+      expect(secondResolved).toBe(false)
+
       resolveUpsert({ data: null, error: null })
-      // Also resolve the subsequent set_logs chain
       setLogsChain.then.mockImplementation(
         (resolve: (v: unknown) => void) =>
           resolve({ data: null, error: null }),
       )
-      await first
+      await Promise.all([first, secondDone])
 
-      // sessions.upsert called only once (not twice)
       expect(sessionsChain.upsert).toHaveBeenCalledTimes(1)
     })
 
