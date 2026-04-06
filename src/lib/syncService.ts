@@ -378,8 +378,18 @@ async function drainQueueOnce(userId: string): Promise<void> {
     }
   }
 
-  // Persist surviving items
-  setQueue(userId, surviving)
+  // Re-read the queue to pick up any items that were enqueued while the
+  // async drain was in progress (between the initial getQueue() snapshot and
+  // now).  Without this, those newly-added items would be silently discarded
+  // when we write back only the surviving (failed) items.
+  const currentQueue = getQueue(userId)
+  const snapshotFingerprints = new Set(queue.map((i) => i.fingerprint))
+  const addedDuringDrain = currentQueue.filter(
+    (item) => !snapshotFingerprints.has(item.fingerprint),
+  )
+
+  // Persist surviving (failed) items + items added during this drain run
+  setQueue(userId, [...addedDuringDrain, ...surviving])
   updatePendingCount(userId)
 
   if (surviving.length === 0) {
