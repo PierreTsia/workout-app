@@ -446,9 +446,9 @@ describe("SyncService", () => {
       enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
 
       // Capture the resolve callback so we can pause the drain mid-flight
-      let resolveSessionUpsert!: (v: unknown) => void
+      let resolveSessionUpsertCallback!: (v: unknown) => void
       sessionsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
-        resolveSessionUpsert = resolve
+        resolveSessionUpsertCallback = resolve
       })
 
       // Start the drain — it will stall waiting for the session upsert
@@ -461,7 +461,7 @@ describe("SyncService", () => {
       enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
 
       // Now let the session upsert resolve and allow set_log upserts to succeed
-      resolveSessionUpsert({ data: null, error: null })
+      resolveSessionUpsertCallback({ data: null, error: null })
       setLogsChain.then.mockImplementation((resolve: (v: unknown) => void) =>
         resolve({ data: null, error: null }),
       )
