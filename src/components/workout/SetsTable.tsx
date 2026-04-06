@@ -3,7 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBestPerformanceAtom } from "@/store/atoms"
-import { enqueueSetLog } from "@/lib/syncService"
+import { enqueueSetLog, scheduleImmediateDrain } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
@@ -390,6 +390,7 @@ export function SetsTable({
         rir,
         restSeconds,
       })
+      scheduleImmediateDrain()
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
 
@@ -555,6 +556,7 @@ export function SetsTable({
           wasPr,
           restSeconds,
         })
+        scheduleImmediateDrain()
 
         setRest({
           startedAt: Date.now(),

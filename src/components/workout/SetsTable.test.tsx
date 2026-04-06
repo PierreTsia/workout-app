@@ -14,9 +14,11 @@ import type { SessionSetRow } from "@/lib/sessionSetRow"
 import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
+const scheduleImmediateDrainMock = vi.fn()
 
 vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: (...args: unknown[]) => enqueueSetLogMock(...args),
+  scheduleImmediateDrain: () => scheduleImmediateDrainMock(),
 }))
 
 vi.mock("@/hooks/useBestPerformance", () => ({

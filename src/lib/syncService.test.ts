@@ -439,6 +439,41 @@ describe("SyncService", () => {
       expect(sessionsChain.upsert).toHaveBeenCalledTimes(1)
     })
 
+    it("preserves items enqueued during an in-flight drain (race condition fix)", async () => {
+      vi.useRealTimers()
+
+      // Enqueue set 1 so there is something to drain
+      enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
+
+      // Capture the resolve callback so we can pause the drain mid-flight
+      let resolveSessionUpsertCallback!: (v: unknown) => void
+      sessionsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
+        resolveSessionUpsertCallback = resolve
+      })
+
+      // Start the drain — it will stall waiting for the session upsert
+      const drainPromise = drainQueue(USER_ID)
+
+      // Yield to let drainQueueOnce reach the awaited session upsert
+      await new Promise((r) => setTimeout(r, 0))
+
+      // Simulate the user logging a new set WHILE the drain is in-flight
+      enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
+
+      // Now let the session upsert resolve and allow set_log upserts to succeed
+      resolveSessionUpsertCallback({ data: null, error: null })
+      setLogsChain.then.mockImplementation((resolve: (v: unknown) => void) =>
+        resolve({ data: null, error: null }),
+      )
+
+      await drainPromise
+
+      // Set 2 was enqueued after the drain started — it must still be in the
+      // queue so a subsequent drain can process it (not silently dropped).
+      expect(readQueue()).toHaveLength(1)
+      expect(readQueue()[0].payload.setNumber).toBe(2)
+    })
+
     it("invalidates caches for sessions, pr-aggregates, and per-exercise keys", async () => {
       enqueueSetLog(makeSetLogPayload({ exerciseId: "ex-A" }))
       enqueueSetLog(
