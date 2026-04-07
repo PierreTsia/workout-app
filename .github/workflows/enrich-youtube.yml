@@ -1,9 +1,10 @@
 name: Enrich YouTube URLs
 
 on:
-  schedule:
-    # Daily at 08:00 UTC (after YouTube quota resets at midnight PT)
-    - cron: "0 8 * * *"
+  # schedule:
+  #   # Daily at 08:00 UTC (after YouTube quota resets at midnight PT)
+  #   # Deactivated: all exercises now have a video
+  #   - cron: "0 8 * * *"
   workflow_dispatch:
 
 jobs:
