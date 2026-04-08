@@ -163,6 +163,13 @@ type PendingScopeAction =
   | { kind: "delete"; row: WorkoutExercise }
   | { kind: "add"; picked: Exercise }
 
+type SessionFinishedStats = {
+  exercisesCompleted: number
+  setsDone: number
+  totalExercises: number
+  prExercises: { exerciseId: string; name: string; emoji: string }[]
+}
+
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
   const { toDisplay, toKg } = useWeightUnit()
@@ -187,6 +194,7 @@ export function WorkoutPage() {
     queryClient,
   })
   const [finished, setFinished] = useState(false)
+  const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
     name: string
@@ -818,6 +826,12 @@ export function WorkoutPage() {
     }
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
+    setFinishedStats({
+      exercisesCompleted,
+      setsDone: daySetsDone,
+      totalExercises: exercises.length,
+      prExercises,
+    })
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
     setFinished(true)
@@ -883,6 +897,7 @@ export function WorkoutPage() {
     setPreSessionPatch(emptyPreSessionPatch())
     clearSessionExercisePatchStorage()
     setFinishedQuickInfo(null)
+    setFinishedStats(null)
     setRest(null)
     setSession({
       currentDayId: null,
@@ -935,10 +950,10 @@ export function WorkoutPage() {
   if (finished) {
     return (
       <SessionSummary
-        setsDone={daySetsDone}
-        exercisesCompleted={exercisesCompleted}
-        totalExercises={exercises.length}
-        prExercises={prExercises}
+        setsDone={finishedStats?.setsDone ?? daySetsDone}
+        exercisesCompleted={finishedStats?.exercisesCompleted ?? exercisesCompleted}
+        totalExercises={finishedStats?.totalExercises ?? exercises.length}
+        prExercises={finishedStats?.prExercises ?? prExercises}
         onNewSession={handleNewSession}
         quickWorkoutDayId={finishedQuickInfo?.dayId}
         quickWorkoutName={finishedQuickInfo?.name}
