@@ -32,5 +32,5 @@
   "deleteAccountDeleting": "Deleting…",
   "deleteAccountTypePrompt": "Type {{word}} to confirm:",
   "deleteAccountSuccess": "Your account has been deleted.",
-  "deleteAccountError": "Could not delete your account. Try again or contact support."
+  "deleteAccountError": "Could not delete your account. Try again or contact admin@gymlogic.me."
 }

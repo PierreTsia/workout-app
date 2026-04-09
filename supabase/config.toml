@@ -282,6 +282,10 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = false
 
+# Database Webhook ingress — validates WEBHOOK_SECRET, not end-user JWT
+[functions.send-transactional-email]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

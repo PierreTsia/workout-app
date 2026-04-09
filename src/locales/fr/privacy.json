@@ -4,7 +4,7 @@
   "backToApp": "Retour à l'appli",
 
   "s1Title": "Qui sommes-nous",
-  "s1Body": "Cette appli est un projet personnel indépendant. Il n'y a pas d'entreprise derrière — juste un développeur. Pour toute question relative à la confidentialité : pierre.tsiakkaros@gmail.com.",
+  "s1Body": "Cette appli est un projet personnel indépendant. Il n'y a pas d'entreprise derrière — juste un développeur. Pour toute question relative à la confidentialité : admin@gymlogic.me.",
 
   "s2Title": "Ce que nous collectons et pourquoi",
   "s2Auth": "Identité de connexion (adresse e-mail, nom, photo de profil) via Google OAuth, traitée par Supabase Auth. Utilisée uniquement pour identifier votre compte.",
@@ -25,7 +25,7 @@
   "s5Title": "Vos droits",
   "s5Access": "Accédez à vos données et corrigez-les à tout moment via les paramètres du compte.",
   "s5Delete": "Supprimez votre compte et toutes les données associées depuis les paramètres du compte. La suppression est immédiate et irréversible.",
-  "s5Contact": "Pour toute autre demande (export de données, opposition, réclamation), écrivez à pierre.tsiakkaros@gmail.com.",
+  "s5Contact": "Pour toute autre demande (export de données, opposition, réclamation), écrivez à admin@gymlogic.me.",
 
   "s6Title": "Sécurité",
   "s6Body": "Toutes les données sont protégées par la sécurité au niveau des lignes (RLS) en base de données — vous ne pouvez lire et modifier que vos propres enregistrements. Les connexions utilisent HTTPS. Nous ne stockons pas de mots de passe (Google gère l'authentification).",
