@@ -4,7 +4,7 @@
   "backToApp": "Back to app",
 
   "s1Title": "Who we are",
-  "s1Body": "This app is an independent personal project. There is no company behind it — just one developer. For privacy questions, contact: pierre.tsiakkaros@gmail.com.",
+  "s1Body": "This app is an independent personal project. There is no company behind it — just one developer. For privacy questions, contact: admin@gymlogic.me.",
 
   "s2Title": "What we collect and why",
   "s2Auth": "Sign-in identity (email address, name, profile photo) via Google OAuth, processed by Supabase Auth. We use this solely to identify your account.",
@@ -25,7 +25,7 @@
   "s5Title": "Your rights",
   "s5Access": "Access and correct your data at any time via Account settings.",
   "s5Delete": "Delete your account and all associated data from Account settings. Deletion is immediate and irreversible.",
-  "s5Contact": "For any other privacy request (data export, objection, complaint), email pierre.tsiakkaros@gmail.com.",
+  "s5Contact": "For any other privacy request (data export, objection, complaint), email admin@gymlogic.me.",
 
   "s6Title": "Security",
   "s6Body": "All data is protected by Row-Level Security in the database — you can only read and write your own records. Connections use HTTPS. We do not store passwords (Google handles authentication).",

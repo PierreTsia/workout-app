@@ -137,6 +137,23 @@ export interface ExerciseContentFeedbackInsert {
 
 export type FeedbackStatus = "pending" | "in_review" | "resolved"
 
+export type TransactionalEmailKind = "welcome" | "feedback_ack" | "feedback_resolved"
+
+export interface TransactionalEmailLog {
+  id: string
+  user_id: string
+  email_kind: TransactionalEmailKind
+  feedback_id: string | null
+  sent_at: string
+  provider_id: string | null
+}
+
+export interface UserEmailPreferences {
+  user_id: string
+  feedback_notifications: boolean
+  updated_at: string
+}
+
 export interface ExerciseContentFeedback {
   id: string
   exercise_id: string
