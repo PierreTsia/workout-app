@@ -286,6 +286,10 @@ verify_jwt = false
 [functions.send-transactional-email]
 verify_jwt = false
 
+# Public GET ?token=… — signed unsubscribe (no user JWT)
+[functions.email-unsubscribe]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

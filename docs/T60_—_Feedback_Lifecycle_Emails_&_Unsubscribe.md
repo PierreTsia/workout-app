@@ -45,6 +45,17 @@ Detect true transition to resolved (compare `old_record` vs `record` in payload)
 |---|---|
 | `file:supabase/config.toml` | `[functions.email-unsubscribe] verify_jwt = false` |
 
+### Webhooks (Dashboard — same secret as welcome mail)
+
+Deploy **`send-transactional-email`** and **`email-unsubscribe`**, then add **two** database webhooks (or one webhook with **Insert** + **Update** selected — depends on UI):
+
+| Webhook | Schema | Table | Events | URL | `Authorization` |
+|---|---|---|---|---|---|
+| Feedback inserts | `public` | `exercise_content_feedback` | **INSERT** | `https://<ref>.supabase.co/functions/v1/send-transactional-email` | `Bearer <WEBHOOK_SECRET>` |
+| Feedback updates | `public` | `exercise_content_feedback` | **UPDATE** | same | same |
+
+Optional env: **`UNSUBSCRIBE_SECRET`** — if unset, unsubscribe tokens use **`WEBHOOK_SECRET`** (same as webhook auth).
+
 ## Out of Scope
 
 - Marketing newsletters.

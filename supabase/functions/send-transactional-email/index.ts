@@ -1,6 +1,8 @@
 import { Resend } from "npm:resend@4.0.1"
+import { signUnsubscribeToken, unsubscribeSecret } from "../_shared/unsubscribeToken.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
+import { buildFeedbackAckEmail, buildFeedbackResolvedEmail } from "./feedback.ts"
 import { buildWelcomeEmail } from "./welcome.ts"
 
 type WebhookPayload = {
@@ -27,6 +29,33 @@ function parseSkipDomains(): string[] {
 function shouldSkipEmailForDomain(email: string, domains: string[]): boolean {
   const lower = email.toLowerCase()
   return domains.some((d) => lower.endsWith(`@${d}`) || lower === d)
+}
+
+function edgeFunctionOrigin(): string {
+  return Deno.env.get("SUPABASE_URL")?.trim().replace(/\/$/, "") ?? ""
+}
+
+async function buildUnsubscribeUrl(userId: string): Promise<string | null> {
+  const secret = unsubscribeSecret()
+  if (!secret) return null
+  const exp = Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60
+  const token = await signUnsubscribeToken({ u: userId, exp, p: "feedback" }, secret)
+  const base = edgeFunctionOrigin()
+  if (!base) return null
+  return `${base}/functions/v1/email-unsubscribe?token=${encodeURIComponent(token)}`
+}
+
+async function feedbackNotificationsEnabled(
+  supabase: ReturnType<typeof createServiceClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_email_preferences")
+    .select("feedback_notifications")
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (!data) return true
+  return data.feedback_notifications !== false
 }
 
 Deno.serve(async (req) => {
@@ -60,7 +89,18 @@ Deno.serve(async (req) => {
     return await handleAuthUserInsert(payload.record)
   }
 
-  // Other webhook types (e.g. feedback) — T60
+  if (
+    payload.schema === "public" &&
+    payload.table === "exercise_content_feedback"
+  ) {
+    if (payload.type === "INSERT" && payload.record) {
+      return await handleFeedbackInsert(payload.record)
+    }
+    if (payload.type === "UPDATE" && payload.record && payload.old_record) {
+      return await handleFeedbackUpdate(payload.record, payload.old_record)
+    }
+  }
+
   return jsonResponse({ ok: true, ignored: true })
 })
 
@@ -140,4 +180,189 @@ async function handleAuthUserInsert(record: Record<string, unknown>) {
   }
 
   return jsonResponse({ ok: true, messageId: providerId })
+}
+
+async function handleFeedbackInsert(record: Record<string, unknown>) {
+  const feedbackId = typeof record.id === "string" ? record.id : null
+  const userId = typeof record.user_id === "string" ? record.user_id : null
+  const userEmail = typeof record.user_email === "string" ? record.user_email : null
+
+  if (!feedbackId || !userId) {
+    return jsonResponse({ ok: false, error: "missing feedback id or user id" }, 400)
+  }
+
+  if (!userEmail?.trim()) {
+    return jsonResponse({ ok: true, skipped: "no user email" })
+  }
+
+  const skipDomains = parseSkipDomains()
+  if (shouldSkipEmailForDomain(userEmail, skipDomains)) {
+    return jsonResponse({ ok: true, skipped: "domain" })
+  }
+
+  const supabase = createServiceClient()
+
+  if (!(await feedbackNotificationsEnabled(supabase, userId))) {
+    return jsonResponse({ ok: true, skipped: "notifications off" })
+  }
+
+  const { data: existing } = await supabase
+    .from("transactional_email_log")
+    .select("id")
+    .eq("feedback_id", feedbackId)
+    .eq("email_kind", "feedback_ack")
+    .maybeSingle()
+
+  if (existing) {
+    return jsonResponse({ ok: true, skipped: "already sent ack" })
+  }
+
+  const resendKey = Deno.env.get("RESEND_API_KEY")
+  const fromEmail = Deno.env.get("FROM_EMAIL")?.trim()
+  if (!resendKey || !fromEmail) {
+    console.error("send-transactional-email: missing RESEND_API_KEY or FROM_EMAIL")
+    return jsonResponse({ error: "Server misconfigured" }, 500)
+  }
+
+  const unsubscribeUrl = await buildUnsubscribeUrl(userId)
+  if (!unsubscribeUrl) {
+    console.error("send-transactional-email: could not build unsubscribe URL")
+    return jsonResponse({ error: "Server misconfigured" }, 500)
+  }
+
+  const { subject, html } = buildFeedbackAckEmail({ unsubscribeUrl })
+  const resend = new Resend(resendKey)
+
+  const listUnsubscribe = `<${unsubscribeUrl}>`
+  const { data: sendData, error: sendErr } = await resend.emails.send({
+    from: fromEmail,
+    to: userEmail,
+    subject,
+    html,
+    headers: { "List-Unsubscribe": listUnsubscribe },
+  })
+
+  if (sendErr) {
+    console.error("send-transactional-email: feedback ack Resend error", sendErr)
+    return jsonResponse({ error: "Send failed", details: sendErr.message }, 502)
+  }
+
+  const providerId =
+    sendData && typeof sendData === "object" && "id" in sendData
+      ? String((sendData as { id: string }).id)
+      : null
+
+  const { error: insertErr } = await supabase.from("transactional_email_log").insert({
+    user_id: userId,
+    email_kind: "feedback_ack",
+    feedback_id: feedbackId,
+    provider_id: providerId,
+  })
+
+  if (insertErr) {
+    console.error("send-transactional-email: feedback ack log error", insertErr)
+    if (insertErr.code === "23505") {
+      return jsonResponse({ ok: true, skipped: "duplicate ack log" })
+    }
+    return jsonResponse({ error: "Log failed", details: insertErr.message }, 500)
+  }
+
+  return jsonResponse({ ok: true, kind: "feedback_ack", messageId: providerId })
+}
+
+async function handleFeedbackUpdate(
+  record: Record<string, unknown>,
+  oldRecord: Record<string, unknown>,
+) {
+  const oldStatus = typeof oldRecord.status === "string" ? oldRecord.status : ""
+  const newStatus = typeof record.status === "string" ? record.status : ""
+  if (oldStatus === "resolved" || newStatus !== "resolved") {
+    return jsonResponse({ ok: true, ignored: "not a resolve transition" })
+  }
+
+  const feedbackId = typeof record.id === "string" ? record.id : null
+  const userId = typeof record.user_id === "string" ? record.user_id : null
+  const userEmail = typeof record.user_email === "string" ? record.user_email : null
+
+  if (!feedbackId || !userId) {
+    return jsonResponse({ ok: false, error: "missing feedback id or user id" }, 400)
+  }
+
+  if (!userEmail?.trim()) {
+    return jsonResponse({ ok: true, skipped: "no user email" })
+  }
+
+  const skipDomains = parseSkipDomains()
+  if (shouldSkipEmailForDomain(userEmail, skipDomains)) {
+    return jsonResponse({ ok: true, skipped: "domain" })
+  }
+
+  const supabase = createServiceClient()
+
+  if (!(await feedbackNotificationsEnabled(supabase, userId))) {
+    return jsonResponse({ ok: true, skipped: "notifications off" })
+  }
+
+  const { data: existing } = await supabase
+    .from("transactional_email_log")
+    .select("id")
+    .eq("feedback_id", feedbackId)
+    .eq("email_kind", "feedback_resolved")
+    .maybeSingle()
+
+  if (existing) {
+    return jsonResponse({ ok: true, skipped: "already sent resolved" })
+  }
+
+  const resendKey = Deno.env.get("RESEND_API_KEY")
+  const fromEmail = Deno.env.get("FROM_EMAIL")?.trim()
+  if (!resendKey || !fromEmail) {
+    console.error("send-transactional-email: missing RESEND_API_KEY or FROM_EMAIL")
+    return jsonResponse({ error: "Server misconfigured" }, 500)
+  }
+
+  const unsubscribeUrl = await buildUnsubscribeUrl(userId)
+  if (!unsubscribeUrl) {
+    console.error("send-transactional-email: could not build unsubscribe URL")
+    return jsonResponse({ error: "Server misconfigured" }, 500)
+  }
+
+  const { subject, html } = buildFeedbackResolvedEmail({ unsubscribeUrl })
+  const resend = new Resend(resendKey)
+  const listUnsubscribe = `<${unsubscribeUrl}>`
+
+  const { data: sendData, error: sendErr } = await resend.emails.send({
+    from: fromEmail,
+    to: userEmail,
+    subject,
+    html,
+    headers: { "List-Unsubscribe": listUnsubscribe },
+  })
+
+  if (sendErr) {
+    console.error("send-transactional-email: feedback resolved Resend error", sendErr)
+    return jsonResponse({ error: "Send failed", details: sendErr.message }, 502)
+  }
+
+  const providerId =
+    sendData && typeof sendData === "object" && "id" in sendData
+      ? String((sendData as { id: string }).id)
+      : null
+
+  const { error: insertErr } = await supabase.from("transactional_email_log").insert({
+    user_id: userId,
+    email_kind: "feedback_resolved",
+    feedback_id: feedbackId,
+    provider_id: providerId,
+  })
+
+  if (insertErr) {
+    console.error("send-transactional-email: feedback resolved log error", insertErr)
+    if (insertErr.code === "23505") {
+      return jsonResponse({ ok: true, skipped: "duplicate resolved log" })
+    }
+    return jsonResponse({ error: "Log failed", details: insertErr.message }, 500)
+  }
+
+  return jsonResponse({ ok: true, kind: "feedback_resolved", messageId: providerId })
 }
