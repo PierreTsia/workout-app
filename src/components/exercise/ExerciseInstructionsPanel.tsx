@@ -12,14 +12,17 @@ import { YouTubeLink } from "./YouTubeLink"
 
 interface ExerciseInstructionsPanelProps {
   exerciseId: string
+  /** When true, instructions start expanded (e.g. library detail page). */
+  defaultExpanded?: boolean
 }
 
 export function ExerciseInstructionsPanel({
   exerciseId,
+  defaultExpanded = false,
 }: ExerciseInstructionsPanelProps) {
   const { t } = useTranslation("exercise")
   const { data: exercise, isLoading } = useExerciseFromLibrary(exerciseId)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
 
   if (isLoading) return null
 

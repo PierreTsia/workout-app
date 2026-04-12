@@ -43,7 +43,7 @@ export function BuilderPage() {
 
   function navigateBack() {
     const from = (location.state as { from?: string } | null)?.from
-    navigate(from ?? "/library")
+    navigate(from ?? "/library/programs")
   }
 
   function handleBack() {
@@ -103,7 +103,7 @@ export function BuilderPage() {
         <Dumbbell className="h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-xl font-bold">{t("invalidProgram")}</h2>
         <Button asChild>
-          <Link to="/library">{t("goToLibrary")}</Link>
+          <Link to="/library/programs">{t("goToLibrary")}</Link>
         </Button>
       </div>
     )

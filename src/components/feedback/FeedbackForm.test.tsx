@@ -124,7 +124,7 @@ describe("FeedbackForm", () => {
       await user.click(selectTrigger)
       await user.click(screen.getByText(/shows wrong exercise/i))
 
-      await user.click(screen.getByRole("button", { name: /submit feedback/i }))
+      await user.click(screen.getByRole("button", { name: /submit report/i }))
 
       await waitFor(() => {
         expect(mockSubmit).toHaveBeenCalledTimes(1)
@@ -144,7 +144,7 @@ describe("FeedbackForm", () => {
       const selectTrigger = screen.getByRole("combobox")
       await user.click(selectTrigger)
       await user.click(screen.getByText(/shows wrong exercise/i))
-      await user.click(screen.getByRole("button", { name: /submit feedback/i }))
+      await user.click(screen.getByRole("button", { name: /submit report/i }))
 
       await waitFor(() => {
         expect(PROPS.onSuccess).toHaveBeenCalled()

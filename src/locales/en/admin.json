@@ -100,7 +100,8 @@
     "source": {
       "workout": "Workout",
       "builder": "Builder",
-      "library_picker": "Library"
+      "library_picker": "Library",
+      "library": "Exercise library"
     },
     "fields": {
       "illustration": "Illustration",

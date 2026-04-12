@@ -120,7 +120,7 @@ export interface CycleStats {
   delta_prs_pct: number | null
 }
 
-export type FeedbackSourceScreen = "workout" | "builder" | "library_picker"
+export type FeedbackSourceScreen = "workout" | "builder" | "library_picker" | "library"
 
 export interface ExerciseContentFeedbackInsert {
   exercise_id: string

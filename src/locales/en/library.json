@@ -58,5 +58,25 @@
   "savedOn": "Saved {{date}}",
   "startSavedWorkout": "Start Workout",
   "draftDeleted": "Saved workout removed",
-  "noSavedWorkouts": "No saved workouts"
+  "noSavedWorkouts": "No saved workouts",
+
+  "drawerPrograms": "Programs",
+  "drawerExercises": "Exercises",
+
+  "exerciseBrowseTitle": "Exercises",
+  "exerciseBrowseBack": "Back",
+  "exerciseBrowseBackToList": "Back to exercise list",
+  "exerciseNotFound": "Exercise not found.",
+  "exerciseDetailLoading": "Loading…",
+  "exerciseDetailToolbarLabel": "Feedback and admin actions",
+
+  "addToSessionCta": "Add to session",
+  "addToSessionSuccess": "Exercise added to session",
+  "addToSessionError": "Could not add exercise. Try again.",
+  "addToSessionPickProgram": "Choose a program",
+  "addToSessionPickDay": "Choose a session day",
+  "addToSessionBack": "Back",
+  "addToSessionNoPrograms": "You have no programs yet. Create one to add exercises.",
+  "addToSessionNoDays": "This program has no days yet. Add one in the builder.",
+  "addToSessionOpenBuilder": "Open builder"
 }

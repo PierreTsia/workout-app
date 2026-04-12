@@ -152,7 +152,7 @@ describe("AIProgramPreviewStep", () => {
     return result
   }
 
-  it("navigates to /library by default after create", async () => {
+  it("navigates to /library/programs by default after create", async () => {
     await mockSupabaseSuccess("prog-lib")
 
     await renderAuthenticated()
@@ -160,7 +160,7 @@ describe("AIProgramPreviewStep", () => {
     await userEvent.click(screen.getByRole("button", { name: /create program/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/library", { replace: true })
+      expect(mockNavigate).toHaveBeenCalledWith("/library/programs", { replace: true })
     })
   })
 

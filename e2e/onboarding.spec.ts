@@ -256,9 +256,9 @@ test.describe("Onboarding", () => {
     await page.getByLabel("Open menu").click()
     await expect(page.getByText("Menu")).toBeVisible({ timeout: 5_000 })
 
-    // Click "Library"
-    await page.getByRole("link", { name: /Library/i }).click()
-    await expect(page).toHaveURL(/\/library/, { timeout: 10_000 })
+    // Library > Programs (nested drawer links)
+    await page.getByRole("link", { name: /^Programs$/i }).click()
+    await expect(page).toHaveURL(/\/library\/programs/, { timeout: 10_000 })
 
     // --- Click "Activate" on the inactive program ---
     const activateButton = page.getByRole("button", { name: /Activate/i }).first()
@@ -269,7 +269,7 @@ test.describe("Onboarding", () => {
     await expect(page.getByText(/Switch program/i)).toBeVisible({ timeout: 5_000 })
     await page.getByRole("button", { name: /Confirm/i }).click()
 
-    // --- Should stay on library after activation ---
-    await expect(page).toHaveURL(/\/library/, { timeout: 30_000 })
+    // --- Should stay on library (programs) after activation ---
+    await expect(page).toHaveURL(/\/library\/programs/, { timeout: 30_000 })
   })
 })

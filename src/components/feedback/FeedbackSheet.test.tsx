@@ -31,13 +31,13 @@ describe("FeedbackSheet", () => {
 
   it("renders form when open", () => {
     renderWithProviders(<FeedbackSheet {...baseProps} />)
-    expect(screen.getByText("Send feedback")).toBeInTheDocument()
+    expect(screen.getByText("Report an issue")).toBeInTheDocument()
     expect(screen.getByTestId("mock-submit")).toBeInTheDocument()
   })
 
   it("does not render content when closed", () => {
     renderWithProviders(<FeedbackSheet {...baseProps} open={false} />)
-    expect(screen.queryByText("Send feedback")).not.toBeInTheDocument()
+    expect(screen.queryByText("Report an issue")).not.toBeInTheDocument()
   })
 
   it("shows success view after form submission", async () => {
@@ -47,7 +47,7 @@ describe("FeedbackSheet", () => {
     await user.click(screen.getByTestId("mock-submit"))
 
     expect(screen.queryByTestId("mock-submit")).not.toBeInTheDocument()
-    expect(screen.getByText(/thank you/i)).toBeInTheDocument()
+    expect(screen.getByText(/received your report/i)).toBeInTheDocument()
   })
 
   it("success view has animate-success-flash class", async () => {
@@ -56,7 +56,8 @@ describe("FeedbackSheet", () => {
 
     await user.click(screen.getByTestId("mock-submit"))
 
-    const successContainer = screen.getByText(/thank you/i).parentElement!
+    const successContainer = screen.getByText(/received your report/i)
+      .parentElement!
     expect(successContainer.className).toContain("animate-success-flash")
   })
 
