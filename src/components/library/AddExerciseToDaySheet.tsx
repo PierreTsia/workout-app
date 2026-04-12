@@ -65,16 +65,15 @@ export function AddExerciseToDaySheet({
   const handleSelectDay = useCallback(
     async (dayId: string) => {
       try {
-        const { data: rows, error } = await supabase
+        const { data: topRow, error } = await supabase
           .from("workout_exercises")
           .select("sort_order")
           .eq("workout_day_id", dayId)
+          .order("sort_order", { ascending: false })
+          .limit(1)
+          .maybeSingle()
         if (error) throw error
-        const maxSort =
-          rows && rows.length > 0
-            ? Math.max(...rows.map((r) => (r as { sort_order: number }).sort_order))
-            : -1
-        const sortOrder = maxSort + 1
+        const sortOrder = topRow ? topRow.sort_order + 1 : 0
 
         await addExercise.mutateAsync({
           dayId,

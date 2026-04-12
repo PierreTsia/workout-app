@@ -54,12 +54,18 @@ vi.mock("@/hooks/useWorkoutDays", () => ({
   useWorkoutDays: (programId: string | null) => mockUseWorkoutDays(programId),
 }))
 
-const mockEq = vi.fn()
+const mockMaybeSingle = vi.fn()
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn(() => ({
-        eq: (...args: unknown[]) => mockEq(...args),
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
+            limit: vi.fn(() => ({
+              maybeSingle: (...args: unknown[]) => mockMaybeSingle(...args),
+            })),
+          })),
+        })),
       })),
     })),
   },
@@ -101,7 +107,7 @@ describe("AddExerciseToDaySheet", () => {
         isLoading: false,
       }
     })
-    mockEq.mockResolvedValue({ data: [{ sort_order: 2 }], error: null })
+    mockMaybeSingle.mockResolvedValue({ data: { sort_order: 2 }, error: null })
   })
 
   it("shows empty state when user has no programs", () => {
@@ -138,6 +144,26 @@ describe("AddExerciseToDaySheet", () => {
     })
     expect(toastSuccess).toHaveBeenCalled()
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("uses sortOrder 0 when the day has no exercises yet", async () => {
+    const user = userEvent.setup()
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null })
+
+    renderWithProviders(
+      <AddExerciseToDaySheet exercise={EXERCISE} open onOpenChange={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Strength A" }))
+    await user.click(screen.getByRole("button", { name: /Leg day/i }))
+
+    await waitFor(() => {
+      expect(mockMutateAsync).toHaveBeenCalledWith({
+        dayId: "day-1",
+        exercise: EXERCISE,
+        sortOrder: 0,
+      })
+    })
   })
 
   it("shows builder link when program has no days", async () => {
