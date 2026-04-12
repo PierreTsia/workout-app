@@ -102,13 +102,13 @@ test.describe("Feedback — happy path", () => {
     await page.waitForTimeout(1_000)
 
     const feedbackTrigger = page.getByRole("button", {
-      name: /send feedback/i,
+      name: /report an issue/i,
     })
     await expect(feedbackTrigger).toBeVisible({ timeout: 5_000 })
     await feedbackTrigger.click()
 
     const sheet = page.locator("[role='dialog']").filter({
-      has: page.getByText("Send feedback"),
+      has: page.getByText("Report an issue"),
     })
     await expect(sheet).toBeVisible({ timeout: 5_000 })
 
@@ -136,7 +136,7 @@ test.describe("Feedback — happy path", () => {
     )
     await commentTextarea.fill("E2E test feedback")
 
-    await sheet.getByRole("button", { name: /submit feedback/i }).click()
+    await sheet.getByRole("button", { name: /submit report/i }).click()
 
     // Success animation may complete instantly in CI (no GPU / reduced motion),
     // so we only assert the meaningful outcome: the sheet closes.

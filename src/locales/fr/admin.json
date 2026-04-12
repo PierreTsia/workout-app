@@ -100,7 +100,8 @@
     "source": {
       "workout": "Entraînement",
       "builder": "Créateur",
-      "library_picker": "Bibliothèque"
+      "library_picker": "Bibliothèque",
+      "library": "Bibliothèque (parcours)"
     },
     "fields": {
       "illustration": "Illustration",

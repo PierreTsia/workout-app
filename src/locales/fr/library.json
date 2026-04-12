@@ -68,6 +68,7 @@
   "exerciseBrowseBackToList": "Retour à la liste",
   "exerciseNotFound": "Exercice introuvable.",
   "exerciseDetailLoading": "Chargement…",
+  "exerciseDetailToolbarLabel": "Retours et actions administrateur",
 
   "addToSessionCta": "Ajouter à la séance",
   "addToSessionSuccess": "Exercice ajouté à la séance",

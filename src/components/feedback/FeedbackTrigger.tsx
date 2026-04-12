@@ -10,6 +10,8 @@ interface FeedbackTriggerProps {
   exerciseId: string
   sourceScreen: FeedbackSourceScreen
   variant?: "icon" | "button"
+  /** `neutral`: secondary button for toolbars; `alert`: ghost + destructive tint (default). */
+  buttonTone?: "alert" | "neutral"
   className?: string
 }
 
@@ -17,6 +19,7 @@ export function FeedbackTrigger({
   exerciseId,
   sourceScreen,
   variant = "icon",
+  buttonTone = "alert",
   className,
 }: FeedbackTriggerProps) {
   const { t } = useTranslation("feedback")
@@ -36,10 +39,15 @@ export function FeedbackTrigger({
       ) : (
         <Button
           type="button"
-          variant="ghost"
+          variant={buttonTone === "neutral" ? "secondary" : "ghost"}
           size="sm"
           onClick={() => setOpen(true)}
-          className={cn("text-destructive hover:text-destructive/80 hover:bg-destructive/10", className)}
+          className={cn(
+            buttonTone === "neutral"
+              ? "font-medium"
+              : "text-destructive hover:text-destructive/80 hover:bg-destructive/10",
+            className,
+          )}
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           {t("reportButton")}

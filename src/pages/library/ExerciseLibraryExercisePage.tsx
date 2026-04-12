@@ -1,10 +1,12 @@
 import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Pencil } from "lucide-react"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
+import { AdminOnly } from "@/components/admin/AdminOnly"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
+import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { AddExerciseToDaySheet } from "@/components/library/AddExerciseToDaySheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,6 +20,7 @@ function isValidExerciseId(id: string | undefined): boolean {
 
 export function ExerciseLibraryExercisePage() {
   const { t } = useTranslation("library")
+  const { t: tWorkout } = useTranslation("workout")
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const [addOpen, setAddOpen] = useState(false)
 
@@ -68,6 +71,30 @@ export function ExerciseLibraryExercisePage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight">{exercise.name}</h1>
+        </div>
+
+        <div
+          className="flex flex-wrap items-center justify-between gap-3"
+          aria-label={t("exerciseDetailToolbarLabel")}
+        >
+          <FeedbackTrigger
+            exerciseId={exercise.id}
+            sourceScreen="library"
+            variant="button"
+            buttonTone="neutral"
+            className="shrink-0"
+          />
+          <AdminOnly>
+            <Button asChild variant="default" size="sm" className="shrink-0">
+              <Link
+                to={`/admin/exercises/${exercise.id}`}
+                className="inline-flex items-center gap-2"
+              >
+                <Pencil className="h-4 w-4 shrink-0" aria-hidden />
+                {tWorkout("session.menuEditInAdmin")}
+              </Link>
+            </Button>
+          </AdminOnly>
         </div>
 
         <div className="flex flex-col gap-3">

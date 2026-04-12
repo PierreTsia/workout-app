@@ -68,6 +68,7 @@
   "exerciseBrowseBackToList": "Back to exercise list",
   "exerciseNotFound": "Exercise not found.",
   "exerciseDetailLoading": "Loading…",
+  "exerciseDetailToolbarLabel": "Feedback and admin actions",
 
   "addToSessionCta": "Add to session",
   "addToSessionSuccess": "Exercise added to session",
