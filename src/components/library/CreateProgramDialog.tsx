@@ -45,7 +45,7 @@ export function CreateProgramDialog({
         onSuccess: (programId) => {
           handleOpenChange(false)
           navigate(`/builder/${programId}`, {
-            state: { from: "/library" },
+            state: { from: "/library/programs" },
           })
         },
         onError: () => {

@@ -87,7 +87,7 @@ function SegmentedButton<T extends string>({
 }
 
 export function SideDrawer() {
-  const { t, i18n } = useTranslation(["common", "settings", "account", "admin"])
+  const { t, i18n } = useTranslation(["common", "settings", "account", "admin", "library"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
@@ -213,12 +213,45 @@ export function SideDrawer() {
                 {t("common:history")}
               </Link>
             </Button>
-            <Button variant="ghost" className={navRowClass} asChild>
-              <Link to="/library" onClick={closeDrawer} className="flex items-center">
-                <Library className={navIconClass} strokeWidth={1.75} />
-                {t("common:library")}
-              </Link>
-            </Button>
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={cn(navRowClass, "group justify-between pr-2")}
+                  type="button"
+                >
+                  <span className="flex items-center gap-3">
+                    <Library className={navIconClass} strokeWidth={1.75} />
+                    {t("common:library")}
+                  </span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-0.5 flex flex-col gap-0.5 border-l border-border/40 pl-4 ml-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground"
+                    asChild
+                  >
+                    <Link to="/library/programs" onClick={closeDrawer}>
+                      {t("library:drawerPrograms")}
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground"
+                    asChild
+                  >
+                    <Link to="/library/exercises" onClick={closeDrawer}>
+                      {t("library:drawerExercises")}
+                    </Link>
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
             <Button
               variant="ghost"
               className={navRowClass}

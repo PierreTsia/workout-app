@@ -58,5 +58,24 @@
   "savedOn": "Sauvegardée le {{date}}",
   "startSavedWorkout": "Démarrer la séance",
   "draftDeleted": "Séance sauvegardée supprimée",
-  "noSavedWorkouts": "Aucune séance sauvegardée"
+  "noSavedWorkouts": "Aucune séance sauvegardée",
+
+  "drawerPrograms": "Programmes",
+  "drawerExercises": "Exercices",
+
+  "exerciseBrowseTitle": "Exercices",
+  "exerciseBrowseBack": "Retour",
+  "exerciseBrowseBackToList": "Retour à la liste",
+  "exerciseNotFound": "Exercice introuvable.",
+  "exerciseDetailLoading": "Chargement…",
+
+  "addToSessionCta": "Ajouter à la séance",
+  "addToSessionSuccess": "Exercice ajouté à la séance",
+  "addToSessionError": "Impossible d'ajouter l'exercice. Réessayez.",
+  "addToSessionPickProgram": "Choisir un programme",
+  "addToSessionPickDay": "Choisir un jour de séance",
+  "addToSessionBack": "Retour",
+  "addToSessionNoPrograms": "Vous n'avez pas encore de programme. Créez-en un pour ajouter des exercices.",
+  "addToSessionNoDays": "Ce programme n'a pas encore de jour. Ajoutez-en un dans l'éditeur.",
+  "addToSessionOpenBuilder": "Ouvrir l'éditeur"
 }

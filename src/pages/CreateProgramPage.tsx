@@ -54,7 +54,7 @@ export function CreateProgramPage() {
   function handleBack() {
     switch (step) {
       case "path-choice":
-        navigate("/library")
+        navigate("/library/programs")
         return
       case "ai-constraints":
         setStep("path-choice")

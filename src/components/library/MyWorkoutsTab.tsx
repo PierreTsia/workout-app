@@ -33,7 +33,7 @@ export function MyWorkoutsTab() {
   })
 
   function handleEdit(programId: string) {
-    navigate(`/builder/${programId}`, { state: { from: "/library" } })
+    navigate(`/builder/${programId}`, { state: { from: "/library/programs" } })
   }
 
   function handleActivateConfirm() {

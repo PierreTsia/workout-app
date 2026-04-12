@@ -28,7 +28,7 @@ export function AIProgramPreviewStep({
   program,
   constraints,
   onRegenerate,
-  successReplacePath = "/library",
+  successReplacePath = "/library/programs",
   onProgramCreated,
 }: AIProgramPreviewStepProps) {
   const { t } = useTranslation("create-program")

@@ -6,7 +6,7 @@ import { MyWorkoutsTab } from "@/components/library/MyWorkoutsTab"
 import { SavedWorkoutsSection } from "@/components/library/SavedWorkoutsSection"
 import { useSavedWorkouts } from "@/hooks/useSavedWorkouts"
 
-export function LibraryPage() {
+export function LibraryProgramsPage() {
   const { t } = useTranslation("library")
   const navigate = useNavigate()
   const { data: saved = [] } = useSavedWorkouts()
@@ -15,6 +15,7 @@ export function LibraryPage() {
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => navigate("/")}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           aria-label={t("backToWorkout")}

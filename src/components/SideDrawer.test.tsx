@@ -81,6 +81,21 @@ function renderDrawer(
   return result
 }
 
+describe("SideDrawer library navigation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("exposes Programs and Exercises links under Library", async () => {
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    const programs = within(dialog).getByRole("link", { name: /^Programs$/i })
+    const exercises = within(dialog).getByRole("link", { name: /^Exercises$/i })
+    expect(programs).toHaveAttribute("href", "/library/programs")
+    expect(exercises).toHaveAttribute("href", "/library/exercises")
+  })
+})
+
 describe("SideDrawer sign-out guard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
