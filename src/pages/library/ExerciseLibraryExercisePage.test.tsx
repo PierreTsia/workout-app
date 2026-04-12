@@ -7,6 +7,10 @@ import { isAdminAtom } from "@/store/atoms"
 import type { Exercise } from "@/types/database"
 import { ExerciseLibraryExercisePage } from "./ExerciseLibraryExercisePage"
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 const VALID_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
 const stubExercise = (overrides: Partial<Exercise> = {}): Exercise => ({
