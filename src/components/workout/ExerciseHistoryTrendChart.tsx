@@ -8,11 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface ExerciseHistoryTrendChartProps {
-  variant?: "e1rm" | "duration"
-  /** Best est. 1RM per session (display units) or longest hold in seconds — oldest → newest. */
+  variant?: "e1rm" | "duration" | "reps"
+  /** Best est. 1RM per session (display units), longest hold in seconds, or best reps — oldest → newest. */
   valuesDisplay: number[]
   /** One label per point (e.g. relative dates), oldest → newest. */
   xLabels: string[]
@@ -67,6 +68,7 @@ export function ExerciseHistoryTrendChart({
   const { t, i18n } = useTranslation("workout")
   const locale = i18n.language
   const isDuration = variant === "duration"
+  const isReps = variant === "reps"
 
   if (valuesDisplay.length < 2 || xLabels.length !== valuesDisplay.length) {
     return null
@@ -102,7 +104,11 @@ export function ExerciseHistoryTrendChart({
     Math.abs(yMid - yMin) > span * 0.02
 
   const fmtY = (v: number) =>
-    isDuration ? fmtDurationAxis(v) : fmtWeight(v, locale, unit)
+    isDuration
+      ? fmtDurationAxis(v)
+      : isReps
+        ? `${Math.round(v)}`
+        : fmtWeight(v, locale, unit)
 
   const ariaMin = fmtY(Math.min(...valuesDisplay))
   const ariaMax = fmtY(Math.max(...valuesDisplay))
@@ -114,31 +120,35 @@ export function ExerciseHistoryTrendChart({
       aria-label={
         isDuration
           ? t("historySheet.chartAriaDuration", { min: ariaMin, max: ariaMax })
-          : t("historySheet.chartAria", {
-              min: ariaMin,
-              max: ariaMax,
-            })
+          : isReps
+            ? t("historySheet.chartAriaReps", { min: ariaMin, max: ariaMax })
+            : t("historySheet.chartAria", { min: ariaMin, max: ariaMax })
       }
     >
       <CardHeader className="flex flex-row flex-wrap items-center justify-center gap-1.5 space-y-0 p-3 pb-2">
         <CardTitle className="text-center text-xs font-normal leading-snug text-muted-foreground">
           {isDuration
             ? t("historySheet.chartCaptionDuration")
-            : t("historySheet.chartCaption", { unit })}
+            : isReps
+              ? t("historySheet.chartCaptionReps")
+              : t("historySheet.chartCaption", { unit })}
         </CardTitle>
         <Popover>
           <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
               aria-label={
                 isDuration
                   ? t("historySheet.durationInfoLabel")
-                  : t("historySheet.epleyInfoLabel")
+                  : isReps
+                    ? t("historySheet.repsInfoLabel")
+                    : t("historySheet.epleyInfoLabel")
               }
             >
               <Info className="h-3.5 w-3.5" aria-hidden />
-            </button>
+            </Button>
           </PopoverTrigger>
           <PopoverContent
             align="center"
@@ -148,12 +158,16 @@ export function ExerciseHistoryTrendChart({
             <p className="font-medium leading-tight text-foreground">
               {isDuration
                 ? t("historySheet.durationInfoTitle")
-                : t("historySheet.epleyInfoTitle")}
+                : isReps
+                  ? t("historySheet.repsInfoTitle")
+                  : t("historySheet.epleyInfoTitle")}
             </p>
             <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
               {isDuration
                 ? t("historySheet.durationInfoBody")
-                : t("historySheet.epleyInfoBody")}
+                : isReps
+                  ? t("historySheet.repsInfoBody")
+                  : t("historySheet.epleyInfoBody")}
             </p>
           </PopoverContent>
         </Popover>

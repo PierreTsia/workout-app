@@ -15,6 +15,7 @@ import { useExerciseSessionHistorySheet } from "@/hooks/useExerciseSessionHistor
 import {
   trendBestDurationSecondsPerSessionOldestFirst,
   trendBestE1RmKgPerSessionOldestFirst,
+  trendBestRepsPerSessionOldestFirst,
 } from "@/lib/exerciseHistorySheet"
 import { ExerciseHistoryTrendChart } from "@/components/workout/ExerciseHistoryTrendChart"
 import { ExerciseHistorySessionCard } from "@/components/workout/ExerciseHistorySessionCard"
@@ -59,11 +60,15 @@ export function ExerciseHistorySheet({
 
   const sessions = data ?? []
   const isDuration = measurementType === "duration"
+  const isBodyweightReps = equipment === "bodyweight" && !isDuration
   const seriesKg = trendBestE1RmKgPerSessionOldestFirst(sessions)
   const seriesDurationSec = trendBestDurationSecondsPerSessionOldestFirst(sessions)
+  const seriesReps = trendBestRepsPerSessionOldestFirst(sessions)
   const seriesForChart = isDuration
     ? seriesDurationSec
-    : seriesKg.map((kg) => toDisplay(kg))
+    : isBodyweightReps
+      ? seriesReps
+      : seriesKg.map((kg) => toDisplay(kg))
   const positiveCount = seriesForChart.filter((v) => v > 0).length
   const showTrend = sessions.length >= 2 && positiveCount >= 2
   const chronologicalSessions = [...sessions].reverse()
@@ -130,7 +135,7 @@ export function ExerciseHistorySheet({
               {showTrend ? (
                 <div className="mb-4 w-full">
                   <ExerciseHistoryTrendChart
-                    variant={isDuration ? "duration" : "e1rm"}
+                    variant={isDuration ? "duration" : isBodyweightReps ? "reps" : "e1rm"}
                     valuesDisplay={seriesForChart}
                     xLabels={trendXLabels}
                     unit={unit}
@@ -140,7 +145,9 @@ export function ExerciseHistorySheet({
                 <p className="mb-4 text-center text-xs text-muted-foreground">
                   {isDuration
                     ? t("historySheet.trendHintDuration")
-                    : t("historySheet.trendHint")}
+                    : isBodyweightReps
+                      ? t("historySheet.trendHintBodyweight")
+                      : t("historySheet.trendHint")}
                 </p>
               )}
 

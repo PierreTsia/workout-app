@@ -165,5 +165,11 @@
   "progression.tryGenerator": "Try the AI program generator for a new cycle",
   "autoDetectLoading": "{{name}}: you logged weight — unlock weight progression?",
   "autoDetectLoadingAction": "Unlock",
+  "historySheet.trendHintBodyweight": "Log this exercise on more days to see your best reps trend.",
+  "historySheet.chartCaptionReps": "Best reps per session",
+  "historySheet.chartAriaReps": "Reps trend from {{min}} to {{max}} across recent sessions",
+  "historySheet.repsInfoLabel": "What does this chart show?",
+  "historySheet.repsInfoTitle": "Best reps per session",
+  "historySheet.repsInfoBody": "This line shows your best rep count per workout \u2014 the highest number of reps you logged in a single set during that session.\n\nFor bodyweight exercises, tracking max reps is a more meaningful progress indicator than estimated 1RM.",
   "historySheet.epleyInfoBody": "This line shows your best estimated one-rep max per workout — the weight you could likely lift for a single rep, inferred from what you actually logged (weight × reps).\n\nWe use the Epley formula, a common strength-training shortcut. It’s not lab-accurate, but it helps compare sessions when you lift heavier or use fewer reps."
 }
