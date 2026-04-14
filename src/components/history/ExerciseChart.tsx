@@ -64,13 +64,16 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
 
   const chartDataReps = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => ({
-      date: formatDate(log.logged_at, i18n.language, {
-        month: "short",
-        day: "numeric",
-      }),
-      reps: parseInt(log.reps_logged ?? "0", 10),
-    }))
+    return logs.map((log) => {
+      const r = parseInt(log.reps_logged ?? "0", 10)
+      return {
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
+        reps: Number.isFinite(r) ? r : 0,
+      }
+    })
   }, [logs, i18n.language])
 
   const chartDataE1rm = useMemo(() => {
