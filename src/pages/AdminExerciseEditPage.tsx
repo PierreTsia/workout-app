@@ -6,6 +6,7 @@ import { useExerciseById } from "@/hooks/useExerciseById"
 import { useAdminUpdateExercise } from "@/hooks/useAdminUpdateExercise"
 import { Badge } from "@/components/ui/badge"
 import { ExerciseEditForm } from "@/components/admin/exercise-form/ExerciseEditForm"
+import { ExerciseReviewToolbar } from "@/components/admin/review/ExerciseReviewToolbar"
 import { fromFormValues } from "@/components/admin/exercise-form/transforms"
 import type { ExerciseFormValues } from "@/components/admin/exercise-form/schema"
 
@@ -70,6 +71,8 @@ export function AdminExerciseEditPage() {
           )}
         </div>
       </div>
+
+      <ExerciseReviewToolbar exercise={exercise} />
 
       <ExerciseEditForm
         exercise={exercise}

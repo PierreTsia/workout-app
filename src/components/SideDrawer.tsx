@@ -288,6 +288,11 @@ export function SideDrawer() {
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground" asChild>
+                      <Link to="/admin/review" onClick={closeDrawer}>
+                        {t("admin:review.navLabel")}
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground" asChild>
                       <Link to="/admin/enrichment" onClick={closeDrawer}>
                         {t("admin:enrichment.navLabel")}
                       </Link>
