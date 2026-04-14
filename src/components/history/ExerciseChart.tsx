@@ -29,7 +29,18 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   const { data: exercise, isLoading: exerciseLoading } = useExerciseById(exerciseId)
   const { data: logs, isLoading: logsLoading } = useExerciseTrend(exerciseId)
   const isDuration = exercise?.measurement_type === "duration"
+  const isBodyweight = exercise?.equipment === "bodyweight" && !isDuration
   const loading = logsLoading || exerciseLoading
+
+  const chartConfigReps = useMemo<ChartConfig>(
+    () => ({
+      reps: {
+        label: t("maxReps"),
+        color: "hsl(var(--primary))",
+      },
+    }),
+    [t],
+  )
 
   const chartConfigE1rm = useMemo<ChartConfig>(
     () => ({
@@ -50,6 +61,20 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
     }),
     [t],
   )
+
+  const chartDataReps = useMemo(() => {
+    if (!logs) return []
+    return logs.map((log) => {
+      const r = parseInt(log.reps_logged ?? "0", 10)
+      return {
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
+        reps: Number.isFinite(r) ? r : 0,
+      }
+    })
+  }, [logs, i18n.language])
 
   const chartDataE1rm = useMemo(() => {
     if (!logs) return []
@@ -81,6 +106,19 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
         }),
         durationSec: Number(log.duration_seconds),
       }))
+  }, [logs, i18n.language])
+
+  const tableRowsBodyweight = useMemo(() => {
+    if (!logs) return []
+    return logs.map((log) => ({
+      id: log.id,
+      date: formatDate(log.logged_at, i18n.language, {
+        month: "short",
+        day: "numeric",
+      }),
+      reps: log.reps_logged,
+      wasPr: log.was_pr,
+    }))
   }, [logs, i18n.language])
 
   const tableRowsReps = useMemo(() => {
@@ -187,6 +225,65 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
                 <TableCell className="px-2 py-1.5 tabular-nums">
                   {formatWeight(row.weightKg)}
                 </TableCell>
+                <TableCell className="px-2 py-1.5">
+                  {row.wasPr && (
+                    <Badge variant="secondary" className="h-5 gap-0.5 px-1.5 text-[10px]">
+                      <Trophy className="h-3 w-3" />
+                      {t("pr")}
+                    </Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
+
+  if (isBodyweight) {
+    return (
+      <div className="flex flex-col gap-4">
+        <ChartContainer config={chartConfigReps} className="aspect-[2/1] w-full">
+          <LineChart data={chartDataReps} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickLine={false}
+              axisLine={false}
+              fontSize={11}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              fontSize={11}
+              width={40}
+              allowDecimals={false}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Line
+              dataKey="reps"
+              type="monotone"
+              stroke="var(--color-reps)"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ChartContainer>
+
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="h-8 px-2">{t("date")}</TableHead>
+              <TableHead className="h-8 px-2">{t("workout:reps", { defaultValue: "Reps" })}</TableHead>
+              <TableHead className="h-8 w-12 px-2" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableRowsBodyweight.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="px-2 py-1.5">{row.date}</TableCell>
+                <TableCell className="px-2 py-1.5 tabular-nums">{row.reps}</TableCell>
                 <TableCell className="px-2 py-1.5">
                   {row.wasPr && (
                     <Badge variant="secondary" className="h-5 gap-0.5 px-1.5 text-[10px]">

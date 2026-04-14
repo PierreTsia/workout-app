@@ -133,6 +133,22 @@ export function trendBestE1RmKgPerSessionOldestFirst(
   })
 }
 
+/** Best reps per session for bodyweight exercises — oldest → newest. */
+export function trendBestRepsPerSessionOldestFirst(
+  sessions: ExerciseHistorySessionRow[],
+): number[] {
+  const chronological = [...sessions].reverse()
+  return chronological.map((sess) => {
+    let best = 0
+    for (const st of sess.sets) {
+      if (st.duration_seconds != null) continue
+      const r = parseInt(String(st.reps_logged ?? "0"), 10)
+      if (Number.isFinite(r) && r > best) best = r
+    }
+    return best
+  })
+}
+
 /** Longest hold (seconds) per session for duration exercises — oldest → newest. */
 export function trendBestDurationSecondsPerSessionOldestFirst(
   sessions: ExerciseHistorySessionRow[],
