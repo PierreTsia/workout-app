@@ -1,4 +1,4 @@
-import type { Exercise } from "@/types/database"
+import type { Exercise, ExerciseInstructions } from "@/types/database"
 import type { ExerciseFormValues } from "./schema"
 
 export function toFormValues(exercise: Exercise): ExerciseFormValues {
@@ -19,6 +19,47 @@ export function toFormValues(exercise: Exercise): ExerciseFormValues {
       common_mistakes: (ins?.common_mistakes ?? []).map((v) => ({ value: v })),
     },
   }
+}
+
+const toSteps = (arr: unknown) =>
+  Array.isArray(arr) ? arr.map((v) => ({ value: String(v) })) : []
+
+/**
+ * Parse raw JSON (typically from an LLM response) into form-compatible values.
+ * Only keys that exist and are non-null in the input are included, so the
+ * result can be spread over existing form values without clobbering untouched fields.
+ */
+export function fromLlmJson(
+  raw: Record<string, unknown>,
+): Partial<ExerciseFormValues> {
+  const result: Partial<ExerciseFormValues> = {}
+
+  if (raw.name != null) result.name = String(raw.name)
+  if (raw.name_en != null) result.name_en = String(raw.name_en)
+  if (raw.muscle_group != null) result.muscle_group = String(raw.muscle_group)
+  if (raw.equipment != null) result.equipment = String(raw.equipment)
+  if (raw.emoji != null) result.emoji = String(raw.emoji)
+
+  if (raw.secondary_muscles != null) {
+    result.secondary_muscles = Array.isArray(raw.secondary_muscles)
+      ? raw.secondary_muscles.join(", ")
+      : String(raw.secondary_muscles)
+  }
+
+  if (raw.youtube_url != null) result.youtube_url = String(raw.youtube_url)
+  if (raw.image_url != null) result.image_url = String(raw.image_url)
+
+  const ins = raw.instructions as Partial<ExerciseInstructions> | undefined
+  if (ins && typeof ins === "object") {
+    result.instructions = {
+      setup: toSteps(ins.setup),
+      movement: toSteps(ins.movement),
+      breathing: toSteps(ins.breathing),
+      common_mistakes: toSteps(ins.common_mistakes),
+    }
+  }
+
+  return result
 }
 
 export function fromFormValues(values: ExerciseFormValues) {

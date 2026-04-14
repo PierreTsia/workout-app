@@ -15,6 +15,7 @@ import { uploadExerciseImage } from "@/lib/imageUpload"
 import { exerciseFormSchema, type ExerciseFormValues } from "./schema"
 import { toFormValues } from "./transforms"
 import { InstructionFieldArray } from "./InstructionFieldArray"
+import { LlmJsonImport } from "./LlmJsonImport"
 
 interface ExerciseEditFormProps {
   exercise: Exercise
@@ -158,6 +159,8 @@ export function ExerciseEditForm({
         </div>
 
         <Separator />
+
+        <LlmJsonImport />
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>

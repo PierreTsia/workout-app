@@ -19,6 +19,7 @@ import { CreateProgramPage } from "@/pages/CreateProgramPage"
 import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
 import { AdminHomePage } from "@/pages/AdminHomePage"
 import { AdminEnrichmentPage } from "@/pages/AdminEnrichmentPage"
+import { AdminReviewPage } from "@/pages/AdminReviewPage"
 import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { AccountPage } from "@/pages/AccountPage"
 import { PrivacyPage } from "@/pages/PrivacyPage"
@@ -114,6 +115,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/admin/exercises/:id",
                     element: <AdminExerciseEditPage />,
+                  },
+                  {
+                    path: "/admin/review",
+                    element: <AdminReviewPage />,
                   },
                   {
                     path: "/admin/enrichment",
