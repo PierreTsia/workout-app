@@ -8,6 +8,7 @@ import type { Exercise } from "@/types/database"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { Badge } from "@/components/ui/badge"
+import { getDifficultyColor } from "@/lib/difficulty"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
@@ -84,7 +85,7 @@ export function ExerciseLibraryPage() {
   )
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 py-3">
         <button
           type="button"
@@ -167,13 +168,25 @@ export function ExerciseLibraryPage() {
                         <ExerciseThumbnail
                           imageUrl={ex.image_url}
                           emoji={ex.emoji}
-                          className="mr-3 h-10 w-10 shrink-0"
+                          className="mr-3 h-16 w-16 shrink-0 rounded-lg"
                         />
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
                           <span className="truncate font-medium">{ex.name}</span>
-                          <Badge variant="secondary" className="w-fit text-xs font-normal">
-                            {ex.equipment}
-                          </Badge>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="secondary" className="w-fit text-xs font-normal">
+                              {ex.equipment}
+                            </Badge>
+                            {ex.difficulty_level && (
+                              <Badge
+                                className={cn(
+                                  "w-fit text-xs font-normal border-0",
+                                  getDifficultyColor(ex.difficulty_level),
+                                )}
+                              >
+                                {tBuilder(`difficulty.${ex.difficulty_level}`, ex.difficulty_level)}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </CommandItem>
                     ))}

@@ -110,7 +110,7 @@ export function BuilderPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
       <BuilderHeader
         programId={programId}
         saveStatus={saveStatus}
