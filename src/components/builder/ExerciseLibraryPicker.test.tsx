@@ -9,6 +9,10 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn() },
 }))
 
+vi.mock("@/hooks/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}))
+
 const EXERCISES: Exercise[] = [
   {
     id: "1",
