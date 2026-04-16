@@ -10,7 +10,8 @@ updates:
         dependency-type: "development"
         patterns:
           - "*"
-      dependencies:
+      production-dependencies:
+        dependency-type: "production"
         applies-to: version-updates
         update-types:
           - "patch"
