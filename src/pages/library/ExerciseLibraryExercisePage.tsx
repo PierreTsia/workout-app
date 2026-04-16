@@ -10,6 +10,8 @@ import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { AddExerciseToDaySheet } from "@/components/library/AddExerciseToDaySheet"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { getDifficultyColor } from "@/lib/difficulty"
+import { cn } from "@/lib/utils"
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -20,6 +22,7 @@ function isValidExerciseId(id: string | undefined): boolean {
 
 export function ExerciseLibraryExercisePage() {
   const { t } = useTranslation("library")
+  const { t: tBuilder } = useTranslation("builder")
   const { t: tWorkout } = useTranslation("workout")
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const [addOpen, setAddOpen] = useState(false)
@@ -61,7 +64,7 @@ export function ExerciseLibraryExercisePage() {
 
   return (
     <>
-      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
+      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
         <div className="flex items-center gap-3 pt-1">
           <Link
             to="/library/exercises"
@@ -97,26 +100,30 @@ export function ExerciseLibraryExercisePage() {
           </AdminOnly>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start gap-4">
-            <ExerciseThumbnail
-              imageUrl={exercise.image_url}
-              emoji={exercise.emoji}
-              className="h-16 w-16 shrink-0"
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <Badge variant="default" className="w-fit text-xs font-normal">
-                {exercise.muscle_group}
+        <div className="flex flex-col gap-4">
+          <ExerciseThumbnail
+            imageUrl={exercise.image_url}
+            emoji={exercise.emoji}
+            className="aspect-[16/9] w-full rounded-xl"
+          />
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="default" className="text-xs font-normal">
+              {exercise.muscle_group}
+            </Badge>
+            <Badge variant="secondary" className="text-xs font-normal">
+              {exercise.equipment}
+            </Badge>
+            {exercise.difficulty_level && (
+              <Badge
+                className={cn(
+                  "text-xs font-normal border-0",
+                  getDifficultyColor(exercise.difficulty_level),
+                )}
+              >
+                {tBuilder(`difficulty.${exercise.difficulty_level}`, exercise.difficulty_level)}
               </Badge>
-              <Badge variant="secondary" className="w-fit text-xs font-normal">
-                {exercise.equipment}
-              </Badge>
-              {exercise.difficulty_level && (
-                <Badge variant="outline" className="w-fit text-xs font-normal">
-                  {exercise.difficulty_level}
-                </Badge>
-              )}
-            </div>
+            )}
           </div>
 
           <ExerciseInstructionsPanel exerciseId={exercise.id} defaultExpanded />

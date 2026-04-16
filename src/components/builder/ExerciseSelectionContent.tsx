@@ -12,6 +12,7 @@ import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { getDifficultyColor } from "@/lib/difficulty"
 import {
   CommandEmpty,
   CommandGroup,
@@ -141,10 +142,7 @@ export function ExerciseSelectionContent({
                     <Badge
                       className={cn(
                         "h-5 shrink-0 px-1.5 text-[10px] border-0",
-                        ex.difficulty_level === "beginner" && "bg-green-600 text-white",
-                        ex.difficulty_level === "intermediate" &&
-                          "bg-yellow-500 text-black",
-                        ex.difficulty_level === "advanced" && "bg-red-600 text-white",
+                        getDifficultyColor(ex.difficulty_level),
                       )}
                     >
                       {t(`difficulty.${ex.difficulty_level}`, ex.difficulty_level)}
