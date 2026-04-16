@@ -73,6 +73,21 @@
     "uploadImage": "Importer",
     "uploading": "Import en cours…",
     "uploadError": "Échec de l'import",
+    "source": "Source",
+    "difficultyLevel": "Difficulté",
+    "difficulty": {
+      "beginner": "Débutant",
+      "intermediate": "Intermédiaire",
+      "advanced": "Avancé"
+    },
+    "measurementType": "Type de mesure",
+    "measurement": {
+      "reps": "Répétitions",
+      "duration": "Durée (temps)"
+    },
+    "defaultDuration": "Durée par défaut (secondes)",
+    "selectPlaceholder": "Sélectionner…",
+    "nonePlaceholder": "Aucun",
     "setup": "Mise en place",
     "movement": "Mouvement",
     "breathing": "Respiration",

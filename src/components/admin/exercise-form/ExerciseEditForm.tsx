@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react"
-import { useForm, FormProvider, useWatch } from "react-hook-form"
+import { useForm, FormProvider, useWatch, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Activity, AlertTriangle, Settings2, Upload, Wind } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -7,6 +7,13 @@ import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import type { Exercise } from "@/types/database"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
 import { getYouTubeEmbedUrl } from "@/lib/youtube"
@@ -45,6 +52,8 @@ export function ExerciseEditForm({
   const equipmentOptions = filterOptions?.equipment ?? []
   const [imgVersion, setImgVersion] = useState(0)
 
+  const measurementType = useWatch({ control, name: "measurement_type" })
+
   const handleImageUploaded = useCallback(
     (filename: string) => {
       methods.setValue("image_url", filename, { shouldDirty: true })
@@ -66,27 +75,55 @@ export function ExerciseEditForm({
           <Field label={t("form.nameEn")}>
             <Input {...methods.register("name_en")} />
           </Field>
-          <Field label={t("form.muscleGroup")} required error={errors.muscle_group?.message}>
-            <select
-              {...methods.register("muscle_group")}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">—</option>
-              {muscleGroups.map((mg) => (
-                <option key={mg} value={mg}>{mg}</option>
-              ))}
-            </select>
+          <Field
+            label={t("form.muscleGroup")}
+            required
+            error={errors.muscle_group?.message}
+          >
+            <Controller
+              control={control}
+              name="muscle_group"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {muscleGroups.map((mg) => (
+                      <SelectItem key={mg} value={mg}>
+                        {mg}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <Field label={t("form.equipment")}>
-            <select
-              {...methods.register("equipment")}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">—</option>
-              {equipmentOptions.map((eq) => (
-                <option key={eq} value={eq}>{eq}</option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="equipment"
+              render={({ field }) => (
+                <Select
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {equipmentOptions.map((eq) => (
+                      <SelectItem key={eq} value={eq}>
+                        {eq}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <Field label={t("form.emoji")} required error={errors.emoji?.message}>
             <Input {...methods.register("emoji")} className="w-20" />
@@ -97,6 +134,81 @@ export function ExerciseEditForm({
               placeholder="e.g. biceps, forearms"
             />
           </Field>
+        </div>
+
+        <Separator />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={t("form.source")}>
+            <Input {...methods.register("source")} readOnly />
+          </Field>
+          <Field label={t("form.difficultyLevel")}>
+            <Controller
+              control={control}
+              name="difficulty_level"
+              render={({ field }) => (
+                <Select
+                  value={field.value || undefined}
+                  onValueChange={(v) =>
+                    field.onChange(v === "__none__" ? "" : v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={t("form.nonePlaceholder")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">
+                      {t("form.nonePlaceholder")}
+                    </SelectItem>
+                    {(["beginner", "intermediate", "advanced"] as const).map(
+                      (level) => (
+                        <SelectItem key={level} value={level}>
+                          {t(`form.difficulty.${level}`)}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+          <Field label={t("form.measurementType")}>
+            <Controller
+              control={control}
+              name="measurement_type"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["reps", "duration"] as const).map((mt) => (
+                      <SelectItem key={mt} value={mt}>
+                        {t(`form.measurement.${mt}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </Field>
+          {measurementType === "duration" && (
+            <Field label={t("form.defaultDuration")}>
+              <Input
+                {...methods.register("default_duration_seconds", {
+                  setValueAs: (v: string) => (v === "" ? null : Number(v)),
+                })}
+                type="number"
+                min={1}
+                placeholder="30"
+              />
+            </Field>
+          )}
         </div>
 
         <Separator />

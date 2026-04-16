@@ -5,11 +5,12 @@ import { Routes, Route } from "react-router-dom"
 import { renderWithProviders } from "@/test/utils"
 import { isAdminAtom } from "@/store/atoms"
 import type { Exercise } from "@/types/database"
-import { ExerciseLibraryExercisePage } from "./ExerciseLibraryExercisePage"
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn() },
 }))
+
+import { ExerciseLibraryExercisePage } from "./ExerciseLibraryExercisePage"
 
 const VALID_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 

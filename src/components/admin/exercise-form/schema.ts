@@ -11,6 +11,12 @@ export const exerciseFormSchema = z.object({
   secondary_muscles: z.string(),
   youtube_url: z.string().nullable(),
   image_url: z.string().nullable(),
+  source: z.string().nullable(),
+  difficulty_level: z
+    .enum(["beginner", "intermediate", "advanced", ""])
+    .nullable(),
+  measurement_type: z.enum(["reps", "duration"]),
+  default_duration_seconds: z.number().positive().nullable(),
   instructions: z.object({
     setup: z.array(instructionStepSchema),
     movement: z.array(instructionStepSchema),
