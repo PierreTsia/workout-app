@@ -12,6 +12,10 @@ export function toFormValues(exercise: Exercise): ExerciseFormValues {
     secondary_muscles: (exercise.secondary_muscles ?? []).join(", "),
     youtube_url: exercise.youtube_url ?? "",
     image_url: exercise.image_url ?? "",
+    source: exercise.source ?? "",
+    difficulty_level: exercise.difficulty_level ?? "",
+    measurement_type: exercise.measurement_type ?? "reps",
+    default_duration_seconds: exercise.default_duration_seconds ?? null,
     instructions: {
       setup: (ins?.setup ?? []).map((v) => ({ value: v })),
       movement: (ins?.movement ?? []).map((v) => ({ value: v })),
@@ -48,6 +52,23 @@ export function fromLlmJson(
 
   if (raw.youtube_url != null) result.youtube_url = String(raw.youtube_url)
   if (raw.image_url != null) result.image_url = String(raw.image_url)
+  if (raw.source != null) result.source = String(raw.source)
+
+  if (raw.difficulty_level != null) {
+    const dl = String(raw.difficulty_level)
+    result.difficulty_level =
+      dl === "beginner" || dl === "intermediate" || dl === "advanced" ? dl : ""
+  }
+
+  if (raw.measurement_type != null) {
+    const mt = String(raw.measurement_type)
+    result.measurement_type = mt === "duration" ? "duration" : "reps"
+  }
+
+  if (raw.default_duration_seconds != null) {
+    const n = Number(raw.default_duration_seconds)
+    result.default_duration_seconds = Number.isFinite(n) && n > 0 ? n : null
+  }
 
   const ins = raw.instructions as Partial<ExerciseInstructions> | undefined
   if (ins && typeof ins === "object") {
@@ -74,6 +95,13 @@ export function fromFormValues(values: ExerciseFormValues) {
       : null,
     youtube_url: values.youtube_url || null,
     image_url: values.image_url || null,
+    source: values.source || null,
+    difficulty_level: values.difficulty_level || null,
+    measurement_type: values.measurement_type,
+    default_duration_seconds:
+      values.measurement_type === "duration"
+        ? (values.default_duration_seconds ?? null)
+        : null,
     instructions: {
       setup: values.instructions.setup
         .map((s) => s.value.trim())

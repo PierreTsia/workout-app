@@ -73,6 +73,21 @@
     "uploadImage": "Upload",
     "uploading": "Uploading…",
     "uploadError": "Upload failed",
+    "source": "Source",
+    "difficultyLevel": "Difficulty",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "measurementType": "Measurement type",
+    "measurement": {
+      "reps": "Reps",
+      "duration": "Duration (time)"
+    },
+    "defaultDuration": "Default duration (seconds)",
+    "selectPlaceholder": "Select…",
+    "nonePlaceholder": "None",
     "setup": "Setup",
     "movement": "Movement",
     "breathing": "Breathing",
