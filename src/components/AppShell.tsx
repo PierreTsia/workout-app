@@ -40,7 +40,7 @@ export function AppShell() {
         <InstallBanner />
         <AchievementUnlockOverlay />
 
-        <main className="flex flex-1 flex-col">
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
           <Outlet />
         </main>
       </div>

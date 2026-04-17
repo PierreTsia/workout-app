@@ -27,6 +27,7 @@ import {
   History,
   UserRound,
   Settings,
+  Trophy,
 } from "lucide-react"
 import {
   Collapsible,
@@ -45,7 +46,9 @@ import {
 import { supabase } from "@/lib/supabase"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { resolveAvatarUrl, resolveDisplayName } from "@/lib/userDisplay"
+import { rankColorText, resolveActiveTitle } from "@/lib/achievementUtils"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { IOSInstallModal } from "@/components/IOSInstallModal"
 import { isIOS, isStandalone } from "@/lib/platform"
@@ -87,12 +90,13 @@ function SegmentedButton<T extends string>({
 }
 
 export function SideDrawer() {
-  const { t, i18n } = useTranslation(["common", "settings", "account", "admin", "library"])
+  const { t, i18n } = useTranslation(["common", "settings", "account", "admin", "library", "achievements"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [locale, setLocale] = useAtom(localeAtom)
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
   const user = useAtomValue(authAtom)
   const { data: profile } = useUserProfile()
+  const { data: badgeRows = [] } = useBadgeStatus()
   const queueMeta = useAtomValue(queueSyncMetaAtom)
   const session = useAtomValue(sessionAtom)
   const { resolvedTheme, setTheme } = useTheme()
@@ -141,6 +145,10 @@ export function SideDrawer() {
   const showEmailSubline =
     userEmail !== null &&
     profileDisplayName.trim().toLowerCase() !== userEmail.trim().toLowerCase()
+  const activeTitle = resolveActiveTitle(profile, badgeRows)
+  const activeTitleText = activeTitle
+    ? i18n.language === "fr" ? activeTitle.title_fr : activeTitle.title_en
+    : null
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -191,6 +199,16 @@ export function SideDrawer() {
               ) : user ? null : (
                 <p className="mt-0.5 text-xs text-muted-foreground">{t("common:notSignedIn")}</p>
               )}
+              {activeTitleText && activeTitle && (
+                <p
+                  className={cn(
+                    "mt-0.5 truncate text-[11px] font-semibold italic leading-tight",
+                    rankColorText[activeTitle.rank],
+                  )}
+                >
+                  {activeTitleText}
+                </p>
+              )}
             </div>
             <span
               className={cn(
@@ -211,6 +229,12 @@ export function SideDrawer() {
               <Link to="/history" onClick={closeDrawer} className="flex items-center">
                 <History className={navIconClass} strokeWidth={1.75} />
                 {t("common:history")}
+              </Link>
+            </Button>
+            <Button variant="ghost" className={navRowClass} asChild>
+              <Link to="/achievements" onClick={closeDrawer} className="flex items-center">
+                <Trophy className={navIconClass} strokeWidth={1.75} />
+                {t("achievements:drawerAchievements")}
               </Link>
             </Button>
             <Collapsible defaultOpen>

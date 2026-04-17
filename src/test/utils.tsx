@@ -25,6 +25,7 @@ import enCreateProgram from "@/locales/en/create-program.json"
 import enAccount from "@/locales/en/account.json"
 import enPrivacy from "@/locales/en/privacy.json"
 import enAdmin from "@/locales/en/admin.json"
+import type { UseQueryResult } from "@tanstack/react-query"
 import enAchievements from "@/locales/en/achievements.json"
 
 export function createTestI18n() {
@@ -139,4 +140,36 @@ export function renderHookWithProviders<TResult, TProps = undefined>(
     store,
     i18nInstance,
   }
+}
+
+const queryResultDefaults = {
+  dataUpdatedAt: 0,
+  error: null,
+  errorUpdateCount: 0,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  fetchStatus: "idle" as const,
+  isError: false,
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isFetching: false,
+  isInitialLoading: false,
+  isLoading: false,
+  isLoadingError: false,
+  isPaused: false,
+  isPending: false,
+  isPlaceholderData: false,
+  isRefetchError: false,
+  isRefetching: false,
+  isStale: false,
+  isSuccess: true,
+  isEnabled: true,
+  promise: Promise.resolve(),
+  refetch: (() => Promise.resolve({ data: undefined, isError: false, error: null, isSuccess: true, status: "success" as const, dataUpdatedAt: 0, errorUpdateCount: 0, errorUpdatedAt: 0, failureCount: 0, failureReason: null, fetchStatus: "idle" as const, isFetched: true, isFetchedAfterMount: true, isFetching: false, isInitialLoading: false, isLoading: false, isLoadingError: false, isPaused: false, isPending: false, isPlaceholderData: false, isRefetchError: false, isRefetching: false, isStale: false })) as UseQueryResult["refetch"],
+  status: "success" as const,
+} satisfies Omit<UseQueryResult, "data">
+
+export function mockQueryResult<T>(data: T): UseQueryResult<T, Error> {
+  return { ...queryResultDefaults, data } as UseQueryResult<T, Error>
 }

@@ -22,6 +22,7 @@ import { AdminEnrichmentPage } from "@/pages/AdminEnrichmentPage"
 import { AdminReviewPage } from "@/pages/AdminReviewPage"
 import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { AccountPage } from "@/pages/AccountPage"
+import { AchievementsPage } from "@/pages/AchievementsPage"
 import { PrivacyPage } from "@/pages/PrivacyPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
@@ -96,6 +97,10 @@ export const router = createBrowserRouter([
               {
                 path: "/account",
                 element: <AccountPage />,
+              },
+              {
+                path: "/achievements",
+                element: <AchievementsPage />,
               },
               {
                 path: "/cycle-summary/:cycleId",

@@ -7,15 +7,7 @@ import { useUserProfile } from "@/hooks/useUserProfile"
 import { authAtom } from "@/store/atoms"
 import { resolveAvatarUrl, resolveDisplayName } from "@/lib/userDisplay"
 import { cn } from "@/lib/utils"
-import type { AchievementRank } from "@/types/achievements"
-
-const rankColorText: Record<AchievementRank, string> = {
-  bronze: "text-amber-600",
-  silver: "text-slate-300",
-  gold: "text-yellow-400",
-  platinum: "text-blue-300",
-  diamond: "text-purple-400",
-}
+import { rankColorText, resolveActiveTitle } from "@/lib/achievementUtils"
 
 export function ProfileHeader() {
   const { t, i18n } = useTranslation("achievements")
@@ -26,9 +18,7 @@ export function ProfileHeader() {
   const unlockedCount = rows.filter((r) => r.is_unlocked).length
   const totalCount = rows.length
 
-  const activeTitle = profile?.active_title_tier_id
-    ? rows.find((r) => r.tier_id === profile.active_title_tier_id)
-    : null
+  const activeTitle = resolveActiveTitle(profile, rows)
 
   const avatarSrc = user && profile ? resolveAvatarUrl(user, profile) : undefined
   const displayName = resolveDisplayName(user, profile)
