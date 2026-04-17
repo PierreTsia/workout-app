@@ -6,29 +6,28 @@
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| **RPC extension strategy** | Add 7 new `UNION ALL` branches to the `metrics` CTE in both RPCs | Same pattern as existing 5 metrics. No new RPCs, no new tables. The `eligible` / `granted` CTE pattern consumes any `metric_type` generically — adding a new branch is the only change. |
+| **RPC extension strategy** | Add 6 new `UNION ALL` branches to the `metrics` CTE in both RPCs | Same pattern as existing 5 metrics. No new RPCs, no new tables. The `eligible` / `granted` CTE pattern consumes any `metric_type` generically — adding a new branch is the only change. |
 | **Streak computation** | Window-function gap detection (`ROW_NUMBER` trick) inside the CTE | Outputs a single `numeric` value (longest streak) — fits the existing `metrics` contract. No schema change needed. |
-| **Leg Day join** | JOIN `set_logs` → `exercises` on `exercise_id` | The only way to access `muscle_group`. Acceptable cost: `exercises` table is small (< 1000 rows, likely cached). No new index needed — `exercise_id` FK on `set_logs` is already indexed. |
-| **Specialist metric** | `MAX(count)` over `GROUP BY muscle_group` | Dynamic per user — rewards their strongest area. Monotonic (can only grow), so tiers are never "lost". |
+| **Leg Day join** | JOIN `set_logs` → `exercises` on `exercise_id`, filter on all 5 lower-body groups | The only way to access `muscle_group`. All 5 leg groups included: `Quadriceps`, `Ischios`, `Fessiers`, `Adducteurs`, `Mollets`. `exercises` table is small (< 1000 rows, likely cached). No new index needed — `exercise_id` FK on `set_logs` is already indexed. |
 | **Marathoner qualifying floor** | Hardcoded 5,000 kg per session in the CTE | A design constant, not a tier threshold. Tiers count *how many* heavy sessions. If the floor needs tuning, a single value changes in the migration. |
 | **Early Bird timezone** | New `timezone text` column on `user_profiles` + `AT TIME ZONE` in CTE | Postgres handles IANA timezone names natively. Backfill existing FR users with `'Europe/Paris'`. New users: silent browser capture via `Intl.DateTimeFormat().resolvedOptions().timeZone`. |
 | **Timezone capture** | In `file:src/hooks/useCreateUserProfile.ts` upsert payload | Zero UX friction — no form field. Captured at profile creation (onboarding). Falls back to `'UTC'` if null. |
 | **Migration approach** | Single migration: seed data + RPC replacement + timezone column + backfill | All changes are additive. Existing `user_achievements` rows are untouched — only new groups/tiers are inserted. RPCs are replaced with expanded `metrics` CTE. |
 | **Retroactive grant** | Re-run `check_and_grant_achievements` for all users post-migration | Same idempotent RPC. Existing badges unaffected (`ON CONFLICT DO NOTHING`). New tracks evaluated against historical data. |
-| **i18n** | Extend existing `achievements` namespace with 7 new group entries | Follows established pattern: `groups.*`, `groupDescriptions.*`, `thresholdHint.*`. |
+| **i18n** | Extend existing `achievements` namespace with 6 new group entries | Follows established pattern: `groups.*`, `groupDescriptions.*`, `thresholdHint.*`. |
 | **PR strategy** | Single PR: migration + i18n + timezone capture | Low surface area — no UI components changed. The accordion already renders N groups dynamically. |
 
 ### Critical Constraints
 
-**RPC replacement is atomic.** Both `check_and_grant_achievements` and `get_badge_status` are replaced via `CREATE OR REPLACE FUNCTION`. The new versions include all 12 metric branches (5 existing + 7 new). If the migration fails mid-way, the old RPCs remain intact. No partial state.
+**RPC replacement is atomic.** Both `check_and_grant_achievements` and `get_badge_status` are replaced via `CREATE OR REPLACE FUNCTION`. The new versions include all 11 metric branches (5 existing + 6 new). If the migration fails mid-way, the old RPCs remain intact. No partial state.
 
-**`user_sessions` CTE is shared.** All 12 metric branches read from the same `user_sessions` CTE. Postgres materializes it once — no redundant `sessions` scans. Adding 7 branches does NOT multiply the session table reads.
+**`user_sessions` CTE is shared.** All 11 metric branches read from the same `user_sessions` CTE. Postgres materializes it once — no redundant `sessions` scans. Adding 6 branches does NOT multiply the session table reads.
 
-**Exercises JOIN cost.** Three metrics (`leg_day`, `specialist`, `early_bird`... no — `leg_day` and `specialist`) require a JOIN to `exercises`. This is a small table (< 1000 rows, fits in shared_buffers). The JOIN is through `set_logs.exercise_id` which already has an FK index. No new index needed.
+**Exercises JOIN cost.** The `leg_day` metric requires a JOIN to `exercises`. This is a small table (< 1000 rows, fits in shared_buffers). The JOIN is through `set_logs.exercise_id` which already has an FK index. No new index needed.
 
 **`user_profiles` JOIN for Early Bird.** The `early_bird` CTE needs `user_profiles.timezone`. This is a single-row lookup by PK (`user_id`). Negligible cost. The CTE uses `COALESCE(up.timezone, 'UTC')` for null safety.
 
-**Existing `sort_order` values.** Current groups use `sort_order` 1–5. New groups use 6–12. If future reordering is needed, UPDATE is trivial — `sort_order` is only used in the `ORDER BY` of `get_badge_status`.
+**Existing `sort_order` values.** Current groups use `sort_order` 1–5. New groups use 6–11. If future reordering is needed, UPDATE is trivial — `sort_order` is only used in the `ORDER BY` of `get_badge_status`.
 
 **`reps_logged` safe cast.** The `^\d+$` regex guard from the rebalance migration (`file:supabase/migrations/20260403000001_rebalance_thresholds_and_replace_rhythm.sql`) is preserved in the `total_volume_kg` and `marathoner` branches. No risk of cast failure.
 
@@ -47,8 +46,8 @@ erDiagram
     achievement_groups {
         uuid id PK
         text slug UK
-        text metric_type "7 new values"
-        int sort_order "6-12 for new groups"
+        text metric_type "6 new values"
+        int sort_order "6-11 for new groups"
     }
     achievement_groups ||--o{ achievement_tiers : "5 tiers each"
     achievement_tiers {
@@ -61,15 +60,15 @@ erDiagram
 ```
 
 No new tables. The additions are:
-- 7 rows in `achievement_groups`
-- 35 rows in `achievement_tiers`
+- 6 rows in `achievement_groups`
+- 30 rows in `achievement_tiers`
 - 1 column on `user_profiles`
 
 ### Migration: Timezone Column + Backfill
 
 ```sql
 -- Add timezone column to user_profiles
-ALTER TABLE user_profiles ADD COLUMN timezone text;
+ALTER TABLE user_profiles ADD COLUMN timezone text DEFAULT 'Europe/Paris';
 
 -- Backfill existing users (all FR)
 UPDATE user_profiles SET timezone = 'Europe/Paris' WHERE timezone IS NULL;
@@ -81,12 +80,11 @@ UPDATE user_profiles SET timezone = 'Europe/Paris' WHERE timezone IS NULL;
 INSERT INTO achievement_groups (slug, name_fr, name_en, description_fr, description_en, metric_type, sort_order)
 VALUES
   ('quick_sessions', 'Quick & Dirty',       'Quick & Dirty',       'Séances rapides (sans programme)',              'Quick sessions (no program)',                   'quick_sessions',  6),
-  ('leg_day',        'Leg Day',              'Leg Day',             'Séries ciblant les jambes',                     'Sets targeting leg muscles',                    'leg_day',         7),
+  ('leg_day',        'Leg Day',              'Leg Day',             'Séries ciblant les jambes (5 groupes)',          'Sets targeting leg muscles (5 groups)',          'leg_day',         7),
   ('streak_king',    'Streak King',          'Streak King',         'Plus longue série de semaines consécutives',    'Longest streak of consecutive weeks',           'streak_king',     8),
-  ('specialist',     'Le Spécialiste',       'The Specialist',      'Séries sur ton meilleur groupe musculaire',     'Sets on your best muscle group',                'specialist',      9),
-  ('marathoner',     'Le Marathonien',       'The Marathoner',      'Séances avec un volume total ≥ 5 000 kg',      'Sessions with total volume ≥ 5,000 kg',         'marathoner',     10),
-  ('pr_streak',      'Série de Records',     'PR Streak',           'Plus longue série de séances avec au moins 1 PR','Longest streak of sessions with at least 1 PR','pr_streak',      11),
-  ('early_bird',     'Early Bird',           'Early Bird',          'Séances terminées avant 8h',                    'Sessions finished before 8 AM',                 'early_bird',     12);
+  ('marathoner',     'Le Marathonien',       'The Marathoner',      'Séances avec un volume total ≥ 5 000 kg',      'Sessions with total volume ≥ 5,000 kg',         'marathoner',      9),
+  ('pr_streak',      'Série de Records',     'PR Streak',           'Plus longue série de séances avec au moins 1 PR','Longest streak of sessions with at least 1 PR','pr_streak',       10),
+  ('early_bird',     'Early Bird',           'Early Bird',          'Séances terminées avant 8h',                    'Sessions finished before 8 AM',                 'early_bird',     11);
 ```
 
 ### Migration: Seed New Achievement Tiers
@@ -117,20 +115,10 @@ WITH g AS (SELECT id FROM achievement_groups WHERE slug = 'streak_king')
 INSERT INTO achievement_tiers (group_id, tier_level, rank, title_fr, title_en, threshold_value)
 VALUES
   ((SELECT id FROM g), 1, 'bronze',   'Trois de suite',      'Three in a Row',      3),
-  ((SELECT id FROM g), 2, 'silver',   'Mois sans faille',    'Flawless Month',      4),
+  ((SELECT id FROM g), 2, 'silver',   'Deux mois d''acier',  'Steel Streak',        8),
   ((SELECT id FROM g), 3, 'gold',     'Trimestre de fer',    'Iron Quarter',        12),
   ((SELECT id FROM g), 4, 'platinum', 'Inarrêtable',         'Unstoppable',         26),
   ((SELECT id FROM g), 5, 'diamond',  'La Chaîne Éternelle', 'The Eternal Chain',   52);
-
--- Le Spécialiste
-WITH g AS (SELECT id FROM achievement_groups WHERE slug = 'specialist')
-INSERT INTO achievement_tiers (group_id, tier_level, rank, title_fr, title_en, threshold_value)
-VALUES
-  ((SELECT id FROM g), 1, 'bronze',   'Apprenti spécialiste','Novice Specialist',   50),
-  ((SELECT id FROM g), 2, 'silver',   'Mono-obsessionnel',   'Single-Minded',       200),
-  ((SELECT id FROM g), 3, 'gold',     'Expert de zone',      'Zone Expert',         500),
-  ((SELECT id FROM g), 4, 'platinum', 'Maître d''un art',    'Master of One',       1200),
-  ((SELECT id FROM g), 5, 'diamond',  'Le Chirurgien',       'The Surgeon',         3000);
 
 -- Le Marathonien
 WITH g AS (SELECT id FROM achievement_groups WHERE slug = 'marathoner')
@@ -146,11 +134,11 @@ VALUES
 WITH g AS (SELECT id FROM achievement_groups WHERE slug = 'pr_streak')
 INSERT INTO achievement_tiers (group_id, tier_level, rank, title_fr, title_en, threshold_value)
 VALUES
-  ((SELECT id FROM g), 1, 'bronze',   'Feu de paille',       'Flash Fire',          3),
-  ((SELECT id FROM g), 2, 'silver',   'Série chaude',        'Hot Streak',          5),
-  ((SELECT id FROM g), 3, 'gold',     'Machine à records',   'Record Machine',      10),
+  ((SELECT id FROM g), 1, 'bronze',   'Trois d''affilée',    'Flash Fire',          3),
+  ((SELECT id FROM g), 2, 'silver',   'En feu',              'On Fire',             5),
+  ((SELECT id FROM g), 3, 'gold',     'Enchaînement parfait','Perfect Run',         10),
   ((SELECT id FROM g), 4, 'platinum', 'Fléau des plateaux',  'Plateau Slayer',      20),
-  ((SELECT id FROM g), 5, 'diamond',  'L''Inarrêtable',      'The Relentless',      40);
+  ((SELECT id FROM g), 5, 'diamond',  'Le Phénomène',         'The Phenomenon',      40);
 
 -- Early Bird
 WITH g AS (SELECT id FROM achievement_groups WHERE slug = 'early_bird')
@@ -165,7 +153,7 @@ VALUES
 
 ### Table Notes
 
-- **`achievement_groups.metric_type`** — 7 new values: `quick_sessions`, `leg_day`, `streak_king`, `specialist`, `marathoner`, `pr_streak`, `early_bird`. Each maps 1:1 to a CTE alias in both RPCs.
+- **`achievement_groups.metric_type`** — 6 new values: `quick_sessions`, `leg_day`, `streak_king`, `marathoner`, `pr_streak`, `early_bird`. Each maps 1:1 to a CTE alias in both RPCs.
 - **`user_profiles.timezone`** — nullable `text`. Stores IANA timezone names (e.g. `'Europe/Paris'`, `'America/New_York'`). Backfilled to `'Europe/Paris'` for all existing users. New users get it from browser detection. Used only by the `early_bird` CTE.
 - **Marathoner qualifying floor** — the 5,000 kg threshold is NOT in the schema. It's hardcoded in the CTE as a design constant. Changing it requires a migration that replaces the RPC function body.
 
@@ -173,11 +161,11 @@ VALUES
 
 ## RPC Definitions
 
-Both RPCs are replaced via `CREATE OR REPLACE FUNCTION`. The full function bodies are shown below. Changes from the current version (`file:supabase/migrations/20260403000001_rebalance_thresholds_and_replace_rhythm.sql`) are limited to the `metrics` CTE — 7 new `UNION ALL` branches are appended. Everything else (auth guard, `user_sessions`, `eligible`, `granted`, return query) is identical.
+Both RPCs are replaced via `CREATE OR REPLACE FUNCTION`. The full function bodies are shown below. Changes from the current version (`file:supabase/migrations/20260403000001_rebalance_thresholds_and_replace_rhythm.sql`) are limited to the `metrics` CTE — 6 new `UNION ALL` branches are appended. Everything else (auth guard, `user_sessions`, `eligible`, `granted`, return query) is identical.
 
 ### New Metric CTE Branches
 
-These 7 branches are appended to the existing `metrics` CTE in both RPCs:
+These 6 branches are appended to the existing `metrics` CTE in both RPCs:
 
 ```sql
     -- === NEW TRACKS (#218) ===
@@ -194,7 +182,7 @@ These 7 branches are appended to the existing `metrics` CTE in both RPCs:
       FROM set_logs sl
       JOIN user_sessions us ON us.id = sl.session_id
       JOIN exercises e ON e.id = sl.exercise_id
-      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers')
+      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers', 'Adducteurs', 'Mollets')
 
     -- Streak King: longest consecutive-week streak
     UNION ALL
@@ -213,17 +201,6 @@ These 7 branches are appended to the existing `metrics` CTE in both RPCs:
         GROUP BY grp
       ) streaks
 
-    -- Le Spécialiste: best single muscle group set count
-    UNION ALL
-    SELECT 'specialist', COALESCE(MAX(mg_count), 0)::numeric
-      FROM (
-        SELECT COUNT(*) AS mg_count
-        FROM set_logs sl
-        JOIN user_sessions us ON us.id = sl.session_id
-        JOIN exercises e ON e.id = sl.exercise_id
-        GROUP BY e.muscle_group
-      ) per_group
-
     -- Le Marathonien: sessions with total volume >= 5000 kg
     UNION ALL
     SELECT 'marathoner', COUNT(*)::numeric
@@ -238,21 +215,24 @@ These 7 branches are appended to the existing `metrics` CTE in both RPCs:
       ) heavy_sessions
 
     -- La Série Ininterrompue: longest consecutive-session PR streak
+    -- Key: rank ALL sessions first, then filter to PR ones, so gaps are visible
     UNION ALL
     SELECT 'pr_streak', COALESCE(MAX(streak_len), 0)::numeric
       FROM (
         SELECT COUNT(*) AS streak_len
         FROM (
-          SELECT pr_rank,
-                 pr_rank - (ROW_NUMBER() OVER (ORDER BY pr_rank))::bigint AS grp
+          SELECT session_ord,
+                 session_ord - ROW_NUMBER() OVER (ORDER BY session_ord) AS grp
           FROM (
-            SELECT DENSE_RANK() OVER (ORDER BY us.finished_at) AS pr_rank
+            SELECT us.id,
+                   ROW_NUMBER() OVER (ORDER BY us.finished_at) AS session_ord,
+                   EXISTS (
+                     SELECT 1 FROM set_logs sl
+                     WHERE sl.session_id = us.id AND sl.was_pr = true
+                   ) AS has_pr
             FROM user_sessions us
-            WHERE EXISTS (
-              SELECT 1 FROM set_logs sl
-              WHERE sl.session_id = us.id AND sl.was_pr = true
-            )
-          ) pr_sessions
+          ) all_sessions
+          WHERE has_pr
         ) grouped
         GROUP BY grp
       ) streaks
@@ -335,7 +315,7 @@ BEGIN
       FROM set_logs sl
       JOIN user_sessions us ON us.id = sl.session_id
       JOIN exercises e ON e.id = sl.exercise_id
-      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers')
+      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers', 'Adducteurs', 'Mollets')
 
     UNION ALL
     SELECT 'streak_king', COALESCE(MAX(streak_len), 0)::numeric
@@ -354,16 +334,6 @@ BEGIN
       ) streaks
 
     UNION ALL
-    SELECT 'specialist', COALESCE(MAX(mg_count), 0)::numeric
-      FROM (
-        SELECT COUNT(*) AS mg_count
-        FROM set_logs sl
-        JOIN user_sessions us ON us.id = sl.session_id
-        JOIN exercises e ON e.id = sl.exercise_id
-        GROUP BY e.muscle_group
-      ) per_group
-
-    UNION ALL
     SELECT 'marathoner', COUNT(*)::numeric
       FROM (
         SELECT us.id
@@ -380,16 +350,18 @@ BEGIN
       FROM (
         SELECT COUNT(*) AS streak_len
         FROM (
-          SELECT pr_rank,
-                 pr_rank - (ROW_NUMBER() OVER (ORDER BY pr_rank))::bigint AS grp
+          SELECT session_ord,
+                 session_ord - ROW_NUMBER() OVER (ORDER BY session_ord) AS grp
           FROM (
-            SELECT DENSE_RANK() OVER (ORDER BY us.finished_at) AS pr_rank
+            SELECT us.id,
+                   ROW_NUMBER() OVER (ORDER BY us.finished_at) AS session_ord,
+                   EXISTS (
+                     SELECT 1 FROM set_logs sl
+                     WHERE sl.session_id = us.id AND sl.was_pr = true
+                   ) AS has_pr
             FROM user_sessions us
-            WHERE EXISTS (
-              SELECT 1 FROM set_logs sl
-              WHERE sl.session_id = us.id AND sl.was_pr = true
-            )
-          ) pr_sessions
+          ) all_sessions
+          WHERE has_pr
         ) grouped
         GROUP BY grp
       ) streaks
@@ -500,7 +472,7 @@ BEGIN
       FROM set_logs sl
       JOIN user_sessions us ON us.id = sl.session_id
       JOIN exercises e ON e.id = sl.exercise_id
-      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers')
+      WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers', 'Adducteurs', 'Mollets')
 
     UNION ALL
     SELECT 'streak_king', COALESCE(MAX(streak_len), 0)::numeric
@@ -519,16 +491,6 @@ BEGIN
       ) streaks
 
     UNION ALL
-    SELECT 'specialist', COALESCE(MAX(mg_count), 0)::numeric
-      FROM (
-        SELECT COUNT(*) AS mg_count
-        FROM set_logs sl
-        JOIN user_sessions us ON us.id = sl.session_id
-        JOIN exercises e ON e.id = sl.exercise_id
-        GROUP BY e.muscle_group
-      ) per_group
-
-    UNION ALL
     SELECT 'marathoner', COUNT(*)::numeric
       FROM (
         SELECT us.id
@@ -545,16 +507,18 @@ BEGIN
       FROM (
         SELECT COUNT(*) AS streak_len
         FROM (
-          SELECT pr_rank,
-                 pr_rank - (ROW_NUMBER() OVER (ORDER BY pr_rank))::bigint AS grp
+          SELECT session_ord,
+                 session_ord - ROW_NUMBER() OVER (ORDER BY session_ord) AS grp
           FROM (
-            SELECT DENSE_RANK() OVER (ORDER BY us.finished_at) AS pr_rank
+            SELECT us.id,
+                   ROW_NUMBER() OVER (ORDER BY us.finished_at) AS session_ord,
+                   EXISTS (
+                     SELECT 1 FROM set_logs sl
+                     WHERE sl.session_id = us.id AND sl.was_pr = true
+                   ) AS has_pr
             FROM user_sessions us
-            WHERE EXISTS (
-              SELECT 1 FROM set_logs sl
-              WHERE sl.session_id = us.id AND sl.was_pr = true
-            )
-          ) pr_sessions
+          ) all_sessions
+          WHERE has_pr
         ) grouped
         GROUP BY grp
       ) streaks
@@ -599,8 +563,8 @@ graph TD
     Migration --> ReplaceRPC2["CREATE OR REPLACE get_badge_status"]
 
     Frontend["Frontend Changes"]
-    Frontend --> i18nEN["achievements.json EN — 7 new group entries"]
-    Frontend --> i18nFR["achievements.json FR — 7 new group entries"]
+    Frontend --> i18nEN["achievements.json EN — 6 new group entries"]
+    Frontend --> i18nFR["achievements.json FR — 6 new group entries"]
     Frontend --> TZCapture["useCreateUserProfile — add timezone to upsert"]
     Frontend --> TypeUpdate["UserProfile type — add timezone field"]
 ```
@@ -609,7 +573,7 @@ graph TD
 
 | File | Purpose |
 |---|---|
-| `supabase/migrations/2026XXXXXXXXXX_new_achievement_tracks.sql` | Single migration: timezone column, backfill, 7 groups, 35 tiers, both RPCs replaced |
+| `supabase/migrations/2026XXXXXXXXXX_new_achievement_tracks.sql` | Single migration: timezone column, backfill, 6 groups, 30 tiers, both RPCs replaced |
 
 ### Modified Files
 
@@ -630,7 +594,6 @@ graph TD
     "quick_sessions": "Quick & Dirty",
     "leg_day": "Leg Day",
     "streak_king": "Streak King",
-    "specialist": "The Specialist",
     "marathoner": "The Marathoner",
     "pr_streak": "PR Streak",
     "early_bird": "Early Bird"
@@ -639,7 +602,6 @@ graph TD
     "quick_sessions": "Quick sessions (no program)",
     "leg_day": "Sets targeting leg muscles",
     "streak_king": "Longest streak of consecutive weeks",
-    "specialist": "Sets on your best muscle group",
     "marathoner": "Sessions with total volume ≥ 5,000 kg",
     "pr_streak": "Longest streak of sessions with a PR",
     "early_bird": "Sessions finished before 8 AM"
@@ -648,7 +610,6 @@ graph TD
     "quick_sessions": "Complete {{target}} quick sessions",
     "leg_day": "Log {{target}} leg sets",
     "streak_king": "Train {{target}} weeks in a row",
-    "specialist": "Log {{target}} sets for one muscle group",
     "marathoner": "Complete {{target}} heavy sessions (≥ 5,000 kg)",
     "pr_streak": "Set PRs in {{target}} sessions in a row",
     "early_bird": "Finish {{target}} sessions before 8 AM"
@@ -664,7 +625,6 @@ graph TD
     "quick_sessions": "Quick & Dirty",
     "leg_day": "Leg Day",
     "streak_king": "Streak King",
-    "specialist": "Le Spécialiste",
     "marathoner": "Le Marathonien",
     "pr_streak": "Série de Records",
     "early_bird": "Early Bird"
@@ -673,7 +633,6 @@ graph TD
     "quick_sessions": "Séances rapides (sans programme)",
     "leg_day": "Séries ciblant les jambes",
     "streak_king": "Plus longue série de semaines consécutives",
-    "specialist": "Séries sur ton meilleur groupe musculaire",
     "marathoner": "Séances avec un volume total ≥ 5 000 kg",
     "pr_streak": "Plus longue série de séances avec au moins 1 PR",
     "early_bird": "Séances terminées avant 8h"
@@ -682,7 +641,6 @@ graph TD
     "quick_sessions": "Terminer {{target}} séances rapides",
     "leg_day": "Enregistrer {{target}} séries jambes",
     "streak_king": "S'entraîner {{target}} semaines d'affilée",
-    "specialist": "Enregistrer {{target}} séries pour un groupe musculaire",
     "marathoner": "Compléter {{target}} séances lourdes (≥ 5 000 kg)",
     "pr_streak": "Battre des records dans {{target}} séances d'affilée",
     "early_bird": "Terminer {{target}} séances avant 8h"
@@ -692,7 +650,7 @@ graph TD
 
 ### Frontend Component Impact
 
-**Zero new components.** The accordion UI (`file:src/components/achievements/AchievementAccordion.tsx`) renders groups dynamically from `get_badge_status` RPC output. Adding 7 new groups = 7 more `AccordionItem` instances — no code change, just more data rows.
+**Zero new components.** The accordion UI (`file:src/components/achievements/AchievementAccordion.tsx`) renders groups dynamically from `get_badge_status` RPC output. Adding 6 new groups = 6 more `AccordionItem` instances — no code change, just more data rows.
 
 `BadgeIcon`, `BadgeDetailDrawer`, `BadgeShowcase`, `AchievementUnlockOverlay` — all work generically on `BadgeStatusRow` data. No changes needed.
 
@@ -718,7 +676,7 @@ No form field. No user interaction. `Intl.DateTimeFormat` is supported in all mo
 
 | Failure | Behavior |
 |---|---|
-| `exercises` table missing a `muscle_group` value for a logged exercise | `leg_day` and `specialist` CTEs use INNER JOIN — orphaned `exercise_id` rows are silently excluded. No crash. |
+| `exercises` table missing a `muscle_group` value for a logged exercise | `leg_day` CTE uses INNER JOIN — orphaned `exercise_id` rows are silently excluded. No crash. |
 | `user_profiles.timezone` is NULL for a user | `COALESCE(up.timezone, 'UTC')` fallback. Sessions evaluated against UTC. Slightly inaccurate for Early Bird but never crashes. |
 | User has 0 sessions | All metric branches return 0. No tiers granted. `COALESCE(MAX(...), 0)` handles empty streak aggregates. |
 | Streak King with only 1 qualifying week | `MAX(streak_len)` = 1. Below Bronze threshold (3). No badge granted. Correct. |
@@ -736,9 +694,8 @@ No form field. No user interaction. `Intl.DateTimeFormat` is supported in all mo
 | Test | Scenarios |
 |---|---|
 | `quick_sessions` metric | User with 3 quick + 2 program sessions → metric = 3. User with 0 quick → metric = 0. |
-| `leg_day` metric | 10 sets on Quadriceps + 5 on Biceps → metric = 10. Sets on Adducteurs → NOT counted (excluded from leg set). |
+| `leg_day` metric | 10 sets on Quadriceps + 5 on Biceps + 3 on Mollets → metric = 13. All 5 lower-body groups count (Quadriceps, Ischios, Fessiers, Adducteurs, Mollets). Sets on Biceps → NOT counted. |
 | `streak_king` metric | Sessions in weeks 1,2,3,5,6 → longest streak = 3 (weeks 1-3). Single session → streak = 1. No sessions → streak = 0. |
-| `specialist` metric | 50 chest sets + 30 back sets → metric = 50. Only 1 muscle group → that group's count is the max. |
 | `marathoner` metric | Session A: 6000 kg volume, Session B: 3000 kg → metric = 1 (only A qualifies). Duration-only session → excluded from volume. |
 | `pr_streak` metric | Sessions [PR, PR, no-PR, PR, PR, PR] → longest streak = 3 (last three). Zero PRs → streak = 0. |
 | `early_bird` metric | Session at 6 AM Paris time → counted. Session at 9 AM → not counted. Session at 7:59 AM → counted. Session at 8:00 AM → NOT counted (`< 8`). |
@@ -756,7 +713,7 @@ No form field. No user interaction. `Intl.DateTimeFormat` is supported in all mo
 ### Manual Verification
 
 - Run `EXPLAIN ANALYZE` on both RPCs for a user with 200+ sessions to verify < 200ms execution
-- Visual check: accordion shows 12 groups with correct names, descriptions, and progress bars
+- Visual check: accordion shows 11 groups with correct names, descriptions, and progress bars
 - Retroactive grant: verify existing users get badges for historically qualifying tracks
 
 ---
@@ -786,7 +743,7 @@ Badges are composited at render time from two layers (established in #129):
 - **Frame (rank layer)** — pure CSS. 5 classes (`badge-frame-bronze` through `badge-frame-diamond`) already exist in `file:src/styles/globals.css`.
 - **Icon (group × rank layer)** — AI-generated transparent PNGs. Just the central icon on a transparent background, overlaid on the CSS frame.
 
-No CSS changes needed — the existing 5 rank frames apply to all groups. Only 35 new icon PNGs are needed.
+No CSS changes needed — the existing 5 rank frames apply to all groups. Only 30 new icon PNGs are needed.
 
 ### Icon Matrix (group × rank)
 
@@ -795,7 +752,6 @@ No CSS changes needed — the existing 5 rank frames apply to all groups. Only 3
 | **Quick & Dirty** | Single lightning bolt + dumbbell | Crossed lightning bolts + "no plan" torn paper | Renegade skull with barbell horns | Chaos star made of gym equipment | Phoenix rising from a shattered program sheet |
 | **Leg Day Survivor** | Single squat rack, simple | Loaded barbell across shoulders, sweat drops | Greek column legs supporting a massive barbell | Robotic leg exoskeleton with hydraulic pistons | Colossus legs straddling a mountain range |
 | **Streak King** | Short chain of 3 links | Iron chain with a crown pendant | Throne made of interlocking chain links | Infinite chain forming a Möbius strip, glowing | Diamond-studded eternal chain with a royal crown, radiating energy |
-| **Le Spécialiste** | Magnifying glass over a single muscle fiber | Crosshair locked on a muscle group silhouette | Surgical scalpel cutting with precision, muscle diagram | Laser beam sculpting a perfect muscle, blueprint overlay | Robotic arm with surgical precision, holographic muscle map |
 | **Le Marathonien** | Small weight plate with "5T" engraved | Stacked plates on a reinforced dolly | Atlas carrying a massive barbell globe, sweat and determination | Industrial crane lifting a mountain of plates | Nuclear reactor core made of weight plates, radiating shockwaves |
 | **PR Streak** | Single flame | Trail of flames in a row | Meteor shower of flaming arrows | Volcanic eruption with PR markers flying out | Supernova explosion with "PR" branded into the shockwave |
 | **Early Bird** | Simple sunrise over a dumbbell | Rooster standing on a barbell at dawn | Eagle soaring over a gym at golden hour | Phoenix with sun-ray wings descending on a squat rack | Solar deity made of pure light, barbell scepter, gym-temple backdrop |
@@ -842,16 +798,6 @@ no text, high detail, 512×512 PNG"
 | Platinum | "an infinite chain forming a glowing Möbius strip, iridescent shimmer on the links, luxurious style" |
 | Diamond | "a diamond-studded eternal chain spiraling upward with a royal crown at the apex, radiating light and energy, epic style" |
 
-### Prompt Table — Le Spécialiste
-
-| Rank | Prompt |
-|---|---|
-| Bronze | "a magnifying glass hovering over a single glowing muscle fiber, minimalist style" |
-| Silver | "a crosshair scope locked onto a muscle group silhouette, bold style" |
-| Gold | "a surgical scalpel cutting with precision over a detailed muscle anatomy diagram, dramatic style" |
-| Platinum | "a laser beam sculpting a perfect muscle from raw material, blueprint overlay and measurement lines, luxurious style" |
-| Diamond | "a robotic arm with surgical precision tools projecting a holographic muscle map, circuits and anatomy merged, epic style" |
-
 ### Prompt Table — Le Marathonien
 
 | Rank | Prompt |
@@ -885,10 +831,10 @@ no text, high detail, 512×512 PNG"
 ### Generation Process
 
 1. **Tool:** Use the same AI image generation tool as #129 (Midjourney, DALL-E, or Cursor's `GenerateImage` tool for quick iterations)
-2. **Batch by rank, not by group:** Generate all 7 Bronze icons first (consistent `minimalist` feel), then all Silver, etc. This ensures visual cohesion within each rank tier.
+2. **Batch by rank, not by group:** Generate all 6 Bronze icons first (consistent `minimalist` feel), then all Silver, etc. This ensures visual cohesion within each rank tier.
 3. **Post-processing:** Remove any residual background artifacts. Ensure transparency. Resize to 512×512 if needed.
 4. **Upload:** Supabase Storage `badge-icons` bucket, path: `{group_slug}/{rank}.png` (e.g. `quick_sessions/bronze.png`)
-5. **Seed update:** Follow-up migration: `UPDATE achievement_tiers SET icon_asset_url = '...'` for each of the 35 tiers.
+5. **Seed update:** Follow-up migration: `UPDATE achievement_tiers SET icon_asset_url = '...'` for each of the 30 tiers.
 
 ### CSS Frame Reuse
 
@@ -900,7 +846,7 @@ No new CSS needed. The existing rank frame classes work for any group:
 </div>
 ```
 
-The CSS custom properties (`--badge-hue`, `--badge-sat`, `--badge-glow`) defined per rank in `file:src/styles/globals.css` automatically style the frame, overlay glow, and particle effects for all 12 groups.
+The CSS custom properties (`--badge-hue`, `--badge-sat`, `--badge-glow`) defined per rank in `file:src/styles/globals.css` automatically style the frame, overlay glow, and particle effects for all 11 groups.
 
 ---
 

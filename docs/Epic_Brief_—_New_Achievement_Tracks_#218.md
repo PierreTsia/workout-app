@@ -2,7 +2,7 @@
 
 ## Summary
 
-Expand the achievement system from 5 groups to 12 by adding 7 new tracks that reward overlooked play styles: ad-hoc workouts, leg training, weekly consistency streaks, muscle-group specialization, heavy-volume sessions, PR hot streaks, and early-morning discipline. Each track follows the existing 5-rank Bronze→Diamond ladder and plugs into the current `check_and_grant_achievements` / `get_badge_status` RPCs with no structural changes to the frontend — the accordion UI from #174 already scales to 10+ groups dynamically.
+Expand the achievement system from 5 groups to 11 by adding 6 new tracks that reward overlooked play styles: ad-hoc workouts, leg training, weekly consistency streaks, heavy-volume sessions, PR hot streaks, and early-morning discipline. Each track follows the existing 5-rank Bronze→Diamond ladder and plugs into the current `check_and_grant_achievements` / `get_badge_status` RPCs with no structural changes to the frontend — the accordion UI from #174 already scales to 10+ groups dynamically.
 
 ---
 
@@ -22,7 +22,7 @@ Expand the achievement system from 5 groups to 12 by adding 7 new tracks that re
 |---|---|
 | Only 5 groups — users who primarily do quick workouts, train legs, or work out early have no recognition | Low engagement ceiling; achievements feel narrow |
 | No streak-based metric — `active_weeks` counts total qualifying weeks, not *consecutive* ones | Misses the "don't break the chain" psychology that drives retention |
-| No muscle-group-specific track — variety is rewarded, but specialization isn't | Users who focus on a body part (e.g. PPL legs day) get no acknowledgment |
+| No muscle-group-specific track — variety is rewarded, but leg training isn't | Users who don't skip leg day get no acknowledgment |
 | Ad-hoc ("quick") sessions are invisible to the achievement system | Power users who skip program days and just lift get zero badge progress beyond volume/PRs |
 
 ---
@@ -31,10 +31,10 @@ Expand the achievement system from 5 groups to 12 by adding 7 new tracks that re
 
 | Goal | Measure |
 |---|---|
-| Broaden the achievement surface to reward 7 distinct play styles | 12 total groups live, each with 5 tiers (60 total tiers) |
+| Broaden the achievement surface to reward 6 distinct play styles | 11 total groups live, each with 5 tiers (55 total tiers) |
 | Introduce streak-based and time-based metrics alongside existing aggregates | Streak King and PR Streak use window-function gap detection; Early Bird uses timezone-aware local hour |
 | Zero frontend component changes — purely backend + data + i18n | No new React components; only migration SQL, seed data, and i18n strings |
-| Retroactive grant for existing users on deploy | All 7 new tracks evaluated for historical data via the same idempotent RPC |
+| Retroactive grant for existing users on deploy | All 6 new tracks evaluated for historical data via the same idempotent RPC |
 
 ---
 
@@ -43,19 +43,18 @@ Expand the achievement system from 5 groups to 12 by adding 7 new tracks that re
 **In scope:**
 
 1. **Quick & Dirty** (`quick_sessions`) — count of finished sessions where `workout_day_id IS NULL`
-2. **Leg Day Survivor** (`leg_day`) — count of sets targeting leg muscle groups (`Quadriceps`, `Ischios`, `Fessiers`)
+2. **Leg Day Survivor** (`leg_day`) — count of sets targeting leg muscle groups (`Quadriceps`, `Ischios`, `Fessiers`, `Adducteurs`, `Mollets`)
 3. **Streak King** (`streak_king`) — longest streak of consecutive calendar weeks with at least 1 finished session
-4. **Le Spécialiste** (`specialist`) — highest set count for any single muscle group (user's best, dynamic)
-5. **Le Marathonien** (`marathoner`) — count of sessions where total volume (weight × reps) exceeds a qualifying threshold
-6. **La Série Ininterrompue** (`pr_streak`) — longest streak of consecutive sessions where at least 1 set was a PR
-7. **Early Bird** (`early_bird`) — count of sessions finished before 8:00 AM local time
+4. **Le Marathonien** (`marathoner`) — count of sessions where total volume (weight × reps) exceeds a qualifying threshold
+5. **La Série Ininterrompue** (`pr_streak`) — longest streak of consecutive sessions where at least 1 set was a PR
+6. **Early Bird** (`early_bird`) — count of sessions finished before 8:00 AM local time
 
 For each track:
 - 1 new row in `achievement_groups` + 5 rows in `achievement_tiers`
 - 1 new `UNION ALL` branch in both RPCs' `metrics` CTE
 - Threshold values following the exponential curve from the rebalance migration
 - i18n strings for group names, descriptions, threshold hints (EN + FR)
-- Badge icon assets (5 ranks × 7 tracks = 35 new icons)
+- Badge icon assets (5 ranks × 6 tracks = 30 new icons)
 
 Supporting infrastructure:
 - `timezone text` column on `user_profiles` (for Early Bird local-time computation)
@@ -65,6 +64,7 @@ Supporting infrastructure:
 **Out of scope:**
 
 - New frontend components or UI changes (accordion already handles N groups)
+- Le Spécialiste / per-muscle-group tracks (e.g. Chest Specialist, Back Specialist — better as distinct groups, deferred)
 - Bodyweight Beast, Marathon Sets, Program Loyalist (stretch tracks from issue — deferred)
 - Admin UI for achievement management
 - Social sharing / leaderboards
@@ -96,9 +96,11 @@ Supporting infrastructure:
 
 ### Track 2: Leg Day Survivor (`leg_day`)
 
-**Metric:** `COUNT(*) FROM set_logs sl JOIN exercises e ON e.id = sl.exercise_id JOIN user_sessions us ON us.id = sl.session_id WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers')`
+**Metric:** `COUNT(*) FROM set_logs sl JOIN exercises e ON e.id = sl.exercise_id JOIN user_sessions us ON us.id = sl.session_id WHERE e.muscle_group IN ('Quadriceps', 'Ischios', 'Fessiers', 'Adducteurs', 'Mollets')`
 
-**Feasibility:** Straightforward. Requires a JOIN to `exercises` (not done by any existing CTE). The `muscle_group` column uses French taxonomy values — the 3 big leg groups cover the classic "leg day" muscles. Adducteurs and Mollets are excluded (isolation, not compound leg work).
+**Feasibility:** Straightforward. Requires a JOIN to `exercises` (not done by any existing CTE). The `muscle_group` column uses French taxonomy values. All 5 lower-body groups are included — quads, hamstrings, glutes, adductors, and calves are all leg work.
+
+**How it works in plain terms:** Every time you log a set where the exercise's primary muscle group is one of the 5 leg values, that's +1. Do 4 sets of squats + 3 sets of calf raises in one session? That's 7 leg sets. The metric accumulates over your lifetime — it doesn't care whether the sets were in the same session or spread across months.
 
 **Edge cases:**
 - Secondary muscles are NOT counted (`secondary_muscles` array) — only `muscle_group` (primary). Keeps the metric clean and predictable.
@@ -135,35 +137,14 @@ Output is still a single numeric value, so the `eligible`/`granted` CTE pattern 
 | Rank | Title (FR) | Title (EN) | Threshold |
 |---|---|---|---|
 | Bronze | "Trois de suite" | "Three in a Row" | 3 weeks |
-| Silver | "Mois sans faille" | "Flawless Month" | 4 weeks |
+| Silver | "Deux mois d'acier" | "Steel Streak" | 8 weeks |
 | Gold | "Trimestre de fer" | "Iron Quarter" | 12 weeks |
 | Platinum | "Inarrêtable" | "Unstoppable" | 26 weeks |
 | Diamond | "La Chaîne Éternelle" | "The Eternal Chain" | 52 weeks |
 
 ---
 
-### Track 4: Le Spécialiste (`specialist`)
-
-**Metric:** `MAX(muscle_group_count)` — the highest set count for any single `exercises.muscle_group` value across all the user's logged sets.
-
-**Feasibility:** Moderate. GROUP BY `muscle_group`, COUNT sets per group, take MAX. Requires the same JOIN to `exercises` as Leg Day.
-
-**Edge cases:**
-- The "best" muscle group is dynamic per user — a chest-focused user and a back-focused user both progress toward the same thresholds
-- If a user switches focus, the metric tracks their all-time best group — it can only grow (monotonic)
-- Only `muscle_group` (primary) counts, not `secondary_muscles`
-
-| Rank | Title (FR) | Title (EN) | Threshold |
-|---|---|---|---|
-| Bronze | "Apprenti spécialiste" | "Novice Specialist" | 50 sets |
-| Silver | "Mono-obsessionnel" | "Single-Minded" | 200 sets |
-| Gold | "Expert de zone" | "Zone Expert" | 500 sets |
-| Platinum | "Maître d'un art" | "Master of One" | 1,200 sets |
-| Diamond | "Le Chirurgien" | "The Surgeon" | 3,000 sets |
-
----
-
-### Track 5: Le Marathonien (`marathoner`)
+### Track 4: Le Marathonien (`marathoner`)
 
 **Metric:** Count of sessions where `SUM(weight_logged * reps_logged::int) >= 5000` (kg) within that single session.
 
@@ -186,7 +167,7 @@ Output is still a single numeric value, so the `eligible`/`granted` CTE pattern 
 
 ---
 
-### Track 6: La Série Ininterrompue (`pr_streak`)
+### Track 5: La Série Ininterrompue (`pr_streak`)
 
 **Metric:** Longest streak of consecutive sessions (ordered by `finished_at`) where at least 1 set had `was_pr = true`.
 
@@ -204,22 +185,22 @@ Output is still a single numeric value, so the `eligible`/`granted` CTE pattern 
 
 | Rank | Title (FR) | Title (EN) | Threshold |
 |---|---|---|---|
-| Bronze | "Feu de paille" | "Flash Fire" | 3 sessions |
-| Silver | "Série chaude" | "Hot Streak" | 5 sessions |
-| Gold | "Machine à records" | "Record Machine" | 10 sessions |
+| Bronze | "Trois d'affilée" | "Flash Fire" | 3 sessions |
+| Silver | "En feu" | "On Fire" | 5 sessions |
+| Gold | "Enchaînement parfait" | "Perfect Run" | 10 sessions |
 | Platinum | "Fléau des plateaux" | "Plateau Slayer" | 20 sessions |
-| Diamond | "L'Inarrêtable" | "The Relentless" | 40 sessions |
+| Diamond | "Le Phénomène" | "The Phenomenon" | 40 sessions |
 
 ---
 
-### Track 7: Early Bird (`early_bird`)
+### Track 6: Early Bird (`early_bird`)
 
 **Metric:** `COUNT(*) FROM user_sessions us JOIN user_profiles up ON up.user_id = ... WHERE EXTRACT(HOUR FROM us.finished_at AT TIME ZONE up.timezone) < 8`
 
 **Feasibility:** Moderate. `finished_at` is `timestamptz`. Converting to the user's local time requires a `timezone` column on `user_profiles`. The `AT TIME ZONE` conversion in Postgres is well-supported for IANA timezone names (e.g. `'Europe/Paris'`).
 
 **Timezone strategy (settled):**
-- **New column:** `ALTER TABLE user_profiles ADD COLUMN timezone text DEFAULT 'UTC'`
+- **New column:** `ALTER TABLE user_profiles ADD COLUMN timezone text DEFAULT 'Europe/Paris'`
 - **Backfill:** `UPDATE user_profiles SET timezone = 'Europe/Paris'` — all current users are FR
 - **New users:** Captured silently during onboarding via `Intl.DateTimeFormat().resolvedOptions().timeZone` in `file:src/hooks/useCreateUserProfile.ts` — no form field, no question asked
 - **Fallback:** If `timezone` is somehow NULL, the CTE falls back to `'UTC'`
@@ -242,12 +223,12 @@ Output is still a single numeric value, so the `eligible`/`granted` CTE pattern 
 
 ## Success Criteria
 
-- **Numeric:** 12 achievement groups live (5 existing + 7 new), 60 total tiers, all evaluable by the existing idempotent RPC
+- **Numeric:** 11 achievement groups live (5 existing + 6 new), 55 total tiers, all evaluable by the existing idempotent RPC
 - **Numeric:** Both RPCs (`check_and_grant_achievements`, `get_badge_status`) execute in < 200ms for a user with 500 sessions and 10k set_logs (verified via `EXPLAIN ANALYZE`)
-- **Qualitative:** Existing users see retroactively granted badges for the 7 new tracks on first app open after deploy (no overlay flood — silent insert)
-- **Qualitative:** The accordion UI displays all 12 groups with no layout or performance degradation
+- **Qualitative:** Existing users see retroactively granted badges for the 6 new tracks on first app open after deploy (no overlay flood — silent insert)
+- **Qualitative:** The accordion UI displays all 11 groups with no layout or performance degradation
 - **Qualitative:** New users get their timezone captured silently at onboarding — no extra form step
-- **Qualitative:** Adding a 13th track in the future requires only a SQL migration (INSERT groups + tiers + CTE branch) and i18n strings — no React component changes
+- **Qualitative:** Adding a 12th track in the future requires only a SQL migration (INSERT groups + tiers + CTE branch) and i18n strings — no React component changes
 
 ---
 
