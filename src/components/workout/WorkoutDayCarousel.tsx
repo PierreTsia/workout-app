@@ -28,6 +28,19 @@ export function WorkoutDayCarousel({
   const completedSet = new Set(completedDayIds)
   const carouselOpts = useMemo(() => ({ align: "start" as const, containScroll: false as const }), [])
 
+  const selectDay = useCallback((dayId: string) => {
+    setSession((prev) => ({
+      ...prev,
+      currentDayId: dayId,
+      exerciseIndex: prev.isActive ? prev.exerciseIndex : 0,
+      totalSetsDone: prev.isActive
+        ? prev.totalSetsDone
+        : prev.currentDayId === dayId
+          ? prev.totalSetsDone
+          : 0,
+    }))
+  }, [setSession])
+
   // Validate currentDayId on mount / when days change — reset if stale
   useEffect(() => {
     if (days.length === 0) return
@@ -66,19 +79,6 @@ export function WorkoutDayCarousel({
       api.off("select", onSelect)
     }
   }, [api, onSelect])
-
-  function selectDay(dayId: string) {
-    setSession((prev) => ({
-      ...prev,
-      currentDayId: dayId,
-      exerciseIndex: prev.isActive ? prev.exerciseIndex : 0,
-      totalSetsDone: prev.isActive
-        ? prev.totalSetsDone
-        : prev.currentDayId === dayId
-          ? prev.totalSetsDone
-          : 0,
-    }))
-  }
 
   return (
     <div className="space-y-3">
