@@ -176,7 +176,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   if (isDuration) {
     return (
       <div className="flex flex-col gap-4">
-        <ChartContainer config={chartConfigDuration} className="aspect-[2/1] w-full">
+        <ChartContainer config={chartConfigDuration} className="aspect-2/1 w-full">
           <LineChart
             data={chartDataDuration}
             margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
@@ -244,7 +244,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   if (isBodyweight) {
     return (
       <div className="flex flex-col gap-4">
-        <ChartContainer config={chartConfigReps} className="aspect-[2/1] w-full">
+        <ChartContainer config={chartConfigReps} className="aspect-2/1 w-full">
           <LineChart data={chartDataReps} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
@@ -302,7 +302,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <ChartContainer config={chartConfigE1rm} className="aspect-[2/1] w-full">
+      <ChartContainer config={chartConfigE1rm} className="aspect-2/1 w-full">
         <LineChart data={chartDataE1rm} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis

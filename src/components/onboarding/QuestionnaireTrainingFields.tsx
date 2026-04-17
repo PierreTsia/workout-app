@@ -284,7 +284,7 @@ export function QuestionnaireTrainingFields() {
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
-              <span className="min-w-[4rem] text-center text-sm font-medium">
+              <span className="min-w-16 text-center text-sm font-medium">
                 {t("daysValue", { count: Number(field.value) })}
               </span>
             </div>

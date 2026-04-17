@@ -143,7 +143,7 @@ export function BalanceGauge({
     >
       <ChartContainer
         config={chartConfig}
-        className="mx-auto w-full min-w-0 aspect-[2/1] [&_.recharts-responsive-container]:h-full [&_.recharts-responsive-container]:min-h-[168px] [&_.recharts-wrapper]:h-full [&_.recharts-wrapper]:w-full"
+        className="mx-auto w-full min-w-0 aspect-2/1 [&_.recharts-responsive-container]:h-full [&_.recharts-responsive-container]:min-h-[168px] [&_.recharts-wrapper]:h-full [&_.recharts-wrapper]:w-full"
       >
         <BalanceGaugeRadialChart
           clamped={clamped}

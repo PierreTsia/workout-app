@@ -84,7 +84,7 @@ export function MultiSelect({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-[var(--radix-popover-trigger-width)] p-0", contentClassName)} align="start">
+      <PopoverContent className={cn("w-(--radix-popover-trigger-width) p-0", contentClassName)} align="start">
         <ScrollArea className="max-h-64">
           <div className="flex flex-col gap-1 p-2">
             {options.map((opt) => (

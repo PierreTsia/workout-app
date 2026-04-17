@@ -73,10 +73,10 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
         ref={ref}
         onClick={onSelect}
         className={cn(
-          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 ease-out",
+          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs transition-all duration-300 ease-out",
           isActive
-            ? "w-[8.5rem] scale-110 ring-2 ring-primary shadow-lg z-10"
-            : "w-[5rem] opacity-60",
+            ? "w-34 scale-110 ring-2 ring-primary shadow-lg z-10"
+            : "w-20 opacity-60",
           isCompleted && "border-green-500/50",
         )}
       >
@@ -86,12 +86,12 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
           </div>
         )}
         {hasPr && (
-          <span className="absolute right-1 top-1 z-10 text-xs drop-shadow">🏆</span>
+          <span className="absolute right-1 top-1 z-10 text-xs drop-shadow-sm">🏆</span>
         )}
         <ExerciseThumbnail
           imageUrl={libraryExercise?.image_url}
           emoji={exercise.emoji_snapshot}
-          className="aspect-[4/3] w-full rounded-none"
+          className="aspect-4/3 w-full rounded-none"
         />
         <span className="w-full truncate px-1.5 py-1.5 text-center text-[0.65rem] font-medium leading-tight">
           {exercise.name_snapshot}

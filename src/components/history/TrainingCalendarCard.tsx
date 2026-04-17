@@ -50,7 +50,7 @@ export function TrainingCalendarCard({
     : ""
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="border-border/60 shadow-xs">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{t("activityCalendarTitle")}</CardTitle>
       </CardHeader>

@@ -417,7 +417,7 @@ export function HeatmapCalendar({
                           {col.map((cell) => {
                             const cls = levels[clampLevel(cell.level, levels.length)]
                             const btnClass = cn(
-                              "rounded-[3px] outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 touch-manipulation",
+                              "rounded-[3px] outline-hidden ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 touch-manipulation",
                               !palette?.length && cls,
                               cell.disabled &&
                                 "pointer-events-none cursor-default opacity-30",

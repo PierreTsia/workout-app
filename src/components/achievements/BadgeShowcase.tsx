@@ -67,7 +67,7 @@ export function BadgeShowcase() {
                   locked={false}
                   alt={i18n.language === "fr" ? tier.title_fr : tier.title_en}
                 />
-                <span className="max-w-[4rem] truncate text-[10px] text-muted-foreground">
+                <span className="max-w-16 truncate text-[10px] text-muted-foreground">
                   {i18n.language === "fr" ? tier.title_fr : tier.title_en}
                 </span>
               </button>

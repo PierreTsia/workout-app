@@ -57,7 +57,7 @@ import { cn } from "@/lib/utils"
 const navRowClass =
   "h-11 w-full justify-start gap-3 rounded-xl px-2.5 text-sm font-medium text-foreground hover:bg-muted/55 active:bg-muted/75"
 
-const navIconClass = "h-[1.125rem] w-[1.125rem] shrink-0 opacity-70"
+const navIconClass = "h-4.5 w-4.5 shrink-0 opacity-70"
 
 function SegmentedButton<T extends string>({
   value,
@@ -76,7 +76,7 @@ function SegmentedButton<T extends string>({
           type="button"
           onClick={() => onChange(opt.value)}
           className={cn(
-            "min-w-[2.25rem] px-2.5 py-1 text-xs font-semibold transition-colors",
+            "min-w-9 px-2.5 py-1 text-xs font-semibold transition-colors",
             value === opt.value
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -166,7 +166,7 @@ export function SideDrawer() {
             className={cn(
               "group flex items-center gap-3 rounded-2xl p-2.5 transition-colors",
               "bg-muted/30 hover:bg-muted/45 active:bg-muted/55",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+              "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
             )}
           >
             <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border/60 ring-offset-2 ring-offset-card">

@@ -105,7 +105,7 @@ export function ExerciseDetail({
                 <EllipsisVertical className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[12rem]">
+            <DropdownMenuContent align="end" className="min-w-48">
               <AdminOnly>
                 <DropdownMenuItem asChild>
                   <Link
