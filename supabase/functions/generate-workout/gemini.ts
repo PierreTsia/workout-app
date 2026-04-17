@@ -52,6 +52,7 @@ function parseResponse(raw: string): GenerateWorkoutGeminiResponse {
     console.error("Gemini raw output (first 500 chars):", text.slice(0, 500))
     throw new Error(
       `${e instanceof Error ? e.message : "JSON parse error"} | raw: ${text.slice(0, 200)}`,
+      { cause: e },
     )
   }
 }
