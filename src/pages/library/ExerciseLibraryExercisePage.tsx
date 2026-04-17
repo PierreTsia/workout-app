@@ -64,7 +64,7 @@ export function ExerciseLibraryExercisePage() {
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
         <div className="flex items-center gap-3 pt-1">
           <Link
             to="/library/exercises"

@@ -85,7 +85,7 @@ export function ExerciseLibraryPage() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center gap-3 border-b border-border/50 px-4 py-3">
         <button
           type="button"

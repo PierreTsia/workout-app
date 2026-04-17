@@ -9,6 +9,8 @@ import {
   defaultSessionState,
   queueSyncMetaAtom,
 } from "@/store/atoms"
+import { useUserProfile } from "@/hooks/useUserProfile"
+import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { renderWithProviders } from "@/test/utils"
 import { SideDrawer } from "./SideDrawer"
 
@@ -28,7 +30,11 @@ vi.mock("@/lib/supabase", () => ({
 }))
 
 vi.mock("@/hooks/useUserProfile", () => ({
-  useUserProfile: () => ({ data: null }),
+  useUserProfile: vi.fn(() => ({ data: null })),
+}))
+
+vi.mock("@/hooks/useBadgeStatus", () => ({
+  useBadgeStatus: vi.fn(() => ({ data: [] })),
 }))
 
 vi.mock("@/hooks/useInstallPrompt", () => ({
@@ -158,5 +164,58 @@ describe("SideDrawer sign-out guard", () => {
     await user.click(confirmButton)
 
     expect(mockSignOut).toHaveBeenCalledOnce()
+  })
+})
+
+describe("SideDrawer achievements", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("renders Achievements nav item linking to /achievements", async () => {
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    const link = within(dialog).getByRole("link", { name: /Achievements/i })
+    expect(link).toHaveAttribute("href", "/achievements")
+  })
+
+  it("shows equipped title under display name when active_title_tier_id is set", async () => {
+    vi.mocked(useUserProfile).mockReturnValue({
+      data: { active_title_tier_id: "tier-42" },
+    } as ReturnType<typeof useUserProfile>)
+    vi.mocked(useBadgeStatus).mockReturnValue({
+      data: [
+        {
+          tier_id: "tier-42",
+          rank: "gold",
+          title_en: "Iron Warrior",
+          title_fr: "Guerrier de fer",
+          group_slug: "volume_king",
+          group_id: "g1",
+          group_name_en: "Volume",
+          group_name_fr: "Volume",
+          tier_level: 3,
+          threshold_value: 50000,
+          icon_asset_url: null,
+          is_unlocked: true,
+          granted_at: "2026-01-01",
+          current_value: 60000,
+          progress_pct: 100,
+        },
+      ],
+    } as ReturnType<typeof useBadgeStatus>)
+
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText("Iron Warrior")).toBeInTheDocument()
+  })
+
+  it("does not show title line when no title is equipped", async () => {
+    vi.mocked(useUserProfile).mockReturnValue({ data: null } as ReturnType<typeof useUserProfile>)
+    vi.mocked(useBadgeStatus).mockReturnValue({ data: [] } as ReturnType<typeof useBadgeStatus>)
+
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).queryByText("Iron Warrior")).not.toBeInTheDocument()
   })
 })

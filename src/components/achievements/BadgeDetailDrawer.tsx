@@ -15,15 +15,8 @@ import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { cn } from "@/lib/utils"
-import type { BadgeStatusRow, AchievementRank } from "@/types/achievements"
-
-const rankColorText: Record<AchievementRank, string> = {
-  bronze: "text-amber-600",
-  silver: "text-slate-300",
-  gold: "text-yellow-400",
-  platinum: "text-blue-300",
-  diamond: "text-purple-400",
-}
+import { rankColorText } from "@/lib/achievementUtils"
+import type { BadgeStatusRow } from "@/types/achievements"
 
 interface BadgeDetailDrawerProps {
   badge: BadgeStatusRow | null

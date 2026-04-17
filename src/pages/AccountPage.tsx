@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
-import { BadgeGrid } from "@/components/achievements/BadgeGrid"
+import { BadgeShowcase } from "@/components/achievements/BadgeShowcase"
 
 const LBS_TO_KG = 0.453592
 
@@ -236,8 +236,8 @@ export function AccountPage() {
       {/* 1. Profile hero */}
       <ProfileHeader />
 
-      {/* 2. Achievements */}
-      <BadgeGrid />
+      {/* 2. Achievements showcase */}
+      <BadgeShowcase />
 
       {/* 3. Profile & Training settings */}
       <Form {...form}>
