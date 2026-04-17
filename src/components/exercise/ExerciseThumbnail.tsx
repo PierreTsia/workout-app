@@ -19,7 +19,7 @@ export function ExerciseThumbnail({
     return (
       <span
         className={cn(
-          "@container flex shrink-0 items-center justify-center overflow-hidden bg-muted text-center leading-none [font-size:max(1rem,min(3rem,45cqw))]",
+          "@container flex shrink-0 items-center justify-center overflow-hidden bg-muted text-center leading-none text-[max(1rem,min(3rem,45cqw))]",
           className,
         )}
       >

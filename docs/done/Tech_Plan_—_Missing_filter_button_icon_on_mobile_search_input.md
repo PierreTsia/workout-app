@@ -9,7 +9,7 @@ Fix the missing filter icon on native mobile by addressing the flex layout so th
 | Decision | Choice | Rationale |
 |---|---|---|
 | Root cause hypothesis | Flex item default `min-width: auto` on the cmdk input wrapper + `overflow-hidden` on Command | The input wrapper has `flex-1` but no `min-w-0`, so it won't shrink below content; on narrow viewports the filter button is pushed right and clipped. Desktop/responsive often has more width or different viewport behavior. |
-| Primary fix | Add `min-w-0` to the search row so the input wrapper can shrink | Standard flex fix: allow the flex-1 child to shrink so the shrink-0 button stays visible. Applied via parent selector in ExerciseLibraryPicker: `[&_[cmdk-input-wrapper]]:min-w-0`. |
+| Primary fix | Add `min-w-0` to the search row so the input wrapper can shrink | Standard flex fix: allow the flex-1 child to shrink so the shrink-0 button stays visible. Applied via parent selector in ExerciseLibraryPicker: `**:[[cmdk-input-wrapper]]:min-w-0`. |
 | Touch target | Ensure filter button meets ~44px tap area on mobile | Use padding (e.g. `p-2` or `min-h-[44px] min-w-[44px]`) so the icon remains tappable on real devices; keep existing `aria-label`. |
 | Icon position | Evaluate left vs right; document in implementation ticket or tech plan addendum | Epic requires a documented decision. Right is current (discoverable next to input); left can avoid being clipped if any remaining edge cases exist. Decision to be recorded after fix is validated on device. |
 | Verification | Layout fix validated in E2E (viewport) + manual/real-device check for native mobile | E2E can assert filter button visible at mobile viewport; final sign-off on real iOS/Android per epic (desktop responsive is explicitly insufficient). |
@@ -18,7 +18,7 @@ Fix the missing filter icon on native mobile by addressing the flex layout so th
 
 - **Single component in scope.** All layout changes are in [ExerciseLibraryPicker.tsx](src/components/builder/ExerciseLibraryPicker.tsx) (and possibly [command.tsx](src/components/ui/command.tsx) if we need to expose a variant or global fix for cmdk-input-wrapper). No changes to filter panel content or behavior ([ExerciseFilterPanel](src/components/builder/ExerciseFilterPanel.tsx) is out of scope).
 - **Command overflow.** [command.tsx](src/components/ui/command.tsx) applies `overflow-hidden` to `Command` (line 16). That clipping is what hides the button when the flex row overflows. Fix is to prevent overflow (by letting the input wrapper shrink), not to remove overflow-hidden from Command (which could affect scroll/list behavior).
-- **cmdk structure.** [CommandInput](src/components/ui/command.tsx) renders a wrapper div with `cmdk-input-wrapper=""` (line 40). ExerciseLibraryPicker targets it with `[&_[cmdk-input-wrapper]]:flex-1`. Any fix must work with this selector pattern or equivalent; we avoid changing the public API of the shared Command/CommandInput.
+- **cmdk structure.** [CommandInput](src/components/ui/command.tsx) renders a wrapper div with `cmdk-input-wrapper=""` (line 40). ExerciseLibraryPicker targets it with `**:[[cmdk-input-wrapper]]:flex-1`. Any fix must work with this selector pattern or equivalent; we avoid changing the public API of the shared Command/CommandInput.
 - **No desktop-only validation.** The epic explicitly excludes treating desktop or responsive-only testing as sufficient. The plan must include a step to verify on real mobile (e.g. iOS Safari, Chrome Android) or document the limitation if automated real-device testing is not available.
 
 ---
@@ -88,7 +88,7 @@ graph TD
 
 **Rationale:**
 - **Discoverability:** Right placement keeps the filter control immediately adjacent to the search field, so users see it as the next action after typing. Moving it left would separate it from the input and could make it feel like a global toolbar action rather than search-specific.
-- **Layout fix suffices:** With `[&_[cmdk-input-wrapper]]:min-w-0`, the input wrapper shrinks on narrow viewports and the button remains in view. No need to move the icon left for clipping reasons.
+- **Layout fix suffices:** With `**:[[cmdk-input-wrapper]]:min-w-0`, the input wrapper shrinks on narrow viewports and the button remains in view. No need to move the icon left for clipping reasons.
 - **Consistency:** Many search UIs place filter/sort controls to the right of the input (trailing action). Keeping the current order avoids churn and matches user expectations.
 - **Focus and RTL:** Right-to-left layouts would naturally mirror the row; keeping a single placement (right in LTR) is simpler than special-casing. Tab order (input then button) is unchanged.
 
@@ -99,7 +99,7 @@ If real-device testing later shows the button still clipped on specific devices,
 ## Implementation outline
 
 1. **Reproduce (optional but recommended)** — Confirm on a real device (or via responsive + narrow width) that the filter icon is missing; note viewport width and browser.
-2. **Fix layout** — In ExerciseLibraryPicker, on the search row div, add `[&_[cmdk-input-wrapper]]:min-w-0` so the input wrapper can shrink. Ensure the filter button has adequate touch target (e.g. `p-2` or explicit min size).
+2. **Fix layout** — In ExerciseLibraryPicker, on the search row div, add `**:[[cmdk-input-wrapper]]:min-w-0` so the input wrapper can shrink. Ensure the filter button has adequate touch target (e.g. `p-2` or explicit min size).
 3. **Verify** — E2E: in builder flow, open picker at mobile viewport (e.g. 390px), assert filter button is visible and (optionally) clickable. Manual: confirm on iOS Safari and Chrome Android that the icon is visible and tappable.
 4. **Icon position** — Evaluate left vs right; document the decision and rationale (see addendum above).
 5. **No change** to filter panel content, Command list behavior, or ExerciseFilterPanel.

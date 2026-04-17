@@ -175,7 +175,7 @@ export function ExerciseHistoryTrendChart({
       <CardContent className="px-3 pb-3 pt-0">
       <div className="flex gap-2">
         <div
-          className="grid h-[4.5rem] w-[2.85rem] shrink-0 grid-rows-3 text-right text-[10px] leading-tight text-muted-foreground"
+          className="grid h-18 w-[2.85rem] shrink-0 grid-rows-3 text-right text-[10px] leading-tight text-muted-foreground"
           aria-hidden
         >
           <span className="self-start tabular-nums">{fmtY(yMax)}</span>
@@ -189,7 +189,7 @@ export function ExerciseHistoryTrendChart({
         <div className="min-w-0 flex-1">
           <svg
             viewBox={`0 0 ${vbW} ${vbH}`}
-            className="h-[4.5rem] w-full text-primary"
+            className="h-18 w-full text-primary"
             preserveAspectRatio="none"
           >
             {gridYs.map((gv, gi) => {
@@ -222,7 +222,7 @@ export function ExerciseHistoryTrendChart({
                 key={i}
                 className="min-w-0 flex-1 text-center text-[10px] leading-tight text-muted-foreground"
               >
-                <span className="line-clamp-2 break-words">{label}</span>
+                <span className="line-clamp-2 wrap-break-word">{label}</span>
               </span>
             ))}
           </div>

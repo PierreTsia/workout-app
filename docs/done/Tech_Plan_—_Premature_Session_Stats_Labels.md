@@ -10,7 +10,7 @@
 | Estimated sets source | `exercises.reduce((sum, ex) => sum + ex.sets, 0)` from template | Direct from `workout_exercises.sets` — the user's planned set count. |
 | Estimated duration source | `formatDuration(lastSession.started_at, lastSession.finished_at)` from most recent past session | Same exercises/structure → similar duration. Far better than rest-time arithmetic. Hidden when no past session exists (no data to estimate from). |
 | Date badge on idle | "Last: {relativeDate}" in muted text, hidden if never done | Preserves useful "when did I last do this?" context while eliminating the ambiguous "Aujourd'hui" on unstarted days. |
-| Estimate label style | Tilde prefix (`~24 sets`, `~58 min`) + `outline` badge variant | Lightweight visual shorthand. `outline` badge variant already exists in shadcn/ui — no new CSS. |
+| Estimate label style | Tilde prefix (`~24 sets`, `~58 min`) + `outline-solid` badge variant | Lightweight visual shorthand. `outline-solid` badge variant already exists in shadcn/ui — no new CSS. |
 | `useLastSessionForDay` scoping | No changes — stays unscoped | `isCycleDone` handles the display context. The hook still returns the most recent session for both "Last: {date}" info on idle days and actual stats on done days. |
 | Scope boundary | Carousel `WorkoutDayCard` only | SessionSummary (post-finish) and History already show actual data by definition. The bug only manifests in the pre-session carousel. |
 
@@ -105,8 +105,8 @@ New behavior:
 | State | Exercise count | Sets | Duration |
 |---|---|---|---|
 | `isCycleDone` + `lastSession` | `secondary` — `exercises.length` | `secondary` — `lastSession.total_sets_done` | `secondary` — `formatDuration(started_at, finished_at)` |
-| `!isCycleDone` + `lastSession` | `outline` muted — `exercises.length` | `outline` muted — `~{estimatedTotalSets}` | `outline` muted — `~{formatDuration(lastSession.started_at, lastSession.finished_at)}` |
-| `!isCycleDone` + no `lastSession` | `outline` muted — `exercises.length` | `outline` muted — `~{estimatedTotalSets}` | Hidden (no data to estimate from) |
+| `!isCycleDone` + `lastSession` | `outline-solid` muted — `exercises.length` | `outline-solid` muted — `~{estimatedTotalSets}` | `outline-solid` muted — `~{formatDuration(lastSession.started_at, lastSession.finished_at)}` |
+| `!isCycleDone` + no `lastSession` | `outline-solid` muted — `exercises.length` | `outline-solid` muted — `~{estimatedTotalSets}` | Hidden (no data to estimate from) |
 
 ### i18n Keys
 

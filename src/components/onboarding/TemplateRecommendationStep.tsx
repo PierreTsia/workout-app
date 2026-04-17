@@ -50,7 +50,7 @@ export function TemplateRecommendationStep({
             }}
             className={cn(
               "cursor-pointer transition-all hover:border-primary hover:shadow-md active:scale-[0.98]",
-              i === 0 && "border-primary/50 shadow-sm",
+              i === 0 && "border-primary/50 shadow-xs",
             )}
           >
             <CardHeader className="pb-2">

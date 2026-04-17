@@ -116,7 +116,7 @@ export function AchievementUnlockOverlay() {
           onClick={dismiss}
         />
         <Dialog.Content
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 outline-none"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 outline-hidden"
           onClick={dismiss}
           aria-label={title}
           onEscapeKeyDown={dismiss}
@@ -136,7 +136,7 @@ export function AchievementUnlockOverlay() {
 
             <div
               className={cn(
-                "flex h-28 w-28 items-center justify-center rounded-full border-2 bg-card/80 backdrop-blur",
+                "flex h-28 w-28 items-center justify-center rounded-full border-2 bg-card/80 backdrop-blur-sm",
                 rank === "bronze" && "border-amber-600",
                 rank === "silver" && "border-slate-300",
                 rank === "gold" && "border-yellow-400",

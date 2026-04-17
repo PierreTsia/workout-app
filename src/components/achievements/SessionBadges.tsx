@@ -35,7 +35,7 @@ export function SessionBadges() {
                 size="sm"
                 alt={title}
               />
-              <span className="max-w-[5rem] truncate text-[10px] font-medium text-foreground">
+              <span className="max-w-20 truncate text-[10px] font-medium text-foreground">
                 {title}
               </span>
               <span

@@ -59,7 +59,7 @@ export function ImageDropZone({ onFileSelected, isUploading }: ImageDropZoneProp
       className={cn(
         "flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors",
         "text-muted-foreground hover:border-primary/50 hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
         isDragOver && "border-primary bg-primary/5 text-foreground",
         isUploading && "pointer-events-none opacity-60",
       )}

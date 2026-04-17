@@ -104,7 +104,7 @@ export function ExerciseLibraryExercisePage() {
           <ExerciseThumbnail
             imageUrl={exercise.image_url}
             emoji={exercise.emoji}
-            className="aspect-[16/9] w-full rounded-xl"
+            className="aspect-video w-full rounded-xl"
           />
 
           <div className="flex flex-wrap items-center justify-center gap-2">
