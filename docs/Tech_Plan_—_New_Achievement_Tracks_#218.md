@@ -23,9 +23,13 @@
 
 **`user_sessions` CTE is shared.** All 11 metric branches read from the same `user_sessions` CTE. Postgres materializes it once — no redundant `sessions` scans. Adding 6 branches does NOT multiply the session table reads.
 
-**Exercises JOIN cost.** The `leg_day` metric requires a JOIN to `exercises`. This is a small table (< 1000 rows, fits in shared_buffers). The JOIN is through `set_logs.exercise_id` which already has an FK index. No new index needed.
+**CTE performance at 11 branches.** With 5→11 `UNION ALL` branches in `metrics`, query planning cost grows linearly but each branch is independently optimized:
+- **Use `EXISTS` over `JOIN` where possible.** Branches that only need to check a condition (e.g. `total_prs`, `pr_streak` checking for `was_pr = true` in `set_logs`) use `EXISTS (SELECT 1 ...)` subqueries — cheaper than materializing a full JOIN result.
+- **Branches that read columns from the joined table** (`leg_day` → `exercises.muscle_group`, `total_volume` / `marathoner` → `set_logs.weight_logged`) legitimately need `JOIN`. No way around it.
+- **`user_profiles` for Early Bird** is a single-row PK lookup — negligible. But to avoid repeating it if future branches also need profile data, we could extract it to a top-level CTE (not blocking for this PR).
+- **Validate with `EXPLAIN ANALYZE`** on a user with 200+ sessions. Target: < 200ms total. If any branch dominates, it can be extracted to a separate CTE that runs conditionally.
 
-**`user_profiles` JOIN for Early Bird.** The `early_bird` CTE needs `user_profiles.timezone`. This is a single-row lookup by PK (`user_id`). Negligible cost. The CTE uses `COALESCE(up.timezone, 'UTC')` for null safety.
+**Exercises JOIN cost.** The `leg_day` metric requires a JOIN to `exercises`. This is a small table (< 1000 rows, fits in shared_buffers). The JOIN is through `set_logs.exercise_id` which already has an FK index. No new index needed.
 
 **Existing `sort_order` values.** Current groups use `sort_order` 1–5. New groups use 6–11. If future reordering is needed, UPDATE is trivial — `sort_order` is only used in the `ORDER BY` of `get_badge_status`.
 
@@ -555,8 +559,8 @@ $$;
 ```mermaid
 graph TD
     Migration["SQL Migration"]
-    Migration --> SeedGroups["INSERT 7 achievement_groups"]
-    Migration --> SeedTiers["INSERT 35 achievement_tiers"]
+    Migration --> SeedGroups["INSERT 6 achievement_groups"]
+    Migration --> SeedTiers["INSERT 30 achievement_tiers"]
     Migration --> TimezoneCol["ALTER user_profiles ADD timezone"]
     Migration --> TimezoneBackfill["UPDATE timezone = Europe/Paris"]
     Migration --> ReplaceRPC1["CREATE OR REPLACE check_and_grant"]
@@ -579,7 +583,7 @@ graph TD
 
 | File | Change |
 |---|---|
-| `file:src/locales/en/achievements.json` | Add 7 entries each to `groups`, `groupDescriptions`, `thresholdHint` |
+| `file:src/locales/en/achievements.json` | Add 6 entries each to `groups`, `groupDescriptions`, `thresholdHint` |
 | `file:src/locales/fr/achievements.json` | French equivalents |
 | `file:src/hooks/useCreateUserProfile.ts` | Add `timezone: Intl.DateTimeFormat().resolvedOptions().timeZone` to upsert payload |
 | `file:src/types/onboarding.ts` | Add `timezone: string \| null` to `UserProfile` interface |
@@ -730,8 +734,36 @@ No form field. No user interaction. `Intl.DateTimeFormat` is supported in all mo
 
 - The retroactive grant uses the same idempotent RPC. Existing badges are unaffected (`ON CONFLICT DO NOTHING`).
 - **No `user_achievements` wipe.** Unlike the rebalance migration (#20260403000001), this migration does NOT delete existing achievements. Thresholds for existing tracks are unchanged. Only new tracks are evaluated.
-- Grant runs server-side before users open the app → no overlay flood. Users discover new badges silently in the accordion.
 - **Early Bird retroactive accuracy:** Existing sessions are evaluated using the backfilled `'Europe/Paris'` timezone. For current FR users this is correct. If non-FR users existed, their early-bird retroactive grant might be inaccurate — acceptable given the all-FR user base.
+
+### Silent Rollout (no toast flood)
+
+The migration-time retroactive grant inserts rows into `user_achievements`. Because `AchievementRealtimeProvider` subscribes to **all** `INSERT` events on that table, those retroactive rows would trigger toast popups — potentially dozens per user.
+
+**Solution: boot-time gate in `AchievementRealtimeProvider`.**
+
+Store a `subscriptionStartedAt` timestamp when the Realtime channel is established. In the `postgres_changes` callback, compare `payload.new.granted_at` against that timestamp. If `granted_at < subscriptionStartedAt`, the badge was granted before this session — skip the toast push silently.
+
+```typescript
+// Inside AchievementRealtimeProvider useEffect
+const subscriptionStartedAt = new Date().toISOString()
+
+const channel = supabase
+  .channel("achievements")
+  .on("postgres_changes", { /* ... */ }, (payload) => {
+    const grantedAt = payload.new.granted_at as string
+    if (grantedAt < subscriptionStartedAt) return // retroactive — silent
+
+    // ... existing enrichment + pushAchievementsToQueue logic
+  })
+  .subscribe()
+```
+
+This means:
+- Retroactive badges from the migration appear silently in the accordion grid
+- Badges earned during a live session still trigger the overlay + chime
+- No schema changes, no migration complexity, purely a frontend guard
+- The `<` comparison works on ISO 8601 strings (lexicographic ordering = chronological)
 
 ---
 

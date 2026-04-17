@@ -225,7 +225,7 @@ Output is still a single numeric value, so the `eligible`/`granted` CTE pattern 
 
 - **Numeric:** 11 achievement groups live (5 existing + 6 new), 55 total tiers, all evaluable by the existing idempotent RPC
 - **Numeric:** Both RPCs (`check_and_grant_achievements`, `get_badge_status`) execute in < 200ms for a user with 500 sessions and 10k set_logs (verified via `EXPLAIN ANALYZE`)
-- **Qualitative:** Existing users see retroactively granted badges for the 6 new tracks on first app open after deploy (no overlay flood — silent insert)
+- **Qualitative:** Existing users discover retroactively granted badges in the accordion grid — no toast/overlay flood. The Realtime provider filters out badges with `granted_at` older than the current session (boot-time gate)
 - **Qualitative:** The accordion UI displays all 11 groups with no layout or performance degradation
 - **Qualitative:** New users get their timezone captured silently at onboarding — no extra form step
 - **Qualitative:** Adding a 12th track in the future requires only a SQL migration (INSERT groups + tiers + CTE branch) and i18n strings — no React component changes
