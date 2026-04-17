@@ -11,7 +11,7 @@ import {
 } from "@/store/atoms"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
-import { renderWithProviders } from "@/test/utils"
+import { renderWithProviders, mockQueryResult } from "@/test/utils"
 import { SideDrawer } from "./SideDrawer"
 
 const { mockSignOut } = vi.hoisted(() => ({
@@ -180,14 +180,29 @@ describe("SideDrawer achievements", () => {
   })
 
   it("shows equipped title under display name when active_title_tier_id is set", async () => {
-    vi.mocked(useUserProfile).mockReturnValue({
-      data: { active_title_tier_id: "tier-42" },
-    } as ReturnType<typeof useUserProfile>)
-    vi.mocked(useBadgeStatus).mockReturnValue({
-      data: [
+    vi.mocked(useUserProfile).mockReturnValue(
+      mockQueryResult({
+        user_id: "user-1",
+        display_name: null,
+        avatar_url: null,
+        age: 30,
+        weight_kg: 80,
+        gender: "male" as const,
+        goal: "strength" as const,
+        experience: "intermediate" as const,
+        equipment: "gym" as const,
+        training_days_per_week: 4,
+        session_duration_minutes: 60,
+        active_title_tier_id: "tier-42",
+        created_at: "2026-01-01",
+        updated_at: "2026-01-01",
+      }),
+    )
+    vi.mocked(useBadgeStatus).mockReturnValue(
+      mockQueryResult([
         {
           tier_id: "tier-42",
-          rank: "gold",
+          rank: "gold" as const,
           title_en: "Iron Warrior",
           title_fr: "Guerrier de fer",
           group_slug: "volume_king",
@@ -202,8 +217,8 @@ describe("SideDrawer achievements", () => {
           current_value: 60000,
           progress_pct: 100,
         },
-      ],
-    } as ReturnType<typeof useBadgeStatus>)
+      ]),
+    )
 
     renderDrawer()
     const dialog = await screen.findByRole("dialog")
@@ -211,8 +226,8 @@ describe("SideDrawer achievements", () => {
   })
 
   it("does not show title line when no title is equipped", async () => {
-    vi.mocked(useUserProfile).mockReturnValue({ data: null } as ReturnType<typeof useUserProfile>)
-    vi.mocked(useBadgeStatus).mockReturnValue({ data: [] } as ReturnType<typeof useBadgeStatus>)
+    vi.mocked(useUserProfile).mockReturnValue(mockQueryResult(null))
+    vi.mocked(useBadgeStatus).mockReturnValue(mockQueryResult([]))
 
     renderDrawer()
     const dialog = await screen.findByRole("dialog")
