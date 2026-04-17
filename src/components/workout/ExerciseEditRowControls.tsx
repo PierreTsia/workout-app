@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ExerciseSwapInlinePanel } from "@/components/workout/ExerciseSwapInlinePanel"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { formatDurationShort } from "@/lib/formatters"
 import type { Exercise, WorkoutExercise } from "@/types/database"
 
 export interface ExerciseEditRowControlsProps {
@@ -99,7 +100,10 @@ export function ExerciseEditRowControls({
             {ex.name_snapshot}
           </p>
           <p className="text-xs text-muted-foreground">
-            {ex.sets} × {ex.reps}
+            {ex.sets} ×{" "}
+            {ex.target_duration_seconds != null && ex.target_duration_seconds > 0
+              ? formatDurationShort(ex.target_duration_seconds)
+              : ex.reps}
             {Number(ex.weight) > 0 && ` · ${formatWeight(Number(ex.weight))}`}
           </p>
         </div>
