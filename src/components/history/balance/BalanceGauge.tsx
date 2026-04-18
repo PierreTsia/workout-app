@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react"
 import {
   Label,
   PolarAngleAxis,
@@ -122,6 +123,25 @@ export function BalanceGauge({
   const clamped = Math.min(100, Math.max(0, score))
   const gaugeLabel = `${score} ${bandLabel}`
 
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    const el = chartRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      setSize((prev) => {
+        const w = Math.round(width)
+        const h = Math.round(height)
+        return prev.width === w && prev.height === h ? prev : { width: w, height: h }
+      })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const chartData = [{ score: clamped, fill: "var(--color-balance)" }]
 
   const chartConfig = {
@@ -142,10 +162,13 @@ export function BalanceGauge({
       aria-label={gaugeLabel}
     >
       <ChartContainer
+        ref={chartRef}
         config={chartConfig}
         className="mx-auto w-full min-w-0 aspect-2/1 [&_.recharts-responsive-container]:h-full [&_.recharts-responsive-container]:min-h-[168px] [&_.recharts-wrapper]:h-full [&_.recharts-wrapper]:w-full"
       >
         <BalanceGaugeRadialChart
+          width={size.width}
+          height={size.height}
           clamped={clamped}
           bandLabel={bandLabel}
           chartData={chartData}
