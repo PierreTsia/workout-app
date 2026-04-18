@@ -110,16 +110,14 @@ export function templateToPreviewItems(
   exercises: WorkoutExercise[],
 ): ExercisePreviewItem[] {
   return exercises.map((ex) => {
-    const hasDuration =
-      ex.target_duration_seconds != null && ex.target_duration_seconds > 0
+    const duration = ex.target_duration_seconds
+    const hasDuration = duration != null && duration > 0
     return {
       id: ex.id,
       emoji: ex.emoji_snapshot,
       name: ex.name_snapshot,
       sets: ex.sets,
-      reps: hasDuration
-        ? formatDurationShort(ex.target_duration_seconds!)
-        : ex.reps,
+      reps: hasDuration ? formatDurationShort(duration) : ex.reps,
       maxWeight: Number(ex.weight),
     }
   })

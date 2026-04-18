@@ -34,12 +34,13 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
+  const targetDuration = exercise.target_duration_seconds
   const isDuration =
     libExercise?.measurement_type === "duration" &&
-    exercise.target_duration_seconds != null &&
-    exercise.target_duration_seconds > 0
+    targetDuration != null &&
+    targetDuration > 0
   const valueLabel = isDuration
-    ? formatDurationShort(exercise.target_duration_seconds!)
+    ? formatDurationShort(targetDuration)
     : exercise.reps
   const summary = `${exercise.sets}×${valueLabel} @ ${formatWeight(Number(exercise.weight))}`
 
