@@ -39,7 +39,8 @@ export async function uploadExerciseImage(
   previousFilename?: string | null,
 ): Promise<string> {
   const optimized = await optimizeImage(file)
-  const filename = `${toKebabCase(exerciseName)}.webp`
+  const ts = Date.now().toString(36)
+  const filename = `${toKebabCase(exerciseName)}-${ts}.webp`
 
   if (previousFilename && previousFilename !== filename) {
     try {
