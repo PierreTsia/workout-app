@@ -120,4 +120,42 @@ describe("templateToPreviewItems", () => {
       maxWeight: 80,
     })
   })
+
+  it("displays formatted duration instead of reps for duration exercises", () => {
+    const exercises = [
+      makeExercise({
+        id: "we-dur",
+        exercise_id: "ex-dur",
+        name_snapshot: "Plank",
+        emoji_snapshot: "🔥",
+        sets: 4,
+        reps: "0",
+        weight: "0",
+        target_duration_seconds: 30,
+      }),
+    ]
+
+    const result = templateToPreviewItems(exercises)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].reps).toBe("30s")
+    expect(result[0].sets).toBe(4)
+  })
+
+  it("displays reps normally when target_duration_seconds is null", () => {
+    const exercises = [
+      makeExercise({
+        id: "we-reps",
+        exercise_id: "ex-reps",
+        name_snapshot: "Crunches",
+        sets: 4,
+        reps: "12",
+        target_duration_seconds: null,
+      }),
+    ]
+
+    const result = templateToPreviewItems(exercises)
+
+    expect(result[0].reps).toBe("12")
+  })
 })

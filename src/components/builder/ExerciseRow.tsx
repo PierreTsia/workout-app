@@ -5,6 +5,7 @@ import { GripVertical, Pencil, Trash2 } from "lucide-react"
 import type { WorkoutExercise } from "@/types/database"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
+import { formatDurationShort } from "@/lib/formatters"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
@@ -33,7 +34,15 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const summary = `${exercise.sets}×${exercise.reps} @ ${formatWeight(Number(exercise.weight))}`
+  const targetDuration = exercise.target_duration_seconds
+  const isDuration =
+    libExercise?.measurement_type === "duration" &&
+    targetDuration != null &&
+    targetDuration > 0
+  const valueLabel = isDuration
+    ? formatDurationShort(targetDuration)
+    : exercise.reps
+  const summary = `${exercise.sets}×${valueLabel} @ ${formatWeight(Number(exercise.weight))}`
 
   return (
     <div

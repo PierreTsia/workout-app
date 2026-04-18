@@ -1,4 +1,4 @@
-import { formatSecondsMMSS } from "@/lib/formatters"
+import { formatDurationShort, formatSecondsMMSS } from "@/lib/formatters"
 import { groupBy } from "@/lib/utils"
 import type { SetLog, WorkoutExercise } from "@/types/database"
 
@@ -109,12 +109,16 @@ export function summarizeSessionLogs(
 export function templateToPreviewItems(
   exercises: WorkoutExercise[],
 ): ExercisePreviewItem[] {
-  return exercises.map((ex) => ({
-    id: ex.id,
-    emoji: ex.emoji_snapshot,
-    name: ex.name_snapshot,
-    sets: ex.sets,
-    reps: ex.reps,
-    maxWeight: Number(ex.weight),
-  }))
+  return exercises.map((ex) => {
+    const duration = ex.target_duration_seconds
+    const hasDuration = duration != null && duration > 0
+    return {
+      id: ex.id,
+      emoji: ex.emoji_snapshot,
+      name: ex.name_snapshot,
+      sets: ex.sets,
+      reps: hasDuration ? formatDurationShort(duration) : ex.reps,
+      maxWeight: Number(ex.weight),
+    }
+  })
 }

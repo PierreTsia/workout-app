@@ -97,6 +97,15 @@ export function formatDurationMs(ms: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`
 }
 
+/** Compact label for duration exercises in list views (e.g. "30s", "1m30s"). */
+export function formatDurationShort(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds))
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  if (m === 0) return `${r}s`
+  return r > 0 ? `${m}m${String(r).padStart(2, "0")}s` : `${m}m`
+}
+
 /** Countdown / hold display (e.g. 1:05). */
 export function formatSecondsMMSS(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds))
