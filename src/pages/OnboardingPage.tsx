@@ -4,6 +4,7 @@ import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { userProfileToGenerateProgramConstraints } from "@/lib/userProfileToGenerateProgramConstraints"
+import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
@@ -103,7 +104,7 @@ export function OnboardingPage() {
       training_days_per_week: data.training_days_per_week,
       session_duration_minutes: data.session_duration_minutes,
       active_title_tier_id: null,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: getResolvedIANATimeZone(),
       created_at: "",
       updated_at: "",
     }
