@@ -10,6 +10,10 @@ const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 }
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`
+const AUTH_ISSUER = `${SUPABASE_URL}/auth/v1`
+
 const SERVER_INFO = { name: "gymlogic", version: "0.1.0" }
 const PROTOCOL_VERSION = "2025-03-26"
 
@@ -51,11 +55,7 @@ async function handleRpc(
       const resource = resourceRegistry.get(uri)
       if (!resource) return fail(id, -32602, `Unknown resource: ${uri}`)
 
-      const supabase = authHeader.startsWith("Bearer ")
-        ? createUserClient(authHeader)
-        : null
-
-      const result = await resource.handler(supabase)
+      const result = await resource.handler(createUserClient(authHeader))
       return ok(id, result)
     }
 
@@ -65,11 +65,7 @@ async function handleRpc(
       const tool = toolRegistry.get(name)
       if (!tool) return fail(id, -32601, `Unknown tool: ${name}`)
 
-      const supabase = authHeader.startsWith("Bearer ")
-        ? createUserClient(authHeader)
-        : null
-
-      const result = await tool.handler(args, supabase)
+      const result = await tool.handler(args, createUserClient(authHeader))
       return ok(id, result)
     }
 
@@ -78,11 +74,45 @@ async function handleRpc(
   }
 }
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, extraHeaders?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders },
   })
+}
+
+const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
+const WWW_AUTHENTICATE = `Bearer resource_metadata="${RESOURCE_METADATA_URL}"`
+
+async function handleWellKnown(url: URL): Promise<Response | null> {
+  const path = url.pathname
+
+  // RFC 9728 — Protected Resource Metadata
+  if (path.endsWith("/.well-known/oauth-protected-resource")) {
+    return json({
+      resource: MCP_URL,
+      authorization_servers: [AUTH_ISSUER],
+      scopes_supported: [],
+      bearer_methods_supported: ["header"],
+    })
+  }
+
+  // RFC 8414 fallback — proxy Supabase's OAuth AS metadata so clients
+  // that don't follow redirects (or probe the MCP URL directly) get a 200.
+  if (path.endsWith("/.well-known/oauth-authorization-server")) {
+    try {
+      const upstream = await fetch(
+        `${SUPABASE_URL}/.well-known/oauth-authorization-server/auth/v1`,
+      )
+      const metadata = await upstream.json()
+      return json(metadata)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_err) {
+      return json({ error: "Failed to fetch authorization server metadata" }, 502)
+    }
+  }
+
+  return null
 }
 
 Deno.serve(async (req) => {
@@ -92,12 +122,27 @@ Deno.serve(async (req) => {
   if (req.method === "DELETE")
     return new Response(null, { status: 200, headers: corsHeaders })
 
+  if (req.method === "GET") {
+    const wellKnown = await handleWellKnown(new URL(req.url))
+    if (wellKnown) return wellKnown
+    return json(fail(null, -32600, "Only POST is supported"), 405)
+  }
+
   if (req.method !== "POST")
     return json(fail(null, -32600, "Only POST is supported"), 405)
 
+  const authHeader = req.headers.get("Authorization") ?? ""
+
+  if (!authHeader.startsWith("Bearer ")) {
+    return json(
+      fail(null, -32000, "Authentication required"),
+      401,
+      { "WWW-Authenticate": WWW_AUTHENTICATE },
+    )
+  }
+
   try {
     const body = await req.json()
-    const authHeader = req.headers.get("Authorization") ?? ""
 
     if (Array.isArray(body)) {
       const results = await Promise.all(
