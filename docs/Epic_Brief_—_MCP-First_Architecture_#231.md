@@ -28,7 +28,7 @@ This shifts the app from "AI features locked in a closed loop" to "agent-ready p
 
 - AI features follow a **closed loop**: React UI → Supabase Edge Function → Gemini 2.5 Flash → validated response → UI. The user never sees the LLM directly and can't bring their own.
 - **Deterministic expertise** (RIR-based progression, Epley 1RM, volume maps, triple progression) lives in `file:src/lib/` — accessible only through the React UI.
-- **600+ exercise catalog** with rich metadata (muscles, equipment, difficulty, instructions, media) is locked behind in-app search/filter.
+- **360+ exercise catalog** with rich metadata (muscles, equipment, difficulty, instructions, media) is locked behind in-app search/filter.
 - **Training data** (PRs, session history, volume, programs) has no programmatic access — users must open the app and navigate to the right screen.
 - Every AI generation costs a Gemini API call that we pay for, with a narrow context window (catalog + profile + recent history).
 

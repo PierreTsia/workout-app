@@ -1,78 +1,98 @@
-# Workout App
+# GymLogic
 
-A mobile-first PWA for tracking strength training sessions — with offline support, progression tracking, and workout analytics.
+A mobile-first PWA for tracking strength training — with offline support, progression tracking, workout analytics, and an **MCP server that lets your AI agent coach you using your real training data**.
 
-Built with React 19, TypeScript, Supabase, and Tailwind CSS.
+Built with React 19, TypeScript, Supabase, and Tailwind CSS. Live at [gymlogic.me](https://gymlogic.me).
+
+---
+
+## Connect your AI agent
+
+GymLogic exposes your training data as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server. This means Claude, Cursor, Le Chat, and other MCP-compatible agents can search your exercise catalog, pull your session history, analyze your training stats, and check your upcoming workouts — all through natural conversation.
+
+**Setup guides:**
+
+- [Cursor](docs/mcp-connect/cursor.md)
+- [Le Chat (Mistral)](docs/mcp-connect/le-chat.md)
+- [Claude Desktop](docs/mcp-connect/claude-desktop.md)
+
+**Available tools:**
+
+| Tool | What it does |
+|---|---|
+| `search_exercises` | Search 360+ exercises by name (FR/EN), muscle group, equipment, difficulty |
+| `get_exercise_details` | Full exercise metadata: instructions, muscles, equipment, media |
+| `get_workout_history` | Past sessions with sets, weights, and PR flags |
+| `get_training_stats` | Volume by muscle group, personal records, session frequency |
+| `get_upcoming_workouts` | Programmed training days and exercises |
+
+Plus 1 MCP Resource (`exercise_catalog_schema`) exposing the domain taxonomy so agents understand the vocabulary without burning tool calls.
+
+The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, OAuth 2.1 for client auth, and RLS-scoped queries so each user only sees their own data.
+
+> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md) and [Tech Plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md) for architecture details.
 
 ---
 
 ## Features
 
-### Onboarding & programs
-- First-run **onboarding** (profile / equipment) before the main app
-- **Create program** flow: pick a **template**, start **blank**, or build an **AI-generated** multi-day program (constraints wizard, preview, confirm) via Supabase Edge Function + Gemini
-- Template path resolves **equipment swaps** using the exercise alternatives catalog where needed
-- **Onboarding guard**: main shell routes require an active program; users without one are guided through `/create-program`
-
 ### Workout session
 - Day selector and horizontal **exercise strip**; per-exercise **sets table** (reps, weight, done checkbox)
-- **RIR (reps in reserve)** per set, with **in-session load suggestions** for the next set based on the previous set’s RIR
+- **RIR (reps in reserve)** per set with **in-session load suggestions** based on previous set performance
 - Full-screen **rest timer** (countdown, audio, vibration, notifications) and **session timer**; **session summary** on completion
 - **Last session** reference per exercise
-- **Exercise detail**: structured **instructions**, YouTube demo (lazy thumbnails), illustration, **body-map** muscle highlight (`react-body-highlighter`), and an **exercise history** sheet (past sessions + trend chart)
+- **Exercise detail**: structured **instructions**, YouTube demo, illustration, **body-map** muscle highlight, and **exercise history** sheet (past sessions + trend chart)
 - **Quick workout**: generate a **single ad-hoc session** with AI (constraints + Edge Function) when you want something off-program
-- **Offline-first**: set logs and session completion are **queued** and synced when back online (see below)
 
-### Training cycles
-- Sessions can be linked to a **training cycle**; **cycle summary** route surfaces completion stats and history for a finished cycle
-- “Quick” / off-cycle sessions avoid attaching to the active cycle when appropriate
+### Programs & cycles
+- **Create program** flow: pick a **template**, start **blank**, or build an **AI-generated** multi-day program (constraints wizard, preview, confirm) via Gemini
+- Template path resolves **equipment swaps** using the exercise alternatives catalog
+- Sessions linked to **training cycles**; **cycle summary** route surfaces completion stats and history
+- Full **CRUD** for programs (workout days, slot exercises) with **drag-and-drop** reorder and **exercise library picker**
 
 ### Progression & PRs
-- **Epley estimated 1RM** from logged sets; **automatic PR detection** with a **PR badge** on the exercise strip when you beat your previous best
+- **Epley estimated 1RM** from logged sets; **automatic PR detection** with a **PR badge** when you beat your previous best
 - `estimated_1rm`, `was_pr`, and **RIR** persisted on `set_logs` for history and suggestions
 
 ### History & analytics
-- **Stats** dashboard (sessions, sets, PRs, etc.) and reverse-chronological **session list** with expandable details
-- Per-exercise **1RM-over-time** charts (Recharts)
-- **Workout overview** cards with muscle coverage / body-map style summaries where the UI presents them
+- **Stats dashboard** (sessions, sets, PRs, volume) and reverse-chronological **session list** with expandable details
+- Per-exercise **1RM-over-time** charts
+- **Activity heatmap** and **muscle group breakdown**
 
-### Workout library
-- Dedicated **`/library`** page: large **exercise catalog** (~600+ items) with search, **muscle group** and **equipment** filters, and **difficulty** badges / filtering where data exists
-- Rich catalog metadata: FR/EN names, instructions (JSON sections), YouTube URLs, illustrations, secondary muscles, provenance
+### Achievements
+- **Badge system** with multiple tracks (consistency, strength, volume, exploration)
+- Achievement **detail drawer** with progress tracking
+- **Title system** — unlock display titles based on achievements
 
-### Workout builder
-- Full **CRUD** for **programs** (workout days and slot exercises)
-- **Exercise library picker** (search + filters, cmdk) and **drag-and-drop** reorder (dnd-kit)
-- Snapshot fields on `workout_exercises` keep exercise copy stable when catalog content changes
-- **Online-only** editing with a clear offline state
+### Exercise library
+- **360+ exercise catalog** with search, **muscle group** and **equipment** filters, **difficulty** badges
+- Rich metadata: FR/EN names, instructions (setup, movement, breathing, common mistakes), YouTube URLs, illustrations, secondary muscles
+- **Exercise detail page** with body-map, instructions, history, and media
 
-### Exercise content & feedback
-- Users can **report content issues** from multiple entry points; **admins** triage feedback from the admin area
+### Account & email
+- **Account page** with avatar upload, display name, weight unit preference
+- **Transactional emails** via Resend (welcome, lifecycle) with unsubscribe management
+- **Custom domain** email (`admin@gymlogic.me`)
 
 ### Offline-first sync
 - `SyncService` queues set logs and session finishes in **localStorage** with **fingerprint-based deduplication**
-- Queue **drains** on reconnect and on load when authenticated
+- Queue drains on reconnect and on load when authenticated
 - **Sync status** chip in the UI
 
 ### PWA & shell
-- Install prompt (banner + settings), **Workbox** service worker (app shell + runtime caching for Supabase API), standalone display
-- **Route-level error boundaries** for failed navigations / lazy chunks
-- Bottom nav + drawer **App shell** for workout, history, builder, library
+- Install prompt, **Workbox** service worker (app shell + runtime caching), standalone display
+- **Route-level error boundaries** for failed navigations
+- Bottom nav + drawer **App shell** for workout, history, builder, library, achievements
 
 ### Internationalization & theming
-- **FR / EN** via react-i18next with **per-feature namespaces** (e.g. workout, history, builder, onboarding, create-program, library, generator, admin, exercise, settings, errors)
-- **kg / lbs** display preference (storage in kg)
-- **Dark / light** theme via next-themes
+- **FR / EN** via react-i18next with per-feature namespaces
+- **kg / lbs** display preference (storage always in kg)
+- **Dark / light** theme
 
 ### Auth & admin
 - **Google OAuth** via Supabase Auth; **AuthGuard** on protected routes
-- Notification permission prompt for timer / alerts
-- **Admin**: exercise review (`/admin/exercises`) and **feedback triage** (`/admin/feedback`), gated by `admin_users`
-
-### Quality
-- **Vitest** + Testing Library (Epley, weight units, SyncService, hooks, key components)
-- **Playwright** E2E (login, workout, builder, onboarding paths as covered in `e2e/`)
-- **GitHub Actions**: lint, type-check, unit tests, E2E against **local Supabase**, deploy (e.g. Vercel)
+- **OAuth 2.1 server** for MCP client authentication with consent page
+- **Admin**: exercise review, enrichment tools, feedback triage, gated by `admin_users`
 
 ---
 
@@ -85,15 +105,20 @@ Built with React 19, TypeScript, Supabase, and Tailwind CSS.
 | Language | TypeScript 5.9 |
 | State | Jotai (atomWithStorage for persistence) |
 | Server state | TanStack React Query 5 |
-| Backend | Supabase (Postgres + Auth + RLS) |
+| Backend | Supabase (Postgres + Auth + RLS + Edge Functions) |
+| MCP server | Hand-rolled JSON-RPC 2.0 on Supabase Edge Functions |
+| AI generation | Google Gemini 2.5 Flash (via Edge Functions) |
 | UI components | shadcn/ui (Radix primitives) |
 | Styling | Tailwind CSS 3.4 + tailwindcss-animate |
 | Charts | Recharts |
 | Drag & drop | dnd-kit |
 | i18n | react-i18next + i18next-browser-languagedetector |
+| Email | Resend (transactional) |
 | Icons | lucide-react |
 | PWA | vite-plugin-pwa (Workbox) |
 | Theming | next-themes |
+| Testing | Vitest + Testing Library + Playwright |
+| CI/CD | GitHub Actions + Vercel |
 
 ---
 
@@ -163,15 +188,13 @@ Use a local stack so day-to-day usage and experiments do not write to production
 
 The app reads Supabase URL/anon key from Vite env (`import.meta.env`). Restart `npm run dev` after changing env files.
 
-### Environment files (important)
+### Environment files
 
 | File | Who reads it | Purpose |
 |------|----------------|---------|
 | **`.env.local`** | Vite (`npm run dev`, `npm run build` locally) | `VITE_*` for the browser client — use for local API URL + anon key |
 | **`.env`** (project root) | **Supabase CLI** when parsing `supabase/config.toml` | `env(...)` placeholders (e.g. Google OAuth for local Auth). **The CLI does not load `.env.local`.** |
 | **Vercel / CI** | Production builds | Set `VITE_*` in the dashboard; nothing from `.env.local` is deployed |
-
-Duplicate keys where both tools need them (e.g. Google client id/secret in **`.env`** for `supabase start`, plus whatever you use elsewhere).
 
 ### Service URLs and ports (default)
 
@@ -180,88 +203,50 @@ Duplicate keys where both tools need them (e.g. Google client id/secret in **`.e
 | **54321** | REST / Auth / Edge Functions API (`VITE_SUPABASE_URL`) |
 | **54322** | Postgres (`postgresql://postgres:postgres@127.0.0.1:54322/postgres`) |
 | **54323** | [Supabase Studio](http://127.0.0.1:54323) — table editor, SQL, Auth users |
-| **54324** | [Inbucket](http://127.0.0.1:54324) — captures auth emails locally (magic links, etc.) |
-
-### Inspecting tables and data
-
-- **Studio** at `http://127.0.0.1:54323` is the default place to browse tables and run SQL.
-- Any Postgres client can use the DB URL above for heavier querying.
+| **54324** | [Inbucket](http://127.0.0.1:54324) — captures auth emails locally |
 
 ### Google Sign-In locally
 
 `supabase/config.toml` enables Google when the corresponding vars exist in **project-root `.env`**. In [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → your **Web** OAuth client:
 
-- **Authorized redirect URIs** must include exactly:  
-  `http://127.0.0.1:54321/auth/v1/callback`  
-  (Supabase Auth receives the OAuth callback here — **not** `http://127.0.0.1:5173/...`.)
-- Keep your hosted callback too if you use the same client for prod, e.g.  
-  `https://<project-ref>.supabase.co/auth/v1/callback`
-- **Authorized JavaScript origins** should include your dev app origin, e.g. `http://localhost:5173` and `http://127.0.0.1:5173`.
+- **Authorized redirect URIs** must include: `http://127.0.0.1:54321/auth/v1/callback`
+- Keep your hosted callback too if you use the same client for prod
+- **Authorized JavaScript origins**: `http://localhost:5173` and `http://127.0.0.1:5173`
 
 After changing `config.toml` or `.env` auth vars, run `npm run supabase:stop` then `npm run supabase:start`.
 
-### Schema and seed
+### Edge Functions
 
-- Migrations: `supabase/migrations/`
-- Seed data (e.g. exercise catalog): `supabase/seed.sql` (applied on `supabase db reset`)
-- Prefer **new migration files** for schema changes rather than only editing data in Studio, so git stays the source of truth.
+With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits **local** functions.
 
-### History / Activity / calendar dev data (local)
+| Function | Purpose |
+|---|---|
+| `generate-program` | AI program generation via Gemini |
+| `generate-workout` | Quick workout generation via Gemini |
+| `mcp` | MCP server (JSON-RPC 2.0, 5 tools + 1 resource) |
+| `send-transactional-email` | Welcome and lifecycle emails via Resend |
+| `email-unsubscribe` | Email preference management |
+| `delete-account` | Account deletion with data cleanup |
 
-Login is **Google-only** in the app, so session history cannot be tied to a fixed email in `seed.sql` for your real account. Use the **service-role** script instead:
+The Gemini key must be available to the Edge runtime:
 
-1. `npm run supabase:start` (or ensure local API is up).
-2. Sign in once with **Google**, then copy your user id from **Supabase Studio** → **Authentication** → **Users** (or run `select id, email from auth.users` in the SQL editor).
-3. Run:
+1. Copy `supabase/functions/.env.example` → `supabase/functions/.env`
+2. Set `GEMINI_API_KEY=` to a key from [Google AI Studio](https://aistudio.google.com/apikey)
+3. Restart: `npm run supabase:stop` then `npm run supabase:start`
+
+For **hosted** Supabase, set secrets via `supabase secrets set GEMINI_API_KEY=...` or the dashboard.
+
+### History seed data
 
 ```bash
 npm run seed:history -- --user-id=<your-auth-uuid>
 ```
 
-Or set `SUPABASE_HISTORY_SEED_USER_ID` in `.env.local` and run `npm run seed:history`.
-
-To **list user ids** on the same instance the script will hit:
-
-```bash
-npm run seed:history -- --list-users
-```
-
-**Target URL:** the script defaults to **`http://127.0.0.1:54321`** (local Supabase CLI). It **does not** read `VITE_SUPABASE_URL`, so a `.env` pointed at hosted prod will not send seed data to production.
-
-Override only when you mean it:
-
-- `SUPABASE_HISTORY_SEED_URL` or `SEED_SUPABASE_URL`, or
-- `npm run seed:history -- --url=https://….supabase.co --user-id=…` (then you **must** set `SUPABASE_SERVICE_ROLE_KEY` for that project).
-
-If you see `sessions_user_id_fkey`, the UUID is **not** in `auth.users` for that URL—typical causes: id from another Supabase project, or **`supabase db reset` cleared auth** so you must sign in again and use the new id.
-
-This inserts ~30+ **finished** sessions over the last ~90 days (labels `Local seed — …`) plus `set_logs`, after removing any previous `Local seed%` rows for that user. Safe to re-run.
-
-For **local** URLs (`127.0.0.1` / `localhost`), the script always uses the [local demo service role](https://supabase.com/docs/guides/local-development/cli). **`SUPABASE_SERVICE_ROLE_KEY` in `.env` is ignored** for loopback targets so a hosted project’s key does not get sent to local Auth (which would produce `invalid JWT` / `signature is invalid`). Override for this script only with **`SUPABASE_HISTORY_SEED_SERVICE_ROLE_KEY`** (e.g. if you changed local JWT secrets — use the service role from `supabase status`).
-
-### Row Level Security (RLS)
-
-RLS policies apply to the **anon key + user JWT** used by the app. Studio often uses elevated access, so something can “work in Studio but fail in the app” when RLS blocks the client.
-
-### Edge Functions (e.g. AI generation)
-
-With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits **local** functions. The Gemini key is **not** read from the Vite app’s `.env.local` — it must be available to the **Edge runtime**.
-
-1. Copy `supabase/functions/.env.example` → `supabase/functions/.env`.
-2. Set `GEMINI_API_KEY=` to a key from [Google AI Studio](https://aistudio.google.com/apikey).
-3. Restart Docker so the functions container picks it up: `npm run supabase:stop` then `npm run supabase:start`.
-
-If you see `{ "error": "GEMINI_API_KEY is not set" }` from `generate-program` / `generate-workout`, the local `.env` is missing or the stack was not restarted after adding it.
-
-For **hosted** Supabase, set the same variable in the [Dashboard → Edge Functions → Secrets](https://supabase.com/dashboard/project/_/settings/functions) or via `supabase secrets set GEMINI_API_KEY=...` on a linked project. See [Supabase — Environment variables](https://supabase.com/docs/guides/functions/secrets).
+Inserts ~30+ finished sessions over the last ~90 days. See the script for options (`--list-users`, `--url`, etc.).
 
 ### E2E tests
 
-Playwright tests expect local Supabase (see `e2e/`). Start the stack before `npm run test:e2e` when tests hit the API.
-
-### CLI vs linked remote
-
-`supabase link` can warn that local Docker image versions differ from the linked project. Usually safe to ignore for daily dev; upgrade the CLI or re-link when you want them aligned.
+Playwright tests expect local Supabase. Start the stack before `npm run test:e2e`.
 
 ---
 
@@ -270,70 +255,64 @@ Playwright tests expect local Supabase (see `e2e/`). Start the stack before `npm
 ```
 src/
 ├── components/
-│   ├── ui/            # shadcn primitives (button, dialog, table, tabs, etc.)
+│   ├── ui/            # shadcn primitives
 │   ├── workout/       # DaySelector, ExerciseStrip, SetsTable, RestTimerOverlay, SessionSummary
-│   ├── history/       # StatsDashboard, SessionList, ExerciseChart, ExerciseTab
-│   ├── builder/       # DayList, DayEditor, ExerciseLibraryPicker, ExerciseDetailEditor
-│   ├── AppShell.tsx   # Layout shell with bottom nav
-│   ├── SideDrawer.tsx # Settings, theme, language, weight unit, install, sign out
-│   └── SyncStatusChip.tsx
-├── hooks/             # 17 hooks (useWorkoutDays, useLastSession, useBestPerformance, useWeightUnit, etc.)
-├── lib/               # supabase client, syncService, epley 1RM, i18n init, formatters, query client
-├── locales/           # en/ and fr/ JSON translation files (6 namespaces each)
-├── pages/             # LoginPage, WorkoutPage, HistoryPage, BuilderPage
+│   ├── history/       # StatsDashboard, SessionList, ActivityTab, Heatmap
+│   ├── builder/       # DayList, DayEditor, ExerciseLibraryPicker
+│   ├── library/       # ExerciseCatalog, AddExerciseToDaySheet
+│   ├── body-map/      # BodyMap muscle highlight visualization
+│   ├── achievements/  # BadgeGrid, AchievementDetailDrawer
+│   └── AppShell.tsx   # Layout shell with bottom nav
+├── hooks/             # useWorkoutDays, useLastSession, useBestPerformance, useWeightUnit, etc.
+├── lib/               # supabase client, syncService, epley 1RM, i18n, formatters, supabase-oauth
+├── locales/           # en/ and fr/ JSON translation files
+├── pages/             # LoginPage, WorkoutPage, HistoryPage, BuilderPage, AchievementsPage, etc.
 ├── router/            # Routes + AuthGuard
-├── store/             # Jotai atoms (session, rest, auth, sync, locale, theme, etc.)
-├── types/             # TypeScript types (auth, database)
+├── store/             # Jotai atoms (session, rest, auth, sync, locale, theme)
+├── types/             # TypeScript types (auth, database, achievements, etc.)
 └── main.tsx
+
+supabase/
+├── functions/
+│   ├── mcp/           # MCP server (JSON-RPC handler, tools, resources, formatters)
+│   ├── generate-program/
+│   ├── generate-workout/
+│   ├── send-transactional-email/
+│   ├── email-unsubscribe/
+│   └── delete-account/
+├── migrations/        # Postgres schema migrations
+└── seed.sql           # Exercise catalog + seed data
+
+docs/
+├── mcp-connect/       # Per-client MCP connection guides
+├── Epic_Brief_*       # Epic briefs for current work
+├── Tech_Plan_*        # Technical plans
+├── T*                 # Implementation tickets
+└── done/              # Completed epic/ticket docs
 ```
 
 ---
 
 ## Database
 
-Five tables with row-level security scoped to the authenticated user:
+Core tables with row-level security scoped to the authenticated user:
 
 | Table | Purpose |
 |---|---|
-| `exercises` | Exercise catalog (name, muscle group, emoji) |
-| `workout_days` | User's training days (label, emoji, sort order) |
+| `exercises` | Exercise catalog (360+ items, FR/EN names, instructions, media) |
+| `programs` | User training programs |
+| `cycles` | Training cycles within a program |
+| `workout_days` | Training days (label, sort order) |
 | `workout_exercises` | Exercises assigned to a day (sets, reps, weight, rest) |
 | `sessions` | Completed workout sessions |
-| `set_logs` | Individual set records (reps, weight, 1RM, PR flag) |
+| `set_logs` | Individual set records (reps, weight, 1RM, PR flag, RIR) |
+| `achievements` | Badge definitions and user progress |
+| `admin_users` | Admin access control |
+| `exercise_feedback` | User-reported content issues |
+| `transactional_email_log` | Email delivery tracking |
+| `email_preferences` | User email opt-in/out |
 
 See `supabase/migrations/` for the full schema.
-
----
-
-## Roadmap — Next Iteration
-
-Things that would make sense to tackle next, roughly ordered by impact:
-
-**Testing & CI**
-- Broaden unit/integration coverage (edge cases, fewer mocks, visual regression optional).
-- Expand Playwright coverage (AI flows, cycles, library) and keep local Supabase fixtures maintainable.
-
-**CI/CD**
-- Further harden pipeline (bundle budgets, preview deploys, scheduled E2E).
-
-**Performance**
-- Lazy-load routes (`React.lazy` + `Suspense`).
-- Bundle analysis and tree-shaking audit.
-
-**Data Export**
-- CSV or JSON export of workout history from the History page.
-
-**Richer Analytics**
-- Total volume over time, muscle-group breakdown, streak tracking.
-
-**Accessibility**
-- Keyboard navigation audit, ARIA labels, screen reader testing.
-
-**Onboarding & programs**
-- Deeper coaching or analytics on top of the existing wizard (templates, blank, AI program).
-
-**Exercise Name Translations**
-- Exercise names are user-owned Supabase data and currently not translated. Could offer a translation layer or let users rename.
 
 ---
 
