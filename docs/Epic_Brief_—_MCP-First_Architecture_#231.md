@@ -2,7 +2,21 @@
 
 ## Summary
 
-Expose the app's training data, exercise catalog, and domain expertise as an **MCP (Model Context Protocol) server** so that the user's own AI agent (Claude Desktop, Le Chat, etc.) can query, reason about, and eventually write to their workout data. This shifts the app from "AI features locked in a closed loop" to "agent-ready platform" — the intelligence moves to the user's agent, the app provides the specialized domain layer.
+> *Stop being the brain. Become the body.*
+
+Expose the app's training data, exercise catalog, and domain expertise as an **MCP (Model Context Protocol) server** so that the user's own AI agent (Claude Desktop, Le Chat, etc.) can query, reason about, and eventually write to their workout data. The real value isn't the LLM call — it's the **domain model, the data, and the deterministic expertise**. An MCP server lets us expose exactly that, while the user brings their own intelligence layer.
+
+This shifts the app from "AI features locked in a closed loop" to "agent-ready platform" — the intelligence moves to the user's agent, the app provides the specialized domain layer.
+
+---
+
+## Strategic Rationale
+
+1. **Moat shifts from "we call an LLM" to "we understand strength training data"** — the catalog, the schemas, the progression logic, the validation. That's defensible.
+2. **Zero marginal AI cost** — the user's agent provider pays for inference. We stop paying for Gemini.
+3. **Composability** — the user's agent can chain our MCP tools with nutrition apps, sleep trackers, calendar. We become part of a stack, not a silo.
+4. **Always up-to-date intelligence** — when a better model ships, the user benefits immediately without us changing anything.
+5. **MCP Resources as domain vocabulary** — the exercise catalog exposed as browsable MCP Resources means agents understand our domain without burning tool calls.
 
 ---
 
@@ -76,6 +90,15 @@ MCP adoption has reached critical mass — 548+ clients listed on PulseMCP, nati
 - **Shared domain logic extraction** (moving `src/lib/` code to be importable by Edge Functions) — Phase 2 concern
 - **Mobile/non-desktop agent flows** — Le Chat mobile works but not a design target
 
+### Roadmap context
+
+This epic is Phase 1 of a 4-phase arc defined in [#231](https://github.com/PierreTsia/workout-app/issues/231):
+
+- **Phase 1 — Read-Only MCP Server** *(this epic)*: 5 read-only tools + 1 resource, OAuth, end-to-end validation
+- **Phase 2 — Domain Expertise as Tools**: `suggest_progression`, `calculate_1rm`, `validate_workout_plan`, `get_muscle_balance_report`
+- **Phase 3 — Write Operations**: `add_exercise_to_session`, `create_workout`, `log_set` with dry-run/confirm pattern
+- **Phase 4 — Deprecate Closed-Loop AI**: `generate-workout` / `generate-program` become optional; app UI can itself become an MCP client
+
 ---
 
 ## Technical Decisions
@@ -123,10 +146,14 @@ ChatGPT Desktop (requires Pro $20+/mo), OpenClaw, LibreChat, 250+ MCP clients �
 
 ## Success Criteria
 
+> Phase 1 is a proof-of-concept. The primary measure is subjective coaching quality, not production SLAs. Numeric thresholds below are sanity checks, not contractual targets.
+
 - **Connectivity**: MCP server is discoverable and connectable from Claude Desktop and Le Chat without custom code
-- **Discovery**: agent lists all 5 tools + 1 resource via MCP protocol handshake
+- **Discovery**: agent lists exactly **5 tools + 1 resource** via MCP protocol handshake
 - **Auth**: OAuth flow works end-to-end — user approves, agent gets scoped token, RLS enforces data isolation
+- **Latency**: tool responses return in **< 3s p95** (Edge Function cold start included) — enough for a conversational flow
 - **Coaching quality**: a read-only coaching conversation (e.g. "analyze my push/pull balance over the last month") is subjectively more useful than what `generate-workout` produces — because the agent has full conversational context and can make multiple tool calls
+- **Cross-client**: validated on **>= 2 clients** (Claude Desktop + Le Chat)
 - **No regressions**: existing app features, Edge Functions, and auth are unaffected
 
 ---
