@@ -290,6 +290,10 @@ verify_jwt = false
 [functions.email-unsubscribe]
 verify_jwt = false
 
+# MCP server — OAuth 2.1 tokens validated by Supabase client, not gateway
+[functions.mcp]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
