@@ -8,6 +8,8 @@ Expose the app's training data, exercise catalog, and domain expertise as an **M
 
 This shifts the app from "AI features locked in a closed loop" to "agent-ready platform" — the intelligence moves to the user's agent, the app provides the specialized domain layer.
 
+**Product constraint:** Agent-facing MCP is **additive**. The classic **in-app SaaS experience** (library, program builder, workout flow, sync, existing Edge-backed features) must **not** be broken or degraded for users who never use an external agent. Agentic usage is a **plus**, not a replacement or forced migration in the near term.
+
 ---
 
 ## Strategic Rationale
@@ -154,7 +156,7 @@ ChatGPT Desktop (requires Pro $20+/mo), OpenClaw, LibreChat, 250+ MCP clients �
 - **Latency**: tool responses return in **< 3s p95** (Edge Function cold start included) — enough for a conversational flow
 - **Coaching quality**: a read-only coaching conversation (e.g. "analyze my push/pull balance over the last month") is subjectively more useful than what `generate-workout` produces — because the agent has full conversational context and can make multiple tool calls
 - **Cross-client**: validated on **>= 2 clients** (Claude Desktop + Le Chat)
-- **No regressions**: existing app features, Edge Functions, and auth are unaffected
+- **No regressions**: existing app features, Edge Functions, and auth are unaffected — explicitly including the **classic in-app path** for users who do not use MCP; parity is not optional while MCP is “optional” for adoption
 
 ---
 
