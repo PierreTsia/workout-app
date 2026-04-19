@@ -32,6 +32,8 @@ export function useCreateUserProfile() {
 
       const emailDefault = user.email?.trim() || null
 
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
       const { data, error } = await supabase
         .from("user_profiles")
         .upsert(
@@ -46,6 +48,7 @@ export function useCreateUserProfile() {
             equipment: input.equipment,
             training_days_per_week: input.training_days_per_week,
             session_duration_minutes: input.session_duration_minutes,
+            timezone,
           },
           { onConflict: "user_id" },
         )

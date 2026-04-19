@@ -36,20 +36,38 @@
     "volume_king": "Volume",
     "rhythm_master": "Rythme",
     "record_hunter": "Records",
-    "exercise_variety": "Variété"
+    "exercise_variety": "Variété",
+    "quick_sessions": "Quick & Dirty",
+    "leg_day": "Leg Day",
+    "streak_king": "Streak King",
+    "marathoner": "Le Marathonien",
+    "pr_streak": "Série de Records",
+    "early_bird": "Early Bird"
   },
   "groupDescriptions": {
     "consistency_streak": "Nombre total de séances terminées",
     "volume_king": "Volume total soulevé (kg)",
     "rhythm_master": "Semaines calendaires avec 3+ séances",
     "record_hunter": "Records personnels battus",
-    "exercise_variety": "Exercices distincts utilisés"
+    "exercise_variety": "Exercices distincts utilisés",
+    "quick_sessions": "Séances rapides (sans programme)",
+    "leg_day": "Séries ciblant les jambes",
+    "streak_king": "Plus longue série de semaines consécutives",
+    "marathoner": "Séances avec un volume total ≥ 5 000 kg",
+    "pr_streak": "Plus longue série de séances avec au moins 1 PR",
+    "early_bird": "Séances terminées avant 8h"
   },
   "thresholdHint": {
     "consistency_streak": "Terminer {{target}} séances",
     "volume_king": "Soulever {{target}} kg au total",
     "rhythm_master": "Compléter {{target}} semaines avec 3+ séances",
     "record_hunter": "Battre {{target}} records personnels",
-    "exercise_variety": "Utiliser {{target}} exercices différents"
+    "exercise_variety": "Utiliser {{target}} exercices différents",
+    "quick_sessions": "Terminer {{target}} séances rapides",
+    "leg_day": "Enregistrer {{target}} séries jambes",
+    "streak_king": "S'entraîner {{target}} semaines d'affilée",
+    "marathoner": "Compléter {{target}} séances lourdes (≥ 5 000 kg)",
+    "pr_streak": "Battre des records dans {{target}} séances d'affilée",
+    "early_bird": "Terminer {{target}} séances avant 8h"
   }
 }
