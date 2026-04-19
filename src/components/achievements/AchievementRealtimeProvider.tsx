@@ -20,7 +20,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
   useEffect(() => {
     if (!user || !badgeRows) return
 
-    const subscriptionStartedAt = new Date().toISOString()
+    const subscriptionStartedAt = Date.now()
 
     const channel = supabase
       .channel("achievements")
@@ -34,7 +34,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
         },
         (payload) => {
           const grantedAt = payload.new.granted_at as string
-          if (grantedAt < subscriptionStartedAt) return
+          if (new Date(grantedAt).getTime() < subscriptionStartedAt) return
 
           const tierId = payload.new.tier_id as string
           const match = badgeRows.find((r) => r.tier_id === tierId)
