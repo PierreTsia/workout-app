@@ -1,30 +1,35 @@
 # Tech Plan — MCP-First Architecture (#231)
 
+> **Implementation status**: Phase 1 is implemented. This document has been updated to reflect what was actually built, including architectural pivots made during implementation.
+
 ## Architectural Approach
 
 ### Key Decisions
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| **HTTP framework** | Hono (`npm:hono@^4.9.7`) | Supabase's official MCP guide uses it; handles routing, CORS middleware, and base path cleanly. New dep for functions but justified by the MCP function's complexity. |
-| **MCP SDK** | `npm:@modelcontextprotocol/sdk@1.25.3` | Official SDK, Supabase-documented version. `WebStandardStreamableHTTPServerTransport` in **stateless mode** (Edge Functions are stateless). |
-| **Input validation** | `npm:zod` | MCP SDK uses Zod natively for `inputSchema` in `registerTool()`. Same library the frontend uses. |
-| **Auth** | **Supabase OAuth 2.1 + PKCE** with consent page | MCP clients (Claude Desktop, Le Chat) expect OAuth discovery + authorization flow. Supabase provides this as a built-in Auth feature (beta, free). Requires a consent page in the React app. |
-| **Data access** | Reuse existing RPCs + direct Supabase client queries | `search_exercises`, `get_exercise_filter_options`, `get_volume_by_muscle_group` already exist. Direct queries for simple lookups (`exercises` by ID, `sessions` + `set_logs`). All through `createUserClient(authHeader)` for RLS. |
-| **Tool output format** | Structured text | LLMs reason better with narrative summaries than raw JSON arrays. Keeps token count manageable, maximizes agent reasoning quality. Can add optional JSON mode later. |
-| **Function JWT verification** | `verify_jwt = false` in `config.toml` | Consistent with all existing functions. OAuth 2.1 tokens are validated by the Supabase client when calling `auth.getUser()` or through RLS. |
+| **HTTP layer** | Plain `Deno.serve` with manual CORS + JSON-RPC routing | **Pivoted from Hono.** The MCP function only handles POST (JSON-RPC), OPTIONS (CORS), and DELETE (session close). A full HTTP framework added dependency weight and cold start latency for no benefit. |
+| **MCP protocol** | Hand-rolled JSON-RPC 2.0 handler | **Pivoted from `@modelcontextprotocol/sdk`.** The SDK's `McpServer` + `WebStandardStreamableHTTPServerTransport` pulled in heavy dependencies and added complexity for what is a thin JSON-RPC dispatcher. A ~120-line `handleRpc` switch handles `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read` directly. |
+| **Input validation** | Plain JSON Schema objects on tool definitions | **Pivoted from Zod.** Without the MCP SDK there's no `registerTool()` expecting Zod schemas. Tool `inputSchema` is declared as plain JSON Schema — sufficient for MCP client introspection and lighter at runtime. |
+| **Tool registration** | Registry pattern: tools are plain objects with `handler` functions, collected in an array | Each tool exports a `ToolDefinition` object. `toolRegistry.list()` strips handlers to expose schemas; `toolRegistry.get(name)` dispatches calls. Same pattern for resources. |
+| **Auth** | **Supabase OAuth 2.1 + PKCE** with consent page | Unchanged from plan. MCP clients (Claude Desktop, Le Chat) expect OAuth discovery + authorization flow. |
+| **Data access** | Reuse existing RPCs + direct Supabase client queries | Unchanged. All through `createUserClient(authHeader)` for RLS. |
+| **Tool output format** | Structured text via shared `lib/format.ts` | Unchanged. LLM-friendly narrative summaries. |
+| **Function JWT verification** | `verify_jwt = false` in `config.toml` | Unchanged. OAuth 2.1 tokens validated through RLS. |
+| **Anti-spam constraint** | `get_exercise_details` accepts UUID only; `search_exercises` conditionally returns IDs | **Added during implementation.** LLMs were spamming `get_exercise_details` for every search result. Structural fix: IDs are only exposed on single-match results, forcing the agent to disambiguate with the user first. |
+| **OAuth type safety** | Typed wrapper module (`src/lib/supabase-oauth.ts`) | **Added during implementation.** `supabase.auth.oauth.*` methods aren't typed in `@supabase/auth-js` yet. A wrapper module isolates the single `any` cast from consumer code. |
 
 ### Critical Constraints
 
 **OAuth 2.1 is the critical path.** Unlike a simple Bearer-token function, OAuth 2.1 requires: (1) enabling `[auth.oauth_server]` in `config.toml` + Supabase dashboard, (2) building a `/oauth/consent` route in the React app with approve/deny UI, (3) enabling dynamic client registration for MCP clients to self-register. Without this, Claude Desktop and Le Chat cannot connect.
 
-**Consent page is a frontend feature.** The Supabase docs show the consent page lives at `Site URL + authorization_url_path`. For us that's `https://workout-app.vercel.app/oauth/consent`. It uses `supabase.auth.oauth.getAuthorizationDetails()`, `.approveAuthorization()`, and `.denyAuthorization()` — methods available in `@supabase/supabase-js@^2.103.3` (our current version).
+**Consent page is a frontend feature.** The consent page lives at `Site URL + authorization_url_path` — for us `https://gymlogic.me/oauth/consent`. It uses `supabase.auth.oauth.getAuthorizationDetails()`, `.approveAuthorization()`, and `.denyAuthorization()` via a typed wrapper (`src/lib/supabase-oauth.ts`) since these methods aren't yet typed in `@supabase/auth-js@2.103.3`.
 
-**Edge Function import weight.** The MCP function imports Hono + MCP SDK + Zod — heavier than existing functions (which are plain `Deno.serve` + `fetch`). Cold start latency needs monitoring against the `< 3s p95` success criterion. Mitigation: stateless transport (no session state), single function (one cold start).
+**Edge Function cold start is minimal.** By dropping Hono, MCP SDK, and Zod, the function has zero npm dependencies — only `esm.sh/@supabase/supabase-js@2`. Cold start is well under the `< 3s p95` target.
 
-**Supabase client import pattern.** Existing `file:supabase/functions/_shared/supabase.ts` uses `esm.sh/@supabase/supabase-js@2`. The MCP function can import the same shared module. Hono and MCP SDK use `npm:` prefix imports (Deno's npm compat). Mixing `esm.sh` and `npm:` is fine in Deno.
+**Supabase client import pattern.** The MCP function uses `esm.sh/@supabase/supabase-js@2`, consistent with other Edge Functions. No `npm:` prefix imports needed since we dropped the SDK.
 
-**RLS applies to all tool queries.** Every query goes through `createUserClient(authHeader)` — the user can only see their own data. Tool outputs must handle "no data" gracefully (new user, no sessions yet, no active program).
+**RLS applies to all tool queries.** Every query goes through `createUserClient(authHeader)` — the user can only see their own data. Tool outputs handle "no data" gracefully (new user, no sessions yet, no active program).
 
 ---
 
@@ -79,7 +84,7 @@ graph LR
 | `search_exercises` | RPC: `search_exercises` (pg_trgm + unaccent) | Pass-through with MCP-friendly output formatting. Existing RPC handles fuzzy French/English search. |
 | `get_training_stats` | RPC: `get_volume_by_muscle_group` + direct: `sessions`, `set_logs` | Combine volume breakdown, session count, PR detection. Period-scoped. |
 | `get_upcoming_workouts` | Direct: `programs` → `cycles` → `workout_days` → `workout_exercises` → `exercises` | Find active program/cycle, determine next workout day, list exercises with prescriptions. |
-| `get_exercise_details` | Direct: `exercises` by ID or name lookup | Single row, full metadata including instructions JSONB, media URLs. |
+| `get_exercise_details` | Direct: `exercises` by UUID | Single row, full metadata including instructions JSONB, media URLs. UUID-only to prevent agent spamming. |
 | `exercise_catalog_schema` | RPC: `get_exercise_filter_options` | Muscle groups, equipment types, difficulty levels. Static reference data exposed as MCP Resource. |
 
 ---
@@ -103,12 +108,11 @@ graph TD
   end
 
   subgraph edgeFunction [Edge Function: mcp]
-    HonoApp[Hono Router]
-    McpServerInst[McpServer instance]
-    Transport[WebStandardStreamableHTTPServerTransport]
-    ToolHandlers[Tool handlers]
-    ResourceHandlers[Resource handlers]
-    AuthMW[Auth: Bearer extraction]
+    DenoServe["Deno.serve + CORS"]
+    HandleRpc["handleRpc JSON-RPC switch"]
+    ToolReg[toolRegistry]
+    ResReg[resourceRegistry]
+    AuthExtract["Bearer extraction + createUserClient"]
   end
 
   subgraph supabaseLayer [Supabase]
@@ -121,73 +125,75 @@ graph TD
   clients -->|"2. Authorize"| ConsentPage
   ConsentPage -->|approve/deny| Auth
   Auth -->|"3. Token"| clients
-  clients -->|"4. MCP request + Bearer"| HonoApp
-  HonoApp --> AuthMW
-  AuthMW -->|createUserClient| Auth
-  AuthMW --> Transport
-  Transport --> McpServerInst
-  McpServerInst --> ToolHandlers
-  McpServerInst --> ResourceHandlers
-  ToolHandlers --> DB
-  ToolHandlers --> RPCs
-  ResourceHandlers --> RPCs
+  clients -->|"4. POST JSON-RPC + Bearer"| DenoServe
+  DenoServe --> AuthExtract
+  AuthExtract -->|createUserClient| Auth
+  DenoServe --> HandleRpc
+  HandleRpc --> ToolReg
+  HandleRpc --> ResReg
+  ToolReg --> DB
+  ToolReg --> RPCs
+  ResReg --> RPCs
 ```
 
-### New Files & Responsibilities
+### Files & Responsibilities
 
 | File | Purpose |
 |---|---|
-| `supabase/functions/mcp/index.ts` | Hono app, McpServer instantiation, tool/resource registration, `Deno.serve` entry |
+| `supabase/functions/mcp/index.ts` | `Deno.serve` entry, CORS, JSON-RPC 2.0 dispatcher (`handleRpc` switch), batch request support |
+| `supabase/functions/mcp/tools/registry.ts` | `ToolDefinition` interface, tool array, `toolRegistry.list()` / `.get()` |
+| `supabase/functions/mcp/tools/searchExercises.ts` | Tool: wrap `search_exercises` RPC, fuzzy FR/EN search, conditional ID exposure |
+| `supabase/functions/mcp/tools/getExerciseDetails.ts` | Tool: exercise by UUID only (anti-spam), full metadata including instructions and media |
 | `supabase/functions/mcp/tools/getWorkoutHistory.ts` | Tool: query sessions + sets, format as structured text |
-| `supabase/functions/mcp/tools/searchExercises.ts` | Tool: wrap `search_exercises` RPC, format results |
-| `supabase/functions/mcp/tools/getTrainingStats.ts` | Tool: combine volume RPC + session/PR queries |
-| `supabase/functions/mcp/tools/getUpcomingWorkouts.ts` | Tool: active program → next day → exercises |
-| `supabase/functions/mcp/tools/getExerciseDetails.ts` | Tool: exercise by ID/name, full metadata |
-| `supabase/functions/mcp/resources/exerciseCatalogSchema.ts` | Resource: muscle groups, equipment, difficulty taxonomy |
-| `supabase/functions/mcp/lib/supabaseClient.ts` | Extract user Supabase client from Bearer header |
-| `supabase/functions/mcp/lib/format.ts` | Shared formatters: dates, weights (kg), sets, session summaries |
-| `src/pages/OAuthConsentPage.tsx` | OAuth consent screen: client info, approve/deny |
-| `src/router/` (edit existing) | Add `/oauth/consent` route |
+| `supabase/functions/mcp/tools/getTrainingStats.ts` | Tool: combine `get_volume_by_muscle_group` RPC + PR queries |
+| `supabase/functions/mcp/tools/getUpcomingWorkouts.ts` | Tool: active program → current cycle → workout days → exercises |
+| `supabase/functions/mcp/resources/registry.ts` | `ResourceDefinition` interface, resource array, `resourceRegistry.list()` / `.get()` |
+| `supabase/functions/mcp/resources/exerciseCatalogSchema.ts` | Resource: muscle groups, equipment types, difficulty levels taxonomy |
+| `supabase/functions/mcp/lib/supabaseClient.ts` | `createUserClient(authHeader)` — creates RLS-scoped Supabase client from Bearer token |
+| `supabase/functions/mcp/lib/format.ts` | Shared formatters: `formatDate`, `formatWeight`, `formatDuration`, `formatSessionSummary`, `formatStatsSummary`, `formatWorkoutDay` |
+| `src/pages/OAuthConsentPage.tsx` | OAuth consent screen: client info, scopes, approve/deny |
+| `src/lib/supabase-oauth.ts` | Typed wrapper for untyped `supabase.auth.oauth.*` methods |
+| `src/router/` (edited) | Added `/oauth/consent` route |
 
 ### Component Responsibilities
 
 **`mcp/index.ts`**
-- Creates Hono app with CORS middleware (reuse `corsHeaders` pattern from `file:supabase/functions/_shared/cors.ts`)
-- Instantiates `McpServer({ name: "workout-app", version: "0.1.0" })`
-- Imports and calls registration functions from each tool/resource module
-- Catch-all route: creates `WebStandardStreamableHTTPServerTransport()` (stateless), connects server, delegates to `transport.handleRequest(c.req.raw)`
-- `Deno.serve(app.fetch)` as entry point
+- Plain `Deno.serve` — no framework
+- Manual CORS headers (same pattern as other Edge Functions)
+- JSON-RPC 2.0 dispatcher: `handleRpc(method, params, id, authHeader)` switch on `initialize`, `notifications/initialized`, `tools/list`, `tools/call`, `resources/list`, `resources/read`
+- Batch request support (JSON-RPC array)
+- `ok()` / `fail()` helpers for JSON-RPC response formatting
 
-**Tool handler pattern** (each file exports a registration function)
-- Signature: `(server: McpServer) => void`
-- Calls `server.registerTool(name, { title, description, inputSchema }, handler)`
-- Handler receives tool arguments + extra context
-- Extracts auth header from the MCP request context (Hono injects via middleware or the transport exposes it)
-- Creates user-scoped Supabase client via `createUserClient(authHeader)`
-- Queries Supabase (RPC or direct), formats response as structured text
-- Returns `{ content: [{ type: "text", text }] }`
-- Zod schemas define input params with descriptions — these double as the tool's documentation for the agent
+**Tool handler pattern** (each file exports a `ToolDefinition` object)
+- `name`, `description`, `inputSchema` (plain JSON Schema) for MCP discovery
+- `handler(args, supabase)` — receives parsed arguments and an RLS-scoped Supabase client (or `null` if unauthenticated)
+- Returns `{ content: [{ type: "text", text }], isError?: boolean }`
+- Tool descriptions serve as agent documentation — they include usage instructions and constraints
+
+**Anti-spam pattern** (`search_exercises` + `get_exercise_details`)
+- `search_exercises` only includes `exercise_id` in results when there's a **single match**
+- `get_exercise_details` only accepts `exercise_id` (UUID) — no name-based lookup
+- This forces the agent to disambiguate with the user before fetching details, preventing bulk tool-call loops
 
 **`lib/supabaseClient.ts`**
-- Wraps `file:supabase/functions/_shared/supabase.ts` `createUserClient()` pattern
-- Accepts Bearer token string, returns typed Supabase client
-- Handles missing/invalid auth header with clear error
+- Accepts full `Authorization` header string
+- Returns Supabase client scoped to the user's JWT via RLS
 
 **`lib/format.ts`**
-- `formatSession(session, sets, exercises)` → structured text block per session
-- `formatExercise(exercise)` → name, muscle group, equipment, difficulty, instructions summary
-- `formatStats(volume, sessions, prs)` → period summary with key metrics
-- `formatWeight(kg)` → always kg (app stores kg-only, per PRD)
-- `formatDate(date)` → ISO date + relative ("2026-04-15, 4 days ago")
+- `formatDate(iso)` → locale-aware date + relative ("4 days ago")
+- `formatWeight(kg)` → always kg (app stores kg-only)
+- `formatDuration(seconds)` → human-readable duration
+- `formatSessionSummary(session, sets)` → structured text block per session
+- `formatStatsSummary(volume, prs)` → period summary with key metrics
+- `formatWorkoutDay(day, exercises)` → day name + exercise prescriptions
 
 **`OAuthConsentPage.tsx`**
 - Reads `authorization_id` from `useSearchParams()`
-- If no active Supabase session → redirect to `/login` with return URL preserving `authorization_id`
-- Calls `supabase.auth.oauth.getAuthorizationDetails(authorization_id)` to get client name, scopes
-- Renders: shadcn `Card` with app icon placeholder, client name, scope list, Approve (`Button` variant primary) and Deny (`Button` variant outline) buttons
-- Approve: calls `supabase.auth.oauth.approveAuthorization(authorization_id)` — Supabase handles the redirect back to MCP client
-- Deny: calls `supabase.auth.oauth.denyAuthorization(authorization_id)` — MCP client gets `access_denied`
-- i18n: add keys to `common` namespace for "Authorize", "Deny", scope labels
+- If no active Supabase session → redirect to `/login`
+- Uses `supabaseOAuth` wrapper from `src/lib/supabase-oauth.ts` (typed, no `any` in consumer)
+- If already consented → auto-redirect (Supabase returns `redirect_to`)
+- Renders: shadcn Card with GymLogic branding, client name, scope list (i18n FR/EN), approve/deny buttons
+- i18n: keys in `common` namespace for consent page strings
 
 ### Failure Mode Analysis
 
@@ -227,22 +233,25 @@ verify_jwt = false
 
 ---
 
-## Implementation Sequence
+## Implementation Sequence (as executed)
 
-| Order | Work | Depends on | Estimated effort |
-|---|---|---|---|
-| 1 | **Scaffold**: `mcp/index.ts` with Hono + McpServer + 1 dummy tool, local test with `supabase functions serve` | Nothing | Small |
-| 2 | **Auth plumbing**: `lib/supabaseClient.ts`, Bearer extraction, `createUserClient` | #1 | Small |
-| 3 | **Tool: `search_exercises`** — wraps existing RPC, easiest real tool | #2 | Small |
-| 4 | **Tool: `get_exercise_details`** — direct query, simple | #2 | Small |
-| 5 | **Resource: `exercise_catalog_schema`** — wraps `get_exercise_filter_options` RPC | #2 | Small |
-| 6 | **Tool: `get_workout_history`** — complex join, needs `lib/format.ts` | #2 | Medium |
-| 7 | **Tool: `get_training_stats`** — combines RPCs + queries, most complex | #2 | Medium |
-| 8 | **Tool: `get_upcoming_workouts`** — program/cycle logic | #2 | Medium |
-| 9 | **OAuth 2.1 config** — `config.toml` + dashboard setup + local tunnel test | Nothing | Small |
-| 10 | **Consent page** — `OAuthConsentPage.tsx` + route + i18n | #9 | Medium |
-| 11 | **Smoke test**: MCP Inspector + Cursor via Bearer | #1–8 | — |
-| 12 | **Product validation**: Claude Desktop + Le Chat via OAuth | #9–10 | — |
+| Ticket | Work | Status |
+|---|---|---|
+| **T61** | Scaffold `mcp/index.ts` with `Deno.serve` + JSON-RPC handler + `search_exercises` tool + `lib/supabaseClient.ts` | Done |
+| **T62** | `get_exercise_details` tool (UUID-only, anti-spam) + `exercise_catalog_schema` resource + resource registry | Done |
+| **T63** | `get_workout_history`, `get_training_stats`, `get_upcoming_workouts` tools + `lib/format.ts` shared formatters | Done |
+| **T64** | OAuth 2.1 config (`config.toml` + dashboard) + `OAuthConsentPage.tsx` + route + i18n + `lib/supabase-oauth.ts` typed wrapper | Done |
+| **T65** | E2E validation with Claude Desktop + Le Chat via OAuth | Pending (post-merge) |
+
+### Pivots from original plan
+
+| Planned | Actual | Reason |
+|---|---|---|
+| Hono HTTP framework | Plain `Deno.serve` | Only one route (POST). Framework was unnecessary weight. |
+| `@modelcontextprotocol/sdk` McpServer | Hand-rolled JSON-RPC 2.0 switch (~120 LOC) | SDK brought heavy deps for what is a thin dispatcher. |
+| Zod input schemas | Plain JSON Schema objects | No SDK means no `registerTool()` expecting Zod. JSON Schema is sufficient for MCP client introspection. |
+| `get_exercise_details` accepts ID or name | UUID only | LLMs were spamming the tool for every search result. Structural constraint forces disambiguation. |
+| Module augmentation for OAuth types | Wrapper module `lib/supabase-oauth.ts` | `declare module` augmentation conflicted across `@supabase/auth-js` versions in CI. |
 
 ---
 
