@@ -1,6 +1,6 @@
 import { useAtomValue } from "jotai"
 import { Check, Dumbbell } from "lucide-react"
-import { Link, Navigate } from "react-router-dom"
+import { Link, Navigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,16 +19,21 @@ export function LoginPage() {
   const { t } = useTranslation(["auth", "common"])
   const user = useAtomValue(authAtom)
   const authLoading = useAtomValue(authLoadingAtom)
+  const [searchParams] = useSearchParams()
+  const next = searchParams.get("next")
 
   if (!authLoading && user) {
-    return <Navigate to="/" replace />
+    return <Navigate to={next ?? "/"} replace />
   }
 
   const handleGoogleSignIn = () => {
     sessionStorage.setItem("notification_prompt_after_oauth", "1")
+    const redirectTo = next
+      ? `${window.location.origin}${next}`
+      : window.location.origin
     supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo },
     })
   }
 

@@ -24,6 +24,7 @@ import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
 import { AccountPage } from "@/pages/AccountPage"
 import { AchievementsPage } from "@/pages/AchievementsPage"
 import { PrivacyPage } from "@/pages/PrivacyPage"
+import { OAuthConsentPage } from "@/pages/OAuthConsentPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 
 export const router = createBrowserRouter([
@@ -40,6 +41,11 @@ export const router = createBrowserRouter([
   {
     path: "/privacy",
     element: <PrivacyPage />,
+    errorElement: <RouteErrorFallback />,
+  },
+  {
+    path: "/oauth/consent",
+    element: <OAuthConsentPage />,
     errorElement: <RouteErrorFallback />,
   },
   {

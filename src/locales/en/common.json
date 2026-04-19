@@ -38,5 +38,13 @@
   "iosInstallStep2Title": "Add to Home Screen",
   "iosInstallStep2Desc": "Scroll down and tap 'Add to Home Screen'",
   "iosInstallStep3Title": "Confirm",
-  "iosInstallStep3Desc": "Tap 'Add' in the top right corner"
+  "iosInstallStep3Desc": "Tap 'Add' in the top right corner",
+  "oauthConsentTitle": "Authorize access",
+  "oauthConsentDescription": "\"{{clientName}}\" wants to access your training data",
+  "oauthConsentScopesLabel": "This app will be able to:",
+  "oauthConsentApprove": "Authorize",
+  "oauthConsentDeny": "Deny",
+  "oauthConsentError": "Authorization request not found or expired",
+  "oauthConsentMissingId": "Missing authorization request",
+  "oauthConsentLoading": "Loading authorization details…"
 }

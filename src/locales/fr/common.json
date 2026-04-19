@@ -38,5 +38,13 @@
   "iosInstallStep2Title": "Sur l'écran d'accueil",
   "iosInstallStep2Desc": "Faites défiler et appuyez sur « Sur l'écran d'accueil »",
   "iosInstallStep3Title": "Confirmer",
-  "iosInstallStep3Desc": "Appuyez sur « Ajouter » en haut à droite"
+  "iosInstallStep3Desc": "Appuyez sur « Ajouter » en haut à droite",
+  "oauthConsentTitle": "Autoriser l'accès",
+  "oauthConsentDescription": "« {{clientName}} » souhaite accéder à vos données d'entraînement",
+  "oauthConsentScopesLabel": "Cette application pourra :",
+  "oauthConsentApprove": "Autoriser",
+  "oauthConsentDeny": "Refuser",
+  "oauthConsentError": "Demande d'autorisation introuvable ou expirée",
+  "oauthConsentMissingId": "Demande d'autorisation manquante",
+  "oauthConsentLoading": "Chargement des détails d'autorisation…"
 }
