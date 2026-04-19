@@ -103,6 +103,7 @@ export function OnboardingPage() {
       training_days_per_week: data.training_days_per_week,
       session_duration_minutes: data.session_duration_minutes,
       active_title_tier_id: null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       created_at: "",
       updated_at: "",
     }
