@@ -203,6 +203,8 @@ export const searchExercises: ToolDefinition = {
       }
     }
 
+    const isSingleMatch = exercises.length === 1
+
     const lines = exercises.map((ex, i) => {
       const parts = [
         `${i + 1}. **${ex.name}**`,
@@ -210,6 +212,7 @@ export const searchExercises: ToolDefinition = {
         `— ${ex.muscle_group}`,
         ex.equipment && ex.equipment !== "bodyweight" ? `| ${ex.equipment}` : null,
         ex.difficulty_level ? `| ${ex.difficulty_level}` : null,
+        isSingleMatch ? `| id: ${ex.id}` : null,
       ]
       return parts.filter(Boolean).join(" ")
     })
@@ -218,8 +221,13 @@ export const searchExercises: ToolDefinition = {
       ? ` across ${muscleGroups.length} muscle groups`
       : ""
 
+    const footer = isSingleMatch
+      ? "\n\n_Single match — you can now call get_exercise_details with the id above._"
+      : "\n\n_Multiple results — present this list to the user and ask which one they want. " +
+        "Then search again with their choice to get the exercise id for get_exercise_details._"
+
     return {
-      content: [{ type: "text", text: `Found ${exercises.length} exercises${groupLabel}:\n\n${lines.join("\n")}` }],
+      content: [{ type: "text", text: `Found ${exercises.length} exercises${groupLabel}:\n\n${lines.join("\n")}${footer}` }],
     }
   },
 }

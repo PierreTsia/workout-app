@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { searchExercises } from "./searchExercises.ts"
+import { getExerciseDetails } from "./getExerciseDetails.ts"
 
 export interface ToolDefinition {
   name: string
@@ -15,7 +16,7 @@ export interface ToolDefinition {
   ) => Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }>
 }
 
-const tools: ToolDefinition[] = [searchExercises]
+const tools: ToolDefinition[] = [searchExercises, getExerciseDetails]
 
 export const toolRegistry = {
   list: () => tools.map(({ handler: _, ...schema }) => schema),

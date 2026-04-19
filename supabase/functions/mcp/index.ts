@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createUserClient } from "./lib/supabaseClient.ts"
 import { toolRegistry } from "./tools/registry.ts"
+import { resourceRegistry } from "./resources/registry.ts"
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +33,7 @@ async function handleRpc(
     case "initialize":
       return ok(id, {
         protocolVersion: PROTOCOL_VERSION,
-        capabilities: { tools: {} },
+        capabilities: { tools: {}, resources: {} },
         serverInfo: SERVER_INFO,
       })
 
@@ -41,6 +42,22 @@ async function handleRpc(
 
     case "tools/list":
       return ok(id, { tools: toolRegistry.list() })
+
+    case "resources/list":
+      return ok(id, { resources: resourceRegistry.list() })
+
+    case "resources/read": {
+      const uri = params?.uri as string
+      const resource = resourceRegistry.get(uri)
+      if (!resource) return fail(id, -32602, `Unknown resource: ${uri}`)
+
+      const supabase = authHeader.startsWith("Bearer ")
+        ? createUserClient(authHeader)
+        : null
+
+      const result = await resource.handler(supabase)
+      return ok(id, result)
+    }
 
     case "tools/call": {
       const name = params?.name as string
