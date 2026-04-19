@@ -12,8 +12,8 @@ import { authAtom, hasProgramAtom, activeProgramIdAtom } from "@/store/atoms"
 import { CoachRationale } from "./CoachRationale"
 import type { AIGeneratedProgram, GenerateProgramConstraints } from "@/types/aiProgram"
 import {
-  AI_PROGRAM_DAY_EMOJIS,
   buildWorkoutExerciseInsertRowsForDay,
+  dayEmojiForProgramDayIndex,
 } from "@/lib/programPersistence"
 
 const store = getDefaultStore()
@@ -75,7 +75,7 @@ export function AIProgramPreviewStep({
             program_id: prog.id,
             user_id: user.id,
             label: day.label,
-            emoji: AI_PROGRAM_DAY_EMOJIS[i % AI_PROGRAM_DAY_EMOJIS.length],
+            emoji: dayEmojiForProgramDayIndex(i),
             sort_order: i,
           })
           .select("id")
@@ -122,7 +122,7 @@ export function AIProgramPreviewStep({
                 className="flex w-full items-center justify-between p-3 text-left"
               >
                 <div className="flex items-center gap-2">
-                  <span>{AI_PROGRAM_DAY_EMOJIS[i % AI_PROGRAM_DAY_EMOJIS.length]}</span>
+                  <span>{dayEmojiForProgramDayIndex(i)}</span>
                   <div>
                     <div className="text-sm font-medium">{day.label}</div>
                     <div className="text-xs text-muted-foreground">

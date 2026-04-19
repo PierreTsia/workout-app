@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import { searchExercises } from "./searchExercises.ts"
 import { getExerciseDetails } from "./getExerciseDetails.ts"
 import { getWorkoutHistory } from "./getWorkoutHistory.ts"

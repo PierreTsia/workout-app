@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { ToolDefinition } from "./registry.ts"
 import {
   buildWorkoutExerciseInsertRowsForDay,
@@ -241,14 +241,19 @@ export const createProgram: ToolDefinition = {
       }
     }
 
+    let createdProgramId: string | null = null
+    const createdDayIds: string[] = []
+    let previousActiveProgramIds: string[] = []
+
     try {
-      const { error: deactivateError } = await supabase
+      const { data: activePrograms, error: activeProgramsError } = await supabase
         .from("programs")
-        .update({ is_active: false })
+        .select("id")
         .eq("user_id", userId)
         .eq("is_active", true)
 
-      if (deactivateError) throw deactivateError
+      if (activeProgramsError) throw activeProgramsError
+      previousActiveProgramIds = (activePrograms ?? []).map((p) => p.id as string)
 
       const { data: prog, error: progError } = await supabase
         .from("programs")
@@ -256,15 +261,14 @@ export const createProgram: ToolDefinition = {
           user_id: userId,
           name,
           template_id: null,
-          is_active: true,
+          is_active: false,
         })
         .select("id")
         .single()
 
       if (progError) throw progError
       if (!prog?.id) throw new Error("Program insert returned no id")
-
-      const createdDayIds: string[] = []
+      createdProgramId = prog.id
 
       for (const [i, day] of normalizedDays.entries()) {
         const { data: insertedDay, error: dayError } = await supabase
@@ -291,6 +295,21 @@ export const createProgram: ToolDefinition = {
         if (exError) throw exError
       }
 
+      const { error: deactivateError } = await supabase
+        .from("programs")
+        .update({ is_active: false })
+        .eq("user_id", userId)
+        .eq("is_active", true)
+
+      if (deactivateError) throw deactivateError
+
+      const { error: activateError } = await supabase
+        .from("programs")
+        .update({ is_active: true })
+        .eq("id", prog.id)
+
+      if (activateError) throw activateError
+
       return {
         content: [
           {
@@ -308,8 +327,21 @@ export const createProgram: ToolDefinition = {
           },
         ],
       }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e)
+    } catch (applyError) {
+      if (createdDayIds.length > 0) {
+        await supabase.from("workout_exercises").delete().in("workout_day_id", createdDayIds)
+        await supabase.from("workout_days").delete().in("id", createdDayIds)
+      }
+      if (createdProgramId) {
+        await supabase.from("programs").delete().eq("id", createdProgramId)
+      }
+      if (previousActiveProgramIds.length > 0) {
+        await supabase
+          .from("programs")
+          .update({ is_active: true })
+          .in("id", previousActiveProgramIds)
+      }
+      const message = applyError instanceof Error ? applyError.message : String(applyError)
       return {
         content: [{ type: "text", text: `create_program failed: ${message}` }],
         isError: true,

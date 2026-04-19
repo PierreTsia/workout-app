@@ -1,4 +1,8 @@
-/** Port of `file:src/lib/programPersistence.ts` for Edge — keep in sync manually until shared package exists. */
+/**
+ * Port of `file:src/lib/programPersistence.ts` for Edge — keep in sync with the web module.
+ * Parity: run `npx vitest run src/lib/programPersistence.test.ts` after edits; optionally
+ * `deno test supabase/functions/mcp/lib/programPersistence_test.ts` (mirrors key cases).
+ */
 
 export const AI_PROGRAM_DAY_EMOJIS = ["💪", "🔥", "⚡", "🏋️", "🎯", "🚀"] as const
 
