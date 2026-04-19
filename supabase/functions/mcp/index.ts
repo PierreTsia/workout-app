@@ -106,6 +106,7 @@ async function handleWellKnown(url: URL): Promise<Response | null> {
       )
       const metadata = await upstream.json()
       return json(metadata)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_err) {
       return json({ error: "Failed to fetch authorization server metadata" }, 502)
     }
