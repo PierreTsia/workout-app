@@ -36,20 +36,38 @@
     "volume_king": "Volume",
     "rhythm_master": "Rhythm",
     "record_hunter": "Records",
-    "exercise_variety": "Variety"
+    "exercise_variety": "Variety",
+    "quick_sessions": "Quick & Dirty",
+    "leg_day": "Leg Day",
+    "streak_king": "Streak King",
+    "marathoner": "The Marathoner",
+    "pr_streak": "PR Streak",
+    "early_bird": "Early Bird"
   },
   "groupDescriptions": {
     "consistency_streak": "Total finished workout sessions",
     "volume_king": "Total volume lifted (kg)",
     "rhythm_master": "Calendar weeks with 3+ sessions",
     "record_hunter": "Personal records broken",
-    "exercise_variety": "Distinct exercises used"
+    "exercise_variety": "Distinct exercises used",
+    "quick_sessions": "Quick sessions (no program)",
+    "leg_day": "Sets targeting leg muscles",
+    "streak_king": "Longest streak of consecutive weeks",
+    "marathoner": "Sessions with total volume ≥ 5,000 kg",
+    "pr_streak": "Longest streak of sessions with a PR",
+    "early_bird": "Sessions finished before 8 AM"
   },
   "thresholdHint": {
     "consistency_streak": "Complete {{target}} sessions",
     "volume_king": "Lift {{target}} kg total",
     "rhythm_master": "Complete {{target}} weeks with 3+ sessions",
     "record_hunter": "Break {{target}} personal records",
-    "exercise_variety": "Use {{target}} different exercises"
+    "exercise_variety": "Use {{target}} different exercises",
+    "quick_sessions": "Complete {{target}} quick sessions",
+    "leg_day": "Log {{target}} leg sets",
+    "streak_king": "Train {{target}} weeks in a row",
+    "marathoner": "Complete {{target}} heavy sessions (≥ 5,000 kg)",
+    "pr_streak": "Set PRs in {{target}} sessions in a row",
+    "early_bird": "Finish {{target}} sessions before 8 AM"
   }
 }

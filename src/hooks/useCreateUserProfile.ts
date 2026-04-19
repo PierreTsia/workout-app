@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
+import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import type { UserGoal, UserExperience, UserEquipment, UserGender } from "@/types/onboarding"
 
 interface ProfileInput {
@@ -32,6 +33,8 @@ export function useCreateUserProfile() {
 
       const emailDefault = user.email?.trim() || null
 
+      const timezone = getResolvedIANATimeZone()
+
       const { data, error } = await supabase
         .from("user_profiles")
         .upsert(
@@ -46,6 +49,7 @@ export function useCreateUserProfile() {
             equipment: input.equipment,
             training_days_per_week: input.training_days_per_week,
             session_duration_minutes: input.session_duration_minutes,
+            timezone,
           },
           { onConflict: "user_id" },
         )

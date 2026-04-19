@@ -194,6 +194,7 @@ describe("SideDrawer achievements", () => {
         training_days_per_week: 4,
         session_duration_minutes: 60,
         active_title_tier_id: "tier-42",
+        timezone: "Europe/Paris",
         created_at: "2026-01-01",
         updated_at: "2026-01-01",
       }),
