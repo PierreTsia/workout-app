@@ -11,6 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
+import {
+  supabaseOAuth,
+  type AuthorizationDetails,
+} from "@/lib/supabase-oauth"
 
 const SCOPE_LABELS: Record<string, { en: string; fr: string }> = {
   openid: { en: "Verify your identity", fr: "Vérifier votre identité" },
@@ -24,7 +28,7 @@ export function OAuthConsentPage() {
   const [searchParams] = useSearchParams()
   const authorizationId = searchParams.get("authorization_id")
 
-  const [details, setDetails] = useState<SupabaseAuthorizationDetails | null>(null)
+  const [details, setDetails] = useState<AuthorizationDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -44,7 +48,7 @@ export function OAuthConsentPage() {
         return
       }
 
-      const { data, error: err } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+      const { data, error: err } = await supabaseOAuth.getAuthorizationDetails(authorizationId)
 
       if (err || !data) {
         setError(err?.message ?? t("oauthConsentError"))
@@ -57,7 +61,7 @@ export function OAuthConsentPage() {
         return
       }
 
-      setDetails(data as SupabaseAuthorizationDetails)
+      setDetails(data as AuthorizationDetails)
       setLoading(false)
     }
 
@@ -68,7 +72,7 @@ export function OAuthConsentPage() {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await supabase.auth.oauth.approveAuthorization(authorizationId)
+    const { data, error: err } = await supabaseOAuth.approveAuthorization(authorizationId)
 
     if (err) {
       setError(err.message)
@@ -85,7 +89,7 @@ export function OAuthConsentPage() {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await supabase.auth.oauth.denyAuthorization(authorizationId)
+    const { data, error: err } = await supabaseOAuth.denyAuthorization(authorizationId)
 
     if (err) {
       setError(err.message)
