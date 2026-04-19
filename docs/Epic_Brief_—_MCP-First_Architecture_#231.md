@@ -4,7 +4,7 @@
 
 > *Stop being the brain. Become the body.*
 
-Expose the app's training data, exercise catalog, and domain expertise as an **MCP (Model Context Protocol) server** so that the user's own AI agent (Claude Desktop, Le Chat, etc.) can query, reason about, and eventually write to their workout data. The real value isn't the LLM call — it's the **domain model, the data, and the deterministic expertise**. An MCP server lets us expose exactly that, while the user brings their own intelligence layer.
+Expose the app's training data, exercise catalog, and domain expertise as an **MCP (Model Context Protocol) server** so that the user's own AI agent (Claude Desktop, Le Chat, etc.) can query, reason about, and **write** where it matters: today that includes **`create_program`** — read what's programmed and how you train, co-design or **adapt** a multi-day layout in chat, then **save** it as the user's active program (dry run → apply), surfaced immediately in the app. The real value isn't the LLM call — it's the **domain model, the data, and the guardrailed persistence**. An MCP server exposes that while the user brings their own intelligence layer.
 
 This shifts the app from "AI features locked in a closed loop" to "agent-ready platform" — the intelligence moves to the user's agent, the app provides the specialized domain layer.
 
@@ -57,7 +57,7 @@ MCP adoption has reached critical mass — 548+ clients listed on PulseMCP, nati
 | Goal                                       | Measure                                                                                                                |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | Validate the "agent-ready platform" thesis | A read-only coaching conversation via Claude Desktop + MCP tools is subjectively better than in-app `generate-workout` |
-| Expose training data to external agents    | Agent can discover and call all Phase 1 tools via MCP protocol                                                         |
+| Expose training data (and program saves) to external agents | Agent can discover and call MCP tools via protocol — **six tools** (five reads + `create_program`) plus catalog resource |
 | Reuse existing auth and security           | MCP connections go through Supabase OAuth 2.1; RLS applies identically to in-app access                                |
 | Zero new infrastructure                    | MCP server runs as a single Supabase Edge Function using the official SDK                                              |
 
@@ -84,7 +84,7 @@ MCP adoption has reached critical mass — 548+ clients listed on PulseMCP, nati
 
 ### Out of scope
 
-- **Write operations** (add exercise, log set, create workout) → Phase 3
+- **Other write operations** (per-set `log_set`, add exercise to an in-flight session, ad-hoc `create_workout`, etc.) → still deferred; **`create_program`** (full multi-day program create / replace active) is **shipped** — see `file:docs/Tech_Plan_—_MCP-First_Architecture_#231_Phase_2_and_3.md`
 - **Domain expertise tools** (suggest progression, calculate 1RM, validate plan, muscle balance report) → Phase 2
 - **Deprecation of `generate-workout` / `generate-program`** Edge Functions → Phase 4
 - **Consent page UX design** — deferred to Tech Plan; brief only requires it exists
@@ -96,7 +96,7 @@ MCP adoption has reached critical mass — 548+ clients listed on PulseMCP, nati
 
 This epic is Phase 1 of a 4-phase arc defined in [#231](https://github.com/PierreTsia/workout-app/issues/231):
 
-- **Phase 1 — Read-Only MCP Server** *(this epic)*: 5 read-only tools + 1 resource, OAuth, end-to-end validation
+- **Phase 1 — Read-Only MCP Server** *(this epic)*: originally 5 read-only tools + 1 resource; **current server** adds **`create_program`** (program persistence) — see tech plans for as-built vs agent→gym roadmap
 - **Phase 2 — Domain Expertise as Tools**: `suggest_progression`, `calculate_1rm`, `validate_workout_plan`, `get_muscle_balance_report`
 - **Phase 3 — Write Operations**: `add_exercise_to_session`, `create_workout`, `log_set` with dry-run/confirm pattern
 - **Phase 4 — Deprecate Closed-Loop AI**: `generate-workout` / `generate-program` become optional; app UI can itself become an MCP client
@@ -151,7 +151,7 @@ ChatGPT Desktop (requires Pro $20+/mo), OpenClaw, LibreChat, 250+ MCP clients �
 > Phase 1 is a proof-of-concept. The primary measure is subjective coaching quality, not production SLAs. Numeric thresholds below are sanity checks, not contractual targets.
 
 - **Connectivity**: MCP server is discoverable and connectable from Claude Desktop and Le Chat without custom code
-- **Discovery**: agent lists exactly **5 tools + 1 resource** via MCP protocol handshake
+- **Discovery**: agent lists **six tools + one resource** via MCP protocol handshake (`create_program` included)
 - **Auth**: OAuth flow works end-to-end — user approves, agent gets scoped token, RLS enforces data isolation
 - **Latency**: tool responses return in **< 3s p95** (Edge Function cold start included) — enough for a conversational flow
 - **Coaching quality**: a read-only coaching conversation (e.g. "analyze my push/pull balance over the last month") is subjectively more useful than what `generate-workout` produces — because the agent has full conversational context and can make multiple tool calls

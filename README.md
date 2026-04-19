@@ -1,6 +1,6 @@
 # GymLogic
 
-A mobile-first PWA for tracking strength training — with offline support, progression tracking, workout analytics, and an **MCP server that lets your AI agent coach you using your real training data**.
+A mobile-first PWA for tracking strength training — with offline support, progression tracking, workout analytics, and an **MCP server that lets your AI agent read your training data, help you adapt or design programs in conversation, and save a program to your account** when you are ready.
 
 Built with React 19, TypeScript, Supabase, and Tailwind CSS. Live at [gymlogic.me](https://gymlogic.me).
 
@@ -8,7 +8,7 @@ Built with React 19, TypeScript, Supabase, and Tailwind CSS. Live at [gymlogic.m
 
 ## Connect your AI agent
 
-GymLogic exposes your training data as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server. This means Claude, Cursor, Le Chat, and other MCP-compatible agents can search your exercise catalog, pull your session history, analyze your training stats, and check your upcoming workouts — all through natural conversation.
+GymLogic exposes your training data as an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server. Claude, Cursor, Le Chat, and other MCP-compatible agents can **search** your exercise catalog, **review** session history and stats, **see** what is programmed next (`get_upcoming_workouts`), and **design or adapt a training plan with you** — then **`create_program`** writes a **new multi-day program** to your profile (same persistence as the in-app AI program flow: always **`dry_run` first** to preview, then **`dry_run: false`** to apply and set it active). “Adapt” in practice means: read what you have, agree on a revised day/exercise layout, save it as the new active program. Fine-grained Builder edits (single-day tweaks) stay in the app unless we add more MCP tools later. The in-app experience stays the default; MCP is additive.
 
 **Setup guides:**
 
@@ -25,12 +25,13 @@ GymLogic exposes your training data as an [MCP (Model Context Protocol)](https:/
 | `get_workout_history` | Past sessions with sets, weights, and PR flags |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Programmed training days and exercises |
+| `create_program` | **Create or replace** your active multi-day program: persist `programs` + `workout_days` + `workout_exercises` (same row rules as the in-app AI preview). Defaults to **`dry_run: true`** (JSON preview only); **`dry_run: false`** commits, deactivates other active programs, and sets this one active so it shows up in the app. |
 
-Plus 1 MCP Resource (`exercise_catalog_schema`) exposing the domain taxonomy so agents understand the vocabulary without burning tool calls.
+**Six tools** and **one MCP Resource** (`exercise_catalog_schema`) exposing the domain taxonomy so agents understand the vocabulary without burning tool calls.
 
-The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, OAuth 2.1 for client auth, and RLS-scoped queries so each user only sees their own data.
+The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, OAuth 2.1 for client auth, and RLS-scoped queries so each user only sees their own data (reads and writes).
 
-> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md) and [Tech Plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md) for architecture details.
+> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md), the [Phase 1 tech plan (as built)](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md), and the [agent → save → gym tech plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231_Phase_2_and_3.md) for architecture details.
 
 ---
 
@@ -223,7 +224,7 @@ With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits
 |---|---|
 | `generate-program` | AI program generation via Gemini |
 | `generate-workout` | Quick workout generation via Gemini |
-| `mcp` | MCP server (JSON-RPC 2.0, 5 tools + 1 resource) |
+| `mcp` | MCP server (JSON-RPC 2.0, 6 tools + 1 resource; reads + `create_program`) |
 | `send-transactional-email` | Welcome and lifecycle emails via Resend |
 | `email-unsubscribe` | Email preference management |
 | `delete-account` | Account deletion with data cleanup |
