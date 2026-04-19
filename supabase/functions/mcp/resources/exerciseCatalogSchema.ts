@@ -9,12 +9,15 @@ export const exerciseCatalogSchema: ResourceDefinition = {
   mimeType: "application/json",
 
   async handler(supabase) {
+    const uri = "gymlogic://exercise-catalog-schema"
+    const mimeType = "application/json"
+
     if (!supabase) {
       return {
         contents: [{
-          uri: "gymlogic://exercise-catalog-schema",
-          mimeType: "text/plain",
-          text: "Authentication required — please provide a valid Bearer token.",
+          uri,
+          mimeType,
+          text: JSON.stringify({ error: "Authentication required — please provide a valid Bearer token." }),
         }],
       }
     }
@@ -24,17 +27,17 @@ export const exerciseCatalogSchema: ResourceDefinition = {
     if (error) {
       return {
         contents: [{
-          uri: "gymlogic://exercise-catalog-schema",
-          mimeType: "text/plain",
-          text: `Error fetching catalog schema: ${error.message}`,
+          uri,
+          mimeType,
+          text: JSON.stringify({ error: `Error fetching catalog schema: ${error.message}` }),
         }],
       }
     }
 
     return {
       contents: [{
-        uri: "gymlogic://exercise-catalog-schema",
-        mimeType: "application/json",
+        uri,
+        mimeType,
         text: JSON.stringify(data, null, 2),
       }],
     }

@@ -44,7 +44,8 @@ export function OAuthConsentPage() {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        navigate(`/login`, { replace: true })
+        const returnTo = `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`
+        navigate(`/login?next=${encodeURIComponent(returnTo)}`, { replace: true })
         return
       }
 
@@ -82,8 +83,11 @@ export function OAuthConsentPage() {
 
     if (data?.redirect_to) {
       window.location.href = data.redirect_to
+    } else {
+      setError(t("oauthConsentError"))
+      setSubmitting(false)
     }
-  }, [authorizationId])
+  }, [authorizationId, t])
 
   const handleDeny = useCallback(async () => {
     if (!authorizationId) return
@@ -99,8 +103,11 @@ export function OAuthConsentPage() {
 
     if (data?.redirect_to) {
       window.location.href = data.redirect_to
+    } else {
+      setError(t("oauthConsentError"))
+      setSubmitting(false)
     }
-  }, [authorizationId])
+  }, [authorizationId, t])
 
   const lang = i18n.language.startsWith("fr") ? "fr" : "en"
   const clientName = details?.application?.name ?? "Unknown app"
