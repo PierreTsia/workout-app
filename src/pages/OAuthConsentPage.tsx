@@ -12,12 +12,6 @@ import {
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
 
-interface AuthorizationDetails {
-  authorization_id: string
-  application?: { name?: string; icon_uri?: string }
-  scope?: string
-}
-
 const SCOPE_LABELS: Record<string, { en: string; fr: string }> = {
   openid: { en: "Verify your identity", fr: "Vérifier votre identité" },
   email: { en: "View your email address", fr: "Voir votre adresse e-mail" },
@@ -30,7 +24,7 @@ export function OAuthConsentPage() {
   const [searchParams] = useSearchParams()
   const authorizationId = searchParams.get("authorization_id")
 
-  const [details, setDetails] = useState<AuthorizationDetails | null>(null)
+  const [details, setDetails] = useState<SupabaseAuthorizationDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -50,7 +44,7 @@ export function OAuthConsentPage() {
         return
       }
 
-      const { data, error: err } = await (supabase.auth as any).oauth.getAuthorizationDetails(authorizationId)
+      const { data, error: err } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
 
       if (err || !data) {
         setError(err?.message ?? t("oauthConsentError"))
@@ -63,7 +57,7 @@ export function OAuthConsentPage() {
         return
       }
 
-      setDetails(data as AuthorizationDetails)
+      setDetails(data as SupabaseAuthorizationDetails)
       setLoading(false)
     }
 
@@ -74,7 +68,7 @@ export function OAuthConsentPage() {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await (supabase.auth as any).oauth.approveAuthorization(authorizationId)
+    const { data, error: err } = await supabase.auth.oauth.approveAuthorization(authorizationId)
 
     if (err) {
       setError(err.message)
@@ -91,7 +85,7 @@ export function OAuthConsentPage() {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await (supabase.auth as any).oauth.denyAuthorization(authorizationId)
+    const { data, error: err } = await supabase.auth.oauth.denyAuthorization(authorizationId)
 
     if (err) {
       setError(err.message)
