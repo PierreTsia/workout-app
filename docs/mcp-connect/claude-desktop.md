@@ -1,6 +1,6 @@
 # Connect GymLogic to Claude Desktop
 
-Use your training data and exercise catalog in Claude conversations via GymLogic's MCP server.
+Use your training data and exercise catalog in Claude conversations via GymLogic's MCP server, and **save a new multi-day program** with `create_program` after you review a dry-run preview.
 
 ## Prerequisites
 
@@ -42,6 +42,9 @@ Look for the **hammer icon** in the chat input area — this confirms tools are 
 | `get_workout_history` | Your past sessions with sets, weights, and PRs |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
+| `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered **`exercise_ids`** (UUIDs). **`dry_run` defaults to true** (preview); set **`dry_run: false`** to write. |
+
+**Six tools** — five reads, one write.
 
 ## Example conversation
 
@@ -52,6 +55,7 @@ Try this sequence to test the full coaching experience:
 3. **"What's programmed for tomorrow?"** — checks your active program
 4. **"Tell me about the Romanian Deadlift"** — searches and fetches exercise details
 5. **"Based on all this, what should I focus on next?"** — Claude reasons across all the data
+6. **"Propose a revised 4-day split from that, show me a `create_program` dry run, then apply if I confirm"** — end-to-end adapt + save (replaces the current active program when applied)
 
 ## Alternative: config file with `mcp-remote`
 

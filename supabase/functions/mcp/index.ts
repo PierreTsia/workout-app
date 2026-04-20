@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`
 const AUTH_ISSUER = `${SUPABASE_URL}/auth/v1`
 
-const SERVER_INFO = { name: "gymlogic", version: "0.1.0" }
+const SERVER_INFO = { name: "gymlogic", version: "0.2.0" }
 const PROTOCOL_VERSION = "2025-03-26"
 
 function ok(id: string | number | null, result: unknown) {

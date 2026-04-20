@@ -1,6 +1,6 @@
 # Connect GymLogic to Le Chat (Mistral)
 
-Use your training data and exercise catalog in Le Chat conversations via GymLogic's MCP server.
+Use your training data and exercise catalog in Le Chat conversations via GymLogic's MCP server, and **persist a new multi-day program** with `create_program` once you agree on the plan (dry run, then apply).
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ Connectors don't work in regular chats — you need an Agent:
 2. Click **Create Agent**
 3. Give it a name (e.g. "Coach GymLogic")
 4. In the **Connectors** section, toggle on the **gymlogic** connector you just created
-5. (Optional) Add system instructions like: *"You are a personal training coach. Use the gymlogic tools to answer questions about the user's training history, stats, and exercise catalog."*
+5. (Optional) Add system instructions like: *"You are a personal training coach. Use the gymlogic tools for history, stats, catalog, and upcoming workouts; use `create_program` only after a clear dry-run preview and explicit user consent to apply."*
 6. Click **Save**
 
 ### 4. Start a conversation
@@ -56,6 +56,9 @@ Connectors don't work in regular chats — you need an Agent:
 | `get_workout_history` | Your past sessions with sets, weights, and PRs |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
+| `create_program` | **Create / replace your active program** (multi-day). Default **`dry_run: true`**; **`dry_run: false`** saves and sets the program active. |
+
+**Six tools** — five reads, one write (`create_program`).
 
 ## Example prompts
 
@@ -64,6 +67,7 @@ Connectors don't work in regular chats — you need an Agent:
 - "How's my training volume this month?"
 - "What's my next workout?"
 - "Tell me about the Kroc Row"
+- "Based on my stats, propose a 3-day full-body refresh and save it with create_program (show dry run first)"
 
 ## Troubleshooting
 
