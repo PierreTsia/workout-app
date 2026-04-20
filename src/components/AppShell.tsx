@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { useSetAtom } from "jotai"
 import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
@@ -7,6 +8,7 @@ import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
 import { InstallBanner } from "@/components/InstallBanner"
 import { RestTimerPill } from "@/components/RestTimerPill"
+import { RouteSkeleton } from "@/components/RouteSkeleton"
 import { AchievementRealtimeProvider } from "@/components/achievements/AchievementRealtimeProvider"
 import { AchievementUnlockOverlay } from "@/components/achievements/AchievementUnlockOverlay"
 
@@ -41,7 +43,12 @@ export function AppShell() {
         <AchievementUnlockOverlay />
 
         <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
-          <Outlet />
+          {/* Single Suspense boundary for all lazy routes nested under AppShell.
+              Keeps header + side drawer + chips stable while the next chunk
+              downloads (`RouteSkeleton` only swaps inside `<main>`). */}
+          <Suspense fallback={<RouteSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </AchievementRealtimeProvider>
