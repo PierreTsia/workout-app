@@ -2,14 +2,15 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Info } from "lucide-react"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
+import { useExerciseById } from "@/hooks/useExerciseById"
 import { cn } from "@/lib/utils"
-import type { Exercise } from "@/types/database"
+import type { ExerciseListItem } from "@/types/database"
 
 interface ExerciseSwapPickerProps {
-  pool: Exercise[]
+  pool: ExerciseListItem[]
   currentExerciseIds: string[]
   muscleGroup: string
-  onSelect: (exercise: Exercise) => void
+  onSelect: (exercise: ExerciseListItem) => void
   onClose: () => void
 }
 
@@ -21,7 +22,11 @@ export function ExerciseSwapPicker({
   onClose,
 }: ExerciseSwapPickerProps) {
   const { t } = useTranslation("generator")
-  const [inspectedExercise, setInspectedExercise] = useState<Exercise | null>(null)
+  const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(null)
+  // Rich fields (instructions/youtube) deferred until the user opens the info
+  // sheet. Hits the per-id cache seeded by `useWorkoutExercises` when the
+  // exercise is in the current day — otherwise fires a single `select(*)`.
+  const { data: inspectedExercise } = useExerciseById(inspectedExerciseId)
 
   const candidates = useMemo(
     () =>
@@ -65,7 +70,7 @@ export function ExerciseSwapPicker({
               </button>
               <button
                 type="button"
-                onClick={() => setInspectedExercise(exercise)}
+                onClick={() => setInspectedExerciseId(exercise.id)}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t("exerciseInfo", "View details")}
               >
@@ -76,10 +81,10 @@ export function ExerciseSwapPicker({
         </div>
       )}
       <ExerciseDetailSheet
-        exercise={inspectedExercise}
-        open={!!inspectedExercise}
+        exercise={inspectedExercise ?? null}
+        open={!!inspectedExerciseId}
         onOpenChange={(v) => {
-          if (!v) setInspectedExercise(null)
+          if (!v) setInspectedExerciseId(null)
         }}
       />
     </div>

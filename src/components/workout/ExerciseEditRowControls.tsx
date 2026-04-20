@@ -12,14 +12,14 @@ import {
 import { ExerciseSwapInlinePanel } from "@/components/workout/ExerciseSwapInlinePanel"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { formatDurationShort } from "@/lib/formatters"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
 
 export interface ExerciseEditRowControlsProps {
   exercise: WorkoutExercise
-  exercisePool: Exercise[]
+  exercisePool: ExerciseListItem[]
   poolLoading: boolean
   currentExerciseIds: string[]
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => void
+  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
   onDeleteRequested: (row: WorkoutExercise) => void
   onSwapBrowseLibrary: (row: WorkoutExercise) => void
   onInspectDetails: (exerciseId: string) => void

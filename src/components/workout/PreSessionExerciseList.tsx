@@ -2,13 +2,14 @@ import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ExerciseEditRowControls } from "@/components/workout/ExerciseEditRowControls"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
 
 export interface PreSessionExerciseListProps {
   exercises: WorkoutExercise[]
-  exercisePool: Exercise[]
+  /** Slim pool from `useExerciseLibrary` — rich fields (instructions/youtube) are fetched on demand in inspect sheets. */
+  exercisePool: ExerciseListItem[]
   poolLoading: boolean
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => void
+  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
   onDeleteRequested: (row: WorkoutExercise) => void
   onSwapBrowseLibrary: (row: WorkoutExercise) => void
   onRequestAddExerciseSheet: () => void

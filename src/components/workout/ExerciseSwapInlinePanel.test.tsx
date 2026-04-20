@@ -2,8 +2,15 @@ import { describe, it, expect, vi } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { ExerciseSwapInlinePanel } from "./ExerciseSwapInlinePanel"
 import type { Exercise, WorkoutExercise } from "@/types/database"
+
+// Stub the hook to avoid pulling `@/lib/supabase` (which needs real env vars)
+// via the ExerciseSwapPicker → inspection-sheet import chain.
+vi.mock("@/hooks/useExerciseById", () => ({
+  useExerciseById: () => ({ data: null, isLoading: false }),
+}))
+
+import { ExerciseSwapInlinePanel } from "./ExerciseSwapInlinePanel"
 
 function fakeExercise(overrides: Partial<Exercise> & { id: string }): Exercise {
   return {

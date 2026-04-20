@@ -2,9 +2,16 @@ import { describe, it, expect, vi } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { PreviewStep } from "./PreviewStep"
 import type { Exercise } from "@/types/database"
 import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
+
+// Stub the hook to avoid pulling `@/lib/supabase` (which needs real env vars)
+// via the InspectedExerciseSheet import chain.
+vi.mock("@/hooks/useExerciseById", () => ({
+  useExerciseById: () => ({ data: null, isLoading: false }),
+}))
+
+import { PreviewStep } from "./PreviewStep"
 
 function fakeExercise(overrides: Partial<Exercise> & { id: string }): Exercise {
   return {

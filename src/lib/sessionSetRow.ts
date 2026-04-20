@@ -1,4 +1,4 @@
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
 
 /** Default hold length when exercise has no explicit default (seconds). */
 export const DEFAULT_DURATION_FALLBACK_SEC = 30
@@ -72,7 +72,7 @@ export function normalizeSessionSetRow(raw: unknown): SessionSetRow {
 
 export function resolveTargetSecondsForRow(
   row: WorkoutExercise,
-  lib: Exercise | undefined,
+  lib: ExerciseListItem | undefined,
 ): number {
   const fromTemplate = row.target_duration_seconds
   if (fromTemplate != null && fromTemplate > 0) return fromTemplate
@@ -83,7 +83,7 @@ export function resolveTargetSecondsForRow(
 
 export function buildInitialSetRowsForExercise(
   row: WorkoutExercise,
-  lib: Exercise | undefined,
+  lib: ExerciseListItem | undefined,
   displayWeight: string,
 ): SessionSetRow[] {
   const isDuration = lib?.measurement_type === "duration"
