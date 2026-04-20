@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { buildExercise } from "@/lib/generateWorkout"
 import { VOLUME_MAP } from "@/lib/generatorConfig"
-import type { Exercise } from "@/types/database"
+import type { ExerciseListItem } from "@/types/database"
 import type { Duration } from "@/types/generator"
 import type {
   GenerateProgramConstraints,
@@ -23,7 +23,10 @@ interface EdgeFunctionResponse {
 }
 
 interface AIGenerateProgramContext {
-  exercisePool: Exercise[]
+  // Slim catalog is sufficient — the generator only reads id + secondary_muscles
+  // (via `buildExercise` / `isCompound`); rich fields (instructions, etc.) are
+  // never consumed in the AI program flow.
+  exercisePool: ExerciseListItem[]
 }
 
 function isNetworkError(err: unknown): boolean {
@@ -65,7 +68,7 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
       }
 
       const poolMap = new Map(exercisePool.map((e) => [e.id, e]))
-      const resolved = new Map<string, Exercise>()
+      const resolved = new Map<string, ExerciseListItem>()
       const missingIds: string[] = []
 
       for (const id of allIds) {
@@ -78,13 +81,17 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
       }
 
       if (missingIds.length > 0) {
+        // Fallback for ids the slim pool didn't have (rare: newly added exercise
+        // not yet in `exercise-library` cache). Select the same slim shape.
         const { data: fetched, error: fetchError } = await supabase
           .from("exercises")
-          .select("*")
+          .select(
+            "id, name, name_en, emoji, muscle_group, equipment, image_url, difficulty_level, is_system, measurement_type, default_duration_seconds, secondary_muscles",
+          )
           .in("id", missingIds)
 
         if (fetchError) throw fetchError
-        for (const ex of (fetched ?? []) as Exercise[]) {
+        for (const ex of (fetched ?? []) as unknown as ExerciseListItem[]) {
           resolved.set(ex.id, ex)
         }
       }
@@ -103,7 +110,7 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
           muscleFocus: day.muscle_focus,
           exercises: day.exercise_ids
             .map((id) => resolved.get(id))
-            .filter((ex): ex is Exercise => ex != null)
+            .filter((ex): ex is ExerciseListItem => ex != null)
             .map((ex) => buildExercise(ex, setsPerExercise)),
         }
       })

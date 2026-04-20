@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { getDefaultStore } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { adaptForExperience, resolveEquipmentSwap } from "@/lib/generateProgram"
+import { fetchExercisesByIds } from "@/lib/fetchExercisesByIds"
 import { authAtom, hasProgramAtom, activeProgramIdAtom } from "@/store/atoms"
 import type { UserProfile, ExerciseAlternative, ProgramTemplate } from "@/types/onboarding"
 import type { Exercise } from "@/types/database"
@@ -59,7 +60,32 @@ export function useGenerateProgram() {
           alternatives = (data ?? []) as ExerciseAlternative[]
         }
 
-        const exerciseCache = new Map<string, Exercise>()
+        // Pre-compute every swap target up front so we can batch-fetch the
+        // replacement exercises in a single `.in()` call instead of firing one
+        // `.eq + .single` per swapped exercise (previous N+1). The batch helper
+        // chunks at 100 ids to respect PostgREST URL limits.
+        const resolvedIdsToFetch = new Set<string>()
+        for (const day of template.template_days) {
+          for (const te of day.template_exercises) {
+            const resolvedId = resolveEquipmentSwap(
+              te.exercise_id,
+              profile.equipment,
+              alternatives,
+            )
+            if (resolvedId !== te.exercise_id) {
+              resolvedIdsToFetch.add(resolvedId)
+            }
+          }
+        }
+
+        const fetchedSwapTargets =
+          resolvedIdsToFetch.size > 0
+            ? await fetchExercisesByIds([...resolvedIdsToFetch])
+            : []
+        const exerciseCache = fetchedSwapTargets.reduce(
+          (map, ex) => map.set(ex.id, ex),
+          new Map<string, Exercise>(),
+        )
 
         for (const day of template.template_days) {
           const { data: insertedDay, error: dayError } = await supabase
@@ -76,61 +102,51 @@ export function useGenerateProgram() {
 
           if (dayError) throw dayError
 
-          const exerciseRows = await Promise.all(
-            day.template_exercises.map(async (te, idx) => {
-              const resolvedId = resolveEquipmentSwap(
-                te.exercise_id,
-                profile.equipment,
-                alternatives,
-              )
+          const exerciseRows = day.template_exercises.map((te, idx) => {
+            const resolvedId = resolveEquipmentSwap(
+              te.exercise_id,
+              profile.equipment,
+              alternatives,
+            )
 
-              let exercise = te.exercise
-              if (resolvedId !== te.exercise_id) {
-                if (!exerciseCache.has(resolvedId)) {
-                  const { data } = await supabase
-                    .from("exercises")
-                    .select("*")
-                    .eq("id", resolvedId)
-                    .single()
-                  if (data) exerciseCache.set(resolvedId, data as Exercise)
-                }
-                exercise = exerciseCache.get(resolvedId)
-              }
+            const exercise =
+              resolvedId !== te.exercise_id
+                ? exerciseCache.get(resolvedId)
+                : te.exercise
 
-              const adapted = adaptForExperience(
-                te.rep_range,
-                te.sets,
-                te.rest_seconds,
-                profile.experience,
-              )
+            const adapted = adaptForExperience(
+              te.rep_range,
+              te.sets,
+              te.rest_seconds,
+              profile.experience,
+            )
 
-              const isDuration = exercise?.measurement_type === "duration"
-              const isBodyweight = exercise?.equipment === "bodyweight"
-              const defaultSec = exercise?.default_duration_seconds ?? 30
+            const isDuration = exercise?.measurement_type === "duration"
+            const isBodyweight = exercise?.equipment === "bodyweight"
+            const defaultSec = exercise?.default_duration_seconds ?? 30
 
-              return {
-                workout_day_id: insertedDay.id,
-                exercise_id: resolvedId,
-                name_snapshot: exercise?.name ?? "Exercise",
-                muscle_snapshot: exercise?.muscle_group ?? "",
-                emoji_snapshot: exercise?.emoji ?? "🏋️",
-                sets: adapted.sets,
-                reps: isDuration ? "0" : adapted.reps,
-                weight: "0",
-                rest_seconds: adapted.restSeconds,
-                sort_order: idx,
-                target_duration_seconds: isDuration ? defaultSec : null,
-                rep_range_min: adapted.repRangeMin ?? 8,
-                rep_range_max: adapted.repRangeMax ?? 12,
-                set_range_min: Math.max(1, adapted.sets - 1),
-                set_range_max: Math.min(6, adapted.sets + 2),
-                max_weight_reached: isBodyweight ? true : false,
-                duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
-                duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
-                duration_increment_seconds: isDuration ? 5 : null,
-              }
-            }),
-          )
+            return {
+              workout_day_id: insertedDay.id,
+              exercise_id: resolvedId,
+              name_snapshot: exercise?.name ?? "Exercise",
+              muscle_snapshot: exercise?.muscle_group ?? "",
+              emoji_snapshot: exercise?.emoji ?? "🏋️",
+              sets: adapted.sets,
+              reps: isDuration ? "0" : adapted.reps,
+              weight: "0",
+              rest_seconds: adapted.restSeconds,
+              sort_order: idx,
+              target_duration_seconds: isDuration ? defaultSec : null,
+              rep_range_min: adapted.repRangeMin ?? 8,
+              rep_range_max: adapted.repRangeMax ?? 12,
+              set_range_min: Math.max(1, adapted.sets - 1),
+              set_range_max: Math.min(6, adapted.sets + 2),
+              max_weight_reached: isBodyweight ? true : false,
+              duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
+              duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+              duration_increment_seconds: isDuration ? 5 : null,
+            }
+          })
 
           const { error: exError } = await supabase
             .from("workout_exercises")

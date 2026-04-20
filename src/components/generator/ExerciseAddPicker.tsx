@@ -5,12 +5,12 @@ import { cn, groupBy } from "@/lib/utils"
 import { normalizeForSearch } from "@/lib/search"
 import { Input } from "@/components/ui/input"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
-import type { Exercise } from "@/types/database"
+import type { ExerciseListItem } from "@/types/database"
 
 interface ExerciseAddPickerProps {
-  pool: Exercise[]
+  pool: ExerciseListItem[]
   currentExerciseIds: string[]
-  onSelect: (exercise: Exercise) => void
+  onSelect: (exercise: ExerciseListItem) => void
   onClose: () => void
 }
 

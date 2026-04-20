@@ -1,4 +1,4 @@
-import type { Exercise } from "@/types/database"
+import type { Exercise, ExerciseListItem } from "@/types/database"
 import { groupBy } from "@/lib/utils"
 import type {
   GeneratorConstraints,
@@ -19,7 +19,7 @@ import {
   isBodyweightOnlySelection,
 } from "./equipmentSelection"
 
-function isCompound(exercise: Exercise): boolean {
+function isCompound(exercise: ExerciseListItem): boolean {
   return (exercise.secondary_muscles?.length ?? 0) > 0
 }
 
@@ -82,7 +82,7 @@ function pickDistributed(
 }
 
 export function buildExercise(
-  exercise: Exercise,
+  exercise: ExerciseListItem,
   setsPerExercise: number,
 ): GeneratedExercise {
   const compound = isCompound(exercise)

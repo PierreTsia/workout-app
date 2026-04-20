@@ -8,7 +8,8 @@ import { PreviewExerciseCard } from "./PreviewExerciseCard"
 import { ExerciseSwapPicker } from "./ExerciseSwapPicker"
 import { ExerciseAddPicker } from "./ExerciseAddPicker"
 import { ExerciseDetailSheet } from "./ExerciseDetailSheet"
-import type { Exercise } from "@/types/database"
+import { useExerciseById } from "@/hooks/useExerciseById"
+import type { ExerciseListItem } from "@/types/database"
 import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
 import {
   COMPOUND_REPS,
@@ -21,7 +22,7 @@ import { SessionHeatmap } from "@/components/body-map/SessionHeatmap"
 
 interface PreviewStepProps {
   workout: GeneratedWorkout
-  exercisePool: Exercise[]
+  exercisePool: ExerciseListItem[]
   onStart: (workout: GeneratedWorkout) => void
   onSave: (workout: GeneratedWorkout) => void
   onShuffle: () => void
@@ -59,7 +60,7 @@ export function PreviewStep({
   }, [])
 
   const handleSwapSelect = useCallback(
-    (exercise: Exercise) => {
+    (exercise: ExerciseListItem) => {
       if (swappingIndex === null) return
       setExercises((prev) =>
         prev.map((ge, i) => {
@@ -101,7 +102,7 @@ export function PreviewStep({
   }, [onShuffle])
 
   const handleAddExercise = useCallback(
-    (exercise: Exercise) => {
+    (exercise: ExerciseListItem) => {
       const compound = (exercise.secondary_muscles?.length ?? 0) > 0
       setExercises((prev) => {
         const defaultSets = prev[0]?.sets ?? 3
@@ -263,17 +264,41 @@ export function PreviewStep({
         )}
       </div>
 
-      <ExerciseDetailSheet
-        exercise={
+      <InspectedExerciseSheet
+        exerciseId={
           inspectedIndex !== null
-            ? exercises[inspectedIndex]?.exercise ?? null
+            ? exercises[inspectedIndex]?.exercise.id ?? null
             : null
         }
         open={inspectedIndex !== null}
-        onOpenChange={(open) => {
-          if (!open) setInspectedIndex(null)
-        }}
+        onClose={() => setInspectedIndex(null)}
       />
     </div>
+  )
+}
+
+/**
+ * Thin wrapper that lazily fetches the full Exercise row (instructions,
+ * youtube_url, secondary_muscles) only when the user opens the detail sheet.
+ * Hits the per-id cache seeded by `useWorkoutExercises` when applicable.
+ */
+function InspectedExerciseSheet({
+  exerciseId,
+  open,
+  onClose,
+}: {
+  exerciseId: string | null
+  open: boolean
+  onClose: () => void
+}) {
+  const { data: exercise } = useExerciseById(exerciseId)
+  return (
+    <ExerciseDetailSheet
+      exercise={exercise ?? null}
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose()
+      }}
+    />
   )
 }

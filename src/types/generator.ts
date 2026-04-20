@@ -1,4 +1,4 @@
-import type { Exercise } from "./database"
+import type { ExerciseListItem } from "./database"
 
 export type Duration = 15 | 30 | 45 | 60 | 90
 
@@ -14,7 +14,10 @@ export interface GeneratorConstraints {
 }
 
 export interface GeneratedExercise {
-  exercise: Exercise
+  // Narrowed to the slim catalog shape (T69). The only rich field the
+  // generator consumes is `secondary_muscles` (isCompound), which is now
+  // in ExerciseListItem.
+  exercise: ExerciseListItem
   sets: number
   reps: string
   restSeconds: number

@@ -22,7 +22,7 @@ import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { useProgressionSuggestion } from "@/hooks/useProgressionSuggestion"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
@@ -34,10 +34,10 @@ import { ExerciseHistorySheet } from "@/components/workout/ExerciseHistorySheet"
 import { ProgressionPill } from "@/components/workout/ProgressionPill"
 
 export interface ExerciseDetailEditSessionProps {
-  exercisePool: Exercise[]
+  exercisePool: ExerciseListItem[]
   poolLoading: boolean
   allExercises: WorkoutExercise[]
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => void
+  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
   onDeleteRequested: (row: WorkoutExercise) => void
   onSwapBrowseLibrary: (row: WorkoutExercise) => void
 }

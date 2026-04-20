@@ -2,7 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
-import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
+import type {
+  Exercise,
+  ExerciseListItem,
+  WorkoutDay,
+  WorkoutExercise,
+} from "@/types/database"
 
 export function useCreateDay(programId: string | null) {
   const user = useAtomValue(authAtom)
@@ -91,7 +96,7 @@ export function useAddExerciseToDay() {
       weight = "0",
     }: {
       dayId: string
-      exercise: Exercise
+      exercise: ExerciseListItem
       sortOrder: number
       weight?: string
     }) => {
@@ -243,7 +248,7 @@ export function useSwapExerciseInDay() {
     mutationFn: async (vars: {
       id: string
       dayId: string
-      exercise: Exercise
+      exercise: ExerciseListItem
       weight: string
     }) => {
       const { error } = await supabase

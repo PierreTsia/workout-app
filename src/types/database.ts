@@ -67,6 +67,39 @@ export interface WorkoutExercise {
   duration_increment_seconds?: number | null
 }
 
+/**
+ * Row shape returned by `useWorkoutExercises` after the T69 embed.
+ * `exercise` is null only if the FK row was deleted (RLS filtered or orphan).
+ */
+export interface WorkoutExerciseWithExercise extends WorkoutExercise {
+  exercise: Exercise | null
+}
+
+/**
+ * Slim projection used by catalog-style fetches (`useExerciseLibrary`) where
+ * rich fields like `instructions`/`youtube_url` are deferred to per-id hooks.
+ * Includes `measurement_type` + `default_duration_seconds` because the active
+ * session pool (`WorkoutPage.exerciseById`) needs them for duration branching.
+ */
+export type ExerciseListItem = Pick<
+  Exercise,
+  | "id"
+  | "name"
+  | "name_en"
+  | "emoji"
+  | "muscle_group"
+  | "equipment"
+  | "image_url"
+  | "difficulty_level"
+  | "is_system"
+  | "measurement_type"
+  | "default_duration_seconds"
+  // `secondary_muscles` is kept because `isCompound` logic in generator flows
+  // (PreviewStep, quick workout) branches on presence. Cheap scalar array.
+  | "secondary_muscles"
+>
+
+
 export interface Session {
   id: string
   user_id: string

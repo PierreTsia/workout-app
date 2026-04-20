@@ -97,7 +97,12 @@ import {
   clonePreSessionPatch,
   type PreSessionExercisePatch,
 } from "@/types/preSessionOverrides"
-import type { Exercise, WorkoutDay, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseListItem,
+  WorkoutDay,
+  WorkoutExercise,
+} from "@/types/database"
+import { useExerciseById } from "@/hooks/useExerciseById"
 
 const EMPTY_DAYS: WorkoutDay[] = []
 
@@ -113,7 +118,7 @@ function isSyntheticRow(patch: PreSessionExercisePatch, rowId: string): boolean 
 function applySessionSwap(
   prev: PreSessionExercisePatch,
   row: WorkoutExercise,
-  picked: Exercise,
+  picked: ExerciseListItem,
   weightStr: string,
 ): PreSessionExercisePatch {
   const next = clonePreSessionPatch(prev)
@@ -160,9 +165,9 @@ function applySessionAdd(
 }
 
 type PendingScopeAction =
-  | { kind: "swap"; row: WorkoutExercise; picked: Exercise }
+  | { kind: "swap"; row: WorkoutExercise; picked: ExerciseListItem }
   | { kind: "delete"; row: WorkoutExercise }
-  | { kind: "add"; picked: Exercise }
+  | { kind: "add"; picked: ExerciseListItem }
 
 type SessionFinishedStats = {
   exercisesCompleted: number
@@ -252,11 +257,10 @@ export function WorkoutPage() {
     useExerciseLibrary()
 
   const exerciseById = useMemo(() => {
-    const m = new Map<string, Exercise>()
-    for (const e of exercisePool) {
-      m.set(e.id, e)
-    }
-    return m
+    return exercisePool.reduce(
+      (map, e) => map.set(e.id, e),
+      new Map<string, ExerciseListItem>(),
+    )
   }, [exercisePool])
 
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
@@ -277,10 +281,11 @@ export function WorkoutPage() {
     [exercises, swapLibraryRowId],
   )
 
-  const inspectedExercise = useMemo(
-    () => exercisePool.find((e) => e.id === inspectedExerciseId) ?? null,
-    [exercisePool, inspectedExerciseId],
-  )
+  // Rich fields (instructions/youtube/secondary_muscles) needed by the detail
+  // sheet are NOT in the slim catalog pool — fetch on demand. Hits the per-id
+  // cache seeded by `useWorkoutExercises` embed, so exercises already in a
+  // loaded day are zero-network.
+  const { data: inspectedExercise } = useExerciseById(inspectedExerciseId)
 
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
@@ -510,7 +515,7 @@ export function WorkoutPage() {
       exercisePool,
       poolLoading: exercisePoolLoading,
       allExercises: exercises,
-      onSwapExerciseChosen: (row: WorkoutExercise, picked: Exercise) => {
+      onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => {
         setPendingScope({ kind: "swap", row, picked })
         setScopeDialogOpen(true)
       },
@@ -1196,8 +1201,8 @@ export function WorkoutPage() {
       />
 
       <ExerciseDetailSheet
-        exercise={inspectedExercise}
-        open={!!inspectedExercise}
+        exercise={inspectedExercise ?? null}
+        open={!!inspectedExerciseId}
         onOpenChange={(v) => {
           if (!v) setInspectedExerciseId(null)
         }}
