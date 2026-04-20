@@ -1,4 +1,4 @@
-import { usePostHog } from "@posthog/react"
+import posthog from "posthog-js"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 /** Sends a test capture — for verifying PostHog from the admin-only /admin page. */
 export function PostHogTestCaptureButton() {
   const { t } = useTranslation("admin")
-  const posthog = usePostHog()
 
   return (
     <Button

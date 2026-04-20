@@ -8,23 +8,21 @@ import { createRoot } from "react-dom/client"
 import { ThemeProvider } from "next-themes"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { RouterProvider } from "react-router-dom"
-import { ErrorBoundary } from "@sentry/react"
 import { router } from "@/router"
 import { queryClient } from "@/lib/queryClient"
 import { initSyncListeners } from "@/lib/syncService"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorFallback } from "@/components/ErrorFallback"
+import { AppErrorBoundary } from "@/components/AppErrorBoundary"
 import { prepareThemeLocalStorage, THEME_STORAGE_KEY } from "@/lib/themeStorage"
 import { handleVersionUpgrade } from "@/lib/versionManager"
-import { listenForSwUpdate } from "@/lib/swReloadOnUpdate"
 import { Analytics } from "@vercel/analytics/react"
-import { PostHogProvider } from "@posthog/react"
-import { initSentry } from "@/lib/sentry"
 
-// Defer work that doesn't need to run before first paint (Sentry init,
-// PWA service-worker registration). We trade off catching errors thrown
-// in the very first ~2s of boot — acceptable for a TBT/LCP win. Runs
-// after `createRoot().render()` schedules the mount below.
+// Defer work that doesn't need to run before first paint:
+//   - Sentry SDK init (dynamic import keeps it out of the main bundle)
+//   - PostHog SDK init + autocapture
+//   - PWA service-worker registration
+// Trade-off: errors/events fired in the first ~2s of boot may be missed.
 const runWhenIdle = (cb: () => void) => {
   if (typeof window === "undefined") return
   const w = window as Window & {
@@ -40,7 +38,6 @@ const runWhenIdle = (cb: () => void) => {
   }
 }
 
-// Purge stale caches/localStorage before React mounts so Jotai atoms read clean values.
 handleVersionUpgrade()
   .catch((error) => {
     console.error("Version upgrade failed; continuing app boot.", error)
@@ -48,9 +45,6 @@ handleVersionUpgrade()
   .finally(() => {
     initSyncListeners()
     prepareThemeLocalStorage(localStorage)
-
-    const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN
-    const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST
 
     const app = (
       <ThemeProvider
@@ -61,22 +55,17 @@ handleVersionUpgrade()
         themes={["light", "dark", "system"]}
       >
         <QueryClientProvider client={queryClient}>
-          <ErrorBoundary
+          <AppErrorBoundary
             fallback={({ error, resetError }) => (
               <ErrorFallback
-                error={
-                  error instanceof Error
-                    ? error
-                    : new Error(String(error))
-                }
+                error={error}
                 resetErrorBoundary={resetError}
                 variant="page"
               />
             )}
-            showDialog={false}
           >
             <RouterProvider router={router} />
-          </ErrorBoundary>
+          </AppErrorBoundary>
           <Toaster />
           <Analytics />
         </QueryClientProvider>
@@ -84,25 +73,29 @@ handleVersionUpgrade()
     )
 
     createRoot(document.getElementById("root")!).render(
-      <StrictMode>
-        {posthogApiKey && posthogHost ? (
-          <PostHogProvider
-            apiKey={posthogApiKey}
-            options={{
-              api_host: posthogHost,
-              defaults: "2026-01-30",
-            }}
-          >
-            {app}
-          </PostHogProvider>
-        ) : (
-          app
-        )}
-      </StrictMode>,
+      <StrictMode>{app}</StrictMode>,
     )
 
     runWhenIdle(() => {
-      initSentry()
-      listenForSwUpdate()
+      void import("@/lib/sentry")
+        .then(({ initSentry }) => initSentry())
+        .catch(() => {})
+
+      const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN
+      const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      if (posthogApiKey && posthogHost) {
+        void import("posthog-js")
+          .then(({ default: posthog }) => {
+            posthog.init(posthogApiKey, {
+              api_host: posthogHost,
+              defaults: "2026-01-30",
+            })
+          })
+          .catch(() => {})
+      }
+
+      void import("@/lib/swReloadOnUpdate")
+        .then(({ listenForSwUpdate }) => listenForSwUpdate())
+        .catch(() => {})
     })
   })
