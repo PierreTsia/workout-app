@@ -21,7 +21,11 @@ export function listenForSwUpdate() {
   }
 
   registerSW({
-    immediate: true,
+    // `immediate: false` waits for the `load` event before registering the
+    // SW, which keeps the browser's main thread free during initial paint.
+    // `handleVersionUpgrade` (main.tsx) still forces a reload on version
+    // mismatch, so end users continue to get the new build on update.
+    immediate: false,
     onRegisteredSW(_swUrl, registration) {
       if (!registration) return
       setInterval(() => {
