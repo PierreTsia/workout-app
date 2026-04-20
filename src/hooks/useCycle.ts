@@ -27,13 +27,15 @@ interface CycleProgress {
   totalDays: number
   nextDayId: string | null
   isComplete: boolean
+  /** True while the inner `cycle-sessions` query is in its first fetch. False when no cycle (query idle). */
+  isLoading: boolean
 }
 
 export function useCycleProgress(
   cycleId: string | null,
   days: WorkoutDay[],
 ): CycleProgress {
-  const { data: cycleSessions } = useQuery<
+  const { data: cycleSessions, isLoading } = useQuery<
     Pick<Session, "workout_day_id">[]
   >({
     queryKey: ["cycle-sessions", cycleId],
@@ -63,6 +65,7 @@ export function useCycleProgress(
       totalDays,
       nextDayId,
       isComplete: totalDays > 0 && completedSet.size >= totalDays,
+      isLoading,
     }
-  }, [cycleSessions, days])
+  }, [cycleSessions, days, isLoading])
 }

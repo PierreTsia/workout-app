@@ -183,9 +183,11 @@ export function WorkoutPage() {
   const user = useAtomValue(authAtom)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data: activeCycle } = useActiveCycle(activeProgramId)
+  const { data: activeCycle, isLoading: activeCycleLoading } = useActiveCycle(activeProgramId)
   const { data: days, isLoading: daysLoading } = useWorkoutDays(activeProgramId)
   const cycleProgress = useCycleProgress(activeCycle?.id ?? null, days ?? EMPTY_DAYS)
+  // Hold the skeleton until the progress bar can render its final value — otherwise the `CycleProgressHeader` gate (`!isComplete && activeCycle`) briefly flips true with stale zero data, flashes a 0% bar, then disappears when sessions arrive.
+  const homeLoading = daysLoading || activeCycleLoading || cycleProgress.isLoading
   useAdvanceWorkoutDayOnDateRollover({
     isSessionActive: session.isActive,
     currentDayId: session.currentDayId,
@@ -921,7 +923,7 @@ export function WorkoutPage() {
     }
   }
 
-  if (daysLoading) {
+  if (homeLoading) {
     return <WorkoutHomeSkeleton />
   }
 
