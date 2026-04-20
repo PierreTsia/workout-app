@@ -112,35 +112,6 @@ export default defineConfig(({ mode }) => {
 
     build: {
       sourcemap: true,
-      rollupOptions: {
-        output: {
-          // Split heavy third-party libs into stable vendor chunks so they
-          // cache independently of app code and don't duplicate across the
-          // lazy route chunks introduced in T67. Anything not matched falls
-          // through to Rollup's default splitting (shared async deps get
-          // their own chunk, the rest stays in the entry).
-          manualChunks(id) {
-            if (!id.includes("node_modules")) return
-            if (id.includes("recharts") || id.includes("/d3-"))
-              return "chart-vendor"
-            if (id.includes("cmdk") || id.includes("vaul"))
-              return "picker-vendor"
-            if (
-              id.includes("@tanstack/react-table") ||
-              id.includes("@tanstack/table-core")
-            )
-              return "table-vendor"
-            if (id.includes("@radix-ui")) return "radix-vendor"
-            if (id.includes("@supabase")) return "supabase-vendor"
-            if (id.includes("@sentry")) return "sentry-vendor"
-            if (id.includes("posthog")) return "posthog-vendor"
-            if (id.includes("embla-carousel")) return "embla-vendor"
-            if (id.includes("@dnd-kit")) return "dnd-vendor"
-            if (id.includes("react-day-picker") || id.includes("date-fns"))
-              return "calendar-vendor"
-          },
-        },
-      },
     },
   }
 })
