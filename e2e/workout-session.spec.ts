@@ -132,8 +132,9 @@ test.describe("Workout session — full flow", () => {
     const dayCards = page.locator("h3").filter({ hasText: /Lundi|Mercredi|Vendredi/ })
     await expect(dayCards.first()).toBeVisible({ timeout: 30_000 })
 
-    // Dot indicators — small round buttons below the carousel
-    const dots = page.locator("div.flex.items-center.justify-center button.rounded-full")
+    // Dot indicators — target by accessible name (aria-label) so the selector
+    // survives CSS refactors; matches both en ("Go to …") and fr ("Aller à …").
+    const dots = page.getByRole("button", { name: /^(aller à|go to)\s/i })
     await expect(dots).toHaveCount(3, { timeout: 5_000 })
 
     // Click the second dot to navigate to the second day

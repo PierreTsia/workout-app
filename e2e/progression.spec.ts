@@ -118,8 +118,9 @@ test.describe("Progression — cross-session suggestion", () => {
     // Back on the carousel — wait for it to load
     await expect(lundiCard).toBeVisible({ timeout: 15_000 })
 
-    // Navigate to the Mercredi day card via dot indicators
-    const dots = page.locator("div.flex.items-center.justify-center button.rounded-full")
+    // Navigate to the Mercredi day card via dot indicators — by aria-label
+    // so the selector is locale-agnostic and survives CSS refactors.
+    const dots = page.getByRole("button", { name: /^(aller à|go to)\s/i })
     await expect(dots).toHaveCount(3, { timeout: 5_000 })
     await dots.nth(1).click()
     await page.waitForTimeout(500)
