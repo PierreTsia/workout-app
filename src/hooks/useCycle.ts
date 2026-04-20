@@ -12,9 +12,8 @@ export function useActiveCycle(programId: string | null) {
         .select("*")
         .eq("program_id", programId!)
         .is("finished_at", null)
-        .single()
+        .maybeSingle()
 
-      if (error?.code === "PGRST116") return null
       if (error) throw error
       return data
     },
