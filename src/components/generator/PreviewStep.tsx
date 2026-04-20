@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react"
+import { useState, useCallback, useRef, useMemo, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { RefreshCw, ArrowLeft, Plus, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -48,7 +48,12 @@ export function PreviewStep({
   const [name, setName] = useState(workout.name)
   const [swappingIndex, setSwappingIndex] = useState<number | null>(null)
   const [addingExercise, setAddingExercise] = useState(false)
-  const [inspectedIndex, setInspectedIndex] = useState<number | null>(null)
+  // Track inspected exercise by id, not index — list can mutate (remove/shuffle)
+  // between click and render, and an out-of-bounds index would open a sheet
+  // with no dismissable content.
+  const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(
+    null,
+  )
   const lastShuffleRef = useRef(0)
 
   const handleRemove = useCallback((index: number) => {
@@ -226,7 +231,9 @@ export function PreviewStep({
               index={index}
               onRemove={handleRemove}
               onSwap={handleSwap}
-              onInfo={setInspectedIndex}
+              onInfo={(idx) =>
+                setInspectedExerciseId(exercises[idx]?.exercise.id ?? null)
+              }
               onUpdateSets={handleUpdateSets}
               onUpdateReps={handleUpdateReps}
             />
@@ -265,13 +272,8 @@ export function PreviewStep({
       </div>
 
       <InspectedExerciseSheet
-        exerciseId={
-          inspectedIndex !== null
-            ? exercises[inspectedIndex]?.exercise.id ?? null
-            : null
-        }
-        open={inspectedIndex !== null}
-        onClose={() => setInspectedIndex(null)}
+        exerciseId={inspectedExerciseId}
+        onClose={() => setInspectedExerciseId(null)}
       />
     </div>
   )
@@ -281,21 +283,31 @@ export function PreviewStep({
  * Thin wrapper that lazily fetches the full Exercise row (instructions,
  * youtube_url, secondary_muscles) only when the user opens the detail sheet.
  * Hits the per-id cache seeded by `useWorkoutExercises` when applicable.
+ *
+ * Open is derived from id + resolved data to avoid a dangling sheet when the
+ * referenced exercise is unreachable (orphan FK, RLS filter). If the query
+ * resolves to null, we clear the id so the parent state stays consistent.
  */
 function InspectedExerciseSheet({
   exerciseId,
-  open,
   onClose,
 }: {
   exerciseId: string | null
-  open: boolean
   onClose: () => void
 }) {
-  const { data: exercise } = useExerciseById(exerciseId)
+  const { data: exercise, isPending } = useExerciseById(exerciseId)
+
+  useEffect(() => {
+    if (exerciseId && !isPending && exercise === null) {
+      onClose()
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect unreachable-exercise async result into parent id state; no safer place to run this.
+  }, [exerciseId, isPending, exercise, onClose])
+
   return (
     <ExerciseDetailSheet
       exercise={exercise ?? null}
-      open={open}
+      open={!!exerciseId && !!exercise}
       onOpenChange={(v) => {
         if (!v) onClose()
       }}

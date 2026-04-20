@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { SLIM_EXERCISE_SELECT } from "@/lib/exerciseSelects"
 import { buildExercise } from "@/lib/generateWorkout"
 import { VOLUME_MAP } from "@/lib/generatorConfig"
 import type { ExerciseListItem } from "@/types/database"
@@ -82,12 +83,10 @@ export function useAIGenerateProgram({ exercisePool }: AIGenerateProgramContext)
 
       if (missingIds.length > 0) {
         // Fallback for ids the slim pool didn't have (rare: newly added exercise
-        // not yet in `exercise-library` cache). Select the same slim shape.
+        // not yet in `exercise-library` cache). Reuses the shared slim select.
         const { data: fetched, error: fetchError } = await supabase
           .from("exercises")
-          .select(
-            "id, name, name_en, emoji, muscle_group, equipment, image_url, difficulty_level, is_system, measurement_type, default_duration_seconds, secondary_muscles",
-          )
+          .select(SLIM_EXERCISE_SELECT)
           .in("id", missingIds)
 
         if (fetchError) throw fetchError

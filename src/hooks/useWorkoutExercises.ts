@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { FULL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
 import type {
   Exercise,
   WorkoutExerciseWithExercise,
@@ -25,12 +26,7 @@ export function useWorkoutExercises(dayId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_exercises")
-        .select(
-          `
-          *,
-          exercise:exercises(*)
-        `,
-        )
+        .select(`*, exercise:exercises(${FULL_EXERCISE_SELECT})`)
         .eq("workout_day_id", dayId!)
         .order("sort_order")
 

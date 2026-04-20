@@ -285,7 +285,22 @@ export function WorkoutPage() {
   // sheet are NOT in the slim catalog pool — fetch on demand. Hits the per-id
   // cache seeded by `useWorkoutExercises` embed, so exercises already in a
   // loaded day are zero-network.
-  const { data: inspectedExercise } = useExerciseById(inspectedExerciseId)
+  const { data: inspectedExercise, isPending: inspectedExercisePending } =
+    useExerciseById(inspectedExerciseId)
+
+  // If the query resolves to null (orphan FK, RLS filter, deleted catalog row),
+  // the detail sheet returns null and has no way to dismiss itself. Clear the
+  // id so the parent stays in a consistent state.
+  useEffect(() => {
+    if (
+      inspectedExerciseId &&
+      !inspectedExercisePending &&
+      inspectedExercise === null
+    ) {
+      setInspectedExerciseId(null)
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect unreachable-exercise async result into id state; no safer place to run this.
+  }, [inspectedExerciseId, inspectedExercisePending, inspectedExercise])
 
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),
@@ -1202,7 +1217,7 @@ export function WorkoutPage() {
 
       <ExerciseDetailSheet
         exercise={inspectedExercise ?? null}
-        open={!!inspectedExerciseId}
+        open={!!inspectedExerciseId && !!inspectedExercise}
         onOpenChange={(v) => {
           if (!v) setInspectedExerciseId(null)
         }}
