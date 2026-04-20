@@ -166,6 +166,7 @@
   "progression.tryGenerator": "Try the AI program generator for a new cycle",
   "autoDetectLoading": "{{name}}: you logged weight — unlock weight progression?",
   "autoDetectLoadingAction": "Unlock",
+  "cycleUnavailable": "Couldn't start the cycle right now — your session will still be saved.",
   "historySheet.trendHintBodyweight": "Log this exercise on more days to see your best reps trend.",
   "historySheet.chartCaptionReps": "Best reps per session",
   "historySheet.chartAriaReps": "Reps trend from {{min}} to {{max}} across recent sessions",

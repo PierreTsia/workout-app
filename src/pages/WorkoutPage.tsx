@@ -37,7 +37,7 @@ import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } 
 import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance, type VolumePrescription } from "@/lib/progression"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
-import { deriveCycleIdForSession } from "@/lib/cycle"
+import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
@@ -859,26 +859,21 @@ export function WorkoutPage() {
     let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
 
     if (!cycleId && activeProgramId && user && !skipCycle) {
-      try {
-        const { data, error } = await supabase
-          .from("cycles")
-          .insert({ program_id: activeProgramId, user_id: user.id })
-          .select()
-          .single()
-
-        if (error?.code === "23505") {
-          // Unique constraint race — another tab created one; refetch
-          await queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
-          const refetched = queryClient.getQueryData<{ id: string } | null>(["active-cycle", activeProgramId])
-          cycleId = refetched?.id ?? null
-        } else if (error) {
-          console.warn("[WorkoutPage] Could not create cycle:", error.message)
-        } else {
-          cycleId = data.id
-          queryClient.invalidateQueries({ queryKey: ["active-cycle", activeProgramId] })
-        }
-      } catch {
-        // Offline — start without cycle
+      const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
+      if (result.kind === "ok") {
+        cycleId = result.cycleId
+        // Always invalidate: the React Query cache may be stale (e.g. another
+        // tab created the cycle after our last fetch) even when source is
+        // "existing". Without this, useActiveCycle can stay stuck on null.
+        queryClient.invalidateQueries({
+          queryKey: ["active-cycle", activeProgramId],
+        })
+      } else {
+        console.warn(
+          "[WorkoutPage] Could not resolve/create active cycle:",
+          result.reason,
+        )
+        toast.warning(t("cycleUnavailable"))
       }
     }
 

@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { deriveCycleIdForSession } from "./cycle"
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
 
 describe("deriveCycleIdForSession", () => {
   it("returns the active cycle id for normal sessions", () => {
