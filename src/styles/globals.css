@@ -132,7 +132,9 @@
     --secondary-foreground: 240 10% 94%;
 
     --muted: 240 8% 19%;
-    --muted-foreground: 0 0% 40%;
+    /* 0 0% 60% (#999) on --card (#191924) ≈ 5.66:1, on --muted (#2d2d37) ≈ 4.70:1.
+       Previous 40% (#666) failed Lighthouse at 3.03:1 on dark card. */
+    --muted-foreground: 0 0% 60%;
 
     --accent: 240 8% 16%;
     --accent-foreground: 240 10% 94%;
@@ -173,7 +175,7 @@
     --secondary-foreground: 240 10% 94%;
 
     --muted: 240 8% 19%;
-    --muted-foreground: 0 0% 40%;
+    --muted-foreground: 0 0% 60%;
 
     --accent: 240 8% 16%;
     --accent-foreground: 240 10% 94%;
