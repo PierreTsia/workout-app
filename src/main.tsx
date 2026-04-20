@@ -21,8 +21,24 @@ import { Analytics } from "@vercel/analytics/react"
 import { PostHogProvider } from "@posthog/react"
 import { initSentry } from "@/lib/sentry"
 
-initSentry()
-listenForSwUpdate()
+// Defer work that doesn't need to run before first paint (Sentry init,
+// PWA service-worker registration). We trade off catching errors thrown
+// in the very first ~2s of boot — acceptable for a TBT/LCP win. Runs
+// after `createRoot().render()` schedules the mount below.
+const runWhenIdle = (cb: () => void) => {
+  if (typeof window === "undefined") return
+  const w = window as Window & {
+    requestIdleCallback?: (
+      cb: () => void,
+      opts?: { timeout?: number },
+    ) => number
+  }
+  if (typeof w.requestIdleCallback === "function") {
+    w.requestIdleCallback(cb, { timeout: 2000 })
+  } else {
+    setTimeout(cb, 500)
+  }
+}
 
 // Purge stale caches/localStorage before React mounts so Jotai atoms read clean values.
 handleVersionUpgrade()
@@ -84,4 +100,9 @@ handleVersionUpgrade()
         )}
       </StrictMode>,
     )
+
+    runWhenIdle(() => {
+      initSentry()
+      listenForSwUpdate()
+    })
   })
