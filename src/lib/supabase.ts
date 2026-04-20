@@ -33,52 +33,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 const store = getDefaultStore()
 
-async function checkProgramStatus(userId: string) {
-  try {
-    const { data } = await supabase
-      .from("programs")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .single()
-    store.set(hasProgramAtom, !!data)
-    store.set(activeProgramIdAtom, data?.id ?? null)
-  } catch {
-    store.set(hasProgramAtom, false)
-    store.set(activeProgramIdAtom, null)
-  }
-  store.set(hasProgramLoadingAtom, false)
-}
-
-async function checkAdminStatus(email: string | undefined) {
-  if (!email) {
-    store.set(isAdminAtom, false)
-    store.set(isAdminLoadingAtom, false)
-    return
-  }
-  try {
-    const { data } = await supabase
-      .from("admin_users")
-      .select("email")
-      .eq("email", email)
-      .single()
-    store.set(isAdminAtom, !!data)
-  } catch {
-    store.set(isAdminAtom, false)
-  }
-  store.set(isAdminLoadingAtom, false)
-}
-
+// Admin + active-program status are now owned by React Query hooks
+// (`useIsAdmin`, `useActiveProgram`) mounted by `AuthDataBridge`. Those hooks
+// sync their results to the existing atoms so guards + other readers keep
+// working, without the double-fetch (getSession + SIGNED_IN) and 406 noise
+// the previous imperative `.single()` calls produced.
 supabase.auth.getSession().then(({ data: { session } }) => {
   store.set(authAtom, session?.user ?? null)
   store.set(authLoadingAtom, false)
   if (session?.user) {
     drainQueue(session.user.id)
-    checkAdminStatus(session.user.email)
-    checkProgramStatus(session.user.id)
-  } else {
-    store.set(isAdminLoadingAtom, false)
-    store.set(hasProgramLoadingAtom, false)
   }
 })
 
@@ -110,8 +74,6 @@ supabase.auth.onAuthStateChange((event, session) => {
   store.set(authAtom, session?.user ?? null)
   if (event === "SIGNED_IN" && session?.user) {
     drainQueue(session.user.id)
-    checkAdminStatus(session.user.email)
-    checkProgramStatus(session.user.id)
   }
   if (event === "SIGNED_OUT") {
     clearUserState()
