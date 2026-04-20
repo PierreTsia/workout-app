@@ -1,3 +1,8 @@
+/* eslint-disable react-refresh/only-export-components --
+ * This file only exports `router` (config), not components. The local
+ * `lazy(...)` consts trip the rule, but there is no fast-refresh surface
+ * to break here. */
+import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import { AuthGuard } from "@/router/AuthGuard"
 import { OnboardingGuard } from "@/router/OnboardingGuard"
@@ -5,27 +10,95 @@ import { AdminGuard } from "@/router/AdminGuard"
 import { AppShell } from "@/components/AppShell"
 import { LoginPage } from "@/pages/LoginPage"
 import { WorkoutPage } from "@/pages/WorkoutPage"
-import { HistoryPage } from "@/pages/HistoryPage"
-import { BuilderPage } from "@/pages/BuilderPage"
-import { AboutPage } from "@/pages/AboutPage"
 import { OnboardingPage } from "@/pages/OnboardingPage"
-import { AdminExercisesPage } from "@/pages/AdminExercisesPage"
-import { AdminExerciseEditPage } from "@/pages/AdminExerciseEditPage"
 import { LibraryLayout } from "@/pages/library/LibraryLayout"
-import { LibraryProgramsPage } from "@/pages/library/LibraryProgramsPage"
-import { ExerciseLibraryPage } from "@/pages/library/ExerciseLibraryPage"
-import { ExerciseLibraryExercisePage } from "@/pages/library/ExerciseLibraryExercisePage"
 import { CreateProgramPage } from "@/pages/CreateProgramPage"
-import { AdminFeedbackPage } from "@/pages/AdminFeedbackPage"
-import { AdminHomePage } from "@/pages/AdminHomePage"
-import { AdminEnrichmentPage } from "@/pages/AdminEnrichmentPage"
-import { AdminReviewPage } from "@/pages/AdminReviewPage"
-import { CycleSummaryPage } from "@/pages/CycleSummaryPage"
-import { AccountPage } from "@/pages/AccountPage"
-import { AchievementsPage } from "@/pages/AchievementsPage"
-import { PrivacyPage } from "@/pages/PrivacyPage"
-import { OAuthConsentPage } from "@/pages/OAuthConsentPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
+import { RouteSkeleton } from "@/components/RouteSkeleton"
+
+// Named-export → default-export adapter for `React.lazy`. All page files
+// in this repo use named exports, so every dynamic import is translated
+// into a `{ default: ... }` shape. Lazy routes nested under `AppShell`
+// share the Suspense boundary mounted in `AppShell`; the handful of
+// routes outside it (about, privacy, oauth consent) get an individual
+// wrapper via `standalone()` below.
+const HistoryPage = lazy(() =>
+  import("@/pages/HistoryPage").then((m) => ({ default: m.HistoryPage })),
+)
+const BuilderPage = lazy(() =>
+  import("@/pages/BuilderPage").then((m) => ({ default: m.BuilderPage })),
+)
+const AboutPage = lazy(() =>
+  import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })),
+)
+const AdminExercisesPage = lazy(() =>
+  import("@/pages/AdminExercisesPage").then((m) => ({
+    default: m.AdminExercisesPage,
+  })),
+)
+const AdminExerciseEditPage = lazy(() =>
+  import("@/pages/AdminExerciseEditPage").then((m) => ({
+    default: m.AdminExerciseEditPage,
+  })),
+)
+const LibraryProgramsPage = lazy(() =>
+  import("@/pages/library/LibraryProgramsPage").then((m) => ({
+    default: m.LibraryProgramsPage,
+  })),
+)
+const ExerciseLibraryPage = lazy(() =>
+  import("@/pages/library/ExerciseLibraryPage").then((m) => ({
+    default: m.ExerciseLibraryPage,
+  })),
+)
+const ExerciseLibraryExercisePage = lazy(() =>
+  import("@/pages/library/ExerciseLibraryExercisePage").then((m) => ({
+    default: m.ExerciseLibraryExercisePage,
+  })),
+)
+const AdminFeedbackPage = lazy(() =>
+  import("@/pages/AdminFeedbackPage").then((m) => ({
+    default: m.AdminFeedbackPage,
+  })),
+)
+const AdminHomePage = lazy(() =>
+  import("@/pages/AdminHomePage").then((m) => ({ default: m.AdminHomePage })),
+)
+const AdminEnrichmentPage = lazy(() =>
+  import("@/pages/AdminEnrichmentPage").then((m) => ({
+    default: m.AdminEnrichmentPage,
+  })),
+)
+const AdminReviewPage = lazy(() =>
+  import("@/pages/AdminReviewPage").then((m) => ({
+    default: m.AdminReviewPage,
+  })),
+)
+const CycleSummaryPage = lazy(() =>
+  import("@/pages/CycleSummaryPage").then((m) => ({
+    default: m.CycleSummaryPage,
+  })),
+)
+const AccountPage = lazy(() =>
+  import("@/pages/AccountPage").then((m) => ({ default: m.AccountPage })),
+)
+const AchievementsPage = lazy(() =>
+  import("@/pages/AchievementsPage").then((m) => ({
+    default: m.AchievementsPage,
+  })),
+)
+const PrivacyPage = lazy(() =>
+  import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
+)
+const OAuthConsentPage = lazy(() =>
+  import("@/pages/OAuthConsentPage").then((m) => ({
+    default: m.OAuthConsentPage,
+  })),
+)
+
+const standalone = (element: React.ReactNode) => (
+  <Suspense fallback={<RouteSkeleton />}>{element}</Suspense>
+)
 
 export const router = createBrowserRouter([
   {
@@ -35,17 +108,17 @@ export const router = createBrowserRouter([
   },
   {
     path: "/about",
-    element: <AboutPage />,
+    element: standalone(<AboutPage />),
     errorElement: <RouteErrorFallback />,
   },
   {
     path: "/privacy",
-    element: <PrivacyPage />,
+    element: standalone(<PrivacyPage />),
     errorElement: <RouteErrorFallback />,
   },
   {
     path: "/oauth/consent",
-    element: <OAuthConsentPage />,
+    element: standalone(<OAuthConsentPage />),
     errorElement: <RouteErrorFallback />,
   },
   {
