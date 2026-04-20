@@ -170,7 +170,7 @@
   "historySheet.repsInfoBody": "Cette courbe montre votre meilleur nombre de répétitions par séance — le plus grand nombre de reps enregistré sur une série lors de cette séance.\n\nPour les exercices au poids du corps, suivre les reps max est un indicateur de progrès plus pertinent que le 1RM estimé.",
   "autoDetectLoading": "{{name}} : poids ajouté — débloquer la progression de charge ?",
   "autoDetectLoadingAction": "Débloquer",
-  "cycleUnavailable": "Impossible de démarrer le cycle — réseau instable. Votre séance démarre quand même.",
+  "cycleUnavailable": "Impossible de démarrer le cycle — la séance sera quand même enregistrée.",
   "historySheet.epleyInfoLabel": "Qu’est-ce que le 1RM estimé ?",
   "historySheet.epleyInfoTitle": "1RM estimé (formule d’Epley)",
   "historySheet.epleyInfoBody": "Cette courbe montre votre meilleur 1RM estimé par séance — la charge que vous pourriez probablement soulever une seule fois, déduite de ce que vous avez réellement enregistré (poids × répétitions).\n\nNous utilisons la formule d’Epley, très répandue en musculation. Ce n’est pas une mesure de laboratoire, mais ça aide à comparer les séances quand vous chargez plus lourd ou faites moins de répétitions."

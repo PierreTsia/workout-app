@@ -135,7 +135,8 @@ describe("resolveOrCreateActiveCycle", () => {
     })
   })
 
-  it("returns unavailable when genuinely offline (insert throws AND no orphan exists)", async () => {
+  it("returns unavailable with the thrown error's message when offline (insert throws AND no orphan)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     mockSupabaseCycleCalls({
       selectResponses: [
         { data: null, error: null },
@@ -146,10 +147,16 @@ describe("resolveOrCreateActiveCycle", () => {
 
     const result = await resolveOrCreateActiveCycle("prog-1", "user-1")
 
-    expect(result).toEqual({ kind: "unavailable" })
+    expect(result).toEqual({ kind: "unavailable", reason: "Failed to fetch" })
+    expect(warn).toHaveBeenCalledWith(
+      "[cycle:insert] threw",
+      expect.any(Error),
+    )
+    warn.mockRestore()
   })
 
-  it("returns unavailable when insert fails with non-race error and no cycle appears on recheck", async () => {
+  it("returns unavailable with the supabase error message for non-race insert failures (e.g. RLS)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     mockSupabaseCycleCalls({
       selectResponses: [
         { data: null, error: null },
@@ -157,16 +164,25 @@ describe("resolveOrCreateActiveCycle", () => {
       ],
       insertResult: {
         data: null,
-        error: { message: "RLS violation", code: "42501" },
+        error: { message: "new row violates row-level security policy", code: "42501" },
       },
     })
 
     const result = await resolveOrCreateActiveCycle("prog-1", "user-1")
 
-    expect(result).toEqual({ kind: "unavailable" })
+    expect(result).toEqual({
+      kind: "unavailable",
+      reason: "new row violates row-level security policy",
+    })
+    expect(warn).toHaveBeenCalledWith(
+      "[cycle:insert] failed",
+      expect.objectContaining({ code: "42501" }),
+    )
+    warn.mockRestore()
   })
 
   it("swallows a throw during the initial lookup and still creates a cycle", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     mockSupabaseCycleCalls({
       selectResponses: [
         async () => {
@@ -183,6 +199,30 @@ describe("resolveOrCreateActiveCycle", () => {
       kind: "ok",
       cycleId: "new-after-read-fail",
       source: "created",
+    })
+    expect(warn).toHaveBeenCalledWith(
+      "[cycle:lookup] select threw",
+      expect.any(Error),
+    )
+    warn.mockRestore()
+  })
+
+  it("falls back to lookup-stage error message when insert didn't run (no insertError recorded)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    mockSupabaseCycleCalls({
+      selectResponses: [
+        { data: null, error: { message: "initial lookup soft-failed" } },
+        { data: null, error: { message: "recheck also soft-failed" } },
+      ],
+      insertResult: new Error("insert blew up too"),
+    })
+
+    const result = await resolveOrCreateActiveCycle("prog-1", "user-1")
+
+    // insertError takes priority over lookup/recheck errors when present
+    expect(result).toEqual({
+      kind: "unavailable",
+      reason: "insert blew up too",
     })
   })
 })

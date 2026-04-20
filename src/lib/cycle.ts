@@ -13,24 +13,40 @@ export function deriveCycleIdForSession(
 
 export type ResolveCycleResult =
   | { kind: "ok"; cycleId: string; source: "existing" | "created" | "adopted" }
-  | { kind: "unavailable" }
+  | { kind: "unavailable"; reason: string }
 
 async function findOpenCycleId(
   programId: string,
   userId: string,
-): Promise<string | null> {
+  stage: "lookup" | "recheck",
+): Promise<{ id: string | null; error?: unknown }> {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("cycles")
       .select("id")
       .eq("program_id", programId)
       .eq("user_id", userId)
       .is("finished_at", null)
       .maybeSingle()
-    return data?.id ?? null
-  } catch {
-    return null
+    if (error) {
+      console.warn(`[cycle:${stage}] select failed`, error)
+      return { id: null, error }
+    }
+    return { id: data?.id ?? null }
+  } catch (e) {
+    console.warn(`[cycle:${stage}] select threw`, e)
+    return { id: null, error: e }
   }
+}
+
+function describeError(e: unknown): string {
+  if (!e) return "unknown"
+  if (typeof e === "string") return e
+  if (e instanceof Error) return e.message
+  if (typeof e === "object" && "message" in e) {
+    return String((e as { message: unknown }).message)
+  }
+  return "unknown"
 }
 
 /**
@@ -42,14 +58,21 @@ async function findOpenCycleId(
  * unique partial index `one_active_cycle_per_program` then blocks all future
  * inserts with 23505. This helper self-heals by always re-querying for an
  * open cycle before giving up, so orphans are adopted on the next call.
+ *
+ * On `unavailable`, `reason` carries the last error message seen (select or
+ * insert) so callers can surface it for diagnostics. All failures are also
+ * logged here with their full error object so RLS/5xx/etc. are debuggable.
  */
 export async function resolveOrCreateActiveCycle(
   programId: string,
   userId: string,
 ): Promise<ResolveCycleResult> {
-  const existing = await findOpenCycleId(programId, userId)
-  if (existing) return { kind: "ok", cycleId: existing, source: "existing" }
+  const existing = await findOpenCycleId(programId, userId, "lookup")
+  if (existing.id) {
+    return { kind: "ok", cycleId: existing.id, source: "existing" }
+  }
 
+  let insertError: unknown = undefined
   try {
     const { data, error } = await supabase
       .from("cycles")
@@ -59,12 +82,18 @@ export async function resolveOrCreateActiveCycle(
     if (!error && data?.id) {
       return { kind: "ok", cycleId: data.id, source: "created" }
     }
-  } catch {
-    // Network blip or aborted request — fall through to self-heal.
+    if (error) {
+      insertError = error
+      console.warn("[cycle:insert] failed", error)
+    }
+  } catch (e) {
+    insertError = e
+    console.warn("[cycle:insert] threw", e)
   }
 
-  const adopted = await findOpenCycleId(programId, userId)
-  if (adopted) return { kind: "ok", cycleId: adopted, source: "adopted" }
+  const adopted = await findOpenCycleId(programId, userId, "recheck")
+  if (adopted.id) return { kind: "ok", cycleId: adopted.id, source: "adopted" }
 
-  return { kind: "unavailable" }
+  const reason = describeError(insertError ?? adopted.error ?? existing.error)
+  return { kind: "unavailable", reason }
 }

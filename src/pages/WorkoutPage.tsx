@@ -862,13 +862,17 @@ export function WorkoutPage() {
       const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
       if (result.kind === "ok") {
         cycleId = result.cycleId
-        if (result.source !== "existing") {
-          queryClient.invalidateQueries({
-            queryKey: ["active-cycle", activeProgramId],
-          })
-        }
+        // Always invalidate: the React Query cache may be stale (e.g. another
+        // tab created the cycle after our last fetch) even when source is
+        // "existing". Without this, useActiveCycle can stay stuck on null.
+        queryClient.invalidateQueries({
+          queryKey: ["active-cycle", activeProgramId],
+        })
       } else {
-        console.warn("[WorkoutPage] Could not resolve/create active cycle")
+        console.warn(
+          "[WorkoutPage] Could not resolve/create active cycle:",
+          result.reason,
+        )
         toast.warning(t("cycleUnavailable"))
       }
     }
