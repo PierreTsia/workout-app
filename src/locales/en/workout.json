@@ -68,6 +68,7 @@
   "rir.setInfo": "#{{setNumber}} set: {{reps}} × {{weight}} {{unit}}",
   "rir.infoLabel": "Info",
   "muscleMap": "Muscle map",
+  "goToDay": "Go to {{day}}",
   "cycleProgress": "Cycle {{current}}/{{total}}",
   "cycleComplete": "Cycle complete!",
   "startNewCycle": "Start new cycle",

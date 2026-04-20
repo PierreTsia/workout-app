@@ -63,6 +63,7 @@ import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
+import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
 import { useAdvanceWorkoutDayOnDateRollover } from "@/hooks/useAdvanceWorkoutDayOnDateRollover"
 import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsToExerciseList"
 import { useCycleProgress } from "@/hooks/useCycle"
@@ -921,11 +922,7 @@ export function WorkoutPage() {
   }
 
   if (daysLoading) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <WorkoutHomeSkeleton />
   }
 
   if (!days || days.length === 0) {

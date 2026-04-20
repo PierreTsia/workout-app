@@ -45,10 +45,8 @@ export function WorkoutDayCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-5 transition-shadow",
-        isActive
-          ? "border-primary/60 shadow-lg shadow-primary/10"
-          : "border-border",
+        "rounded-xl border bg-card p-5",
+        isActive ? "border-primary/60" : "border-border",
       )}
     >
       {/* Header: date badge + cycle done */}
@@ -75,8 +73,8 @@ export function WorkoutDayCard({
         <h3 className="text-xl font-bold text-foreground">{day.label}</h3>
       </div>
 
-      {/* Body map (centered hero) */}
-      <div className="flex items-center justify-center">
+      {/* Body map (centered hero) — min-h reserves space so the fetch → map swap doesn't trigger CLS */}
+      <div className="flex min-h-[280px] items-center justify-center">
         {exercises && exercises.length > 0 ? (
           <BodyMap data={heatmapData} />
         ) : exercises ? null : (

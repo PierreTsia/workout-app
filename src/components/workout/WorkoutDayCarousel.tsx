@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useAtom } from "jotai"
+import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import type { WorkoutDay } from "@/types/database"
 import {
@@ -20,6 +21,7 @@ export function WorkoutDayCarousel({
   days,
   completedDayIds,
 }: WorkoutDayCarouselProps) {
+  const { t } = useTranslation("workout")
   const [session, setSession] = useAtom(sessionAtom)
   const [api, setApi] = useState<CarouselApi>()
   const [activeSlide, setActiveSlide] = useState(0)
@@ -81,7 +83,7 @@ export function WorkoutDayCarousel({
   }, [api, onSelect])
 
   return (
-    <div className="space-y-3">
+    <div className="min-h-[360px] space-y-3">
       <Carousel
         setApi={setApi}
         opts={carouselOpts}
@@ -103,17 +105,28 @@ export function WorkoutDayCarousel({
 
       <div className="flex items-center justify-center px-4">
         <div className="flex gap-1.5">
-          {days.map((day, idx) => (
-            <button
-              key={day.id}
-              type="button"
-              onClick={() => api?.scrollTo(idx)}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                idx === activeSlide ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30",
-              )}
-            />
-          ))}
+          {days.map((day, idx) => {
+            const isActive = idx === activeSlide
+            return (
+              <button
+                key={day.id}
+                type="button"
+                onClick={() => api?.scrollTo(idx)}
+                aria-label={t("goToDay", { day: day.label })}
+                aria-current={isActive ? "true" : undefined}
+                className="group flex h-6 w-6 items-center justify-center"
+              >
+                <span
+                  className={cn(
+                    "h-1.5 w-4 origin-left rounded-full transition-transform duration-200",
+                    isActive
+                      ? "scale-x-100 bg-primary"
+                      : "scale-x-[0.375] bg-muted-foreground/30",
+                  )}
+                />
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

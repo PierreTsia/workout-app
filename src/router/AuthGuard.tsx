@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Navigate, Outlet } from "react-router-dom"
 import type { User } from "@/types/auth"
 import { authAtom, authLoadingAtom } from "@/store/atoms"
+import { AuthDataBridge } from "@/router/AuthDataBridge"
 import { useNotificationPermission } from "@/hooks/useNotificationPermission"
 import {
   Dialog,
@@ -72,6 +73,7 @@ export function AuthGuard() {
 
   return (
     <>
+      <AuthDataBridge />
       <Outlet />
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent onInteractOutside={(e) => e.preventDefault()}>

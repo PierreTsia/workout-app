@@ -28,8 +28,8 @@ export function CycleProgressHeader({
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all"
-            style={{ width: `${pct}%` }}
+            className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300"
+            style={{ transform: `scaleX(${pct / 100})` }}
           />
         </div>
       </div>
