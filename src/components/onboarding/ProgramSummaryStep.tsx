@@ -83,7 +83,7 @@ export function ProgramSummaryStep({
                   <p className="text-xs text-muted-foreground">{day.muscle_focus}</p>
                 )}
               </CardHeader>
-              <CardContent className="space-y-2 pt-0">
+              <CardContent className="flex flex-col gap-2 pt-0">
                 {[...day.template_exercises]
                   .sort((a, b) => a.sort_order - b.sort_order)
                   .map((te) => {

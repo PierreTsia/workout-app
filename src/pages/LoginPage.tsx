@@ -64,7 +64,7 @@ export function LoginPage() {
           <p className="mx-auto mb-6 max-w-xl text-base leading-relaxed text-zinc-400 md:text-lg lg:mx-0">
             {t("auth:marketingSub")}
           </p>
-          <ul className="mx-auto max-w-md space-y-3 text-left sm:max-w-lg lg:mx-0 lg:max-w-lg">
+          <ul className="mx-auto max-w-md flex flex-col gap-3 text-left sm:max-w-lg lg:mx-0 lg:max-w-lg">
             {FEATURE_KEYS.map((n) => (
               <li key={n} className="flex gap-3 text-[15px] leading-snug text-zinc-300 md:text-base">
                 <Check
@@ -80,7 +80,7 @@ export function LoginPage() {
 
         <div className="mx-auto w-full max-w-md flex-1 lg:mx-0 lg:max-w-md">
           <Card className="border-white/10 bg-zinc-900/50 shadow-2xl backdrop-blur-md">
-            <CardHeader className="space-y-1 pb-2 text-center">
+            <CardHeader className="gap-1 pb-2 text-center">
               <p className="text-xs font-medium uppercase tracking-widest text-[#00c9a7]">
                 {t("auth:cardEyebrow")}
               </p>

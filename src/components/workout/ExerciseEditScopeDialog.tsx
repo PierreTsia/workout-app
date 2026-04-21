@@ -37,7 +37,7 @@ export function ExerciseEditScopeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="space-y-2">
+          <DialogDescription className="flex flex-col gap-2">
             <span className="block">{description}</span>
             {swapHint ? (
               <span className="block text-xs">{t("preSession.scopeSwapHistoryHint")}</span>

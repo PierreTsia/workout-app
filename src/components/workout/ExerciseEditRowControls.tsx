@@ -92,7 +92,7 @@ export function ExerciseEditRowControls({
     )
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2">
         <span className="text-2xl leading-none">{ex.emoji_snapshot}</span>
         <div className="min-w-0 flex-1">

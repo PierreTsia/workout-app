@@ -25,7 +25,7 @@ export function IOSInstallModal({ open, onOpenChange }: IOSInstallModalProps) {
           <DialogDescription>{t("iosInstallSubtitle")}</DialogDescription>
         </DialogHeader>
 
-        <ol className="mt-4 space-y-4">
+        <ol className="mt-4 flex flex-col gap-4">
           <li className="flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Share className="h-4 w-4" />

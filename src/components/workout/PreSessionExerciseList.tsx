@@ -31,7 +31,7 @@ export function PreSessionExerciseList({
   const currentExerciseIds = exercises.map((e) => e.exercise_id)
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {exercises.map((ex) => (
         <ExerciseEditRowControls
           key={ex.id}

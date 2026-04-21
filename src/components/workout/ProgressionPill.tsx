@@ -72,7 +72,7 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
           {shortLabel}
         </Badge>
       </PopoverTrigger>
-      <PopoverContent side="top" align="end" className="w-64 space-y-2 p-3 text-sm">
+      <PopoverContent side="top" align="end" className="w-64 flex flex-col gap-2 p-3 text-sm">
         <p className="font-medium">{t(suggestion.reasonKey)}</p>
         <p className="text-muted-foreground">
           {t(

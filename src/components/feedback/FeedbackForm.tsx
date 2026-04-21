@@ -169,7 +169,7 @@ export function FeedbackForm({
             <Separator />
 
             {/* Step 1 */}
-            <div className="rounded-lg border border-border p-4 space-y-3">
+            <div className="rounded-lg border border-border p-4 flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                   1
@@ -242,7 +242,7 @@ export function FeedbackForm({
               <div className="overflow-hidden">
               <div
                 className={cn(
-                  "rounded-lg border border-border p-4 space-y-4 transition-opacity duration-300",
+                  "rounded-lg border border-border p-4 flex flex-col gap-4 transition-opacity duration-300",
                   (whatIllustration || whatVideo || whatDescription)
                     ? "opacity-100"
                     : "opacity-0",
@@ -258,7 +258,7 @@ export function FeedbackForm({
                 </div>
 
                 {whatIllustration && (
-                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                  <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
                     <FormField
                       control={form.control}
                       name="illustration"
@@ -313,7 +313,7 @@ export function FeedbackForm({
                 )}
 
                 {whatVideo && (
-                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                  <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
                     <FormField
                       control={form.control}
                       name="video"
@@ -368,7 +368,7 @@ export function FeedbackForm({
                 )}
 
                 {whatDescription && (
-                  <div className="rounded-md bg-muted/30 p-3 space-y-3">
+                  <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
                     <FormField
                       control={form.control}
                       name="description"

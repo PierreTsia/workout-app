@@ -73,7 +73,7 @@ export function BalanceTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         <Skeleton className="h-40 w-full rounded-lg" />
         <Skeleton className="h-32 w-full rounded-lg" />
       </div>
@@ -93,7 +93,7 @@ export function BalanceTab() {
   if (!derived.currentOk) {
     return (
       <Card>
-        <CardContent className="space-y-2 pt-6">
+        <CardContent className="flex flex-col gap-2 pt-6">
           <p className="font-medium">{t("balance.notEnoughDataTitle")}</p>
           <p className="text-sm text-muted-foreground">
             {t("balance.notEnoughDataBody", { days: WINDOW_DAYS })}

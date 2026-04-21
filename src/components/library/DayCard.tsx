@@ -37,7 +37,7 @@ export function DayCard({ label, exerciseCount, muscleFocus, exercises }: DayCar
           </Badge>
         )}
       </CardHeader>
-      <CardContent className="space-y-1.5 pt-0">
+      <CardContent className="flex flex-col gap-1.5 pt-0">
         {[...exercises]
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((ex) => (

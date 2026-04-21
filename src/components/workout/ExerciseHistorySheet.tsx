@@ -84,7 +84,7 @@ export function ExerciseHistorySheet({
           "flex max-h-[92vh] flex-col rounded-t-2xl border-x-0 border-t border-b-0 p-0",
         )}
       >
-        <SheetHeader className="space-y-0 border-b border-border px-4 pb-3 pt-2 text-left">
+        <SheetHeader className="gap-0 border-b border-border px-4 pb-3 pt-2 text-left">
           <div className="flex items-center gap-2 pr-10">
             <BarChart3 className="h-5 w-5 shrink-0 text-primary" aria-hidden />
             <SheetTitle className="text-base font-semibold">
@@ -118,7 +118,7 @@ export function ExerciseHistorySheet({
               <span className="text-sm">{t("historySheet.loading")}</span>
             </div>
           ) : isError ? (
-            <div className="space-y-3 py-4">
+            <div className="flex flex-col gap-3 py-4">
               <p className="text-sm text-destructive">
                 {t("historySheet.loadError")}
               </p>

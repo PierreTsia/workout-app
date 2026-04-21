@@ -51,7 +51,7 @@ export function ExerciseSwapInlinePanel({
           />
         </TabsContent>
         <TabsContent value="all">
-          <div className="space-y-2 rounded-lg border bg-card p-3">
+          <div className="flex flex-col gap-2 rounded-lg border bg-card p-3">
             <Button
               type="button"
               variant="outline"

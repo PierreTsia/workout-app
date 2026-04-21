@@ -125,7 +125,7 @@ export function ExerciseHistoryTrendChart({
             : t("historySheet.chartAria", { min: ariaMin, max: ariaMax })
       }
     >
-      <CardHeader className="flex flex-row flex-wrap items-center justify-center gap-1.5 space-y-0 p-3 pb-2">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-center gap-1.5 p-3 pb-2">
         <CardTitle className="text-center text-xs font-normal leading-snug text-muted-foreground">
           {isDuration
             ? t("historySheet.chartCaptionDuration")
@@ -153,7 +153,7 @@ export function ExerciseHistoryTrendChart({
           <PopoverContent
             align="center"
             side="top"
-            className="max-w-[min(100vw-2rem,20rem)] space-y-2 text-sm"
+            className="max-w-[min(100vw-2rem,20rem)] flex flex-col gap-2 text-sm"
           >
             <p className="font-medium leading-tight text-foreground">
               {isDuration

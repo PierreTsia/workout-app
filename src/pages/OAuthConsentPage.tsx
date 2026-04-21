@@ -141,7 +141,7 @@ export function OAuthConsentPage() {
             </CardContent>
           ) : (
             <>
-              <CardHeader className="space-y-3 text-center">
+              <CardHeader className="gap-3 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#00c9a7]/20 bg-[#00c9a7]/10">
                   <ShieldCheck className="h-7 w-7 text-[#00c9a7]" />
                 </div>
@@ -158,7 +158,7 @@ export function OAuthConsentPage() {
                     <p className="mb-2 text-sm font-medium text-zinc-300">
                       {t("oauthConsentScopesLabel")}
                     </p>
-                    <ul className="space-y-1.5">
+                    <ul className="flex flex-col gap-1.5">
                       {scopes.map((scope) => (
                         <li
                           key={scope}
