@@ -662,7 +662,7 @@ export function SetsTable({
     )
 
     return (
-      <div className="space-y-1">
+      <div className="flex flex-col gap-1">
         <div className="grid grid-cols-[2rem_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
           <span className="text-center">{t("setNumber")}</span>
           <span className="text-center">{t("durationHeader")}</span>
@@ -787,7 +787,7 @@ export function SetsTable({
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-1">
       <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem] gap-2 px-1 text-xs font-medium text-muted-foreground">
         <span className="text-center">{t("setNumber")}</span>
         <span>{t("reps")}</span>

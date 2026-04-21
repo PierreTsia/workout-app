@@ -32,7 +32,7 @@ export function AchievementAccordion({ rows, onSelect }: AchievementAccordionPro
   })
 
   return (
-    <Accordion type="multiple" defaultValue={defaultOpenSlugs} className="space-y-2">
+    <Accordion type="multiple" defaultValue={defaultOpenSlugs} className="flex flex-col gap-2">
       {groupSlugs.map((slug) => {
         const tiers = groups[slug] ?? []
         const groupName =

@@ -19,7 +19,7 @@ export function InstructionSection({
         <Icon className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">{title}</span>
       </div>
-      <ul className="ml-6 list-disc space-y-0.5">
+      <ul className="ml-6 list-disc flex flex-col gap-0.5">
         {items.map((item, i) => (
           <li key={i} className="text-sm text-muted-foreground">
             {item}

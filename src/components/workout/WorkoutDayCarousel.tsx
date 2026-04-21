@@ -83,7 +83,7 @@ export function WorkoutDayCarousel({
   }, [api, onSelect])
 
   return (
-    <div className="min-h-[360px] space-y-3">
+    <div className="min-h-[360px] flex flex-col gap-3">
       <Carousel
         setApi={setApi}
         opts={carouselOpts}

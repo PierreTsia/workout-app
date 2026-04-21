@@ -41,7 +41,7 @@ export function BalanceInsights({
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{t("balance.insightsTitle")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-muted-foreground">
+      <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground">
         <p className="text-foreground">{t(`balance.summary.${band}`)}</p>
 
         {pairInsights.map((insight) => (

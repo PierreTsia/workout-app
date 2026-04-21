@@ -33,7 +33,7 @@ export function FeedbackDetailRow({ feedback }: FeedbackDetailRowProps) {
       {details.length > 0 && (
         <div>
           <p className="mb-1 font-medium text-foreground">{t("feedback.detail.errorDetails")}</p>
-          <ul className="space-y-1 text-muted-foreground">
+          <ul className="flex flex-col gap-1 text-muted-foreground">
             {details.map((d) => (
               <li key={d.field}>
                 <span className="font-medium text-foreground">{d.field}:</span>{" "}
@@ -47,7 +47,7 @@ export function FeedbackDetailRow({ feedback }: FeedbackDetailRowProps) {
       {otherTexts.length > 0 && (
         <div>
           <p className="mb-1 font-medium text-foreground">{t("feedback.detail.additionalText")}</p>
-          <ul className="space-y-1 text-muted-foreground">
+          <ul className="flex flex-col gap-1 text-muted-foreground">
             {otherTexts.map((entry) => (
               <li key={entry.label}>
                 <span className="font-medium text-foreground">{entry.label}:</span>{" "}

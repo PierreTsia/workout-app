@@ -1100,7 +1100,7 @@ export function WorkoutPage() {
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */
         <>
-          <div className={cn("flex-1 overflow-y-auto space-y-4", !isDayDoneInCycle && "pb-20")}>
+          <div className={cn("flex-1 flex flex-col overflow-y-auto gap-4", !isDayDoneInCycle && "pb-20")}>
             {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
               <CycleProgressHeader
                 completedCount={cycleProgress.completedDayIds.length}
@@ -1139,7 +1139,7 @@ export function WorkoutPage() {
           </div>
 
           {!isDayDoneInCycle && (
-            <div className="sticky bottom-0 space-y-2 border-t bg-background px-4 py-3">
+            <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
               {exercises.length > 0 && !canStartPreSession(exercises) ? (
                 <p className="text-center text-xs text-muted-foreground">
                   {t("preSession.startBlocked")}

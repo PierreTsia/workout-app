@@ -5,7 +5,7 @@
  */
 export function WorkoutHomeSkeleton() {
   return (
-    <div className="flex-1 space-y-4 overflow-hidden pb-20" aria-hidden="true">
+    <div className="flex-1 flex flex-col gap-4 overflow-hidden pb-20" aria-hidden="true">
       <div className="mx-4 flex items-center gap-3 pt-4">
         <div className="h-4 w-4 shrink-0 animate-pulse rounded-full bg-muted" />
         <div className="flex-1">
@@ -17,7 +17,7 @@ export function WorkoutHomeSkeleton() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <div className="px-4">
           <div className="h-[340px] animate-pulse rounded-xl border border-border bg-card" />
         </div>
@@ -31,7 +31,7 @@ export function WorkoutHomeSkeleton() {
         </div>
       </div>
 
-      <div className="space-y-2 px-4">
+      <div className="flex flex-col gap-2 px-4">
         {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
