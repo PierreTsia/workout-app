@@ -20,9 +20,8 @@ import { Analytics } from "@vercel/analytics/react"
 
 // Defer work that doesn't need to run before first paint:
 //   - Sentry SDK init (dynamic import keeps it out of the main bundle)
-//   - PostHog SDK init + autocapture
 //   - PWA service-worker registration
-// Trade-off: errors/events fired in the first ~2s of boot may be missed.
+// Trade-off: errors fired in the first ~2s of boot may be missed.
 const runWhenIdle = (cb: () => void) => {
   if (typeof window === "undefined") return
   const w = window as Window & {
@@ -80,19 +79,6 @@ handleVersionUpgrade()
       void import("@/lib/sentry")
         .then(({ initSentry }) => initSentry())
         .catch(() => {})
-
-      const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN
-      const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST
-      if (posthogApiKey && posthogHost) {
-        void import("posthog-js")
-          .then(({ default: posthog }) => {
-            posthog.init(posthogApiKey, {
-              api_host: posthogHost,
-              defaults: "2026-01-30",
-            })
-          })
-          .catch(() => {})
-      }
 
       void import("@/lib/swReloadOnUpdate")
         .then(({ listenForSwUpdate }) => listenForSwUpdate())
