@@ -7,13 +7,6 @@
     "hint": "Throws a test error to verify error reporting. Remove this section when you are done.",
     "button": "Break the world"
   },
-  "posthogTest": {
-    "heading": "PostHog test",
-    "hint": "Sends a test event to verify analytics. Check Live events in PostHog.",
-    "button": "Send test event",
-    "sent": "Test event sent",
-    "notConfigured": "PostHog is not initialized (check env vars)."
-  },
   "enrichment": {
     "title": "Image Enrichment",
     "navLabel": "Illustrations",

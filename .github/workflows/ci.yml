@@ -52,7 +52,9 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to work around supabase/cli#4535 (502 on `db reset`
+          # container restart). Fixed in 2.76.9+.
+          version: 2.76.9
 
       - name: Build, install browsers, start Supabase in parallel
         run: |
