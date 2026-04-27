@@ -99,7 +99,10 @@ describe("useCreatePAT", () => {
   it("maps 409 + duplicate_name to DuplicateNameError", async () => {
     mockInvoke.mockResolvedValueOnce({
       data: null,
-      error: makeFunctionsError(409, { error: "duplicate_name" }),
+      error: makeFunctionsError(409, {
+        error: 'A token named "dup" already exists.',
+        code: "duplicate_name",
+      }),
     })
 
     const { result, store } = setupHook()
@@ -115,7 +118,10 @@ describe("useCreatePAT", () => {
   it("maps 409 + quota_exceeded to QuotaExceededError", async () => {
     mockInvoke.mockResolvedValueOnce({
       data: null,
-      error: makeFunctionsError(409, { error: "quota_exceeded" }),
+      error: makeFunctionsError(409, {
+        error: "Maximum of 10 active tokens reached.",
+        code: "quota_exceeded",
+      }),
     })
 
     const { result, store } = setupHook()
@@ -129,9 +135,14 @@ describe("useCreatePAT", () => {
   })
 
   it("maps 403 to PATForbiddenError (anti-escalation)", async () => {
+    // Note: hook routes 403 by status alone, body shape doesn't matter for
+    // this case — but we still send the production shape for accuracy.
     mockInvoke.mockResolvedValueOnce({
       data: null,
-      error: makeFunctionsError(403, { error: "pat_derived_jwt" }),
+      error: makeFunctionsError(403, {
+        error:
+          "Cannot create a personal access token from a PAT-authenticated request",
+      }),
     })
 
     const { result, store } = setupHook()

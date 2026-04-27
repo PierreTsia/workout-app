@@ -45,14 +45,23 @@ export class PATForbiddenError extends Error {
   }
 }
 
+/**
+ * Pull the machine-readable error code from a `create-pat` error response.
+ * The Edge Function returns `{ error: <human message>, code: "duplicate_name"
+ * | "quota_exceeded" | ... }` — we route on `code` only. The `error` field is
+ * for display copy (which we override with our own i18n strings anyway).
+ */
 async function readErrorBodyCode(error: unknown): Promise<string | null> {
   const ctx = (error as { context?: unknown } | null)?.context as
     | Response
     | undefined
   if (!ctx || typeof ctx.clone !== "function") return null
   try {
-    const body = (await ctx.clone().json()) as { error?: unknown }
-    return typeof body.error === "string" ? body.error : null
+    const body = (await ctx.clone().json()) as {
+      code?: unknown
+      error?: unknown
+    }
+    return typeof body.code === "string" ? body.code : null
   } catch {
     return null
   }
