@@ -5,7 +5,11 @@ export const getWorkoutHistory: ToolDefinition = {
   name: "get_workout_history",
   description:
     "Get the user's workout session history. Returns sessions with exercises, sets, reps, weights, " +
-    "and PR flags. Filter by date range or exercise name. Defaults to the last 10 sessions.",
+    "and PR flags. Filter by date range or exercise name. Defaults to the last 10 sessions. " +
+    "WEIGHT CONVENTION: weight_logged is per-hand for unilateral equipment (dumbbells, kettlebells); " +
+    "multiply by 2 for total load and volume. Barbells, machines, plate-loaded, and cables are total. " +
+    "Bodyweight is 0 (exclude from volume). Always check `equipment` via get_exercise_details before " +
+    "computing volume.",
   inputSchema: {
     type: "object",
     properties: {

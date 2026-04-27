@@ -5,7 +5,11 @@ export const getTrainingStats: ToolDefinition = {
   name: "get_training_stats",
   description:
     "Get training statistics for a period. Returns session count, training frequency, " +
-    "volume breakdown by muscle group, and personal records. Defaults to the last 30 days.",
+    "volume breakdown by muscle group, and personal records. Defaults to the last 30 days. " +
+    "WEIGHT CONVENTION: per-set weight_logged is per-hand for unilateral equipment (dumbbells, " +
+    "kettlebells) and total for barbells, machines, plate-loaded, and cables. The volume figures " +
+    "returned here use the raw weight_logged value — when interpreting or reporting them, double the " +
+    "contribution of unilateral-equipment sets (check `equipment` via get_exercise_details when unsure).",
   inputSchema: {
     type: "object",
     properties: {
