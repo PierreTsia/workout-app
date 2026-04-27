@@ -9,7 +9,7 @@
 | Decision | Choice | Rationale |
 |---|---|---|
 | **Auth resolution** | New `file:supabase/functions/mcp/lib/auth.ts` with `resolveAuth(authHeader)` that branches on `glp_` prefix | Single point of branching. PAT path → service-role lookup + JWT mint; OAuth path → unchanged. Tools never see the difference. |
-| **PAT → Supabase context** | Edge Function mints a 5-min HS256 JWT signed with the **project `SUPABASE_JWT_SECRET`** (the same secret Supabase Auth uses) | **Vetoes the brief's "dedicated `MCP_PAT_JWT_SECRET`" leaning.** PostgREST validates incoming JWTs with the project signing key — a separately-keyed JWT cannot be validated without JWKS, which we don't run. The "dedicated secret = isolated blast radius" framing was security theater: the Edge Function already holds `SUPABASE_SERVICE_ROLE_KEY` (full RLS bypass), so the ability to forge user JWTs adds no real privilege. |
+| **PAT → Supabase context** | Edge Function mints a 5-min HS256 JWT signed with **the project's JWT signing secret** (same value Supabase Auth uses), exposed to the function via the `PAT_JWT_SECRET` env var | **Vetoes the brief's "dedicated `MCP_PAT_JWT_SECRET`" leaning.** PostgREST validates incoming JWTs with the project signing key — a separately-keyed JWT cannot be validated without JWKS, which we don't run. The "dedicated secret = isolated blast radius" framing was security theater: the Edge Function already holds `SUPABASE_SERVICE_ROLE_KEY` (full RLS bypass), so the ability to forge user JWTs adds no real privilege. We use the env var name `PAT_JWT_SECRET` (not `SUPABASE_JWT_SECRET`) because the Supabase CLI rejects any custom secret prefixed `SUPABASE_`; the value is identical, only the handle differs. |
 | **AAL claim on internal JWT** | Internal mint adds `aal: 'pat'` claim | Lets `create-pat` reject PAT-authenticated callers (defends against PAT-from-PAT escalation as a static property of the code, not just of the call graph). |
 | **Token format** | `glp_` + 32 chars from base58 alphabet (excludes `0/O/1/l/I`) | ~187 bits entropy. Copy-paste-safe. Prefix `glp_` is the discriminator for the auth router. |
 | **Hashing** | HMAC-SHA-256 with a server-side pepper (env var `PAT_PEPPER`) | Constant-time, no lib needed (Web Crypto API). Mirrors the HMAC pattern in `file:supabase/functions/_shared/unsubscribeToken.ts`. Pepper is mostly belt-and-suspenders given 187-bit entropy. |
@@ -30,7 +30,7 @@
 
 **The MCP function does not change tool signatures.** All five existing tools and `create_program` (six total) keep receiving a `SupabaseClient` from `createUserClient(authHeader)`. The auth refactor is hidden behind `resolveAuth` — tool code in `file:supabase/functions/mcp/tools/*.ts` is untouched. See `file:supabase/functions/mcp/index.ts:62-69` for the dispatch site.
 
-**`SUPABASE_JWT_SECRET` must be present in the MCP and `create-pat` Edge Function envs.** It's available by default for project-owned Edge Functions; the deploy doc lists it explicitly.
+**`PAT_JWT_SECRET` must be set on the MCP and `create-pat` Edge Function envs.** Its value is the project's JWT secret (Dashboard > Project Settings > API > JWT Settings > JWT Secret). It is **not** auto-injected — `SUPABASE_JWT_SECRET` is not part of the Supabase Edge runtime defaults, and the CLI blocks the `SUPABASE_` prefix on custom secrets, hence the renamed handle.
 
 **`PAT_PEPPER` is treated as immutable for the life of v0.** Rotating it invalidates every existing PAT (every stored hash becomes unverifiable). This is by design but must be documented; equivalent to "rotate the JWT secret = log everyone out". v1 may add a per-token salt if rotation becomes a real need.
 
@@ -132,7 +132,7 @@ classDiagram
 | Stored `token_hash` | `a3f5…` (64 hex chars) | `HMAC-SHA-256(plaintext, PAT_PEPPER)` over the **full plaintext including the `glp_` prefix** — what the user pastes in their MCP client config is exactly what gets hashed at verify time. No stripping, no canonicalization. |
 | Entropy | ~187 bits in body | 32 × log₂(58). Per-user prefix collision (only 4 base58 chars in `prefix` after `glp_`, so 58⁴ ≈ 11M space; with 10 tokens/user, P(collision) ≈ 0). Even if it happens, `name` (mandatory, unique per user) and `created_at` are the real differentiators in the UI. |
 
-### Internal JWT Claims (5-min, signed with `SUPABASE_JWT_SECRET`)
+### Internal JWT Claims (5-min, signed with `PAT_JWT_SECRET` — value = project JWT secret)
 
 ```json
 {
@@ -225,7 +225,7 @@ graph TD
 - **Source-level reminder**: a top-of-file comment in `pat.ts` must restate that `PAT_PEPPER` is operationally immutable and that any rotation invalidates every existing PAT. The migration carries the same warning, but the reminder belongs at the consumer site too — devs reading `pat.ts` to debug a "why is verify failing" issue need to see it.
 
 **`mintInternalJWT(userId)` — `mcp/lib/pat.ts`**
-- `jose.SignJWT` with HS256 + `SUPABASE_JWT_SECRET`.
+- Web Crypto HS256 + `PAT_JWT_SECRET` (env var holds the project's JWT secret value).
 - Sets `sub`, `role`, `aud`, `iss`, `iat`, `exp = iat + 300`, `aal: 'pat'`.
 - Returns the compact JWT string.
 
@@ -269,7 +269,7 @@ graph TD
 | User pastes a PAT from a different account | Same as above (hash mismatch) |
 | User pastes a malformed `glp_` token | Same as above |
 | User pastes an OAuth JWT (existing path) | `resolveAuth` doesn't see `glp_` prefix, falls through to existing JWT path. **Zero change in behavior.** |
-| `SUPABASE_JWT_SECRET` env var missing | `mintInternalJWT` throws on `jose.SignJWT.sign()`. PAT path 500s. OAuth path unaffected. Caught by deploy smoke tests. |
+| `PAT_JWT_SECRET` env var missing | `mintInternalJWT` throws via `requireEnv`. PAT path 500s. OAuth path unaffected. Caught by deploy smoke tests. |
 | `PAT_PEPPER` env var missing | `verifyPAT` throws on hashing. Same blast radius. |
 | `bumpLastUsedIfStale` fails (DB blip) | Logged, swallowed. Auth still succeeds. `last_used_at` becomes stale, not catastrophic. |
 | Two requests within the same minute | Only the first triggers a write. The second's `WHERE last_used_at < now() - 1 min` predicate evaluates false. Zero contention. |

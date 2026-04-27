@@ -91,10 +91,11 @@ export async function verifyPATAgainstDB(
 /**
  * Mint a short-lived internal JWT for PAT-authenticated MCP requests.
  *
- * Signed with the project's main `SUPABASE_JWT_SECRET` so PostgREST validates
- * it identically to a real Supabase Auth token. The `aal: 'pat'` claim is the
- * static marker that `create-pat` uses to reject PAT-derived JWTs (defends
- * against PAT-from-PAT escalation).
+ * Signed with the project's main JWT secret (exposed to this function via the
+ * `PAT_JWT_SECRET` env var) so PostgREST validates it identically to a real
+ * Supabase Auth token. The `aal: 'pat'` claim is the static marker that
+ * `create-pat` uses to reject PAT-derived JWTs (defends against PAT-from-PAT
+ * escalation).
  *
  * 5-min TTL is generous (a single MCP request never spans 5 minutes) and we
  * re-mint on every request — no clock-sync gymnastics required.

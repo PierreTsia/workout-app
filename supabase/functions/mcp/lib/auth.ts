@@ -1,7 +1,7 @@
 /**
  * Production wiring layer for the MCP authorization resolver.
  *
- * Reads env (`PAT_PEPPER`, `SUPABASE_JWT_SECRET`, `SUPABASE_URL`), builds
+ * Reads env (`PAT_PEPPER`, `PAT_JWT_SECRET`, `SUPABASE_URL`), builds
  * the service client + injected deps, and delegates the routing decision
  * to `resolveAuthLogic` in `authLogic.ts`. Splitting the env-touching
  * wiring from the pure logic keeps the security-critical routing decision
@@ -35,7 +35,12 @@ export async function resolveAuth(
   authHeader: string,
 ): Promise<SupabaseUserClient> {
   const pepper = requireEnv("PAT_PEPPER")
-  const jwtSecret = requireEnv("SUPABASE_JWT_SECRET")
+  // PAT_JWT_SECRET must hold the project's JWT secret (Dashboard > Project
+  // Settings > API > JWT Settings) so PostgREST validates the JWTs we mint
+  // here as if they came from Supabase Auth. We can't name this var
+  // SUPABASE_JWT_SECRET because the Supabase CLI rejects any custom secret
+  // prefixed `SUPABASE_` (reserved for auto-injected runtime vars).
+  const jwtSecret = requireEnv("PAT_JWT_SECRET")
   const supabaseUrl = requireEnv("SUPABASE_URL")
 
   const serviceClient = createServiceClient()
