@@ -23,11 +23,16 @@ describe("generatePAT", () => {
     expect(generatePAT().startsWith(PAT_PREFIX)).toBe(true)
   })
 
-  it("uses only base58 characters in the body (no 0/O/1/l/I)", () => {
-    const body = generatePAT().slice(PAT_PREFIX.length)
-    expect(body).toMatch(BASE58_ALPHABET_REGEX)
-    expect(body.length).toBe(PAT_BODY_LENGTH)
-    expect(body).not.toMatch(/[0O1lI]/)
+  it("uses only base58 characters in the body (excludes 0/O/I/l)", () => {
+    // Base58 excludes the visually-ambiguous quartet 0/O/I/l. `1` is INCLUDED
+    // — it's never confused with `l` in the output because `l` is excluded.
+    // Sample many to make this deterministic instead of flaking 43% of runs.
+    Array.from({ length: 50 }).forEach(() => {
+      const body = generatePAT().slice(PAT_PREFIX.length)
+      expect(body).toMatch(BASE58_ALPHABET_REGEX)
+      expect(body.length).toBe(PAT_BODY_LENGTH)
+      expect(body).not.toMatch(/[0OIl]/)
+    })
   })
 
   it("returns unique values across many calls", () => {
