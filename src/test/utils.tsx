@@ -27,6 +27,7 @@ import enPrivacy from "@/locales/en/privacy.json"
 import enAdmin from "@/locales/en/admin.json"
 import type { UseQueryResult } from "@tanstack/react-query"
 import enAchievements from "@/locales/en/achievements.json"
+import enApiTokens from "@/locales/en/api-tokens.json"
 
 export function createTestI18n() {
   const instance = i18n.createInstance()
@@ -52,6 +53,7 @@ export function createTestI18n() {
         privacy: enPrivacy,
         admin: enAdmin,
         achievements: enAchievements,
+        "api-tokens": enApiTokens,
       },
     },
     defaultNS: "common",
@@ -138,6 +140,7 @@ export function renderHookWithProviders<TResult, TProps = undefined>(
   return {
     ...renderHook(hook, { wrapper: Wrapper, ...hookOptions }),
     store,
+    queryClient,
     i18nInstance,
   }
 }

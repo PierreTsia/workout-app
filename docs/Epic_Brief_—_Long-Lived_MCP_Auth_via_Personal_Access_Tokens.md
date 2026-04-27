@@ -20,23 +20,27 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 
 **Pain points:**
 
-| Pain | Impact |
-|---|---|
-| Claude Desktop loses MCP auth ~hourly, requires full OAuth dance to reconnect | User reconnects multiple times per week — death by a thousand papercuts |
-| Cursor MCP setup tells users to paste a 1h JWT from `localStorage` | Manual rotation; broken overnight; documented workaround, not a real path |
-| No headless auth path exists | Any agent on a VPS or CI cannot integrate; Epic #231 listed this as an open Risk |
+
+| Pain                                                                                                       | Impact                                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Claude Desktop loses MCP auth ~hourly, requires full OAuth dance to reconnect                              | User reconnects multiple times per week — death by a thousand papercuts                     |
+| Cursor MCP setup tells users to paste a 1h JWT from `localStorage`                                         | Manual rotation; broken overnight; documented workaround, not a real path                   |
+| No headless auth path exists                                                                               | Any agent on a VPS or CI cannot integrate; Epic #231 listed this as an open Risk            |
 | External agent ecosystem (e.g. sudo-ceo/Iris) is building "refresh-token broker daemons" to work around it | We're externalizing the cost of a missing primitive instead of fixing it once at the source |
+
 
 ---
 
 ## Goals
 
-| Goal | Measure |
-|---|---|
+
+| Goal                                                 | Measure                                                                                                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Eliminate the hourly reconnect cycle for MCP clients | A PAT pasted as a Bearer keeps a Claude Desktop / Cursor / curl integration working for ≥ 90 days with zero user action |
-| Unblock headless-agent integrations | A VPS-hosted agent can authenticate to MCP without ever opening a browser after initial PAT provisioning |
-| Keep OAuth path intact for browser-resident apps | Zero behavioral change for users who use the existing in-app login or the OAuth + PKCE flow |
-| Provide revocation as the primary security mechanism | User can revoke a PAT from `/settings/api-tokens`; next request returns 401 within one request cycle |
+| Unblock headless-agent integrations                  | A VPS-hosted agent can authenticate to MCP without ever opening a browser after initial PAT provisioning                |
+| Keep OAuth path intact for browser-resident apps     | Zero behavioral change for users who use the existing in-app login or the OAuth + PKCE flow                             |
+| Provide revocation as the primary security mechanism | User can revoke a PAT from `/settings/api-tokens`; next request returns 401 within one request cycle                    |
+
 
 ---
 
@@ -50,12 +54,12 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 4. **Lifetimes** — user picks `30 / 90 / 365 / never`. Default = 90 days. The `never` option is allowed but the UI surfaces a warning ("non-expiring tokens are harder to audit; revisit every 6 months").
 5. **Single scope in v0** — every PAT inherits the full account scope (matches OAuth flow's current behavior). No new authorization model to reason about.
 6. **Documentation refresh** — kept in scope of this epic, not punted to a follow-up:
-   - **New** `docs/mcp-connect/api-tokens.md` — how to mint, set lifetime, paste in any MCP client; security warnings (one-time display, revocation flow).
-   - **New** `docs/mcp-connect/headless.md` — VPS / CI / agent recipe (PAT in env var, no browser).
-   - **Rewrite** `file:docs/mcp-connect/cursor.md` — the entire "Get your access token" section (which today walks the user through copying the JWT from `localStorage`) is **removed**, replaced with the PAT-mint flow. PAT becomes the only documented Cursor path.
-   - **Update** `file:docs/mcp-connect/claude-desktop.md` and `file:docs/mcp-connect/le-chat.md` — add a "Tired of reconnecting?" section pointing to the PAT path; OAuth flow stays as the default for browser-resident first-time setup.
-   - **Update** `file:docs/Epic_Brief_—_MCP-First_Architecture_#231.md` — mark the "fallback to Bearer token auth for personal use" Risks row as closed, with a back-reference to this epic.
-   - **Update** `file:docs/Tech_Plan_—_MCP-First_Architecture_#231.md` — short note in the Auth decisions section that PATs are now the recommended path for non-browser clients (link to this epic + the new `api-tokens.md`).
+  - **New** `docs/mcp-connect/api-tokens.md` — how to mint, set lifetime, paste in any MCP client; security warnings (one-time display, revocation flow).
+  - **New** `docs/mcp-connect/headless.md` — VPS / CI / agent recipe (PAT in env var, no browser).
+  - **Rewrite** `file:docs/mcp-connect/cursor.md` — the entire "Get your access token" section (which today walks the user through copying the JWT from `localStorage`) is **removed**, replaced with the PAT-mint flow. PAT becomes the only documented Cursor path.
+  - **Update** `file:docs/mcp-connect/claude-desktop.md` and `file:docs/mcp-connect/le-chat.md` — add a "Tired of reconnecting?" section pointing to the PAT path; OAuth flow stays as the default for browser-resident first-time setup.
+  - **Update** `file:docs/Epic_Brief_—_MCP-First_Architecture_#231.md` — mark the "fallback to Bearer token auth for personal use" Risks row as closed, with a back-reference to this epic.
+  - **Update** `file:docs/Tech_Plan_—_MCP-First_Architecture_#231.md` — short note in the Auth decisions section that PATs are now the recommended path for non-browser clients (link to this epic + the new `api-tokens.md`).
 
 ### Out of scope
 
@@ -95,14 +99,16 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|---|---|
+
+| Risk                                                                                                                                                                                                                                                                                                             | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **RLS strategy** — how do we mint a user-scoped Supabase client from a PAT? Three candidates: (a) `service_role` + manual `user_id` filter (RLS bypassed = footgun-ridden), (b) mint a short-lived Supabase JWT and forward it to `createClient()`, (c) admin API impersonation (overkill, latency, complexity). | **Resolved by Tech Plan: option (b) with the project `SUPABASE_JWT_SECRET`** (not a dedicated secret as initially leaned). PostgREST can only validate JWTs signed with the project key without JWKS infrastructure we don't run. The "dedicated secret = isolated blast radius" framing was security theater — the Edge Function already holds `service_role`, so JWT-forging power adds no real privilege. See `file:docs/Tech_Plan_—_Long-Lived_MCP_Auth_via_Personal_Access_Tokens.md`. |
-| **Hashing choice** — bcrypt is unworkable on a hot auth path (10-100ms/call); PATs are high-entropy random secrets, not low-entropy passwords. | Default to **HMAC-SHA-256 with a server-side pepper** (constant-time, no per-request bcrypt cost). Tech Plan to confirm pepper storage / rotation strategy. |
-| **Leaked PAT = full account compromise until revoked** | Default 90-day expiry, revocation UI, `last_used_at` visibility. Per-PAT rate-limit deferred to v1 — accepted risk. |
-| **`never`-lifetime tokens become zombies** | Allowed in v0 per product call, but the UI must warn ("non-expiring tokens are harder to audit"). Revisit in v1 if abuse data shows up. |
-| **PAT escalation** — using a PAT to mint another PAT would let a leak bootstrap permanence | The `/settings/api-tokens` create endpoint accepts only browser-session auth (Supabase JWT), never a PAT-authenticated request. |
-| **Hot-row contention on `last_used_at`** | Stateless write-if-stale: only update when the stored value is older than 1 minute. No in-memory debounce, no Redis, no cold-start state loss. |
+| **Hashing choice** — bcrypt is unworkable on a hot auth path (10-100ms/call); PATs are high-entropy random secrets, not low-entropy passwords.                                                                                                                                                                   | Default to **HMAC-SHA-256 with a server-side pepper** (constant-time, no per-request bcrypt cost). Tech Plan to confirm pepper storage / rotation strategy.                                                                                                                                                                                                                                                                                                                                 |
+| **Leaked PAT = full account compromise until revoked**                                                                                                                                                                                                                                                           | Default 90-day expiry, revocation UI, `last_used_at` visibility. Per-PAT rate-limit deferred to v1 — accepted risk.                                                                                                                                                                                                                                                                                                                                                                         |
+| `**never`-lifetime tokens become zombies**                                                                                                                                                                                                                                                                       | Allowed in v0 per product call, but the UI must warn ("non-expiring tokens are harder to audit"). Revisit in v1 if abuse data shows up.                                                                                                                                                                                                                                                                                                                                                     |
+| **PAT escalation** — using a PAT to mint another PAT would let a leak bootstrap permanence                                                                                                                                                                                                                       | The `/settings/api-tokens` create endpoint accepts only browser-session auth (Supabase JWT), never a PAT-authenticated request.                                                                                                                                                                                                                                                                                                                                                             |
+| **Hot-row contention on `last_used_at`**                                                                                                                                                                                                                                                                         | Stateless write-if-stale: only update when the stored value is older than 1 minute. No in-memory debounce, no Redis, no cold-start state loss.                                                                                                                                                                                                                                                                                                                                              |
+
 
 ---
 
@@ -118,3 +124,4 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 - `file:supabase/config.toml` — `[auth.oauth_server]` config
 - `file:supabase/functions/mcp/index.ts` — where the PAT-prefix branch lands
 - `file:supabase/functions/mcp/lib/supabaseClient.ts` — current `createUserClient` factory; will need a sibling or a unified factory
+
