@@ -112,10 +112,18 @@ Deno.serve(async (req) => {
     // is non-transactional — a concurrent burst could squeeze through 11-12
     // tokens. Acceptable per the tech plan: cap is product-soft, not a
     // security boundary.
+    //
+    // Only ACTIVE tokens count toward the quota: a row with `expires_at` in
+    // the past is dead weight from the user's POV (revocation is just hard
+    // delete, but expiry is silent), so we don't want it blocking a new
+    // token. Side effect: expired rows accumulate in the table until a
+    // future cleanup job — see follow-up tracked in the PAT epic.
+    const nowIso = new Date().toISOString()
     const { count, error: countErr } = await userClient
       .from("personal_access_tokens")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     if (countErr) {
       console.error("create-pat: quota check failed", countErr)
       return jsonResponse({ error: "Failed to check quota" }, 500)
