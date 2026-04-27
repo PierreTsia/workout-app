@@ -6,12 +6,16 @@ import type { User } from "@/types/auth"
 import { usePersonalAccessTokens } from "./usePersonalAccessTokens"
 
 const mockOrder = vi.fn()
-const mockSelect = vi.fn((..._args: unknown[]) => ({ order: mockOrder }))
-const mockFrom = vi.fn((..._args: unknown[]) => ({ select: mockSelect }))
+const mockSelect = vi.fn<(projection: string) => { order: typeof mockOrder }>(
+  () => ({ order: mockOrder }),
+)
+const mockFrom = vi.fn<(table: string) => { select: typeof mockSelect }>(
+  () => ({ select: mockSelect }),
+)
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
+    from: (table: string) => mockFrom(table),
   },
 }))
 
