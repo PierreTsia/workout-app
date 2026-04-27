@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createUserClient } from "./lib/supabaseClient.ts"
+import { resolveAuth, UnauthorizedError } from "./lib/auth.ts"
 import { toolRegistry } from "./tools/registry.ts"
 import { resourceRegistry } from "./resources/registry.ts"
 
@@ -55,7 +55,8 @@ async function handleRpc(
       const resource = resourceRegistry.get(uri)
       if (!resource) return fail(id, -32602, `Unknown resource: ${uri}`)
 
-      const result = await resource.handler(createUserClient(authHeader))
+      const client = await resolveAuth(authHeader)
+      const result = await resource.handler(client)
       return ok(id, result)
     }
 
@@ -65,7 +66,8 @@ async function handleRpc(
       const tool = toolRegistry.get(name)
       if (!tool) return fail(id, -32601, `Unknown tool: ${name}`)
 
-      const result = await tool.handler(args, createUserClient(authHeader))
+      const client = await resolveAuth(authHeader)
+      const result = await tool.handler(args, client)
       return ok(id, result)
     }
 
@@ -157,6 +159,13 @@ Deno.serve(async (req) => {
     if (result === null) return new Response(null, { status: 202, headers: corsHeaders })
     return json(result)
   } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      return json(
+        fail(null, -32000, err.message),
+        401,
+        { "WWW-Authenticate": WWW_AUTHENTICATE },
+      )
+    }
     const message = err instanceof Error ? err.message : String(err)
     return json(fail(null, -32700, `Parse error: ${message}`), 400)
   }
