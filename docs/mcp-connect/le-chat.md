@@ -26,10 +26,10 @@ Le Chat's Custom MCP Connector lets you authenticate with a static API Key, whic
 3. Click **Add Connector** (top-right)
 4. Switch to the **Custom MCP Connector** tab
 5. Fill in:
-   - **Connector Name**: `gymlogic`
-   - **Connector Server**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
-   - **Authentication Method**: select **API Key**
-   - **API Key**: paste your `glp_…` token from step 1
+  - **Connector Name**: `gymlogic`
+  - **Connector Server**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
+  - **Authentication Method**: select **API Key**
+  - **API Key**: paste your `glp_…` token from step 1
 6. Click **Connect** — Le Chat probes the server and saves the connector
 
 ### 3. Create an Agent with the Connector
@@ -40,7 +40,7 @@ Connectors don't work in regular chats — you need an Agent:
 2. Click **Create Agent**
 3. Give it a name (e.g. "Coach GymLogic")
 4. In the **Connectors** section, toggle on the **gymlogic** connector you just created
-5. (Optional) Add system instructions like: _"You are a personal training coach. Use the gymlogic tools for history, stats, catalog, and upcoming workouts; use `create_program` only after a clear dry-run preview and explicit user consent to apply."_
+5. (Optional) Add system instructions like: *"You are a personal training coach. Use the gymlogic tools for history, stats, catalog, and upcoming workouts; use `create_program` only after a clear dry-run preview and explicit user consent to apply."*
 6. Click **Save**
 
 ### 4. Start a conversation
@@ -68,6 +68,7 @@ The rest of the setup (Agent + chat) is identical.
 
 ## Available tools
 
+
 | Tool                    | What it does                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `search_exercises`      | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty                                          |
@@ -76,6 +77,7 @@ The rest of the setup (Agent + chat) is identical.
 | `get_training_stats`    | Volume by muscle group, personal records, session frequency                                                                  |
 | `get_upcoming_workouts` | Your programmed training days and exercises                                                                                  |
 | `create_program`        | **Create / replace your active program** (multi-day). Default **`dry_run: true`**; **`dry_run: false`** saves and activates. |
+
 
 **Six tools** — five reads, one write (`create_program`).
 
@@ -90,6 +92,7 @@ The rest of the setup (Agent + chat) is identical.
 
 ## Troubleshooting
 
+
 | Problem                                                                                 | Fix                                                                                                                                                                                                                                                                                       |
 | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `401 Unauthorized` from tool calls (API Key path)                                       | Token may have been revoked or expired. Generate a new PAT at `gymlogic.me/account/api-tokens` and update the connector.                                                                                                                                                                  |
@@ -98,6 +101,7 @@ The rest of the setup (Agent + chat) is identical.
 | `unauthorized request origin` error                                                     | Your browser must be on `www.gymlogic.me` (not `gymlogic.me` without www). The Supabase Site URL must match.                                                                                                                                                                              |
 | Tools not appearing in chat                                                             | You must chat via an **Agent** that has the gymlogic Connector enabled, not a regular chat                                                                                                                                                                                                |
 | Agent doesn't call tools                                                                | Make sure the Connector toggle is on in the Agent config. Try an explicit prompt like "Use gymlogic to show my last 5 workouts"                                                                                                                                                           |
+
 
 ## Headless / scripted access (outside Le Chat)
 
