@@ -82,6 +82,11 @@ const CycleSummaryPage = lazy(() =>
 const AccountPage = lazy(() =>
   import("@/pages/AccountPage").then((m) => ({ default: m.AccountPage })),
 )
+const AccountApiTokensPage = lazy(() =>
+  import("@/pages/AccountApiTokensPage").then((m) => ({
+    default: m.AccountApiTokensPage,
+  })),
+)
 const AchievementsPage = lazy(() =>
   import("@/pages/AchievementsPage").then((m) => ({
     default: m.AchievementsPage,
@@ -176,6 +181,10 @@ export const router = createBrowserRouter([
               {
                 path: "/account",
                 element: <AccountPage />,
+              },
+              {
+                path: "/account/api-tokens",
+                element: <AccountApiTokensPage />,
               },
               {
                 path: "/achievements",

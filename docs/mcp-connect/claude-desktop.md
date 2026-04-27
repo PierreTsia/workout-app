@@ -57,6 +57,31 @@ Try this sequence to test the full coaching experience:
 5. **"Based on all this, what should I focus on next?"** — Claude reasons across all the data
 6. **"Propose a revised 4-day split from that, show me a `create_program` dry run, then apply if I confirm"** — end-to-end adapt + save (replaces the current active program when applied)
 
+## Alternative: long-lived Personal Access Token (PAT)
+
+OAuth is the default and the smoothest path for the desktop app. If you prefer not to re-authenticate after long idle periods, or you are wiring Claude into a headless setup, you can authenticate with a **Personal Access Token** instead.
+
+1. Sign in at [gymlogic.me](https://gymlogic.me) and open [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens)
+2. Click **Create token**, give it a name (e.g. `Claude Desktop`), pick a lifetime, and copy the `glp_…` value (shown once)
+3. Use a static-bearer config instead of the OAuth connector:
+
+```json
+{
+  "mcpServers": {
+    "gymlogic": {
+      "url": "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR_PAT>"
+      }
+    }
+  }
+}
+```
+
+Some Claude Desktop builds do not expose a `headers` field for SSE servers in the UI. In that case, use the `mcp-remote` adapter below — it understands `--header`.
+
+Revoke a PAT at any time from `/account/api-tokens`; revocation is immediate and the next request returns 401.
+
 ## Alternative: config file with `mcp-remote`
 
 If the native connector UI doesn't work for your version, you can use the `mcp-remote` adapter instead. Requires Node.js 18+.
@@ -79,6 +104,24 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 
 Restart Claude Desktop after saving. `mcp-remote` will open your browser for OAuth on first use.
 
+To use a PAT instead of OAuth with `mcp-remote`, pass it as a header:
+
+```json
+{
+  "mcpServers": {
+    "gymlogic": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+        "--header",
+        "Authorization: Bearer <YOUR_PAT>"
+      ]
+    }
+  }
+}
+```
+
 > **Node version matters**: Claude Desktop uses the first `npx` on your PATH. If you use nvm, make sure your default Node is 18+ (`nvm alias default 20`). Node 12/14 will crash `mcp-remote`.
 
 ## Troubleshooting
@@ -87,6 +130,7 @@ Restart Claude Desktop after saving. `mcp-remote` will open your browser for OAu
 |---|---|
 | Connector shows "Not connected" | Click the connector and re-authenticate — the OAuth token may have expired |
 | OAuth consent page doesn't load | Make sure you're signed in to GymLogic at `www.gymlogic.me` first |
-| "Authentication required" errors | Disconnect and reconnect the connector to trigger a fresh OAuth flow |
+| "Authentication required" errors | Disconnect and reconnect the connector to trigger a fresh OAuth flow, or swap to a PAT (see above) for a longer-lived auth |
+| `401` with a PAT | Token was revoked, expired, or mistyped. Create a fresh one at `/account/api-tokens`. |
 | No hammer icon (config file method) | Check JSON syntax, verify Node.js 18+ is on your PATH (`node -v`) |
 | `mcp-remote` crashes with `SyntaxError` | Your Node.js is too old — run `nvm use 20` or use the full path `/opt/homebrew/opt/node@22/bin/npx` in the config |

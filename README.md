@@ -29,9 +29,11 @@ GymLogic exposes your training data as an [MCP (Model Context Protocol)](https:/
 
 **Six tools** and **one MCP Resource** (`exercise_catalog_schema`) exposing the domain taxonomy so agents understand the vocabulary without burning tool calls.
 
-The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, OAuth 2.1 for client auth, and RLS-scoped queries so each user only sees their own data (reads and writes).
+The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, **OAuth 2.1 for in-app client auth** *or* **Personal Access Tokens for headless / long-lived auth**, and RLS-scoped queries so each user only sees their own data (reads and writes).
 
-> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md), the [Phase 1 tech plan (as built)](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md), and the [agent → save → gym tech plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231_Phase_2_and_3.md) for architecture details.
+**Personal Access Tokens (PATs)** — `glp_…` bearer tokens, full-account scope, lifetimes 30 / 90 / 365 days or never, manual revocation. Create and manage them at **Account → Security & access → API tokens**. PATs are the recommended path for Cursor and any headless agent; OAuth remains the default for Claude Desktop and Le Chat.
+
+> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md), the [Phase 1 tech plan (as built)](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md), the [agent → save → gym tech plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231_Phase_2_and_3.md), and the [Personal Access Tokens tech plan](docs/Tech_Plan_—_Long-Lived_MCP_Auth_via_Personal_Access_Tokens.md) for architecture details.
 
 ---
 
@@ -93,6 +95,7 @@ The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC
 ### Auth & admin
 - **Google OAuth** via Supabase Auth; **AuthGuard** on protected routes
 - **OAuth 2.1 server** for MCP client authentication with consent page
+- **Personal Access Tokens** (`glp_…`) as long-lived MCP auth: create, list, revoke from `/account/api-tokens`; HMAC-SHA-256 hashed at rest with a server-side pepper; never re-shown after creation
 - **Admin**: exercise review, enrichment tools, feedback triage, gated by `admin_users`
 
 ---
@@ -224,7 +227,8 @@ With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits
 |---|---|
 | `generate-program` | AI program generation via Gemini |
 | `generate-workout` | Quick workout generation via Gemini |
-| `mcp` | MCP server (JSON-RPC 2.0, 6 tools + 1 resource; reads + `create_program`) |
+| `mcp` | MCP server (JSON-RPC 2.0, 6 tools + 1 resource; accepts both OAuth/session JWTs and Personal Access Tokens) |
+| `create-pat` | Mints a new Personal Access Token (browser-session JWT only — anti-escalation) |
 | `send-transactional-email` | Welcome and lifecycle emails via Resend |
 | `email-unsubscribe` | Email preference management |
 | `delete-account` | Account deletion with data cleanup |
@@ -275,7 +279,8 @@ src/
 
 supabase/
 ├── functions/
-│   ├── mcp/           # MCP server (JSON-RPC handler, tools, resources, formatters)
+│   ├── mcp/           # MCP server (JSON-RPC handler, tools, resources, formatters, PAT auth)
+│   ├── create-pat/    # Mints Personal Access Tokens (session-JWT only)
 │   ├── generate-program/
 │   ├── generate-workout/
 │   ├── send-transactional-email/
@@ -312,6 +317,7 @@ Core tables with row-level security scoped to the authenticated user:
 | `exercise_feedback` | User-reported content issues |
 | `transactional_email_log` | Email delivery tracking |
 | `email_preferences` | User email opt-in/out |
+| `personal_access_tokens` | Hashed PATs for long-lived MCP auth (HMAC-SHA-256 + server-side pepper; plaintext never stored) |
 
 See `supabase/migrations/` for the full schema.
 

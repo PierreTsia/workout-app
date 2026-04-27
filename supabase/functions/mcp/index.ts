@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createUserClient } from "./lib/supabaseClient.ts"
+import { resolveAuth, UnauthorizedError } from "./lib/auth.ts"
 import { toolRegistry } from "./tools/registry.ts"
 import { resourceRegistry } from "./resources/registry.ts"
 
@@ -55,7 +55,8 @@ async function handleRpc(
       const resource = resourceRegistry.get(uri)
       if (!resource) return fail(id, -32602, `Unknown resource: ${uri}`)
 
-      const result = await resource.handler(createUserClient(authHeader))
+      const client = await resolveAuth(authHeader)
+      const result = await resource.handler(client)
       return ok(id, result)
     }
 
@@ -65,7 +66,8 @@ async function handleRpc(
       const tool = toolRegistry.get(name)
       if (!tool) return fail(id, -32601, `Unknown tool: ${name}`)
 
-      const result = await tool.handler(args, createUserClient(authHeader))
+      const client = await resolveAuth(authHeader)
+      const result = await tool.handler(args, client)
       return ok(id, result)
     }
 
@@ -141,9 +143,20 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Parse the JSON body in a dedicated try so we can map invalid JSON to the
+  // JSON-RPC `-32700 Parse error` response. Once we have a parsed body, any
+  // further failure is an internal error, not a parse error — keeping these
+  // separate avoids lying to clients about what went wrong (and to operators
+  // reading the logs).
+  let body: { method?: string; params?: Params; id?: string | number | null } | unknown[]
   try {
-    const body = await req.json()
+    body = await req.json()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    return json(fail(null, -32700, `Parse error: ${message}`), 400)
+  }
 
+  try {
     if (Array.isArray(body)) {
       const results = await Promise.all(
         body.map((msg: { method: string; params?: Params; id?: string | number | null }) =>
@@ -153,11 +166,25 @@ Deno.serve(async (req) => {
       return json(results.filter(Boolean))
     }
 
-    const result = await handleRpc(body.method, body.params, body.id ?? null, authHeader)
+    const single = body as { method: string; params?: Params; id?: string | number | null }
+    const result = await handleRpc(single.method, single.params, single.id ?? null, authHeader)
     if (result === null) return new Response(null, { status: 202, headers: corsHeaders })
     return json(result)
   } catch (err) {
+    if (err instanceof UnauthorizedError) {
+      return json(
+        fail(null, -32000, err.message),
+        401,
+        { "WWW-Authenticate": WWW_AUTHENTICATE },
+      )
+    }
+    // Internal error — auth resolver throwing for non-401 reasons (env
+    // misconfig, DB blip), tool handler crashing, etc. Don't leak the
+    // exception message to the client; log the detail and return a generic
+    // -32603 + 500.
     const message = err instanceof Error ? err.message : String(err)
-    return json(fail(null, -32700, `Parse error: ${message}`), 400)
+    const name = err instanceof Error ? err.name : "unknown"
+    console.error("mcp: internal error", { name, message })
+    return json(fail(null, -32603, "Internal error"), 500)
   }
 })

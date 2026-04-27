@@ -3,9 +3,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
-import { ArrowLeft, UserRound } from "lucide-react"
+import { ArrowLeft, ChevronRight, KeyRound, UserRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { accountProfileSchema, type AccountProfileFormValues } from "@/components/account/accountProfileSchema"
 import { AccountValidationMessage } from "@/components/account/AccountValidationMessage"
@@ -41,7 +41,7 @@ import { BadgeShowcase } from "@/components/achievements/BadgeShowcase"
 const LBS_TO_KG = 0.453592
 
 export function AccountPage() {
-  const { t } = useTranslation(["account", "onboarding"])
+  const { t } = useTranslation(["account", "onboarding", "api-tokens"])
   const navigate = useNavigate()
   const user = useAtomValue(authAtom)
   const weightUnit = useAtomValue(weightUnitAtom)
@@ -313,7 +313,38 @@ export function AccountPage() {
         </form>
       </Form>
 
-      {/* 4. Danger zone */}
+      {/* 4. Security & access */}
+      <section
+        className="rounded-xl border border-border bg-card p-4"
+        aria-labelledby="account-security-heading"
+      >
+        <h2
+          id="account-security-heading"
+          className="mb-3 text-sm font-semibold text-foreground"
+        >
+          {t("api-tokens:accountSectionTitle")}
+        </h2>
+        <Link
+          to="/account/api-tokens"
+          aria-label={t("api-tokens:openFromAccountAria")}
+          className="-mx-2 flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <KeyRound className="h-4 w-4" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-sm font-medium text-foreground">
+              {t("api-tokens:accountSectionItemTitle")}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {t("api-tokens:accountSectionItemDescription")}
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        </Link>
+      </section>
+
+      {/* 5. Danger zone */}
       <section className="rounded-xl border border-destructive/40 bg-card p-4">
         <h2 className="mb-1 text-sm font-semibold text-destructive">{t("account:dangerZone")}</h2>
         <p className="mb-4 text-xs text-muted-foreground">{t("account:deleteAccountDescription")}</p>

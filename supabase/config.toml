@@ -287,6 +287,12 @@ verify_jwt = false
 [functions.delete-account]
 verify_jwt = false
 
+# Owns its own auth error shaping + the anti-escalation `aal != 'pat'` claim
+# check, so we let it run regardless of gateway verification (same posture as
+# delete-account).
+[functions.create-pat]
+verify_jwt = false
+
 # Database Webhook ingress — validates WEBHOOK_SECRET, not end-user JWT
 [functions.send-transactional-email]
 verify_jwt = false
