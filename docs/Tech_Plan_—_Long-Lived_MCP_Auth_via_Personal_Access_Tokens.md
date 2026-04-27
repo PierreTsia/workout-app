@@ -49,6 +49,19 @@
 ```sql
 -- supabase/migrations/2026MMDDHHMMSS_create_personal_access_tokens.sql
 
+-- !! IMPORTANT — OPERATIONAL INVARIANTS
+--
+-- 1. PAT_PEPPER (env var on the mcp + create-pat Edge Functions) is the HMAC
+--    key used to hash every plaintext token. It is treated as IMMUTABLE for
+--    the life of v0. Rotating PAT_PEPPER invalidates every existing token
+--    in this table (every stored hash becomes unverifiable). Equivalent to
+--    a mass revoke. Do not rotate without preparing users via comms.
+--
+-- 2. last_used_at is updated by the mcp Edge Function via SERVICE-ROLE
+--    client only — there is intentionally NO UPDATE RLS policy below. The
+--    `authenticated` role has no UPDATE path on this table. This prevents
+--    users from tampering with their own activity timestamps.
+
 create table personal_access_tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -79,9 +92,7 @@ create policy "users delete own tokens"
   on personal_access_tokens for delete
   using (auth.uid() = user_id);
 
--- No UPDATE policy by design.
--- last_used_at is bumped by the Edge Function via service-role only;
--- users have no legitimate write path beyond create/delete.
+-- Intentionally no UPDATE policy. See invariant (2) above.
 ```
 
 ### Mermaid ER
@@ -107,9 +118,10 @@ classDiagram
 ### Table Notes
 
 - **`token_hash` unique globally**, not just per user. Collision probability with 256-bit HMAC is cryptographically zero — the constraint doubles as a sanity check + lookup index.
-- **`(user_id, name)` unique** prevents naming collisions for the same user. Cross-user collisions are fine.
-- **No UPDATE RLS policy by design.** `last_used_at` updates happen via service-role from inside the MCP function. Users can't tamper with their own `last_used_at` (which would defeat any future anomaly detection).
+- **`(user_id, name)` unique** prevents naming collisions for the same user. Cross-user collisions are fine. Hard delete frees the constraint immediately, so revoke + re-create with the same name (e.g. "Cursor laptop") works as expected.
+- **No UPDATE RLS policy by design — service-role bypass is the only write path for `last_used_at`.** `authenticated` role has zero UPDATE permission on this table. The MCP function's `bumpLastUsedIfStale` call uses `SUPABASE_SERVICE_ROLE_KEY` (which bypasses RLS) for that single column update. Users can't tamper with their own activity timestamps — relevant if we ever add anomaly detection. **If you ever need a user-writable column on this table, add an explicit UPDATE policy with a `WITH CHECK` constraint scoped to that column only — don't open the door wider than necessary.**
 - **`ON DELETE CASCADE` from `auth.users`.** Account deletion automatically purges all PATs.
+- **`PAT_PEPPER` is operationally immutable.** See the inline migration comment. Rotating it invalidates every row's `token_hash`. v0 ships with this as a documented constraint, not a code-level enforcement.
 
 ### Token Format
 
@@ -117,8 +129,8 @@ classDiagram
 |---|---|---|
 | Plaintext (shown once) | `glp_4HxzKj7nMqRtY2Wp8VbN3CdFgHj5SkLm` | 4-char prefix + 32-char base58 body, alphabet `123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz` |
 | Stored `prefix` | `glp_4Hxz` | First 8 chars only, for UI display |
-| Stored `token_hash` | `a3f5…` (64 hex chars) | `HMAC-SHA-256(plaintext, PAT_PEPPER)` |
-| Entropy | ~187 bits in body | 32 × log₂(58) |
+| Stored `token_hash` | `a3f5…` (64 hex chars) | `HMAC-SHA-256(plaintext, PAT_PEPPER)` over the **full plaintext including the `glp_` prefix** — what the user pastes in their MCP client config is exactly what gets hashed at verify time. No stripping, no canonicalization. |
+| Entropy | ~187 bits in body | 32 × log₂(58). Per-user prefix collision (only 4 base58 chars in `prefix` after `glp_`, so 58⁴ ≈ 11M space; with 10 tokens/user, P(collision) ≈ 0). Even if it happens, `name` (mandatory, unique per user) and `created_at` are the real differentiators in the UI. |
 
 ### Internal JWT Claims (5-min, signed with `SUPABASE_JWT_SECRET`)
 
@@ -207,9 +219,10 @@ graph TD
 - On verification failure: throws an error mapped to `-32000 / 401` in `index.ts`. Zero behavioral change for clients with valid OAuth tokens.
 
 **`verifyPAT(token)` — `mcp/lib/pat.ts`**
-- Computes `hashPAT(token, PAT_PEPPER)`.
+- Computes `hashPAT(token, PAT_PEPPER)` over **the full bearer string the client pasted**, including the `glp_` prefix. Same input as at create time → same output. No stripping, no normalization. The function should defensively reject inputs that don't start with `glp_` (return `null` immediately) so that an OAuth JWT misrouted into this function can't be cross-checked against the hash table.
 - Service-role: `select id, user_id from personal_access_tokens where token_hash = $1 and (expires_at is null or expires_at > now()) limit 1`.
 - Returns `{ patId, userId } | null`.
+- **Source-level reminder**: a top-of-file comment in `pat.ts` must restate that `PAT_PEPPER` is operationally immutable and that any rotation invalidates every existing PAT. The migration carries the same warning, but the reminder belongs at the consumer site too — devs reading `pat.ts` to debug a "why is verify failing" issue need to see it.
 
 **`mintInternalJWT(userId)` — `mcp/lib/pat.ts`**
 - `jose.SignJWT` with HS256 + `SUPABASE_JWT_SECRET`.
@@ -222,12 +235,14 @@ graph TD
 
 **`functions/create-pat/index.ts`**
 - POST only; CORS mirrors `mcp/index.ts`.
-- Reads `Authorization`, validates the bearer is a real Supabase Auth JWT (decoded `aal !== 'pat'`). Reject 403 if the claim is present.
+- **JWT verification — two explicit steps:**
+  1. **Signature + expiry**: call `supabase.auth.getUser(jwt)` (this hits GoTrue, which validates the signature against the project signing key and rejects expired tokens). On failure → 401. This step alone proves the JWT is real and current; we never trust raw decode for the signature.
+  2. **AAL check**: decode the JWT claims (no need to re-verify the signature, step 1 did) and reject with 403 if `aal === 'pat'`. This blocks any PAT-derived JWT (which our internal `mintInternalJWT` always tags) from minting more PATs.
 - Body: `{ name: string, lifetime_days: number | null }`. Validate: `name` 1-64 chars, trimmed; `lifetime_days ∈ {30, 90, 365, null}`.
 - Quota: `select count(*) from personal_access_tokens where user_id = $userId` — reject 409 if `>= 10`.
-- Generate plaintext, hash, derive prefix, compute `expires_at`.
+- Generate plaintext, hash with `PAT_PEPPER` over the **full plaintext including the `glp_` prefix**, derive `prefix = plaintext.slice(0, 8)`, compute `expires_at`.
 - Insert via user-context client (RLS enforces `auth.uid() = user_id`).
-- Return `200 { token, prefix, expires_at }`. Plaintext is never logged.
+- Return `200 { token, prefix, expires_at }`. Plaintext is never logged anywhere — neither in `console.log`, request logs, nor error traces. Errors that would otherwise embed the token must redact it explicitly.
 - Unique-name conflict → 409 with a clear error code.
 
 **`AccountApiTokensPage.tsx`**
@@ -242,7 +257,7 @@ graph TD
 - On `never` selection: warn ("Non-expiring tokens are harder to audit. Revisit every 6 months and revoke unused ones.").
 
 **`PATListItem.tsx`**
-- Displays: name, prefix ("starts with `glp_4Hxz…`"), created, last-used relative ("Used 3 minutes ago" or "Never used"), expires relative ("Expires in 87 days" or "Never expires"), revoke.
+- Displays: name (primary identifier — mandatory and unique per user), prefix ("starts with `glp_4Hxz…`" — visual confirmation aid, not a unique identifier), created (absolute date, secondary differentiator on the off chance two tokens share a prefix), last-used relative ("Used 3 minutes ago" or "Never used"), expires relative ("Expires in 87 days" or "Never expires"), revoke.
 - Revoke: confirm dialog → hard delete via `useRevokePAT`.
 
 ### Failure Mode Analysis
@@ -259,6 +274,7 @@ graph TD
 | `bumpLastUsedIfStale` fails (DB blip) | Logged, swallowed. Auth still succeeds. `last_used_at` becomes stale, not catastrophic. |
 | Two requests within the same minute | Only the first triggers a write. The second's `WHERE last_used_at < now() - 1 min` predicate evaluates false. Zero contention. |
 | User exceeds 10 PATs (race) | Quota check is non-transactional, two concurrent creates *could* squeeze through. Acceptable: cap is product-soft, not security-critical. If we ever care, wrap in `SERIALIZABLE` or use an advisory lock. |
+| Authenticated user spams `create-pat` (delete + recreate loop, or quota-bounded create + revoke + create churn) | No app-level rate limit in v0. Mitigations in place: (1) cap of 10 active rows is enforced — the user can only churn within their own quota, no impact on others; (2) Supabase platform applies its default per-IP / per-JWT rate limits at the gateway; (3) each create is a single INSERT + one HMAC compute, no expensive work. If abuse appears in production, add a per-user "create within last minute" check (counts created_at) — defer to v1. |
 | Pepper rotated | Every existing PAT becomes unverifiable. Documented as "mass revoke equivalent". v0 ships with the operational note "do not rotate without preparing users". |
 | Edge Function compromised | Attacker can mint user JWTs **and** call DB with service-role. The PAT system doesn't widen this — already true today. |
 | Postgres compromised (read-only dump) | Attacker has hashes only. With 187-bit entropy + pepper not in the dump, brute force is infeasible. Pepper compromise on top changes nothing — brute force is still infeasible. |
