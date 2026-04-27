@@ -6,8 +6,8 @@ import type { User } from "@/types/auth"
 import { useRevokePAT } from "./useRevokePAT"
 
 const mockEq = vi.fn()
-const mockDelete = vi.fn(() => ({ eq: mockEq }))
-const mockFrom = vi.fn(() => ({ delete: mockDelete }))
+const mockDelete = vi.fn((..._args: unknown[]) => ({ eq: mockEq }))
+const mockFrom = vi.fn((..._args: unknown[]) => ({ delete: mockDelete }))
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
