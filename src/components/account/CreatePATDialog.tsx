@@ -50,12 +50,18 @@ type LifetimeValue = (typeof LIFETIME_VALUES)[number]
 // Lock the schema to camelCase i18n keys that exist in api-tokens.json. This
 // gives us field-level error messages without coupling react-hook-form to the
 // i18n instance.
+//
+// PAT_NAME_MAX_LENGTH must stay in sync with the backend cap defined in
+// supabase/functions/create-pat/createPatLogic.ts. If you change one, change
+// the other (or the backend will 400 inputs the UI happily accepted).
+const PAT_NAME_MAX_LENGTH = 64
+
 const formSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "validationNameRequired")
-    .max(80, "validationNameMax"),
+    .max(PAT_NAME_MAX_LENGTH, "validationNameMax"),
   lifetime: z.enum(LIFETIME_VALUES),
 })
 
@@ -187,7 +193,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
                         autoComplete="off"
                         spellCheck={false}
                         placeholder={t("api-tokens:namePlaceholder")}
-                        maxLength={80}
+                        maxLength={PAT_NAME_MAX_LENGTH}
                         {...field}
                       />
                     </FormControl>
