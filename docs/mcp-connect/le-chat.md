@@ -79,3 +79,16 @@ Connectors don't work in regular chats — you need an Agent:
 | "Authentication required" errors | Token may have expired — disconnect the Connector and reconnect |
 | Tools not appearing in chat | You must chat via an **Agent** that has the gymlogic Connector enabled, not a regular chat |
 | Agent doesn't call tools | Make sure the Connector toggle is on in the Agent config. Try an explicit prompt like "Use gymlogic to show my last 5 workouts" |
+
+## Headless / scripted access (outside Le Chat)
+
+Le Chat's Connector UI mandates OAuth 2.1 — it does not expose a static-bearer auth method, so you cannot plug a Personal Access Token directly into a Le Chat Connector. If you also want to query the MCP server from a headless agent, a CI job, or `curl`, create a **Personal Access Token** at [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens) and send it as a Bearer:
+
+```bash
+curl -X POST https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp \
+  -H "Authorization: Bearer <YOUR_PAT>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Tokens are revocable from the same page; revocation is immediate.
