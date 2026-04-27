@@ -86,6 +86,66 @@ function json(body: unknown, status = 200, extraHeaders?: Record<string, string>
 const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
 const WWW_AUTHENTICATE = `Bearer resource_metadata="${RESOURCE_METADATA_URL}"`
 
+// Heartbeat cadence for the GET-SSE listener stream. Keeps connections open
+// through proxy idle timeouts (Supabase / Cloudflare typically cut idle
+// streams around 90-100s) without burning excessive Edge Function compute.
+const SSE_HEARTBEAT_MS = 15_000
+
+// MCP Streamable HTTP (spec 2025-03-26) defines a GET endpoint that opens a
+// server-to-client SSE stream for unsolicited notifications/requests. We have
+// nothing to push (stateless tools, no server-initiated events), but strict
+// new-transport clients refuse to start when the GET returns 405. We return
+// an empty stream with periodic comment-only heartbeats to satisfy them.
+//
+// NOTE: this does NOT support the deprecated 2024-11-05 HTTP+SSE transport,
+// which expects every JSON-RPC response to be relayed back over the SSE
+// stream (stateful, session-correlated). A stateless Edge Function cannot
+// do that without external session storage. Legacy clients (e.g. OpenClaw
+// bundle-mcp 2026.3-2026.4, which probes GET first instead of POST as the
+// new spec recommends) will time out on initialize. They should either
+// upgrade to the new transport or use the agent-driven curl pattern.
+function handleSSE(authHeader: string): Response {
+  if (!authHeader.startsWith("Bearer ")) {
+    return json(
+      fail(null, -32000, "Authentication required"),
+      401,
+      { "WWW-Authenticate": WWW_AUTHENTICATE },
+    )
+  }
+
+  const encoder = new TextEncoder()
+  let interval: ReturnType<typeof setInterval> | undefined
+
+  const stream = new ReadableStream({
+    start(controller) {
+      // Initial comment flushes headers and confirms the stream is live.
+      controller.enqueue(encoder.encode(": stream open\n\n"))
+
+      interval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(": heartbeat\n\n"))
+        } catch {
+          // Stream already closed by the client; cancel() will clean up.
+        }
+      }, SSE_HEARTBEAT_MS)
+    },
+    cancel() {
+      if (interval !== undefined) clearInterval(interval)
+    },
+  })
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      // Hint to nginx-style proxies not to buffer the stream.
+      "X-Accel-Buffering": "no",
+    },
+  })
+}
+
 async function handleWellKnown(url: URL): Promise<Response | null> {
   const path = url.pathname
 
@@ -127,6 +187,14 @@ Deno.serve(async (req) => {
   if (req.method === "GET") {
     const wellKnown = await handleWellKnown(new URL(req.url))
     if (wellKnown) return wellKnown
+
+    // Streamable HTTP listener stream — only opened when the client explicitly
+    // negotiates SSE via Accept. Other GETs still get the spec-compliant 405.
+    const accept = req.headers.get("Accept") ?? ""
+    if (accept.includes("text/event-stream")) {
+      return handleSSE(req.headers.get("Authorization") ?? "")
+    }
+
     return json(fail(null, -32600, "Only POST is supported"), 405)
   }
 
