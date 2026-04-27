@@ -2,7 +2,7 @@
 
 Wire GymLogic's MCP server into [OpenClaw](https://docs.openclaw.ai) so any agent running on the OpenClaw runtime (e.g. [Iris / sudo-ceo](https://github.com/PierreTsia/sudo-ceo)) can read your training data and create or replace your active program with `create_program`.
 
-> ⚠️ **Pending [#266](https://github.com/PierreTsia/workout-app/issues/266)** — OpenClaw's strict Streamable-HTTP MCP transport opens an SSE stream that our edge function currently rejects with `405`. The wiring below is **valid for the day #266 ships**; until then you'll see `[bundle-mcp] failed to start server "gymlogic": Error: SSE error: Non-200 status code (405)` in the gateway logs. Cursor, Le Chat, and Claude Desktop all work today because they fall back to plain POST.
+> ⚠️ **Native `bundle-mcp` integration is not supported today.** OpenClaw 2026.3–2026.4 ships a `bundle-mcp` client that probes our endpoint with the legacy **HTTP+SSE transport (MCP protocol 2024-11-05)** — it expects every JSON-RPC response to be relayed back over a server-pushed SSE stream, which requires session-correlated stateful routing. Our MCP server runs on a stateless Supabase Edge Function and only implements the new **Streamable HTTP transport (2025-03-26)**, so registering `gymlogic` in `openclaw.json` will fail with `MCP server connection timed out after 30000ms`. **Use the [agent-driven `curl` pattern](#recommended-pattern-today--agent-driven-curl) below instead** — that's what [Iris (sudo-ceo)](https://github.com/PierreTsia/sudo-ceo) does in production. This page documents the eventual native config (which becomes correct the day OpenClaw upgrades to Streamable HTTP) but the verification step will time out today.
 
 ## Prerequisites
 
@@ -77,7 +77,7 @@ openclaw mcp list
 journalctl --user -u openclaw-gateway.service -n 30 --no-pager
 ```
 
-You're looking for `[bundle-mcp] starting server "gymlogic"` with no SSE errors. (Today, this is where you'll hit the [#266](https://github.com/PierreTsia/workout-app/issues/266) blocker.)
+You're looking for `[bundle-mcp] starting server "gymlogic"` with no SSE errors. **Today**, this is where you'll hit the legacy-transport timeout — expect `[bundle-mcp] failed to start server "gymlogic": Error: MCP server connection timed out after 30000ms` ~30s after boot. The PAT is correct, the URL is correct, the schema is correct — it's the transport mismatch described in the callout above. Skip native registration entirely and jump to [agent-driven `curl`](#recommended-pattern-today--agent-driven-curl).
 
 ## Available tools
 
@@ -129,16 +129,57 @@ Or template the file with `envsubst` and run `openclaw config validate` as a pre
 - **Revoke**: hit **Revoke** next to the token. Revocation is immediate and irreversible — the next request returns 401.
 - **Lost server / leaked token**: revoke the corresponding PAT. Any other tokens you created keep working.
 
+## Recommended pattern today — agent-driven `curl`
+
+While native `bundle-mcp` is blocked on the legacy transport (see top callout), agents on OpenClaw can still hit the MCP server directly using the built-in `exec` tool plus `curl`. This is exactly what [Iris (sudo-ceo)](https://github.com/PierreTsia/sudo-ceo) uses in production today, and it works for every tool we expose.
+
+### How it works
+
+1. Store the PAT as an env var on the OpenClaw host (e.g. `GYMLOGIC_PAT` in your service unit, `.env`, or shell profile).
+2. Don't register `gymlogic` under `mcp.servers` (it would only burn 30s at boot trying to handshake the legacy transport).
+3. Inject the MCP usage instructions into the agent's system prompt or skill registry — load [`skills/gymlogic-mcp/SKILL.md`](../../skills/gymlogic-mcp/SKILL.md) and tell the agent to call `exec` with `curl` against the MCP endpoint.
+
+The agent then runs requests like:
+
+```bash
+curl -sS -X POST https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp \
+  -H "Authorization: Bearer $GYMLOGIC_PAT" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Then for any tool call:
+
+```bash
+curl -sS -X POST https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp \
+  -H "Authorization: Bearer $GYMLOGIC_PAT" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_workout_history","arguments":{"limit":5}}}'
+```
+
+### Trade-offs vs native `bundle-mcp`
+
+| | Agent-driven `curl` (today) | Native `bundle-mcp` (future) |
+|---|---|---|
+| Tool list shown in OpenClaw UI | No | Yes |
+| Tool calls auto-validated against MCP schemas | No (agent shapes the JSON) | Yes |
+| Works with current OpenClaw (2026.3–2026.4) | **Yes** | No |
+| PAT rotation | Same env var, restart agent | Same env var, restart agent |
+| Audit trail of calls | Whatever your agent logs from `exec` | OpenClaw's own MCP log |
+
+Once OpenClaw ships Streamable-HTTP support, swap to the native registration above and drop the `curl` pattern.
+
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | Gateway crash-loops after a config edit | Run `openclaw config validate` (or `OPENCLAW_CONFIG_PATH=/path/to/file openclaw config validate`) — almost always schema drift caught here. |
 | `Unrecognized key: mcpServers` | The schema is `mcp.servers`, NOT `mcpServers`. Different from Cursor / Claude Desktop. |
-| `SSE error: Non-200 status code (405)` | Blocked on [#266](https://github.com/PierreTsia/workout-app/issues/266) — server-side SSE support not shipped yet. No client-side workaround. |
+| `[bundle-mcp] failed to start server "gymlogic": Error: MCP server connection timed out after 30000ms` | Expected today. OpenClaw's legacy HTTP+SSE client isn't compatible with our stateless edge function (see top callout). Remove `gymlogic` from `openclaw.json` and use the [`curl` pattern](#recommended-pattern-today--agent-driven-curl) until OpenClaw upgrades to Streamable HTTP. |
+| `SSE error: Non-200 status code (405)` | You're on a server build older than the GET-SSE listener fix. Self-hosted Supabase: redeploy `supabase/functions/mcp`. Hosted gymlogic.me users get this for free. |
 | `401 Authentication required` | Token revoked, expired, or mistyped. Create a fresh one at [/account/api-tokens](https://gymlogic.me/account/api-tokens) and swap it in. |
 | `gymlogic` not appearing in `openclaw mcp list` | Re-check the JSON path — top-level key must be `mcp.servers.gymlogic`, not `mcpServers.gymlogic`. Then restart the gateway. |
-| Tools missing in agent chats but `mcp mcp list` shows the server | Restart the agent process — connector lists are cached at agent boot. |
+| Tools missing in agent chats but `mcp list` shows the server | Restart the agent process — connector lists are cached at agent boot. |
 
 ## Headless / scripted access (outside OpenClaw)
 
