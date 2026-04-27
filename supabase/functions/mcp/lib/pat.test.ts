@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest"
-import { mintInternalJWT, verifyPATAgainstDB } from "./pat"
+import { describe, expect, it, vi } from "vitest"
+import { hashPAT } from "../../_shared/patFormat"
+import {
+  bumpLastUsedIfStale,
+  mintInternalJWT,
+  verifyPATAgainstDB,
+} from "./pat"
 
 const encoder = new TextEncoder()
 
@@ -196,5 +201,173 @@ describe("verifyPATAgainstDB", () => {
       supabase: stubClient,
     })
     expect(result).toEqual({ patId: "pat-uuid-123", userId: "user-uuid-456" })
+  })
+
+  it("queries `personal_access_tokens` filtered by hashPAT(token, pepper)", async () => {
+    // The single most important regression guard: if the lookup ever stops
+    // computing the hash from the same plaintext + pepper that create-pat
+    // will use, every PAT becomes silently unverifiable.
+    const PAT = "glp_4HxzKj7nMqRtY2Wp8VbN3CdFgHj5SkLm"
+    const PEPPER = "test-pepper"
+    const expectedHash = await hashPAT(PAT, PEPPER)
+
+    const fromSpy = vi.fn()
+    const eqSpy = vi.fn()
+    const orSpy = vi.fn()
+    const stubClient = {
+      from: (table: string) => {
+        fromSpy(table)
+        return {
+          select: (cols: string) => ({
+            eq: (col: string, val: string) => {
+              eqSpy(col, val)
+              return {
+                or: (filter: string) => {
+                  orSpy(filter)
+                  return {
+                    maybeSingle: () =>
+                      Promise.resolve({
+                        data: { id: "pat-1", user_id: "user-1" },
+                        error: null,
+                      }),
+                  }
+                },
+              }
+            },
+            // Reference cols so TS doesn't complain about unused param.
+            _cols: cols,
+          }),
+          update: () => ({
+            eq: () => ({ or: () => Promise.resolve({ data: null, error: null }) }),
+          }),
+        }
+      },
+    }
+
+    await verifyPATAgainstDB(PAT, { pepper: PEPPER, supabase: stubClient })
+
+    expect(fromSpy).toHaveBeenCalledWith("personal_access_tokens")
+    expect(eqSpy).toHaveBeenCalledWith("token_hash", expectedHash)
+    // Expiry filter must be applied server-side.
+    expect(orSpy).toHaveBeenCalledTimes(1)
+    expect(orSpy.mock.calls[0][0]).toMatch(/expires_at\.is\.null/)
+    expect(orSpy.mock.calls[0][0]).toMatch(/expires_at\.gt\./)
+  })
+})
+
+describe("bumpLastUsedIfStale", () => {
+  function makeStubClient(
+    spies: { update?: ReturnType<typeof vi.fn>; eq?: ReturnType<typeof vi.fn>; or?: ReturnType<typeof vi.fn> } = {},
+    result: { data: unknown; error: unknown } = { data: null, error: null },
+  ) {
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            or: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        }),
+        update: (patch: Record<string, unknown>) => {
+          spies.update?.(patch)
+          return {
+            eq: (col: string, val: string) => {
+              spies.eq?.(col, val)
+              return {
+                or: (filter: string) => {
+                  spies.or?.(filter)
+                  return Promise.resolve(result)
+                },
+              }
+            },
+          }
+        },
+      }),
+    }
+  }
+
+  it("issues UPDATE personal_access_tokens with last_used_at = <now ISO>", async () => {
+    const updateSpy = vi.fn()
+    const before = Date.now()
+    await bumpLastUsedIfStale("pat-1", makeStubClient({ update: updateSpy }))
+    const after = Date.now()
+
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+    const patch = updateSpy.mock.calls[0][0] as { last_used_at: string }
+    expect(patch).toHaveProperty("last_used_at")
+    const ts = Date.parse(patch.last_used_at)
+    expect(ts).toBeGreaterThanOrEqual(before)
+    expect(ts).toBeLessThanOrEqual(after)
+  })
+
+  it("filters by id = patId", async () => {
+    const eqSpy = vi.fn()
+    await bumpLastUsedIfStale("pat-uuid-99", makeStubClient({ eq: eqSpy }))
+
+    expect(eqSpy).toHaveBeenCalledWith("id", "pat-uuid-99")
+  })
+
+  it("applies the write-if-stale predicate (last_used_at IS NULL OR < threshold)", async () => {
+    const orSpy = vi.fn()
+    const before = Date.now()
+    await bumpLastUsedIfStale("pat-1", makeStubClient({ or: orSpy }), 60)
+
+    expect(orSpy).toHaveBeenCalledTimes(1)
+    const filter = orSpy.mock.calls[0][0] as string
+    expect(filter).toMatch(/last_used_at\.is\.null/)
+    expect(filter).toMatch(/last_used_at\.lt\./)
+
+    // Threshold should be ~60 seconds before now (within a few hundred ms).
+    const ltMatch = filter.match(/last_used_at\.lt\.([^,]+)/)
+    expect(ltMatch).not.toBeNull()
+    const thresholdTs = Date.parse(ltMatch![1])
+    expect(before - 60_000 - 500).toBeLessThan(thresholdTs)
+    expect(thresholdTs).toBeLessThan(before - 60_000 + 500)
+  })
+
+  it("respects a custom thresholdSeconds override", async () => {
+    const orSpy = vi.fn()
+    const before = Date.now()
+    await bumpLastUsedIfStale("pat-1", makeStubClient({ or: orSpy }), 5)
+
+    const filter = orSpy.mock.calls[0][0] as string
+    const ltMatch = filter.match(/last_used_at\.lt\.([^,]+)/)
+    const thresholdTs = Date.parse(ltMatch![1])
+    expect(before - 5_000 - 500).toBeLessThan(thresholdTs)
+    expect(thresholdTs).toBeLessThan(before - 5_000 + 500)
+  })
+
+  it("returns void (does NOT throw) when the DB returns an error", async () => {
+    const client = makeStubClient({}, { data: null, error: { message: "boom" } })
+    // Must NOT reject. Auth path depends on this — bump failure is logged
+    // and swallowed, never propagated.
+    await expect(bumpLastUsedIfStale("pat-1", client)).resolves.toBeUndefined()
+  })
+
+  it("does NOT throw when the DB chain rejects with a runtime exception", async () => {
+    // Contract guard: bumpLastUsedIfStale must NEVER throw. Auth latency
+    // tolerance and the fire-and-forget design depend on this — a regression
+    // here that lets exceptions escape would surface as auth-path failures
+    // when the DB blips.
+    const throwingClient = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            or: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        }),
+        update: () => ({
+          eq: () => ({
+            or: () => Promise.reject(new Error("network down")),
+          }),
+        }),
+      }),
+    }
+    await expect(
+      bumpLastUsedIfStale("pat-1", throwingClient),
+    ).resolves.toBeUndefined()
   })
 })

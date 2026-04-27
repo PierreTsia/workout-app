@@ -1,37 +1,29 @@
 /**
- * Authorization resolver for the MCP Edge Function.
+ * Production wiring layer for the MCP authorization resolver.
  *
- * Single point of branching between OAuth/Supabase JWT bearers and `glp_…`
- * Personal Access Tokens. Tools and resource handlers see a unified
- * user-context Supabase client regardless of the bearer flavor.
+ * Reads env (`PAT_PEPPER`, `SUPABASE_JWT_SECRET`, `SUPABASE_URL`), builds
+ * the service client + injected deps, and delegates the routing decision
+ * to `resolveAuthLogic` in `authLogic.ts`. Splitting the env-touching
+ * wiring from the pure logic keeps the security-critical routing decision
+ * unit-testable.
  *
- * - OAuth/Supabase JWT  →  forwarded as-is (zero behavioral change)
- * - `glp_…` PAT         →  verified against `personal_access_tokens`,
- *                          a 5-min internal JWT is minted with `aal: 'pat'`,
- *                          and `last_used_at` is bumped fire-and-forget.
- *
- * On PAT verification failure this throws `UnauthorizedError`. The MCP entry
- * point catches it at the request boundary and returns 401 +
+ * On PAT verification failure this throws `UnauthorizedError`. The MCP
+ * entry point catches it at the request boundary and returns 401 +
  * `WWW-Authenticate` so existing client retry logic surfaces the failure.
  */
 
 import { createServiceClient } from "../../_shared/supabase.ts"
-import { isPATFormat } from "../../_shared/patFormat.ts"
 import { createUserClient } from "./supabaseClient.ts"
 import {
   bumpLastUsedIfStale,
   mintInternalJWT,
   verifyPATAgainstDB,
 } from "./pat.ts"
+import { resolveAuthLogic } from "./authLogic.ts"
 
-const BEARER_PREFIX = "Bearer "
-
-export class UnauthorizedError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "UnauthorizedError"
-  }
-}
+// Re-export so existing callers (`mcp/index.ts`) that import
+// UnauthorizedError from auth.ts don't need to change.
+export { UnauthorizedError } from "./authLogic.ts"
 
 type SupabaseUserClient = ReturnType<typeof createUserClient>
 
@@ -42,43 +34,20 @@ type SupabaseUserClient = ReturnType<typeof createUserClient>
 export async function resolveAuth(
   authHeader: string,
 ): Promise<SupabaseUserClient> {
-  const token = stripBearer(authHeader)
-
-  if (!token || !isPATFormat(token)) {
-    return createUserClient(authHeader)
-  }
-
   const pepper = requireEnv("PAT_PEPPER")
   const jwtSecret = requireEnv("SUPABASE_JWT_SECRET")
   const supabaseUrl = requireEnv("SUPABASE_URL")
 
   const serviceClient = createServiceClient()
 
-  const verified = await verifyPATAgainstDB(token, {
-    pepper,
-    supabase: serviceClient,
+  return resolveAuthLogic<SupabaseUserClient>(authHeader, {
+    verifyPAT: (token) =>
+      verifyPATAgainstDB(token, { pepper, supabase: serviceClient }),
+    mintInternalJWT: (userId) =>
+      mintInternalJWT(userId, { jwtSecret, supabaseUrl }),
+    bumpLastUsed: (patId) => bumpLastUsedIfStale(patId, serviceClient),
+    createUserClient,
   })
-  if (!verified) {
-    throw new UnauthorizedError("Invalid or expired personal access token")
-  }
-
-  const internalJwt = await mintInternalJWT(verified.userId, {
-    jwtSecret,
-    supabaseUrl,
-  })
-
-  // Fire-and-forget. The auth response must NEVER be gated on this.
-  bumpLastUsedIfStale(verified.patId, serviceClient).catch((err) =>
-    console.warn("bumpLastUsedIfStale: unexpected throw", err),
-  )
-
-  return createUserClient(`${BEARER_PREFIX}${internalJwt}`)
-}
-
-function stripBearer(authHeader: string): string {
-  return authHeader.startsWith(BEARER_PREFIX)
-    ? authHeader.slice(BEARER_PREFIX.length).trim()
-    : authHeader.trim()
 }
 
 function requireEnv(name: string): string {

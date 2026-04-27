@@ -146,13 +146,22 @@ export async function bumpLastUsedIfStale(
   const now = new Date()
   const threshold = new Date(now.getTime() - thresholdSeconds * 1000)
 
-  const { error } = await supabase
-    .from("personal_access_tokens")
-    .update({ last_used_at: now.toISOString() })
-    .eq("id", patId)
-    .or(`last_used_at.is.null,last_used_at.lt.${threshold.toISOString()}`)
+  // Contract: this function NEVER throws. Both PostgREST-shaped `{ error }`
+  // results and runtime rejections (network failures, Deno bugs, …) are
+  // logged and swallowed. The auth resolver chains `.catch` on top as
+  // defense in depth, but the primary swallow happens here so the contract
+  // is local to this file.
+  try {
+    const { error } = await supabase
+      .from("personal_access_tokens")
+      .update({ last_used_at: now.toISOString() })
+      .eq("id", patId)
+      .or(`last_used_at.is.null,last_used_at.lt.${threshold.toISOString()}`)
 
-  if (error) {
-    console.warn("bumpLastUsedIfStale: update failed", error)
+    if (error) {
+      console.warn("bumpLastUsedIfStale: update failed", error)
+    }
+  } catch (err) {
+    console.warn("bumpLastUsedIfStale: unexpected exception", err)
   }
 }
