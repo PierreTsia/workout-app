@@ -44,9 +44,9 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 
 ### In scope
 
-1. **Token model + schema** — new `personal_access_tokens` table (`id, user_id, name, token_hash, prefix, last_used_at, expires_at nullable, revoked_at nullable, created_at`), plus server-side helpers for mint / verify / revoke. RLS on the table itself: a user can only read/revoke their own rows.
-2. **MCP Edge Function auth path** — in `file:supabase/functions/mcp/index.ts`: detect `glp_` prefix, hash and look up in `personal_access_tokens`, resolve to `user_id`, mint a user-scoped Supabase client. Fall through to existing JWT validation if not a PAT. Update `last_used_at` (debounced, ≤ 1 write/min/PAT to avoid hot-row contention). **PAT auth applies to `mcp/index.ts` only in v0** — other Bearer-protected Edge Functions (`generate-workout`, `send-transactional-email`, …) stay OAuth-only.
-3. **Settings UI** — new dedicated page `/settings/api-tokens`: list existing tokens (name, created, last used, expires), create flow with one-time plaintext display + clear "you will never see this again" copy, revoke action. Creation is allowed only from a browser-authenticated session (Supabase JWT) — never from a PAT-authenticated request, to prevent escalation.
+1. **Token model + schema** — new `personal_access_tokens` table (`id, user_id, name NOT NULL, token_hash, prefix, last_used_at, expires_at nullable, created_at`), plus server-side helpers for mint / verify / revoke. **Revocation = hard delete** (row removed) — no `revoked_at` column, no soft-delete footgun (`WHERE revoked_at IS NULL` filters that someone forgets to add). RLS on the table itself: a user can only read/delete their own rows. **Constraints**: max 10 active PATs per user (cap, easy to relax later), `name` is mandatory (so the list stays readable as "Cursor laptop" / "Claude desktop work" / "Iris VPS").
+2. **MCP Edge Function auth path** — in `file:supabase/functions/mcp/index.ts`: detect `glp_` prefix, hash and look up in `personal_access_tokens`, resolve to `user_id`, mint a user-scoped Supabase client. Fall through to existing JWT validation if not a PAT. Update `last_used_at` only when the stored value is older than 1 minute (stateless write-if-stale, no in-memory debounce, no cold-start state loss). **PAT auth applies to `mcp/index.ts` only in v0** — other Bearer-protected Edge Functions (`generate-workout`, `send-transactional-email`, …) stay OAuth-only.
+3. **Settings UI** — new dedicated page `/settings/api-tokens`: list existing tokens (name, created, last used, expires), create flow with one-time plaintext display + clear "you will never see this again" copy, revoke action (hard delete with explicit confirmation). Creation is allowed only from a browser-authenticated session (Supabase JWT) — never from a PAT-authenticated request, to prevent escalation. **No regeneration in v0** — revoke + recreate; same-name reuse is fine.
 4. **Lifetimes** — user picks `30 / 90 / 365 / never`. Default = 90 days. The `never` option is allowed but the UI surfaces a warning ("non-expiring tokens are harder to audit; revisit every 6 months").
 5. **Single scope in v0** — every PAT inherits the full account scope (matches OAuth flow's current behavior). No new authorization model to reason about.
 6. **Documentation refresh** — kept in scope of this epic, not punted to a follow-up:
@@ -64,15 +64,28 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 - **Fine-grained scopes** (`workouts:read`, `programs:write`, etc.). v0 ships a single full-account scope; v1 adds granularity once we know which clients need what.
 - **Per-PAT rate limiting** — accepted risk: a leaked PAT can be abused at full request rate until manually revoked. Mitigated by revocation + `last_used_at` visibility. Revisit in v1 if abuse is observed.
 - **IP allowlisting on PATs** — second iteration.
-- **Rich audit log** (IP, user-agent per call). v0 = `last_used_at` only.
+- **Rich audit log** (IP, user-agent per call) — v0 = `last_used_at` only.
+- **PAT history / revoked-token log** — hard delete in v0; a separate `token_audit` table is v1 territory if a real need surfaces.
+- **PAT regeneration** (mint a new secret while keeping the same row / name) — not in v0; revoke + recreate.
 - **Org / team accounts**, auto-rotation on anomaly, replacing OAuth — none of these in scope.
+
+---
+
+## Migration & Backwards Compatibility
+
+**No migration required.** PATs are purely additive. Existing OAuth 2.1 + PKCE sessions remain valid until their natural expiry (1h JWT + refresh token rotation as today). The two auth paths coexist indefinitely:
+
+- Users who use the in-app Google login or the OAuth consent flow see zero change.
+- Users who paste an OAuth access token in their MCP client config (the Cursor `localStorage` workaround) keep working until that token expires — at which point the updated `cursor.md` doc steers them to the PAT path instead of telling them to grab another 1h JWT.
+- No DB migration of existing user rows; the new `personal_access_tokens` table is empty on day one and only populates as users explicitly mint tokens.
+- Once a user has minted a PAT, **both** auth paths remain available to them — there is no "you must choose one" lock-in.
 
 ---
 
 ## Success Criteria
 
 - **Numeric:** A PAT minted with the default lifetime (90 days) authenticates an MCP client for **≥ 90 consecutive days** with zero user re-auth, zero browser dance.
-- **Numeric:** Revocation is effective within **one request cycle** — the next PAT-authenticated MCP call after `revoked_at` is set returns 401.
+- **Numeric:** Revocation is effective within **one request cycle** — the next PAT-authenticated MCP call after the row is deleted returns 401.
 - **Qualitative:** Pasting a PAT as a Bearer in Claude Desktop / Cursor / Le Chat / curl Just Works, with no client-side change required.
 - **Qualitative:** Headless agents (e.g. sudo-ceo/Iris) can drop their refresh-token-broker workaround and ship a static Bearer config instead.
 - **Qualitative:** Browser-flow users see zero behavioral change — existing in-app login and OAuth + PKCE flow are untouched.
@@ -84,12 +97,12 @@ Add GitHub-style **Personal Access Tokens (PATs)** as a long-lived auth path for
 
 | Risk | Mitigation |
 |---|---|
-| **RLS strategy unclear** — how do we mint a user-scoped Supabase client from a PAT? Three candidates (service_role + manual filter, mint a Supabase JWT signed with `JWT_SECRET`, admin API impersonation), each with different security posture. | Spike this in the Tech Plan **before** any other workstream. The chosen mechanism gates everything else. |
-| **Hashing choice** — bcrypt is unworkable on a hot auth path (10-100ms/call); PATs are high-entropy random secrets, not low-entropy passwords. | Tech Plan defaults to **HMAC-SHA-256 with a server-side pepper** (constant-time, no per-request bcrypt cost). Document the rationale. |
+| **RLS strategy** — how do we mint a user-scoped Supabase client from a PAT? Three candidates: (a) `service_role` + manual `user_id` filter (RLS bypassed = footgun-ridden), (b) mint a short-lived Supabase JWT signed with a **dedicated `MCP_PAT_JWT_SECRET`** and forward it to `createClient()` (RLS pipeline reused as-is, blast radius isolated from the main JWT secret), (c) admin API impersonation (overkill, latency, complexity). | **Leaning toward (b)**: clean, reuses the existing RLS pipeline, dedicated rotatable secret. Tech Plan confirms or vetoes — this gates everything else. |
+| **Hashing choice** — bcrypt is unworkable on a hot auth path (10-100ms/call); PATs are high-entropy random secrets, not low-entropy passwords. | Default to **HMAC-SHA-256 with a server-side pepper** (constant-time, no per-request bcrypt cost). Tech Plan to confirm pepper storage / rotation strategy. |
 | **Leaked PAT = full account compromise until revoked** | Default 90-day expiry, revocation UI, `last_used_at` visibility. Per-PAT rate-limit deferred to v1 — accepted risk. |
 | **`never`-lifetime tokens become zombies** | Allowed in v0 per product call, but the UI must warn ("non-expiring tokens are harder to audit"). Revisit in v1 if abuse data shows up. |
 | **PAT escalation** — using a PAT to mint another PAT would let a leak bootstrap permanence | The `/settings/api-tokens` create endpoint accepts only browser-session auth (Supabase JWT), never a PAT-authenticated request. |
-| **Hot-row contention on `last_used_at`** | Debounce updates to ≤ 1/min/PAT. |
+| **Hot-row contention on `last_used_at`** | Stateless write-if-stale: only update when the stored value is older than 1 minute. No in-memory debounce, no Redis, no cold-start state loss. |
 
 ---
 
