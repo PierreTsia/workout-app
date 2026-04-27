@@ -16,6 +16,8 @@ GymLogic exposes your training data as an [MCP (Model Context Protocol)](https:/
 - [Le Chat (Mistral)](docs/mcp-connect/le-chat.md)
 - [Claude Desktop](docs/mcp-connect/claude-desktop.md)
 
+**Building an agent / runtime?** The [`skills/gymlogic-mcp/SKILL.md`](skills/gymlogic-mcp/SKILL.md) drop-in prompt context covers tool intent mapping, the **per-side weight convention for unilateral equipment**, and edge cases — load it into your agent's system prompt or skill registry alongside the connector.
+
 **Available tools:**
 
 | Tool | What it does |
