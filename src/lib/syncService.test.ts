@@ -140,6 +140,10 @@ let enqueueSessionFinish: typeof import("./syncService").enqueueSessionFinish
 let drainQueue: typeof import("./syncService").drainQueue
 let scheduleImmediateDrain: typeof import("./syncService").scheduleImmediateDrain
 let filterValidProgressionTargets: typeof import("./syncService").filterValidProgressionTargets
+let discardSessionQueue: typeof import("./syncService").discardSessionQueue
+let markSessionCancelled: typeof import("./syncService").markSessionCancelled
+let pruneCancelledSessions: typeof import("./syncService").pruneCancelledSessions
+let peekSessionRealId: typeof import("./syncService").peekSessionRealId
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -198,6 +202,10 @@ describe("SyncService", () => {
     drainQueue = mod.drainQueue
     scheduleImmediateDrain = mod.scheduleImmediateDrain
     filterValidProgressionTargets = mod.filterValidProgressionTargets
+    discardSessionQueue = mod.discardSessionQueue
+    markSessionCancelled = mod.markSessionCancelled
+    pruneCancelledSessions = mod.pruneCancelledSessions
+    peekSessionRealId = mod.peekSessionRealId
   })
 
   afterEach(() => {
@@ -692,6 +700,155 @@ describe("SyncService", () => {
       // Queue should remain untouched — no userId means no drain
       const queue = readQueue()
       expect(queue).toHaveLength(1)
+    })
+  })
+
+  // =========================================================================
+  // Cancel session — deny-list & queue surgery
+  // =========================================================================
+
+  describe("discardSessionQueue", () => {
+    it("removes only items matching the realSessionId", () => {
+      enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
+      enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
+      expect(readQueue()).toHaveLength(2)
+
+      discardSessionQueue(DETERMINISTIC_UUID)
+
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("preserves items belonging to other sessions", () => {
+      enqueueSetLog(makeSetLogPayload())
+
+      const queueRaw = JSON.parse(
+        localStorage.getItem(`offlineQueue:${USER_ID}`)!,
+      )
+      queueRaw.push({
+        type: "set_log",
+        payload: makeSetLogPayload({ setNumber: 9 }),
+        realSessionId: "other-real-id",
+        queuedAt: Date.now(),
+        dedupeComposite: "other|x|9",
+        fingerprint: "other-fp",
+      })
+      localStorage.setItem(
+        `offlineQueue:${USER_ID}`,
+        JSON.stringify(queueRaw),
+      )
+
+      discardSessionQueue(DETERMINISTIC_UUID)
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].realSessionId).toBe("other-real-id")
+    })
+
+    it("erases the matching sessionMeta entry", () => {
+      enqueueSetLog(makeSetLogPayload())
+      expect(readSessionMeta()["local-session-1"]).toBeDefined()
+
+      discardSessionQueue(DETERMINISTIC_UUID)
+
+      expect(readSessionMeta()["local-session-1"]).toBeUndefined()
+    })
+
+    it("is a no-op when there is no auth", () => {
+      enqueueSetLog(makeSetLogPayload())
+      mockStore.get.mockImplementation((atom: unknown) => {
+        if (atom === AUTH_ATOM) return null
+        return undefined
+      })
+
+      discardSessionQueue(DETERMINISTIC_UUID)
+
+      expect(readQueue()).toHaveLength(1)
+    })
+
+    it("updates queueSyncMeta pendingCount to reflect the new queue size", () => {
+      enqueueSetLog(makeSetLogPayload())
+      mockStore.set.mockClear()
+
+      discardSessionQueue(DETERMINISTIC_UUID)
+
+      const setCall = mockStore.set.mock.calls.find(
+        ([atom]) => atom === QUEUE_SYNC_META_ATOM,
+      )
+      expect(setCall).toBeDefined()
+    })
+  })
+
+  describe("markSessionCancelled + pruneCancelledSessions", () => {
+    it("appends an entry the first time a session is marked", () => {
+      vi.setSystemTime(new Date("2026-04-30T10:00:00Z"))
+
+      markSessionCancelled("real-1")
+
+      const live = pruneCancelledSessions(USER_ID)
+      expect(live.has("real-1")).toBe(true)
+    })
+
+    it("is idempotent when called twice with the same id", () => {
+      markSessionCancelled("real-1")
+      markSessionCancelled("real-1")
+
+      const raw = localStorage.getItem(`cancelledSessions:${USER_ID}`)
+      expect(JSON.parse(raw!)).toHaveLength(1)
+    })
+
+    it("prunes entries older than the 7-day TTL", () => {
+      const past = Date.now() - 8 * 24 * 60 * 60 * 1000
+      const recent = Date.now() - 1 * 60 * 60 * 1000
+      localStorage.setItem(
+        `cancelledSessions:${USER_ID}`,
+        JSON.stringify([
+          { realId: "expired", ts: past },
+          { realId: "fresh", ts: recent },
+        ]),
+      )
+
+      const live = pruneCancelledSessions(USER_ID)
+
+      expect(live.has("expired")).toBe(false)
+      expect(live.has("fresh")).toBe(true)
+    })
+  })
+
+  describe("drainQueue with deny-list", () => {
+    it("drops queued items belonging to a cancelled session and never calls Supabase for them", async () => {
+      enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
+      enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))
+      markSessionCancelled(DETERMINISTIC_UUID)
+
+      await drainQueue(USER_ID)
+
+      expect(readQueue()).toHaveLength(0)
+      expect(sessionsChain.upsert).not.toHaveBeenCalled()
+      expect(setLogsChain.upsert).not.toHaveBeenCalled()
+    })
+
+    it("still drains items from non-cancelled sessions when deny-list contains a different id", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      markSessionCancelled("some-other-real-id")
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
+      expect(readQueue()).toHaveLength(0)
+    })
+  })
+
+  describe("peekSessionRealId", () => {
+    it("returns null when there is no meta entry yet", () => {
+      expect(peekSessionRealId(USER_ID, "local-session-1")).toBeNull()
+    })
+
+    it("returns the realId once the session has been seen by enqueueSetLog", () => {
+      enqueueSetLog(makeSetLogPayload())
+
+      expect(peekSessionRealId(USER_ID, "local-session-1")).toBe(
+        DETERMINISTIC_UUID,
+      )
     })
   })
 

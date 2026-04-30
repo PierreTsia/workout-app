@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { useAtom } from "jotai"
-import { Timer, Pause, Play } from "lucide-react"
+import { Timer, Pause, Play, X, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import { getEffectiveElapsed, resumeSessionFromPause } from "@/lib/session"
+import { cancelActiveSession } from "@/lib/cancelSession"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 function formatElapsed(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000)
@@ -14,8 +26,11 @@ function formatElapsed(ms: number): string {
 }
 
 export function SessionTimerChip() {
+  const { t } = useTranslation("workout")
   const [session, setSession] = useAtom(sessionAtom)
   const [now, setNow] = useState(Date.now)
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isPaused = session.pausedAt != null
@@ -53,10 +68,20 @@ export function SessionTimerChip() {
     })
   }, [setSession])
 
+  const confirmCancel = useCallback(async () => {
+    setIsCancelling(true)
+    try {
+      await cancelActiveSession()
+    } finally {
+      setIsCancelling(false)
+      setCancelDialogOpen(false)
+    }
+  }, [])
+
   if (!session.startedAt || !session.isActive || !display) return null
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" data-testid="session-timer-chip">
       <div
         className={`flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 ${isPaused ? "animate-pulse" : ""}`}
       >
@@ -78,6 +103,54 @@ export function SessionTimerChip() {
           <Pause className="h-3.5 w-3.5" />
         )}
       </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setCancelDialogOpen(true)}
+        className="h-7 w-7 rounded-full text-destructive hover:bg-destructive/20 hover:text-destructive"
+        aria-label={t("cancelWorkout")}
+        data-testid="session-cancel-button"
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
+
+      <AlertDialog
+        open={cancelDialogOpen}
+        onOpenChange={(next) => {
+          if (isCancelling) return
+          setCancelDialogOpen(next)
+        }}
+      >
+        <AlertDialogContent data-testid="session-cancel-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("cancelWorkoutTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("cancelWorkoutDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling}>
+              {t("cancelWorkoutKeep")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                // Prevent Radix from auto-closing the dialog so we can keep
+                // it open with a loader while the async cancel runs.
+                e.preventDefault()
+                void confirmCancel()
+              }}
+              disabled={isCancelling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="session-cancel-confirm"
+            >
+              {isCancelling ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {t("cancelWorkoutDiscard")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

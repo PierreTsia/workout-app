@@ -27,6 +27,8 @@ function shouldKeep(key: string, preserveSessionBundle: boolean): boolean {
   if (key.startsWith("sb-") && key.endsWith("-auth-token")) return true
   // Unsynced offline data must never be lost.
   if (key.startsWith("offlineQueue:") || key.startsWith("sessionMeta:")) return true
+  // Cancelled-session deny-list must survive deploys (offline cancel → drain post-upgrade).
+  if (key.startsWith("cancelledSessions:")) return true
   if (preserveSessionBundle && SESSION_KEEP.has(key)) return true
   return false
 }

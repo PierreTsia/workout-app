@@ -137,6 +137,16 @@ function queueKey(userId: string) {
 function metaKey(userId: string) {
   return `sessionMeta:${userId}`
 }
+function cancelledKey(userId: string) {
+  return `cancelledSessions:${userId}`
+}
+
+const CANCELLED_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+interface CancelledEntry {
+  realId: string
+  ts: number
+}
 
 function getQueue(userId: string): QueueItem[] {
   try {
@@ -169,6 +179,22 @@ function setSessionMeta(
   meta: Record<string, SessionMeta>,
 ) {
   localStorage.setItem(metaKey(userId), JSON.stringify(meta))
+}
+
+function getCancelledSessions(userId: string): CancelledEntry[] {
+  try {
+    const raw = localStorage.getItem(cancelledKey(userId))
+    return raw ? (JSON.parse(raw) as CancelledEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+function setCancelledSessions(
+  userId: string,
+  entries: CancelledEntry[],
+) {
+  localStorage.setItem(cancelledKey(userId), JSON.stringify(entries))
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +253,17 @@ export function getSessionRealId(
   localSessionId: string,
 ): string {
   return resolveSessionMeta(userId, localSessionId).realId
+}
+
+/**
+ * Look up an existing `realSessionId` without creating one.
+ * Returns null if the local session never produced any queued item.
+ */
+export function peekSessionRealId(
+  userId: string,
+  localSessionId: string,
+): string | null {
+  return getSessionMeta(userId)[localSessionId]?.realId ?? null
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +349,69 @@ export function enqueueSessionFinish(
 }
 
 // ---------------------------------------------------------------------------
+// Cancel session — deny-list + queue surgery
+// ---------------------------------------------------------------------------
+
+/**
+ * Drop pending queue items for `realSessionId` and erase the matching
+ * sessionMeta entry. Idempotent. Safe to call when the queue is empty
+ * (no-op).
+ */
+export function discardSessionQueue(realSessionId: string): void {
+  const userId = getUserId()
+  if (!userId) return
+
+  const queue = getQueue(userId)
+  const surviving = queue.filter(
+    (item) => item.realSessionId !== realSessionId,
+  )
+  if (surviving.length !== queue.length) {
+    setQueue(userId, surviving)
+    updatePendingCount(userId)
+  }
+
+  const allMeta = getSessionMeta(userId)
+  const localKeys = Object.keys(allMeta).filter(
+    (k) => allMeta[k].realId === realSessionId,
+  )
+  if (localKeys.length > 0) {
+    const next = { ...allMeta }
+    for (const k of localKeys) delete next[k]
+    setSessionMeta(userId, next)
+  }
+}
+
+/**
+ * Mark a `realSessionId` as cancelled so any future drain skips it.
+ * Survives reload — required to handle "cancel offline → reopen → drain".
+ */
+export function markSessionCancelled(realSessionId: string): void {
+  const userId = getUserId()
+  if (!userId) return
+
+  const entries = pruneAndRead(userId)
+  if (entries.some((e) => e.realId === realSessionId)) return
+  entries.push({ realId: realSessionId, ts: Date.now() })
+  setCancelledSessions(userId, entries)
+}
+
+/** Prune entries older than the TTL and return the live list. */
+function pruneAndRead(userId: string): CancelledEntry[] {
+  const entries = getCancelledSessions(userId)
+  const cutoff = Date.now() - CANCELLED_TTL_MS
+  const live = entries.filter((e) => e.ts >= cutoff)
+  if (live.length !== entries.length) {
+    setCancelledSessions(userId, live)
+  }
+  return live
+}
+
+/** Public wrapper for drain to call. Returns the active deny-list. */
+export function pruneCancelledSessions(userId: string): Set<string> {
+  return new Set(pruneAndRead(userId).map((e) => e.realId))
+}
+
+// ---------------------------------------------------------------------------
 // Immediate drain (fire-and-forget, safe to call from event handlers)
 // ---------------------------------------------------------------------------
 
@@ -330,6 +430,21 @@ export function scheduleImmediateDrain(): void {
 let drainChain: Promise<void> = Promise.resolve()
 
 async function drainQueueOnce(userId: string): Promise<void> {
+  const cancelledIds = pruneCancelledSessions(userId)
+
+  // Drop any queued items belonging to a cancelled session before draining.
+  // Permanent removal — TTL handles deny-list cleanup.
+  if (cancelledIds.size > 0) {
+    const queueBefore = getQueue(userId)
+    const filtered = queueBefore.filter(
+      (item) => !cancelledIds.has(item.realSessionId),
+    )
+    if (filtered.length !== queueBefore.length) {
+      setQueue(userId, filtered)
+      updatePendingCount(userId)
+    }
+  }
+
   const queue = getQueue(userId)
   if (queue.length === 0) return
 
