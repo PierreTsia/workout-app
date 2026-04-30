@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { Navigate, Outlet } from "react-router-dom"
+import { Loader2 } from "lucide-react"
 import type { User } from "@/types/auth"
 import { authAtom, authLoadingAtom } from "@/store/atoms"
 import { AuthDataBridge } from "@/router/AuthDataBridge"
@@ -24,7 +25,7 @@ function scheduleShowNotificationDialog(setter: (open: boolean) => void) {
 }
 
 export function AuthGuard() {
-  const { t } = useTranslation("auth")
+  const { t } = useTranslation(["auth", "common"])
   const user = useAtomValue(authAtom)
   const authLoading = useAtomValue(authLoadingAtom)
   const [showDialog, setShowDialog] = useState(false)
@@ -54,8 +55,22 @@ export function AuthGuard() {
     prevUserRef.current = user
   }, [authLoading, user, permissionGranted])
 
+  // Visible fallback (vs. `return null`) so a hung auth bootstrap doesn't
+  // collapse to a black screen. `bootstrapAuth` caps `authLoading` at ~5s
+  // (issue #273) but a loader here is still the right user-facing signal.
   if (authLoading) {
-    return null
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center bg-background"
+        data-testid="auth-loading"
+      >
+        <Loader2
+          className="h-8 w-8 animate-spin text-muted-foreground"
+          aria-hidden="true"
+        />
+        <span className="sr-only">{t("common:loading")}</span>
+      </div>
+    )
   }
 
   if (!user) {
