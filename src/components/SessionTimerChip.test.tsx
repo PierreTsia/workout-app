@@ -3,6 +3,15 @@ import { screen, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { sessionAtom, type SessionState } from "@/store/atoms"
+
+const { mockCancelActiveSession } = vi.hoisted(() => ({
+  mockCancelActiveSession: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock("@/lib/cancelSession", () => ({
+  cancelActiveSession: mockCancelActiveSession,
+}))
+
 import { SessionTimerChip } from "./SessionTimerChip"
 
 const BASE_SESSION: SessionState = {
@@ -22,6 +31,7 @@ describe("SessionTimerChip", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date("2026-01-01T00:00:30.000Z"))
+    mockCancelActiveSession.mockClear()
   })
 
   afterEach(() => {
@@ -135,5 +145,96 @@ describe("SessionTimerChip", () => {
     act(() => { vi.advanceTimersByTime(10_000) })
 
     expect(screen.getByText("00:15")).toBeInTheDocument()
+  })
+
+  describe("cancel button", () => {
+    it("does not render when session is inactive", () => {
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, { ...BASE_SESSION, isActive: false, startedAt: null })
+      })
+      expect(
+        screen.queryByRole("button", { name: "Cancel workout" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("renders alongside Pause when session is active", () => {
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, {
+          ...BASE_SESSION,
+          isActive: true,
+          startedAt: Date.now() - 5_000,
+        })
+      })
+      act(() => { vi.advanceTimersByTime(1_000) })
+
+      expect(
+        screen.getByRole("button", { name: "Cancel workout" }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Pause workout" }),
+      ).toBeInTheDocument()
+    })
+
+    it("opens the confirm dialog without cancelling on first click", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, {
+          ...BASE_SESSION,
+          isActive: true,
+          startedAt: Date.now() - 5_000,
+        })
+      })
+      act(() => { vi.advanceTimersByTime(1_000) })
+
+      await user.click(
+        screen.getByRole("button", { name: "Cancel workout" }),
+      )
+
+      expect(screen.getByText("Cancel this session?")).toBeInTheDocument()
+      expect(mockCancelActiveSession).not.toHaveBeenCalled()
+    })
+
+    it("calls cancelActiveSession when the user confirms", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, {
+          ...BASE_SESSION,
+          isActive: true,
+          startedAt: Date.now() - 5_000,
+        })
+      })
+      act(() => { vi.advanceTimersByTime(1_000) })
+
+      await user.click(
+        screen.getByRole("button", { name: "Cancel workout" }),
+      )
+      await user.click(screen.getByRole("button", { name: "Discard session" }))
+
+      expect(mockCancelActiveSession).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not call cancelActiveSession when the user dismisses the dialog", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, {
+          ...BASE_SESSION,
+          isActive: true,
+          startedAt: Date.now() - 5_000,
+        })
+      })
+      act(() => { vi.advanceTimersByTime(1_000) })
+
+      await user.click(
+        screen.getByRole("button", { name: "Cancel workout" }),
+      )
+      await user.click(screen.getByRole("button", { name: "Keep training" }))
+
+      expect(mockCancelActiveSession).not.toHaveBeenCalled()
+    })
   })
 })

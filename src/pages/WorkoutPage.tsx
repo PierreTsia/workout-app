@@ -59,6 +59,7 @@ import {
   getInitialPreSessionPatchForHydration,
   saveSessionExercisePatch,
 } from "@/lib/sessionExercisePatchStorage"
+import { resetSessionAtoms } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
@@ -912,23 +913,10 @@ export function WorkoutPage() {
     const shouldNavigateToSummary = finished && cycleProgress.isComplete && session.cycleId
     const cycleIdForNav = session.cycleId
 
+    resetSessionAtoms()
     setPreSessionPatch(emptyPreSessionPatch())
-    clearSessionExercisePatchStorage()
     setFinishedQuickInfo(null)
     setFinishedStats(null)
-    setRest(null)
-    setSession({
-      currentDayId: null,
-      activeDayId: null,
-      exerciseIndex: 0,
-      setsData: {},
-      startedAt: null,
-      isActive: false,
-      totalSetsDone: 0,
-      pausedAt: null,
-      cycleId: null,
-      accumulatedPause: 0,
-    })
     setPrFlags({})
     setSessionBestPerformance({})
     setFinished(false)

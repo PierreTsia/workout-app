@@ -153,6 +153,101 @@ test.describe("Workout session — full flow", () => {
     await expect(thirdDayLabel).toBeVisible({ timeout: 5_000 })
   })
 
+  test("cancel session: start, log a set, cancel, lands back on day picker, no session in history", async ({
+    page,
+  }) => {
+    await page.goto("/")
+
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 2_500 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear */
+    }
+
+    const dayCard = page
+      .locator("h3")
+      .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
+      .first()
+    await expect(dayCard).toBeVisible({ timeout: 30_000 })
+
+    // Earlier tests in this file may have finished Lundi, so the carousel
+    // can default to a completed day (which hides the pre-session list and
+    // the Start button). Hop to Mercredi explicitly to guarantee a day with
+    // no prior session in the cycle.
+    const dots = page.getByRole("button", { name: /^(aller à|go to)\s/i })
+    await expect(dots).toHaveCount(3, { timeout: 5_000 })
+    await dots.nth(1).click()
+    await expect(
+      page.locator("h3").filter({ hasText: /Mercredi/ }),
+    ).toBeVisible({ timeout: 5_000 })
+
+    // Gate: pre-session list hydrated before Start becomes interactable.
+    const exerciseRowMenu = page
+      .getByRole("button", { name: "Exercise actions" })
+      .first()
+    await expect(exerciseRowMenu).toBeVisible({ timeout: 20_000 })
+    await expect(exerciseRowMenu).toBeEnabled({ timeout: 20_000 })
+
+    const startButton = page.getByRole("button", { name: /start workout/i })
+    await expect(startButton).toBeVisible({ timeout: 5_000 })
+    await startButton.click()
+
+    const timerChip = page.getByTestId("session-timer-chip")
+    await expect(timerChip).toBeVisible({ timeout: 5_000 })
+
+    // --- Log one set so the session has data to throw away ---
+    const checkboxes = page.getByRole("checkbox")
+    await expect(checkboxes.first()).toBeVisible()
+    await checkboxes.first().click()
+
+    // RIR drawer opens — confirm with default
+    const rirConfirm = page.getByRole("button", { name: /confirm/i })
+    await expect(rirConfirm).toBeVisible({ timeout: 3_000 })
+    await rirConfirm.click()
+
+    // --- Click the Cancel button next to the Pause toggle ---
+    const cancelButton = page.getByTestId("session-cancel-button")
+    await expect(cancelButton).toBeVisible({ timeout: 3_000 })
+    await cancelButton.click()
+
+    // Confirmation dialog
+    const confirmDialog = page.getByTestId("session-cancel-dialog")
+    await expect(confirmDialog).toBeVisible({ timeout: 3_000 })
+    await expect(
+      confirmDialog.getByText(/cancel this session/i),
+    ).toBeVisible()
+
+    // Confirming wipes the session
+    await page.getByTestId("session-cancel-confirm").click()
+
+    // Back on the day picker — Start button visible again, timer chip gone.
+    // This is the primary UX guarantee: cancel fully resets the session view.
+    await expect(timerChip).not.toBeVisible({ timeout: 5_000 })
+    await expect(
+      page.getByRole("button", { name: /start workout/i }),
+    ).toBeVisible({ timeout: 5_000 })
+
+    // Sanity: the Cancel button itself is gone too (no active session).
+    await expect(cancelButton).not.toBeVisible()
+
+    // The cancelled session id must be marked in the deny-list so a future
+    // online drain skips it. Read localStorage directly to assert this.
+    const cancelledRaw = await page.evaluate(() => {
+      const keys = Object.keys(localStorage).filter((k) =>
+        k.startsWith("cancelledSessions:"),
+      )
+      return keys.length > 0 ? localStorage.getItem(keys[0]) : null
+    })
+    expect(cancelledRaw).not.toBeNull()
+    const cancelledList = JSON.parse(cancelledRaw!) as Array<{ realId: string; ts: number }>
+    expect(cancelledList.length).toBeGreaterThan(0)
+  })
+
   test("quick workout accessible from side drawer", async ({ page }) => {
     await page.goto("/")
 
