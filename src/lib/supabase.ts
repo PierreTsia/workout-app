@@ -25,6 +25,7 @@ import {
 import { drainQueue } from "@/lib/syncService"
 import { clearSessionExercisePatchStorage } from "@/lib/sessionExercisePatchStorage"
 import { queryClient } from "@/lib/queryClient"
+import { bootstrapAuth } from "@/lib/bootstrapAuth"
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -38,12 +39,15 @@ const store = getDefaultStore()
 // sync their results to the existing atoms so guards + other readers keep
 // working, without the double-fetch (getSession + SIGNED_IN) and 406 noise
 // the previous imperative `.single()` calls produced.
-supabase.auth.getSession().then(({ data: { session } }) => {
-  store.set(authAtom, session?.user ?? null)
-  store.set(authLoadingAtom, false)
-  if (session?.user) {
-    drainQueue(session.user.id)
-  }
+//
+// `bootstrapAuth` wraps `getSession()` with a 5s timeout + always-resolving
+// guarantee so a hung silent-refresh on a flaky network can't deadlock boot
+// (issue #273 — black screen when `authLoadingAtom` never flipped to `false`).
+void bootstrapAuth({
+  getSession: () => supabase.auth.getSession(),
+  setAuth: (user) => store.set(authAtom, user),
+  setLoading: (loading) => store.set(authLoadingAtom, loading),
+  onUser: (user) => drainQueue(user.id),
 })
 
 export function clearUserState() {
