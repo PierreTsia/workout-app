@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { useAtom } from "jotai"
-import { Timer, Pause, Play, X } from "lucide-react"
+import { Timer, Pause, Play, X, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom } from "@/store/atoms"
 import { getEffectiveElapsed, resumeSessionFromPause } from "@/lib/session"
@@ -30,6 +30,7 @@ export function SessionTimerChip() {
   const [session, setSession] = useAtom(sessionAtom)
   const [now, setNow] = useState(Date.now)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isPaused = session.pausedAt != null
@@ -67,9 +68,14 @@ export function SessionTimerChip() {
     })
   }, [setSession])
 
-  const confirmCancel = useCallback(() => {
-    setCancelDialogOpen(false)
-    void cancelActiveSession()
+  const confirmCancel = useCallback(async () => {
+    setIsCancelling(true)
+    try {
+      await cancelActiveSession()
+    } finally {
+      setIsCancelling(false)
+      setCancelDialogOpen(false)
+    }
   }, [])
 
   if (!session.startedAt || !session.isActive || !display) return null
@@ -108,7 +114,13 @@ export function SessionTimerChip() {
         <X className="h-3.5 w-3.5" />
       </Button>
 
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <AlertDialog
+        open={cancelDialogOpen}
+        onOpenChange={(next) => {
+          if (isCancelling) return
+          setCancelDialogOpen(next)
+        }}
+      >
         <AlertDialogContent data-testid="session-cancel-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>{t("cancelWorkoutTitle")}</AlertDialogTitle>
@@ -117,12 +129,23 @@ export function SessionTimerChip() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancelWorkoutKeep")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={isCancelling}>
+              {t("cancelWorkoutKeep")}
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmCancel}
+              onClick={(e) => {
+                // Prevent Radix from auto-closing the dialog so we can keep
+                // it open with a loader while the async cancel runs.
+                e.preventDefault()
+                void confirmCancel()
+              }}
+              disabled={isCancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="session-cancel-confirm"
             >
+              {isCancelling ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               {t("cancelWorkoutDiscard")}
             </AlertDialogAction>
           </AlertDialogFooter>

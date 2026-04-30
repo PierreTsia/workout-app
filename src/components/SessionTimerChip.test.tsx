@@ -217,6 +217,48 @@ describe("SessionTimerChip", () => {
       expect(mockCancelActiveSession).toHaveBeenCalledTimes(1)
     })
 
+    it("disables both buttons and keeps the dialog open while cancelActiveSession is pending", async () => {
+      let resolveCancel: () => void = () => {}
+      mockCancelActiveSession.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveCancel = () => resolve()
+          }),
+      )
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      const { store } = renderWithProviders(<SessionTimerChip />)
+      act(() => {
+        store.set(sessionAtom, {
+          ...BASE_SESSION,
+          isActive: true,
+          startedAt: Date.now() - 5_000,
+        })
+      })
+      act(() => { vi.advanceTimersByTime(1_000) })
+
+      await user.click(
+        screen.getByRole("button", { name: "Cancel workout" }),
+      )
+      await user.click(screen.getByRole("button", { name: /discard session/i }))
+
+      // Pending state: buttons disabled, dialog still open.
+      const discard = screen.getByRole("button", { name: /discard session/i })
+      const keep = screen.getByRole("button", { name: "Keep training" })
+      expect(discard).toBeDisabled()
+      expect(keep).toBeDisabled()
+      expect(screen.getByText("Cancel this session?")).toBeInTheDocument()
+
+      // Resolve the cancel and let React flush.
+      await act(async () => {
+        resolveCancel()
+      })
+
+      expect(
+        screen.queryByText("Cancel this session?"),
+      ).not.toBeInTheDocument()
+    })
+
     it("does not call cancelActiveSession when the user dismisses the dialog", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       const { store } = renderWithProviders(<SessionTimerChip />)
