@@ -303,8 +303,28 @@ describe("cancelSession", () => {
 
       expect(mockFrom).toHaveBeenCalledWith("cycles")
       expect(cyclesChain.delete).toHaveBeenCalledTimes(1)
-      expect(cyclesChain.eq).toHaveBeenCalledWith("id", "cycle-1")
+      const cycleEqCalls = cyclesChain.eq.mock.calls
+      expect(cycleEqCalls).toContainEqual(["id", "cycle-1"])
+      expect(cycleEqCalls).toContainEqual(["user_id", USER_ID])
       expect(cyclesChain.is).toHaveBeenCalledWith("finished_at", null)
+    })
+
+    it("scopes the cycle session count by user_id (defense in depth)", async () => {
+      setActiveSession()
+      sessionsChain = createDeleteChain({ count: 0 })
+      cyclesChain = createDeleteChain()
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "sessions") return sessionsChain
+        if (table === "cycles") return cyclesChain
+        return createDeleteChain()
+      })
+
+      await cancelActiveSession()
+
+      const sessionEqCalls = sessionsChain.eq.mock.calls
+      // First delete uses (id, user_id); count call uses (cycle_id, user_id).
+      expect(sessionEqCalls).toContainEqual(["cycle_id", "cycle-1"])
+      expect(sessionEqCalls.filter(([k]) => k === "user_id").length).toBeGreaterThanOrEqual(2)
     })
 
     it("skips cycle delete when sibling sessions still exist", async () => {
@@ -322,12 +342,64 @@ describe("cancelSession", () => {
       expect(cyclesChain.delete).not.toHaveBeenCalled()
     })
 
+    it("skips cycle cleanup entirely when the session delete failed", async () => {
+      setActiveSession()
+      sessionsChain = createDeleteChain({ error: { message: "boom" } })
+      cyclesChain = createDeleteChain()
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "sessions") return sessionsChain
+        if (table === "cycles") return cyclesChain
+        return createDeleteChain()
+      })
+      vi.spyOn(console, "warn").mockImplementation(() => {})
+
+      await cancelActiveSession()
+
+      // Only one call to `from("sessions")` (the delete) — no count, no cycle delete.
+      const sessionFroms = mockFrom.mock.calls.filter(([t]) => t === "sessions")
+      expect(sessionFroms).toHaveLength(1)
+      expect(cyclesChain.delete).not.toHaveBeenCalled()
+    })
+
     it("skips cycle cleanup entirely when session has no cycleId", async () => {
       setActiveSession({ cycleId: null })
 
       await cancelActiveSession()
 
       expect(mockFrom).not.toHaveBeenCalledWith("cycles")
+    })
+
+    it("times out a hung Supabase delete and still resets atoms", async () => {
+      setActiveSession()
+      // Chain whose `then` is a noop → never resolves → forces the timeout race.
+      const stuckChain: DeleteChain = {
+        delete: vi.fn(() => stuckChain),
+        eq: vi.fn(() => stuckChain),
+        is: vi.fn(() => stuckChain),
+        select: vi.fn(() => stuckChain),
+        then: vi.fn(),
+      }
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "sessions") return stuckChain
+        return createDeleteChain()
+      })
+      vi.spyOn(console, "warn").mockImplementation(() => {})
+      vi.useFakeTimers()
+
+      try {
+        const promise = cancelActiveSession()
+        await vi.advanceTimersByTimeAsync(4_001)
+        await promise
+
+        expect(
+          mockStore.set.mock.calls.find(([atom]) => atom === SESSION_ATOM),
+        ).toBeDefined()
+        expect(mockQueryClient.invalidateQueries).toHaveBeenCalled()
+        // No cycle cleanup attempts after a hung session delete.
+        expect(mockFrom).not.toHaveBeenCalledWith("cycles")
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it("invalidates session/cycle React Query caches at the end", async () => {

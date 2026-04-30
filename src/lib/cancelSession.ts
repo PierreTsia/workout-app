@@ -18,6 +18,25 @@ import { clearSessionExercisePatchStorage } from "@/lib/sessionExercisePatchStor
 const store = getDefaultStore()
 
 /**
+ * Hard cap for any Supabase call inside cancel. The deny-list already
+ * guarantees correctness — even if the network never returns, the cancelled
+ * session is permanently removed from the queue and can never be pushed.
+ * This timeout exists purely to cap how long the user stares at the
+ * confirmation modal's spinner on flaky / offline networks.
+ */
+const SUPABASE_TIMEOUT_MS = 4000
+
+function timeoutAfter(ms: number, label: string): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(
+      () =>
+        reject(new Error(`[cancelSession] ${label} timed out after ${ms}ms`)),
+      ms,
+    )
+  })
+}
+
+/**
  * Reset every atom + localStorage piece that represents an active session.
  *
  * Used by both `cancelActiveSession` (Cancel button) and
@@ -67,38 +86,57 @@ export async function cancelActiveSession(): Promise<void> {
     markSessionCancelled(realSessionId)
     discardSessionQueue(realSessionId)
 
+    let sessionDeleteOk = false
     try {
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("id", realSessionId)
-        .eq("user_id", userId)
+      const { error } = (await Promise.race([
+        supabase
+          .from("sessions")
+          .delete()
+          .eq("id", realSessionId)
+          .eq("user_id", userId),
+        timeoutAfter(SUPABASE_TIMEOUT_MS, "sessions delete"),
+      ])) as { error: unknown }
       if (error) {
         console.warn("[cancelSession] sessions delete failed", error)
+      } else {
+        sessionDeleteOk = true
       }
     } catch (e) {
-      console.warn("[cancelSession] sessions delete threw", e)
+      console.warn("[cancelSession] sessions delete threw or timed out", e)
     }
 
-    if (cycleId) {
+    // If the session delete failed/timed out, the cycle still references our
+    // session — the FK guard would block the cycle delete anyway. Skip the
+    // extra round-trips so we don't pile up a second timeout on a dead net.
+    if (sessionDeleteOk && cycleId) {
       // The `count` is an optimization to skip the network round-trip when
       // siblings exist; the real safety is the `cycle_id` FK on `sessions`,
       // which has no ON DELETE clause (NO ACTION). If a session sneaks in
       // between count and delete, the FK aborts the delete and we swallow
       // the error → cycle stays. Net: race-safe.
+      // RLS already scopes by user, but be explicit so a future policy
+      // tweak can't widen this.
       try {
-        const { count, error: countError } = await supabase
-          .from("sessions")
-          .select("id", { count: "exact", head: true })
-          .eq("cycle_id", cycleId)
+        const { count, error: countError } = (await Promise.race([
+          supabase
+            .from("sessions")
+            .select("id", { count: "exact", head: true })
+            .eq("cycle_id", cycleId)
+            .eq("user_id", userId),
+          timeoutAfter(SUPABASE_TIMEOUT_MS, "cycle session count"),
+        ])) as { count: number | null; error: unknown }
         if (countError) {
           console.warn("[cancelSession] cycle session count failed", countError)
         } else if ((count ?? 0) === 0) {
-          const { error: cycleDeleteError } = await supabase
-            .from("cycles")
-            .delete()
-            .eq("id", cycleId)
-            .is("finished_at", null)
+          const { error: cycleDeleteError } = (await Promise.race([
+            supabase
+              .from("cycles")
+              .delete()
+              .eq("id", cycleId)
+              .eq("user_id", userId)
+              .is("finished_at", null),
+            timeoutAfter(SUPABASE_TIMEOUT_MS, "empty cycle delete"),
+          ])) as { error: unknown }
           if (cycleDeleteError) {
             console.warn(
               "[cancelSession] empty cycle delete failed",
@@ -107,7 +145,7 @@ export async function cancelActiveSession(): Promise<void> {
           }
         }
       } catch (e) {
-        console.warn("[cancelSession] cycle cleanup threw", e)
+        console.warn("[cancelSession] cycle cleanup threw or timed out", e)
       }
     }
   }
