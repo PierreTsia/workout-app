@@ -12,7 +12,21 @@ description: >
 
 Generate an Epic Brief from a GitHub issue, with multi-phase refinement.
 
-The output follows the Epic Brief template defined in `.cursor/rules/docs-format.mdc`. Read that rule before generating any document.
+The output follows the Epic Brief template defined in `.cursor/rules/docs-format.mdc`. Read that rule before generating any document — note that the template requires a **User Stories** section (`As a X, I want Y, so that Z`) instead of a generic Goals table.
+
+---
+
+## Phase 0 — Detect prior grilling
+
+Before doing anything else, scan the **current conversation** for signs that the user has already gone through a `grill-me` session on this idea (or an extended discussion that resolved most ambiguities):
+
+- A recap printed by the `grill-me` skill ("Decisions locked in:", "Branches deferred:", "Open assumptions:")
+- 10+ back-and-forth exchanges where the user has answered concrete design questions
+- Explicit user statement like "we already discussed this", "skip the questions", "pas besoin de me re-grillertous"
+
+**If grilling already happened**: skip Phase 2's gap analysis interview and go straight to Phase 3 (Draft & Challenge), seeded with what you learned from the conversation. Print a one-line note: *"Detected prior grilling — skipping Phase 2 interview, jumping to draft."*
+
+**If unsure**, ask once (`AskQuestion`): *"Has the design already been discussed in detail in this chat, or should I run the gap analysis interview from scratch?"*
 
 ---
 
@@ -98,7 +112,9 @@ Options:
 
 ### Step 3.1 — Generate draft
 
-Using the issue content + user answers from Phase 2, generate a **complete draft Epic Brief** following the template. Present the full markdown to the user in a text message (do NOT write the file yet).
+Using the issue content + user answers from Phase 2 (or from prior grilling, per Phase 0), generate a **complete draft Epic Brief** following the template. Present the full markdown to the user in a text message (do NOT write the file yet).
+
+**User Stories matter most.** Be exhaustive in the User Stories section — cover happy path, error states, empty states, offline behavior, and edge personas (admin vs end user, first-time vs returning). Each story should be independently verifiable so the `split-tickets` skill can map them to acceptance criteria. If you find yourself with fewer than ~6 stories on a non-trivial epic, you've under-explored.
 
 ### Step 3.2 — Challenge the draft
 
@@ -134,9 +150,12 @@ Where `{Title}` is derived from the epic's name: spaces become underscores, spec
 
 Print a short recap:
 - What the epic covers (1-2 sentences)
+- Number of user stories captured + a note on which area was hardest to pin down
 - Key decisions made during refinement
 - Any deferred questions or known gaps that should be resolved before the Tech Plan phase
-- Suggest: "When you're ready, say **create tech plan** to continue."
+- Suggest the next step:
+  - If user stories still feel speculative: "Say **grill me** to stress-test before tech planning."
+  - Otherwise: "When you're ready, say **create tech plan** to continue."
 
 ---
 

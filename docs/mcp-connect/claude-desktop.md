@@ -42,9 +42,11 @@ Look for the **hammer icon** in the chat input area — this confirms tools are 
 | `get_workout_history` | Your past sessions with sets, weights, and PRs |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
+| `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
+| `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs. Use after `list_programs` to drill into a specific one |
 | `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered **`exercise_ids`** (UUIDs). **`dry_run` defaults to true** (preview); set **`dry_run: false`** to write. |
 
-**Six tools** — five reads, one write.
+**Eight tools** — seven reads, one write.
 
 ## Example conversation
 

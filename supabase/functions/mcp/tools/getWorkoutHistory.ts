@@ -49,7 +49,9 @@ export const getWorkoutHistory: ToolDefinition = {
 
     let sessionQuery = supabase
       .from("sessions")
-      .select("id, workout_label_snapshot, started_at, finished_at, active_duration_ms, total_sets_done")
+      .select(
+        "id, workout_label_snapshot, started_at, finished_at, active_duration_ms, total_sets_done, cycle:cycles(program:programs(id, name))",
+      )
       .not("finished_at", "is", null)
       .lte("started_at", `${toDate}T23:59:59Z`)
       .order("started_at", { ascending: false })
@@ -117,6 +119,9 @@ export const getWorkoutHistory: ToolDefinition = {
         weight_logged: number
         was_pr: boolean
       }>
+      const cycle = s.cycle as { program?: { id: string; name: string } | null } | null
+      const program = cycle?.program ?? null
+      const programInfo = program ? { id: program.id, name: program.name } : undefined
       return formatSessionSummary(
         s as {
           workout_label_snapshot: string
@@ -126,6 +131,7 @@ export const getWorkoutHistory: ToolDefinition = {
           total_sets_done: number
         },
         sets,
+        programInfo,
       )
     })
 

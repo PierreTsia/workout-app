@@ -16,6 +16,37 @@ The output follows the Ticket template defined in `.cursor/rules/docs-format.mdc
 
 ---
 
+## Core principle: vertical slicing (tracer bullets)
+
+Every ticket is a **thin vertical slice** that cuts through ALL relevant integration layers end-to-end (schema migration → edge function / data access → React Query hook → UI component → tests). It is NOT a horizontal slice of one layer (e.g. "all the schema changes" or "all the UI work").
+
+Why: a vertical slice is **demoable on its own**. It surfaces unknown unknowns early because every layer gets exercised. A horizontal slice ships nothing until the last layer lands and hides integration risk until then.
+
+Concrete examples in this repo's stack:
+
+| Bad (horizontal) | Good (vertical) |
+|---|---|
+| T1: All Supabase migrations | T1: Migration + hook + minimal UI to **read** the new field for the workout-day card |
+| T2: All React Query hooks | T2: Migration + hook + UI to **edit** the new field |
+| T3: All UI screens | T3: Cross-device sync for the new field |
+
+Prefer **many thin slices** over **few thick ones**. Aim for slices that can ship behind a feature flag if needed, even if you don't actually flag them.
+
+---
+
+## HITL vs AFK marking
+
+Each ticket is tagged:
+
+- **AFK** (Away-From-Keyboard) — an agent or a freshly-onboarded engineer can take this from the description alone and merge a PR without architectural decisions. Acceptance criteria are mechanical to verify.
+- **HITL** (Human-In-The-Loop) — requires human input mid-flight: a design review, a UX choice between viable alternatives, a data decision that wasn't pinned down in the Tech Plan, a security/privacy judgement, or a Figma/asset that needs creating.
+
+**Prefer AFK over HITL.** If a ticket would be HITL because of an unresolved decision, push that decision back into the Tech Plan or grilling phase **before** generating the ticket. The exception is genuine design work that can only happen with the artifact in hand (e.g. "review the empty state once we have the real data").
+
+This matters because AFK tickets can be parallelized across agents or contributors; HITL tickets serialize on you.
+
+---
+
 ## Phase 1 — Intake
 
 ### Step 1.1 — Locate source documents
@@ -59,9 +90,13 @@ Present a **Ticket Map** as a text message:
 
 A numbered table with columns:
 
-| # | Title | Goal (1 line) | Complexity | Dependencies |
-|---|-------|---------------|------------|--------------|
-| T{n} | ... | ... | S/M/L | None or T{x}, T{y} |
+| # | Title | Goal (1 line) | Slice (layers traversed) | Mode | Size | Dependencies |
+|---|-------|---------------|--------------------------|------|------|--------------|
+| T{n} | ... | ... | DB → API → hook → UI → tests | AFK | S/M/L | None or T{x}, T{y} |
+
+The **Slice** column should be a brief layer breadcrumb showing the ticket cuts vertically. If a row reads as a single layer ("UI only", "schema only"), that's a horizontal slice — split or merge it.
+
+The **Mode** column is `AFK` or `HITL` per the rules above.
 
 ### Dependency Graph
 
@@ -78,8 +113,10 @@ graph LR
 ### Splitting Rationale
 
 Explain why you grouped things this way:
-- What principle drove the boundaries (one concern per ticket? one screen per ticket? infrastructure before features?)
-- Which tickets are parallelizable
+- Which user stories from the Epic Brief each ticket addresses (cite story numbers)
+- How each ticket is a vertical slice (which layers it touches and what it ships end-to-end)
+- Which tickets are AFK and parallelizable across agents
+- Which tickets are HITL and why (what human input is required)
 - Where the critical path bottleneck is
 
 ### Sizing Guidance
@@ -127,7 +164,22 @@ Then flag potential issues:
 - "T{n} doesn't list [thing] as out of scope, but it could easily grow to include it"
 - "The Epic Brief's out-of-scope list mentions [X] — make sure no ticket accidentally pulls it in"
 
-Use `AskQuestion` for any critical ambiguities that would change ticket boundaries or ordering.
+### Vertical-Slice Sanity Check
+
+For each ticket, verify it ships an end-to-end demoable sliver:
+
+- "T{n} only touches the UI layer — what does the user see if the underlying data isn't there yet? Should we merge with T{m} (the schema/data ticket)?"
+- "T{n} ships a migration but no read path — nothing demoable until T{m}. Either merge or accept the dependency explicitly."
+- "T{n} has no test layer described — is it intentionally untested, or did we forget?"
+
+### HITL Justification
+
+For every HITL ticket, justify:
+
+- "T{n} is HITL because [specific human input needed at runtime — e.g. design review, copy approval, security judgement]."
+- If the justification is "we haven't decided yet" — **stop and push the decision back** into the Tech Plan or a grilling pass before generating tickets. Don't ship undecided work as HITL.
+
+Use `AskQuestion` for any critical ambiguities that would change ticket boundaries, ordering, or HITL/AFK marking.
 
 ---
 
@@ -142,12 +194,14 @@ docs/T{n}_—_{Title}.md
 ```
 
 Each ticket must include:
-- **Goal**: what this ticket delivers, in the context of the epic
-- **Dependencies**: explicit list of prerequisite tickets (or "None")
-- **Scope**: detailed sub-sections matching the Tech Plan's architecture. Include tables for dependencies/packages, config details, file-responsibility mappings where relevant
-- **Out of Scope**: what this ticket explicitly does NOT do (reference the next ticket if work is deferred there)
-- **Acceptance Criteria**: checkbox-style, each independently verifiable. Aim for 4-8 criteria per ticket
-- **References**: links to the Epic Brief and Tech Plan, plus any relevant sections of the Tech Plan
+- **Goal**: what this ticket delivers, in the context of the epic. Cite the user story numbers from the Epic Brief that this ticket addresses.
+- **Mode**: `AFK` or `HITL`, with one-line justification if HITL.
+- **Slice**: layer breadcrumb showing the vertical traversal (e.g. `migration → edge function → useX hook → ExerciseCard → vitest + playwright`).
+- **Dependencies**: explicit list of prerequisite tickets (or "None").
+- **Scope**: detailed sub-sections matching the Tech Plan's architecture. Include tables for dependencies/packages, config details, file-responsibility mappings where relevant.
+- **Out of Scope**: what this ticket explicitly does NOT do (reference the next ticket if work is deferred there).
+- **Acceptance Criteria**: checkbox-style, each independently verifiable. Aim for 4-8 criteria per ticket. At least one criterion should describe a demoable end-to-end behavior, not just "the function exists".
+- **References**: links to the Epic Brief and Tech Plan, plus any relevant sections of the Tech Plan.
 
 ### Step 4.2 — Cross-reference check
 
@@ -163,14 +217,16 @@ If anything is missing, add it or flag it to the user.
 
 Print a summary table:
 
-| Ticket | Title | Deps | Size | Status |
-|--------|-------|------|------|--------|
-| T{n} | ... | ... | S/M/L | Created |
+| Ticket | Title | Mode | Deps | Size | Status |
+|--------|-------|------|------|------|--------|
+| T{n} | ... | AFK / HITL | ... | S/M/L | Created |
 
 Plus:
-- Total tickets created
+- Total tickets created, with AFK / HITL split (e.g. "8 tickets: 6 AFK, 2 HITL")
 - Estimated critical path (which tickets are sequential bottlenecks)
-- Suggested starting point: "Begin with T{n} — it has no dependencies and unblocks [list]"
+- Parallelization opportunities: list AFK tickets that share no dependencies and can be picked up simultaneously
+- Suggested starting point: "Begin with T{n} — it has no dependencies, is AFK, and unblocks [list]"
+- Recommended downstream skill: "When implementing each ticket, drive it with the **tdd** skill for behavior-first delivery."
 - Any gaps or deferred decisions that should be resolved during implementation
 
 ---

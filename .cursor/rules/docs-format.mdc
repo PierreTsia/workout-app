@@ -47,11 +47,23 @@ One paragraph: what this epic delivers, why it matters, what changes for the use
 
 ---
 
-## Goals
+## User Stories
 
-| Goal | Measure |
+A numbered list of user stories in the format `As a <persona>, I want <capability>, so that <outcome>`. Be exhaustive — cover every aspect of the feature, including edge-of-flow behaviors (errors, empty states, offline). Each story is independently verifiable and becomes a target for ticket acceptance criteria.
+
+1. As a `<persona>`, I want `<capability>`, so that `<outcome>`.
+2. ...
+
+### Success measures
+
+For the few stories that need a measurable threshold (performance, adoption, conversion), add a measure inline:
+
+| Story # | Measure |
 |---|---|
-| ... | ... |
+| 3 | p95 < 200ms on mid-tier mobile |
+| 7 | >=80% of users complete the flow within 2 sessions |
+
+Stories without a numeric measure are validated qualitatively via the user story itself.
 
 ---
 
@@ -67,8 +79,10 @@ One paragraph: what this epic delivers, why it matters, what changes for the use
 
 ## Success Criteria
 
+Aggregate, epic-level criteria — not per-story. Use these to decide "is the epic done":
+
 - **Numeric:** measurable threshold (e.g. ">=95% of X within Y")
-- **Qualitative:** user-observable outcome
+- **Qualitative:** user-observable outcome covering multiple stories
 ```
 
 ---

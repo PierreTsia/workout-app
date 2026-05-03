@@ -44,9 +44,22 @@ interface SessionForFormat {
   total_sets_done: number
 }
 
-export function formatSessionSummary(session: SessionForFormat, sets: SetForFormat[]): string {
+interface ProgramInfoForSession {
+  id: string
+  name: string
+}
+
+export function formatSessionSummary(
+  session: SessionForFormat,
+  sets: SetForFormat[],
+  programInfo?: ProgramInfoForSession,
+): string {
   const date = formatDate(session.started_at)
   const duration = formatDuration(session.active_duration_ms)
+
+  const programSuffix = programInfo?.id
+    ? ` *(program: ${programInfo.name}, id: ${programInfo.id})*`
+    : ""
 
   const exerciseMap = new Map<string, SetForFormat[]>()
   for (const s of sets) {
@@ -68,7 +81,7 @@ export function formatSessionSummary(session: SessionForFormat, sets: SetForForm
   })
 
   return [
-    `### ${session.workout_label_snapshot} — ${date}`,
+    `### ${session.workout_label_snapshot} — ${date}${programSuffix}`,
     `Duration: ${duration} | ${session.total_sets_done} sets`,
     ...exerciseLines,
   ].join("\n")
@@ -137,6 +150,78 @@ interface WorkoutExForFormat {
 interface WorkoutDayForFormat {
   label: string
   emoji: string
+}
+
+interface ProgramListEntry {
+  id: string
+  name: string
+  is_active: boolean
+  day_count: number
+  created_at: string
+  has_active_cycle: boolean
+  archived_at: string | null
+}
+
+export function formatProgramListEntry(entry: ProgramListEntry): string {
+  const date = new Date(entry.created_at).toISOString().slice(0, 10)
+  const suffix = entry.archived_at !== null
+    ? "(archived)"
+    : !entry.is_active
+      ? "(draft)"
+      : entry.has_active_cycle
+        ? "(active, cycle in progress)"
+        : "(active)"
+  return `**${entry.name}** *(id: ${entry.id})* — ${entry.day_count} days, created ${date} ${suffix}`
+}
+
+interface ProgramDetailsHeader {
+  id: string
+  name: string
+  archived_at: string | null
+}
+
+interface ProgramDetailsDay {
+  id: string
+  label: string
+  emoji: string
+  sort_order: number
+}
+
+interface ProgramDetailsExercise {
+  id: string
+  name_snapshot: string
+  sets: number
+  reps: string
+  weight: string
+  rest_seconds: number
+  target_duration_seconds: number | null
+}
+
+export function formatProgramDetails(
+  program: ProgramDetailsHeader,
+  days: ProgramDetailsDay[],
+  exercisesByDay: Map<string, ProgramDetailsExercise[]>,
+): string {
+  const archivedSuffix = program.archived_at !== null ? " (archived)" : ""
+  const header = `## **${program.name}** *(id: ${program.id})*${archivedSuffix}`
+
+  if (days.length === 0) {
+    return [header, "_(empty program — no days defined)_"].join("\n\n")
+  }
+
+  const dayBlocks = days.map((day) => {
+    const exercises = exercisesByDay.get(day.id) ?? []
+    const exLines = exercises.map((ex) => {
+      const measure = ex.target_duration_seconds
+        ? `${ex.sets} × ${ex.target_duration_seconds}s`
+        : `${ex.sets} × ${ex.reps} reps`
+      const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
+      return `  - **${ex.name_snapshot}** *(id: ${ex.id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+    })
+    return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
+  })
+
+  return [header, ...dayBlocks].join("\n\n")
 }
 
 export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExForFormat[]): string {

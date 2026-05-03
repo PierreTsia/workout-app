@@ -10,7 +10,7 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **six tools**, how to format their parameters, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **eight tools** (seven reads, one write), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
 GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it or design a new program with `create_program`.
 
@@ -57,24 +57,76 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp
 ```
 
-All six tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All eight tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 
 ## Tool reference (intent → tool)
 
-Six tools total — five reads, one write.
+Eight tools total — seven reads, one write.
 
 | User intent | Tool | Notes |
 |---|---|---|
-| "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). |
+| "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). Each session header surfaces `*(program: <name>, id: <uuid>)*` for sessions that belong to a cycle — pass that `id` straight to `get_program_details` to chain into the program structure. Sessions without a cycle (legacy data) omit the annotation. |
 | "How am I doing / volume / PRs / muscle group balance / push-pull split" | `get_training_stats` | Defaults to last 30 days. Filter by `muscle_group` (FR name, e.g. `Pectoraux`, `Dos`). |
-| "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. |
+| "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. The header surfaces `*(id: <uuid>)*` of the active program — pass that `id` straight to `get_program_details` if the user wants the full template instead of the next few scheduled days. |
 | "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use **before** `get_exercise_details` to resolve a UUID. Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
 | "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). **Always run `search_exercises` first** to resolve it; if multiple matches come back, ask the user to pick. |
+| "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
+| "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
 | "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
+
+---
+
+## Discovery flow — read & inspect a program
+
+When the user wants to review, inspect, or talk about *a specific program* (active or not), follow this chain:
+
+1. **`list_programs`** — enumerate the user's programs to identify the right one by name. Each entry surfaces `*(id: <uuid>)*` for downstream addressability.
+2. **`get_program_details(program_id)`** — fetch the full structure of the chosen program (days, exercises, sets/reps/weights, rest). Works on **any** program — active, draft, or archived — regardless of cycle state. Use this to answer "review my draft program" / "show me the structure" / "compare these two". Returns markdown with inline `*(id: ...)*` on every day and exercise line, ready for downstream tools.
+3. **(Epic C will add)** `update_program(id, patch)` — apply targeted edits to a program by ID without recreating it.
+
+For the *active* program with an *active cycle*, `get_upcoming_workouts` is the cheaper alternative when the user wants only the next few days (it returns dated, scheduled instances). Use `get_program_details` instead when the user wants the **whole program template** or the active program has **no cycle started**.
+
+---
+
+## Writes — propose → confirm → act → echo (always, no exceptions)
+
+Every write tool — currently `create_program`, future `update_program` (Epic C) and any logging tools — goes through a **four-step handshake**, even when the user gave a direct, unambiguous request.
+
+### Why this is mandatory
+
+Workout payloads pack many fields (exercise UUID + sets + reps + weight + equipment-convention + RPE + date + notes). The well-known **field-drop failure mode** of LLMs is acute on multi-field payloads: the agent paraphrases the user's intent into a tool call, silently drops one field during translation, and the user only catches the bad data hours later in-app. Pre-call confirmation costs 2 seconds; un-doing the wrong write costs a manual fix. This is why `create_program.dry_run` defaults to `true` server-side — the design preview *is* the propose step.
+
+### The four steps
+
+1. **Propose** — Restate the **exact tool name** + the **full payload, every field**. For weight payloads, explicitly name the equipment convention you applied (e.g. *"100 kg total au barbell"* vs *"30 kg per hand sur dumbbells"*).
+2. **Confirm** — Wait for explicit `yes` / `ok` / `go` / `vas-y`. Ambiguous response = re-ask, **not** consent. *"Je crois que oui"* is not consent.
+3. **Act** — Call the tool.
+4. **Echo** — Print the server's response (created ID, canonical fields written) so the user can spot a mismatch immediately.
+
+### Worked example — write with weight ambiguity
+
+User: *"j'ai fait du DB shoulder press, 4×12 à 22.5"*
+
+Agent (propose, with disambiguation): *"22.5 kg c'est par main (= 45 total) ou total réparti sur les deux haltères ? Pour DB shoulder press la convention serveur est par main, je pars là-dessus si tu confirmes."*
+
+User: *"par main oui"*
+
+Agent (refined propose): *"OK, payload : DB Shoulder Press (`<uuid>`), 4 × 12 × 22.5 kg per-hand (45 kg total). Date 2026-05-03. Je log ?"*
+
+User: *"oui"*
+
+Agent: calls the tool, echoes back the created ID + canonical fields.
+
+### What the handshake rules out
+
+- ❌ Auto-applying a write because *"the user clearly meant it"*. Field-fidelity beats convenience.
+- ❌ Skipping the echo step. The server may have applied a default the user didn't notice (e.g. `dry_run` left at `true` and nothing actually persisted — see Pattern 4 below).
+- ❌ Stitching two propose steps without intermediate consent (e.g. *"I see a calendar event for gym at 7am, I'll pre-create the session and log my best guess"* — no, ask first, then ask again before logging).
+- ❌ Re-using a payload the user confirmed 5 turns ago for a *different* tool. Each `act` step needs its own fresh `propose` + `confirm`.
 
 ---
 
@@ -95,9 +147,14 @@ Volume math depends on **equipment type**. The `weight_logged` field on a set lo
 
 ### How to know which equipment
 
-- `get_exercise_details` returns `equipment` explicitly — call it whenever you're not sure.
-- Exercise names hint: "Curl haltères" / "Dumbbell Curl" → `dumbbell` (per hand). "Développé couché" / "Bench Press" → `barbell` (total).
-- When in doubt, lean conservative and tell the user the assumption you made.
+- `get_exercise_details` returns `equipment` explicitly — it is the source of truth.
+- Exercise names hint: "Curl haltères" / "Dumbbell Curl" → `dumbbell` (per hand). "Développé couché" / "Bench Press" → `barbell` (total). But hints are **not** authoritative — *"Bulgarian Split Squat"* might be DB or BB depending on the user's setup, and *"Front Squat"* vs *"Goblet Squat"* are the same English word "squat" with opposite conventions.
+- **Operational rule**: if equipment is ambiguous AND the user is asking for a numeric volume / load summary / progression analysis, **call `get_exercise_details` first** (one extra tool call beats a wrong number). Don't guess from the name when a number is on the line.
+- When you cannot resolve equipment (lookup failed, exercise not in catalog), **state the assumption verbatim** and offer to re-run if the user corrects you. Don't pick a side and hope.
+
+### Failure mode to avoid
+
+A morning brief that says *"belle séance hier, 2400 kg de volume sur les épaules"* when half the exos were dumbbells and you treated `weight_logged` as total → you've doubled or halved silently and the user has no way to spot it. The first time this comes up live, **ask the user what definition of "volume" they want** (sum of total loads × reps × sets? per-side?), persist it, apply consistently across the rest of the conversation.
 
 ### Worked example
 
@@ -185,7 +242,7 @@ create_program({
 | `Unknown or inaccessible exercise_id(s):` | The UUID is valid format but the exercise doesn't exist or isn't visible to this user. Re-search. |
 | `Authentication required` / `401` | Token expired or revoked. Tell the user to create a fresh PAT at `/account/api-tokens`. |
 | Ambiguous muscle group (`"chest"` vs `"Pectoraux"`) | `search_exercises` accepts both — pass the user's term as-is. For `get_training_stats` the filter must be the FR name (`Pectoraux`). |
-| User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). |
+| User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). Single-day program editing arrives in Epic C (`update_program`) — until then, `create_program` is still the only write surface. |
 
 ---
 
