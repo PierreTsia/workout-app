@@ -70,7 +70,7 @@ function inflateFixtureExercise(fix: FixtureExercise): Exercise {
     muscle_group: fix.muscle_group,
     emoji: fix.emoji ?? "🏋️",
     equipment: fix.equipment,
-    measurement_type: fix.measurement_type,
+    measurement_type: fix.measurement_type ?? undefined,
     default_duration_seconds: fix.default_duration_seconds,
   })
 }
