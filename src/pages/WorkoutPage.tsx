@@ -9,7 +9,14 @@ import {
 import { toast } from "sonner"
 import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Link, useNavigate } from "react-router-dom"
-import { AlertTriangle, Dumbbell, Loader2, Play, Plus } from "lucide-react"
+import {
+  AlertTriangle,
+  Dumbbell,
+  Loader2,
+  Play,
+  Plus,
+  RotateCcw,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -78,6 +85,8 @@ import {
 } from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
 import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAlertDialog"
+import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
+import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
@@ -336,6 +345,44 @@ export function WorkoutPage() {
     }
     return []
   }, [isDayDoneInCycle, sessionLogs, baseExercises])
+
+  const [restartCycleDialogOpen, setRestartCycleDialogOpen] = useState(false)
+  const abandonAndRestartCycle = useAbandonAndRestartCycle()
+  const canOfferCycleRestart =
+    isDayDoneInCycle && !cycleProgress.isComplete && !!activeCycle
+  const missingDays = useMemo(
+    () =>
+      canOfferCycleRestart
+        ? (days ?? [])
+            .filter((d) => !cycleProgress.completedDayIds.includes(d.id))
+            .map((d) => ({ id: d.id, label: d.label }))
+        : [],
+    [canOfferCycleRestart, days, cycleProgress.completedDayIds],
+  )
+  const currentDayLabel = useMemo(
+    () =>
+      (days ?? []).find((d) => d.id === session.currentDayId)?.label ?? "",
+    [days, session.currentDayId],
+  )
+
+  function confirmAbandonAndRestart() {
+    if (!activeCycle || !activeProgramId || !user?.id) return
+    abandonAndRestartCycle.mutate(
+      {
+        cycleId: activeCycle.id,
+        programId: activeProgramId,
+        userId: user.id,
+      },
+      {
+        onSuccess: () => {
+          setRestartCycleDialogOpen(false)
+        },
+        onError: () => {
+          toast.error(t("abandonCycle.error"))
+        },
+      },
+    )
+  }
 
   useLayoutEffect(() => {
     setSession((prev) => {
@@ -1088,7 +1135,12 @@ export function WorkoutPage() {
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */
         <>
-          <div className={cn("flex-1 flex flex-col overflow-y-auto gap-4", !isDayDoneInCycle && "pb-20")}>
+          <div
+            className={cn(
+              "flex-1 flex flex-col overflow-y-auto gap-4",
+              (!isDayDoneInCycle || canOfferCycleRestart) && "pb-20",
+            )}
+          >
             {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
               <CycleProgressHeader
                 completedCount={cycleProgress.completedDayIds.length}
@@ -1144,7 +1196,41 @@ export function WorkoutPage() {
               </Button>
             </div>
           )}
+
+          {canOfferCycleRestart && (
+            <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
+              <p className="text-center text-xs text-muted-foreground">
+                {t("abandonCycle.dayDoneHint")}
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full gap-2"
+                onClick={() => setRestartCycleDialogOpen(true)}
+              >
+                <RotateCcw className="h-5 w-5" />
+                {t("abandonCycle.cta")}
+              </Button>
+            </div>
+          )}
         </>
+      )}
+
+      {activeCycle && (
+        <RestartCycleDialog
+          open={restartCycleDialogOpen}
+          onOpenChange={(open) => {
+            if (!abandonAndRestartCycle.isPending) {
+              setRestartCycleDialogOpen(open)
+            }
+          }}
+          completedCount={cycleProgress.completedDayIds.length}
+          totalDays={cycleProgress.totalDays}
+          missingDays={missingDays}
+          currentDayLabel={currentDayLabel}
+          onConfirm={confirmAbandonAndRestart}
+          isPending={abandonAndRestartCycle.isPending}
+        />
       )}
 
       <ExerciseEditScopeDialog
