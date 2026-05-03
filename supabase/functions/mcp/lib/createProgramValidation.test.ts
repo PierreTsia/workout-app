@@ -3,9 +3,11 @@ import {
   detectLegacyExerciseIds,
   LEGACY_MIGRATION_ERROR_MESSAGE,
   parseExerciseInput,
+  validateDayExercises,
   validateExerciseCrossFields,
   validateRepsModeCrossField,
 } from "./createProgramValidation"
+import type { CatalogExerciseForProgram } from "./programPersistence"
 
 const VALID_UUID = "11111111-2222-4333-8444-555555555555"
 const VALID_UUID_2 = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
@@ -519,6 +521,140 @@ describe("validateRepsModeCrossField (deprecated T74 shim — backwards compatib
     if (!result.ok) {
       expect(result.error).toContain("Bench Press")
       expect(result.error).toContain("target_duration_seconds")
+    }
+  })
+})
+
+describe("validateDayExercises (T77)", () => {
+  const ID_BENCH = "11111111-1111-4111-8111-111111111111"
+  const ID_PUSHUP = "22222222-2222-4222-8222-222222222222"
+  const ID_PLANK = "33333333-3333-4333-8333-333333333333"
+  const ID_OFF = "99999999-9999-4999-8999-999999999999"
+
+  const BENCH: CatalogExerciseForProgram = {
+    id: ID_BENCH,
+    name: "Bench Press",
+    muscle_group: "chest",
+    emoji: null,
+    equipment: "barbell",
+    measurement_type: "reps",
+    default_duration_seconds: null,
+  }
+
+  const PUSHUP: CatalogExerciseForProgram = {
+    id: ID_PUSHUP,
+    name: "Push-up",
+    muscle_group: "chest",
+    emoji: null,
+    equipment: "bodyweight",
+    measurement_type: "reps",
+    default_duration_seconds: null,
+  }
+
+  const PLANK: CatalogExerciseForProgram = {
+    id: ID_PLANK,
+    name: "Plank",
+    muscle_group: "core",
+    emoji: null,
+    equipment: "bodyweight",
+    measurement_type: "duration",
+    default_duration_seconds: 30,
+  }
+
+  function catalogOf(...exercises: CatalogExerciseForProgram[]) {
+    return new Map(exercises.map((e) => [e.id, e] as const))
+  }
+
+  it("returns parsed exercises on a happy mixed-form day (bare UUID + object prescription)", () => {
+    const raw = [
+      ID_BENCH,
+      {
+        exercise_id: ID_PUSHUP,
+        sets: 4,
+        reps: "12",
+        weight_kg: 0,
+        rest_seconds: 90,
+      },
+    ]
+
+    const result = validateDayExercises(raw, "Push", catalogOf(BENCH, PUSHUP))
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.parsed).toHaveLength(2)
+      expect(result.parsed[0]).toEqual({ kind: "bare", exerciseId: ID_BENCH })
+      expect(result.parsed[1]).toMatchObject({
+        kind: "object",
+        exerciseId: ID_PUSHUP,
+        sets: 4,
+        reps: "12",
+        weightKg: 0,
+        restSeconds: 90,
+      })
+    }
+  })
+
+  it("returns a parse error with the day-and-position locator when one entry is malformed", () => {
+    const raw = [ID_BENCH, "not-a-uuid"]
+
+    const result = validateDayExercises(raw, "Push", catalogOf(BENCH))
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('days["Push"].exercises[1]')
+      expect(result.error).toContain("not-a-uuid")
+    }
+  })
+
+  it("returns an error referencing the missing exercise_id when the catalog map lacks an object-form prescription", () => {
+    const raw = [
+      {
+        exercise_id: ID_OFF,
+        sets: 4,
+        reps: "8",
+        weight_kg: 80,
+        rest_seconds: 120,
+      },
+    ]
+
+    const result = validateDayExercises(raw, "Push", catalogOf(BENCH))
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('days["Push"].exercises[0]')
+      expect(result.error).toContain(ID_OFF)
+    }
+  })
+
+  it("returns the cross-field error when an object prescription violates a catalog-aware rule (bodyweight + weight_kg > 0)", () => {
+    const raw = [
+      {
+        exercise_id: ID_PUSHUP,
+        sets: 4,
+        reps: "12",
+        weight_kg: 25,
+        rest_seconds: 90,
+      },
+    ]
+
+    const result = validateDayExercises(raw, "Push", catalogOf(PUSHUP))
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('days["Push"].exercises[0]')
+      expect(result.error).toContain("Push-up")
+      expect(result.error).toContain("#281")
+    }
+  })
+
+  it("does NOT cross-field check bare-string entries (bare UUIDs always pass through to defaults)", () => {
+    const raw = [ID_PLANK]
+
+    const result = validateDayExercises(raw, "Core", catalogOf(PLANK))
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.parsed).toEqual([{ kind: "bare", exerciseId: ID_PLANK }])
     }
   })
 })
