@@ -22,6 +22,31 @@ export interface GeneratedExercise {
   reps: string
   restSeconds: number
   isCompound: boolean
+  /**
+   * Optional explicit prescription weight for object-form MCP `create_program`
+   * (T74). Web AI generator does NOT set this — bare-string fallback uses "0".
+   * Persisted verbatim to `workout_exercises.weight` (TEXT column).
+   */
+  weightKg?: number
+  /**
+   * Optional explicit reps-range bounds for freezing progression on weighted
+   * reps prescriptions (T74). Both must be set together. Bodyweight branch
+   * IGNORES these (T75 enforces the always-auto-derive rule).
+   */
+  repRangeMin?: number
+  repRangeMax?: number
+  /**
+   * Optional explicit set-range bounds for freezing progression. Same all-or-
+   * nothing semantics as repRangeMin/Max.
+   */
+  setRangeMin?: number
+  setRangeMax?: number
+  /**
+   * Optional explicit duration target for object-form duration prescriptions
+   * (T75). Reps-mode exercises must reject this via cross-field validation
+   * before reaching the persistence layer.
+   */
+  targetDurationSeconds?: number
 }
 
 export interface GeneratedWorkout {

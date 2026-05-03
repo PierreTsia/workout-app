@@ -1,0 +1,355 @@
+[
+  {
+    "name": "barbell reps row with auto-derived ranges (legacy bare-string equivalent)",
+    "exercise": {
+      "id": "ex-bench",
+      "name": "Bench",
+      "muscle_group": "Pectoraux",
+      "emoji": "🏋️",
+      "equipment": "barbell",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 4,
+      "reps": "10",
+      "restSeconds": 90,
+      "isCompound": false
+    },
+    "expectedRow": {
+      "exercise_id": "ex-bench",
+      "name_snapshot": "Bench",
+      "muscle_snapshot": "Pectoraux",
+      "emoji_snapshot": "🏋️",
+      "sets": 4,
+      "reps": "10",
+      "weight": "0",
+      "rest_seconds": 90,
+      "target_duration_seconds": null,
+      "rep_range_min": 8,
+      "rep_range_max": 12,
+      "set_range_min": 3,
+      "set_range_max": 6,
+      "max_weight_reached": false,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "bodyweight reps row sets max_weight_reached true (legacy)",
+    "exercise": {
+      "id": "ex-pushup",
+      "name": "Push-up",
+      "muscle_group": "Pectoraux",
+      "emoji": null,
+      "equipment": "bodyweight",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 3,
+      "reps": "12",
+      "restSeconds": 60,
+      "isCompound": false
+    },
+    "expectedRow": {
+      "exercise_id": "ex-pushup",
+      "name_snapshot": "Push-up",
+      "muscle_snapshot": "Pectoraux",
+      "emoji_snapshot": "🏋️",
+      "sets": 3,
+      "reps": "12",
+      "weight": "0",
+      "rest_seconds": 60,
+      "target_duration_seconds": null,
+      "rep_range_min": 10,
+      "rep_range_max": 14,
+      "set_range_min": 2,
+      "set_range_max": 5,
+      "max_weight_reached": true,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "duration exercise with default_duration_seconds=null falls back to 30 (legacy)",
+    "exercise": {
+      "id": "ex-plank",
+      "name": "Plank",
+      "muscle_group": "Core",
+      "emoji": null,
+      "equipment": "bodyweight",
+      "measurement_type": "duration",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 3,
+      "reps": "0",
+      "restSeconds": 60,
+      "isCompound": false
+    },
+    "expectedRow": {
+      "exercise_id": "ex-plank",
+      "name_snapshot": "Plank",
+      "muscle_snapshot": "Core",
+      "emoji_snapshot": "🏋️",
+      "sets": 3,
+      "reps": "0",
+      "weight": "0",
+      "rest_seconds": 60,
+      "target_duration_seconds": 30,
+      "rep_range_min": 1,
+      "rep_range_max": 2,
+      "set_range_min": 2,
+      "set_range_max": 5,
+      "max_weight_reached": true,
+      "duration_range_min_seconds": 20,
+      "duration_range_max_seconds": 45,
+      "duration_increment_seconds": 5
+    }
+  },
+  {
+    "name": "duration exercise uses catalog default_duration_seconds when set (legacy)",
+    "exercise": {
+      "id": "ex-hang",
+      "name": "Hang",
+      "muscle_group": "Forearms",
+      "emoji": null,
+      "equipment": "bodyweight",
+      "measurement_type": "duration",
+      "default_duration_seconds": 45
+    },
+    "input": {
+      "sets": 2,
+      "reps": "0",
+      "restSeconds": 90,
+      "isCompound": false
+    },
+    "expectedRow": {
+      "exercise_id": "ex-hang",
+      "name_snapshot": "Hang",
+      "muscle_snapshot": "Forearms",
+      "emoji_snapshot": "🏋️",
+      "sets": 2,
+      "reps": "0",
+      "weight": "0",
+      "rest_seconds": 90,
+      "target_duration_seconds": 45,
+      "rep_range_min": 1,
+      "rep_range_max": 2,
+      "set_range_min": 1,
+      "set_range_max": 4,
+      "max_weight_reached": true,
+      "duration_range_min_seconds": 35,
+      "duration_range_max_seconds": 60,
+      "duration_increment_seconds": 5
+    }
+  },
+  {
+    "name": "non-numeric reps string ('AMRAP') falls back to default rep_range 8-12 (legacy)",
+    "exercise": {
+      "id": "ex-curl",
+      "name": "Weird Curl",
+      "muscle_group": "Biceps",
+      "emoji": "🏋️",
+      "equipment": "dumbbell",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 3,
+      "reps": "AMRAP",
+      "restSeconds": 60,
+      "isCompound": false
+    },
+    "expectedRow": {
+      "exercise_id": "ex-curl",
+      "name_snapshot": "Weird Curl",
+      "muscle_snapshot": "Biceps",
+      "emoji_snapshot": "🏋️",
+      "sets": 3,
+      "reps": "AMRAP",
+      "weight": "0",
+      "rest_seconds": 60,
+      "target_duration_seconds": null,
+      "rep_range_min": 8,
+      "rep_range_max": 12,
+      "set_range_min": 2,
+      "set_range_max": 5,
+      "max_weight_reached": false,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "T74 LINEAR — barbell 4×8 @ 80kg with explicit ranges 8/8 4/4 (frozen)",
+    "exercise": {
+      "id": "ex-bench",
+      "name": "Bench Press",
+      "muscle_group": "Pectoraux",
+      "emoji": "🏋️",
+      "equipment": "barbell",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 4,
+      "reps": "8",
+      "restSeconds": 120,
+      "isCompound": true,
+      "weightKg": 80,
+      "repRangeMin": 8,
+      "repRangeMax": 8,
+      "setRangeMin": 4,
+      "setRangeMax": 4
+    },
+    "expectedRow": {
+      "exercise_id": "ex-bench",
+      "name_snapshot": "Bench Press",
+      "muscle_snapshot": "Pectoraux",
+      "emoji_snapshot": "🏋️",
+      "sets": 4,
+      "reps": "8",
+      "weight": "80",
+      "rest_seconds": 120,
+      "target_duration_seconds": null,
+      "rep_range_min": 8,
+      "rep_range_max": 8,
+      "set_range_min": 4,
+      "set_range_max": 4,
+      "max_weight_reached": false,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "T74 DOUBLE — barbell 4×8-12 @ 80kg with explicit ranges 8/12 4/4 (frozen)",
+    "exercise": {
+      "id": "ex-bench",
+      "name": "Bench Press",
+      "muscle_group": "Pectoraux",
+      "emoji": "🏋️",
+      "equipment": "barbell",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 4,
+      "reps": "8-12",
+      "restSeconds": 120,
+      "isCompound": true,
+      "weightKg": 80,
+      "repRangeMin": 8,
+      "repRangeMax": 12,
+      "setRangeMin": 4,
+      "setRangeMax": 4
+    },
+    "expectedRow": {
+      "exercise_id": "ex-bench",
+      "name_snapshot": "Bench Press",
+      "muscle_snapshot": "Pectoraux",
+      "emoji_snapshot": "🏋️",
+      "sets": 4,
+      "reps": "8-12",
+      "weight": "80",
+      "rest_seconds": 120,
+      "target_duration_seconds": null,
+      "rep_range_min": 8,
+      "rep_range_max": 12,
+      "set_range_min": 4,
+      "set_range_max": 4,
+      "max_weight_reached": false,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "T74 FRACTIONAL — dumbbell 3×10 @ 22.5kg with explicit ranges (weight stored as TEXT)",
+    "exercise": {
+      "id": "ex-curl",
+      "name": "DB Curl",
+      "muscle_group": "Biceps",
+      "emoji": null,
+      "equipment": "dumbbell",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 3,
+      "reps": "10",
+      "restSeconds": 60,
+      "isCompound": false,
+      "weightKg": 22.5,
+      "repRangeMin": 10,
+      "repRangeMax": 10,
+      "setRangeMin": 3,
+      "setRangeMax": 3
+    },
+    "expectedRow": {
+      "exercise_id": "ex-curl",
+      "name_snapshot": "DB Curl",
+      "muscle_snapshot": "Biceps",
+      "emoji_snapshot": "🏋️",
+      "sets": 3,
+      "reps": "10",
+      "weight": "22.5",
+      "rest_seconds": 60,
+      "target_duration_seconds": null,
+      "rep_range_min": 10,
+      "rep_range_max": 10,
+      "set_range_min": 3,
+      "set_range_max": 3,
+      "max_weight_reached": false,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  },
+  {
+    "name": "T74 BODYWEIGHT-IGNORES-EXPLICIT — pushup 4×12 with explicit ranges (T74 falls through to legacy auto-derive; T75 will own bodyweight branch)",
+    "exercise": {
+      "id": "ex-pushup",
+      "name": "Pushup",
+      "muscle_group": "Pectoraux",
+      "emoji": null,
+      "equipment": "bodyweight",
+      "measurement_type": "reps",
+      "default_duration_seconds": null
+    },
+    "input": {
+      "sets": 4,
+      "reps": "12",
+      "restSeconds": 90,
+      "isCompound": false,
+      "weightKg": 0,
+      "repRangeMin": 12,
+      "repRangeMax": 12,
+      "setRangeMin": 4,
+      "setRangeMax": 4
+    },
+    "expectedRow": {
+      "exercise_id": "ex-pushup",
+      "name_snapshot": "Pushup",
+      "muscle_snapshot": "Pectoraux",
+      "emoji_snapshot": "🏋️",
+      "sets": 4,
+      "reps": "12",
+      "weight": "0",
+      "rest_seconds": 90,
+      "target_duration_seconds": null,
+      "rep_range_min": 10,
+      "rep_range_max": 14,
+      "set_range_min": 3,
+      "set_range_max": 6,
+      "max_weight_reached": true,
+      "duration_range_min_seconds": null,
+      "duration_range_max_seconds": null,
+      "duration_increment_seconds": null
+    }
+  }
+]

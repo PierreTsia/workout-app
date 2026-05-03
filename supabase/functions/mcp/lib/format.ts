@@ -23,6 +23,27 @@ export function formatWeightConvention(equipment: string): WeightConvention {
   return "total"
 }
 
+interface FormatPrescriptionInput {
+  exerciseName: string
+  sets: number
+  reps: string
+  weightKg: number
+  restSeconds: number
+  weightConvention: WeightConvention
+  /** When set, renders the line as a duration prescription (T75). For T74 reps mode, leave undefined. */
+  targetDurationSeconds?: number
+}
+
+export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
+  const { exerciseName, sets, reps, weightKg, restSeconds, weightConvention } = input
+  const restSuffix = `${restSeconds}s rest`
+  if (weightConvention === "bodyweight") {
+    return `${exerciseName} — ${sets} × ${reps} (bodyweight) — ${restSuffix}`
+  }
+  const conventionSuffix = weightConvention === "per_hand" ? "per hand" : "total"
+  return `${exerciseName} — ${sets} × ${reps} × ${formatWeight(weightKg)} ${conventionSuffix} — ${restSuffix}`
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   const date = d.toISOString().slice(0, 10)

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  formatPrescriptionLine,
   formatProgramDetails,
   formatProgramListEntry,
   formatSessionSummary,
@@ -375,5 +376,59 @@ describe("formatWeightConvention", () => {
 
     expect(convention).toBe("total")
     expect(warn).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("formatPrescriptionLine — reps mode", () => {
+  it("renders a barbell linear prescription with 'X kg total' suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Bench Press",
+      sets: 4,
+      reps: "8",
+      weightKg: 80,
+      restSeconds: 120,
+      weightConvention: "total",
+    })
+
+    expect(line).toBe("Bench Press — 4 × 8 × 80 kg total — 120s rest")
+  })
+
+  it("renders a dumbbell double-progression prescription with 'X kg per hand' suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "DB Curl",
+      sets: 4,
+      reps: "8-12",
+      weightKg: 15,
+      restSeconds: 90,
+      weightConvention: "per_hand",
+    })
+
+    expect(line).toBe("DB Curl — 4 × 8-12 × 15 kg per hand — 90s rest")
+  })
+
+  it("renders a bodyweight prescription as '(bodyweight)' and omits the kg suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Pushup",
+      sets: 4,
+      reps: "12",
+      weightKg: 0,
+      restSeconds: 90,
+      weightConvention: "bodyweight",
+    })
+
+    expect(line).toBe("Pushup — 4 × 12 (bodyweight) — 90s rest")
+  })
+
+  it("renders fractional weight using one decimal (e.g. 22.5 kg, not 22.50000001)", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "DB Curl",
+      sets: 3,
+      reps: "10",
+      weightKg: 22.5,
+      restSeconds: 60,
+      weightConvention: "per_hand",
+    })
+
+    expect(line).toBe("DB Curl — 3 × 10 × 22.5 kg per hand — 60s rest")
   })
 })
