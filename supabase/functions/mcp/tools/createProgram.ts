@@ -185,7 +185,7 @@ export const createProgram: ToolDefinition = {
                       reps: {
                         type: "string",
                         pattern: "^\\d+(-\\d+)?$",
-                        description: "\"N\" (linear, e.g. \"8\") or \"N-M\" (double progression, e.g. \"8-12\"). Bounds: 1-50.",
+                        description: "\"N\" (linear, e.g. \"8\") or \"N-M\" (double progression, e.g. \"8-12\"). Bounds: 1-50 for reps exercises; use \"0\" ONLY for duration exercises (paired with target_duration_seconds).",
                       },
                       weight_kg: {
                         type: "number",

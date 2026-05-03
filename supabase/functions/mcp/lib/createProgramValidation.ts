@@ -16,7 +16,10 @@ import { parseRepsBounds } from "./programPersistence.ts"
 
 export const BOUNDS = {
   sets: { min: 1, max: 10 },
-  reps: { min: 1, max: 50 },
+  // reps min is 0 because "0" is the legitimate sentinel for duration-mode
+  // exercises (planks, holds). Non-duration callers passing reps "0" are
+  // rejected by cross-field rule R6 — bounds stays semantics-free.
+  reps: { min: 0, max: 50 },
   weight_kg: { min: 0, max: 500 },
   rest_seconds: { min: 0, max: 600 },
   target_duration_seconds: { min: 5, max: 600 },
@@ -200,6 +203,7 @@ export function parseExerciseInput(
  *   R3 (T75): duration exercise + weight_kg > 0 → reject
  *   R4 (T74): reps exercise + target_duration_seconds → reject
  *   R5 (T75): duration exercise object form without target_duration_seconds → reject
+ *   R6 (post-T75): non-duration exercise + reps "0" → reject ("0" reserved for duration mode)
  *
  * Returns the FIRST violation in declaration order so the agent gets one
  * actionable error per call instead of a wall of text.
@@ -246,6 +250,16 @@ export function validateExerciseCrossFields(
     return {
       ok: false,
       error: `${at}: reps exercise "${name}" cannot have target_duration_seconds. Use reps + weight_kg instead.`,
+    }
+  }
+
+  // R6 (post-T75 fix): non-duration exercise + reps "0" → reject. The "0"
+  // sentinel is reserved for duration mode (paired with target_duration_seconds);
+  // a reps exercise with 0 reps is nonsensical and would persist garbage rows.
+  if (!isDuration && parsed.reps === "0") {
+    return {
+      ok: false,
+      error: `${at}: reps exercise "${name}" cannot have reps "0". Use reps "1" or higher (e.g. "8" or "8-12"); reps "0" is reserved for duration exercises.`,
     }
   }
 

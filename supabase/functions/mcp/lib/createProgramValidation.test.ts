@@ -249,7 +249,7 @@ describe("parseExerciseInput — bounds and shape rejections", () => {
     )
   })
 
-  it("rejects reps bounds out of [1, 50] (e.g. '51' or '50-60')", () => {
+  it("rejects reps bounds out of [0, 50] (e.g. '51' or '50-60')", () => {
     expectError(
       { exercise_id: VALID_UUID, sets: 4, reps: "51", weight_kg: 80, rest_seconds: 120 },
       "out of range",
@@ -258,6 +258,15 @@ describe("parseExerciseInput — bounds and shape rejections", () => {
       { exercise_id: VALID_UUID, sets: 4, reps: "10-60", weight_kg: 80, rest_seconds: 120 },
       "out of range",
     )
+  })
+
+  it("accepts reps '0' at the bounds layer (sentinel for duration mode; cross-field R6 enforces semantics)", () => {
+    const result = parseExerciseInput(
+      { exercise_id: VALID_UUID, sets: 3, reps: "0", weight_kg: 0, rest_seconds: 60, target_duration_seconds: 45 },
+      "Day 1",
+      0,
+    )
+    expect(result.ok).toBe(true)
   })
 
   it("rejects weight_kg out of [0, 500]", () => {
@@ -428,6 +437,45 @@ describe("validateExerciseCrossFields (T75 superset; T74 rule R4 still covered)"
   it("R5: passes a duration exercise as a bare UUID even though no target_duration_seconds is set", () => {
     const result = validateExerciseCrossFields(
       { kind: "bare", exerciseId: VALID_UUID },
+      DURATION_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(true)
+  })
+
+  it("R6: REJECTS a non-duration (reps) exercise that passes reps \"0\" — sentinel reserved for duration mode", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 80, targetDurationSeconds: null }),
+      REPS_BARBELL,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("Bench Press")
+      expect(result.error).toContain('reps "0"')
+      expect(result.error).toContain("reserved for duration")
+    }
+  })
+
+  it("R6: REJECTS reps \"0\" even on a bodyweight reps exercise (no equipment exemption)", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 0, targetDurationSeconds: null }),
+      REPS_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("Pushup")
+      expect(result.error).toContain('reps "0"')
+    }
+  })
+
+  it("R6: ACCEPTS reps \"0\" on a duration exercise (the supported pairing with target_duration_seconds)", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 0, targetDurationSeconds: 45 }),
       DURATION_BODYWEIGHT,
       DAY,
       0,
