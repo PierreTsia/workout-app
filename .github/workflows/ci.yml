@@ -52,7 +52,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno test "supabase/functions/mcp/lib/*_test.ts" --allow-env
+      # `--no-check=remote` skips typechecking of remote modules (e.g. supabase-js),
+      # which transitively reference @types/node and would otherwise require a Node
+      # toolchain in the Deno runner. Local sources are still typechecked, so the
+      # web/Edge parity guard for `programPersistence.ts` and `format.ts` holds.
+      - run: deno test --no-check=remote --allow-env "supabase/functions/mcp/lib/*_test.ts"
 
   e2e:
     runs-on: ubuntu-latest
