@@ -19,6 +19,7 @@ interface WorkoutDayRow {
 
 interface WorkoutExerciseRow {
   id: string
+  exercise_id: string
   name_snapshot: string
   sets: number
   reps: string
@@ -66,7 +67,7 @@ export const getProgramDetails: ToolDefinition = {
     const { data, error } = await supabase
       .from("programs")
       .select(
-        "id, name, archived_at, workout_days(id, label, emoji, sort_order, workout_exercises(id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))",
+        "id, name, archived_at, workout_days(id, label, emoji, sort_order, workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))",
       )
       .eq("id", programId)
       .maybeSingle()

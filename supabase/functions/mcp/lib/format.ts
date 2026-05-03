@@ -238,6 +238,7 @@ interface ProgramDetailsDay {
 
 interface ProgramDetailsExercise {
   id: string
+  exercise_id: string
   name_snapshot: string
   sets: number
   reps: string
@@ -265,7 +266,7 @@ export function formatProgramDetails(
         ? `${ex.sets} × ${ex.target_duration_seconds}s`
         : `${ex.sets} × ${ex.reps} reps`
       const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
-      return `  - **${ex.name_snapshot}** *(id: ${ex.id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+      return `  - **${ex.name_snapshot}** *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
     })
     return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
   })

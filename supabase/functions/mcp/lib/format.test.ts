@@ -94,6 +94,7 @@ describe("formatProgramListEntry", () => {
 
 interface ProgramDetailsExercise {
   id: string
+  exercise_id: string
   name_snapshot: string
   sets: number
   reps: string
@@ -137,6 +138,7 @@ function makeDay(overrides: Partial<ProgramDetailsDay> = {}): ProgramDetailsDay 
 function makeExercise(overrides: Partial<ProgramDetailsExercise> = {}): ProgramDetailsExercise {
   return {
     id: "33333333-3333-4333-8333-333333333333",
+    exercise_id: "ex000033-3333-4333-8333-333333333333",
     name_snapshot: "Bench Press",
     sets: 4,
     reps: "8",
@@ -148,12 +150,13 @@ function makeExercise(overrides: Partial<ProgramDetailsExercise> = {}): ProgramD
 }
 
 describe("formatProgramDetails", () => {
-  it("renders a single-day program with multiple exercises, surfacing inline UUIDs on program/day/exercise lines", () => {
+  it("renders a single-day program with multiple exercises, surfacing the catalog exercise_id on each exercise line", () => {
     const program = makeProgram()
     const day = makeDay()
     const exercises = [
       makeExercise({
         id: "33333333-3333-4333-8333-333333333333",
+        exercise_id: "cccccccc-3333-4333-8333-333333333333",
         name_snapshot: "Bench Press",
         sets: 4,
         reps: "8",
@@ -162,6 +165,7 @@ describe("formatProgramDetails", () => {
       }),
       makeExercise({
         id: "44444444-4444-4444-8444-444444444444",
+        exercise_id: "cccccccc-4444-4444-8444-444444444444",
         name_snapshot: "Overhead Press",
         sets: 3,
         reps: "10",
@@ -176,8 +180,8 @@ describe("formatProgramDetails", () => {
     expect(md).toBe(
       "## **Mai 2026 v2** *(id: 11111111-1111-4111-8111-111111111111)*\n\n" +
         "### 💪 Push *(id: 22222222-2222-4222-8222-222222222222)*\n" +
-        "  - **Bench Press** *(id: 33333333-3333-4333-8333-333333333333)*: 4 × 8 reps @ 80 kg (rest 120s)\n" +
-        "  - **Overhead Press** *(id: 44444444-4444-4444-8444-444444444444)*: 3 × 10 reps @ 40 kg (rest 90s)",
+        "  - **Bench Press** *(exercise_id: cccccccc-3333-4333-8333-333333333333)*: 4 × 8 reps @ 80 kg (rest 120s)\n" +
+        "  - **Overhead Press** *(exercise_id: cccccccc-4444-4444-8444-444444444444)*: 3 × 10 reps @ 40 kg (rest 90s)",
     )
   })
 
@@ -231,6 +235,7 @@ describe("formatProgramDetails", () => {
     const exercises = [
       makeExercise({
         id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+        exercise_id: "cccccccc-ffff-4fff-8fff-ffffffffffff",
         name_snapshot: "Pull-up",
         sets: 4,
         reps: "8",
@@ -242,7 +247,7 @@ describe("formatProgramDetails", () => {
 
     const md = formatProgramDetails(program, [day], exercisesByDay)
 
-    expect(md).toContain("**Pull-up** *(id: ffffffff-ffff-4fff-8fff-ffffffffffff)*: 4 × 8 reps (rest 90s)")
+    expect(md).toContain("**Pull-up** *(exercise_id: cccccccc-ffff-4fff-8fff-ffffffffffff)*: 4 × 8 reps (rest 90s)")
     expect(md).not.toContain("@ 0 kg")
   })
 
@@ -252,6 +257,7 @@ describe("formatProgramDetails", () => {
     const exercises = [
       makeExercise({
         id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        exercise_id: "cccccccc-eeee-4eee-8eee-eeeeeeeeeeee",
         name_snapshot: "Plank",
         sets: 3,
         reps: "0",
@@ -264,7 +270,7 @@ describe("formatProgramDetails", () => {
 
     const md = formatProgramDetails(program, [day], exercisesByDay)
 
-    expect(md).toContain("**Plank** *(id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee)*: 3 × 45s (rest 60s)")
+    expect(md).toContain("**Plank** *(exercise_id: cccccccc-eeee-4eee-8eee-eeeeeeeeeeee)*: 3 × 45s (rest 60s)")
     expect(md).not.toContain("reps")
   })
 })
