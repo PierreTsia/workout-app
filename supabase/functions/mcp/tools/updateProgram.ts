@@ -151,7 +151,7 @@ Each item in a day's \`exercises\` array can be EITHER:
 
 Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior days are already persisted; the response includes \`applied_days\`, \`failed_at\`, and \`remaining_days\` plus retry guidance.
 
-Always call with \`dry_run: true\` first (the default) — review \`preview.rendered\` and the \`removed_days\`/\`added_days\`/\`warnings\` arrays. Re-call with \`dry_run: false\` to apply.
+Always call with \`dry_run: true\` first (the default) — review the top-level \`rendered\` markdown plus the \`removed_days\`/\`added_days\`/\`warnings\` arrays. Re-call with \`dry_run: false\` to apply.
 
 Destructive guard: removing ≥1 day requires \`confirm: true\` along with \`dry_run: false\`. The handler also blocks deletion of any day with logged sessions (returns a structured error).
 
