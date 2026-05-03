@@ -40,6 +40,20 @@ jobs:
       - run: npm ci
       - run: npx vitest run --reporter=verbose
 
+  # Edge function unit tests run on the production runtime (Deno) to guard
+  # parity for shared modules — `programPersistence.ts` and `format.ts` are
+  # mirrored between the web bundle (Vitest) and the Edge bundle (Deno) and
+  # ship the same fixtures. Without this job, drift between the two runtimes
+  # would only surface in a Supabase deploy, not in CI.
+  deno-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test "supabase/functions/mcp/lib/*_test.ts" --allow-env
+
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -77,7 +91,7 @@ jobs:
           retention-days: 30
 
   gate:
-    needs: [lint, type-check, unit, e2e]
+    needs: [lint, type-check, unit, deno-unit, e2e]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed"
