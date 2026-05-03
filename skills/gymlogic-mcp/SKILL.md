@@ -147,10 +147,14 @@ Volume math depends on **equipment type**. The `weight_logged` field on a set lo
 
 ### How to know which equipment
 
-- `get_exercise_details` returns `equipment` explicitly — it is the source of truth.
+- `get_exercise_details` returns `equipment` explicitly — it is the source of truth. **Since v0.3.0** it also returns a derived `**Weight convention:** {per_hand|total|bodyweight}` line right next to it, so you don't have to remember the equipment-to-convention mapping yourself.
 - Exercise names hint: "Curl haltères" / "Dumbbell Curl" → `dumbbell` (per hand). "Développé couché" / "Bench Press" → `barbell` (total). But hints are **not** authoritative — *"Bulgarian Split Squat"* might be DB or BB depending on the user's setup, and *"Front Squat"* vs *"Goblet Squat"* are the same English word "squat" with opposite conventions.
 - **Operational rule**: if equipment is ambiguous AND the user is asking for a numeric volume / load summary / progression analysis, **call `get_exercise_details` first** (one extra tool call beats a wrong number). Don't guess from the name when a number is on the line.
 - When you cannot resolve equipment (lookup failed, exercise not in catalog), **state the assumption verbatim** and offer to re-run if the user corrects you. Don't pick a side and hope.
+
+### Read AND write side use the same convention
+
+The `weight_convention` exposed by `get_exercise_details` is the same convention that future write tools (`create_program`, `update_program`) interpret when you send `weight_kg`. So if you read `Weight convention: per_hand` on a dumbbell exercise and the user says *"40 kg"*, send `weight_kg: 40` (per hand) — the tool will not silently double it. **When in doubt before a write, call `get_exercise_details` first** to confirm the convention you're committing to.
 
 ### Failure mode to avoid
 

@@ -1,3 +1,4 @@
+import { formatWeightConvention, type WeightConvention } from "../lib/format.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 interface Instructions {
@@ -5,6 +6,12 @@ interface Instructions {
   movement?: string[]
   breathing?: string[]
   common_mistakes?: string[]
+}
+
+const WEIGHT_CONVENTION_HINT: Record<WeightConvention, string> = {
+  per_hand: "each hand",
+  total: "total load on the implement",
+  bodyweight: "no external load",
 }
 
 function formatInstructions(raw: Instructions | null): string {
@@ -24,11 +31,15 @@ function formatExercise(ex: Record<string, unknown>): string {
   const name = ex.name_en ? `${ex.name} (${ex.name_en})` : ex.name
   const secondary = (ex.secondary_muscles as string[] | null)?.join(", ")
 
+  const equipment = (ex.equipment as string | null | undefined) ?? "other"
+  const convention = formatWeightConvention(equipment)
+
   const meta = [
     `**Name:** ${name}`,
     `**Muscle group:** ${ex.muscle_group}`,
     secondary && `**Secondary muscles:** ${secondary}`,
     `**Equipment:** ${ex.equipment}`,
+    `**Weight convention:** ${convention} (${WEIGHT_CONVENTION_HINT[convention]})`,
     ex.difficulty_level && `**Difficulty:** ${ex.difficulty_level}`,
     ex.measurement_type === "duration"
       ? `**Measurement:** duration${ex.default_duration_seconds ? ` (${ex.default_duration_seconds}s default)` : ""}`

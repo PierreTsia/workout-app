@@ -1,6 +1,28 @@
 const MS_PER_MINUTE = 60_000
 const MS_PER_HOUR = 3_600_000
 
+export type WeightConvention = "per_hand" | "total" | "bodyweight"
+
+const WEIGHT_CONVENTION_BY_EQUIPMENT: Record<string, WeightConvention> = {
+  dumbbell: "per_hand",
+  kettlebell: "per_hand",
+  barbell: "total",
+  machine: "total",
+  cable: "total",
+  bodyweight: "bodyweight",
+  band: "total",
+  other: "total",
+}
+
+export function formatWeightConvention(equipment: string): WeightConvention {
+  const known = WEIGHT_CONVENTION_BY_EQUIPMENT[equipment]
+  if (known) return known
+  console.warn(
+    `[formatWeightConvention] Unknown equipment "${equipment}", falling back to "total". Update WEIGHT_CONVENTION_BY_EQUIPMENT if this is a new catalog value.`,
+  )
+  return "total"
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   const date = d.toISOString().slice(0, 10)

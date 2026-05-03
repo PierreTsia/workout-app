@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest"
-import { formatProgramDetails, formatProgramListEntry, formatSessionSummary } from "./format"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import {
+  formatProgramDetails,
+  formatProgramListEntry,
+  formatSessionSummary,
+  formatWeightConvention,
+  type WeightConvention,
+} from "./format"
 
 interface ProgramListEntryInput {
   id: string
@@ -323,5 +329,51 @@ describe("formatSessionSummary — programInfo branch", () => {
 
     expect(headerLine).not.toContain("program:")
     expect(headerLine).not.toContain("Mai 2026 v2")
+  })
+})
+
+describe("formatWeightConvention", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string, WeightConvention]>([
+    ["dumbbell", "per_hand"],
+    ["kettlebell", "per_hand"],
+    ["barbell", "total"],
+    ["machine", "total"],
+    ["cable", "total"],
+    ["bodyweight", "bodyweight"],
+    ["band", "total"],
+    ["other", "total"],
+  ])(
+    "maps known equipment '%s' to convention '%s' without warning",
+    (equipment, expected) => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+      const convention = formatWeightConvention(equipment)
+
+      expect(convention).toBe(expected)
+      expect(warn).not.toHaveBeenCalled()
+    },
+  )
+
+  it("falls back to 'total' AND warns when equipment is unknown to the catalog", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const convention = formatWeightConvention("flux-capacitor")
+
+    expect(convention).toBe("total")
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]?.[0]).toContain("flux-capacitor")
+  })
+
+  it("falls back to 'total' AND warns when equipment is the empty string (defensive)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const convention = formatWeightConvention("")
+
+    expect(convention).toBe("total")
+    expect(warn).toHaveBeenCalledTimes(1)
   })
 })
