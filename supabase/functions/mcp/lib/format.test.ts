@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest"
-import { formatProgramDetails, formatProgramListEntry, formatSessionSummary } from "./format"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import {
+  formatPrescriptionLine,
+  formatProgramDetails,
+  formatProgramListEntry,
+  formatSessionSummary,
+  formatWeightConvention,
+  type WeightConvention,
+} from "./format"
 
 interface ProgramListEntryInput {
   id: string
@@ -323,5 +330,153 @@ describe("formatSessionSummary — programInfo branch", () => {
 
     expect(headerLine).not.toContain("program:")
     expect(headerLine).not.toContain("Mai 2026 v2")
+  })
+})
+
+describe("formatWeightConvention", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it.each<[string, WeightConvention]>([
+    ["dumbbell", "per_hand"],
+    ["kettlebell", "per_hand"],
+    ["barbell", "total"],
+    ["machine", "total"],
+    ["cable", "total"],
+    ["bodyweight", "bodyweight"],
+    ["band", "total"],
+    ["other", "total"],
+  ])(
+    "maps known equipment '%s' to convention '%s' without warning",
+    (equipment, expected) => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+      const convention = formatWeightConvention(equipment)
+
+      expect(convention).toBe(expected)
+      expect(warn).not.toHaveBeenCalled()
+    },
+  )
+
+  it("falls back to 'total' AND warns when equipment is unknown to the catalog", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const convention = formatWeightConvention("flux-capacitor")
+
+    expect(convention).toBe("total")
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]?.[0]).toContain("flux-capacitor")
+  })
+
+  it("falls back to 'total' AND warns when equipment is the empty string (defensive)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const convention = formatWeightConvention("")
+
+    expect(convention).toBe("total")
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("formatPrescriptionLine — reps mode", () => {
+  it("renders a barbell linear prescription with 'X kg total' suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Bench Press",
+      sets: 4,
+      reps: "8",
+      weightKg: 80,
+      restSeconds: 120,
+      weightConvention: "total",
+    })
+
+    expect(line).toBe("Bench Press — 4 × 8 × 80 kg total — 120s rest")
+  })
+
+  it("renders a dumbbell double-progression prescription with 'X kg per hand' suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "DB Curl",
+      sets: 4,
+      reps: "8-12",
+      weightKg: 15,
+      restSeconds: 90,
+      weightConvention: "per_hand",
+    })
+
+    expect(line).toBe("DB Curl — 4 × 8-12 × 15 kg per hand — 90s rest")
+  })
+
+  it("renders a bodyweight prescription as '(bodyweight)' and omits the kg suffix", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Pushup",
+      sets: 4,
+      reps: "12",
+      weightKg: 0,
+      restSeconds: 90,
+      weightConvention: "bodyweight",
+    })
+
+    expect(line).toBe("Pushup — 4 × 12 (bodyweight) — 90s rest")
+  })
+
+  it("renders fractional weight using one decimal (e.g. 22.5 kg, not 22.50000001)", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "DB Curl",
+      sets: 3,
+      reps: "10",
+      weightKg: 22.5,
+      restSeconds: 60,
+      weightConvention: "per_hand",
+    })
+
+    expect(line).toBe("DB Curl — 3 × 10 × 22.5 kg per hand — 60s rest")
+  })
+})
+
+describe("formatPrescriptionLine — duration mode (T75)", () => {
+  it("renders a bodyweight duration prescription as '{sets} × {N}s' (no kg suffix, no reps)", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Plank",
+      sets: 4,
+      reps: "0",
+      weightKg: 0,
+      restSeconds: 60,
+      weightConvention: "bodyweight",
+      targetDurationSeconds: 30,
+    })
+
+    expect(line).toBe("Plank — 4 × 30s — 60s rest")
+  })
+
+  it("renders a longer duration with the same compact format", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Hang",
+      sets: 3,
+      reps: "0",
+      weightKg: 0,
+      restSeconds: 90,
+      weightConvention: "bodyweight",
+      targetDurationSeconds: 60,
+    })
+
+    expect(line).toBe("Hang — 3 × 60s — 90s rest")
+  })
+
+  it("ignores reps and weightKg when targetDurationSeconds is set (duration mode wins)", () => {
+    // Defensive: even if upstream callers forget to zero these out, the duration
+    // branch should not leak them into the rendered line.
+    const line = formatPrescriptionLine({
+      exerciseName: "Plank",
+      sets: 3,
+      reps: "12",
+      weightKg: 50,
+      restSeconds: 60,
+      weightConvention: "total",
+      targetDurationSeconds: 45,
+    })
+
+    expect(line).toBe("Plank — 3 × 45s — 60s rest")
+    expect(line).not.toContain("kg")
+    expect(line).not.toContain("12")
   })
 })

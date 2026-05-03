@@ -5,7 +5,40 @@ import {
   AI_PROGRAM_DAY_EMOJIS,
   buildWorkoutExerciseInsertRowsForDay,
   dayEmojiForProgramDayIndex,
+  parseRepsBounds,
+  type WorkoutExerciseProgramInsertRow,
 } from "./programPersistence"
+import fixtures from "../../supabase/functions/mcp/lib/programPersistence_fixtures.json"
+
+interface FixtureExercise {
+  id: string
+  name: string
+  muscle_group: string
+  emoji: string | null
+  equipment: string
+  measurement_type: "reps" | "duration" | null
+  default_duration_seconds: number | null
+}
+
+interface FixtureInput {
+  sets: number
+  reps: string
+  restSeconds: number
+  isCompound: boolean
+  weightKg?: number
+  repRangeMin?: number
+  repRangeMax?: number
+  setRangeMin?: number
+  setRangeMax?: number
+  targetDurationSeconds?: number
+}
+
+interface FixtureCase {
+  name: string
+  exercise: FixtureExercise
+  input: FixtureInput
+  expectedRow: Omit<WorkoutExerciseProgramInsertRow, "workout_day_id" | "sort_order">
+}
 
 function fakeExercise(overrides: Partial<Exercise> & Pick<Exercise, "id" | "name">): Exercise {
   return {
@@ -30,6 +63,18 @@ function fakeExercise(overrides: Partial<Exercise> & Pick<Exercise, "id" | "name
   }
 }
 
+function inflateFixtureExercise(fix: FixtureExercise): Exercise {
+  return fakeExercise({
+    id: fix.id,
+    name: fix.name,
+    muscle_group: fix.muscle_group,
+    emoji: fix.emoji ?? "🏋️",
+    equipment: fix.equipment,
+    measurement_type: fix.measurement_type ?? undefined,
+    default_duration_seconds: fix.default_duration_seconds,
+  })
+}
+
 function ge(ex: Exercise, sets: number, reps: string, restSeconds: number): GeneratedExercise {
   return {
     exercise: ex,
@@ -52,96 +97,31 @@ describe("dayEmojiForProgramDayIndex", () => {
   })
 })
 
-describe("buildWorkoutExerciseInsertRowsForDay", () => {
+describe("buildWorkoutExerciseInsertRowsForDay (data-driven via shared fixtures)", () => {
   const dayId = "day-uuid-1"
 
-  it("builds rep-based barbell row with max_weight_reached false", () => {
-    const ex = fakeExercise({
-      id: "ex-1",
-      name: "Bench",
-      equipment: "barbell",
-      measurement_type: "reps",
-    })
-    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [ge(ex, 4, "10", 90)])
+  it.each(fixtures as FixtureCase[])("$name", (fixture) => {
+    const ex = inflateFixtureExercise(fixture.exercise)
+    const generated: GeneratedExercise = {
+      exercise: ex,
+      ...fixture.input,
+    }
+
+    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [generated])
 
     expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({
+    expect(rows[0]).toEqual({
       workout_day_id: dayId,
-      exercise_id: "ex-1",
-      name_snapshot: "Bench",
-      reps: "10",
-      sets: 4,
-      weight: "0",
-      rest_seconds: 90,
       sort_order: 0,
-      target_duration_seconds: null,
-      rep_range_min: 8,
-      rep_range_max: 12,
-      set_range_min: 3,
-      set_range_max: 6,
-      max_weight_reached: false,
-      duration_range_min_seconds: null,
-      duration_range_max_seconds: null,
-      duration_increment_seconds: null,
+      ...fixture.expectedRow,
     })
   })
+})
 
-  it("sets max_weight_reached true for bodyweight", () => {
-    const ex = fakeExercise({
-      id: "ex-bw",
-      name: "Push-up",
-      equipment: "bodyweight",
-      measurement_type: "reps",
-    })
-    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [ge(ex, 3, "12", 60)])
-    expect(rows[0].max_weight_reached).toBe(true)
-  })
+describe("buildWorkoutExerciseInsertRowsForDay (multi-row scenarios — not fixture-friendly)", () => {
+  const dayId = "day-uuid-1"
 
-  it("handles duration exercise with default 30s when default_duration_seconds null", () => {
-    const ex = fakeExercise({
-      id: "ex-pl",
-      name: "Plank",
-      equipment: "bodyweight",
-      measurement_type: "duration",
-      default_duration_seconds: null,
-    })
-    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [ge(ex, 3, "0", 60)])
-    expect(rows[0]).toMatchObject({
-      reps: "0",
-      target_duration_seconds: 30,
-      duration_range_min_seconds: 20,
-      duration_range_max_seconds: 45,
-      duration_increment_seconds: 5,
-    })
-  })
-
-  it("uses exercise default_duration_seconds when set", () => {
-    const ex = fakeExercise({
-      id: "ex-h",
-      name: "Hang",
-      equipment: "bodyweight",
-      measurement_type: "duration",
-      default_duration_seconds: 45,
-    })
-    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [ge(ex, 2, "0", 90)])
-    expect(rows[0].target_duration_seconds).toBe(45)
-    expect(rows[0].duration_range_min_seconds).toBe(35)
-    expect(rows[0].duration_range_max_seconds).toBe(60)
-  })
-
-  it("uses rep_range 8–12 when reps string does not parse to a finite integer", () => {
-    const ex = fakeExercise({
-      id: "ex-x",
-      name: "Weird",
-      equipment: "dumbbell",
-      measurement_type: "reps",
-    })
-    const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [ge(ex, 3, "AMRAP", 60)])
-    expect(rows[0].rep_range_min).toBe(8)
-    expect(rows[0].rep_range_max).toBe(12)
-  })
-
-  it("assigns sort_order by index", () => {
+  it("assigns sort_order by index for multiple exercises in the same day", () => {
     const a = fakeExercise({ id: "a", name: "A", measurement_type: "reps" })
     const b = fakeExercise({ id: "b", name: "B", measurement_type: "reps" })
     const rows = buildWorkoutExerciseInsertRowsForDay(dayId, [
@@ -149,5 +129,44 @@ describe("buildWorkoutExerciseInsertRowsForDay", () => {
       ge(b, 3, "10", 60),
     ])
     expect(rows.map((r) => r.sort_order)).toEqual([0, 1])
+  })
+})
+
+describe("parseRepsBounds", () => {
+  it("parses a single integer 'N' as min === max === N", () => {
+    expect(parseRepsBounds("8")).toEqual({ min: 8, max: 8 })
+  })
+
+  it("parses a range 'N-M' as { min: N, max: M } when M >= N", () => {
+    expect(parseRepsBounds("8-12")).toEqual({ min: 8, max: 12 })
+  })
+
+  it("parses 'N-N' (degenerate range) as { min: N, max: N }", () => {
+    expect(parseRepsBounds("10-10")).toEqual({ min: 10, max: 10 })
+  })
+
+  it("parses '0' (used by duration exercises) without throwing", () => {
+    expect(parseRepsBounds("0")).toEqual({ min: 0, max: 0 })
+  })
+
+  it("throws on a non-numeric string ('AMRAP', 'abc', etc.)", () => {
+    expect(() => parseRepsBounds("AMRAP")).toThrow(/Invalid reps format/)
+    expect(() => parseRepsBounds("abc")).toThrow(/Invalid reps format/)
+  })
+
+  it("throws on a malformed range with trailing dash ('8-')", () => {
+    expect(() => parseRepsBounds("8-")).toThrow(/Invalid reps format/)
+  })
+
+  it("throws on a malformed range with leading dash ('-8')", () => {
+    expect(() => parseRepsBounds("-8")).toThrow(/Invalid reps format/)
+  })
+
+  it("throws on an inverted range where max < min ('12-8')", () => {
+    expect(() => parseRepsBounds("12-8")).toThrow(/Max .* < min/)
+  })
+
+  it("throws on the empty string", () => {
+    expect(() => parseRepsBounds("")).toThrow(/Invalid reps format/)
   })
 })

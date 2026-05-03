@@ -3,10 +3,18 @@ import type { ToolDefinition } from "./registry.ts"
 import {
   buildWorkoutExerciseInsertRowsForDay,
   dayEmojiForProgramDayIndex,
+  parseRepsBounds,
   type CatalogExerciseForProgram,
   type GeneratedExerciseForProgram,
 } from "../lib/programPersistence.ts"
-import { isUuid } from "../lib/uuid.ts"
+import { formatPrescriptionLine, formatWeightConvention } from "../lib/format.ts"
+import {
+  detectLegacyExerciseIds,
+  LEGACY_MIGRATION_ERROR_MESSAGE,
+  parseExerciseInput,
+  validateExerciseCrossFields,
+  type ParsedExercise,
+} from "../lib/createProgramValidation.ts"
 
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = "10"
@@ -16,7 +24,12 @@ const MAX_EXERCISES_PER_DAY = 40
 
 type DayInput = {
   label: string
-  exercise_ids: string[]
+  exercises: unknown[]
+}
+
+type ParsedDay = {
+  label: string
+  exercises: ParsedExercise[]
 }
 
 function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {
@@ -50,6 +63,39 @@ function defaultGeneratedExercise(ex: CatalogExerciseForProgram): GeneratedExerc
   }
 }
 
+/**
+ * Build the persistence input from an object-form parsed exercise. Freezes the
+ * progression range bounds to the agent-provided sets and reps (T74 spec).
+ * Bodyweight (T75) and duration (T75) branches inside `buildWorkoutExerciseInsertRow`
+ * will override these range fields when relevant.
+ */
+function geFromParsedObject(
+  parsed: Extract<ParsedExercise, { kind: "object" }>,
+  ex: CatalogExerciseForProgram,
+): GeneratedExerciseForProgram {
+  const bounds = parseRepsBounds(parsed.reps)
+  return {
+    exercise: ex,
+    sets: parsed.sets,
+    reps: parsed.reps,
+    restSeconds: parsed.restSeconds,
+    isCompound: false,
+    weightKg: parsed.weightKg,
+    repRangeMin: bounds.min,
+    repRangeMax: bounds.max,
+    setRangeMin: parsed.sets,
+    setRangeMax: parsed.sets,
+    targetDurationSeconds: parsed.targetDurationSeconds ?? undefined,
+  }
+}
+
+function geFromParsed(
+  parsed: ParsedExercise,
+  ex: CatalogExerciseForProgram,
+): GeneratedExerciseForProgram {
+  return parsed.kind === "bare" ? defaultGeneratedExercise(ex) : geFromParsedObject(parsed, ex)
+}
+
 async function fetchExercisesByIds(
   supabase: SupabaseClient,
   ids: string[],
@@ -74,13 +120,27 @@ async function fetchExercisesByIds(
   return { data: mapped, error: null }
 }
 
+const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymLogic account (same persistence as the in-app AI program flow).
+
+Each item in a day's \`exercises\` array can be EITHER:
+  - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest, auto-derived ranges).
+  - A prescription object — explicit \`sets\`, \`reps\`, \`weight_kg\`, \`rest_seconds\`. Freezes the progression ranges around the prescribed values.
+
+Reps formats:
+  - "8"     → linear progression (rep_range frozen at 8/8). Weight bumps when target hit.
+  - "8-12"  → double progression (rep_range frozen at 8/12). Reps grow first, then weight bumps and reps reset.
+
+Weight conventions: per_hand for dumbbells/kettlebells, total for barbells/machines/cables. Call \`get_exercise_details\` first to confirm the convention (\`weight_convention\` field). Bodyweight exercises must use weight_kg=0; weighted bodyweight (weighted dips/pull-ups) is tracked in #281.
+
+Bounds: sets [1,10], reps [1,50] for reps exercises (use "0" ONLY for duration exercises, paired with target_duration_seconds), weight_kg [0,500], rest_seconds [0,600], target_duration_seconds [5,600].
+
+Always call with dry_run: true first; review the \`preview.days[].rendered\` lines (e.g. "Bench Press — 4 × 8 × 80 kg total — 120s rest"), then re-call with dry_run: false to persist.
+
+Activates the new program and deactivates any other active program. Breaking change in v0.3.0: the \`exercise_ids\` field has been removed (use \`exercises\` instead).`
+
 export const createProgram: ToolDefinition = {
   name: "create_program",
-  description:
-    "Create a multi-day training program in the user's Gymlogic account (same persistence as the in-app AI program flow). " +
-    "Uses default prescription unless you extend the schema later: 3 sets, 10 reps (or duration mode for time-based exercises), 90s rest. " +
-    "**Always call with dry_run true first** (default); only pass dry_run false after reviewing the preview. " +
-    "When applied, deactivates other active programs and sets this program active so it appears in the app immediately.",
+  description: TOOL_DESCRIPTION,
   inputSchema: {
     type: "object",
     properties: {
@@ -91,23 +151,73 @@ export const createProgram: ToolDefinition = {
       days: {
         type: "array",
         description:
-          "Ordered training days. Each day has a label and an ordered list of exercise UUIDs from the catalog (use search_exercises / get_exercise_details to resolve IDs).",
+          "Ordered training days. Each day has a label and an ordered `exercises` array of either bare UUIDs (defaults) or full prescription objects.",
         items: {
           type: "object",
           properties: {
             label: { type: "string", description: "Day label shown in the app (e.g. \"Upper\")." },
-            exercise_ids: {
+            exercises: {
               type: "array",
-              items: { type: "string" },
-              description: "Ordered exercise UUIDs for this day.",
+              description:
+                "Ordered exercises for this day. Each item is a UUID string (legacy defaults) OR an object with required prescription fields.",
+              items: {
+                oneOf: [
+                  {
+                    type: "string",
+                    description:
+                      "Bare exercise UUID — defaults applied (3 sets, 10 reps, 0 kg, 90s rest).",
+                  },
+                  {
+                    type: "object",
+                    description:
+                      "Full prescription. All of {exercise_id, sets, reps, weight_kg, rest_seconds} required; target_duration_seconds optional and reserved for duration exercises (T75).",
+                    properties: {
+                      exercise_id: {
+                        type: "string",
+                        description: "UUID from search_exercises / get_exercise_details.",
+                      },
+                      sets: {
+                        type: "integer",
+                        minimum: 1,
+                        maximum: 10,
+                        description: "Number of working sets per exercise (1-10).",
+                      },
+                      reps: {
+                        type: "string",
+                        pattern: "^\\d+(-\\d+)?$",
+                        description: "\"N\" (linear, e.g. \"8\") or \"N-M\" (double progression, e.g. \"8-12\"). Bounds: 1-50 for reps exercises; use \"0\" ONLY for duration exercises (paired with target_duration_seconds).",
+                      },
+                      weight_kg: {
+                        type: "number",
+                        minimum: 0,
+                        maximum: 500,
+                        description: "Working weight per set. Per hand for dumbbells/kettlebells, total for barbells/machines (see get_exercise_details).",
+                      },
+                      rest_seconds: {
+                        type: "integer",
+                        minimum: 0,
+                        maximum: 600,
+                        description: "Rest between sets in seconds (0-600).",
+                      },
+                      target_duration_seconds: {
+                        type: "integer",
+                        minimum: 5,
+                        maximum: 600,
+                        description: "Target duration in seconds for time-based exercises (planks, holds). Cross-field rules T75.",
+                      },
+                    },
+                    required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
+                  },
+                ],
+              },
             },
           },
-          required: ["label", "exercise_ids"],
+          required: ["label", "exercises"],
         },
       },
       dry_run: {
         type: "boolean",
-        description: "If true or omitted, validate and return the insert plan without writing. If false, perform the database writes.",
+        description: "If true or omitted, validate and return the insert plan with rendered echo without writing. If false, perform the database writes.",
       },
     },
     required: ["name", "days"],
@@ -117,6 +227,16 @@ export const createProgram: ToolDefinition = {
     if (!supabase) {
       return {
         content: [{ type: "text", text: "Authentication required — please provide a valid Bearer token." }],
+        isError: true,
+      }
+    }
+
+    // T74: detect v0.2.x legacy callers up-front and surface a structured
+    // migration error before any other validation runs. This also catches the
+    // common LLM mistake of using both the old and new shapes in the same call.
+    if (detectLegacyExerciseIds(args)) {
+      return {
+        content: [{ type: "text", text: LEGACY_MIGRATION_ERROR_MESSAGE }],
         isError: true,
       }
     }
@@ -146,45 +266,68 @@ export const createProgram: ToolDefinition = {
       }
     }
 
-    const normalizedDays: DayInput[] = []
+    // Phase 1 — pure shape/bounds/regex validation per exercise
+    const parsedDays: ParsedDay[] = []
     for (const [i, d] of days.entries()) {
       const label = typeof d?.label === "string" ? d.label.trim() : ""
-      const ids = Array.isArray(d?.exercise_ids) ? d.exercise_ids.map(String) : []
+      const exercisesArr = Array.isArray(d?.exercises) ? d.exercises : null
       if (!label) {
         return {
           content: [{ type: "text", text: `Invalid input: days[${i}].label is required.` }],
           isError: true,
         }
       }
-      if (ids.length === 0) {
+      if (!exercisesArr || exercisesArr.length === 0) {
         return {
-          content: [{ type: "text", text: `Invalid input: days[${i}].exercise_ids must be non-empty.` }],
+          content: [{ type: "text", text: `Invalid input: days[${i}].exercises must be a non-empty array.` }],
           isError: true,
         }
       }
-      if (ids.length > MAX_EXERCISES_PER_DAY) {
+      if (exercisesArr.length > MAX_EXERCISES_PER_DAY) {
         return {
           content: [{ type: "text", text: `Invalid input: days[${i}] exceeds ${MAX_EXERCISES_PER_DAY} exercises.` }],
           isError: true,
         }
       }
-      const bad = ids.filter((id) => !isUuid(id))
-      if (bad.length > 0) {
-        return {
-          content: [{ type: "text", text: `Invalid UUID(s) in days[${i}].exercise_ids: ${bad.join(", ")}` }],
-          isError: true,
+
+      const parsedExercises: ParsedExercise[] = []
+      for (const [j, raw] of exercisesArr.entries()) {
+        const result = parseExerciseInput(raw, label, j)
+        if (!result.ok) {
+          return {
+            content: [{ type: "text", text: `Invalid input: ${result.error}` }],
+            isError: true,
+          }
         }
+        parsedExercises.push(result.value)
       }
-      normalizedDays.push({ label, exercise_ids: ids })
+      parsedDays.push({ label, exercises: parsedExercises })
     }
 
-    const allIds = [...new Set(normalizedDays.flatMap((d) => d.exercise_ids))]
+    // Phase 2 — catalog fetch (Supabase, RLS-scoped to caller)
+    const allIds = [
+      ...new Set(parsedDays.flatMap((d) => d.exercises.map((e) => e.exerciseId))),
+    ]
     const { data: exercises, error: fetchErr } = await fetchExercisesByIds(supabase, allIds)
     if (fetchErr) {
       return { content: [{ type: "text", text: fetchErr }], isError: true }
     }
 
     const byId = new Map(exercises.map((e) => [e.id, e] as const))
+
+    // Phase 3 — cross-field validation (T75 superset: R1-R5)
+    for (const day of parsedDays) {
+      for (const [j, parsed] of day.exercises.entries()) {
+        const ex = byId.get(parsed.exerciseId)!
+        const cfResult = validateExerciseCrossFields(parsed, ex, day.label, j)
+        if (!cfResult.ok) {
+          return {
+            content: [{ type: "text", text: `Invalid input: ${cfResult.error}` }],
+            isError: true,
+          }
+        }
+      }
+    }
 
     const { data: userData, error: userErr } = await supabase.auth.getUser()
     if (userErr || !userData?.user) {
@@ -195,20 +338,40 @@ export const createProgram: ToolDefinition = {
     }
     const userId = userData.user.id
 
-    const previewDays = normalizedDays.map((day, dayIndex) => {
-      const generated = day.exercise_ids.map((id) => defaultGeneratedExercise(byId.get(id)!))
+    // Phase 4 — build per-day generated rows + dry_run preview lines.
+    // The `rendered` echo derives from the persisted row (source of truth) so
+    // the agent sees exactly what will land in the database — including the
+    // catalog-default target_duration_seconds for bare-string duration entries
+    // and the bodyweight branch's defensive weight=0.
+    const previewDays = parsedDays.map((day, dayIndex) => {
+      const generated = day.exercises.map((parsed) => geFromParsed(parsed, byId.get(parsed.exerciseId)!))
       const placeholderDayId = `00000000-0000-4000-8000-${String(dayIndex).padStart(12, "0")}`
-      const workout_exercises = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated).map(
-        (row) => {
-          const { workout_day_id: _, ...rest } = row
-          return rest
-        },
-      )
+      const fullRows = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated)
+      const workout_exercises = fullRows.map((row) => {
+        const { workout_day_id: _, ...rest } = row
+        return rest
+      })
+
+      const rendered = fullRows.map((row, i) => {
+        const ge = generated[i]
+        const convention = formatWeightConvention(ge.exercise.equipment)
+        return formatPrescriptionLine({
+          exerciseName: ge.exercise.name,
+          sets: row.sets,
+          reps: row.reps,
+          weightKg: Number(row.weight),
+          restSeconds: row.rest_seconds,
+          weightConvention: convention,
+          targetDurationSeconds: row.target_duration_seconds ?? undefined,
+        })
+      })
+
       return {
         sort_order: dayIndex,
         label: day.label,
         emoji: dayEmojiForProgramDayIndex(dayIndex),
         workout_exercises,
+        rendered,
       }
     })
 
@@ -236,6 +399,7 @@ export const createProgram: ToolDefinition = {
       }
     }
 
+    // Phase 5 — apply writes with compensating rollback on failure
     let createdProgramId: string | null = null
     const createdDayIds: string[] = []
     let previousActiveProgramIds: string[] = []
@@ -265,7 +429,7 @@ export const createProgram: ToolDefinition = {
       if (!prog?.id) throw new Error("Program insert returned no id")
       createdProgramId = prog.id
 
-      for (const [i, day] of normalizedDays.entries()) {
+      for (const [i, day] of parsedDays.entries()) {
         const { data: insertedDay, error: dayError } = await supabase
           .from("workout_days")
           .insert({
@@ -283,7 +447,7 @@ export const createProgram: ToolDefinition = {
 
         createdDayIds.push(insertedDay.id)
 
-        const generated = day.exercise_ids.map((id) => defaultGeneratedExercise(byId.get(id)!))
+        const generated = day.exercises.map((parsed) => geFromParsed(parsed, byId.get(parsed.exerciseId)!))
         const rows = buildWorkoutExerciseInsertRowsForDay(insertedDay.id, generated)
 
         const { error: exError } = await supabase.from("workout_exercises").insert(rows)

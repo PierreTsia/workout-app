@@ -147,10 +147,14 @@ Volume math depends on **equipment type**. The `weight_logged` field on a set lo
 
 ### How to know which equipment
 
-- `get_exercise_details` returns `equipment` explicitly — it is the source of truth.
+- `get_exercise_details` returns `equipment` explicitly — it is the source of truth. **Since v0.3.0** it also returns a derived `**Weight convention:** {per_hand|total|bodyweight}` line right next to it, so you don't have to remember the equipment-to-convention mapping yourself.
 - Exercise names hint: "Curl haltères" / "Dumbbell Curl" → `dumbbell` (per hand). "Développé couché" / "Bench Press" → `barbell` (total). But hints are **not** authoritative — *"Bulgarian Split Squat"* might be DB or BB depending on the user's setup, and *"Front Squat"* vs *"Goblet Squat"* are the same English word "squat" with opposite conventions.
 - **Operational rule**: if equipment is ambiguous AND the user is asking for a numeric volume / load summary / progression analysis, **call `get_exercise_details` first** (one extra tool call beats a wrong number). Don't guess from the name when a number is on the line.
 - When you cannot resolve equipment (lookup failed, exercise not in catalog), **state the assumption verbatim** and offer to re-run if the user corrects you. Don't pick a side and hope.
+
+### Read AND write side use the same convention
+
+The `weight_convention` exposed by `get_exercise_details` is the same convention that future write tools (`create_program`, `update_program`) interpret when you send `weight_kg`. So if you read `Weight convention: per_hand` on a dumbbell exercise and the user says *"40 kg"*, send `weight_kg: 40` (per hand) — the tool will not silently double it. **When in doubt before a write, call `get_exercise_details` first** to confirm the convention you're committing to.
 
 ### Failure mode to avoid
 
@@ -208,25 +212,112 @@ User: *"Propose-moi un 4 jours full-body et active-le."*
 
 1. Read context: `get_training_stats`, optionally `get_upcoming_workouts` to see the current program.
 2. Search exercises to resolve UUIDs (one `search_exercises` call per movement, narrow to single matches).
-3. Dry-run preview:
+3. **For weighted exercises, pull `weight_convention` once** with `get_exercise_details` so the prescription weight you pass means the right thing per side vs total.
+4. Dry-run preview using either bare UUIDs (server defaults) or full prescription objects (frozen progression — see "Common write patterns" below):
 
 ```jsonc
 create_program({
   name: "Full Body 4d",
   days: [
-    { label: "Lundi — Lower", exercise_ids: ["<uuid>", "<uuid>", ...] },
-    { label: "Mardi — Upper push", exercise_ids: [...] },
-    { label: "Jeudi — Lower", exercise_ids: [...] },
-    { label: "Vendredi — Upper pull", exercise_ids: [...] }
+    {
+      label: "Lundi — Lower",
+      exercises: [
+        // Bare UUID → defaults (3 × 10, 0 kg, 90s rest, auto-derived ranges)
+        "<uuid-bench>",
+        // Object form → explicit prescription, ranges frozen, weight stored
+        { exercise_id: "<uuid-squat>", sets: 4, reps: "8", weight_kg: 100, rest_seconds: 180 }
+      ]
+    },
+    { label: "Mardi — Upper push", exercises: [...] },
+    { label: "Jeudi — Lower", exercises: [...] },
+    { label: "Vendredi — Upper pull", exercises: [...] }
   ],
   dry_run: true
 })
 ```
 
-4. Show the preview to the user, get explicit consent.
-5. Apply: same call with `dry_run: false`. Confirm: *"Program created and set active."*
+5. Read the preview's `days[].rendered` lines back to the user (e.g. *"Squat — 4 × 8 × 100 kg total — 180s rest"*) and get explicit consent.
+6. Apply: same call with `dry_run: false`. Confirm: *"Program created and set active."*
 
-**Defaults applied by the server**: 3 sets × 10 reps × 90s rest per exercise (or duration mode for time-based exercises). The user can fine-tune in-app afterwards.
+**Server defaults (bare UUID form)**: 3 sets × 10 reps × 90s rest, weight 0 (or duration mode for time-based exercises). The user can fine-tune in-app afterwards.
+
+### Common write patterns (v0.3.0+ object form)
+
+These are the three patterns that cover ~95% of strength prescriptions. Pick the one that matches the user's intent — don't mix `target_duration_seconds` with reps-mode exercises (the server will reject it).
+
+**Linear progression** — fixed reps target, weight bumps when target is hit:
+
+```jsonc
+{
+  exercise_id: "<uuid-bench>",
+  sets: 4,
+  reps: "8",          // frozen: rep_range_min === rep_range_max === 8
+  weight_kg: 80,      // total bar load (barbell convention)
+  rest_seconds: 120
+}
+```
+
+**Double progression** — rep range; reps grow first, then weight bumps and reps reset to bottom of range:
+
+```jsonc
+{
+  exercise_id: "<uuid-curl>",
+  sets: 4,
+  reps: "8-12",       // frozen: rep_range_min === 8, rep_range_max === 12
+  weight_kg: 15,      // PER HAND for dumbbells (check via get_exercise_details)
+  rest_seconds: 90
+}
+```
+
+**Fractional weight** (microloading, dumbbell increments): pass any number, it lands verbatim in the DB.
+
+```jsonc
+{
+  exercise_id: "<uuid-db-curl>",
+  sets: 3,
+  reps: "10",
+  weight_kg: 22.5,    // stored as TEXT; the app handles the kg/lb display
+  rest_seconds: 60
+}
+```
+
+**Bodyweight prescription** — pass `weight_kg: 0` (server rejects > 0 with a pointer to issue #281). Explicit ranges are accepted but silently ignored: the persistence layer ALWAYS auto-derives bodyweight ranges, so double progression on dips/pull-ups *just works* without you doing range math.
+
+```jsonc
+{
+  exercise_id: "<uuid-pullup>",
+  sets: 4,
+  reps: "8",          // hint for the auto-derived range (server stores 6-10)
+  weight_kg: 0,       // MUST be 0 for bodyweight in v0.3.0
+  rest_seconds: 90
+}
+```
+
+**Duration prescription** (planks, holds, hangs) — pass `reps: "0"`, `weight_kg: 0`, and `target_duration_seconds` (5-600). The server freezes `duration_range_min/max_seconds` to the prescribed value (no spread):
+
+```jsonc
+{
+  exercise_id: "<uuid-plank>",
+  sets: 4,
+  reps: "0",                    // MUST be "0" for duration mode
+  weight_kg: 0,                 // MUST be 0 (weighted duration not modelled in v0.3.0)
+  rest_seconds: 60,
+  target_duration_seconds: 30   // REQUIRED on duration object form (or use bare UUID for catalog default)
+}
+```
+
+**Mixed reps + duration day** — totally fine, the array can interleave both modes:
+
+```jsonc
+{
+  label: "Core Finisher",
+  exercises: [
+    { exercise_id: "<uuid-plank>",  sets: 3, reps: "0",  weight_kg: 0,  rest_seconds: 45, target_duration_seconds: 45 },
+    { exercise_id: "<uuid-leg-raise>", sets: 3, reps: "12", weight_kg: 0, rest_seconds: 60 },
+    "<uuid-side-plank>"   // bare UUID → catalog defaults (duration with default target)
+  ]
+}
+```
 
 ---
 
@@ -238,8 +329,10 @@ create_program({
 | `No active program found.` (from `get_upcoming_workouts`) | Tell the user, offer to design one with `create_program`. |
 | `No active training cycle for "X".` | A program exists but no cycle is started. Tell the user to start a cycle in-app. |
 | `search_exercises` returns multiple matches | **Do not pick blindly.** List them and ask the user. Only call `get_exercise_details` once a single match is selected. |
-| `Invalid UUID(s) in days[i].exercise_ids` | You passed a non-UUID string (e.g. an exercise name). Resolve via `search_exercises` first. |
+| `Invalid UUID at days["<label>"].exercises[<i>]` | You passed a non-UUID string (e.g. an exercise name). Resolve via `search_exercises` first. |
 | `Unknown or inaccessible exercise_id(s):` | The UUID is valid format but the exercise doesn't exist or isn't visible to this user. Re-search. |
+| `create_program v0.3.0 introduced a breaking change...` | You used the v0.2.x `exercise_ids` field. Switch to `exercises` (bare UUIDs or full objects — see "Common write patterns"). |
+| `reps exercise "X" cannot have target_duration_seconds` | You set `target_duration_seconds` on a reps-mode exercise. Drop it (use reps + weight_kg instead). Duration exercises (planks, holds) get T75 support. |
 | `Authentication required` / `401` | Token expired or revoked. Tell the user to create a fresh PAT at `/account/api-tokens`. |
 | Ambiguous muscle group (`"chest"` vs `"Pectoraux"`) | `search_exercises` accepts both — pass the user's term as-is. For `get_training_stats` the filter must be the FR name (`Pectoraux`). |
 | User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). Single-day program editing arrives in Epic C (`update_program`) — until then, `create_program` is still the only write surface. |

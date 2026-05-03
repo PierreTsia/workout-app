@@ -1,6 +1,55 @@
 const MS_PER_MINUTE = 60_000
 const MS_PER_HOUR = 3_600_000
 
+export type WeightConvention = "per_hand" | "total" | "bodyweight"
+
+const WEIGHT_CONVENTION_BY_EQUIPMENT: Record<string, WeightConvention> = {
+  dumbbell: "per_hand",
+  kettlebell: "per_hand",
+  barbell: "total",
+  machine: "total",
+  cable: "total",
+  bodyweight: "bodyweight",
+  band: "total",
+  other: "total",
+}
+
+export function formatWeightConvention(equipment: string): WeightConvention {
+  const known = WEIGHT_CONVENTION_BY_EQUIPMENT[equipment]
+  if (known) return known
+  console.warn(
+    `[formatWeightConvention] Unknown equipment "${equipment}", falling back to "total". Update WEIGHT_CONVENTION_BY_EQUIPMENT if this is a new catalog value.`,
+  )
+  return "total"
+}
+
+interface FormatPrescriptionInput {
+  exerciseName: string
+  sets: number
+  reps: string
+  weightKg: number
+  restSeconds: number
+  weightConvention: WeightConvention
+  /** When set, renders the line as a duration prescription (T75). For T74 reps mode, leave undefined. */
+  targetDurationSeconds?: number
+}
+
+export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
+  const { exerciseName, sets, reps, weightKg, restSeconds, weightConvention, targetDurationSeconds } = input
+  const restSuffix = `${restSeconds}s rest`
+  // T75: duration mode wins — render `{sets} × {N}s` and skip reps/weight
+  // entirely (defensive: even if upstream forgets to zero them out, they don't
+  // leak into the agent-visible echo).
+  if (targetDurationSeconds !== undefined && targetDurationSeconds !== null) {
+    return `${exerciseName} — ${sets} × ${targetDurationSeconds}s — ${restSuffix}`
+  }
+  if (weightConvention === "bodyweight") {
+    return `${exerciseName} — ${sets} × ${reps} (bodyweight) — ${restSuffix}`
+  }
+  const conventionSuffix = weightConvention === "per_hand" ? "per hand" : "total"
+  return `${exerciseName} — ${sets} × ${reps} × ${formatWeight(weightKg)} ${conventionSuffix} — ${restSuffix}`
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   const date = d.toISOString().slice(0, 10)
