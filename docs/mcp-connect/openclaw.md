@@ -89,11 +89,12 @@ You're looking for `[bundle-mcp] starting server "gymlogic"` with no SSE errors.
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
 | `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
+| `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on any program (active/draft/archived). Chain after `list_programs` to drill in |
 | `create_program` | **Create / replace your active program** from structured days + exercise UUIDs. Default **`dry_run: true`** returns the insert plan only; **`dry_run: false`** writes to Supabase (deactivates other active programs). Use after `search_exercises` / `get_exercise_details` to resolve IDs. |
 
 There is also one **MCP Resource** (`exercise_catalog_schema`) exposing the exercise taxonomy (muscle groups, equipment types, difficulty levels).
 
-**Seven tools** total — six for reads/discovery/analysis, one for persisting a full program.
+**Eight tools** total — seven for reads/discovery/analysis, one for persisting a full program.
 
 > **Building agent-side context?** [`skills/gymlogic-mcp/SKILL.md`](../../skills/gymlogic-mcp/SKILL.md) is a drop-in prompt context covering tool intent, weight conventions for unilateral equipment, and edge cases. Load it into your agent's system prompt or skill registry.
 

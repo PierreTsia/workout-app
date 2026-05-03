@@ -10,7 +10,7 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **seven tools** (six reads, one write), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **eight tools** (seven reads, one write), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
 GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it or design a new program with `create_program`.
 
@@ -57,13 +57,13 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp
 ```
 
-All seven tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All eight tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 
 ## Tool reference (intent → tool)
 
-Seven tools total — six reads, one write.
+Eight tools total — seven reads, one write.
 
 | User intent | Tool | Notes |
 |---|---|---|
@@ -73,6 +73,7 @@ Seven tools total — six reads, one write.
 | "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use **before** `get_exercise_details` to resolve a UUID. Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
 | "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). **Always run `search_exercises` first** to resolve it; if multiple matches come back, ask the user to pick. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
+| "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
 | "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
@@ -84,10 +85,10 @@ There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscl
 When the user wants to review, inspect, or talk about *a specific program* (active or not), follow this chain:
 
 1. **`list_programs`** — enumerate the user's programs to identify the right one by name. Each entry surfaces `*(id: <uuid>)*` for downstream addressability.
-2. **(T71 will add)** `get_program_details(id)` — fetch the full structure of the chosen program (days, exercises, sets/reps/weights). Works even when no cycle is active. Use this to answer "review my draft program" / "show me the structure" / "compare these two".
+2. **`get_program_details(program_id)`** — fetch the full structure of the chosen program (days, exercises, sets/reps/weights, rest). Works on **any** program — active, draft, or archived — regardless of cycle state. Use this to answer "review my draft program" / "show me the structure" / "compare these two". Returns markdown with inline `*(id: ...)*` on every day and exercise line, ready for downstream tools.
 3. **(Epic C will add)** `update_program(id, patch)` — apply targeted edits to a program by ID without recreating it.
 
-Until T71 lands, step 2 is unavailable — the agent can only enumerate via `list_programs`. For the *active* program with an *active cycle*, `get_upcoming_workouts` remains the way to read structure, but it 404s on programs without a cycle.
+For the *active* program with an *active cycle*, `get_upcoming_workouts` is the cheaper alternative when the user wants only the next few days (it returns dated, scheduled instances). Use `get_program_details` instead when the user wants the **whole program template** or the active program has **no cycle started**.
 
 ---
 

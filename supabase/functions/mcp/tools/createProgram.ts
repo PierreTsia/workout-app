@@ -6,8 +6,7 @@ import {
   type CatalogExerciseForProgram,
   type GeneratedExerciseForProgram,
 } from "../lib/programPersistence.ts"
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { isUuid } from "../lib/uuid.ts"
 
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = "10"
@@ -18,10 +17,6 @@ const MAX_EXERCISES_PER_DAY = 40
 type DayInput = {
   label: string
   exercise_ids: string[]
-}
-
-function isUuid(s: string): boolean {
-  return UUID_RE.test(s)
 }
 
 function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {

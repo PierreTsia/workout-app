@@ -161,6 +161,56 @@ export function formatProgramListEntry(entry: ProgramListEntry): string {
   return `**${entry.name}** *(id: ${entry.id})* — ${entry.day_count} days, created ${date} ${suffix}`
 }
 
+interface ProgramDetailsHeader {
+  id: string
+  name: string
+  archived_at: string | null
+}
+
+interface ProgramDetailsDay {
+  id: string
+  label: string
+  emoji: string
+  sort_order: number
+}
+
+interface ProgramDetailsExercise {
+  id: string
+  name_snapshot: string
+  sets: number
+  reps: string
+  weight: string
+  rest_seconds: number
+  target_duration_seconds: number | null
+}
+
+export function formatProgramDetails(
+  program: ProgramDetailsHeader,
+  days: ProgramDetailsDay[],
+  exercisesByDay: Map<string, ProgramDetailsExercise[]>,
+): string {
+  const archivedSuffix = program.archived_at !== null ? " (archived)" : ""
+  const header = `## **${program.name}** *(id: ${program.id})*${archivedSuffix}`
+
+  if (days.length === 0) {
+    return [header, "_(empty program — no days defined)_"].join("\n\n")
+  }
+
+  const dayBlocks = days.map((day) => {
+    const exercises = exercisesByDay.get(day.id) ?? []
+    const exLines = exercises.map((ex) => {
+      const measure = ex.target_duration_seconds
+        ? `${ex.sets} × ${ex.target_duration_seconds}s`
+        : `${ex.sets} × ${ex.reps} reps`
+      const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
+      return `  - **${ex.name_snapshot}** *(id: ${ex.id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+    })
+    return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
+  })
+
+  return [header, ...dayBlocks].join("\n\n")
+}
+
 export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExForFormat[]): string {
   const exLines = exercises.map((ex) => {
     const measure = ex.target_duration_seconds
