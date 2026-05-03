@@ -1,12 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  formatActiveCycleWarning,
   formatPrescriptionLine,
+  formatProgramAfterUpdate,
   formatProgramDetails,
   formatProgramListEntry,
   formatSessionSummary,
   formatWeightConvention,
   type WeightConvention,
 } from "./format"
+import type { CatalogExerciseForProgram } from "./programPersistence"
+import type {
+  CurrentProgramSnapshot,
+  ProgramDiff,
+} from "./updateProgramTypes"
 
 interface ProgramListEntryInput {
   id: string
@@ -484,5 +491,286 @@ describe("formatPrescriptionLine — duration mode (T75)", () => {
     expect(line).toBe("Plank — 3 × 45s — 60s rest")
     expect(line).not.toContain("kg")
     expect(line).not.toContain("12")
+  })
+})
+
+describe("formatActiveCycleWarning (T81)", () => {
+  it("returns the French warning with YYYY-MM-DD extracted from the ISO started_at", () => {
+    const warning = formatActiveCycleWarning({ started_at: "2026-04-15T10:00:00.000Z" })
+    expect(warning).toBe(
+      "Cycle actif depuis 2026-04-15 — cette modification affecte vos workouts restants dans ce cycle.",
+    )
+  })
+
+  it("strips the time portion regardless of timezone offset (uses the literal date prefix of the ISO)", () => {
+    const warning = formatActiveCycleWarning({ started_at: "2026-12-31T23:59:59+02:00" })
+    expect(warning).toContain("Cycle actif depuis 2026-12-31")
+  })
+})
+
+describe("formatProgramAfterUpdate (T81)", () => {
+  const ID_PROGRAM = "11111111-1111-4111-8111-111111111111"
+  const ID_DAY_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+  const ID_DAY_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+  const ID_BENCH = "cccccccc-1111-4111-8111-cccccccccccc"
+  const ID_PUSHUP = "cccccccc-2222-4222-8222-cccccccccccc"
+
+  const BENCH: CatalogExerciseForProgram = {
+    id: ID_BENCH,
+    name: "Bench Press",
+    muscle_group: "chest",
+    emoji: null,
+    equipment: "barbell",
+    measurement_type: "reps",
+    default_duration_seconds: null,
+  }
+
+  const PUSHUP: CatalogExerciseForProgram = {
+    id: ID_PUSHUP,
+    name: "Push-up",
+    muscle_group: "chest",
+    emoji: null,
+    equipment: "bodyweight",
+    measurement_type: "reps",
+    default_duration_seconds: null,
+  }
+
+  const catalog = new Map([
+    [ID_BENCH, BENCH],
+    [ID_PUSHUP, PUSHUP],
+  ])
+
+  function makeCurrent(overrides: Partial<CurrentProgramSnapshot> = {}): CurrentProgramSnapshot {
+    return {
+      id: ID_PROGRAM,
+      name: "PPL",
+      days: [
+        {
+          id: ID_DAY_A,
+          label: "Push",
+          emoji: "💪",
+          sort_order: 0,
+          workout_exercises: [
+            {
+              exercise_id: ID_BENCH,
+              name_snapshot: "Bench Press",
+              sets: 4,
+              reps: "8",
+              weight: "80",
+              rest_seconds: 120,
+              target_duration_seconds: null,
+              sort_order: 0,
+            },
+          ],
+        },
+      ],
+      ...overrides,
+    }
+  }
+
+  function emptyDiff(overrides: Partial<ProgramDiff> = {}): ProgramDiff {
+    return {
+      program_id: ID_PROGRAM,
+      name_change: null,
+      days_to_insert: [],
+      days_to_update: [],
+      days_to_delete: [],
+      days_unchanged: [],
+      apply_order: "default",
+      ...overrides,
+    }
+  }
+
+  it("renders the program header with the renamed name when name_change is set", () => {
+    const current = makeCurrent({ name: "Old name" })
+    const diff = emptyDiff({
+      name_change: { from: "Old name", to: "PPL v2" },
+      days_unchanged: [{ id: ID_DAY_A, label: "Push" }],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain(`## **PPL v2** *(id: ${ID_PROGRAM})*`)
+    expect(md).not.toContain("Old name")
+  })
+
+  it("renders the current name when name_change is null", () => {
+    const current = makeCurrent({ name: "PPL" })
+    const diff = emptyDiff({
+      days_unchanged: [{ id: ID_DAY_A, label: "Push" }],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain(`## **PPL** *(id: ${ID_PROGRAM})*`)
+  })
+
+  it("renders unchanged days using their persisted workout_exercises (rest of program left untouched)", () => {
+    const current = makeCurrent()
+    const diff = emptyDiff({
+      days_unchanged: [{ id: ID_DAY_A, label: "Push" }],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain("### 💪 Push")
+    expect(md).toContain("Bench Press — 4 × 8 × 80 kg total — 120s rest")
+  })
+
+  it("renders updated days using their parsed_exercises (post-apply state) and the resolved emoji", () => {
+    const current = makeCurrent()
+    const diff = emptyDiff({
+      days_to_update: [
+        {
+          id: ID_DAY_A,
+          current: { label: "Push", emoji: "💪", sort_order: 0 },
+          label: "Push v2",
+          emoji: "💪",
+          sort_order: 0,
+          parsed_exercises: [
+            {
+              kind: "object",
+              exerciseId: ID_BENCH,
+              sets: 5,
+              reps: "5",
+              weightKg: 100,
+              restSeconds: 180,
+              targetDurationSeconds: null,
+            },
+          ],
+        },
+      ],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain("### 💪 Push v2")
+    expect(md).toContain("Bench Press — 5 × 5 × 100 kg total — 180s rest")
+    // Old prescription should NOT appear.
+    expect(md).not.toContain("4 × 8 × 80 kg")
+  })
+
+  it("renders inserted days at the right position with their parsed_exercises (defaults applied to bare-string entries)", () => {
+    const current = makeCurrent({
+      days: [
+        {
+          id: ID_DAY_A,
+          label: "Push",
+          emoji: "💪",
+          sort_order: 0,
+          workout_exercises: [],
+        },
+      ],
+    })
+    const diff = emptyDiff({
+      days_to_update: [
+        {
+          id: ID_DAY_A,
+          current: { label: "Push", emoji: "💪", sort_order: 0 },
+          label: "Push",
+          emoji: "💪",
+          sort_order: 0,
+          parsed_exercises: [],
+        },
+      ],
+      days_to_insert: [
+        {
+          label: "Pull",
+          emoji: "🪝",
+          sort_order: 1,
+          parsed_exercises: [{ kind: "bare", exerciseId: ID_PUSHUP }],
+        },
+      ],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain("### 🪝 Pull")
+    // Bare entry on a bodyweight reps exercise → default 3 × 10, bodyweight branch.
+    expect(md).toContain("Push-up — 3 × 10 (bodyweight) — 90s rest")
+  })
+
+  it("excludes deleted days from the rendered output entirely", () => {
+    const current = makeCurrent({
+      days: [
+        {
+          id: ID_DAY_A,
+          label: "Push",
+          emoji: "💪",
+          sort_order: 0,
+          workout_exercises: [
+            {
+              exercise_id: ID_BENCH,
+              name_snapshot: "Bench Press",
+              sets: 4,
+              reps: "8",
+              weight: "80",
+              rest_seconds: 120,
+              target_duration_seconds: null,
+              sort_order: 0,
+            },
+          ],
+        },
+        {
+          id: ID_DAY_B,
+          label: "Drop me",
+          emoji: "🗑️",
+          sort_order: 1,
+          workout_exercises: [],
+        },
+      ],
+    })
+    const diff = emptyDiff({
+      days_to_delete: [{ id: ID_DAY_B, label: "Drop me", session_count: 0, blocking: false }],
+      days_to_update: [
+        {
+          id: ID_DAY_A,
+          current: { label: "Push", emoji: "💪", sort_order: 0 },
+          label: "Push",
+          emoji: "💪",
+          sort_order: 0,
+          parsed_exercises: [
+            {
+              kind: "object",
+              exerciseId: ID_BENCH,
+              sets: 4,
+              reps: "8",
+              weightKg: 80,
+              restSeconds: 120,
+              targetDurationSeconds: null,
+            },
+          ],
+        },
+      ],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).not.toContain("Drop me")
+    expect(md).not.toContain("🗑️")
+    expect(md).toContain("### 💪 Push")
+  })
+
+  it("renders the empty-program placeholder when no days remain after the diff", () => {
+    const current = makeCurrent({
+      days: [
+        {
+          id: ID_DAY_A,
+          label: "Last one",
+          emoji: "💪",
+          sort_order: 0,
+          workout_exercises: [],
+        },
+      ],
+    })
+    // Hypothetical "delete the only day" diff (would be blocked by AC in practice,
+    // but the renderer must not crash on an empty final state).
+    const diff = emptyDiff({
+      days_to_delete: [{ id: ID_DAY_A, label: "Last one", session_count: 0, blocking: false }],
+    })
+
+    const md = formatProgramAfterUpdate(diff, current, catalog)
+
+    expect(md).toContain("_(empty program — no days defined)_")
   })
 })
