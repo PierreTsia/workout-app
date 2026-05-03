@@ -15,8 +15,8 @@
 
 | Layer    | Technology                                                               |
 | -------- | ------------------------------------------------------------------------ |
-| Frontend | React 19, TypeScript 5.9, Vite 7                                         |
-| Styling  | Tailwind CSS 3.4, shadcn/ui (Radix primitives), class-variance-authority |
+| Frontend | React 19, TypeScript 6.0, Vite 8                                         |
+| Styling  | Tailwind CSS 4.2, shadcn/ui (Radix primitives), class-variance-authority |
 | State    | Jotai (atoms) + TanStack React Query                                     |
 | Forms    | React Hook Form + Zod                                                    |
 | Routing  | React Router DOM 7                                                       |
