@@ -139,6 +139,28 @@ interface WorkoutDayForFormat {
   emoji: string
 }
 
+interface ProgramListEntry {
+  id: string
+  name: string
+  is_active: boolean
+  day_count: number
+  created_at: string
+  has_active_cycle: boolean
+  archived_at: string | null
+}
+
+export function formatProgramListEntry(entry: ProgramListEntry): string {
+  const date = new Date(entry.created_at).toISOString().slice(0, 10)
+  const suffix = entry.archived_at !== null
+    ? "(archived)"
+    : !entry.is_active
+      ? "(draft)"
+      : entry.has_active_cycle
+        ? "(active, cycle in progress)"
+        : "(active)"
+  return `**${entry.name}** *(id: ${entry.id})* — ${entry.day_count} days, created ${date} ${suffix}`
+}
+
 export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExForFormat[]): string {
   const exLines = exercises.map((ex) => {
     const measure = ex.target_duration_seconds

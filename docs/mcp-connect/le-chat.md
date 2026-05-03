@@ -76,10 +76,11 @@ The rest of the setup (Agent + chat) is identical.
 | `get_workout_history`   | Your past sessions with sets, weights, and PRs                                                                               |
 | `get_training_stats`    | Volume by muscle group, personal records, session frequency                                                                  |
 | `get_upcoming_workouts` | Your programmed training days and exercises                                                                                  |
+| `list_programs`         | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, cycle flag    |
 | `create_program`        | **Create / replace your active program** (multi-day). Default **`dry_run: true`**; **`dry_run: false`** saves and activates. |
 
 
-**Six tools** — five reads, one write (`create_program`).
+**Seven tools** — six reads, one write (`create_program`).
 
 ## Example prompts
 

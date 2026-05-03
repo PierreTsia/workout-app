@@ -5,6 +5,7 @@ import { getWorkoutHistory } from "./getWorkoutHistory.ts"
 import { getTrainingStats } from "./getTrainingStats.ts"
 import { getUpcomingWorkouts } from "./getUpcomingWorkouts.ts"
 import { createProgram } from "./createProgram.ts"
+import { listPrograms } from "./listPrograms.ts"
 
 export interface ToolDefinition {
   name: string
@@ -27,6 +28,7 @@ const tools: ToolDefinition[] = [
   getTrainingStats,
   getUpcomingWorkouts,
   createProgram,
+  listPrograms,
 ]
 
 export const toolRegistry = {

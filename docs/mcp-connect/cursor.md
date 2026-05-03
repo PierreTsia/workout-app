@@ -53,11 +53,12 @@ Replace `<YOUR_PAT>` with the token from step 1 (the full `glp_…` string).
 | `get_workout_history` | Your past sessions with sets, weights, and PRs |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
+| `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
 | `create_program` | **Create / replace your active program** from structured days + exercise UUIDs. Default **`dry_run: true`** returns the insert plan only; **`dry_run: false`** writes to Supabase (deactivates other active programs). Use after `search_exercises` / `get_exercise_details` to resolve IDs. |
 
 There is also **1 MCP Resource** (`exercise_catalog_schema`) that exposes the exercise taxonomy (muscle groups, equipment types, difficulty levels).
 
-**Six tools** total — five for reads/analysis, one for persisting a full program.
+**Seven tools** total — six for reads/discovery/analysis, one for persisting a full program.
 
 ## Example prompts
 
