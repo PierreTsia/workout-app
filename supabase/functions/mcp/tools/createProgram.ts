@@ -1,4 +1,3 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { ToolDefinition } from "./registry.ts"
 import {
   buildWorkoutExerciseInsertRowsForDay,
@@ -11,10 +10,32 @@ import { formatPrescriptionLine, formatWeightConvention } from "../lib/format.ts
 import {
   detectLegacyExerciseIds,
   LEGACY_MIGRATION_ERROR_MESSAGE,
-  parseExerciseInput,
-  validateExerciseCrossFields,
+  validateDayExercises,
   type ParsedExercise,
 } from "../lib/createProgramValidation.ts"
+import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
+import { isUuid } from "../lib/uuid.ts"
+
+/**
+ * Walk a raw `exercises[]` payload and extract every entry that LOOKS like a
+ * catalog id (bare UUID string or an object with an `exercise_id: <uuid>`).
+ * Non-UUID inputs are dropped — they're surfaced later by `validateDayExercises`
+ * via `parseExerciseInput`'s locator-aware error message. This keeps the
+ * catalog fetch from leaking Postgres "invalid input syntax for type uuid"
+ * errors to the agent.
+ */
+function collectCandidateExerciseIds(raw: unknown[]): string[] {
+  return raw.flatMap((entry) => {
+    if (typeof entry === "string") {
+      return isUuid(entry) ? [entry] : []
+    }
+    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
+      const id = (entry as Record<string, unknown>).exercise_id
+      return typeof id === "string" && isUuid(id) ? [id] : []
+    }
+    return []
+  })
+}
 
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = "10"
@@ -30,26 +51,6 @@ type DayInput = {
 type ParsedDay = {
   label: string
   exercises: ParsedExercise[]
-}
-
-function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {
-  const mt = row.measurement_type
-  const measurement_type: "reps" | "duration" = mt === "duration" ? "duration" : "reps"
-  const rawDur = row.default_duration_seconds
-  let default_duration_seconds: number | null = null
-  if (rawDur != null && rawDur !== "") {
-    const n = Number(rawDur)
-    default_duration_seconds = Number.isFinite(n) ? n : null
-  }
-  return {
-    id: String(row.id),
-    name: String(row.name),
-    muscle_group: String(row.muscle_group),
-    emoji: row.emoji != null ? String(row.emoji) : null,
-    equipment: String(row.equipment),
-    measurement_type,
-    default_duration_seconds,
-  }
 }
 
 function defaultGeneratedExercise(ex: CatalogExerciseForProgram): GeneratedExerciseForProgram {
@@ -94,30 +95,6 @@ function geFromParsed(
   ex: CatalogExerciseForProgram,
 ): GeneratedExerciseForProgram {
   return parsed.kind === "bare" ? defaultGeneratedExercise(ex) : geFromParsedObject(parsed, ex)
-}
-
-async function fetchExercisesByIds(
-  supabase: SupabaseClient,
-  ids: string[],
-): Promise<{ data: CatalogExerciseForProgram[]; error: string | null }> {
-  const unique = [...new Set(ids)]
-  const { data, error } = await supabase
-    .from("exercises")
-    .select("id, name, muscle_group, emoji, equipment, measurement_type, default_duration_seconds")
-    .in("id", unique)
-
-  if (error) return { data: [], error: error.message }
-  const rows = (data ?? []) as Record<string, unknown>[]
-  const mapped = rows.map(catalogRowToExercise)
-  if (mapped.length !== unique.length) {
-    const found = new Set(mapped.map((e) => e.id))
-    const missing = unique.filter((id) => !found.has(id))
-    return {
-      data: [],
-      error: `Unknown or inaccessible exercise_id(s): ${missing.join(", ")}`,
-    }
-  }
-  return { data: mapped, error: null }
 }
 
 const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymLogic account (same persistence as the in-app AI program flow).
@@ -266,8 +243,9 @@ export const createProgram: ToolDefinition = {
       }
     }
 
-    // Phase 1 — pure shape/bounds/regex validation per exercise
-    const parsedDays: ParsedDay[] = []
+    // Phase 1 — day-level shape (label + exercises array bounds). Per-exercise
+    // parse + cross-field is consolidated into Phase 3 via validateDayExercises.
+    const rawDays: { label: string; exercises: unknown[] }[] = []
     for (const [i, d] of days.entries()) {
       const label = typeof d?.label === "string" ? d.label.trim() : ""
       const exercisesArr = Array.isArray(d?.exercises) ? d.exercises : null
@@ -289,24 +267,15 @@ export const createProgram: ToolDefinition = {
           isError: true,
         }
       }
-
-      const parsedExercises: ParsedExercise[] = []
-      for (const [j, raw] of exercisesArr.entries()) {
-        const result = parseExerciseInput(raw, label, j)
-        if (!result.ok) {
-          return {
-            content: [{ type: "text", text: `Invalid input: ${result.error}` }],
-            isError: true,
-          }
-        }
-        parsedExercises.push(result.value)
-      }
-      parsedDays.push({ label, exercises: parsedExercises })
+      rawDays.push({ label, exercises: exercisesArr })
     }
 
-    // Phase 2 — catalog fetch (Supabase, RLS-scoped to caller)
+    // Phase 2 — catalog fetch (Supabase, RLS-scoped to caller). Candidate IDs
+    // are pre-filtered to syntactically-valid UUIDs so a malformed input
+    // surfaces via validateDayExercises (locator-aware) rather than as a
+    // Postgres syntax error from the IN clause.
     const allIds = [
-      ...new Set(parsedDays.flatMap((d) => d.exercises.map((e) => e.exerciseId))),
+      ...new Set(rawDays.flatMap((d) => collectCandidateExerciseIds(d.exercises))),
     ]
     const { data: exercises, error: fetchErr } = await fetchExercisesByIds(supabase, allIds)
     if (fetchErr) {
@@ -315,18 +284,17 @@ export const createProgram: ToolDefinition = {
 
     const byId = new Map(exercises.map((e) => [e.id, e] as const))
 
-    // Phase 3 — cross-field validation (T75 superset: R1-R5)
-    for (const day of parsedDays) {
-      for (const [j, parsed] of day.exercises.entries()) {
-        const ex = byId.get(parsed.exerciseId)!
-        const cfResult = validateExerciseCrossFields(parsed, ex, day.label, j)
-        if (!cfResult.ok) {
-          return {
-            content: [{ type: "text", text: `Invalid input: ${cfResult.error}` }],
-            isError: true,
-          }
+    // Phase 3 — full per-day validation: parse + cross-field (T75 superset).
+    const parsedDays: ParsedDay[] = []
+    for (const day of rawDays) {
+      const result = validateDayExercises(day.exercises, day.label, byId)
+      if (!result.ok) {
+        return {
+          content: [{ type: "text", text: `Invalid input: ${result.error}` }],
+          isError: true,
         }
       }
+      parsedDays.push({ label: day.label, exercises: result.parsed })
     }
 
     const { data: userData, error: userErr } = await supabase.auth.getUser()

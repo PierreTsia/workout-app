@@ -1,3 +1,14 @@
+import type { ParsedExercise } from "./createProgramValidation.ts"
+import type { CatalogExerciseForProgram } from "./programPersistence.ts"
+import type {
+  CurrentProgramSnapshot,
+  CurrentProgramSnapshotDay,
+  CurrentProgramSnapshotExercise,
+  DiffDayInsert,
+  DiffDayUpdate,
+  ProgramDiff,
+} from "./updateProgramTypes.ts"
+
 const MS_PER_MINUTE = 60_000
 const MS_PER_HOUR = 3_600_000
 
@@ -238,6 +249,7 @@ interface ProgramDetailsDay {
 
 interface ProgramDetailsExercise {
   id: string
+  exercise_id: string
   name_snapshot: string
   sets: number
   reps: string
@@ -265,7 +277,7 @@ export function formatProgramDetails(
         ? `${ex.sets} × ${ex.target_duration_seconds}s`
         : `${ex.sets} × ${ex.reps} reps`
       const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
-      return `  - **${ex.name_snapshot}** *(id: ${ex.id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+      return `  - **${ex.name_snapshot}** *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
     })
     return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
   })
@@ -284,4 +296,181 @@ export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExF
   })
 
   return [`### ${day.emoji} ${day.label}`, ...exLines].join("\n")
+}
+
+// ---------------------------------------------------------------------------
+// T81 — update_program dry_run rendering helpers
+// ---------------------------------------------------------------------------
+
+const APPLY_DEFAULT_SETS = 3
+const APPLY_DEFAULT_REPS = "10"
+const APPLY_DEFAULT_REST_SECONDS = 90
+const APPLY_DEFAULT_DURATION_SECONDS = 30
+const DEFAULT_INSERT_EMOJI = "🏋️"
+
+interface RenderableDay {
+  label: string
+  emoji: string
+  sort_order: number
+  exerciseLines: string[]
+}
+
+/**
+ * Renders the program AS IT WILL BE after the diff is applied (dry_run preview).
+ *
+ * - Header uses the renamed name when `diff.name_change` is set, otherwise the current name.
+ * - Days come from `days_to_update` + `days_to_insert` + `days_unchanged` (deletes excluded),
+ *   sorted by their final `sort_order`.
+ * - Exercises are rendered via `formatPrescriptionLine` so the dry_run output mirrors the
+ *   convention-aware echo agents already see from `create_program`.
+ * - Bare-string exercises resolve to legacy defaults (3×10 @ 0kg, 90s rest), with the duration
+ *   branch kicking in for `measurement_type === "duration"` catalog entries.
+ *
+ * Caller contract: `catalogById` must contain every `exercise_id` referenced across
+ * `days_to_update`, `days_to_insert`, and the unchanged days' persisted exercises.
+ */
+export function formatProgramAfterUpdate(
+  diff: ProgramDiff,
+  currentProgram: CurrentProgramSnapshot,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): string {
+  const finalName = diff.name_change?.to ?? currentProgram.name
+  const header = `## **${finalName}** *(id: ${currentProgram.id})*`
+
+  const fromUpdates: RenderableDay[] = diff.days_to_update.map((u) =>
+    renderableFromUpdate(u, catalogById),
+  )
+
+  const fromInserts: RenderableDay[] = diff.days_to_insert.map((i) =>
+    renderableFromInsert(i, catalogById),
+  )
+
+  const fromUnchanged: RenderableDay[] = diff.days_unchanged
+    .map((u) => currentProgram.days.find((d) => d.id === u.id))
+    .filter((d): d is CurrentProgramSnapshotDay => d !== undefined)
+    .map((d) => renderableFromCurrent(d, catalogById))
+
+  const finalDays = [...fromUpdates, ...fromInserts, ...fromUnchanged].sort(
+    (a, b) => a.sort_order - b.sort_order,
+  )
+
+  if (finalDays.length === 0) {
+    return [header, "_(empty program — no days defined)_"].join("\n\n")
+  }
+
+  const dayBlocks = finalDays.map((d) =>
+    [`### ${d.emoji} ${d.label}`, ...d.exerciseLines].join("\n"),
+  )
+  return [header, ...dayBlocks].join("\n\n")
+}
+
+/**
+ * Returns the active-cycle warning string surfaced in both dry_run and apply responses
+ * when the program is currently being followed in an unfinished cycle.
+ *
+ * The message is intentionally French — it lands as-is in the agent's reply and the
+ * product copy is localized at this layer (cf. Tech Plan).
+ */
+export function formatActiveCycleWarning(cycle: { started_at: string }): string {
+  // started_at is an ISO-8601 timestamp; the literal YYYY-MM-DD prefix is enough
+  // and avoids any timezone surprises.
+  const date = cycle.started_at.slice(0, 10)
+  return `Cycle actif depuis ${date} — cette modification affecte vos workouts restants dans ce cycle.`
+}
+
+function renderableFromUpdate(
+  u: DiffDayUpdate,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): RenderableDay {
+  return {
+    label: u.label,
+    emoji: u.emoji,
+    sort_order: u.sort_order,
+    exerciseLines: u.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+  }
+}
+
+function renderableFromInsert(
+  i: DiffDayInsert,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): RenderableDay {
+  return {
+    label: i.label,
+    emoji: i.emoji ?? DEFAULT_INSERT_EMOJI,
+    sort_order: i.sort_order,
+    exerciseLines: i.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+  }
+}
+
+function renderableFromCurrent(
+  d: CurrentProgramSnapshotDay,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): RenderableDay {
+  const sortedExercises = [...d.workout_exercises].sort((a, b) => a.sort_order - b.sort_order)
+  return {
+    label: d.label,
+    emoji: d.emoji,
+    sort_order: d.sort_order,
+    exerciseLines: sortedExercises.map((ex) => `  - ${renderCurrentLine(ex, catalogById)}`),
+  }
+}
+
+function renderParsedLine(
+  parsed: ParsedExercise,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): string {
+  const catalog = catalogById.get(parsed.exerciseId)
+  // Defensive fallback: catalog should always be present (handler fetches the union of
+  // patch + current ids), but a missing entry must not crash dry_run rendering.
+  const name = catalog?.name ?? "(unknown exercise)"
+  const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
+
+  if (parsed.kind === "bare") {
+    const isDuration = catalog?.measurement_type === "duration"
+    const targetDuration = isDuration
+      ? (catalog?.default_duration_seconds ?? APPLY_DEFAULT_DURATION_SECONDS)
+      : undefined
+    return formatPrescriptionLine({
+      exerciseName: name,
+      sets: APPLY_DEFAULT_SETS,
+      reps: APPLY_DEFAULT_REPS,
+      weightKg: 0,
+      restSeconds: APPLY_DEFAULT_REST_SECONDS,
+      weightConvention: convention,
+      ...(targetDuration !== undefined ? { targetDurationSeconds: targetDuration } : {}),
+    })
+  }
+
+  return formatPrescriptionLine({
+    exerciseName: name,
+    sets: parsed.sets,
+    reps: parsed.reps,
+    weightKg: parsed.weightKg,
+    restSeconds: parsed.restSeconds,
+    weightConvention: convention,
+    ...(parsed.targetDurationSeconds !== null && parsed.targetDurationSeconds !== undefined
+      ? { targetDurationSeconds: parsed.targetDurationSeconds }
+      : {}),
+  })
+}
+
+function renderCurrentLine(
+  ex: CurrentProgramSnapshotExercise,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): string {
+  const catalog = catalogById.get(ex.exercise_id)
+  const name = catalog?.name ?? ex.name_snapshot
+  const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
+
+  return formatPrescriptionLine({
+    exerciseName: name,
+    sets: ex.sets,
+    reps: ex.reps,
+    weightKg: Number(ex.weight),
+    restSeconds: ex.rest_seconds,
+    weightConvention: convention,
+    ...(ex.target_duration_seconds !== null
+      ? { targetDurationSeconds: ex.target_duration_seconds }
+      : {}),
+  })
 }

@@ -10,9 +10,9 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **eight tools** (seven reads, one write), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **nine tools** (seven reads, two writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
-GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it or design a new program with `create_program`.
+GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it (`get_*` reads) or shape their program with `create_program` (new) or `update_program` (in-place edits — preserves training history).
 
 ---
 
@@ -57,13 +57,13 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp
 ```
 
-All eight tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All nine tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 
 ## Tool reference (intent → tool)
 
-Eight tools total — seven reads, one write.
+Nine tools total — seven reads, two writes.
 
 | User intent | Tool | Notes |
 |---|---|---|
@@ -75,6 +75,7 @@ Eight tools total — seven reads, one write.
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
 | "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
 | "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
+| "Rename / edit / tweak / swap exercises in a program (without losing history)" | `update_program` | In-place edit by `program_id`. **Preserves all logged sessions** — never recreate via `create_program` for an existing program (that orphans history). PATCH at top-level (`name?`, `days?`); inside `days`, declarative full-list with optional `id` per day (id present → UPDATE, id absent → INSERT, **omitted current day → DELETE**). `dry_run: true` by default. Removing days requires `confirm: true` along with `dry_run: false`. Mid-cycle edits surface a French warning. Atomicity is per-day → on failure, response includes `applied_days` / `failed_at` / `remaining_days` + retry guidance. |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
 
@@ -86,7 +87,7 @@ When the user wants to review, inspect, or talk about *a specific program* (acti
 
 1. **`list_programs`** — enumerate the user's programs to identify the right one by name. Each entry surfaces `*(id: <uuid>)*` for downstream addressability.
 2. **`get_program_details(program_id)`** — fetch the full structure of the chosen program (days, exercises, sets/reps/weights, rest). Works on **any** program — active, draft, or archived — regardless of cycle state. Use this to answer "review my draft program" / "show me the structure" / "compare these two". Returns markdown with inline `*(id: ...)*` on every day and exercise line, ready for downstream tools.
-3. **(Epic C will add)** `update_program(id, patch)` — apply targeted edits to a program by ID without recreating it.
+3. **`update_program(program_id, patch)`** — apply targeted edits to that program by id without recreating it. Use whenever the user wants to *modify* an existing program (rename, swap an exercise, add/remove a day, revise a prescription) — it preserves training history. See the dedicated patterns section below.
 
 For the *active* program with an *active cycle*, `get_upcoming_workouts` is the cheaper alternative when the user wants only the next few days (it returns dated, scheduled instances). Use `get_program_details` instead when the user wants the **whole program template** or the active program has **no cycle started**.
 
@@ -94,7 +95,7 @@ For the *active* program with an *active cycle*, `get_upcoming_workouts` is the 
 
 ## Writes — propose → confirm → act → echo (always, no exceptions)
 
-Every write tool — currently `create_program`, future `update_program` (Epic C) and any logging tools — goes through a **four-step handshake**, even when the user gave a direct, unambiguous request.
+Every write tool — `create_program`, `update_program`, and any future logging tools — goes through a **four-step handshake**, even when the user gave a direct, unambiguous request.
 
 ### Why this is mandatory
 
@@ -154,7 +155,7 @@ Volume math depends on **equipment type**. The `weight_logged` field on a set lo
 
 ### Read AND write side use the same convention
 
-The `weight_convention` exposed by `get_exercise_details` is the same convention that future write tools (`create_program`, `update_program`) interpret when you send `weight_kg`. So if you read `Weight convention: per_hand` on a dumbbell exercise and the user says *"40 kg"*, send `weight_kg: 40` (per hand) — the tool will not silently double it. **When in doubt before a write, call `get_exercise_details` first** to confirm the convention you're committing to.
+The `weight_convention` exposed by `get_exercise_details` is the same convention that the write tools (`create_program`, `update_program`) interpret when you send `weight_kg`. So if you read `Weight convention: per_hand` on a dumbbell exercise and the user says *"40 kg"*, send `weight_kg: 40` (per hand) — the tool will not silently double it. **When in doubt before a write, call `get_exercise_details` first** to confirm the convention you're committing to.
 
 ### Failure mode to avoid
 
@@ -319,6 +320,152 @@ These are the three patterns that cover ~95% of strength prescriptions. Pick the
 }
 ```
 
+### Common write patterns — `update_program` (in-place edits, v0.4.0+)
+
+Use `update_program` whenever the user wants to **modify** an existing program — rename, add / remove / reorder days, swap exercises, revise prescriptions. Reach for it **first** for any edit intent on a program that already exists. `create_program` on top of an existing program **orphans** every logged session that pointed at the old day rows.
+
+**The two non-obvious rules** (these trip every agent on the first try):
+
+1. **Inside `days[]`, the array is declarative — not a partial patch.** A day with `id` matching a current day is an UPDATE; without `id` is an INSERT; **a current day NOT in `days[]` is a DELETE**. So if the user wants to edit one day, you echo *every* current day, modifying only the affected one.
+2. **`days` is itself optional.** Omit the field entirely if you only want to rename. Pass `name` only → no day touched, no destructive guard, single PATCH.
+
+Always `dry_run: true` first. The preview returns:
+- `rendered`: human-readable markdown of the program *as it will be after apply*
+- `removed_days[]`: every day that would be deleted (with `session_count` and `blocking` flag)
+- `added_days[]`: every new day that would be inserted
+- `warnings[]`: includes the active-cycle warning (`"Cycle actif depuis YYYY-MM-DD — ..."`) when applicable
+- `errors[]`: blocking issues (e.g. trying to delete a day with logged sessions)
+
+**Discovery prerequisite for any non-rename edit**: `list_programs` → `get_program_details(program_id)` to read every current day's `id`, label, and exercise prescription. The `*(exercise_id: <uuid>)*` annotation on every exercise line in `get_program_details` (since v0.4.0) is the catalog id you reuse in your patch — not the row's slot id.
+
+**Worked example 1 — rename only** (no day touched):
+
+> Prompt: *"renomme mon programme PPL en 'PPL v2'"*
+
+```jsonc
+// Step 1 — find the program id
+list_programs({})
+// → entry: PPL *(id: <pid>)*
+
+// Step 2 — preview (always)
+update_program({
+  program_id: "<pid>",
+  name: "PPL v2"
+  // dry_run defaults to true → no writes; agent reads `rendered` back to user
+})
+
+// Step 3 — apply once user confirms
+update_program({
+  program_id: "<pid>",
+  name: "PPL v2",
+  dry_run: false
+})
+// → { applied_days: [], failed_at: null, message: "Updated 0 day(s)." }
+```
+
+**Worked example 2 — add a day** (echo every current day, append the new one):
+
+> Prompt: *"ajoute une journée Cardio à mon programme PPL avec 3 exos: course 4×30s, jump rope 4×60s, plank 4×45s"*
+
+```jsonc
+// Step 1 — id resolution
+list_programs({})
+get_program_details({ program_id: "<pid>" })   // ← read every day id + every exercise_id
+
+// Step 2 — search the new exercises (one search per movement)
+search_exercises({ query: "running" })         // → <uuid-run>
+search_exercises({ query: "jump rope" })       // → <uuid-jump>
+search_exercises({ query: "plank" })           // → <uuid-plank>
+
+// Step 3 — preview the patch
+update_program({
+  program_id: "<pid>",
+  days: [
+    // Echo each current day with its id → UPDATE-but-leave-as-is. Bare UUIDs
+    // for unchanged exercises keep the payload concise.
+    { id: "<push-day-id>", label: "Push", emoji: "💪", exercises: ["<bench-uuid>", "<incline-uuid>"] },
+    { id: "<pull-day-id>", label: "Pull", emoji: "🪝", exercises: ["<row-uuid>", "<curl-uuid>"] },
+    { id: "<legs-day-id>", label: "Legs", emoji: "🦵", exercises: ["<squat-uuid>", "<rdl-uuid>"] },
+    // New day — no `id` → INSERT. Duration exercises need full object form.
+    {
+      label: "Cardio",
+      emoji: "🏃",
+      exercises: [
+        { exercise_id: "<uuid-run>",   sets: 4, reps: "0", weight_kg: 0, rest_seconds: 60, target_duration_seconds: 30 },
+        { exercise_id: "<uuid-jump>",  sets: 4, reps: "0", weight_kg: 0, rest_seconds: 60, target_duration_seconds: 60 },
+        { exercise_id: "<uuid-plank>", sets: 4, reps: "0", weight_kg: 0, rest_seconds: 60, target_duration_seconds: 45 }
+      ]
+    }
+  ]
+  // dry_run defaults to true
+})
+// → preview shows added_days: [{ label: "Cardio" }], removed_days: []. Echo to user.
+
+// Step 4 — apply with dry_run: false after explicit consent.
+```
+
+**Worked example 3 — swap an exercise + revise prescription** (preserves history):
+
+> Prompt: *"remplace RDL par soulevé de terre conventionnel et passe le bench à 4×8 @ 80kg"*
+
+The agent must **include every current day** in `days[]` — the array is declarative, omitting Legs (or any day) deletes it.
+
+```jsonc
+list_programs({})
+get_program_details({ program_id: "<pid>" })   // read every day id + current prescriptions
+search_exercises({ query: "conventional deadlift" })  // → <uuid-conv-dl>
+
+update_program({
+  program_id: "<pid>",
+  days: [
+    {
+      id: "<push-day-id>",
+      label: "Push",
+      emoji: "💪",
+      exercises: [
+        "<warmup-uuid>",                                                 // unchanged → bare UUID
+        { exercise_id: "<bench-uuid>", sets: 4, reps: "8", weight_kg: 80, rest_seconds: 120 },  // revised
+        "<accessory-uuid>"                                               // unchanged
+      ]
+    },
+    {
+      id: "<pull-day-id>",
+      label: "Pull",
+      emoji: "🪝",
+      exercises: [
+        // RDL swapped out → conventional deadlift in. Object form because
+        // we're prescribing weight + rep range explicitly.
+        { exercise_id: "<uuid-conv-dl>", sets: 3, reps: "5", weight_kg: 100, rest_seconds: 180 },
+        "<other-pull-uuid>"
+      ]
+    },
+    // Legs unchanged but MUST be echoed (omitting it = DELETE).
+    { id: "<legs-day-id>", label: "Legs", emoji: "🦵", exercises: ["<squat-uuid>", "<leg-press-uuid>"] }
+  ],
+  dry_run: true
+})
+// Echo `rendered` back: "Bench Press — 4 × 8 × 80 kg total — 120s rest", etc.
+// Apply with dry_run: false on consent.
+```
+
+**Destructive edits** (removing days):
+
+When the dry_run preview's `removed_days[]` is non-empty, applying needs **both** `dry_run: false` AND `confirm: true`. Without `confirm`, the server returns: *"Patch removes N day(s): … Pass `confirm: true` along with `dry_run: false` to apply, or revise the payload to keep these days."*
+
+Days with logged sessions are **always** blocked, even with `confirm: true` — the response surfaces an `errors[]` entry: *"Cannot remove day 'X' — it has N logged sessions. Rename or repurpose it instead, or remove the corresponding entries from the patch and resubmit."* The user has to decide between renaming (keep history) or doing it manually in-app.
+
+**Mid-cycle awareness**:
+
+If the program has an unfinished cycle, both dry_run and apply responses include a French warning string in `warnings[]`: *"Cycle actif depuis YYYY-MM-DD — cette modification affecte vos workouts restants dans ce cycle."* Surface this verbatim to the user in your propose step so they can opt out before confirming.
+
+**Partial-success on apply failure**:
+
+`update_program` is **per-day atomic** — there's no cross-day rollback. If a mid-flight day fails to write, the response is `isError: true` and contains `applied_days` (what landed), `failed_at: { day_label, error }`, `remaining_days[]`, and a `message` ending with verbatim retry guidance. **Show it to the user as-is** and let them resubmit a patch covering only `remaining_days`.
+
+**Activation / `is_active`**:
+
+`update_program` rejects `is_active` in the patch with a pointer: *"Use the dedicated `set_active_program` tool (coming soon)."* Until that tool ships, activation/deactivation happens in-app.
+
 ---
 
 ## Edge cases
@@ -335,7 +482,7 @@ These are the three patterns that cover ~95% of strength prescriptions. Pick the
 | `reps exercise "X" cannot have target_duration_seconds` | You set `target_duration_seconds` on a reps-mode exercise. Drop it (use reps + weight_kg instead). Duration exercises (planks, holds) get T75 support. |
 | `Authentication required` / `401` | Token expired or revoked. Tell the user to create a fresh PAT at `/account/api-tokens`. |
 | Ambiguous muscle group (`"chest"` vs `"Pectoraux"`) | `search_exercises` accepts both — pass the user's term as-is. For `get_training_stats` the filter must be the FR name (`Pectoraux`). |
-| User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). Single-day program editing arrives in Epic C (`update_program`) — until then, `create_program` is still the only write surface. |
+| User asks to *modify* one day, swap an exercise, or rename an existing program | Use `update_program` (NEVER `create_program` — that would orphan training history). Pull the current structure with `list_programs` → `get_program_details` first to read every day's `id` and exercise prescription, then send a patch that **echoes every current day** (modifying the affected ones; omitting any day = DELETE). Always `dry_run: true` first. |
 
 ---
 

@@ -5,6 +5,7 @@ import { getWorkoutHistory } from "./getWorkoutHistory.ts"
 import { getTrainingStats } from "./getTrainingStats.ts"
 import { getUpcomingWorkouts } from "./getUpcomingWorkouts.ts"
 import { createProgram } from "./createProgram.ts"
+import { updateProgram } from "./updateProgram.ts"
 import { listPrograms } from "./listPrograms.ts"
 import { getProgramDetails } from "./getProgramDetails.ts"
 
@@ -29,6 +30,7 @@ const tools: ToolDefinition[] = [
   getTrainingStats,
   getUpcomingWorkouts,
   createProgram,
+  updateProgram,
   listPrograms,
   getProgramDetails,
 ]

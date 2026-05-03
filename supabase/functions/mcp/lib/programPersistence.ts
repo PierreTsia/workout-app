@@ -2,6 +2,11 @@
  * Port of `file:src/lib/programPersistence.ts` for Edge — keep in sync with the web module.
  * Parity: run `npx vitest run src/lib/programPersistence.test.ts` after edits; optionally
  * `deno test supabase/functions/mcp/lib/programPersistence_test.ts` (mirrors key cases).
+ *
+ * Types-pure by design: this module MUST NOT import `supabase-js` (Edge-only
+ * apply helpers live in `applyDayUpdate.ts`). The Deno CI typecheck on
+ * `lib/*_test.ts` walks transitive type imports; reaching a `SupabaseClient`
+ * reference here would drag in `@types/node` and break the Node-less runner.
  */
 
 export const AI_PROGRAM_DAY_EMOJIS = ["💪", "🔥", "⚡", "🏋️", "🎯", "🚀"] as const
@@ -171,3 +176,4 @@ function buildWorkoutExerciseInsertRow(
     duration_increment_seconds: isDuration ? 5 : null,
   }
 }
+

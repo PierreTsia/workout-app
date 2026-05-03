@@ -12,7 +12,7 @@
  */
 
 import { isUuid } from "./uuid.ts"
-import { parseRepsBounds } from "./programPersistence.ts"
+import { parseRepsBounds, type CatalogExerciseForProgram } from "./programPersistence.ts"
 
 export const BOUNDS = {
   sets: { min: 1, max: 10 },
@@ -272,6 +272,55 @@ export function validateExerciseCrossFields(
   }
 
   return { ok: true, value: true }
+}
+
+/**
+ * Per-day validation: parses every raw exercise entry and runs cross-field
+ * checks for object-form prescriptions against the pre-fetched catalog map.
+ *
+ * Returns the FIRST error encountered (parse OR cross-field) so the agent gets
+ * one actionable error per call. Bare-string entries always skip the catalog
+ * lookup — defaults are applied downstream.
+ *
+ * The handler is responsible for fetching the catalog (via
+ * `lib/catalogLookup.ts#fetchExercisesByIds`) and passing the resulting
+ * `Map<id, CatalogExerciseForProgram>` here. This module performs zero I/O.
+ *
+ * Defensive: if an object-form `exerciseId` is missing from the catalog map,
+ * returns a structured error rather than throwing. Reaching this branch means
+ * the handler skipped or partially performed the catalog fetch — surface
+ * loudly instead of crashing.
+ */
+export function validateDayExercises(
+  rawExercises: unknown[],
+  dayLabel: string,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): { ok: true; parsed: ParsedExercise[] } | { ok: false; error: string } {
+  const parsed: ParsedExercise[] = []
+  for (const [j, raw] of rawExercises.entries()) {
+    const parseResult = parseExerciseInput(raw, dayLabel, j)
+    if (!parseResult.ok) {
+      return { ok: false, error: parseResult.error }
+    }
+    parsed.push(parseResult.value)
+  }
+
+  for (const [j, p] of parsed.entries()) {
+    if (p.kind !== "object") continue
+    const ex = catalogById.get(p.exerciseId)
+    if (!ex) {
+      return {
+        ok: false,
+        error: `${locator(dayLabel, j)}.exercise_id "${p.exerciseId}" was not found in the fetched catalog (unknown or inaccessible).`,
+      }
+    }
+    const cf = validateExerciseCrossFields(p, ex, dayLabel, j)
+    if (!cf.ok) {
+      return { ok: false, error: cf.error }
+    }
+  }
+
+  return { ok: true, parsed }
 }
 
 /**
