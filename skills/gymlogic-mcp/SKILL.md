@@ -281,9 +281,43 @@ These are the three patterns that cover ~95% of strength prescriptions. Pick the
 }
 ```
 
-**Bodyweight + duration handling** ships in the next ticket (T75). Until then:
-  - Bodyweight exercises: pass `weight_kg: 0`. Explicit ranges are silently ignored — the persistence layer always auto-derives ranges for bodyweight (so double progression on dips/pull-ups *just works* without you doing range math).
-  - Duration exercises (planks, holds): use the bare-UUID form for now and let the server pick `target_duration_seconds` from the catalog default. The object form will gain explicit duration support in T75.
+**Bodyweight prescription** — pass `weight_kg: 0` (server rejects > 0 with a pointer to issue #281). Explicit ranges are accepted but silently ignored: the persistence layer ALWAYS auto-derives bodyweight ranges, so double progression on dips/pull-ups *just works* without you doing range math.
+
+```jsonc
+{
+  exercise_id: "<uuid-pullup>",
+  sets: 4,
+  reps: "8",          // hint for the auto-derived range (server stores 6-10)
+  weight_kg: 0,       // MUST be 0 for bodyweight in v0.3.0
+  rest_seconds: 90
+}
+```
+
+**Duration prescription** (planks, holds, hangs) — pass `reps: "0"`, `weight_kg: 0`, and `target_duration_seconds` (5-600). The server freezes `duration_range_min/max_seconds` to the prescribed value (no spread):
+
+```jsonc
+{
+  exercise_id: "<uuid-plank>",
+  sets: 4,
+  reps: "0",                    // MUST be "0" for duration mode
+  weight_kg: 0,                 // MUST be 0 (weighted duration not modelled in v0.3.0)
+  rest_seconds: 60,
+  target_duration_seconds: 30   // REQUIRED on duration object form (or use bare UUID for catalog default)
+}
+```
+
+**Mixed reps + duration day** — totally fine, the array can interleave both modes:
+
+```jsonc
+{
+  label: "Core Finisher",
+  exercises: [
+    { exercise_id: "<uuid-plank>",  sets: 3, reps: "0",  weight_kg: 0,  rest_seconds: 45, target_duration_seconds: 45 },
+    { exercise_id: "<uuid-leg-raise>", sets: 3, reps: "12", weight_kg: 0, rest_seconds: 60 },
+    "<uuid-side-plank>"   // bare UUID → catalog defaults (duration with default target)
+  ]
+}
+```
 
 ---
 

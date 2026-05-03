@@ -12,7 +12,7 @@ import {
   detectLegacyExerciseIds,
   LEGACY_MIGRATION_ERROR_MESSAGE,
   parseExerciseInput,
-  validateRepsModeCrossField,
+  validateExerciseCrossFields,
   type ParsedExercise,
 } from "../lib/createProgramValidation.ts"
 
@@ -315,11 +315,11 @@ export const createProgram: ToolDefinition = {
 
     const byId = new Map(exercises.map((e) => [e.id, e] as const))
 
-    // Phase 3 — cross-field validation (T74: only the reps + target_duration rule)
+    // Phase 3 — cross-field validation (T75 superset: R1-R5)
     for (const day of parsedDays) {
       for (const [j, parsed] of day.exercises.entries()) {
         const ex = byId.get(parsed.exerciseId)!
-        const cfResult = validateRepsModeCrossField(parsed, ex, day.label, j)
+        const cfResult = validateExerciseCrossFields(parsed, ex, day.label, j)
         if (!cfResult.ok) {
           return {
             content: [{ type: "text", text: `Invalid input: ${cfResult.error}` }],
@@ -338,26 +338,31 @@ export const createProgram: ToolDefinition = {
     }
     const userId = userData.user.id
 
-    // Phase 4 — build per-day generated rows + dry_run preview lines
+    // Phase 4 — build per-day generated rows + dry_run preview lines.
+    // The `rendered` echo derives from the persisted row (source of truth) so
+    // the agent sees exactly what will land in the database — including the
+    // catalog-default target_duration_seconds for bare-string duration entries
+    // and the bodyweight branch's defensive weight=0.
     const previewDays = parsedDays.map((day, dayIndex) => {
       const generated = day.exercises.map((parsed) => geFromParsed(parsed, byId.get(parsed.exerciseId)!))
       const placeholderDayId = `00000000-0000-4000-8000-${String(dayIndex).padStart(12, "0")}`
-      const workout_exercises = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated).map(
-        (row) => {
-          const { workout_day_id: _, ...rest } = row
-          return rest
-        },
-      )
+      const fullRows = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated)
+      const workout_exercises = fullRows.map((row) => {
+        const { workout_day_id: _, ...rest } = row
+        return rest
+      })
 
-      const rendered = generated.map((ge) => {
+      const rendered = fullRows.map((row, i) => {
+        const ge = generated[i]
         const convention = formatWeightConvention(ge.exercise.equipment)
         return formatPrescriptionLine({
           exerciseName: ge.exercise.name,
-          sets: ge.sets,
-          reps: ge.reps,
-          weightKg: ge.weightKg ?? 0,
-          restSeconds: ge.restSeconds,
+          sets: row.sets,
+          reps: row.reps,
+          weightKg: Number(row.weight),
+          restSeconds: row.rest_seconds,
           weightConvention: convention,
+          targetDurationSeconds: row.target_duration_seconds ?? undefined,
         })
       })
 

@@ -192,8 +192,77 @@ export function parseExerciseInput(
 }
 
 /**
- * Cross-field rule for T74: reject `target_duration_seconds` on a reps-mode
- * exercise (T75 will add the symmetric rules for duration mode + bodyweight).
+ * All cross-field rules for `create_program` object-form prescriptions.
+ * Bare-string entries always pass — defaults are applied downstream.
+ *
+ *   R1 (T75): bodyweight equipment + weight_kg > 0 → reject (link to #281)
+ *   R2 (T75): duration exercise + reps != "0" → reject
+ *   R3 (T75): duration exercise + weight_kg > 0 → reject
+ *   R4 (T74): reps exercise + target_duration_seconds → reject
+ *   R5 (T75): duration exercise object form without target_duration_seconds → reject
+ *
+ * Returns the FIRST violation in declaration order so the agent gets one
+ * actionable error per call instead of a wall of text.
+ */
+export function validateExerciseCrossFields(
+  parsed: ParsedExercise,
+  catalog: { name: string; equipment: string; measurement_type?: "reps" | "duration" | null },
+  dayLabel: string,
+  position: number,
+): ParseResult<true> {
+  if (parsed.kind !== "object") return { ok: true, value: true }
+
+  const isDuration = catalog.measurement_type === "duration"
+  const isBodyweight = catalog.equipment === "bodyweight"
+  const at = locator(dayLabel, position)
+  const name = catalog.name
+
+  // R1: bodyweight + weight_kg > 0 (#281 tracks weighted bodyweight)
+  if (isBodyweight && parsed.weightKg > 0) {
+    return {
+      ok: false,
+      error: `${at}: bodyweight exercise "${name}" cannot have weight_kg > 0 (got ${parsed.weightKg}). Weighted bodyweight (weighted dips, weighted pull-ups) is not supported in v0.3.0 — tracked in #281.`,
+    }
+  }
+
+  // R2: duration + non-"0" reps (use target_duration_seconds instead)
+  if (isDuration && parsed.reps !== "0") {
+    return {
+      ok: false,
+      error: `${at}: duration exercise "${name}" cannot have reps "${parsed.reps}" — set reps to "0" and use target_duration_seconds instead.`,
+    }
+  }
+
+  // R3: duration + weight_kg > 0 (weighted duration exercises not yet modelled)
+  if (isDuration && parsed.weightKg > 0) {
+    return {
+      ok: false,
+      error: `${at}: duration exercise "${name}" cannot have weight_kg > 0 (got ${parsed.weightKg}). Weighted duration exercises are not supported in v0.3.0.`,
+    }
+  }
+
+  // R4 (T74): reps exercise + target_duration_seconds → reject
+  if (!isDuration && parsed.targetDurationSeconds !== null) {
+    return {
+      ok: false,
+      error: `${at}: reps exercise "${name}" cannot have target_duration_seconds. Use reps + weight_kg instead.`,
+    }
+  }
+
+  // R5: duration object form requires target_duration_seconds (or use bare UUID for catalog default)
+  if (isDuration && parsed.targetDurationSeconds === null) {
+    return {
+      ok: false,
+      error: `${at}: duration exercise "${name}" requires target_duration_seconds in object form (got null). Either provide target_duration_seconds (5-600s) or pass the exercise as a bare UUID to use the catalog default.`,
+    }
+  }
+
+  return { ok: true, value: true }
+}
+
+/**
+ * @deprecated Use `validateExerciseCrossFields` (T75 superset). Kept as a thin
+ * shim so the T74 callers compile until they're migrated.
  */
 export function validateRepsModeCrossField(
   parsed: ParsedExercise,
@@ -201,13 +270,10 @@ export function validateRepsModeCrossField(
   dayLabel: string,
   position: number,
 ): ParseResult<true> {
-  if (parsed.kind !== "object") return { ok: true, value: true }
-  const isDuration = catalog.measurement_type === "duration"
-  if (!isDuration && parsed.targetDurationSeconds !== null) {
-    return {
-      ok: false,
-      error: `${locator(dayLabel, position)}: reps exercise "${catalog.name}" cannot have target_duration_seconds. Use reps + weight_kg instead.`,
-    }
-  }
-  return { ok: true, value: true }
+  return validateExerciseCrossFields(
+    parsed,
+    { name: catalog.name, equipment: "barbell", measurement_type: catalog.measurement_type },
+    dayLabel,
+    position,
+  )
 }

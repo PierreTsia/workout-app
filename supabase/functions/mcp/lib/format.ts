@@ -35,8 +35,14 @@ interface FormatPrescriptionInput {
 }
 
 export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
-  const { exerciseName, sets, reps, weightKg, restSeconds, weightConvention } = input
+  const { exerciseName, sets, reps, weightKg, restSeconds, weightConvention, targetDurationSeconds } = input
   const restSuffix = `${restSeconds}s rest`
+  // T75: duration mode wins — render `{sets} × {N}s` and skip reps/weight
+  // entirely (defensive: even if upstream forgets to zero them out, they don't
+  // leak into the agent-visible echo).
+  if (targetDurationSeconds !== undefined && targetDurationSeconds !== null) {
+    return `${exerciseName} — ${sets} × ${targetDurationSeconds}s — ${restSuffix}`
+  }
   if (weightConvention === "bodyweight") {
     return `${exerciseName} — ${sets} × ${reps} (bodyweight) — ${restSuffix}`
   }

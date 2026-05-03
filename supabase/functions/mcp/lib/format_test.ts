@@ -108,3 +108,29 @@ Deno.test("formatPrescriptionLine renders fractional weight using one decimal", 
   })
   assertEquals(line, "DB Curl — 3 × 10 × 22.5 kg per hand — 60s rest")
 })
+
+Deno.test("formatPrescriptionLine renders duration mode as '{sets} × {N}s' (T75)", () => {
+  const line = formatPrescriptionLine({
+    exerciseName: "Plank",
+    sets: 4,
+    reps: "0",
+    weightKg: 0,
+    restSeconds: 60,
+    weightConvention: "bodyweight",
+    targetDurationSeconds: 30,
+  })
+  assertEquals(line, "Plank — 4 × 30s — 60s rest")
+})
+
+Deno.test("formatPrescriptionLine duration mode ignores reps/weightKg defensively", () => {
+  const line = formatPrescriptionLine({
+    exerciseName: "Plank",
+    sets: 3,
+    reps: "12",
+    weightKg: 50,
+    restSeconds: 60,
+    weightConvention: "total",
+    targetDurationSeconds: 45,
+  })
+  assertEquals(line, "Plank — 3 × 45s — 60s rest")
+})

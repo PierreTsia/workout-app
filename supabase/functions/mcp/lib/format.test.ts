@@ -432,3 +432,51 @@ describe("formatPrescriptionLine — reps mode", () => {
     expect(line).toBe("DB Curl — 3 × 10 × 22.5 kg per hand — 60s rest")
   })
 })
+
+describe("formatPrescriptionLine — duration mode (T75)", () => {
+  it("renders a bodyweight duration prescription as '{sets} × {N}s' (no kg suffix, no reps)", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Plank",
+      sets: 4,
+      reps: "0",
+      weightKg: 0,
+      restSeconds: 60,
+      weightConvention: "bodyweight",
+      targetDurationSeconds: 30,
+    })
+
+    expect(line).toBe("Plank — 4 × 30s — 60s rest")
+  })
+
+  it("renders a longer duration with the same compact format", () => {
+    const line = formatPrescriptionLine({
+      exerciseName: "Hang",
+      sets: 3,
+      reps: "0",
+      weightKg: 0,
+      restSeconds: 90,
+      weightConvention: "bodyweight",
+      targetDurationSeconds: 60,
+    })
+
+    expect(line).toBe("Hang — 3 × 60s — 90s rest")
+  })
+
+  it("ignores reps and weightKg when targetDurationSeconds is set (duration mode wins)", () => {
+    // Defensive: even if upstream callers forget to zero these out, the duration
+    // branch should not leak them into the rendered line.
+    const line = formatPrescriptionLine({
+      exerciseName: "Plank",
+      sets: 3,
+      reps: "12",
+      weightKg: 50,
+      restSeconds: 60,
+      weightConvention: "total",
+      targetDurationSeconds: 45,
+    })
+
+    expect(line).toBe("Plank — 3 × 45s — 60s rest")
+    expect(line).not.toContain("kg")
+    expect(line).not.toContain("12")
+  })
+})

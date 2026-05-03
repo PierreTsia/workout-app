@@ -114,9 +114,10 @@ function buildWorkoutExerciseInsertRow(
   const repsNum = parseInt(ge.reps, 10)
 
   // T74: explicit-ranges branch only fires for non-bodyweight, non-duration
-  // reps exercises. Bodyweight (T75) and duration (T75) get their own branches
-  // ahead of this one. Bare-string callers leave the optional fields undefined
-  // so legacy behavior is preserved verbatim.
+  // reps exercises. Bodyweight short-circuits to legacy auto-derive (T75 also
+  // verifies persistence is the safety net when handler validation is bypassed).
+  // Duration exercises with explicit targetDurationSeconds get their own freeze
+  // semantics for duration_range_min/max_seconds (T75).
   const hasExplicitRanges =
     !isBodyweight &&
     !isDuration &&
@@ -126,6 +127,15 @@ function buildWorkoutExerciseInsertRow(
     ge.setRangeMax !== undefined
 
   const weightStr = !isBodyweight && ge.weightKg !== undefined ? String(ge.weightKg) : "0"
+
+  // T75: when the agent supplies an explicit targetDurationSeconds on a
+  // duration exercise, freeze duration_range_min/max_seconds to that value so
+  // the progression engine treats it as a fixed prescription. Bare-string and
+  // legacy callers leave targetDurationSeconds undefined → fall through to the
+  // pre-T75 auto-derive (defaultSec - 10 / defaultSec + 15).
+  const useExplicitDuration =
+    isDuration && ge.targetDurationSeconds !== undefined && ge.targetDurationSeconds !== null
+  const effectiveDurationSec = useExplicitDuration ? ge.targetDurationSeconds! : defaultSec
 
   return {
     workout_day_id: workoutDayId,
@@ -138,7 +148,7 @@ function buildWorkoutExerciseInsertRow(
     weight: weightStr,
     rest_seconds: ge.restSeconds,
     sort_order: sortOrder,
-    target_duration_seconds: isDuration ? defaultSec : null,
+    target_duration_seconds: isDuration ? effectiveDurationSec : null,
     rep_range_min: hasExplicitRanges
       ? ge.repRangeMin!
       : Number.isNaN(repsNum) ? 8 : Math.max(1, repsNum - 2),
@@ -148,8 +158,16 @@ function buildWorkoutExerciseInsertRow(
     set_range_min: hasExplicitRanges ? ge.setRangeMin! : Math.max(1, ge.sets - 1),
     set_range_max: hasExplicitRanges ? ge.setRangeMax! : Math.min(6, ge.sets + 2),
     max_weight_reached: isBodyweight,
-    duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
-    duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+    duration_range_min_seconds: !isDuration
+      ? null
+      : useExplicitDuration
+        ? effectiveDurationSec
+        : Math.max(5, defaultSec - 10),
+    duration_range_max_seconds: !isDuration
+      ? null
+      : useExplicitDuration
+        ? effectiveDurationSec
+        : defaultSec + 15,
     duration_increment_seconds: isDuration ? 5 : null,
   }
 }

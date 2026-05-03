@@ -3,6 +3,7 @@ import {
   detectLegacyExerciseIds,
   LEGACY_MIGRATION_ERROR_MESSAGE,
   parseExerciseInput,
+  validateExerciseCrossFields,
   validateRepsModeCrossField,
 } from "./createProgramValidation"
 
@@ -289,8 +290,14 @@ describe("parseExerciseInput — bounds and shape rejections", () => {
   })
 })
 
-describe("validateRepsModeCrossField", () => {
-  function makeObject(overrides: Partial<{ targetDurationSeconds: number | null }> = {}) {
+describe("validateExerciseCrossFields (T75 superset; T74 rule R4 still covered)", () => {
+  type ObjectOverrides = Partial<{
+    targetDurationSeconds: number | null
+    weightKg: number
+    reps: string
+  }>
+
+  function makeObject(overrides: ObjectOverrides = {}) {
     return {
       kind: "object" as const,
       exerciseId: VALID_UUID,
@@ -303,48 +310,167 @@ describe("validateRepsModeCrossField", () => {
     }
   }
 
+  const REPS_BARBELL = { name: "Bench Press", equipment: "barbell", measurement_type: "reps" as const }
+  const REPS_DUMBBELL = { name: "DB Curl", equipment: "dumbbell", measurement_type: "reps" as const }
+  const REPS_BODYWEIGHT = { name: "Pushup", equipment: "bodyweight", measurement_type: "reps" as const }
+  const DURATION_BODYWEIGHT = { name: "Plank", equipment: "bodyweight", measurement_type: "duration" as const }
+
   it("passes a bare-string parsed exercise (no fields to cross-check)", () => {
-    const result = validateRepsModeCrossField(
+    const result = validateExerciseCrossFields(
       { kind: "bare", exerciseId: VALID_UUID_2 },
-      { name: "Bench", measurement_type: "reps" },
+      REPS_BARBELL,
       DAY,
       0,
     )
     expect(result.ok).toBe(true)
   })
 
-  it("passes an object form with no target_duration_seconds on a reps exercise", () => {
-    const result = validateRepsModeCrossField(
-      makeObject({ targetDurationSeconds: null }),
-      { name: "Bench", measurement_type: "reps" },
+  it("passes a complete reps prescription on a barbell exercise (happy path)", () => {
+    const result = validateExerciseCrossFields(makeObject(), REPS_BARBELL, DAY, 0)
+    expect(result.ok).toBe(true)
+  })
+
+  it("passes a duration prescription with target_duration_seconds on a duration exercise (happy path)", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 0, targetDurationSeconds: 45 }),
+      DURATION_BODYWEIGHT,
       DAY,
       0,
     )
     expect(result.ok).toBe(true)
   })
 
-  it("REJECTS an object form with target_duration_seconds on a reps exercise (T74's only cross-field rule)", () => {
-    const result = validateRepsModeCrossField(
+  it("R1: REJECTS bodyweight + weight_kg > 0 and references issue #281", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "12", weightKg: 50 }),
+      REPS_BODYWEIGHT,
+      DAY,
+      1,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('days["Push"].exercises[1]')
+      expect(result.error).toContain("Pushup")
+      expect(result.error).toContain("weight_kg")
+      expect(result.error).toContain("#281")
+    }
+  })
+
+  it("R1: passes bodyweight + weight_kg === 0 (the only legal weight on bodyweight)", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "12", weightKg: 0 }),
+      REPS_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(true)
+  })
+
+  it("R2: REJECTS duration exercise with non-'0' reps (e.g. reps='8')", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "8", weightKg: 0, targetDurationSeconds: 45 }),
+      DURATION_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("Plank")
+      expect(result.error).toContain('reps "8"')
+    }
+  })
+
+  it("R3: REJECTS duration exercise with weight_kg > 0", () => {
+    // Use a non-bodyweight equipment so R1 doesn't fire first.
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 10, targetDurationSeconds: 45 }),
+      { name: "Weighted Hang", equipment: "barbell", measurement_type: "duration" },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("Weighted Hang")
+      expect(result.error).toContain("weight_kg")
+      expect(result.error).toContain("v0.3.0")
+    }
+  })
+
+  it("R4 (T74): REJECTS reps exercise with target_duration_seconds set (still enforced by the T75 superset)", () => {
+    const result = validateExerciseCrossFields(
       makeObject({ targetDurationSeconds: 30 }),
+      REPS_DUMBBELL,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("DB Curl")
+      expect(result.error).toContain("target_duration_seconds")
+    }
+  })
+
+  it("R5: REJECTS duration exercise object form WITHOUT target_duration_seconds and points at the bare-UUID escape hatch", () => {
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 0, targetDurationSeconds: null }),
+      DURATION_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("Plank")
+      expect(result.error).toContain("requires target_duration_seconds")
+      expect(result.error).toContain("bare UUID")
+    }
+  })
+
+  it("R5: passes a duration exercise as a bare UUID even though no target_duration_seconds is set", () => {
+    const result = validateExerciseCrossFields(
+      { kind: "bare", exerciseId: VALID_UUID },
+      DURATION_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(true)
+  })
+
+  it("rule order: R1 fires BEFORE R3 (bodyweight error wins over duration error)", () => {
+    // Bodyweight + duration + weight > 0 → both R1 and R3 would match, but R1
+    // is more specific and points at #281; R3 is the generic duration message.
+    const result = validateExerciseCrossFields(
+      makeObject({ reps: "0", weightKg: 50, targetDurationSeconds: 45 }),
+      DURATION_BODYWEIGHT,
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("#281")
+    }
+  })
+})
+
+describe("validateRepsModeCrossField (deprecated T74 shim — backwards compatibility)", () => {
+  it("forwards to validateExerciseCrossFields and still rejects R4 violations", () => {
+    const result = validateRepsModeCrossField(
+      {
+        kind: "object",
+        exerciseId: VALID_UUID,
+        sets: 4,
+        reps: "8",
+        weightKg: 80,
+        restSeconds: 120,
+        targetDurationSeconds: 30,
+      },
       { name: "Bench Press", measurement_type: "reps" },
       DAY,
       0,
     )
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.error).toContain('days["Push"].exercises[0]')
       expect(result.error).toContain("Bench Press")
       expect(result.error).toContain("target_duration_seconds")
     }
-  })
-
-  it("passes an object form with target_duration_seconds on a duration exercise (T75 owns the inverse rule)", () => {
-    const result = validateRepsModeCrossField(
-      makeObject({ targetDurationSeconds: 45 }),
-      { name: "Plank", measurement_type: "duration" },
-      DAY,
-      0,
-    )
-    expect(result.ok).toBe(true)
   })
 })
