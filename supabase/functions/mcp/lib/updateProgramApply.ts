@@ -19,10 +19,9 @@
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
+import { applyDayUpdate, parsedExerciseToGeneratedForApply } from "./applyDayUpdate.ts"
 import {
-  applyDayUpdate,
   buildWorkoutExerciseInsertRowsForDay,
-  parsedExerciseToGeneratedForApply,
   type CatalogExerciseForProgram,
 } from "./programPersistence.ts"
 import type {

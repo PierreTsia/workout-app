@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { applyDayUpdate, type CatalogExerciseForProgram } from "./programPersistence"
+import { applyDayUpdate } from "./applyDayUpdate"
+import type { CatalogExerciseForProgram } from "./programPersistence"
 import type { ParsedExercise } from "./createProgramValidation"
 
 const ID_BENCH = "11111111-1111-4111-8111-111111111111"
