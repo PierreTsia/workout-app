@@ -68,7 +68,7 @@ export const listPrograms: ToolDefinition = {
 
     if (!data || data.length === 0) {
       return {
-        content: [{ type: "text", text: "Aucun programme. Crée-en un dans le builder pour commencer." }],
+        content: [{ type: "text", text: "No programs found. Create one in the Workout Builder to get started." }],
       }
     }
 
