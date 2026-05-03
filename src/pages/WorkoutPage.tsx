@@ -350,12 +350,12 @@ export function WorkoutPage() {
   const abandonAndRestartCycle = useAbandonAndRestartCycle()
   const canOfferCycleRestart =
     isDayDoneInCycle && !cycleProgress.isComplete && !!activeCycle
-  const missingDayLabels = useMemo(
+  const missingDays = useMemo(
     () =>
       canOfferCycleRestart
-        ? (days ?? []).filter(
-            (d) => !cycleProgress.completedDayIds.includes(d.id),
-          ).map((d) => d.label)
+        ? (days ?? [])
+            .filter((d) => !cycleProgress.completedDayIds.includes(d.id))
+            .map((d) => ({ id: d.id, label: d.label }))
         : [],
     [canOfferCycleRestart, days, cycleProgress.completedDayIds],
   )
@@ -1135,7 +1135,12 @@ export function WorkoutPage() {
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */
         <>
-          <div className={cn("flex-1 flex flex-col overflow-y-auto gap-4", !isDayDoneInCycle && "pb-20")}>
+          <div
+            className={cn(
+              "flex-1 flex flex-col overflow-y-auto gap-4",
+              (!isDayDoneInCycle || canOfferCycleRestart) && "pb-20",
+            )}
+          >
             {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
               <CycleProgressHeader
                 completedCount={cycleProgress.completedDayIds.length}
@@ -1221,7 +1226,7 @@ export function WorkoutPage() {
           }}
           completedCount={cycleProgress.completedDayIds.length}
           totalDays={cycleProgress.totalDays}
-          missingDayLabels={missingDayLabels}
+          missingDays={missingDays}
           currentDayLabel={currentDayLabel}
           onConfirm={confirmAbandonAndRestart}
           isPending={abandonAndRestartCycle.isPending}

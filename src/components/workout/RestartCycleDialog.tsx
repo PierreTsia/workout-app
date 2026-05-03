@@ -10,12 +10,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
+interface MissingDay {
+  id: string
+  label: string
+}
+
 interface RestartCycleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   completedCount: number
   totalDays: number
-  missingDayLabels: string[]
+  missingDays: MissingDay[]
   currentDayLabel: string
   onConfirm: () => void
   isPending: boolean
@@ -26,7 +31,7 @@ export function RestartCycleDialog({
   onOpenChange,
   completedCount,
   totalDays,
-  missingDayLabels,
+  missingDays,
   currentDayLabel,
   onConfirm,
   isPending,
@@ -46,14 +51,14 @@ export function RestartCycleDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {missingDayLabels.length > 0 && (
+        {missingDays.length > 0 && (
           <div className="text-sm">
             <p className="mb-1 font-medium text-foreground">
               {t("abandonCycle.missingHeading")}
             </p>
             <ul className="list-disc pl-5 text-muted-foreground">
-              {missingDayLabels.map((label) => (
-                <li key={label}>{label}</li>
+              {missingDays.map((d) => (
+                <li key={d.id}>{d.label}</li>
               ))}
             </ul>
           </div>

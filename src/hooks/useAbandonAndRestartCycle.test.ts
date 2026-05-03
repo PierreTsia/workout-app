@@ -4,8 +4,9 @@ import { renderHookWithProviders } from "@/test/utils"
 import * as cycleLib from "@/lib/cycle"
 import { useAbandonAndRestartCycle } from "./useAbandonAndRestartCycle"
 
-const mockUpdateEq = vi.fn()
-const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
+const mockUpdateEqUser = vi.fn()
+const mockUpdateEqId = vi.fn(() => ({ eq: mockUpdateEqUser }))
+const mockUpdate = vi.fn(() => ({ eq: mockUpdateEqId }))
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -38,8 +39,8 @@ describe("useAbandonAndRestartCycle", () => {
     vi.clearAllMocks()
   })
 
-  it("closes the active cycle then resolves a new one and returns its id", async () => {
-    mockUpdateEq.mockResolvedValueOnce({ error: null })
+  it("closes the active cycle scoped by id+user then resolves a new one and returns its id", async () => {
+    mockUpdateEqUser.mockResolvedValueOnce({ error: null })
     vi.mocked(cycleLib.resolveOrCreateActiveCycle).mockResolvedValueOnce({
       kind: "ok",
       cycleId: "cycle-new",
@@ -56,7 +57,8 @@ describe("useAbandonAndRestartCycle", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ finished_at: expect.any(String) }),
     )
-    expect(mockUpdateEq).toHaveBeenCalledWith("id", "cycle-old")
+    expect(mockUpdateEqId).toHaveBeenCalledWith("id", "cycle-old")
+    expect(mockUpdateEqUser).toHaveBeenCalledWith("user_id", "user-1")
     expect(cycleLib.resolveOrCreateActiveCycle).toHaveBeenCalledWith(
       "prog-1",
       "user-1",
@@ -65,7 +67,7 @@ describe("useAbandonAndRestartCycle", () => {
   })
 
   it("rejects without calling resolveOrCreateActiveCycle when close fails", async () => {
-    mockUpdateEq.mockResolvedValueOnce({
+    mockUpdateEqUser.mockResolvedValueOnce({
       error: { message: "RLS denied", code: "42501" },
     })
 
@@ -81,7 +83,7 @@ describe("useAbandonAndRestartCycle", () => {
   })
 
   it("rejects with the resolve reason when the new cycle cannot be created", async () => {
-    mockUpdateEq.mockResolvedValueOnce({ error: null })
+    mockUpdateEqUser.mockResolvedValueOnce({ error: null })
     vi.mocked(cycleLib.resolveOrCreateActiveCycle).mockResolvedValueOnce({
       kind: "unavailable",
       reason: "Failed to fetch",
