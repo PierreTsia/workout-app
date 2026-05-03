@@ -42,6 +42,13 @@ export async function fetchExercisesByIds(
   ids: string[],
 ): Promise<{ data: CatalogExerciseForProgram[]; error: string | null }> {
   const unique = [...new Set(ids)]
+  // Short-circuit: PostgREST `.in("id", [])` can error or return unexpected
+  // results, and `update_program` legitimately calls this helper with an empty
+  // union for rename-only patches on programs that happen to have zero
+  // exercises. Skip the round-trip entirely.
+  if (unique.length === 0) {
+    return { data: [], error: null }
+  }
   const { data, error } = await supabase
     .from("exercises")
     .select(CATALOG_COLUMNS)

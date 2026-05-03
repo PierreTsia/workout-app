@@ -139,6 +139,16 @@ describe("fetchExercisesByIds", () => {
     expect(result.data).toEqual([])
   })
 
+  it("short-circuits without hitting supabase when the id list is empty (rename-only patches with no current exercises)", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, [])
+
+    expect(result.error).toBeNull()
+    expect(result.data).toEqual([])
+    expect(supabase._calls).toHaveLength(0)
+  })
+
   it("normalises measurement_type 'duration' and parses default_duration_seconds to a finite number", async () => {
     const supabase = makeFakeSupabase({
       rows: [
