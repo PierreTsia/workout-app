@@ -37,7 +37,6 @@ const ID_PROGRAM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 const ID_OTHER_PROGRAM = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 const ID_DAY_PUSH = "cccccccc-1111-4111-8111-cccccccccccc"
 const ID_DAY_PULL = "cccccccc-2222-4222-8222-cccccccccccc"
-const ID_DAY_LEGS = "cccccccc-3333-4333-8333-cccccccccccc"
 const ID_BENCH = "dddddddd-1111-4111-8111-dddddddddddd"
 const ID_PUSHUP = "dddddddd-2222-4222-8222-dddddddddddd"
 
