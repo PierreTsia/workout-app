@@ -194,7 +194,7 @@ describe("formatProgramDetails", () => {
 
     expect(md).toContain("### 💪 Push *(id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa)*")
     expect(md).toContain("### 🪝 Pull *(id: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb)*")
-    expect(md.match(/^  - \*\*/gm)?.length).toBe(4)
+    expect(md.match(/^ {2}- \*\*/gm)?.length).toBe(4)
   })
 
   it("renders an empty program (zero days) with an explicit '_(empty program ...)_' line instead of day blocks", () => {
