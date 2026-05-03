@@ -38,7 +38,7 @@ function formatExercise(ex: Record<string, unknown>): string {
     `**Name:** ${name}`,
     `**Muscle group:** ${ex.muscle_group}`,
     secondary && `**Secondary muscles:** ${secondary}`,
-    `**Equipment:** ${ex.equipment}`,
+    `**Equipment:** ${equipment}`,
     `**Weight convention:** ${convention} (${WEIGHT_CONVENTION_HINT[convention]})`,
     ex.difficulty_level && `**Difficulty:** ${ex.difficulty_level}`,
     ex.measurement_type === "duration"

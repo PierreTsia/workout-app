@@ -132,7 +132,7 @@ Reps formats:
 
 Weight conventions: per_hand for dumbbells/kettlebells, total for barbells/machines/cables. Call \`get_exercise_details\` first to confirm the convention (\`weight_convention\` field). Bodyweight exercises must use weight_kg=0; weighted bodyweight (weighted dips/pull-ups) is tracked in #281.
 
-Bounds: sets [1,10], reps [1,50] each side, weight_kg [0,500], rest_seconds [0,600], target_duration_seconds [5,600].
+Bounds: sets [1,10], reps [1,50] for reps exercises (use "0" ONLY for duration exercises, paired with target_duration_seconds), weight_kg [0,500], rest_seconds [0,600], target_duration_seconds [5,600].
 
 Always call with dry_run: true first; review the \`preview.days[].rendered\` lines (e.g. "Bench Press — 4 × 8 × 80 kg total — 120s rest"), then re-call with dry_run: false to persist.
 
