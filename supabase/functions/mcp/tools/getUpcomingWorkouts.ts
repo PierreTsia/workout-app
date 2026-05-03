@@ -133,7 +133,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
     return {
       content: [{
         type: "text",
-        text: `## Upcoming Workouts — ${program.name}\n\n${blocks.join("\n\n")}`,
+        text: `## Upcoming Workouts — ${program.name} *(id: ${program.id})*\n\n${blocks.join("\n\n")}`,
       }],
     }
   },

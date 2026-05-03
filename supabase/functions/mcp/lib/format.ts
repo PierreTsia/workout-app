@@ -44,9 +44,22 @@ interface SessionForFormat {
   total_sets_done: number
 }
 
-export function formatSessionSummary(session: SessionForFormat, sets: SetForFormat[]): string {
+interface ProgramInfoForSession {
+  id: string
+  name: string
+}
+
+export function formatSessionSummary(
+  session: SessionForFormat,
+  sets: SetForFormat[],
+  programInfo?: ProgramInfoForSession,
+): string {
   const date = formatDate(session.started_at)
   const duration = formatDuration(session.active_duration_ms)
+
+  const programSuffix = programInfo?.id
+    ? ` *(program: ${programInfo.name}, id: ${programInfo.id})*`
+    : ""
 
   const exerciseMap = new Map<string, SetForFormat[]>()
   for (const s of sets) {
@@ -68,7 +81,7 @@ export function formatSessionSummary(session: SessionForFormat, sets: SetForForm
   })
 
   return [
-    `### ${session.workout_label_snapshot} — ${date}`,
+    `### ${session.workout_label_snapshot} — ${date}${programSuffix}`,
     `Duration: ${duration} | ${session.total_sets_done} sets`,
     ...exerciseLines,
   ].join("\n")

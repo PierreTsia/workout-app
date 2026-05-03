@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatProgramDetails, formatProgramListEntry } from "./format"
+import { formatProgramDetails, formatProgramListEntry, formatSessionSummary } from "./format"
 
 interface ProgramListEntryInput {
   id: string
@@ -259,5 +259,69 @@ describe("formatProgramDetails", () => {
 
     expect(md).toContain("**Plank** *(id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee)*: 3 × 45s (rest 60s)")
     expect(md).not.toContain("reps")
+  })
+})
+
+interface SessionForFormatInput {
+  workout_label_snapshot: string
+  started_at: string
+  finished_at: string | null
+  active_duration_ms: number | null
+  total_sets_done: number
+}
+
+function makeSession(overrides: Partial<SessionForFormatInput> = {}): SessionForFormatInput {
+  return {
+    workout_label_snapshot: "Push Day",
+    started_at: "2026-04-27T18:00:00.000Z",
+    finished_at: "2026-04-27T19:00:00.000Z",
+    active_duration_ms: 3_600_000,
+    total_sets_done: 12,
+    ...overrides,
+  }
+}
+
+describe("formatSessionSummary — programInfo branch", () => {
+  it("annotates the header with '*(program: <name>, id: <uuid>)*' when programInfo is provided", () => {
+    const session = makeSession({ workout_label_snapshot: "Push Day" })
+    const programInfo = {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Mai 2026 v2",
+    }
+
+    const md = formatSessionSummary(session, [], programInfo)
+    const headerLine = md.split("\n")[0]
+
+    expect(headerLine).toContain("Push Day")
+    expect(headerLine).toContain("*(program: Mai 2026 v2, id: 11111111-1111-4111-8111-111111111111)*")
+  })
+
+  it("does not annotate the header (regression guard for existing callers) when programInfo is omitted", () => {
+    const session = makeSession({ workout_label_snapshot: "Push Day" })
+
+    const md = formatSessionSummary(session, [])
+    const headerLine = md.split("\n")[0]
+
+    expect(headerLine).not.toContain("program:")
+    expect(headerLine).not.toContain("*(")
+  })
+
+  it("treats explicit programInfo: undefined the same as omitting the arg (handles ad-hoc callers)", () => {
+    const session = makeSession({ workout_label_snapshot: "Push Day" })
+
+    const md = formatSessionSummary(session, [], undefined)
+    const headerLine = md.split("\n")[0]
+
+    expect(headerLine).not.toContain("program:")
+  })
+
+  it("omits the annotation when programInfo.id is the empty string (defensive guard for legacy data)", () => {
+    const session = makeSession({ workout_label_snapshot: "Push Day" })
+
+    const md = formatSessionSummary(session, [], { id: "", name: "Mai 2026 v2" })
+    const headerLine = md.split("\n")[0]
+
+    expect(headerLine).not.toContain("program:")
+    expect(headerLine).not.toContain("Mai 2026 v2")
   })
 })

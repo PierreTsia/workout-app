@@ -67,9 +67,9 @@ Eight tools total — seven reads, one write.
 
 | User intent | Tool | Notes |
 |---|---|---|
-| "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). |
+| "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). Each session header surfaces `*(program: <name>, id: <uuid>)*` for sessions that belong to a cycle — pass that `id` straight to `get_program_details` to chain into the program structure. Sessions without a cycle (legacy data) omit the annotation. |
 | "How am I doing / volume / PRs / muscle group balance / push-pull split" | `get_training_stats` | Defaults to last 30 days. Filter by `muscle_group` (FR name, e.g. `Pectoraux`, `Dos`). |
-| "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. |
+| "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. The header surfaces `*(id: <uuid>)*` of the active program — pass that `id` straight to `get_program_details` if the user wants the full template instead of the next few scheduled days. |
 | "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use **before** `get_exercise_details` to resolve a UUID. Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
 | "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). **Always run `search_exercises` first** to resolve it; if multiple matches come back, ask the user to pick. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
@@ -242,7 +242,7 @@ create_program({
 | `Unknown or inaccessible exercise_id(s):` | The UUID is valid format but the exercise doesn't exist or isn't visible to this user. Re-search. |
 | `Authentication required` / `401` | Token expired or revoked. Tell the user to create a fresh PAT at `/account/api-tokens`. |
 | Ambiguous muscle group (`"chest"` vs `"Pectoraux"`) | `search_exercises` accepts both — pass the user's term as-is. For `get_training_stats` the filter must be the FR name (`Pectoraux`). |
-| User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). |
+| User asks to *modify* one day of an existing program | Out of scope for MCP — `create_program` replaces the whole program. Tell the user single-day tweaks happen in-app (Workout Builder). Single-day program editing arrives in Epic C (`update_program`) — until then, `create_program` is still the only write surface. |
 
 ---
 
