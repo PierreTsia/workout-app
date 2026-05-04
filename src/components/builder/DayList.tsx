@@ -18,7 +18,6 @@ import { CSS } from "@dnd-kit/utilities"
 import { Loader2, Plus, Trash2, GripVertical, Dumbbell } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
-import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import {
   useCreateDay,
   useDeleteDay,
@@ -145,6 +144,7 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
               dayId={day.id}
               label={day.label}
               emoji={day.emoji}
+              exerciseCount={day.exerciseCount}
               onTap={() => onSelectDay(day.id)}
               onDelete={() =>
                 setDeleteTarget({ id: day.id, label: day.label })
@@ -205,18 +205,18 @@ function DayCard({
   dayId,
   label,
   emoji,
+  exerciseCount,
   onTap,
   onDelete,
 }: {
   dayId: string
   label: string
   emoji: string
+  exerciseCount: number
   onTap: () => void
   onDelete: () => void
 }) {
   const { t } = useTranslation("builder")
-  const { data: exercises } = useWorkoutExercises(dayId)
-  const count = exercises?.length ?? 0
 
   const {
     attributes,
@@ -253,7 +253,7 @@ function DayCard({
         <div className="flex-1">
           <p className="font-semibold">{label}</p>
           <p className="text-xs text-muted-foreground">
-            {t("exerciseCount", { count })}
+            {t("exerciseCount", { count: exerciseCount })}
           </p>
         </div>
         <Button
