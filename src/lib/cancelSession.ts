@@ -6,6 +6,8 @@ import {
   sessionAtom,
   restAtom,
   isQuickWorkoutAtom,
+  prFlagsAtom,
+  sessionBestPerformanceAtom,
   defaultSessionState,
 } from "@/store/atoms"
 import {
@@ -43,14 +45,20 @@ function timeoutAfter(ms: number, label: string): Promise<never> {
  * `WorkoutPage.handleNewSession` (post-finish "New Session"). Single source
  * of truth for "no active session" state.
  *
+ * `prFlagsAtom` and `sessionBestPerformanceAtom` are persisted (regression
+ * #291) so they must be cleared here too, otherwise PR badges from the
+ * previous session would leak into the next one's bilan.
+ *
  * Does NOT touch local React state inside `WorkoutPage` (finishedStats,
- * finishedQuickInfo, prFlags, …). Those only matter post-finish; during an
- * active session they are already in their initial state.
+ * finishedQuickInfo, …). Those only matter post-finish; during an active
+ * session they are already in their initial state.
  */
 export function resetSessionAtoms(): void {
   store.set(sessionAtom, defaultSessionState)
   store.set(restAtom, null)
   store.set(isQuickWorkoutAtom, false)
+  store.set(prFlagsAtom, {})
+  store.set(sessionBestPerformanceAtom, {})
   clearSessionExercisePatchStorage()
 }
 

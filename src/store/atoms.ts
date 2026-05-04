@@ -79,10 +79,32 @@ export const queueSyncMetaAtom = atomWithStorage<{
   pendingCount: number
 }>("queueSyncMeta", { pendingCount: 0 })
 
-export const prFlagsAtom = atom<Record<string, boolean>>({})
+/**
+ * Persisted so a mid-session refresh doesn't wipe PR detection state. Without
+ * persistence, `WorkoutPage` would compute `prExercises` from an empty map
+ * after a reload and the bilan would show no PRs even though `set_logs.was_pr`
+ * is correct in the DB (regression #291). `getOnInit` mirrors `sessionAtom` so
+ * the value is correct on first paint of `SessionSummary`.
+ */
+export const prFlagsAtom = atomWithStorage<Record<string, boolean>>(
+  "prFlags",
+  {},
+  undefined,
+  { getOnInit: true },
+)
 
-/** Best PR-relevant score per `exercise_id` this session (1RM, reps, or seconds — matches `PrModality`). */
-export const sessionBestPerformanceAtom = atom<Record<string, number>>({})
+/**
+ * Best PR-relevant score per `exercise_id` this session (1RM, reps, or seconds
+ * — matches `PrModality`). Persisted alongside `prFlagsAtom` so post-refresh
+ * sets are still compared against the in-session running best, not just the
+ * historical best from the DB.
+ */
+export const sessionBestPerformanceAtom = atomWithStorage<Record<string, number>>(
+  "sessionBestPerformance",
+  {},
+  undefined,
+  { getOnInit: true },
+)
 
 export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
   "installPrompt",
