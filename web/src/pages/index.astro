@@ -1,26 +1,220 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import DemoVideo from '../components/DemoVideo.astro'
+import FeatureCard from '../components/FeatureCard.astro'
+import FeatureImageCard from '../components/FeatureImageCard.astro'
+
+import exercisesListImg from '../assets/screenshots/exercises-list.jpg'
+import aiProgramGenerationImg from '../assets/screenshots/ai-program.jpg'
+import progressionEngineImg from '../assets/screenshots/progression.jpg'
+import strengthBalanceImg from '../assets/screenshots/strength-balance.jpg'
+import historyHeatmapImg from '../assets/screenshots/history-heatmap.jpg'
+import achievementsImg from '../assets/screenshots/achievements.jpg'
+
+const GITHUB_REPO = 'https://github.com/PierreTsia/workout-app'
+const GITHUB_MERGED_PRS =
+  'https://github.com/PierreTsia/workout-app/pulls?q=is%3Apr+is%3Amerged'
+
+const features = [
+  {
+    title: 'AI program generation',
+    subtitle:
+      'One LLM call writes a multi-day program — split + exercises. Deterministic code handles volume.',
+    image: aiProgramGenerationImg,
+    alt: 'Quick Workout AI modal with rich coach-style reasoning over the generated session.',
+  },
+  {
+    title: 'Triple progression engine',
+    subtitle:
+      'Range-based suggestions: add reps, add weight, hold, or flag a plateau. Pure function, fully tested.',
+    image: progressionEngineImg,
+    alt: "In-session view with the 'Poids en hausse +2.5 kg' progression coach popover.",
+  },
+  {
+    title: 'Strength Balance',
+    subtitle:
+      'Volume distribution across muscle groups, body-map heatmap, actionable rebalancing.',
+    image: strengthBalanceImg,
+    alt: 'GymLogic Strength Balance screen showing a score gauge, body-map heatmap, and analysis.',
+  },
+  {
+    title: 'Tiered achievements',
+    subtitle:
+      'Bronze → Diamond ladder, real-time unlocks, AI-generated badge art. Reward progression, not collection.',
+    image: achievementsImg,
+    alt: 'Achievement detail with a metallic AI-generated badge and rank ladder.',
+  },
+  {
+    title: '300+ exercises, all curated',
+    subtitle:
+      'No duplicates, no junk. Every one with detailed instructions and a YouTube demo.',
+    image: exercisesListImg,
+    alt: 'Exercise library with category filters, equipment chips, and difficulty badges.',
+  },
+  {
+    title: 'History calendar + heatmap',
+    subtitle:
+      'Sessions by day, monthly summary, GitHub-style training heatmap. Single typed Supabase RPC.',
+    image: historyHeatmapImg,
+    alt: 'History page with sessions, sets, PRs stats and a 100-day training heatmap.',
+  },
+]
 ---
 
 <BaseLayout
-  title="GymLogic — coming soon"
-  description="Public documentation and write-ups for GymLogic. Real content coming soon."
+  title="GymLogic — the agentic workout app"
+  description="MCP-native and open-source. Bring your own agent — your program lands in the app, you lift. ~1,500 tests, real OAuth + RLS, built in the open."
 >
-  <section class="mx-auto max-w-3xl px-4 py-24">
+  <section
+    aria-labelledby="hero-h2"
+    class="mx-auto max-w-3xl px-4 pt-12 md:pt-20"
+  >
+    <h2 id="hero-h2" class="sr-only">Pitch</h2>
     <h1
       class="text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
     >
-      GymLogic
+      The agentic workout app.
     </h1>
     <p class="mt-6 text-lg text-muted leading-relaxed">
-      Workout app + AI coaching. The public craft surface — pitch, demo, and
-      links — landing here as part of A3.
-    </p>
-    <p class="mt-4 text-sm text-muted">
-      Tracked in <a
-        class="underline hover:text-foreground"
-        href="https://github.com/PierreTsia/workout-app/issues/301">#301</a
-      >.
+      MCP-native and <a
+        href={GITHUB_REPO}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-foreground underline underline-offset-4 decoration-muted decoration-1 motion-safe:transition-colors motion-safe:duration-150 hover:decoration-accent"
+      >open-source</a>. Bring your own agent — your program lands in the app, you
+      lift. (Stop being the brain. Become the body.)
     </p>
   </section>
+
+  <section
+    aria-labelledby="demo-h2"
+    class="mx-auto max-w-3xl px-4 mt-10 md:mt-12"
+  >
+    <h2 id="demo-h2" class="sr-only">Demo</h2>
+    <DemoVideo />
+  </section>
+
+  <section
+    aria-labelledby="product-h2"
+    class="mt-16 md:mt-24 border-y border-border bg-surface py-16 md:py-24"
+  >
+    <div class="mx-auto max-w-3xl px-4">
+      <h2
+        id="product-h2"
+        class="text-2xl md:text-3xl font-semibold text-foreground"
+      >
+        Features
+      </h2>
+      <p class="mt-2 text-sm text-muted">
+        Lots of features. Solid enough for serious lifters.
+      </p>
+    </div>
+    <div class="mx-auto max-w-5xl px-4 mt-6">
+      <div
+        role="region"
+        aria-label="Feature gallery"
+        class="features-marquee overflow-hidden"
+      >
+        <div class="features-marquee__track flex w-max">
+          <div class="flex gap-4 pr-4">
+            {features.map((f) => <FeatureImageCard {...f} />)}
+          </div>
+          <div class="flex gap-4 pr-4" aria-hidden="true">
+            {features.map((f) => <FeatureImageCard {...f} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section
+    aria-labelledby="engineering-h2"
+    class="mx-auto max-w-3xl px-4 mt-16 md:mt-24"
+  >
+    <h2
+      id="engineering-h2"
+      class="text-2xl md:text-3xl font-semibold text-foreground"
+    >
+      How it's built
+    </h2>
+    <p class="mt-2 text-sm text-muted">
+      Agentic ≠ vibe-coded. Receipts below.
+    </p>
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <FeatureCard
+        title="MCP-native, BYOA"
+        subtitle="Bring your own MCP client — Claude, Cursor, ChatGPT, or whatever ships next."
+        iconName="plug"
+        href="/claude-connector"
+      />
+      <FeatureCard
+        title="Real auth, real data isolation"
+        subtitle="OAuth + Postgres row-level security. No demo-quality auth shortcuts."
+        iconName="shield"
+      />
+      <FeatureCard
+        title="Open-source, top to bottom"
+        subtitle="MIT license. Web app, mini-site, MCP server — all on GitHub."
+        iconName="git-branch"
+        href={GITHUB_REPO}
+      />
+      <FeatureCard
+        title="Built in the open"
+        subtitle="Every feature: Epic Brief → Tech Plan → tickets → PR. Trail in /docs."
+        iconName="book-open"
+        href="/about"
+      />
+      <FeatureCard
+        title="Agentic engineering, with receipts"
+        subtitle="Stress-tested specs, sliced tickets, red/green TDD, reviewed PRs. ~1,500 tests as receipts."
+        iconName="badge-check"
+        href={GITHUB_MERGED_PRS}
+        class="md:col-span-2"
+      />
+    </div>
+  </section>
 </BaseLayout>
+
+<style>
+  .features-marquee {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 3%,
+      black 97%,
+      transparent 100%
+    );
+  }
+
+  .features-marquee__track {
+    animation: features-marquee-scroll 60s linear infinite;
+    will-change: transform;
+  }
+
+  .features-marquee:hover .features-marquee__track,
+  .features-marquee:focus-within .features-marquee__track {
+    animation-play-state: paused;
+  }
+
+  @keyframes features-marquee-scroll {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .features-marquee__track {
+      animation: none;
+    }
+  }
+</style>

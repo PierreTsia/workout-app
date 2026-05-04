@@ -1,0 +1,69 @@
+---
+import plugIcon from 'lucide-static/icons/plug.svg?raw'
+import shieldIcon from 'lucide-static/icons/shield.svg?raw'
+import gitBranchIcon from 'lucide-static/icons/git-branch.svg?raw'
+import bookOpenIcon from 'lucide-static/icons/book-open.svg?raw'
+import badgeCheckIcon from 'lucide-static/icons/badge-check.svg?raw'
+
+export type IconName = 'plug' | 'shield' | 'git-branch' | 'book-open' | 'badge-check'
+
+interface Props {
+  title: string
+  subtitle: string
+  iconName: IconName
+  href?: string
+  class?: string
+}
+
+const icons: Record<IconName, string> = {
+  plug: plugIcon,
+  shield: shieldIcon,
+  'git-branch': gitBranchIcon,
+  'book-open': bookOpenIcon,
+  'badge-check': badgeCheckIcon,
+}
+
+const { title, subtitle, iconName, href, class: className } = Astro.props
+const isExternal = href?.startsWith('http')
+const Tag = href ? 'a' : 'div'
+const linkProps = href
+  ? {
+      href,
+      ...(isExternal
+        ? { target: '_blank', rel: 'noopener noreferrer' }
+        : {}),
+    }
+  : {}
+
+const iconSvg = icons[iconName]
+
+const interactiveClasses = href
+  ? 'motion-safe:transition-colors motion-safe:duration-150 hover:border-accent/30 focus-visible:border-accent/30 focus-visible:outline-none'
+  : ''
+const titleClasses = href
+  ? 'motion-safe:transition-colors motion-safe:duration-150 group-hover:text-accent group-focus-visible:text-accent'
+  : ''
+---
+
+<Tag
+  {...linkProps}
+  class={`group relative block rounded-lg border border-border bg-card p-6 ${interactiveClasses} ${className ?? ''}`}
+>
+  <span
+    class="text-accent inline-block [&>svg]:size-8"
+    aria-hidden="true"
+    set:html={iconSvg}
+  />
+  <h3 class={`mt-4 font-semibold text-foreground ${titleClasses}`}>{title}</h3>
+  <p class="mt-2 text-sm text-muted leading-relaxed">{subtitle}</p>
+  {
+    href && (
+      <span
+        aria-hidden="true"
+        class="absolute right-4 top-4 text-accent opacity-0 motion-safe:transition-all motion-safe:duration-150 group-hover:opacity-100 group-hover:translate-x-1 group-focus-visible:opacity-100 group-focus-visible:translate-x-1"
+      >
+        →
+      </span>
+    )
+  }
+</Tag>
