@@ -2,7 +2,7 @@
 
 ## Goal
 
-Add a self-contained Astro 5 + Tailwind v4 project under `web/` that builds, dev-serves, and stays out of the root ESLint scope. This is the local-only foundation slice of A1: nothing is deployed yet, but `npm run dev` and `npm run build` both work inside `web/`, and the SPA at the repo root remains entirely unaffected.
+Add a self-contained Astro 6 + Tailwind v4 project under `web/` that builds, dev-serves, and stays out of the root ESLint scope. This is the local-only foundation slice of A1: nothing is deployed yet, but `npm run dev` and `npm run build` both work inside `web/`, and the SPA at the repo root remains entirely unaffected.
 
 Addresses **Epic Brief stories 1, 7, 8, 9**.
 
@@ -12,7 +12,7 @@ Addresses **Epic Brief stories 1, 7, 8, 9**.
 
 ## Slice
 
-`web/package.json` → `web/astro.config.mjs` (Tailwind wired) → `web/src/layouts/BaseLayout.astro` → `web/src/pages/index.astro` → root `eslint.config.js` ignore → local `npm run build` + `npm run dev` verification
+`web/package.json` → `web/postcss.config.mjs` (Tailwind wired) → `web/astro.config.mjs` → `web/src/layouts/BaseLayout.astro` → `web/src/pages/index.astro` → root `eslint.config.js` ignore → local `npm run build` + `npm run dev` verification
 
 ## Dependencies
 
@@ -25,14 +25,15 @@ None.
 
 | File                               | Content                                                                                                                                                                                                              |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `web/package.json`                 | Astro 5 + `@tailwindcss/vite` + `tailwindcss` deps; `engines.node >=20.0.0`; scripts `dev`, `build`, `preview`, `astro`                                                                                              |
-| `web/.gitignore`                   | Astro defaults: `dist`, `.astro`, `node_modules`, `.env*`                                                                                                                                                            |
-| `web/tsconfig.json`                | Extends `astro/tsconfigs/strict`. **No reference from root `tsconfig.json`** — root `tsc -b` must continue to ignore `web/`.                                                                                         |
-| `web/vercel.json`                  | `{ "github": { "enabled": false } }` — same shape as root `file:vercel.json`                                                                                                                                         |
-| `web/astro.config.mjs`             | `defineConfig({ output: 'static', site: 'https://docs.gymlogic.me', vite: { plugins: [tailwindcss()] } })` using `@tailwindcss/vite`                                                                                 |
-| `web/src/styles/global.css`        | Single line: `@import "tailwindcss";`                                                                                                                                                                                |
-| `web/src/layouts/BaseLayout.astro` | `<head>` block: `<title>`, `<meta name="description">`, `<meta name="robots" content="noindex">`, viewport meta, import of `../styles/global.css` (or `<style is:global>` block); renders `<slot />` inside `<body>` |
-| `web/src/pages/index.astro`        | Imports `BaseLayout`, sets title "GymLogic — Coming soon", renders one `<h1>` with a Tailwind utility class to prove the pipeline works                                                                              |
+| `web/package.json`                 | Astro 6 + `@tailwindcss/postcss` + `tailwindcss` deps; `engines.node >=22.12.0`; scripts `dev`, `build`, `preview`, `astro` |
+| `web/.gitignore`                   | Astro defaults: `dist`, `.astro`, `node_modules`, `.env*` |
+| `web/tsconfig.json`                | Extends `astro/tsconfigs/strict`. **No reference from root `tsconfig.json`** — root `tsc -b` must continue to ignore `web/`. |
+| `web/vercel.json`                  | `{ "github": { "enabled": false } }` — same shape as root `file:vercel.json` |
+| `web/astro.config.mjs`             | `defineConfig({ output: 'static', site: 'https://docs.gymlogic.me' })` — Tailwind is wired via PostCSS, not Vite plugin (see [withastro/astro#16542](https://github.com/withastro/astro/issues/16542)) |
+| `web/postcss.config.mjs`           | Single plugin entry: `{ plugins: { '@tailwindcss/postcss': {} } }`. Astro picks it up automatically. |
+| `web/src/styles/global.css`        | Single line: `@import "tailwindcss";` |
+| `web/src/layouts/BaseLayout.astro` | `<head>` block: `<title>`, `<meta name="description">`, `<meta name="robots" content="noindex">`, viewport meta; imports `../styles/global.css` from frontmatter; renders `<slot />` inside `<body>` |
+| `web/src/pages/index.astro`        | Imports `BaseLayout`, sets title "GymLogic — Coming soon", renders one `<h1>` with a Tailwind utility class to prove the pipeline works |
 
 
 ### Modified files at root
@@ -76,7 +77,7 @@ npm run build  # SPA build unaffected
 - From repo root, `npm run build` exits 0 with no new warnings or errors compared to `main`
 - From repo root, `npm run lint` exits 0 and does not scan any file under `web/` (verify by adding a deliberately ESLint-violating `.ts` file under `web/`, confirming lint passes, then deleting it before commit — or by running `npx eslint --debug web/ 2>&1 | grep ignored`)
 - Root `tsc -b` exits 0 unchanged (verify by running before and after the PR's changes)
-- `web/package.json` declares `"engines": { "node": ">=20.0.0" }`
+- `web/package.json` declares `"engines": { "node": ">=22.12.0" }` (Astro 6 minimum)
 - `web/vercel.json` contains `{ "github": { "enabled": false } }`
 
 ## References

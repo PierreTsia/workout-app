@@ -26,7 +26,7 @@ Addresses **Epic Brief stories 4, 5, 6**.
 
 | Job | Trigger | `if` condition | Purpose |
 |---|---|---|---|
-| `changes` | `push` + `pull_request` | always runs | `dorny/paths-filter@v3` emits `web: 'true' \| 'false'` for `web/**` and `spa: 'true' \| 'false'` for everything else |
+| `changes` | `push` + `pull_request` | always runs | `dorny/paths-filter@v3` emits boolean outputs `web` (true if `web/**` changed) and `spa` (true if anything outside `web/**` changed) |
 | `preview-deploy-web` | `pull_request` only | `needs.changes.outputs.web == 'true'` | Vercel CLI 3-step flow (`pull → build → deploy --prebuilt`); captures preview URL; posts sticky PR comment via `actions/github-script@v7` |
 | `deploy-web` | `push` to `main` | `needs.changes.outputs.web == 'true' && github.ref == 'refs/heads/main'` | Same flow with `--environment=production` and `--prod` |
 | `web-checks-passed` | always (no `if`) | `if: always()` step-level check | `needs: [changes, preview-deploy-web]`; passes when `preview-deploy-web.result` is `success` OR `skipped` |

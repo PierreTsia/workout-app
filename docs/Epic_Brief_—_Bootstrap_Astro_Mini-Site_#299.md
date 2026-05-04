@@ -55,7 +55,7 @@ Stories 1, 3, 5, 6, 7, 8 are validated qualitatively.
 **In scope:**
 
 1. Create `web/` sub-folder with own `package.json`. **No npm workspaces.**
-2. Install Astro (latest 5.x) + Tailwind v4 via `@tailwindcss/vite` (the v4-recommended path, **not** the legacy `@astrojs/tailwind` integration which targets v3).
+2. Install Astro (latest 6.x) + Tailwind v4 via `@tailwindcss/postcss` (Tailwind's official PostCSS plugin). Note: the `@tailwindcss/vite` plugin currently has a compat issue with Astro 6's rolldown-vite ([withastro/astro#16542](https://github.com/withastro/astro/issues/16542)); switching back is a one-line change once upstream lands the fix.
 3. Astro `output: 'static'`. **No** `@astrojs/vercel` adapter (YAGNI — revisit when SSR is needed).
 4. `web/src/pages/index.astro` — placeholder "Coming soon" page with one Tailwind class as smoke test, real `<title>`, `<meta description>`, and `<meta name="robots" content="noindex">`.
 5. Provision second Vercel project `gymlogic-docs` with **Root Directory = `web/`**, GitHub integration **disabled** (`"github": { "enabled": false }` in `web/vercel.json`), domain `docs.gymlogic.me` linked.
