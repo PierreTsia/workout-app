@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Dumbbell, Loader2, ShieldCheck, XCircle } from "lucide-react"
+import { CheckCircle2, Dumbbell, Loader2, ShieldCheck, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -22,6 +22,15 @@ const SCOPE_LABELS: Record<string, { en: string; fr: string }> = {
   profile: { en: "View your profile info", fr: "Voir vos informations de profil" },
 }
 
+// Some MCP clients (notably Claude Desktop via claude.ai) finish the OAuth
+// dance with a `claude://` deep-link instead of an HTTPS callback. In that
+// case `window.location.assign` triggers the OS protocol handler but does NOT
+// navigate the tab — so we must render a terminal "you can close this tab"
+// state instead of leaving the consent UI mounted with a stale spinner.
+function assignAndStay(url: string) {
+  window.location.assign(url)
+}
+
 export function OAuthConsentPage() {
   const { t, i18n } = useTranslation("common")
   const navigate = useNavigate()
@@ -32,6 +41,7 @@ export function OAuthConsentPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState<"approved" | "denied" | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -57,8 +67,10 @@ export function OAuthConsentPage() {
         return
       }
 
-      if ("redirect_to" in data) {
-        window.location.href = data.redirect_to
+      if ("redirect_url" in data) {
+        assignAndStay(data.redirect_url)
+        setDone("approved")
+        setLoading(false)
         return
       }
 
@@ -73,7 +85,13 @@ export function OAuthConsentPage() {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await supabaseOAuth.approveAuthorization(authorizationId)
+    // `skipBrowserRedirect: true` prevents the SDK from silently calling
+    // `window.location.assign` itself; we own the navigation so we can also
+    // render the success terminal state for deep-link callbacks (issue #292).
+    const { data, error: err } = await supabaseOAuth.approveAuthorization(
+      authorizationId,
+      { skipBrowserRedirect: true },
+    )
 
     if (err) {
       setError(err.message)
@@ -81,19 +99,23 @@ export function OAuthConsentPage() {
       return
     }
 
-    if (data?.redirect_to) {
-      window.location.href = data.redirect_to
+    if (data?.redirect_url) {
+      assignAndStay(data.redirect_url)
+      setDone("approved")
     } else {
       setError(t("oauthConsentError"))
-      setSubmitting(false)
     }
+    setSubmitting(false)
   }, [authorizationId, t])
 
   const handleDeny = useCallback(async () => {
     if (!authorizationId) return
     setSubmitting(true)
 
-    const { data, error: err } = await supabaseOAuth.denyAuthorization(authorizationId)
+    const { data, error: err } = await supabaseOAuth.denyAuthorization(
+      authorizationId,
+      { skipBrowserRedirect: true },
+    )
 
     if (err) {
       setError(err.message)
@@ -101,16 +123,18 @@ export function OAuthConsentPage() {
       return
     }
 
-    if (data?.redirect_to) {
-      window.location.href = data.redirect_to
+    if (data?.redirect_url) {
+      assignAndStay(data.redirect_url)
+      setDone("denied")
     } else {
       setError(t("oauthConsentError"))
-      setSubmitting(false)
     }
+    setSubmitting(false)
   }, [authorizationId, t])
 
   const lang = i18n.language.startsWith("fr") ? "fr" : "en"
-  const clientName = details?.application?.name ?? "Unknown app"
+  const clientName =
+    details?.client?.name ?? details?.application?.name ?? "Unknown app"
   const scopes = details?.scope?.split(" ").filter(Boolean) ?? []
 
   return (
@@ -138,6 +162,18 @@ export function OAuthConsentPage() {
             <CardContent className="flex flex-col items-center gap-4 py-12">
               <XCircle className="h-10 w-10 text-red-400" />
               <p className="text-center text-sm text-zinc-400">{error}</p>
+            </CardContent>
+          ) : done ? (
+            <CardContent className="flex flex-col items-center gap-4 py-12">
+              <CheckCircle2 className="h-10 w-10 text-[#00c9a7]" />
+              <p className="text-center text-base font-medium text-white">
+                {done === "approved"
+                  ? t("oauthConsentSuccessTitle")
+                  : t("oauthConsentDeniedTitle")}
+              </p>
+              <p className="text-center text-sm text-zinc-400">
+                {t("oauthConsentSuccessHint")}
+              </p>
             </CardContent>
           ) : (
             <>

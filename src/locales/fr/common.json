@@ -47,5 +47,8 @@
   "oauthConsentDeny": "Refuser",
   "oauthConsentError": "Demande d'autorisation introuvable ou expirée",
   "oauthConsentMissingId": "Demande d'autorisation manquante",
-  "oauthConsentLoading": "Chargement des détails d'autorisation…"
+  "oauthConsentLoading": "Chargement des détails d'autorisation…",
+  "oauthConsentSuccessTitle": "Autorisation accordée",
+  "oauthConsentDeniedTitle": "Autorisation refusée",
+  "oauthConsentSuccessHint": "Retournez à l'application pour continuer. Vous pouvez fermer cet onglet."
 }

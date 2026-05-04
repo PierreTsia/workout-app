@@ -47,5 +47,8 @@
   "oauthConsentDeny": "Deny",
   "oauthConsentError": "Authorization request not found or expired",
   "oauthConsentMissingId": "Missing authorization request",
-  "oauthConsentLoading": "Loading authorization details…"
+  "oauthConsentLoading": "Loading authorization details…",
+  "oauthConsentSuccessTitle": "Authorization granted",
+  "oauthConsentDeniedTitle": "Authorization denied",
+  "oauthConsentSuccessHint": "Return to the app to continue. You can close this tab."
 }
