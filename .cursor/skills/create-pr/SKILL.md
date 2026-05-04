@@ -171,10 +171,10 @@ EOF
 )"
 ```
 
-Ready PR — **MUST include `--reviewer "copilot"`**:
+Ready PR — create **without** the `--reviewer` flag, then attach Copilot in step 8.1.
 
 ```bash
-gh pr create --title "<title>" --reviewer "copilot" --body "$(cat <<'EOF'
+gh pr create --title "<title>" --body "$(cat <<'EOF'
 ## What
 
 <what section>
@@ -192,11 +192,41 @@ EOF
 )"
 ```
 
-Use `required_permissions: ["all"]`.
+Use `required_permissions: ["full_network"]`.
 
-**Important**: For ready (non-draft) PRs, always add `--reviewer "copilot"` to request a Copilot review. Never skip this flag.
+Capture the PR URL from the output and store the PR number as `PR_NUMBER`.
 
-Display the PR URL to the user.
+### Step 8.1 — Attach Copilot reviewer (ready PRs only)
+
+**Skip this step entirely for draft PRs.**
+
+The Copilot Pull Request Reviewer is a GitHub App, not a user. The REST endpoint behind `gh pr create --reviewer` and `gh pr edit --add-reviewer` can't resolve bot logins (`Could not resolve user with login 'copilot'`). Attach via GraphQL `requestReviews` with the bot's node ID:
+
+```bash
+PR_NODE=$(gh api graphql -f query='query($owner:String!, $repo:String!, $num:Int!) { repository(owner:$owner, name:$repo) { pullRequest(number:$num) { id } } }' -F owner=PierreTsia -F repo=workout-app -F num=$PR_NUMBER --jq '.data.repository.pullRequest.id')
+
+gh api graphql -f query='mutation($prId:ID!, $botIds:[ID!]!) { requestReviews(input:{pullRequestId:$prId, botIds:$botIds, union:true}) { pullRequest { id } } }' -F prId="$PR_NODE" -F botIds='BOT_kgDOCnlnWA'
+```
+
+`BOT_kgDOCnlnWA` is the global node ID of the `Copilot` bot (GitHub App `copilot-pull-request-reviewer`). It's stable across repos. If GitHub ever rotates it and this call returns `Could not resolve to User node with the global id`, look up the new ID from a past PR that already had a Copilot review:
+
+```bash
+gh api repos/PierreTsia/workout-app/issues/<some-past-pr>/timeline \
+  --jq '.[] | select(.event=="review_requested" and .requested_reviewer.login=="Copilot") | .requested_reviewer'
+```
+
+Use `required_permissions: ["full_network"]` for both calls.
+
+**Verification quirk**: `gh pr view --json reviewRequests` does NOT list bot reviewers (returns `[]` even when Copilot is attached). To confirm, use the timeline:
+
+```bash
+gh api repos/PierreTsia/workout-app/issues/$PR_NUMBER/timeline \
+  --jq '.[] | select(.event=="review_requested") | .requested_reviewer.login'
+```
+
+You should see `Copilot` in the output.
+
+### Step 8.2 — Display PR URL to the user.
 
 ---
 

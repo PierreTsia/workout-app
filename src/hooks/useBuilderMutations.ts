@@ -131,6 +131,8 @@ export function useAddExerciseToDay() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      // Refresh the embedded `exerciseCount` on `useWorkoutDays` (DayList badge).
+      qc.invalidateQueries({ queryKey: ["workout-days"] })
     },
   })
 }
@@ -181,6 +183,7 @@ export function useAddExercisesToDay() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      qc.invalidateQueries({ queryKey: ["workout-days"] })
     },
   })
 }
@@ -237,6 +240,7 @@ export function useDeleteExercise() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      qc.invalidateQueries({ queryKey: ["workout-days"] })
     },
   })
 }
