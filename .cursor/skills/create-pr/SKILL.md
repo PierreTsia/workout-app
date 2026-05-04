@@ -192,7 +192,7 @@ EOF
 )"
 ```
 
-Use `required_permissions: ["all"]`.
+Use `required_permissions: ["full_network"]`.
 
 Capture the PR URL from the output and store the PR number as `PR_NUMBER`.
 
