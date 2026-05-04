@@ -127,12 +127,10 @@ jobs:
           node-version: lts/*
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: web
       - id: deploy
         run: |
           URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
-        working-directory: web
       - name: Sticky PR comment with preview URL
         uses: actions/github-script@v7
         with:
@@ -179,9 +177,7 @@ jobs:
           node-version: lts/*
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: web
       - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: web
 
   # Always-runs summary job that succeeds when preview-deploy-web is `success`
   # OR `skipped`. This is the required check added to branch protection (M6),
