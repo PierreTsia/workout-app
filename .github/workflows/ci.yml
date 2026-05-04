@@ -7,6 +7,27 @@ on:
     branches: [main]
 
 jobs:
+  # Detect which subtree (SPA root vs web/ Astro mini-site) changed.
+  # Outputs feed paths-filter gating on web deploy jobs and the SPA deploy job
+  # (so docs-only commits don't redeploy the SPA, and SPA-only commits don't
+  # redeploy docs.gymlogic.me).
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      spa: ${{ steps.filter.outputs.spa }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'web/**'
+            spa:
+              - '**'
+              - '!web/**'
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -90,15 +111,108 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+  # Vercel preview deploy for the web/ Astro mini-site on PRs that touch web/**.
+  # Posts a sticky PR comment with the preview URL via actions/github-script.
+  preview-deploy-web:
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+      - id: deploy
+        run: |
+          URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+      - name: Sticky PR comment with preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const marker = '<!-- vercel-preview-docs -->';
+            const body = `${marker}\n\n📚 **Docs preview deployed:** ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # Vercel production deploy for the web/ Astro mini-site on main pushes that
+  # touch web/**. Decoupled from the SPA `gate` job — docs and SPA share no
+  # operational concerns.
+  deploy-web:
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  # Always-runs summary job that succeeds when preview-deploy-web is `success`
+  # OR `skipped`. This is the required check added to branch protection (M6),
+  # avoiding the stuck-PR trap on SPA-only PRs where preview-deploy-web is
+  # paths-filtered out and would otherwise block merges if listed directly.
+  web-checks-passed:
+    needs: [changes, preview-deploy-web]
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify preview-deploy-web result is success or skipped
+        run: |
+          result="${{ needs.preview-deploy-web.result }}"
+          echo "preview-deploy-web result: $result"
+          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
+
   gate:
     needs: [lint, type-check, unit, deno-unit, e2e]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed"
 
+  # SPA deploy is now gated on non-web/ changes. A docs-only commit pushed to
+  # main no longer triggers a SPA redeploy (which would bust the PWA service
+  # worker cache for ~50-100KB of byte-identical precache assets).
   deploy:
-    needs: gate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [gate, changes]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.spa == 'true'
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
