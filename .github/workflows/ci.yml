@@ -125,16 +125,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - run: npm ci
-        working-directory: web
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: web
-      - run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: web
       - id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          URL=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
         working-directory: web
       - name: Sticky PR comment with preview URL
@@ -181,14 +177,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - run: npm ci
-        working-directory: web
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: web
-      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        working-directory: web
-      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: web
 
   # Always-runs summary job that succeeds when preview-deploy-web is `success`
