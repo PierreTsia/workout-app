@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from "vitest"
+import { vi, describe, it, expect, beforeEach, afterAll } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
@@ -7,6 +7,13 @@ import { OAuthConsentPage } from "./OAuthConsentPage"
 const TEST_AUTH_ID = "auth-xyz-123"
 const TEST_REDIRECT = "https://claude.ai/api/mcp/auth_callback?code=abc"
 const TEST_USER = { id: "uid-1", email: "test@example.com" }
+
+// Capture the real `window.location` ONCE, before any test mutates it, so
+// `afterAll` can put the original `Location` instance back. Otherwise the
+// re-defined plain-object `value` would leak into other suites running in
+// the same worker (and `beforeEach`'s spread would re-capture the already-
+// mutated copy on subsequent runs).
+const ORIGINAL_LOCATION = window.location
 
 const mockGetUser = vi.fn()
 vi.mock("@/lib/supabase", () => ({
@@ -48,9 +55,12 @@ describe("OAuthConsentPage", () => {
     vi.clearAllMocks()
     assignSpy.mockClear()
     // jsdom's `window.location` is read-only; replace `assign` via defineProperty.
+    // Spread the *original* location (not the current one — which may have
+    // already been mutated by the previous test) so `href`, `origin`, etc.
+    // stay consistent across the whole suite.
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, assign: assignSpy },
+      value: { ...ORIGINAL_LOCATION, assign: assignSpy },
     })
     mockGetUser.mockResolvedValue({ data: { user: TEST_USER } })
     mockGetAuthorizationDetails.mockResolvedValue({
@@ -60,6 +70,13 @@ describe("OAuthConsentPage", () => {
         scope: "openid email profile",
       },
       error: null,
+    })
+  })
+
+  afterAll(() => {
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: ORIGINAL_LOCATION,
     })
   })
 

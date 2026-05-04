@@ -83,6 +83,10 @@ export function OAuthConsentPage() {
 
   const handleApprove = useCallback(async () => {
     if (!authorizationId) return
+    // Clear any error from a previous attempt — the render branch is
+    // `loading → error → done → consent`, so a stale `error` would mask
+    // the success state when a retry succeeds.
+    setError(null)
     setSubmitting(true)
 
     // `skipBrowserRedirect: true` prevents the SDK from silently calling
@@ -110,6 +114,7 @@ export function OAuthConsentPage() {
 
   const handleDeny = useCallback(async () => {
     if (!authorizationId) return
+    setError(null)
     setSubmitting(true)
 
     const { data, error: err } = await supabaseOAuth.denyAuthorization(
