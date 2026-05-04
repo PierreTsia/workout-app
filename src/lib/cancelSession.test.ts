@@ -8,6 +8,8 @@ const AUTH_ATOM = Symbol("authAtom")
 const SESSION_ATOM = Symbol("sessionAtom")
 const REST_ATOM = Symbol("restAtom")
 const IS_QUICK_WORKOUT_ATOM = Symbol("isQuickWorkoutAtom")
+const PR_FLAGS_ATOM = Symbol("prFlagsAtom")
+const SESSION_BEST_PERFORMANCE_ATOM = Symbol("sessionBestPerformanceAtom")
 
 const DEFAULT_SESSION_STATE = {
   currentDayId: null,
@@ -83,6 +85,8 @@ vi.mock("@/store/atoms", () => ({
   sessionAtom: SESSION_ATOM,
   restAtom: REST_ATOM,
   isQuickWorkoutAtom: IS_QUICK_WORKOUT_ATOM,
+  prFlagsAtom: PR_FLAGS_ATOM,
+  sessionBestPerformanceAtom: SESSION_BEST_PERFORMANCE_ATOM,
   defaultSessionState: DEFAULT_SESSION_STATE,
 }))
 
@@ -193,6 +197,27 @@ describe("cancelSession", () => {
       resetSessionAtoms()
 
       expect(mockClearPatchStorage).toHaveBeenCalledTimes(1)
+    })
+
+    /**
+     * Regression #291 — `prFlagsAtom` and `sessionBestPerformanceAtom` were
+     * promoted to `atomWithStorage` so PRs survive a mid-session refresh.
+     * That persistence means `resetSessionAtoms` must explicitly wipe them
+     * too, otherwise PR badges from a previous session would leak into the
+     * next bilan after Cancel or "New Session".
+     */
+    it("clears prFlagsAtom and sessionBestPerformanceAtom (regression #291)", () => {
+      resetSessionAtoms()
+
+      const prFlagsSet = mockStore.set.mock.calls.find(
+        ([atom]) => atom === PR_FLAGS_ATOM,
+      )
+      const sessionBestSet = mockStore.set.mock.calls.find(
+        ([atom]) => atom === SESSION_BEST_PERFORMANCE_ATOM,
+      )
+
+      expect(prFlagsSet?.[1]).toEqual({})
+      expect(sessionBestSet?.[1]).toEqual({})
     })
   })
 
