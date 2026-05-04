@@ -1,0 +1,93 @@
+---
+import Logo from './Logo.astro'
+
+const year = new Date().getFullYear()
+
+const groups = [
+  {
+    label: 'Project',
+    links: [
+      {
+        href: 'https://github.com/PierreTsia/workout-app',
+        label: 'GitHub',
+        external: true,
+      },
+      {
+        href: 'https://gymlogic.me',
+        label: 'Launch app',
+        external: true,
+      },
+    ],
+  },
+  {
+    label: 'Docs',
+    links: [
+      { href: '/claude-connector', label: 'Claude connector', external: false },
+      { href: '/blog', label: 'Blog', external: false },
+      { href: '/about', label: 'About', external: false },
+    ],
+  },
+  {
+    label: 'Legal',
+    links: [
+      {
+        href: 'https://gymlogic.me/privacy',
+        label: 'Privacy',
+        external: true,
+      },
+    ],
+  },
+]
+---
+
+<footer class="border-t border-border mt-24 py-12">
+  <div class="mx-auto max-w-3xl px-4">
+    <div
+      class="flex flex-col gap-10 md:flex-row md:items-start md:justify-between"
+    >
+      <div class="flex flex-col gap-3 md:max-w-xs">
+        <Logo size="sm" />
+        <p class="text-sm text-muted leading-relaxed">
+          Workout app + AI coaching, public craft surface.
+        </p>
+        <p class="text-xs text-muted">
+          © {year}
+          <a
+            href="https://github.com/PierreTsia"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-foreground transition-colors duration-150"
+          >
+            @PierreTsia
+          </a>
+        </p>
+      </div>
+
+      <nav aria-label="Footer" class="grid grid-cols-3 gap-8 text-sm">
+        {
+          groups.map(({ label, links }) => (
+            <div class="flex flex-col gap-3">
+              <h2 class="text-xs uppercase tracking-wider text-muted/80">
+                {label}
+              </h2>
+              <ul class="flex flex-col gap-2">
+                {links.map(({ href, label: linkLabel, external }) => (
+                  <li>
+                    <a
+                      href={href}
+                      target={external ? '_blank' : undefined}
+                      rel={external ? 'noopener noreferrer' : undefined}
+                      class="text-muted hover:text-foreground transition-colors duration-150"
+                    >
+                      {linkLabel}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </nav>
+    </div>
+  </div>
+</footer>

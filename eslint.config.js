@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'web/**']),
+  globalIgnores(['dist', 'web/dist', 'web/.astro', 'web/node_modules']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -26,7 +26,10 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'web/src/components/ui/**/*.{ts,tsx}',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
     },

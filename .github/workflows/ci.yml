@@ -111,6 +111,24 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+  # Astro type-check for the web/ mini-site. Runs on web/** PRs and pushes.
+  # `astro check` validates .astro and .tsx files using TypeScript + Astro's
+  # language server. The root `tsc -b` deliberately does NOT cover web/ (per
+  # A1's tech plan), so this is the only type-safety net for web/ source.
+  web-type-check:
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: cd web && npm ci
+      - run: cd web && npx astro check
+
   # Vercel preview deploy for the web/ Astro mini-site on PRs that touch web/**.
   # Posts a sticky PR comment with the preview URL via actions/github-script.
   preview-deploy-web:
@@ -182,20 +200,24 @@ jobs:
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-  # Always-runs summary job that succeeds when preview-deploy-web is `success`
-  # OR `skipped`. This is the required check added to branch protection (M6),
-  # avoiding the stuck-PR trap on SPA-only PRs where preview-deploy-web is
-  # paths-filtered out and would otherwise block merges if listed directly.
+  # Always-runs summary job that succeeds when ALL of preview-deploy-web AND
+  # web-type-check are `success` OR `skipped`. This is the required check added
+  # to branch protection (M6), avoiding the stuck-PR trap on SPA-only PRs where
+  # web/ jobs are paths-filtered out and would otherwise block merges if listed
+  # directly.
   web-checks-passed:
-    needs: [changes, preview-deploy-web]
+    needs: [changes, preview-deploy-web, web-type-check]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Verify preview-deploy-web result is success or skipped
+      - name: Verify web checks
         run: |
-          result="${{ needs.preview-deploy-web.result }}"
-          echo "preview-deploy-web result: $result"
-          if [[ "$result" == "success" || "$result" == "skipped" ]]; then
+          preview="${{ needs.preview-deploy-web.result }}"
+          types="${{ needs.web-type-check.result }}"
+          echo "preview-deploy-web: $preview"
+          echo "web-type-check: $types"
+          if [[ ("$preview" == "success" || "$preview" == "skipped") && \
+                ("$types"   == "success" || "$types"   == "skipped") ]]; then
             exit 0
           else
             exit 1

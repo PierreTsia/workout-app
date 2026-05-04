@@ -1,0 +1,92 @@
+---
+import Logo from './Logo.astro'
+import { buttonVariants } from '@/components/ui/button'
+import { MobileNav } from './MobileNav'
+
+const linkIcons: Record<string, string> = {
+  '/claude-connector':
+    '<path d="M9 2v6"/><path d="M15 2v6"/><path d="M12 17v5"/><path d="M5 8h14"/><path d="M6 11V8h12v3a6 6 0 1 1-12 0Z"/>',
+  '/blog':
+    '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  '/about':
+    '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+}
+
+const links = [
+  { href: '/claude-connector', label: 'Claude connector' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/about', label: 'About' },
+]
+
+const normalize = (p: string) => p.replace(/\/$/, '') || '/'
+const currentPath = normalize(Astro.url.pathname)
+const isActive = (href: string) =>
+  currentPath === href || (href !== '/' && currentPath.startsWith(href))
+---
+
+<header
+  id="site-header"
+  class="sticky top-0 z-40 transition-colors duration-200 data-[scrolled=true]:bg-background/70 data-[scrolled=true]:backdrop-blur-md data-[scrolled=true]:border-b data-[scrolled=true]:border-border/50"
+>
+  <div
+    class="mx-auto flex max-w-3xl items-center justify-between px-4 py-4"
+  >
+    <a
+      href="/"
+      aria-label="GymLogic — home"
+      class="inline-flex items-center rounded-md"
+    >
+      <Logo size="sm" />
+    </a>
+
+    <nav aria-label="Primary" class="hidden md:flex md:gap-6">
+      {
+        links.map(({ href, label }) => (
+          <a
+            href={href}
+            aria-current={isActive(href) ? 'page' : undefined}
+            class="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors duration-150 aria-[current=page]:text-accent aria-[current=page]:hover:text-accent aria-[current=page]:underline aria-[current=page]:underline-offset-8 aria-[current=page]:decoration-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="size-3.5 shrink-0"
+              aria-hidden="true"
+              set:html={linkIcons[href]}
+            />
+            {label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <a
+        href="https://gymlogic.me"
+        target="_blank"
+        rel="noopener noreferrer"
+        class={buttonVariants({ variant: 'default', size: 'sm' })}
+      >
+        Launch app →
+      </a>
+
+      <MobileNav client:load currentPath={currentPath} />
+    </div>
+  </div>
+</header>
+
+<script>
+  const header = document.getElementById('site-header')
+  if (header) {
+    const onScroll = () => {
+      header.dataset.scrolled = window.scrollY > 8 ? 'true' : 'false'
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+  }
+</script>
