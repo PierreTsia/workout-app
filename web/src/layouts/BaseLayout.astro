@@ -1,5 +1,9 @@
 ---
 import '../styles/global.css'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
 
 interface Props {
   title: string
@@ -8,7 +12,7 @@ interface Props {
 
 const {
   title,
-  description = 'GymLogic — public documentation and write-ups. Real content coming soon.',
+  description = 'GymLogic — public documentation and write-ups.',
 } = Astro.props
 ---
 
@@ -22,7 +26,17 @@ const {
     <link rel="icon" href="data:," />
     <title>{title}</title>
   </head>
-  <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <slot />
+  <body class="min-h-screen flex flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-md focus:bg-background focus:text-foreground focus:outline focus:outline-2 focus:outline-accent"
+    >
+      Skip to content
+    </a>
+    <Header />
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>

@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config'
+import react from '@astrojs/react'
 
 // https://astro.build/config
 // Note: Tailwind v4 is wired via PostCSS (postcss.config.mjs) rather than
@@ -8,4 +9,5 @@ import { defineConfig } from 'astro/config'
 export default defineConfig({
   output: 'static',
   site: 'https://docs.gymlogic.me',
+  integrations: [react()],
 })

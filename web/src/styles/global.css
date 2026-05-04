@@ -1,1 +1,55 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* Geist fonts are imported via ESM in BaseLayout.astro frontmatter (not here)
+   so Astro's Vite pipeline can resolve and bundle the WOFF2 url() references.
+   Importing them through Tailwind's PostCSS pipeline (this file) leaves the
+   paths unresolved and fonts 404 at runtime. */
+
+@source './**/*.{astro,tsx,ts}';
+
+@theme {
+  --color-background: #0f0f13;
+  --color-foreground: #f2f2f2;
+  --color-muted: #999999;
+  --color-accent: #00c9a7;
+  --color-accent-foreground: #000000;
+  --color-border: #2d2d37;
+  --color-card: #1a1a22;
+
+  --font-sans: 'Geist Variable', 'Geist Fallback', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', monospace;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
+
+/* Size-adjusted system fallback to minimize FOUT/CLS on Geist swap.
+   Conservative starting metrics; revisit if Lighthouse CLS > 0. */
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial');
+  size-adjust: 105%;
+  ascent-override: 95%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+@layer base {
+  /* Tailwind v4 ships borders as currentColor by default. Mirror the SPA
+     and route bare `border`, `border-b`, etc. to our --color-border token. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border, currentColor);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
