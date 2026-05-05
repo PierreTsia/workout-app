@@ -1,11 +1,12 @@
-import { defineCollection, z } from 'astro:content'
+import { defineCollection } from 'astro:content'
 import { glob } from 'astro/loaders'
+import { z } from 'astro/zod'
 
 const connect = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/connect' }),
   schema: z.object({
     clientName: z.string(),
-    clientUrl: z.string().url(),
+    clientUrl: z.url(),
 
     title: z.string(),
     description: z.string(),
