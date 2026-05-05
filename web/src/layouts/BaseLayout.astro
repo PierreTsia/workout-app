@@ -11,6 +11,9 @@ interface Props {
   indexable?: boolean
   canonical?: string
   ogImage?: string
+  ogType?: 'website' | 'article'
+  ogPublishedTime?: string
+  ogAuthor?: string
   rssUrl?: string
   rssTitle?: string
 }
@@ -18,21 +21,23 @@ interface Props {
 const {
   title,
   description = 'GymLogic — public documentation and write-ups.',
-  indexable = false,
+  indexable = true,
   canonical,
   ogImage,
+  ogType = 'website',
+  ogPublishedTime,
+  ogAuthor,
   rssUrl,
   rssTitle,
 } = Astro.props
 
 const canonicalUrl =
   canonical ?? new URL(Astro.url.pathname, Astro.site).toString()
-const ogImageUrl = ogImage
-  ? new URL(ogImage, Astro.site).toString()
-  : undefined
+const ogImageUrl = new URL(ogImage ?? '/og-default.png', Astro.site).toString()
 const rssAbsoluteUrl = rssUrl
   ? new URL(rssUrl, Astro.site).toString()
   : undefined
+const gscToken = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION
 ---
 
 <!doctype html>
@@ -46,19 +51,36 @@ const rssAbsoluteUrl = rssUrl
     />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+
+    <meta property="og:site_name" content="GymLogic" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
     {
-      ogImageUrl && (
-        <>
-          <meta property="og:title" content={title} />
-          <meta property="og:description" content={description} />
-          <meta property="og:image" content={ogImageUrl} />
-          <meta property="og:url" content={canonicalUrl} />
-          <meta property="og:type" content="website" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:image" content={ogImageUrl} />
-        </>
+      ogType === 'article' && ogPublishedTime && (
+        <meta property="article:published_time" content={ogPublishedTime} />
       )
     }
+    {
+      ogType === 'article' && ogAuthor && (
+        <meta property="article:author" content={ogAuthor} />
+      )
+    }
+
+    {
+      gscToken && (
+        <meta name="google-site-verification" content={gscToken} />
+      )
+    }
+
     {
       rssAbsoluteUrl && (
         <link

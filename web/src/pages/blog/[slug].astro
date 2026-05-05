@@ -34,6 +34,9 @@ const { older, newer } = getPrevNext(entry.id, posts)
   description={excerpt}
   indexable
   ogImage={ogImage}
+  ogType="article"
+  ogPublishedTime={date.toISOString()}
+  ogAuthor="Pierre Tsiakkaros"
   rssUrl="/blog/rss.xml"
   rssTitle="GymLogic Blog — RSS feed"
 >
