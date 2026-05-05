@@ -15,6 +15,7 @@
   --color-accent: #00c9a7;
   --color-accent-foreground: #000000;
   --color-border: #2d2d37;
+  --color-surface: #15151c;
   --color-card: #1a1a22;
 
   --font-sans: 'Geist Variable', 'Geist Fallback', system-ui, sans-serif;
@@ -51,5 +52,10 @@
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-accent;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 }
