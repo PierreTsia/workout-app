@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import { searchExercises } from "./searchExercises.ts"
+import { resolveExercises } from "./resolveExercises.ts"
 import { getExerciseDetails } from "./getExerciseDetails.ts"
 import { getWorkoutHistory } from "./getWorkoutHistory.ts"
 import { getTrainingStats } from "./getTrainingStats.ts"
@@ -25,6 +26,7 @@ export interface ToolDefinition {
 
 const tools: ToolDefinition[] = [
   searchExercises,
+  resolveExercises,
   getExerciseDetails,
   getWorkoutHistory,
   getTrainingStats,

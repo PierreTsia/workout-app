@@ -63,15 +63,29 @@ All nine tools 401 if no auth context. The tool response will be `Authentication
 
 ## Tool reference (intent → tool)
 
-Nine tools total — seven reads, two writes.
+Ten tools total — eight reads, two writes.
+
+### Catalog tools — which one when
+
+The catalog has three tools that look superficially similar. Pick by **what you already know** about the exercise(s) you're after:
+
+| You already know… | Tool | Why |
+|---|---|---|
+| Specific exercise NAMES (e.g. `["bench press", "squat", "leg press"]`) and need UUIDs to build/edit a program | `resolve_exercises` (since v0.5.0) | One call resolves all names to UUIDs and bundles `weight_convention` / `measurement_type` / `default_duration_seconds` — everything `create_program` / `update_program` need. No follow-up `get_exercise_details` required. |
+| A muscle group / equipment / difficulty filter ("find chest exercises with dumbbells", "what's a good biceps exercise") and want to BROWSE | `search_exercises` | Returns a filtered list. Once the user picks, optionally batch the chosen names through `resolve_exercises` if you need UUIDs in bulk. |
+| A specific name AND the user wants instructions / video / common mistakes ("how do I do a Romanian deadlift") | `resolve_exercises` (1-element batch) → `get_exercise_details(uuid)` | `resolve_exercises` gives you the UUID; `get_exercise_details` returns the full instructions / video / image blob. |
+| A UUID already (from any prior tool call) and need full instructions / media | `get_exercise_details` | Direct lookup by UUID. Do NOT call this just to get `weight_convention` — `resolve_exercises` already includes it. |
+
+### Full intent → tool table
 
 | User intent | Tool | Notes |
 |---|---|---|
 | "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). Each session header surfaces `*(program: <name>, id: <uuid>)*` for sessions that belong to a cycle — pass that `id` straight to `get_program_details` to chain into the program structure. Sessions without a cycle (legacy data) omit the annotation. |
 | "How am I doing / volume / PRs / muscle group balance / push-pull split" | `get_training_stats` | Defaults to last 30 days. Filter by `muscle_group` (FR name, e.g. `Pectoraux`, `Dos`). |
 | "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. The header surfaces `*(id: <uuid>)*` of the active program — pass that `id` straight to `get_program_details` if the user wants the full template instead of the next few scheduled days. |
-| "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use **before** `get_exercise_details` to resolve a UUID. Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
-| "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). **Always run `search_exercises` first** to resolve it; if multiple matches come back, ask the user to pick. |
+| "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use for exploration / browsing by filter. For "I already know the name(s) I want to put in a program" prefer `resolve_exercises` (one round-trip, returns everything `create_program` needs). Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
+| "I have a list of exercise names — give me their catalog ids" / "build a program from this list" | `resolve_exercises` | Batch (up to 30 names per call). Returns id, equipment, `weight_convention`, `measurement_type`, `default_duration_seconds` per query — enough to call `create_program` directly without `get_exercise_details`. Each query gets a status: `matched` / `ambiguous` / `no_match` / `empty_query`. On `ambiguous`, pick from context or ask the user; on `no_match`, fall back to `search_exercises` with broader filters. |
+| "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). For exploring an exercise the user is curious about (instructions, video, common mistakes). **Not** needed before `create_program` — `resolve_exercises` already returns what `create_program` needs. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
 | "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
 | "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
@@ -199,22 +213,23 @@ Read the per-muscle-group volume. Group `Pectoraux + Épaules + Triceps` as push
 User: *"How do I do a Romanian deadlift?"*
 
 ```jsonc
-// 1. Find it
-search_exercises({ query: "romanian deadlift" })
-// → returns { id: "<uuid>", ... } if single match, list otherwise
+// 1. Resolve the name to a UUID + metadata (1-element batch is fine)
+resolve_exercises({ queries: ["romanian deadlift"] })
+// → { results: [{ status: "matched", matches: [{ id: "<uuid>", weight_convention: "total", ... }] }] }
 
-// 2. Pull full details (only on single match — otherwise ask user to pick)
+// 2. Pull full instructions / video / image for that UUID
 get_exercise_details({ exercise_id: "<uuid>" })
 ```
+
+For ambiguous names (`status: "ambiguous"`), present the alternates from `matches` to the user before calling `get_exercise_details`. For `status: "no_match"`, fall back to `search_exercises` with broader filters or ask the user to rephrase.
 
 ### Pattern 4 — Design + persist a new program
 
 User: *"Propose-moi un 4 jours full-body et active-le."*
 
 1. Read context: `get_training_stats`, optionally `get_upcoming_workouts` to see the current program.
-2. Search exercises to resolve UUIDs (one `search_exercises` call per movement, narrow to single matches).
-3. **For weighted exercises, pull `weight_convention` once** with `get_exercise_details` so the prescription weight you pass means the right thing per side vs total.
-4. Dry-run preview using either bare UUIDs (server defaults) or full prescription objects (frozen progression — see "Common write patterns" below):
+2. Resolve every exercise name to a UUID in **one call** with `resolve_exercises({ queries: [...] })` (since v0.5.0). The response includes `weight_convention`, `measurement_type`, and `default_duration_seconds` per exercise — no follow-up `get_exercise_details` calls needed before `create_program`. For any entry with `status: "ambiguous"`, present alternates to the user; for `status: "no_match"`, retry with a broader name or ask the user.
+3. Dry-run preview using either bare UUIDs (server defaults) or full prescription objects (frozen progression — see "Common write patterns" below):
 
 ```jsonc
 create_program({
@@ -237,8 +252,8 @@ create_program({
 })
 ```
 
-5. Read the preview's `days[].rendered` lines back to the user (e.g. *"Squat — 4 × 8 × 100 kg total — 180s rest"*) and get explicit consent.
-6. Apply: same call with `dry_run: false`. Confirm: *"Program created and set active."*
+4. Read the preview's `days[].rendered` lines back to the user (e.g. *"Squat — 4 × 8 × 100 kg total — 180s rest"*) and get explicit consent.
+5. Apply: same call with `dry_run: false`. Confirm: *"Program created and set active."*
 
 **Server defaults (bare UUID form)**: 3 sets × 10 reps × 90s rest, weight 0 (or duration mode for time-based exercises). The user can fine-tune in-app afterwards.
 
@@ -372,10 +387,13 @@ update_program({
 list_programs({})
 get_program_details({ program_id: "<pid>" })   // ← read every day id + every exercise_id
 
-// Step 2 — search the new exercises (one search per movement)
-search_exercises({ query: "running" })         // → <uuid-run>
-search_exercises({ query: "jump rope" })       // → <uuid-jump>
-search_exercises({ query: "plank" })           // → <uuid-plank>
+// Step 2 — resolve all the new exercise names in ONE call
+resolve_exercises({ queries: ["running", "jump rope", "plank"] })
+// → { results: [
+//     { query: "running",   status: "matched", matches: [{ id: "<uuid-run>",   measurement_type: "duration", default_duration_seconds: 30, ... }] },
+//     { query: "jump rope", status: "matched", matches: [{ id: "<uuid-jump>",  measurement_type: "duration", default_duration_seconds: 60, ... }] },
+//     { query: "plank",     status: "matched", matches: [{ id: "<uuid-plank>", measurement_type: "duration", default_duration_seconds: 45, ... }] },
+//   ] }
 
 // Step 3 — preview the patch
 update_program({
@@ -413,7 +431,7 @@ The agent must **include every current day** in `days[]` — the array is declar
 ```jsonc
 list_programs({})
 get_program_details({ program_id: "<pid>" })   // read every day id + current prescriptions
-search_exercises({ query: "conventional deadlift" })  // → <uuid-conv-dl>
+resolve_exercises({ queries: ["conventional deadlift"] })  // → <uuid-conv-dl> + weight_convention
 
 update_program({
   program_id: "<pid>",
@@ -475,8 +493,11 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 | `No workout sessions found for this period.` | Tell the user; don't fabricate data. Suggest they log a session in the app first. |
 | `No active program found.` (from `get_upcoming_workouts`) | Tell the user, offer to design one with `create_program`. |
 | `No active training cycle for "X".` | A program exists but no cycle is started. Tell the user to start a cycle in-app. |
-| `search_exercises` returns multiple matches | **Do not pick blindly.** List them and ask the user. Only call `get_exercise_details` once a single match is selected. |
-| `Invalid UUID at days["<label>"].exercises[<i>]` | You passed a non-UUID string (e.g. an exercise name). Resolve via `search_exercises` first. |
+| `search_exercises` returns multiple matches | When BROWSING, list them and ask the user. **For program-building flows, prefer `resolve_exercises` — it returns alternates with `status: "ambiguous"` so you can disambiguate without a second call.** |
+| `resolve_exercises` returns `status: "ambiguous"` | Top-2 scores are within the threshold (≈0.10). Look at `matches[]` for alternates, pick from context if obvious (equipment / muscle group hint), otherwise present the list to the user. |
+| `resolve_exercises` returns `status: "no_match"` | Nothing similar enough in the catalog. Try `search_exercises` with broader filters (muscle group + equipment), or ask the user to rephrase / pick from a browse list. |
+| `resolve_exercises` returns `status: "empty_query"` | One of the input strings was blank/whitespace. Filter empty strings out of `queries` before calling. |
+| `Invalid UUID at days["<label>"].exercises[<i>]` | You passed a non-UUID string (e.g. an exercise name). Resolve via `resolve_exercises` (preferred) or `search_exercises` first. |
 | `Unknown or inaccessible exercise_id(s):` | The UUID is valid format but the exercise doesn't exist or isn't visible to this user. Re-search. |
 | `create_program v0.3.0 introduced a breaking change...` | You used the v0.2.x `exercise_ids` field. Switch to `exercises` (bare UUIDs or full objects — see "Common write patterns"). |
 | `reps exercise "X" cannot have target_duration_seconds` | You set `target_duration_seconds` on a reps-mode exercise. Drop it (use reps + weight_kg instead). Duration exercises (planks, holds) get T75 support. |
@@ -489,7 +510,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 ## Parameter format conventions
 
 - **Dates**: ISO 8601, date-only (`2026-04-27`) for `from_date` / `to_date`. Server appends `T00:00:00Z` / `T23:59:59Z` automatically.
-- **Exercise IDs**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`). Always obtained from `search_exercises`. Never invent or transcribe from memory.
+- **Exercise IDs**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`). Always obtained from `resolve_exercises` (preferred for batch program-building) or `search_exercises`. Never invent or transcribe from memory.
 - **Muscle groups (FR canonical)**: `Abdos`, `Biceps`, `Deltoïdes post.`, `Dos`, `Épaules`, `Fessiers`, `Ischios`, `Ischios / Bas du dos`, `Lombaires`, `Mollets`, `Pectoraux`, `Quadriceps`, `Trapèzes`, `Triceps`.
 - **Equipment values**: `barbell`, `dumbbell`, `cable`, `machine`, `ez_bar`, `bodyweight`.
 - **Body region aliases** (for `search_exercises` only): `upper_body`, `lower_body`, `push`, `pull`, `arms`, `legs`, `core`.

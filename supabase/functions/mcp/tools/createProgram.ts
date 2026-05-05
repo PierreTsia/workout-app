@@ -107,7 +107,7 @@ Reps formats:
   - "8"     → linear progression (rep_range frozen at 8/8). Weight bumps when target hit.
   - "8-12"  → double progression (rep_range frozen at 8/12). Reps grow first, then weight bumps and reps reset.
 
-Weight conventions: per_hand for dumbbells/kettlebells, total for barbells/machines/cables. Call \`get_exercise_details\` first to confirm the convention (\`weight_convention\` field). Bodyweight exercises must use weight_kg=0; weighted bodyweight (weighted dips/pull-ups) is tracked in #281.
+Weight conventions: per_hand for dumbbells/kettlebells, total for barbells/machines/cables. Use \`resolve_exercises\` first to get UUIDs + the \`weight_convention\` field for each exercise in one call — no need to follow up with \`get_exercise_details\` per exercise. Bodyweight exercises must use weight_kg=0; weighted bodyweight (weighted dips/pull-ups) is tracked in #281.
 
 Bounds: sets [1,10], reps [1,50] for reps exercises (use "0" ONLY for duration exercises, paired with target_duration_seconds), weight_kg [0,500], rest_seconds [0,600], target_duration_seconds [5,600].
 
@@ -151,7 +151,7 @@ export const createProgram: ToolDefinition = {
                     properties: {
                       exercise_id: {
                         type: "string",
-                        description: "UUID from search_exercises / get_exercise_details.",
+                        description: "UUID from `resolve_exercises` (preferred for batch program-building) or `search_exercises`.",
                       },
                       sets: {
                         type: "integer",
@@ -168,7 +168,7 @@ export const createProgram: ToolDefinition = {
                         type: "number",
                         minimum: 0,
                         maximum: 500,
-                        description: "Working weight per set. Per hand for dumbbells/kettlebells, total for barbells/machines (see get_exercise_details).",
+                        description: "Working weight per set. Per hand for dumbbells/kettlebells, total for barbells/machines (see `weight_convention` returned by `resolve_exercises`).",
                       },
                       rest_seconds: {
                         type: "integer",

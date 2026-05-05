@@ -73,15 +73,18 @@ export const getExerciseDetails: ToolDefinition = {
   description:
     "Get full details for ONE exercise by its UUID. Returns instructions (setup, movement, " +
     "breathing, common mistakes), muscle targets, equipment, difficulty, and media links. " +
-    "You MUST call search_exercises first to obtain the exercise_id. " +
-    "search_exercises only returns the ID when there is a single match — if multiple results " +
-    "come back, present the list to the user and let them pick before searching again.",
+    "Use this when the user wants to LEARN about a specific exercise (form cues, video, " +
+    "common mistakes) — NOT when building a program. " +
+    "**To obtain the UUID, prefer `resolve_exercises` (one batch call by name, also bundles " +
+    "`weight_convention` / `measurement_type` / `default_duration_seconds` if you go on to " +
+    "`create_program` / `update_program`). Use `search_exercises` only when browsing the " +
+    "catalog by filter without a specific name in mind.**",
   inputSchema: {
     type: "object",
     properties: {
       exercise_id: {
         type: "string",
-        description: "UUID of the exercise. Obtain this from search_exercises (only provided for single-match results).",
+        description: "UUID of the exercise. Obtain it from `resolve_exercises` (preferred — by name) or `search_exercises` (when browsing by filter).",
       },
     },
     required: ["exercise_id"],
@@ -99,14 +102,14 @@ export const getExerciseDetails: ToolDefinition = {
 
     if (!exerciseId) {
       return {
-        content: [{ type: "text", text: "exercise_id is required. Use search_exercises first to find the UUID." }],
+        content: [{ type: "text", text: "exercise_id is required. Use `resolve_exercises` (by name, preferred) or `search_exercises` (browse by filter) to find the UUID." }],
         isError: true,
       }
     }
 
     if (!UUID_RE.test(exerciseId)) {
       return {
-        content: [{ type: "text", text: `Invalid exercise_id format: "${exerciseId}". Expected a UUID — use search_exercises to find it.` }],
+        content: [{ type: "text", text: `Invalid exercise_id format: "${exerciseId}". Expected a UUID — use \`resolve_exercises\` (by name) or \`search_exercises\` (browse) to find it.` }],
         isError: true,
       }
     }
@@ -119,7 +122,7 @@ export const getExerciseDetails: ToolDefinition = {
 
     if (error || !data) {
       return {
-        content: [{ type: "text", text: `Exercise not found (id: ${exerciseId}). Try search_exercises to find the right one.` }],
+        content: [{ type: "text", text: `Exercise not found (id: ${exerciseId}). Try \`resolve_exercises\` with the name, or \`search_exercises\` to browse by filter.` }],
         isError: true,
       }
     }
