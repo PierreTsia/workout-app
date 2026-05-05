@@ -1,27 +1,309 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+
+import fileTextIcon from 'lucide-static/icons/file-text.svg?raw'
+import compassIcon from 'lucide-static/icons/compass.svg?raw'
+import listChecksIcon from 'lucide-static/icons/list-checks.svg?raw'
+import flaskConicalIcon from 'lucide-static/icons/flask-conical.svg?raw'
+import gitPullRequestIcon from 'lucide-static/icons/git-pull-request.svg?raw'
+
+const GH_REPO = 'https://github.com/PierreTsia/workout-app'
+const GH_BLOB = `${GH_REPO}/blob/main`
+const GH_TREE = `${GH_REPO}/tree/main`
+const GH_MERGED_PRS = `${GH_REPO}/pulls?q=is%3Apr+is%3Amerged`
+
+const SKILLS = {
+  grillMe: `${GH_BLOB}/.cursor/skills/grill-me/SKILL.md`,
+  epicBrief: `${GH_BLOB}/.cursor/skills/epic-brief/SKILL.md`,
+  techPlan: `${GH_BLOB}/.cursor/skills/tech-plan/SKILL.md`,
+  splitTickets: `${GH_BLOB}/.cursor/skills/split-tickets/SKILL.md`,
+  tdd: `${GH_BLOB}/.cursor/skills/tdd/SKILL.md`,
+  createPr: `${GH_BLOB}/.cursor/skills/create-pr/SKILL.md`,
+}
+
+const ARTEFACTS = {
+  brief: `${GH_BLOB}/docs/done/Epic_Brief_%E2%80%94_MCP-First_Architecture_%23231.md`,
+  plan: `${GH_BLOB}/docs/done/Tech_Plan_%E2%80%94_MCP-First_Architecture_%23231.md`,
+  ticket: `${GH_BLOB}/docs/done/T61_%E2%80%94_MCP_Server_Scaffold_%2B_First_Tool.md`,
+  test: `${GH_BLOB}/src/lib/progression.test.ts`,
+  mergedPrs: GH_MERGED_PRS,
+}
+
+type WorkflowStep = {
+  title: string
+  summary: string
+  iconSvg: string
+  skillUrl: string
+  artefactLabel: string
+  artefactUrl: string
+}
+
+const steps: WorkflowStep[] = [
+  {
+    title: 'Brief the epic',
+    summary:
+      'Walk the design tree with grill-me, then write up scope, out-of-scope, user stories, and acceptance criteria. The brief is what survives the grill.',
+    iconSvg: fileTextIcon,
+    skillUrl: SKILLS.epicBrief,
+    artefactLabel: 'Epic Brief — MCP-First Architecture',
+    artefactUrl: ARTEFACTS.brief,
+  },
+  {
+    title: 'Plan the tech',
+    summary:
+      'Translate the brief into architecture: key decisions, data model, component hierarchy, failure modes. Stress-test against the codebase before any code lands.',
+    iconSvg: compassIcon,
+    skillUrl: SKILLS.techPlan,
+    artefactLabel: 'Tech Plan — MCP-First Architecture',
+    artefactUrl: ARTEFACTS.plan,
+  },
+  {
+    title: 'Split into tickets',
+    summary:
+      'Cut the plan into thin vertical slices — each one cuts through every layer end-to-end and is demoable alone. Tight feedback loops let the agent surface integration issues early and self-correct.',
+    iconSvg: listChecksIcon,
+    skillUrl: SKILLS.splitTickets,
+    artefactLabel: 'T61 — MCP Server Scaffold + First Tool',
+    artefactUrl: ARTEFACTS.ticket,
+  },
+  {
+    title: 'TDD red-green',
+    summary:
+      'Failing test first. Pass it with the minimum code. Refactor without changing behavior. The triple progression engine is one example — pure function, ~1,500 tests across the repo.',
+    iconSvg: flaskConicalIcon,
+    skillUrl: SKILLS.tdd,
+    artefactLabel: 'progression.test.ts',
+    artefactUrl: ARTEFACTS.test,
+  },
+  {
+    title: 'Push for review',
+    summary:
+      'PR with What/Why/How, pre-flight checks (lint, types, tests), reviewer assignment. Address tagged comments. Merge only when CI is green.',
+    iconSvg: gitPullRequestIcon,
+    skillUrl: SKILLS.createPr,
+    artefactLabel: 'All merged PRs',
+    artefactUrl: ARTEFACTS.mergedPrs,
+  },
+]
 ---
 
 <BaseLayout
-  title="About — GymLogic"
-  description="Who I am, how I work, and why GymLogic exists."
-  indexable={false}
+  title="About · How I work — GymLogic"
+  description="The paper trail for how GymLogic gets built — agentic engineering, multi-agent critique, vertical slicing."
 >
-  <section class="mx-auto max-w-3xl px-4 py-24">
+  <section
+    aria-labelledby="lede"
+    class="mx-auto max-w-3xl px-4 pt-16 md:pt-20"
+  >
     <h1
-      class="text-3xl md:text-4xl font-semibold tracking-tight text-foreground"
+      id="lede"
+      class="text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
     >
-      About — coming soon
+      How I work
     </h1>
     <p class="mt-6 text-lg text-muted leading-relaxed">
-      Who I am, how I work, and why GymLogic exists. Landing here as part of
-      A7.
+      GymLogic is an open-source, MCP-native workout app. This page is the
+      paper trail for how it gets built.
     </p>
-    <p class="mt-4 text-sm text-muted">
-      Tracked in <a
-        class="underline hover:text-foreground"
-        href="https://github.com/PierreTsia/workout-app/issues/305">#305</a
+    <blockquote
+      class="mt-8 border-l-2 border-accent pl-4 italic text-foreground text-lg leading-relaxed"
+    >
+      "The devs who succeed aren't the ones who delegate everything or
+      nothing. They're the ones who fall back on engineering fundamentals."
+      <footer class="mt-2 text-sm not-italic text-muted">
+        — Matt Pocock,
+        <a
+          class="underline hover:text-foreground transition-colors duration-150"
+          href="https://www.youtube.com/watch?v=v4F1gFy-hqg"
+          target="_blank"
+          rel="noopener noreferrer">talk</a
+        >
+      </footer>
+    </blockquote>
+    <p class="mt-6 text-lg text-muted leading-relaxed">
+      Agent-driven <span class="text-foreground">≠</span> vibe-coded. The
+      fundamentals still apply — ubiquitous language, vertical slicing,
+      TDD, real code review — and when they do, agents ship fast without
+      trading away quality.
+    </p>
+    <p class="mt-4 text-lg text-muted leading-relaxed">
+      I'm not selling expertise. I experiment every day. What follows is a
+      snapshot of one workflow as it stands today.
+    </p>
+  </section>
+
+  <section
+    aria-labelledby="grill"
+    class="mx-auto max-w-3xl px-4 mt-16 md:mt-20"
+  >
+    <p class="text-sm uppercase tracking-wider text-accent">Self-critique</p>
+    <h2
+      id="grill"
+      class="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-foreground"
+    >
+      The grill
+    </h2>
+    <p class="mt-4 text-base text-muted leading-relaxed">
+      Before any code, before even a brief, every feature gets grilled. A
+      Cursor agent runs a <code
+        class="text-foreground font-mono text-sm">grill-me</code
+      > skill — directly inspired by
+      <a
+        class="underline hover:text-foreground transition-colors duration-150"
+        href="https://www.aihero.dev/my-grill-me-skill-has-gone-viral"
+        target="_blank"
+        rel="noopener noreferrer">Matt Pocock's grill-me</a
+      > — that asks one question at a time, recommends an answer with
+      rationale, and walks the design tree until every branch is resolved.
+      No multi-question dumps. No "what do you think?" with no opinion
+      attached. By the time it's done, half the bad ideas are already cut
+      and the survivors carry justifications.
+    </p>
+    <p class="mt-6 text-sm text-muted">
+      <a
+        class="underline hover:text-foreground transition-colors duration-150"
+        href={SKILLS.grillMe}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Read the grill-me skill →
+      </a>
+    </p>
+  </section>
+
+  <section
+    aria-labelledby="critic"
+    class="mx-auto max-w-3xl px-4 mt-16 md:mt-20"
+  >
+    <p class="text-sm uppercase tracking-wider text-accent">
+      Multi-agent critique
+    </p>
+    <h2
+      id="critic"
+      class="mt-3 text-2xl md:text-3xl font-semibold tracking-tight text-foreground"
+    >
+      The critic in the room
+    </h2>
+    <p class="mt-4 text-base text-muted leading-relaxed">
+      I'm at the gym between sets. I notice a bug. I drop a 30-second voice
+      memo on Telegram. Iris — a personal AI agent built on OpenClaw —
+      listens, reads the repo, and files a fully-documented GitHub issue.
+      Trivial fix? She assigns it to a Copilot agent. Bigger idea? I pick
+      it up in Cursor next session and grill-me it from scratch.
+    </p>
+    <p class="mt-4 text-base text-muted leading-relaxed">
+      Iris also reviews every brief I write in Cursor and pushes back on
+      the gaps. Two agents critiquing each other's output catches things
+      one author — agent or human — never sees alone. Same loop you'd ship
+      for a team of humans, applied to a team of agents.
+    </p>
+    <p class="mt-6 text-sm text-muted">
+      Built on
+      <a
+        class="underline hover:text-foreground transition-colors duration-150"
+        href="https://openclaw.ai/"
+        target="_blank"
+        rel="noopener noreferrer">OpenClaw</a
+      > by
+      <a
+        class="underline hover:text-foreground transition-colors duration-150"
+        href="https://github.com/steipete"
+        target="_blank"
+        rel="noopener noreferrer">@steipete</a
       >.
     </p>
+  </section>
+
+  <section
+    aria-labelledby="workflow"
+    class="mx-auto max-w-3xl px-4 mt-16 md:mt-20"
+  >
+    <h2
+      id="workflow"
+      class="text-2xl md:text-3xl font-semibold tracking-tight text-foreground"
+    >
+      The workflow
+    </h2>
+    <p class="mt-3 text-base text-muted leading-relaxed">
+      Once the grill produces a brief, every feature runs through the same
+      five steps. Each step has a Cursor skill that automates the process,
+      and an artefact in the repo that proves it shipped.
+    </p>
+    <ol
+      class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0"
+    >
+      {
+        steps.map((step) => (
+          <li class="block rounded-lg border border-border bg-card p-6">
+            <span
+              class="text-accent inline-block [&>svg]:size-8"
+              aria-hidden="true"
+              set:html={step.iconSvg}
+            />
+            <h3 class="mt-4 font-semibold text-foreground">{step.title}</h3>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              {step.summary}
+            </p>
+            <p class="mt-4 text-sm">
+              <a
+                class="underline hover:text-foreground transition-colors duration-150"
+                href={step.skillUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Skill →
+              </a>
+            </p>
+            <p class="mt-1 text-sm">
+              <a
+                class="underline hover:text-foreground transition-colors duration-150"
+                href={step.artefactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {step.artefactLabel} →
+              </a>
+            </p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section
+    aria-labelledby="source"
+    class="mx-auto max-w-3xl px-4 mt-16 md:mt-20 mb-12"
+  >
+    <h2
+      id="source"
+      class="text-2xl md:text-3xl font-semibold tracking-tight text-foreground"
+    >
+      Read the source
+    </h2>
+    <p class="mt-3 text-base text-muted leading-relaxed">
+      Everything on this page lives in the repo.
+    </p>
+    <ul class="mt-6 space-y-3 text-base">
+      <li>
+        <a
+          class="text-foreground underline underline-offset-4 decoration-muted hover:decoration-accent transition-colors duration-150"
+          href={`${GH_TREE}/docs`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          docs/ — full Epic Briefs and Tech Plans →
+        </a>
+      </li>
+      <li>
+        <a
+          class="text-foreground underline underline-offset-4 decoration-muted hover:decoration-accent transition-colors duration-150"
+          href={`${GH_TREE}/.cursor/skills`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          .cursor/skills/ — every skill referenced above →
+        </a>
+      </li>
+    </ul>
   </section>
 </BaseLayout>
