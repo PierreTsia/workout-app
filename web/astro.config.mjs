@@ -1,6 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config'
 import react from '@astrojs/react'
+import mdx from '@astrojs/mdx'
+import sitemap from '@astrojs/sitemap'
 
 // https://astro.build/config
 // Note: Tailwind v4 is wired via PostCSS (postcss.config.mjs) rather than
@@ -9,7 +11,25 @@ import react from '@astrojs/react'
 export default defineConfig({
   output: 'static',
   site: 'https://docs.gymlogic.me',
-  integrations: [react()],
+  integrations: [
+    react(),
+    mdx(),
+    sitemap({
+      filter: (page) =>
+        /^https:\/\/docs\.gymlogic\.me\/connect\/[a-z-]+\/?$/.test(page),
+    }),
+  ],
+  markdown: {
+    shikiConfig: {
+      theme: 'material-theme-darker',
+    },
+  },
+  redirects: {
+    '/claude-connector': {
+      destination: '/connect/claude',
+      status: 308,
+    },
+  },
   vite: {
     // Astro 6 + React 19 dev mode otherwise throws
     // `jsxDEV is not a function` on hydration of any React island.

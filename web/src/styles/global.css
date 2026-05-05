@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@plugin "@tailwindcss/typography";
+
 /* Geist fonts are imported via ESM in BaseLayout.astro frontmatter (not here)
    so Astro's Vite pipeline can resolve and bundle the WOFF2 url() references.
    Importing them through Tailwind's PostCSS pipeline (this file) leaves the
@@ -58,4 +60,51 @@
       scroll-behavior: smooth;
     }
   }
+}
+
+@layer base {
+  .prose-invert {
+    --tw-prose-body: var(--color-foreground);
+    --tw-prose-headings: var(--color-foreground);
+    --tw-prose-lead: var(--color-foreground);
+    --tw-prose-links: var(--color-accent);
+    --tw-prose-bold: var(--color-foreground);
+    --tw-prose-counters: var(--color-muted);
+    --tw-prose-bullets: var(--color-muted);
+    --tw-prose-hr: var(--color-border);
+    --tw-prose-quotes: var(--color-foreground);
+    --tw-prose-quote-borders: var(--color-accent);
+    --tw-prose-captions: var(--color-muted);
+    --tw-prose-code: var(--color-accent);
+    --tw-prose-pre-code: var(--color-foreground);
+    --tw-prose-pre-bg: var(--color-card);
+    --tw-prose-th-borders: var(--color-border);
+    --tw-prose-td-borders: var(--color-border);
+  }
+}
+
+/* Native <details> styling — hide default marker, render a custom chevron
+   that rotates on [open]. Wrapped in motion-safe to honor reduced-motion. */
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details > summary::marker {
+  display: none;
+}
+summary::after {
+  content: '▸';
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  summary::after {
+    transition: transform 150ms;
+  }
+}
+details[open] > summary::after {
+  transform: rotate(90deg);
 }

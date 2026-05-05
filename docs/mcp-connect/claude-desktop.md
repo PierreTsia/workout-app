@@ -15,9 +15,9 @@ Use your training data and exercise catalog in Claude conversations via GymLogic
 2. Click the **MCP plug icon** (bottom-left, below the conversation list) or go to **Settings** > **Connectors**
 3. Click **Add custom connector**
 4. Fill in:
-   - **Name**: `Gymlogic`
-   - **URL**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
-   - Leave **OAuth Client ID** and **OAuth Client Secret** empty (GymLogic uses dynamic registration)
+  - **Name**: `Gymlogic`
+  - **URL**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
+  - Leave **OAuth Client ID** and **OAuth Client Secret** empty (GymLogic uses dynamic registration)
 5. Click **Add**
 
 ### 2. Authenticate via OAuth
@@ -33,20 +33,33 @@ After adding the connector, Claude Desktop will trigger the OAuth flow:
 
 Look for the **hammer icon** in the chat input area — this confirms tools are loaded. Ask something and Claude will use the GymLogic tools when relevant.
 
+## Load the GymLogic Skill (recommended)
+
+The connector exposes the tools; the **Skill** ([`skills/gymlogic-mcp/SKILL.md`](../../skills/gymlogic-mcp/SKILL.md)) teaches Claude *how* to use them well — when to invoke each, the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing.
+
+1. Download `SKILL.md` from GitHub: [skills/gymlogic-mcp/SKILL.md](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md) — use GitHub's "Download raw file" button (top-right of the file viewer).
+2. In Claude Desktop, open **Customize → Skills**, click the **+** icon next to "Skills", and upload the file.
+3. Make sure the skill toggle is **on** (top-right of the skill detail panel).
+
+The skill triggers automatically on training-related prompts (FR or EN); no need to invoke it explicitly. Without it Claude can still call the tools, but expect rougher edges — especially on writes and on coaching prompts that cross multiple tools.
+
 ## Available tools
 
-| Tool | What it does |
-|---|---|
-| `search_exercises` | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty |
-| `get_exercise_details` | Full exercise info: instructions, muscles, equipment, media |
-| `get_workout_history` | Your past sessions with sets, weights, and PRs |
-| `get_training_stats` | Volume by muscle group, personal records, session frequency |
-| `get_upcoming_workouts` | Your programmed training days and exercises |
-| `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
-| `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs. Use after `list_programs` to drill into a specific one |
-| `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered **`exercise_ids`** (UUIDs). **`dry_run` defaults to true** (preview); set **`dry_run: false`** to write. |
 
-**Eight tools** — seven reads, one write.
+| Tool                    | What it does                                                                                                                                                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search_exercises`      | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty                                                                                                           |
+| `get_exercise_details`  | Full exercise info: instructions, muscles, equipment, media                                                                                                                                   |
+| `get_workout_history`   | Your past sessions with sets, weights, and PRs                                                                                                                                                |
+| `get_training_stats`    | Volume by muscle group, personal records, session frequency                                                                                                                                   |
+| `get_upcoming_workouts` | Your programmed training days and exercises                                                                                                                                                   |
+| `list_programs`         | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag                                                              |
+| `get_program_details`   | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs. Use after `list_programs` to drill into a specific one         |
+| `create_program`        | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `exercises` (bare UUIDs for catalog defaults, or full objects with `sets` / `reps` / `weight_kg` / `rest_seconds`). `dry_run` defaults to `true` (preview); set `dry_run: false` to write |
+| `update_program`        | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. **Preserves all logged training history**. `dry_run` defaults to `true`; set `dry_run: false` to apply. Removing days additionally requires `confirm: true` |
+
+
+**Nine tools** — seven reads, two writes.
 
 ## Example conversation
 
@@ -86,7 +99,7 @@ Revoke a PAT at any time from `/account/api-tokens`; revocation is immediate and
 
 ## Alternative: config file with `mcp-remote`
 
-If the native connector UI doesn't work for your version, you can use the `mcp-remote` adapter instead. Requires Node.js 18+.
+If the native connector UI doesn't work for your version, you can use the `mcp-remote` adapter instead. Requires Node.js 18+ — see the gotchas below before editing the config.
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
@@ -94,7 +107,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 {
   "mcpServers": {
     "gymlogic": {
-      "command": "npx",
+      "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
       "args": [
         "mcp-remote",
         "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp"
@@ -104,7 +117,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 }
 ```
 
-Restart Claude Desktop after saving. `mcp-remote` will open your browser for OAuth on first use.
+Fully quit Claude Desktop (`Cmd+Q`, not just close the window) and reopen after saving. `mcp-remote` opens your browser for OAuth on first use; tokens cache locally for subsequent runs.
 
 To use a PAT instead of OAuth with `mcp-remote`, pass it as a header:
 
@@ -112,7 +125,7 @@ To use a PAT instead of OAuth with `mcp-remote`, pass it as a header:
 {
   "mcpServers": {
     "gymlogic": {
-      "command": "npx",
+      "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
       "args": [
         "mcp-remote",
         "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
@@ -124,15 +137,25 @@ To use a PAT instead of OAuth with `mcp-remote`, pass it as a header:
 }
 ```
 
-> **Node version matters**: Claude Desktop uses the first `npx` on your PATH. If you use nvm, make sure your default Node is 18+ (`nvm alias default 20`). Node 12/14 will crash `mcp-remote`.
+### `mcp-remote` setup gotchas (validated empirically)
+
+> - **Node.js 18+ required**. `mcp-remote` crashes on Node 12 / 14 with `SyntaxError`.
+> - **nvm gotcha**: Claude Desktop walks `PATH` in order and grabs the *first* `npx` it finds. If your default Node is 12, the run fails. Either `nvm alias default 20` or pin the absolute path to a Node 20+ `npx` in your config (recommended — see snippet above).
+> - **npm cache permissions**: if you've ever run `sudo npm install`, the first `mcp-remote` fetch fails with `EACCES`. Fix with `sudo chown -R $(id -u):$(id -g) ~/.npm` before retrying.
+> - **Recommended absolute path**: `/Users/you/.nvm/versions/node/v20.9.0/bin/npx` (substitute your actual nvm version path — get it from `which node` after `nvm use 20`).
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---|---|
-| Connector shows "Not connected" | Click the connector and re-authenticate — the OAuth token may have expired |
-| OAuth consent page doesn't load | Make sure you're signed in to GymLogic at `www.gymlogic.me` first |
-| "Authentication required" errors | Disconnect and reconnect the connector to trigger a fresh OAuth flow, or swap to a PAT (see above) for a longer-lived auth |
-| `401` with a PAT | Token was revoked, expired, or mistyped. Create a fresh one at `/account/api-tokens`. |
-| No hammer icon (config file method) | Check JSON syntax, verify Node.js 18+ is on your PATH (`node -v`) |
-| `mcp-remote` crashes with `SyntaxError` | Your Node.js is too old — run `nvm use 20` or use the full path `/opt/homebrew/opt/node@22/bin/npx` in the config |
+
+| Problem                                                            | Fix                                                                                                                                                                                       |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connector shows "Not connected"                                    | Click the connector and re-authenticate — the OAuth token may have expired                                                                                                                |
+| OAuth consent page doesn't load                                    | Make sure you're signed in to GymLogic at `gymlogic.me` first                                                                                                                             |
+| "Authentication required" errors                                   | Disconnect and reconnect the connector to trigger a fresh OAuth flow, or swap to a PAT (see above) for a longer-lived auth                                                                |
+| `401` with a PAT                                                   | Token was revoked, expired, or mistyped. Create a fresh one at `/account/api-tokens`                                                                                                      |
+| No hammer icon / no tools available (config file method)           | Check JSON syntax, verify Node.js 18+ is on your PATH (`node -v`), and `Cmd+Q` Claude Desktop fully (closing the window doesn't stop the process)                                         |
+| `mcp-remote` crashes with `SyntaxError`                            | Your Node.js is too old — `nvm use 20` or pin the absolute path to a Node 20+ `npx` in your config (e.g. `/Users/you/.nvm/versions/node/v20.9.0/bin/npx`)                                 |
+| `mcp-remote` first run fails with `EACCES` on `~/.npm`             | npm cache is root-owned from a past `sudo npm install`. Fix: `sudo chown -R $(id -u):$(id -g) ~/.npm`                                                                                     |
+| Can't disconnect a `mcp-remote`-added connector via the Settings UI | The disconnect endpoint requires a `mcpsrv_*` ID, which manually-added MCP servers don't have. Edit `claude_desktop_config.json` to remove the entry, then `Cmd+Q` Claude and reopen      |
+
+

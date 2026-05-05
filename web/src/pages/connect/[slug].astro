@@ -1,0 +1,59 @@
+---
+import { getCollection, render } from 'astro:content'
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import Callout from '@/components/mdx/Callout.astro'
+import TechHeavy from '@/components/mdx/TechHeavy.astro'
+import ComingSoon from '@/components/mdx/ComingSoon.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+
+export async function getStaticPaths() {
+  const entries = await getCollection('connect')
+  return entries.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }))
+}
+
+const { entry } = Astro.props
+const { Content } = await render(entry)
+const { hero, title, description, ogImage } = entry.data
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  indexable
+  ogImage={ogImage}
+>
+  <section class="mx-auto max-w-3xl px-4 pt-16 pb-12">
+    {
+      hero.eyebrow && (
+        <p class="text-sm uppercase tracking-wider text-accent">
+          {hero.eyebrow}
+        </p>
+      )
+    }
+    <h1
+      class="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
+    >
+      {hero.h1}
+    </h1>
+    <div class="mt-6 space-y-2 text-lg text-muted leading-relaxed">
+      {hero.subheadlines.map((line) => <p>{line}</p>)}
+    </div>
+    {
+      hero.ctaLabel && hero.ctaAnchor && (
+        <a
+          href={hero.ctaAnchor}
+          class="mt-8 inline-flex items-center gap-2 text-accent hover:text-foreground transition-colors duration-150"
+        >
+          {hero.ctaLabel}
+        </a>
+      )
+    }
+  </section>
+
+  <article class="prose prose-invert mx-auto max-w-3xl px-4 pb-24">
+    <Content components={{ Callout, TechHeavy, ComingSoon, Screenshot }} />
+  </article>
+</BaseLayout>
