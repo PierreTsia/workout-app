@@ -45,17 +45,24 @@ import skillsPanel from '../../assets/connect/claude/skills-panel.webp'
 <ComingSoon>
   We've submitted GymLogic for the Anthropic Connectors Directory. Once it's
   listed, you'll be able to add the connector in one click. Until then, the
-  manual Custom Connector flow below takes about 30 seconds.
+  manual flow below takes about a minute.
 </ComingSoon>
 
-### Method 1 — Custom Connector (recommended)
+Two steps:
+
+1. **Add the Custom Connector** — wire Claude Desktop to the GymLogic MCP server (~30 seconds).
+2. **Load the GymLogic Skill** _(recommended)_ — teach Claude how to use the tools well (~30 seconds).
+
+If you can't use OAuth or need a headless setup, see [Alternative authentication](#alternative-authentication) below — Step 1 has a PAT / `mcp-remote` variant; Step 2 still applies.
+
+### Step 1 — Add the Custom Connector
 
 1. Open Claude Desktop and go to **Settings → Connectors**.
 
 <Screenshot
   src={connectorsPanel}
   alt="Claude Desktop Settings → Connectors panel showing the GitHub Integration default and the Add custom connector button"
-  caption="Step 1 — Settings → Connectors → click Add custom connector."
+  caption="The Connectors panel — click Add custom connector."
 />
 
 2. In the **Add custom connector** dialog, fill in:
@@ -68,7 +75,7 @@ import skillsPanel from '../../assets/connect/claude/skills-panel.webp'
 <Screenshot
   src={addConnector}
   alt="Claude Desktop Add custom connector dialog with the name 'Gymlogic' and the GymLogic MCP server URL filled in; OAuth Client ID and Secret left empty"
-  caption="Step 2 — Name + URL. Leave the OAuth fields empty."
+  caption="Name + URL. Leave the OAuth fields empty."
 />
 
 3. Your browser opens to the GymLogic consent page. Sign in if prompted, then click **Authorize**.
@@ -76,7 +83,7 @@ import skillsPanel from '../../assets/connect/claude/skills-panel.webp'
 <Screenshot
   src={oauthConsent}
   alt="GymLogic OAuth consent page asking the user to authorize Claude to access their training data, with Authorize and Decline buttons"
-  caption="Step 3 — Authorize in your browser. The consent page is localized — French shown here."
+  caption="The consent page is localized — French shown here."
 />
 
 4. Return to Claude Desktop. The connector now appears in your Connectors list.
@@ -84,14 +91,34 @@ import skillsPanel from '../../assets/connect/claude/skills-panel.webp'
 <Screenshot
   src={connectedState}
   alt="Claude Desktop Connectors panel showing the GymLogic Custom connector entry with a Configure dropdown, alongside the GitHub Integration default"
-  caption="Step 4 — Done. Open a new chat and start asking GymLogic questions."
+  caption="Connected — the connector now shows in Settings → Connectors."
 />
 
-You're set. The example below — [_what cool things can I do with the gymlogic connector?_](#example-conversation) — is a good first prompt.
+### Step 2 — Load the GymLogic Skill (recommended)
 
-### Alternative: Personal Access Token
+The connector exposes the tools; the **Skill** teaches Claude _how_ to use them well — when to invoke each, the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing. Without it, Claude can still call the tools, but expect rougher edges (especially on writes and on coaching prompts that cross multiple tools).
 
-If you want longer-lived auth or a headless setup, use a Personal Access Token instead. Create one at [gymlogic.me/account/api-tokens →](https://gymlogic.me/account/api-tokens) — pick a lifetime, copy the `glp_…` value (shown once), and use the config below.
+1. Download the skill file from the repo: [`skills/gymlogic-mcp/SKILL.md`](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md). Use GitHub's "Download raw file" button (top-right of the file viewer).
+
+2. In Claude Desktop, open **Customize → Skills**, click the **+** icon next to "Skills", and upload the `SKILL.md` file.
+
+<Screenshot
+  src={skillsPanel}
+  alt="Claude Desktop Customize panel with Skills tab selected, showing the gymlogic-mcp skill loaded under Personal skills with description and content preview"
+  caption="Customize → Skills → + → upload SKILL.md. Once loaded, the skill appears under Personal skills."
+/>
+
+3. Make sure the skill toggle is **on** (top-right of the skill detail panel).
+
+You're set. The skill triggers automatically on training-related prompts (FR or EN) — no need to invoke it explicitly. The [_capabilities ask_](#example-conversation) is a good first prompt: Claude will surface the full menu of what GymLogic can do.
+
+## Alternative authentication
+
+For headless setups or Claude Desktop builds where the native Custom Connector UI isn't available, replace **Step 1** with one of the alternatives below. **Step 2** (the Skill) still applies either way.
+
+### Personal Access Token (PAT)
+
+If you want longer-lived auth or a headless setup, use a Personal Access Token instead of OAuth. Create one at [gymlogic.me/account/api-tokens →](https://gymlogic.me/account/api-tokens) — pick a lifetime, copy the `glp_…` value (shown once), and use the config below.
 
 The cleanest PAT path on Claude Desktop is via the `mcp-remote` adapter (since the native UI doesn't always expose a `headers` field for SSE servers). Heads up — the adapter has a few sharp edges:
 
@@ -128,7 +155,7 @@ The cleanest PAT path on Claude Desktop is via the `mcp-remote` adapter (since t
   Revoke a PAT at any time from `/account/api-tokens` — revocation is immediate and the next request returns 401.
 </details>
 
-### Alternative: Config file with `mcp-remote`
+### Config file with `mcp-remote` (no UI)
 
 For Claude Desktop builds where the native Custom Connector UI isn't available, or for headless setups, configure `mcp-remote` directly in `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows). Same Node 18+ requirement and absolute-path recommendation as above.
 
@@ -155,26 +182,8 @@ For Claude Desktop builds where the native Custom Connector UI isn't available, 
 <details>
   <summary>Show mcp-remote config (with PAT)</summary>
 
-  Same as the [PAT config](#alternative-personal-access-token) above — pass the token via `--header`.
+  Same as the [PAT config](#personal-access-token-pat) above — pass the token via `--header`.
 </details>
-
-## Load the GymLogic Skill (recommended)
-
-The connector exposes the tools; the **Skill** teaches Claude *how* to use them well — when to invoke each, the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing. Without it, Claude can still call the tools, but expect rougher edges (especially on writes and on coaching prompts that cross multiple tools).
-
-1. Download the skill from the repo: [`skills/gymlogic-mcp/SKILL.md`](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md). Use GitHub's "Download raw file" button (top-right of the file viewer).
-
-2. In Claude Desktop, open **Customize → Skills**, click the **+** icon next to "Skills", and upload the `SKILL.md` file.
-
-<Screenshot
-  src={skillsPanel}
-  alt="Claude Desktop Customize panel with Skills tab selected, showing the gymlogic-mcp skill loaded under Personal skills with description and content preview"
-  caption="Customize → Skills → + → upload SKILL.md. Once loaded, the skill appears under Personal skills."
-/>
-
-3. Make sure the skill toggle is **on** (top-right of the skill detail panel).
-
-That's it — the skill triggers automatically on training-related prompts (FR or EN). You don't need to invoke it explicitly.
 
 ## Available tools
 
