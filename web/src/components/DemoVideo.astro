@@ -1,52 +1,82 @@
 ---
+const clips = [
+  {
+    id: 'capabilities',
+    src: '/demo-capabilities.mp4',
+    poster: '/demo-capabilities.jpg',
+    label: 'Discover capabilities',
+    prompt: '"What can I do with GymLogic?"',
+  },
+  {
+    id: 'analytics',
+    src: '/demo-analytics.mp4',
+    poster: '/demo-analytics.jpg',
+    label: 'Analyze your training',
+    prompt: '"Analyze my last month\u2026"',
+  },
+]
 ---
 
-<button
-  type="button"
-  data-demo-trigger
-  aria-label="Expand demo"
-  class="group relative block w-full overflow-hidden rounded-xl border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-2xl hover:shadow-accent/10"
+<div
+  class="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10 max-w-md sm:max-w-2xl mx-auto"
 >
-  <video
-    data-demo-inline
-    muted
-    loop
-    playsinline
-    preload="metadata"
-    poster="/demo-poster.jpg"
-    aria-hidden="true"
-    class="block w-full"
-  >
-    <source src="/demo.webm" type="video/webm" />
-    <source src="/demo.mp4" type="video/mp4" />
-  </video>
-  <span
-    class="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm motion-safe:transition-colors motion-safe:duration-150 group-hover:bg-black/80 group-focus-visible:bg-black/80"
-  >
-    <svg
-      aria-hidden="true"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <polyline points="15 3 21 3 21 9"></polyline>
-      <polyline points="9 21 3 21 3 15"></polyline>
-      <line x1="21" y1="3" x2="14" y2="10"></line>
-      <line x1="3" y1="21" x2="10" y2="14"></line>
-    </svg>
-    <span>Expand</span>
-  </span>
-</button>
+  {
+    clips.map((clip) => (
+      <div class="flex flex-col items-center">
+        <button
+          type="button"
+          data-demo-trigger
+          data-demo-src={clip.src}
+          data-demo-poster={clip.poster}
+          data-demo-label={clip.label}
+          aria-label={`Expand demo: ${clip.label}`}
+          class="group relative block w-full max-w-[280px] overflow-hidden rounded-3xl border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:transition-shadow motion-safe:duration-200 hover:shadow-2xl hover:shadow-accent/10"
+        >
+          <video
+            data-demo-inline
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            poster={clip.poster}
+            aria-hidden="true"
+            class="block w-full"
+          >
+            <source src={clip.src} type="video/mp4" />
+          </video>
+          <span class="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm motion-safe:transition-colors motion-safe:duration-150 group-hover:bg-black/80 group-focus-visible:bg-black/80">
+            <svg
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            <span>Expand</span>
+          </span>
+        </button>
+        <div class="mt-4 text-center">
+          <p class="text-sm font-medium text-foreground">{clip.label}</p>
+          <p class="mt-1 text-sm text-muted">{clip.prompt}</p>
+        </div>
+      </div>
+    ))
+  }
+</div>
 
 <dialog
   id="demo-dialog"
   aria-labelledby="demo-dialog-title"
-  class="m-auto bg-card border border-border rounded-lg p-0 max-w-5xl w-[calc(100vw-2rem)] shadow-2xl text-foreground [&::backdrop]:bg-black/80 [&::backdrop]:backdrop-blur-sm"
+  class="m-auto bg-card border border-border rounded-lg p-0 max-w-md w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] shadow-2xl text-foreground [&::backdrop]:bg-black/80 [&::backdrop]:backdrop-blur-sm"
 >
   <h2 id="demo-dialog-title" class="sr-only">Demo</h2>
   <div class="relative">
@@ -62,25 +92,15 @@
       data-demo-cinema
       controls
       preload="none"
-      poster="/demo-poster.jpg"
       playsinline
-      class="w-full rounded-t-lg bg-black"
-    >
-      <source src="/demo.webm" type="video/webm" />
-      <source src="/demo.mp4" type="video/mp4" />
-      <track
-        default
-        kind="captions"
-        srclang="en"
-        label="English"
-        src="/demo.en.vtt"
-      />
-      Your browser doesn't support the video tag.
-    </video>
-    <p class="px-4 py-3 text-sm text-muted">
-      Demo: Claude Desktop. Same flow works in Cursor, ChatGPT, or any MCP
-      client.
-    </p>
+      class="block w-full max-h-[75vh] bg-black"></video>
+    <div class="px-4 py-3">
+      <p data-demo-cinema-label class="text-sm font-medium text-foreground">
+      </p>
+      <p class="mt-1 text-sm text-muted">
+        Demo with Claude on iOS — works with any MCP client.
+      </p>
+    </div>
   </div>
 </dialog>
 
@@ -88,14 +108,17 @@
   const dialog = document.getElementById('demo-dialog') as
     | HTMLDialogElement
     | null
-  const trigger = document.querySelector<HTMLElement>('[data-demo-trigger]')
+  const triggers = document.querySelectorAll<HTMLElement>('[data-demo-trigger]')
   const closeBtn = dialog?.querySelector<HTMLButtonElement>(
     '[data-demo-close]',
   )
   const cinemaVideo = dialog?.querySelector<HTMLVideoElement>(
     '[data-demo-cinema]',
   )
-  const inlineVideo = document.querySelector<HTMLVideoElement>(
+  const cinemaLabel = dialog?.querySelector<HTMLElement>(
+    '[data-demo-cinema-label]',
+  )
+  const inlineVideos = document.querySelectorAll<HTMLVideoElement>(
     '[data-demo-inline]',
   )
 
@@ -103,19 +126,38 @@
     '(prefers-reduced-motion: reduce)',
   ).matches
 
-  if (inlineVideo && !reducedMotion) {
-    void inlineVideo.play().catch(() => {
-      // Autoplay may be blocked by browser policy; the poster is shown until interaction.
+  if (!reducedMotion) {
+    inlineVideos.forEach((v) => {
+      void v.play().catch(() => {
+        // Autoplay may be blocked by browser policy; the poster is shown until interaction.
+      })
     })
   }
 
-  if (dialog && trigger && cinemaVideo) {
-    trigger.addEventListener('click', (e) => {
-      e.preventDefault()
-      inlineVideo?.pause()
-      dialog.showModal()
-      void cinemaVideo.play().catch(() => {
-        // User can press play manually.
+  if (dialog && cinemaVideo) {
+    let currentSrc: string | null = null
+
+    triggers.forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault()
+        const src = trigger.dataset.demoSrc
+        const poster = trigger.dataset.demoPoster
+        const label = trigger.dataset.demoLabel
+        if (!src) return
+
+        inlineVideos.forEach((v) => v.pause())
+
+        if (currentSrc !== src) {
+          cinemaVideo.src = src
+          if (poster) cinemaVideo.poster = poster
+          currentSrc = src
+        }
+        if (cinemaLabel && label) cinemaLabel.textContent = label
+
+        dialog.showModal()
+        void cinemaVideo.play().catch(() => {
+          // User can press play manually.
+        })
       })
     })
 
@@ -126,8 +168,10 @@
     dialog.addEventListener('close', () => {
       cinemaVideo.pause()
       cinemaVideo.currentTime = 0
-      if (inlineVideo && !reducedMotion) {
-        void inlineVideo.play().catch(() => {})
+      if (!reducedMotion) {
+        inlineVideos.forEach((v) => {
+          void v.play().catch(() => {})
+        })
       }
     })
 

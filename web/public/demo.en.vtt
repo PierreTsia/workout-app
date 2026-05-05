@@ -1,9 +1,0 @@
-WEBVTT
-
-NOTE
-Placeholder captions — replaced with real cues when the actual demo video is recorded.
-The MP4 is currently a 1-second silent black placeholder; this VTT only exists so the
-<track> element validates and downstream a11y tooling has something to load.
-
-00:00:00.000 --> 00:00:01.000
-[Demo placeholder — real captions land at video swap]
