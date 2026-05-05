@@ -1,5 +1,15 @@
 # Tech Plan — A3 Home Page (#301)
 
+> **Status: Shipped.** The body of this plan documents the design exploration; several decisions evolved during implementation. See the **[Iteration Log](#iteration-log--plan-to-shipped)** at the bottom of this document for the diff between this plan and what actually shipped. Notable deviations:
+>
+> - Hero CTA button removed — the inline demo video itself is the trigger
+> - Demo became **two phone-recorded clips side-by-side** (capabilities + analytics) instead of a single landscape Claude Desktop video
+> - Features carousel pivoted from CSS scroll-snap → **auto-scrolling marquee inside a tinted full-bleed band** (`--color-surface`)
+> - Features card order swapped — **AI program generation** leads, not Strength Balance
+> - Features + Engineering subtitles rewritten with a proper visual hierarchy (large foreground lead + descriptive paragraph)
+> - Header / Footer / 404 CTA renamed `Launch app` → `Open app`
+> - Card #5 ("Agentic engineering, with receipts") link target swapped from GitHub Actions → **filtered list of merged PRs** (richer receipts: spec + ticket + tests + review trail per artifact)
+
 ## Architectural Approach
 
 ### Key Decisions
@@ -60,7 +70,7 @@
 
 **The home page is URL-stable from this point on.** The path `/` is referenced by every distribution channel queued in #237 (HN, Twitter, LinkedIn, PulseMCP, Anthropic Discord). Any future restructure into `/home` or moving the canonical pitch elsewhere = redirect work + already-shared link rot.
 
-**Header CTA "Launch app →" stays as-is.** Q3 explicitly rejected adding an "Open the app" CTA to the hero — it would duplicate the global Header CTA and is wrong-target for the dev audience. Implementer must resist the issue body's wording (*"Primary CTA: Open the app → gymlogic.me"*); the Tech Plan supersedes the issue body on this point.
+**Header CTA stays globally — no hero CTA duplication.** Q3 explicitly rejected adding an "Open the app" CTA to the hero — it would duplicate the global Header CTA and is wrong-target for the dev audience. Implementer must resist the issue body's wording (*"Primary CTA: Open the app → gymlogic.me"*); the Tech Plan supersedes the issue body on this point. *Post-iteration note: the header CTA copy itself was renamed `Launch app` → `Open app` during implementation (see Iteration Log §7); the no-hero-duplication discipline still holds.*
 
 **The `~1,500 tests` claim in card #5 is locked.** User-vouched figure; no pre-merge `rg` recount. The card's link target (GitHub Actions) provides the renewable receipt — visitors who want the exact current number click through to live CI runs. Future refresh on this number is a copy-PR if needed; not a launch blocker.
 
@@ -434,3 +444,134 @@ Breadcrumbs for the implementer (probably future me):
 - Existing BaseLayout (unchanged in A3): `file:web/src/layouts/BaseLayout.astro`
 - Existing global.css (one-line modification in A3): `file:web/src/styles/global.css`
 - Simon Willison — *Agentic Engineering Patterns*: https://simonwillison.net/guides/agentic-engineering-patterns/ (canonical reference for the term used in card #5; explicit citation lives on `/about` per A7)
+
+---
+
+## Iteration Log — plan to shipped
+
+The body of this plan was written before implementation. The list below captures each meaningful deviation made during build-out, why, and the final shipped state. Each entry lets a future reader reconcile the plan above with the actual code.
+
+### 1. Hero CTA button — removed
+
+| Plan | Shipped |
+|---|---|
+| Single CTA `<button data-demo-trigger>Watch the demo</button>` below the hero subtitle | No button. The inline demo video itself is the trigger. |
+
+**Why**: Once the demo video became inline + visible (see §2 below), a separate button promising "watch the demo" was redundant pointing at a video already playing on screen. The video itself is now both the demo AND the trigger for cinema mode.
+
+**Code**: hero section in `index.astro` ends at the subtitle paragraph. No CTA stack. `buttonVariants` import removed.
+
+### 2. Demo placement — inline + cinema mode (was: hidden modal only)
+
+| Plan | Shipped |
+|---|---|
+| Demo lives entirely inside a hidden `<dialog>`, opened by a hero CTA | Demo lives **inline** on the page (autoplay muted loop, visible in the hero scroll viewport) AND in a `<dialog>` cinema mode reachable by clicking the inline player |
+
+**Why**: The hidden-modal pattern under-delivered on the agentic claim — a visitor who didn't click the CTA never saw any product evidence. Putting the demo *visible on the front page* (autoplay muted, looped) backs the H1 claim *before* the visitor scrolls. Cinema mode stays for users who want a bigger view + scrubbable controls.
+
+**Code**: `DemoVideo.astro` now renders both the inline `<button>`-wrapped player(s) AND the `<dialog>` cinema mode in one component. Vanilla TS script (~50 lines) wires both.
+
+### 3. Demo content — two phone clips (was: one landscape Claude Desktop video)
+
+| Plan | Shipped |
+|---|---|
+| Single 60-90s landscape Claude Desktop video (~10MB), one `<source>` set | Two ~32-33s portrait phone screen recordings of Claude on iOS, side-by-side on `sm:+`, stacked on mobile |
+
+**Why**: Real recording context — the user filmed phone-screen recordings (not a desktop capture) showing two distinct agentic moments: *Discovery* ("What can I do with GymLogic?" → capabilities answer) and *Insight* ("Analyze my last month…" → graphs + summary). Both back the agentic claim. Showing both side-by-side lets the visitor see both narratives in one scroll, no JS-driven sequencing.
+
+**Asset pipeline**: `ffmpeg -c:v libx264 -preset slow -crf 24 -profile:v main -pix_fmt yuv420p -vf "fps=30" -movflags +faststart -an` per clip. Source files: 3.7M + 4.0M; shipped: 1.4M + 2.2M (53% total reduction). Posters extracted at 1.0s for non-blank first frames.
+
+**Component shape**: `DemoVideo.astro` is now data-driven by a `clips: { id, src, poster, label, prompt }[]` array. Adding a third clip = one array entry. The cinema dialog is shared and dynamically loaded — clicking a card swaps `cinemaVideo.src` + poster + caption (tracked via `currentSrc` to avoid re-fetch on reopen).
+
+**Sub-decisions made during this pivot**:
+- *MP4 over GIF* — 10× smaller payload at 24-bit color, hardware-decoded. `<video muted autoplay loop playsinline>` produces identical "GIF-like" UX.
+- *Phone-shape implicit* — `rounded-3xl border border-border bg-card` carries the "this is on a phone" signal without bezel SVG chrome (which dates fast).
+- *Cinema dialog re-sized* `max-w-md max-h-[75vh]` for portrait clips (was `max-w-5xl` for landscape).
+- *Captions track dropped* — placeholder VTT was for a narrated demo; the new clips are silent screencasts.
+
+### 4. Features layout — auto-scrolling marquee inside tinted band (was: scroll-snap carousel on flat bg)
+
+| Plan | Shipped |
+|---|---|
+| Horizontal `overflow-x-auto snap-x snap-mandatory` carousel with peek-of-next-card discoverability hint, on `bg-background` | Continuous CSS-keyframe **auto-scrolling marquee** (60s linear infinite, pause-on-hover, mask-image edge fade), inside a **full-bleed `bg-surface` tinted band** with hairline `border-y` seams |
+
+**Why (marquee)**: User pushback after the snap-scroll iteration — the manual-scroll requirement felt under-built; an "infinite rolling calendar in a single row" was the verbatim request. The marquee turns the carousel into ambient evidence — the cards drift past on their own, visitor doesn't have to interact to see them all. Pause-on-hover + reduced-motion guard preserves accessibility and intentional reading.
+
+**Why (tinted band)**: Without it, the page was one flat dark scroll with only margin between sections — no visual rhythm. Introduced a third surface tone `--color-surface: #15151c` (between `background` and `card`), wrapped Features in a full-bleed band with `border-y border-border bg-surface py-16 md:py-24`. Cards inside (still `bg-card #1a1a22`) remain visibly lighter than the band, so they pop. Three-zone rhythm: dark hero → tinted features → dark engineering.
+
+**Code shape**:
+```css
+.features-marquee { mask-image: linear-gradient(to right, transparent 0, black 3%, black 97%, transparent 100%); }
+.features-marquee__track { animation: features-marquee-scroll 60s linear infinite; will-change: transform; }
+.features-marquee:hover .features-marquee__track,
+.features-marquee:focus-within .features-marquee__track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .features-marquee__track { animation: none; } }
+@keyframes features-marquee-scroll { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+```
+
+The track contains two copies of the cards array (the second copy `aria-hidden="true"` for accessibility) so the `-50%` translate creates a seamless loop.
+
+**Width discipline**: Carousel constrained to `max-w-5xl` for visual integration with the page's `max-w-3xl` text content rhythm.
+
+### 5. Features card ordering — significance-first (was: visuals-first)
+
+| Plan | Shipped |
+|---|---|
+| Strength Balance → Triple progression engine → Tiered achievements → History calendar + heatmap → AI program generation → 300+ exercises | **AI program generation** → Triple progression engine → Strength Balance → Tiered achievements → 300+ exercises → History calendar + heatmap |
+
+**Why**: AI program generation is the most distinctive product surface — leading with it sets the agentic-product narrative immediately. Triple progression engine seconds it as the second-most-distinctive (the math-driven differentiator). The plan's "strongest visuals first" heuristic was correct for a static grid; in a marquee where every card cycles past anyway, *narrative weight* matters more than visual weight on first scroll.
+
+### 6. Section copy + visual hierarchy — substantial rewrite
+
+| Plan | Shipped |
+|---|---|
+| Features H2 "Features" + sub *"What's inside the app — swipe through."* | Features H2 "Features" + lead *"Built for serious lifters."* + descriptive paragraph listing 9 features (incl. PWA/offline mention) |
+| Engineering H2 "How it's built" + sub *"The craft pillars — each one is a clickable receipt."* | Engineering H2 "How it's built" + lead *"Agentic ≠ vibe-coded. Receipts below."* + descriptive paragraph naming the modern stack and the test gates |
+| Lead styled `text-sm text-muted` (smaller AND more muted than the descriptive paragraph) | Lead styled `text-lg md:text-xl text-foreground font-medium` — visibly the section's tagline before the body paragraph |
+
+**Why (copy)**: Original subtitles were filler. The shipped copy positions both sections with marketing voice that matches the rest of the page (*"Stop being the brain. Become the body."*). Features lead opens the gymbro angle (rejected "gymbros" and "side project" framing during iteration); Engineering lead directly counters the "AI = vibe-coded" reflex with two contrasting trendy terms.
+
+**Why (hierarchy)**: The two-tier subtitle/paragraph from the plan had an inverted cascade: the "punchy" subtitle was *smaller* and *more muted* than the body it was meant to introduce. Visual hierarchy fix bumps the lead to large foreground text with medium weight — three signals (size + color + weight) all step down together: H2 → Lead → Body.
+
+**Tracking**: Added `tracking-tight` to both H2s for editorial polish + consistency with the H1 hero treatment.
+
+### 7. Header / Footer / 404 CTA rename — `Launch app` → `Open app`
+
+| Plan | Shipped |
+|---|---|
+| `Launch app →` (in Header sticky CTA, Footer Project list, 404 fallback) | `Open app →` |
+
+**Why**: "Open" reads more natural for a deployed web app — you "open" a webpage; "launch" connotes desktop binary. The original "Launch" was inherited from A2 chrome; A3 was a natural moment to swap it.
+
+**Three surfaces touched**: `Header.astro:75`, `Footer.astro:22` (Project group label), `404.astro:31`. No structural changes — pure copy.
+
+### 8. Card #5 link target — merged PRs filter (was: GitHub Actions)
+
+| Plan | Shipped |
+|---|---|
+| Card #5 ("Agentic engineering, with receipts") `href="https://github.com/PierreTsia/workout-app/actions"` | `href="https://github.com/PierreTsia/workout-app/pulls?q=is%3Apr+is%3Amerged"` |
+
+**Why**: GitHub Actions is a flat dashboard of CI runs — green checkmarks, no narrative. The card claims *"Stress-tested specs, sliced tickets, red/green TDD, reviewed PRs. ~1,500 tests as receipts."* — Actions only weakly backs the last clause. Merged PRs deliver *complete agentic units of work*: structured What/Why/How body, linked Epic Brief or ticket, commits, test additions, `@claude review` thread, CI gates. Each merged PR is a stamped receipt. Always-fresh as new PRs land. Better backing for *all four* claims in the subtitle, not just one.
+
+### 9. `--color-surface` token
+
+| Plan | Shipped |
+|---|---|
+| Theme had two surface tones: `--color-background` + `--color-card` | Added `--color-surface: #15151c` (between background and card) for the Features tinted band |
+
+**Why**: The band needed a tone that's distinct from both the page background AND from the cards inside it (otherwise cards would disappear into the band). The 3-tier `background → surface → card` ladder makes the band band-shaped without compromising card readability. Reusable token — future sections can opt into the band treatment by switching to `bg-surface`.
+
+### 10. Captions track dropped from demo
+
+| Plan | Shipped |
+|---|---|
+| `<track default kind="captions" srclang="en" src="/demo.en.vtt">` for the narrated demo | No track — the new clips are silent phone screencasts, no audio to caption |
+
+**Why**: Phone screen recordings have no narration. Adding a placeholder `.vtt` would be theater. Removed `web/public/demo.en.vtt`. If a future demo (e.g., a longer guided tour) gains audio narration, the track can be added back per-clip via the `clips[]` array contract.
+
+---
+
+## Outstanding follow-ups (post-#301 PRs)
+
+- **English content in screenshots and demo videos** — both the 6 carousel feature screenshots and the 2 demo clips currently show French Claude/app responses while the page itself is English. Re-record / re-screenshot when the app is in English mode (or when a fresh recording is convenient). Tracked verbally; not blocking #301 because the FR content is still demonstrative.
+- **Lighthouse / a11y audit pass** — nothing known broken, but worth a sanity pre-launch run before A6's site-wide indexing flip lands.
