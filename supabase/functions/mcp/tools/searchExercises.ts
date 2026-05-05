@@ -78,9 +78,14 @@ function resolveMuscleGroups(input: string | string[]): string[] | undefined {
 export const searchExercises: ToolDefinition = {
   name: "search_exercises",
   description:
-    "Search the exercise catalog by name, muscle group, equipment, or difficulty. " +
-    "Supports fuzzy matching and diacritic-insensitive search in both French and English. " +
-    "Use this to find exercises before getting full details with get_exercise_details.",
+    "Browse the exercise catalog by muscle group, equipment, or difficulty filters. " +
+    "Supports fuzzy and diacritic-insensitive search in both French and English. " +
+    "Use this when you don't yet have specific names in mind — e.g. \"find chest exercises with dumbbells\", " +
+    "\"what's a good biceps exercise\". " +
+    "**If you already know the exercise names you want (e.g. building a program from a list), use " +
+    "`resolve_exercises` instead — it batch-resolves names to UUIDs in a single call and bundles the " +
+    "catalog metadata (`weight_convention`, `measurement_type`, `default_duration_seconds`) you'll need " +
+    "for `create_program` / `update_program`, with no follow-up `get_exercise_details` per exercise.**",
   inputSchema: {
     type: "object",
     properties: {
