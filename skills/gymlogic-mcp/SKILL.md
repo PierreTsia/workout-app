@@ -63,15 +63,16 @@ All nine tools 401 if no auth context. The tool response will be `Authentication
 
 ## Tool reference (intent → tool)
 
-Nine tools total — seven reads, two writes.
+Ten tools total — eight reads, two writes.
 
 | User intent | Tool | Notes |
 |---|---|---|
 | "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). Each session header surfaces `*(program: <name>, id: <uuid>)*` for sessions that belong to a cycle — pass that `id` straight to `get_program_details` to chain into the program structure. Sessions without a cycle (legacy data) omit the annotation. |
 | "How am I doing / volume / PRs / muscle group balance / push-pull split" | `get_training_stats` | Defaults to last 30 days. Filter by `muscle_group` (FR name, e.g. `Pectoraux`, `Dos`). |
 | "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Returns `No active program found` if user has none. The header surfaces `*(id: <uuid>)*` of the active program — pass that `id` straight to `get_program_details` if the user wants the full template instead of the next few scheduled days. |
-| "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use **before** `get_exercise_details` to resolve a UUID. Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
-| "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). **Always run `search_exercises` first** to resolve it; if multiple matches come back, ask the user to pick. |
+| "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use for exploration / browsing by filter. For "I already know the name(s) I want to put in a program" prefer `resolve_exercises` (one round-trip, returns everything `create_program` needs). Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
+| "I have a list of exercise names — give me their catalog ids" / "build a program from this list" | `resolve_exercises` | Batch (up to 30 names per call). Returns id, equipment, `weight_convention`, `measurement_type`, `default_duration_seconds` per query — enough to call `create_program` directly without `get_exercise_details`. Each query gets a status: `matched` / `ambiguous` / `no_match` / `empty_query`. On `ambiguous`, pick from context or ask the user; on `no_match`, fall back to `search_exercises` with broader filters. |
+| "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). For exploring an exercise the user is curious about (instructions, video, common mistakes). **Not** needed before `create_program` — `resolve_exercises` already returns what `create_program` needs. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
 | "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
 | "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
