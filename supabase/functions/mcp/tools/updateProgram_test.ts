@@ -828,3 +828,127 @@ Deno.test("update_program rejects is_active in the patch with a pointer to set_a
   assertStringIncludes(reply.content[0].text, "set_active_program")
   assertNotMatch(reply.content[0].text, /unknown field/i)
 })
+
+// ---------------------------------------------------------------------------
+// Issue #320 regression — bodyweight + weight_kg > 0 on declarative echo.
+//
+// The bug: a program contains a bodyweight exercise whose stored weight is > 0
+// (legacy data, either from pre-T74 lax validation or catalog drift). The agent
+// reads the program, echoes the day verbatim inside `update_program`, and the
+// R1 cross-field rule (lib/createProgramValidation.ts) rejects the entire call
+// because the echoed prescription violates the bodyweight invariant.
+//
+// The fix lives in the data layer (migration zero_bodyweight_weight zeros every
+// such row). These two tests are the e2e validation at the handler layer:
+//
+//   (a) confirms the bug exists when the agent echoes a bodyweight prescription
+//       with weight_kg=10 — the original failing scenario.
+//   (b) confirms the same call succeeds once the echoed prescription matches the
+//       post-migration data shape (weight_kg=0).
+//
+// Both run with the default dry_run, so no writes are exercised — the bug fires
+// in validation, before any persistence happens.
+// ---------------------------------------------------------------------------
+
+Deno.test(
+  "update_program REJECTS a verbatim echo of a bodyweight day with weight_kg > 0 " +
+    "(regression #320 — pre-migration data shape)",
+  async () => {
+    // Simulate the dirty-data state pre-migration: the bodyweight Push-up row
+    // carries weight = '10'. An agent reading the program would echo this back
+    // as weight_kg=10 inside update_program — exactly the trace #320 describes.
+    const state = makeBaseState()
+    const pushupRow = state.exercises.find((e) => e.exercise_id === ID_PUSHUP)
+    assertExists(pushupRow)
+    pushupRow!.weight = "10"
+
+    const mock = new MockSupabase(state)
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          // Echo Push as a bare UUID — bypasses object-form validation entirely.
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [ID_BENCH],
+          },
+          // Echo Pull with the dirty bodyweight prescription as an object — this
+          // is the exact shape the bug report shows the agent producing.
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [
+              {
+                exercise_id: ID_PUSHUP,
+                sets: 3,
+                reps: "10",
+                weight_kg: 10,
+                rest_seconds: 90,
+              },
+            ],
+          },
+        ],
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError, true)
+    const text = reply.content[0].text
+    assertStringIncludes(text, 'days["Pull"].exercises[0]')
+    assertStringIncludes(text, "bodyweight")
+    assertStringIncludes(text, "Push-up")
+    assertStringIncludes(text, "weight_kg")
+    assertStringIncludes(text, "got 10")
+    assertStringIncludes(text, "#281")
+    // No writes in dry_run — guards against the day ever being persisted.
+    assertEquals(writeOps(mock.callLog).length, 0)
+  },
+)
+
+Deno.test(
+  "update_program ACCEPTS a verbatim echo of the same bodyweight day once weight is 0 " +
+    "(regression #320 — post-migration data shape)",
+  async () => {
+    // Post-migration: the bodyweight Push-up row's weight is '0' (unchanged
+    // from the makeBaseState default). Echoing weight_kg=0 must round-trip
+    // without R1 firing — proving the migration target shape unblocks the
+    // original failing prompt.
+    const mock = new MockSupabase(makeBaseState())
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [ID_BENCH],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [
+              {
+                exercise_id: ID_PUSHUP,
+                sets: 3,
+                reps: "10",
+                weight_kg: 0,
+                rest_seconds: 90,
+              },
+            ],
+          },
+        ],
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false)
+    const body = parseReply(reply)
+    assertEquals(body.dry_run, true)
+    assertEquals(writeOps(mock.callLog).length, 0)
+  },
+)
