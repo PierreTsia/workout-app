@@ -4,13 +4,12 @@ import { glob } from 'astro/loaders'
 const connect = defineCollection({
   loader: glob({ pattern: '**/*.mdx', base: './src/content/connect' }),
   schema: z.object({
-    slug: z.string(),
     clientName: z.string(),
     clientUrl: z.string().url(),
 
     title: z.string(),
     description: z.string(),
-    ogImage: z.string(),
+    ogImage: z.string().optional(),
 
     hero: z.object({
       eyebrow: z.string().optional(),
