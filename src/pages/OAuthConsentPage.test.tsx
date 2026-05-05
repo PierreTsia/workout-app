@@ -176,4 +176,36 @@ describe("OAuthConsentPage", () => {
       await screen.findByText(/authorization granted/i),
     ).toBeInTheDocument()
   })
+
+  it("renders the 'Learn about GymLogic' bridge in the consent state", async () => {
+    renderPage()
+
+    const link = await screen.findByRole("link", {
+      name: /learn about gymlogic/i,
+    })
+    expect(link).toHaveAttribute("href", "https://docs.gymlogic.me")
+    expect(link).toHaveAttribute("target", "_blank")
+    expect(link).toHaveAttribute("rel", "noopener noreferrer")
+  })
+
+  it("does NOT render the bridge once the user has approved (done state)", async () => {
+    mockApproveAuthorization.mockResolvedValueOnce({
+      data: { redirect_url: TEST_REDIRECT },
+      error: null,
+    })
+    const user = userEvent.setup()
+    renderPage()
+
+    // Bridge is visible while consent is showing.
+    expect(
+      await screen.findByRole("link", { name: /learn about gymlogic/i }),
+    ).toBeInTheDocument()
+
+    await user.click(await screen.findByRole("button", { name: /authorize/i }))
+    await screen.findByText(/authorization granted/i)
+
+    expect(
+      screen.queryByRole("link", { name: /learn about gymlogic/i }),
+    ).not.toBeInTheDocument()
+  })
 })

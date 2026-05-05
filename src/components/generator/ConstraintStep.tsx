@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { publicSite } from "@/lib/publicSite"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
 import {
   AI_FOCUS_AREAS_MAX_LENGTH,
@@ -202,6 +203,17 @@ export function ConstraintStep({
           {t("aiGenerate")}
         </Button>
       </div>
+
+      <p className="pt-2 text-center text-xs text-muted-foreground">
+        <a
+          href={publicSite.connectClaude}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          {t("agentSessionHint")}
+        </a>
+      </p>
     </div>
   )
 }

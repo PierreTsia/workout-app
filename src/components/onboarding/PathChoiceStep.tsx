@@ -2,6 +2,7 @@ import { Sparkles, Copy, PenLine } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { publicSite } from "@/lib/publicSite"
 
 interface PathChoiceStepProps {
   onAI: () => void
@@ -73,6 +74,17 @@ export function PathChoiceStep({ onAI, onTemplate, onBlank }: PathChoiceStepProp
           onClick={onBlank}
         />
       </div>
+
+      <p className="text-center text-xs text-muted-foreground">
+        <a
+          href={publicSite.connectClaude}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          {t("agentBuildHint")}
+        </a>
+      </p>
     </div>
   )
 }

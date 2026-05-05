@@ -8,6 +8,7 @@
   "pathTemplateDescription": "Choisissez un programme éprouvé",
   "pathBlank": "Partir de zéro",
   "pathBlankDescription": "Construisez votre programme exercice par exercice",
+  "agentBuildHint": "Ou laissez votre agent le construire →",
 
   "programName": "Nom du programme",
   "programNamePlaceholder": "Mon programme",

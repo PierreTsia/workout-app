@@ -39,6 +39,7 @@
   "pathTemplateDescription": "Pick a proven program and make it yours",
   "pathBlankTitle": "Start from scratch",
   "pathBlankDescription": "Build your own program exercise by exercise",
+  "agentBuildHint": "Use Claude or another AI agent to build your program →",
 
   "recommendationTitle": "Recommended programs",
   "recommendedBadge": "Recommended",

@@ -50,5 +50,7 @@
   "oauthConsentLoading": "Loading authorization details…",
   "oauthConsentSuccessTitle": "Authorization granted",
   "oauthConsentDeniedTitle": "Authorization denied",
-  "oauthConsentSuccessHint": "Return to the app to continue. You can close this tab."
+  "oauthConsentSuccessHint": "Return to the app to continue. You can close this tab.",
+  "learnAboutGymLogic": "Learn about GymLogic ↗",
+  "docs": "Docs"
 }

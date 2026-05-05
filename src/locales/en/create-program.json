@@ -8,6 +8,7 @@
   "pathTemplateDescription": "Pick a proven program and make it yours",
   "pathBlank": "Start from Scratch",
   "pathBlankDescription": "Build your own program exercise by exercise",
+  "agentBuildHint": "Or let your agent build it →",
 
   "programName": "Program name",
   "programNamePlaceholder": "My Program",

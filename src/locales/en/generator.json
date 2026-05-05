@@ -54,5 +54,6 @@
   "saveForLater": "Save for Later",
   "savingDraft": "Saving…",
   "draftSaved": "Workout saved! Find it in your Library.",
-  "focusAreasTooLong": "Shorten your preferences to 500 characters or less."
+  "focusAreasTooLong": "Shorten your preferences to 500 characters or less.",
+  "agentSessionHint": "Want a custom session? Ask your agent →"
 }

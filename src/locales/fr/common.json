@@ -50,5 +50,7 @@
   "oauthConsentLoading": "Chargement des détails d'autorisation…",
   "oauthConsentSuccessTitle": "Autorisation accordée",
   "oauthConsentDeniedTitle": "Autorisation refusée",
-  "oauthConsentSuccessHint": "Retournez à l'application pour continuer. Vous pouvez fermer cet onglet."
+  "oauthConsentSuccessHint": "Retournez à l'application pour continuer. Vous pouvez fermer cet onglet.",
+  "learnAboutGymLogic": "Découvrir GymLogic ↗",
+  "docs": "Docs"
 }

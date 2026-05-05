@@ -15,6 +15,7 @@ import {
   supabaseOAuth,
   type AuthorizationDetails,
 } from "@/lib/supabase-oauth"
+import { publicSite } from "@/lib/publicSite"
 
 const SCOPE_LABELS: Record<string, { en: string; fr: string }> = {
   openid: { en: "Verify your identity", fr: "Vérifier votre identité" },
@@ -235,6 +236,15 @@ export function OAuthConsentPage() {
                     {t("oauthConsentDeny")}
                   </Button>
                 </div>
+
+                <a
+                  href={publicSite.home}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-center text-xs text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
+                >
+                  {t("learnAboutGymLogic")}
+                </a>
               </CardContent>
             </>
           )}
