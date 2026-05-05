@@ -1,0 +1,31 @@
+---
+import { Image } from 'astro:assets'
+
+interface Props {
+  src: ImageMetadata
+  alt: string
+  caption?: string
+  priority?: boolean
+}
+
+const { src, alt, caption, priority = false } = Astro.props
+---
+
+<figure class="not-prose my-8">
+  <Image
+    src={src}
+    alt={alt}
+    widths={[800, 1200, 1600]}
+    sizes="(min-width: 768px) 768px, 100vw"
+    class="rounded-lg border border-border"
+    loading={priority ? 'eager' : 'lazy'}
+    {...(priority && { fetchpriority: 'high' })}
+  />
+  {
+    caption && (
+      <figcaption class="mt-3 text-sm text-muted text-center italic">
+        {caption}
+      </figcaption>
+    )
+  }
+</figure>

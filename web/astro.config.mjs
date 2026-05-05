@@ -12,6 +12,11 @@ export default defineConfig({
   output: 'static',
   site: 'https://docs.gymlogic.me',
   integrations: [react(), mdx(), sitemap()],
+  markdown: {
+    shikiConfig: {
+      theme: 'material-theme-darker',
+    },
+  },
   vite: {
     // Astro 6 + React 19 dev mode otherwise throws
     // `jsxDEV is not a function` on hydration of any React island.
