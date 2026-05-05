@@ -14,13 +14,7 @@ export default defineConfig({
   integrations: [
     react(),
     mdx(),
-    sitemap({
-      // /about is intentionally excluded — paired with `indexable={false}`
-      // in `web/src/pages/about.astro` until #305 ships real content. When
-      // about.astro flips to indexable, drop the filter (or replace with
-      // `() => true`).
-      filter: (page) => !/\/about\/?$/.test(page),
-    }),
+    sitemap(),
   ],
   markdown: {
     shikiConfig: {
