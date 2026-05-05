@@ -1,0 +1,151 @@
+---
+title: 'Lorem Ipsum — Visual Regression Fixture'
+date: 2099-01-01
+excerpt: A permanent dev-only fixture exercising every prose element and MDX component used by blog posts. Never shipped — drafts are excluded from any build.
+tags:
+  - fixture
+  - visual-regression
+  - dev-only
+draft: true
+---
+
+import Callout from '@/components/mdx/Callout.astro'
+import TechHeavy from '@/components/mdx/TechHeavy.astro'
+import ComingSoon from '@/components/mdx/ComingSoon.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+import Video from '@/components/mdx/Video.astro'
+import progression from '@/assets/screenshots/progression.jpg'
+
+This fixture lives at `_lorem-ipsum.mdx` and never reaches a built site.
+The leading underscore is a naming convention; the real gate is
+`draft: true` combined with the `import.meta.env.DEV` filter in
+`getPublishedPosts()`. Open it under `astro dev` to eyeball the layout
+whenever the blog templates change.
+
+## Prose elements
+
+Lorem ipsum dolor sit amet, **consectetur adipiscing elit**, sed do
+_eiusmod tempor incididunt_ ut labore et dolore magna aliqua. Inline
+code looks like `getCollection('blog')` and links land
+[over here](/blog) without surprise.
+
+### Subheadings stay legible
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
+pariatur.
+
+#### Even one level deeper
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+## Lists
+
+Unordered, for things that don't need an order:
+
+- First bullet — short and sharp
+- Second bullet with a slightly longer body so we can see how line
+  wrapping behaves inside list items
+- Third bullet with `inline code` and a [link](/about)
+- Fourth bullet, plain
+
+Ordered, for things that do:
+
+1. Read the brief
+2. Stress-test the brief
+3. Write the plan
+4. Ship the slice
+
+## Blockquote
+
+> The blog is a window into the craft. Keep the writing honest, the
+> code blocks runnable, and the dates accurate. — anonymous reviewer
+> from the future
+
+## Fenced code
+
+```ts
+import { getCollection } from 'astro:content'
+import readingTimeFn from 'reading-time'
+
+export async function getPublishedPosts() {
+  const includeDrafts = import.meta.env.DEV
+  return (await getCollection('blog'))
+    .filter((p) => includeDrafts || !p.data.draft)
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+}
+```
+
+And a shorter one to check tight spacing:
+
+```bash
+npm i @astrojs/rss reading-time
+```
+
+---
+
+## MDX components
+
+A plain note callout for context:
+
+<Callout type="note" title="Heads up">
+  Notes carry low-stakes context. They use the default border + card
+  background — quiet, but visible.
+</Callout>
+
+A tip callout for guidance:
+
+<Callout type="tip" title="Tip">
+  Tips highlight a recommended path. Slightly accented so they pop
+  inside long-form content.
+</Callout>
+
+A warning callout for caveats:
+
+<Callout type="warning" title="Watch out">
+  Warnings call out footguns and deprecations. Use sparingly so the
+  signal stays useful.
+</Callout>
+
+The `<TechHeavy>` wrapper is a `<Callout type="warning">` with a
+default title — for sections that get into the weeds:
+
+<TechHeavy>
+  Below this banner, expect implementation details that won't matter
+  for casual readers but will matter for the next person debugging it.
+</TechHeavy>
+
+The `<ComingSoon>` wrapper is a `<Callout type="tip">` with a default
+title — for things shipped behind a flag or pending an upstream
+release:
+
+<ComingSoon>
+  Once the upstream package lands, this section will replace the
+  manual workaround above.
+</ComingSoon>
+
+A screenshot using an existing app asset — drives the `<figure>`
+spacing, rounded border, and optional caption:
+
+<Screenshot
+  src={progression}
+  alt="GymLogic progression chart showing volume over time"
+  caption="A real screenshot reused from the home page — fixture only."
+/>
+
+A video uses controls and `preload="metadata"`. With no real video
+asset bundled for fixtures, this points at a placeholder URL — the
+controls and aspect ratio are what we're checking:
+
+<Video
+  src="/videos/placeholder.mp4"
+  caption="Placeholder src — verifies the <video> chrome and figcaption only."
+/>
+
+## Closing paragraph
+
+That's the full surface: prose, lists, code, hr, every callout
+variant, screenshot, and video. If the layout breaks, this fixture
+should make it obvious in a single dev visit.

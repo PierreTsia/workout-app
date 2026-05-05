@@ -35,4 +35,16 @@ const connect = defineCollection({
   }),
 })
 
-export const collections = { connect }
+const blog = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/blog' }),
+  schema: z.object({
+    title: z.string().min(1),
+    date: z.coerce.date(),
+    excerpt: z.string().min(1).max(220),
+    tags: z.array(z.string()).default([]),
+    ogImage: z.string().optional(),
+    draft: z.boolean().default(false),
+  }),
+})
+
+export const collections = { connect, blog }

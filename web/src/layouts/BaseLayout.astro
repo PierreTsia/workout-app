@@ -11,6 +11,8 @@ interface Props {
   indexable?: boolean
   canonical?: string
   ogImage?: string
+  rssUrl?: string
+  rssTitle?: string
 }
 
 const {
@@ -19,12 +21,17 @@ const {
   indexable = false,
   canonical,
   ogImage,
+  rssUrl,
+  rssTitle,
 } = Astro.props
 
 const canonicalUrl =
   canonical ?? new URL(Astro.url.pathname, Astro.site).toString()
 const ogImageUrl = ogImage
   ? new URL(ogImage, Astro.site).toString()
+  : undefined
+const rssAbsoluteUrl = rssUrl
+  ? new URL(rssUrl, Astro.site).toString()
   : undefined
 ---
 
@@ -50,6 +57,16 @@ const ogImageUrl = ogImage
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:image" content={ogImageUrl} />
         </>
+      )
+    }
+    {
+      rssAbsoluteUrl && (
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={rssTitle ?? `${title} — RSS feed`}
+          href={rssAbsoluteUrl}
+        />
       )
     }
     <link rel="icon" href="data:," />

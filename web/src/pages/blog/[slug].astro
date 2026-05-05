@@ -1,0 +1,109 @@
+---
+import { render } from 'astro:content'
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import { Badge } from '@/components/ui/badge'
+import Callout from '@/components/mdx/Callout.astro'
+import TechHeavy from '@/components/mdx/TechHeavy.astro'
+import ComingSoon from '@/components/mdx/ComingSoon.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+import Video from '@/components/mdx/Video.astro'
+import {
+  formatDate,
+  getPrevNext,
+  getPublishedPosts,
+  readingTime,
+} from '@/lib/blog'
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts()
+  return posts.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry, posts },
+  }))
+}
+
+const { entry, posts } = Astro.props
+const { Content } = await render(entry)
+const { title, excerpt, date, tags, ogImage } = entry.data
+const minutes = readingTime(entry.body ?? '')
+const { older, newer } = getPrevNext(entry.id, posts)
+---
+
+<BaseLayout
+  title={`${title} — GymLogic Blog`}
+  description={excerpt}
+  indexable
+  ogImage={ogImage}
+  rssUrl="/blog/rss.xml"
+  rssTitle="GymLogic Blog — RSS feed"
+>
+  <article class="mx-auto max-w-3xl px-4 pt-16 pb-24">
+    <header class="flex flex-col gap-4 pb-8 border-b border-border">
+      <h1
+        class="text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
+      >
+        {title}
+      </h1>
+      <p class="text-sm text-muted">
+        <time datetime={date.toISOString()}>{formatDate(date)}</time>
+        {' · '}
+        {minutes} min read
+      </p>
+      {
+        tags.length > 0 && (
+          <div class="flex flex-wrap gap-2">
+            {tags.map((tag: string) => (
+              <Badge variant="outline">{tag}</Badge>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    <div class="prose prose-invert mt-8 max-w-none">
+      <Content
+        components={{ Callout, TechHeavy, ComingSoon, Screenshot, Video }}
+      />
+    </div>
+
+    {
+      (older || newer) && (
+        <nav
+          aria-label="Post navigation"
+          class="mt-16 grid grid-cols-1 gap-4 border-t border-border pt-8 sm:grid-cols-2"
+        >
+          {newer ? (
+            <a
+              href={`/blog/${newer.id}`}
+              class="group flex flex-col gap-1 rounded-lg border border-border p-4 hover:border-accent transition-colors duration-150"
+            >
+              <span class="text-xs uppercase tracking-wider text-muted/80">
+                ← Newer post
+              </span>
+              <span class="text-sm text-foreground group-hover:text-accent transition-colors duration-150">
+                {newer.data.title}
+              </span>
+            </a>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+          {older ? (
+            <a
+              href={`/blog/${older.id}`}
+              class="group flex flex-col gap-1 rounded-lg border border-border p-4 sm:text-right hover:border-accent transition-colors duration-150"
+            >
+              <span class="text-xs uppercase tracking-wider text-muted/80">
+                Older post →
+              </span>
+              <span class="text-sm text-foreground group-hover:text-accent transition-colors duration-150">
+                {older.data.title}
+              </span>
+            </a>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+        </nav>
+      )
+    }
+  </article>
+</BaseLayout>
