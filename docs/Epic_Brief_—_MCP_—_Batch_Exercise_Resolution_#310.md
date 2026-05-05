@@ -48,7 +48,7 @@ Replace the multi-call `search_exercises` + `get_exercise_details` dance with a 
 
 | Story # | Measure |
 |---|---|
-| 1, 7 | Median tool calls per autonomous `create_program` flow ≤ **3** (was ~20-40); ceiling = `1 resolve_exercises + 2 create_program calls (dry_run + apply)` |
+| 1, 7 | Median tool calls within the **resolve → create_program (dry_run) → create_program (apply)** sub-flow ≤ **3** (was ~20-40); ceiling = `1 resolve_exercises + 2 create_program calls`. *Excludes pre-flight context-gathering reads* (`list_programs`, `get_upcoming_workouts`, `get_training_stats`) the agent may run before deciding to build a program. |
 | 2 | Zero `get_exercise_details` calls during a `create_program` flow when the agent uses the new tool |
 | 7 | Wall-clock time from "build me a program" to dry-run preview echoed to user ≤ **10s** P50, ≤ **20s** P95 |
 | 8 | Token consumption per autonomous program creation reduced by ≥ **70%** vs. baseline (issue #310 screenshot, measured on Claude Sonnet free tier) |
@@ -67,7 +67,7 @@ Replace the multi-call `search_exercises` + `get_exercise_details` dance with a 
 7. MCP protocol version bump (`v0.5.0` — additive, non-breaking) and `CHANGELOG.md` entry.
 
 **Out of scope:**
-- Removing or replacing `search_exercises` (deferred — measure agent adoption first; revisit if `search_exercises` calls drop near zero or stay stubbornly high).
+- Removing or replacing `search_exercises` (deferred — measure agent adoption first over a **≥ 2-week observation window** of post-launch agent traffic; revisit then with concrete data: kill if `search_exercises` calls drop to near-zero in autonomous flows, or escalate the steering mechanism — deprecation warning in tool description, `tools/list` exclusion behind a feature flag — if usage stays stubbornly high).
 - Per-query filters in `resolve_exercises` input (`{ name, muscle_group?, equipment? }`). Defer until name-only proves insufficient in real agent traces. Adding optional fields later is non-breaking.
 - Optional `include_details: true` flag to bundle the full instructions blob in `resolve_exercises` response. Pattern 3 (single-exercise lookup) stays at 2 calls (`resolve_exercises` + `get_exercise_details`), which is acceptable.
 - Allowing `create_program` to accept exercise names directly (Option 2 in issue #310 comments — rejected as brittle with similar names).
