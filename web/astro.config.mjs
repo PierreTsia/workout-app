@@ -10,4 +10,13 @@ export default defineConfig({
   output: 'static',
   site: 'https://docs.gymlogic.me',
   integrations: [react()],
+  vite: {
+    // Astro 6 + React 19 dev mode otherwise throws
+    // `jsxDEV is not a function` on hydration of any React island.
+    // See withastro/astro#13189 — pre-bundling the JSX runtimes pins
+    // both SSR and client to the same module instance.
+    optimizeDeps: {
+      include: ['react/jsx-runtime', 'react/jsx-dev-runtime'],
+    },
+  },
 })
