@@ -8,12 +8,24 @@ import Footer from '../components/Footer.astro'
 interface Props {
   title: string
   description?: string
+  indexable?: boolean
+  canonical?: string
+  ogImage?: string
 }
 
 const {
   title,
   description = 'GymLogic — public documentation and write-ups.',
+  indexable = false,
+  canonical,
+  ogImage,
 } = Astro.props
+
+const canonicalUrl =
+  canonical ?? new URL(Astro.url.pathname, Astro.site).toString()
+const ogImageUrl = ogImage
+  ? new URL(ogImage, Astro.site).toString()
+  : undefined
 ---
 
 <!doctype html>
@@ -21,8 +33,25 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
+    <meta
+      name="robots"
+      content={indexable ? 'index, follow' : 'noindex'}
+    />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {
+      ogImageUrl && (
+        <>
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:image" content={ogImageUrl} />
+          <meta property="og:url" content={canonicalUrl} />
+          <meta property="og:type" content="website" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:image" content={ogImageUrl} />
+        </>
+      )
+    }
     <link rel="icon" href="data:," />
     <title>{title}</title>
   </head>

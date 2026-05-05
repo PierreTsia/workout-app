@@ -16,10 +16,15 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props
 const { Content } = await render(entry)
-const { hero, title, description } = entry.data
+const { hero, title, description, ogImage } = entry.data
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout
+  title={title}
+  description={description}
+  indexable
+  ogImage={ogImage}
+>
   <section class="mx-auto max-w-3xl px-4 pt-16 pb-12">
     {
       hero.eyebrow && (

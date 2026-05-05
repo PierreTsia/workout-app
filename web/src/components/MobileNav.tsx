@@ -16,7 +16,7 @@ interface MobileNavProps {
 }
 
 const links: Array<{ href: string; label: string; Icon: LucideIcon }> = [
-  { href: '/claude-connector', label: 'Claude connector', Icon: Plug2 },
+  { href: '/connect/claude', label: 'Claude connector', Icon: Plug2 },
   { href: '/blog', label: 'Blog', Icon: BookOpen },
   { href: '/about', label: 'About', Icon: UserRound },
 ]

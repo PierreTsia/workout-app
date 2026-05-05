@@ -11,10 +11,23 @@ import sitemap from '@astrojs/sitemap'
 export default defineConfig({
   output: 'static',
   site: 'https://docs.gymlogic.me',
-  integrations: [react(), mdx(), sitemap()],
+  integrations: [
+    react(),
+    mdx(),
+    sitemap({
+      filter: (page) =>
+        /^https:\/\/docs\.gymlogic\.me\/connect\/[a-z-]+\/?$/.test(page),
+    }),
+  ],
   markdown: {
     shikiConfig: {
       theme: 'material-theme-darker',
+    },
+  },
+  redirects: {
+    '/claude-connector': {
+      destination: '/connect/claude',
+      status: 308,
     },
   },
   vite: {
