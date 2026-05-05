@@ -26,6 +26,7 @@ import connectorsPanel from '../../assets/connect/claude/connectors-panel.webp'
 import addConnector from '../../assets/connect/claude/add-connector.webp'
 import oauthConsent from '../../assets/connect/claude/oauth-consent.webp'
 import connectedState from '../../assets/connect/claude/connected-state.webp'
+import skillsPanel from '../../assets/connect/claude/skills-panel.webp'
 
 <Screenshot
   src={capabilities}
@@ -157,6 +158,24 @@ For Claude Desktop builds where the native Custom Connector UI isn't available, 
   Same as the [PAT config](#alternative-personal-access-token) above — pass the token via `--header`.
 </details>
 
+## Load the GymLogic Skill (recommended)
+
+The connector exposes the tools; the **Skill** teaches Claude *how* to use them well — when to invoke each, the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing. Without it, Claude can still call the tools, but expect rougher edges (especially on writes and on coaching prompts that cross multiple tools).
+
+1. Download the skill from the repo: [`skills/gymlogic-mcp/SKILL.md`](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md). Use GitHub's "Download raw file" button (top-right of the file viewer).
+
+2. In Claude Desktop, open **Customize → Skills**, click the **+** icon next to "Skills", and upload the `SKILL.md` file.
+
+<Screenshot
+  src={skillsPanel}
+  alt="Claude Desktop Customize panel with Skills tab selected, showing the gymlogic-mcp skill loaded under Personal skills with description and content preview"
+  caption="Customize → Skills → + → upload SKILL.md. Once loaded, the skill appears under Personal skills."
+/>
+
+3. Make sure the skill toggle is **on** (top-right of the skill detail panel).
+
+That's it — the skill triggers automatically on training-related prompts (FR or EN). You don't need to invoke it explicitly.
+
 ## Available tools
 
 | Tool | What it does |
@@ -169,8 +188,9 @@ For Claude Desktop builds where the native Custom Connector UI isn't available, 
 | `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
 | `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs |
 | `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `exercise_ids` (UUIDs). `dry_run` defaults to `true` (preview); set `dry_run: false` to write |
+| `update_program` | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. **Preserves all logged training history**. `dry_run` defaults to `true`; set `dry_run: false` to apply |
 
-**Eight tools** — seven reads, one write. Claude picks the right one based on what you ask.
+**Nine tools** — seven reads, two writes. Claude picks the right one based on what you ask.
 
 ## Example conversation
 

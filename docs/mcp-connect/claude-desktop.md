@@ -33,6 +33,16 @@ After adding the connector, Claude Desktop will trigger the OAuth flow:
 
 Look for the **hammer icon** in the chat input area — this confirms tools are loaded. Ask something and Claude will use the GymLogic tools when relevant.
 
+## Load the GymLogic Skill (recommended)
+
+The connector exposes the tools; the **Skill** ([`skills/gymlogic-mcp/SKILL.md`](../../skills/gymlogic-mcp/SKILL.md)) teaches Claude *how* to use them well — when to invoke each, the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing.
+
+1. Download `SKILL.md` from GitHub: [skills/gymlogic-mcp/SKILL.md](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md) — use GitHub's "Download raw file" button (top-right of the file viewer).
+2. In Claude Desktop, open **Customize → Skills**, click the **+** icon next to "Skills", and upload the file.
+3. Make sure the skill toggle is **on** (top-right of the skill detail panel).
+
+The skill triggers automatically on training-related prompts (FR or EN); no need to invoke it explicitly. Without it Claude can still call the tools, but expect rougher edges — especially on writes and on coaching prompts that cross multiple tools.
+
 ## Available tools
 
 
@@ -45,10 +55,11 @@ Look for the **hammer icon** in the chat input area — this confirms tools are 
 | `get_upcoming_workouts` | Your programmed training days and exercises                                                                                                                                                   |
 | `list_programs`         | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag                                                              |
 | `get_program_details`   | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs. Use after `list_programs` to drill into a specific one         |
-| `create_program`        | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `**exercise_ids`** (UUIDs). `**dry_run` defaults to true** (preview); set `**dry_run: false`** to write. |
+| `create_program`        | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `exercise_ids` (UUIDs). `dry_run` defaults to `true` (preview); set `dry_run: false` to write            |
+| `update_program`        | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. **Preserves all logged training history**. `dry_run` defaults to `true`; set `dry_run: false` to apply |
 
 
-**Eight tools** — seven reads, one write.
+**Nine tools** — seven reads, two writes.
 
 ## Example conversation
 
