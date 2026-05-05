@@ -39,6 +39,7 @@
   "pathTemplateDescription": "Choisissez un programme éprouvé et adaptez-le",
   "pathBlankTitle": "Partir de zéro",
   "pathBlankDescription": "Créez votre programme exercice par exercice",
+  "agentBuildHint": "Utilisez Claude ou un autre agent IA pour créer votre programme →",
 
   "recommendationTitle": "Programmes recommandés",
   "recommendedBadge": "Recommandé",

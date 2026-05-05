@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { publicSite } from "@/lib/publicSite"
 
 const GITHUB_REPO = "https://github.com/PierreTsia/workout-app"
 const GITHUB_PROFILE = "https://github.com/PierreTsia"
@@ -59,6 +60,21 @@ export function AboutPage() {
                 {t("heroTagline")}
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 border-white/15 bg-transparent text-white hover:bg-white/5"
+              asChild
+            >
+              <a
+                href={publicSite.about}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("readHowIWork")}
+                <ExternalLink className="ml-2 h-3 w-3" />
+              </a>
+            </Button>
           </div>
         </header>
 

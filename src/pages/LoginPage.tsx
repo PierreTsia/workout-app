@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
+import { publicSite } from "@/lib/publicSite"
 import { authAtom, authLoadingAtom } from "@/store/atoms"
 
 const FEATURE_KEYS = [1, 2, 3, 4] as const
@@ -102,22 +103,28 @@ export function LoginPage() {
               >
                 {t("auth:signInGoogle")}
               </Button>
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-zinc-500">
-                <Link
-                  to="/about"
+              <div className="flex flex-col items-center gap-3 text-sm text-zinc-500">
+                <a
+                  href={publicSite.home}
                   className="underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
                 >
-                  {t("common:about")}
-                </Link>
-                <span className="hidden sm:inline" aria-hidden>
-                  ·
-                </span>
-                <Link
-                  to="/privacy"
-                  className="underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
-                >
-                  {t("common:privacy")}
-                </Link>
+                  {t("auth:whatIsGymLogic")}
+                </a>
+                <div className="flex items-center gap-x-4 text-xs text-zinc-600">
+                  <Link
+                    to="/about"
+                    className="underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
+                  >
+                    {t("common:about")}
+                  </Link>
+                  <span aria-hidden>·</span>
+                  <Link
+                    to="/privacy"
+                    className="underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
+                  >
+                    {t("common:privacy")}
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>

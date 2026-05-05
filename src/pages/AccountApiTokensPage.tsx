@@ -8,6 +8,7 @@ import { CreatePATDialog } from "@/components/account/CreatePATDialog"
 import { RevokePATDialog } from "@/components/account/RevokePATDialog"
 import { PATListItem } from "@/components/account/PATListItem"
 import { usePersonalAccessTokens } from "@/hooks/usePersonalAccessTokens"
+import { publicSite } from "@/lib/publicSite"
 import type { PersonalAccessToken } from "@/types/personalAccessToken"
 
 // Mirror of `PAT_QUOTA` in supabase/functions/create-pat/createPatLogic.ts.
@@ -43,6 +44,16 @@ export function AccountApiTokensPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">{t("api-tokens:subtitle")}</p>
+      <p className="-mt-3 text-xs text-muted-foreground">
+        <a
+          href={publicSite.connectClaude}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        >
+          {t("api-tokens:connectClaudeHint")}
+        </a>
+      </p>
 
       <section
         className="rounded-xl border border-border bg-card p-4"
@@ -109,6 +120,16 @@ export function AccountApiTokensPage() {
               </p>
               <p className="text-xs text-muted-foreground">
                 {t("api-tokens:emptyHint")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <a
+                  href={publicSite.connectClaude}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                >
+                  {t("api-tokens:connectClaudeHint")}
+                </a>
               </p>
             </div>
             <Button

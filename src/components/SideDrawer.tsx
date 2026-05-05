@@ -28,6 +28,7 @@ import {
   UserRound,
   Settings,
   Trophy,
+  Globe,
 } from "lucide-react"
 import {
   Collapsible,
@@ -44,6 +45,7 @@ import {
   quickSheetOpenAtom,
 } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
+import { publicSite } from "@/lib/publicSite"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
@@ -379,6 +381,18 @@ export function SideDrawer() {
                 <Info className={navIconClass} strokeWidth={1.75} />
                 {t("common:about")}
               </Link>
+            </Button>
+            <Button variant="ghost" className={cn(navRowClass, "h-10 text-muted-foreground hover:text-foreground")} size="sm" asChild>
+              <a
+                href={publicSite.home}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeDrawer}
+                className="flex items-center"
+              >
+                <Globe className={navIconClass} strokeWidth={1.75} />
+                {t("common:docs")}
+              </a>
             </Button>
             <Button variant="ghost" className={cn(navRowClass, "h-10 text-muted-foreground hover:text-foreground")} size="sm" asChild>
               <Link to="/privacy" onClick={closeDrawer} className="flex items-center">

@@ -1,6 +1,7 @@
 {
   "title": "Tokens API",
   "subtitle": "Tokens longue durée pour MCP et les agents headless.",
+  "connectClaudeHint": "Comment brancher Claude / Cursor →",
   "back": "Retour",
   "openFromAccountAria": "Ouvrir les paramètres des tokens API",
   "createCta": "Créer un token",
