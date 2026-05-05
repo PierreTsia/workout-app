@@ -1,0 +1,31 @@
+---
+interface Props {
+  src: string
+  poster?: string
+  caption?: string
+  ariaLabel?: string
+}
+
+const { src, poster, caption, ariaLabel } = Astro.props
+---
+
+<figure class="not-prose my-8">
+  <video
+    class="w-full rounded-lg border border-border"
+    controls
+    preload="metadata"
+    playsinline
+    poster={poster}
+    aria-label={ariaLabel ?? caption}
+  >
+    <source src={src} />
+    Your browser does not support embedded videos.
+  </video>
+  {
+    caption && (
+      <figcaption class="mt-3 text-sm text-muted text-center italic">
+        {caption}
+      </figcaption>
+    )
+  }
+</figure>

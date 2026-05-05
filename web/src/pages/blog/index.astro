@@ -1,0 +1,97 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro'
+import { Badge } from '@/components/ui/badge'
+import {
+  formatDate,
+  getPublishedPosts,
+  readingTime,
+  type BlogEntry,
+} from '@/lib/blog'
+
+const posts = await getPublishedPosts()
+
+const description =
+  'Engineering write-ups, postmortems, and process notes from building GymLogic.'
+---
+
+<BaseLayout
+  title="Blog — GymLogic"
+  description={description}
+  indexable
+  rssUrl="/blog/rss.xml"
+  rssTitle="GymLogic Blog — RSS feed"
+>
+  <section class="mx-auto max-w-3xl px-4 pt-16 pb-12">
+    <div class="flex items-baseline justify-between gap-4">
+      <h1
+        class="text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
+      >
+        Blog
+      </h1>
+      <a
+        href="/blog/rss.xml"
+        class="text-sm text-muted hover:text-foreground transition-colors duration-150 underline-offset-4 hover:underline"
+      >
+        RSS
+      </a>
+    </div>
+    <p class="mt-6 text-lg text-muted leading-relaxed">{description}</p>
+  </section>
+
+  {
+    posts.length === 0 ? (
+      <section class="mx-auto max-w-3xl px-4 pb-24">
+        <div class="rounded-lg border border-border p-8 text-center">
+          <p class="text-base text-muted leading-relaxed">
+            No posts yet. Subscribe to the{' '}
+            <a
+              href="/blog/rss.xml"
+              class="text-foreground underline underline-offset-4 hover:text-accent transition-colors duration-150"
+            >
+              RSS feed
+            </a>{' '}
+            to be notified when the first one drops.
+          </p>
+        </div>
+      </section>
+    ) : (
+      <section class="mx-auto max-w-3xl px-4 pb-24">
+        <ul class="flex flex-col gap-12 border-t border-border pt-12">
+          {posts.map((post: BlogEntry) => (
+            <li>
+              <article class="flex flex-col gap-3">
+                <header class="flex flex-col gap-2">
+                  <h2 class="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+                    <a
+                      href={`/blog/${post.id}`}
+                      class="hover:text-accent transition-colors duration-150"
+                    >
+                      {post.data.title}
+                    </a>
+                  </h2>
+                  <p class="text-sm text-muted">
+                    <time datetime={post.data.date.toISOString()}>
+                      {formatDate(post.data.date)}
+                    </time>
+                    {' · '}
+                    {readingTime(post.body ?? '')} min read
+                  </p>
+                </header>
+                <p class="text-base text-muted leading-relaxed">
+                  {post.data.excerpt}
+                </p>
+                {post.data.tags.length > 0 && (
+                  <div class="flex flex-wrap gap-2">
+                    {post.data.tags.map((tag: string) => (
+                      <Badge variant="outline">{tag}</Badge>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</BaseLayout>
