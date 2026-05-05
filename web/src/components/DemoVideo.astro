@@ -40,7 +40,9 @@ const clips = [
             preload="metadata"
             poster={clip.poster}
             aria-hidden="true"
-            class="block w-full"
+            width="576"
+            height="1296"
+            class="block w-full h-auto"
           >
             <source src={clip.src} type="video/mp4" />
           </video>
@@ -93,7 +95,9 @@ const clips = [
       controls
       preload="none"
       playsinline
-      class="block w-full max-h-[75vh] bg-black"></video>
+      width="576"
+      height="1296"
+      class="block w-full h-auto max-h-[75vh] bg-black"></video>
     <div class="px-4 py-3">
       <p data-demo-cinema-label class="text-sm font-medium text-foreground">
       </p>
