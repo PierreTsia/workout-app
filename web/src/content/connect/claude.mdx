@@ -194,8 +194,8 @@ For Claude Desktop builds where the native Custom Connector UI isn't available, 
 | `get_upcoming_workouts` | Your programmed training days and exercises |
 | `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
 | `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on active, draft, or archived programs |
-| `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `exercise_ids` (UUIDs). `dry_run` defaults to `true` (preview); set `dry_run: false` to write |
-| `update_program` | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. **Preserves all logged training history**. `dry_run` defaults to `true`; set `dry_run: false` to apply |
+| `create_program` | **Create / replace your active program**: pass `name`, `days` with `label` + ordered `exercises` (bare UUIDs for catalog defaults, or full objects with `sets` / `reps` / `weight_kg` / `rest_seconds`). `dry_run` defaults to `true` (preview); set `dry_run: false` to write |
+| `update_program` | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. **Preserves all logged training history**. `dry_run` defaults to `true`; set `dry_run: false` to apply. Removing days additionally requires `confirm: true` |
 
 **Nine tools** — seven reads, two writes. Claude picks the right one based on what you ask.
 
