@@ -77,6 +77,11 @@ function resolveMuscleGroups(input: string | string[]): string[] | undefined {
 
 export const searchExercises: ToolDefinition = {
   name: "search_exercises",
+  annotations: {
+    title: "Search exercise catalog",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "Browse the exercise catalog by muscle group, equipment, or difficulty filters. " +
     "Supports fuzzy and diacritic-insensitive search in both French and English. " +

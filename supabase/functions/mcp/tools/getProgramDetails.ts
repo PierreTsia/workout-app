@@ -31,6 +31,11 @@ interface WorkoutExerciseRow {
 
 export const getProgramDetails: ToolDefinition = {
   name: "get_program_details",
+  annotations: {
+    title: "Get program details",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "Get the full structure of a training program by ID — days, exercises, sets, reps, weights, rest. " +
     "Works regardless of cycle state. Use after list_programs, or with the program_id surfaced by " +

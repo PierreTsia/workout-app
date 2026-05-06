@@ -27,7 +27,7 @@ Edit your global MCP config at `~/.cursor/mcp.json` (create it if it doesn't exi
 {
   "mcpServers": {
     "gymlogic": {
-      "url": "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+      "url": "https://mcp.gymlogic.me/functions/v1/mcp",
       "headers": {
         "Authorization": "Bearer <YOUR_PAT>"
       }

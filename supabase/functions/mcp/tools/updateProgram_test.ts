@@ -362,14 +362,15 @@ class MockBuilder {
   }
 }
 
-function matchAll(row: Record<string, unknown>, filters: Filter[]): boolean {
+function matchAll<T>(row: T, filters: Filter[]): boolean {
+  const cells = row as Record<string, unknown>
   return filters.every((f) => {
-    if (f.type === "eq") return row[f.col] === f.val
+    if (f.type === "eq") return cells[f.col] === f.val
     if (f.type === "in") {
       const list = f.val as unknown[]
-      return list.includes(row[f.col])
+      return list.includes(cells[f.col])
     }
-    if (f.type === "is") return row[f.col] === f.val
+    if (f.type === "is") return cells[f.col] === f.val
     return true
   })
 }

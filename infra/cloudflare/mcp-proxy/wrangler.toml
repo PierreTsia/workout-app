@@ -1,0 +1,17 @@
+name = "gymlogic-mcp-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Custom domain binding — Cloudflare provisions TLS automatically.
+# Set up via `wrangler deploy`; DNS lives in this same Cloudflare account
+# (see docs/done/T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md).
+[[routes]]
+pattern = "mcp.gymlogic.me/*"
+custom_domain = true
+
+# UPSTREAM_URL is committed because it's not a secret — it's the Supabase
+# project URL anyone can read in the Edge Function logs. KILL_SWITCH is
+# DELIBERATELY ABSENT here: it must be set as a runtime variable in the
+# Cloudflare dashboard so it can be flipped without redeploying. See ADR 0001.
+[vars]
+UPSTREAM_URL = "https://favusepjqwpcroiolvaz.supabase.co"

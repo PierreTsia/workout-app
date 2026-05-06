@@ -10,9 +10,31 @@ import { updateProgram } from "./updateProgram.ts"
 import { listPrograms } from "./listPrograms.ts"
 import { getProgramDetails } from "./getProgramDetails.ts"
 
+/**
+ * MCP-spec tool annotations (2025-03-26).
+ *
+ * Drives the client UI's auto-permission behavior:
+ *   - read-only tools execute without confirmation prompts
+ *   - destructive tools always prompt for user confirmation
+ *
+ * `title` is required so "added a tool, forgot the label" is a TS error at
+ * the same line you're already editing. See ADR 0001 for the full matrix.
+ */
+export interface ToolAnnotations {
+  /** Human-readable label shown in client UI (Claude Desktop, Cursor, etc.) */
+  title: string
+  /** True if the tool only reads data, never writes */
+  readOnlyHint?: boolean
+  /** True if the tool may delete or replace user data */
+  destructiveHint?: boolean
+  /** True if calling the tool multiple times with same args is safe */
+  idempotentHint?: boolean
+}
+
 export interface ToolDefinition {
   name: string
   description: string
+  annotations: ToolAnnotations
   inputSchema: {
     type: "object"
     properties: Record<string, unknown>

@@ -161,6 +161,11 @@ For activating/deactivating a program (\`is_active\`), use the dedicated \`set_a
 
 export const updateProgram: ToolDefinition = {
   name: "update_program",
+  annotations: {
+    title: "Update existing program (preserves history)",
+    destructiveHint: true,
+    idempotentHint: true,
+  },
   description: TOOL_DESCRIPTION,
   inputSchema: {
     type: "object",

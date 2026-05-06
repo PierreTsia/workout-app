@@ -4,14 +4,19 @@ description: >
   Interview the user relentlessly about a plan, idea, or design until reaching
   shared understanding. Walks down each branch of the design tree, resolves
   dependencies between decisions, and explores the codebase whenever a question
-  can be answered there instead of asked. Trigger on phrases like "grill me",
-  "challenge ce plan", "stress test cette idée", "interroge-moi", "design tree",
-  "let's nail this down".
+  can be answered there instead of asked. Use this when the topic does NOT touch
+  the GymLogic codebase (pure product brainstorm, strategy, personal decision);
+  for anything code-adjacent, prefer `grill-with-docs` so the session feeds the
+  glossary and ADRs. Trigger on phrases like "grill me", "challenge ce plan",
+  "stress test cette idée", "interroge-moi", "design tree", "let's nail this
+  down".
 ---
 
 # Grill Me
 
 Interview the user **relentlessly** about every aspect of the plan or idea until you reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one by one. For every question, **provide your recommended answer with rationale**.
+
+> **When to reach for `grill-with-docs` instead:** if the topic touches the GymLogic codebase (a feature, a refactor, an MCP tool, a schema change…), use `grill-with-docs`. It does everything this skill does plus loads `docs/CONTEXT.md`, sharpens fuzzy terms against the glossary live, and writes ADRs for hard-to-reverse decisions.
 
 **Ask one question at a time.** No batches. No multi-question dumps.
 

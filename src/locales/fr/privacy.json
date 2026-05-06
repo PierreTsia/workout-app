@@ -1,6 +1,6 @@
 {
   "title": "Politique de confidentialité",
-  "lastUpdated": "Dernière mise à jour : mars 2026",
+  "lastUpdated": "Dernière mise à jour : mai 2026",
   "backToApp": "Retour à l'appli",
 
   "s1Title": "Qui sommes-nous",
@@ -13,9 +13,10 @@
   "s2Analytics": "Événements d'interaction (ex. fonctionnalités utilisées) stockés dans une table analytics_events. Ils nous aident à comprendre l'utilisation de l'appli.",
   "s2AI": "Requêtes de génération d'entraînements et de programmes envoyées à l'API Google Gemini. Les invites incluent votre profil d'entraînement, mais pas votre nom ni votre e-mail.",
   "s2Device": "Stockage local : une file de synchronisation hors ligne, des préférences (langue, thème, unité de poids) et un cache PWA. Rien de cela ne quitte votre appareil, sauf pour la synchronisation avec notre serveur.",
+  "s2AIAgent": "Intégrations avec des agents IA (Claude, Cursor, Le Chat, etc.) : lorsque vous connectez GymLogic via OAuth ou un Personal Access Token, l'agent lit vos données d'entraînement en votre nom. Les écritures (création / mise à jour de programme) nécessitent votre confirmation explicite dans le chat avant exécution.",
 
   "s3Title": "Où vos données sont traitées",
-  "s3Body": "Vos données sont stockées chez Supabase (base de données, authentification, fichiers). Les requêtes de génération IA sont envoyées à Google Gemini. L'appli est hébergée sur Vercel. Ce sont les seuls sous-traitants. Nous ne vendons ni ne partageons vos données avec qui que ce soit d'autre.",
+  "s3Body": "Vos données sont stockées chez Supabase (base de données, authentification, fichiers). Les requêtes de génération IA sont envoyées à Google Gemini. Les intégrations avec des agents IA passent par Cloudflare et Supabase, le fournisseur de l'agent (Anthropic, OpenAI, Mistral, etc.) ne traitant que le prompt et la réponse. L'appli est hébergée sur Vercel. Ce sont les seuls sous-traitants. Nous ne vendons ni ne partageons vos données avec qui que ce soit d'autre.",
 
   "s4Title": "Durée de conservation",
   "s4Active": "Toutes les données d'entraînement, votre profil et votre avatar sont liés à votre compte et supprimés lors de la suppression de celui-ci.",

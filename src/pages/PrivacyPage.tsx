@@ -46,6 +46,7 @@ export function PrivacyPage() {
           <p>{t("s2Analytics")}</p>
           <p>{t("s2AI")}</p>
           <p>{t("s2Device")}</p>
+          <p>{t("s2AIAgent")}</p>
         </Section>
 
         <Separator className="mb-10" />

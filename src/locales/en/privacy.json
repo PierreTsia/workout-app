@@ -1,6 +1,6 @@
 {
   "title": "Privacy Policy",
-  "lastUpdated": "Last updated: March 2026",
+  "lastUpdated": "Last updated: May 2026",
   "backToApp": "Back to app",
 
   "s1Title": "Who we are",
@@ -13,9 +13,10 @@
   "s2Analytics": "App interaction events (e.g. which features you use) stored in an analytics_events table. These help us understand how the app is used.",
   "s2AI": "Workout and program generation requests sent to the Google Gemini API. Prompts include your training profile but not your name or email.",
   "s2Device": "Local device storage: a sync queue for offline use, preferences (language, theme, weight unit), and a PWA cache. None of this leaves your device except to sync with our backend.",
+  "s2AIAgent": "AI agent integrations (Claude, Cursor, Le Chat, etc.): when you connect GymLogic via OAuth or a Personal Access Token, the agent reads your training data on your behalf. Writes (program creation/updates) require your explicit confirmation in-chat before execution.",
 
   "s3Title": "Where your data is processed",
-  "s3Body": "Your data is stored in Supabase (database, auth, file storage). AI generation requests are sent to Google Gemini. The app is hosted on Vercel. These are the only sub-processors. We do not sell or share your data with anyone else.",
+  "s3Body": "Your data is stored in Supabase (database, auth, file storage). AI generation requests are sent to Google Gemini. AI agent integrations are routed through Cloudflare and Supabase, with the agent's provider (Anthropic, OpenAI, Mistral, etc.) processing only the prompt and response. The app is hosted on Vercel. These are the only sub-processors. We do not sell or share your data with anyone else.",
 
   "s4Title": "Retention",
   "s4Active": "All workout data, your profile, and your avatar are linked to your account and deleted when you delete your account.",

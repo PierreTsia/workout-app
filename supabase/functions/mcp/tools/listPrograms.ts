@@ -19,6 +19,11 @@ import { formatProgramListEntry } from "../lib/format.ts"
 
 export const listPrograms: ToolDefinition = {
   name: "list_programs",
+  annotations: {
+    title: "List training programs",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "List the user's training programs (with or without active cycle). " +
     "Returns id, name, is_active, day_count, created_at, has_active_cycle. " +
