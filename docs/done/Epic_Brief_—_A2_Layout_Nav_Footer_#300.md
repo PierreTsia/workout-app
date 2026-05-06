@@ -21,13 +21,15 @@ A2 ships the chrome that wraps every page on `docs.gymlogic.me`: a sober, typogr
 
 **Pain points:**
 
-| Pain | Impact |
-|---|---|
-| No layout shell | Every downstream ticket (A3-A7) rebuilds chrome |
-| No design tokens in `web/` | Either copy hex literals everywhere or drift from SPA |
-| No shadcn vocabulary in `web/` | Every page reinvents Button/Card patterns inline |
-| Anthropic Directory submission blocked | #296 cannot proceed without a public URL |
+
+| Pain                                   | Impact                                                      |
+| -------------------------------------- | ----------------------------------------------------------- |
+| No layout shell                        | Every downstream ticket (A3-A7) rebuilds chrome             |
+| No design tokens in `web/`             | Either copy hex literals everywhere or drift from SPA       |
+| No shadcn vocabulary in `web/`         | Every page reinvents Button/Card patterns inline            |
+| Anthropic Directory submission blocked | #296 cannot proceed without a public URL                    |
 | Vitrine/portfolio claim has no surface | Shipping #237 (public craft piece) requires polished chrome |
+
 
 ---
 
@@ -51,11 +53,13 @@ A2 ships the chrome that wraps every page on `docs.gymlogic.me`: a sober, typogr
 
 ### Success measures
 
-| Story # | Measure |
-|---|---|
-| 7 | Lighthouse a11y score > 95 on mobile (any route) |
-| 9 | Cumulative Layout Shift (CLS) = 0 on production build (PageSpeed Insights mobile) |
-| 14 | Vercel preview renders all 4 placeholder routes successfully on `web/**` PRs |
+
+| Story # | Measure                                                                           |
+| ------- | --------------------------------------------------------------------------------- |
+| 7       | Lighthouse a11y score > 95 on mobile (any route)                                  |
+| 9       | Cumulative Layout Shift (CLS) = 0 on production build (PageSpeed Insights mobile) |
+| 14      | Vercel preview renders all 4 placeholder routes successfully on `web/`** PRs      |
+
 
 Stories 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 15 are validated qualitatively (visual review + manual a11y/keyboard test).
 
@@ -144,3 +148,4 @@ Stories 1, 2, 3, 4, 5, 6, 8, 10, 11, 12, 13, 15 are validated qualitatively (vis
 - SPA shadcn primitives: `file:src/components/ui/button.tsx`, `file:src/components/ui/card.tsx`, `file:src/components/ui/sheet.tsx`, `file:src/components/ui/badge.tsx`
 - SPA marketing reference: `file:src/pages/AboutPage.tsx` (source of `#00c9a7` accent)
 - A1 layout (to extend): `file:web/src/layouts/BaseLayout.astro`
+
