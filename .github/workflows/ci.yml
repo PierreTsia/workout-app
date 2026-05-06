@@ -73,7 +73,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno test "supabase/functions/mcp/lib/*_test.ts" --allow-env
+      - run: deno test "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env
 
   e2e:
     runs-on: ubuntu-latest

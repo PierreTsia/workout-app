@@ -25,6 +25,11 @@ const TOOL_DESCRIPTION =
 
 export const resolveExercises: ToolDefinition = {
   name: "resolve_exercises",
+  annotations: {
+    title: "Resolve exercise names to catalog ids",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description: TOOL_DESCRIPTION,
   inputSchema: {
     type: "object",

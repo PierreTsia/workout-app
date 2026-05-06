@@ -3,6 +3,11 @@ import { formatSessionSummary } from "../lib/format.ts"
 
 export const getWorkoutHistory: ToolDefinition = {
   name: "get_workout_history",
+  annotations: {
+    title: "Get workout history",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "Get the user's workout session history. Returns sessions with exercises, sets, reps, weights, " +
     "and PR flags. Filter by date range or exercise name. Defaults to the last 10 sessions. " +

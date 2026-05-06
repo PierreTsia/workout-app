@@ -3,6 +3,11 @@ import { formatStatsSummary } from "../lib/format.ts"
 
 export const getTrainingStats: ToolDefinition = {
   name: "get_training_stats",
+  annotations: {
+    title: "Get training stats",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "Get training statistics for a period. Returns session count, training frequency, " +
     "volume breakdown by muscle group, and personal records. Defaults to the last 30 days. " +

@@ -70,6 +70,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export const getExerciseDetails: ToolDefinition = {
   name: "get_exercise_details",
+  annotations: {
+    title: "Get exercise details",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "Get full details for ONE exercise by its UUID. Returns instructions (setup, movement, " +
     "breathing, common mistakes), muscle targets, equipment, difficulty, and media links. " +

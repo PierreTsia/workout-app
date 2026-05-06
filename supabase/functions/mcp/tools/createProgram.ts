@@ -117,6 +117,11 @@ Activates the new program and deactivates any other active program. Breaking cha
 
 export const createProgram: ToolDefinition = {
   name: "create_program",
+  annotations: {
+    title: "Create or replace active program",
+    destructiveHint: true,
+    idempotentHint: false,
+  },
   description: TOOL_DESCRIPTION,
   inputSchema: {
     type: "object",

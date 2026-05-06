@@ -3,6 +3,11 @@ import { formatWorkoutDay } from "../lib/format.ts"
 
 export const getUpcomingWorkouts: ToolDefinition = {
   name: "get_upcoming_workouts",
+  annotations: {
+    title: "Get upcoming workouts",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   description:
     "See the user's upcoming programmed workouts. Returns the next training days with exercises, " +
     "target sets, reps, and weights. Requires an active program and cycle.",
