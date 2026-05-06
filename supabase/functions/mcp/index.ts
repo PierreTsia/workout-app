@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { resolveAuth, UnauthorizedError } from "./lib/auth.ts"
+import { getPublicMcpUrl } from "./lib/publicUrl.ts"
 import { toolRegistry } from "./tools/registry.ts"
 import { resourceRegistry } from "./resources/registry.ts"
 
@@ -11,7 +12,8 @@ const corsHeaders: Record<string, string> = {
 }
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
-const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`
+// OAuth issuer always lives on Supabase — even when the MCP endpoint is
+// proxied via Cloudflare. See ADR 0001.
 const AUTH_ISSUER = `${SUPABASE_URL}/auth/v1`
 
 const SERVER_INFO = { name: "gymlogic", version: "0.5.0" }
@@ -83,16 +85,17 @@ function json(body: unknown, status = 200, extraHeaders?: Record<string, string>
   })
 }
 
-const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
-const WWW_AUTHENTICATE = `Bearer resource_metadata="${RESOURCE_METADATA_URL}"`
+function wwwAuthenticateHeader(publicMcpUrl: string): string {
+  return `Bearer resource_metadata="${publicMcpUrl}/.well-known/oauth-protected-resource"`
+}
 
-async function handleWellKnown(url: URL): Promise<Response | null> {
+async function handleWellKnown(url: URL, publicMcpUrl: string): Promise<Response | null> {
   const path = url.pathname
 
   // RFC 9728 — Protected Resource Metadata
   if (path.endsWith("/.well-known/oauth-protected-resource")) {
     return json({
-      resource: MCP_URL,
+      resource: publicMcpUrl,
       authorization_servers: [AUTH_ISSUER],
       scopes_supported: [],
       bearer_methods_supported: ["header"],
@@ -118,6 +121,13 @@ async function handleWellKnown(url: URL): Promise<Response | null> {
 }
 
 Deno.serve(async (req) => {
+  // Resolve the public hostname for THIS request — the Cloudflare Worker
+  // proxy sets `X-Forwarded-Host: mcp.gymlogic.me`, direct Supabase calls
+  // don't. Used to stamp the right `resource:` and `WWW-Authenticate` URLs
+  // so OAuth issuer validation matches the host the client actually called.
+  const publicMcpUrl = getPublicMcpUrl(req, SUPABASE_URL)
+  const wwwAuth = wwwAuthenticateHeader(publicMcpUrl)
+
   if (req.method === "OPTIONS")
     return new Response(null, { status: 204, headers: corsHeaders })
 
@@ -125,7 +135,7 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 200, headers: corsHeaders })
 
   if (req.method === "GET") {
-    const wellKnown = await handleWellKnown(new URL(req.url))
+    const wellKnown = await handleWellKnown(new URL(req.url), publicMcpUrl)
     if (wellKnown) return wellKnown
     return json(fail(null, -32600, "Only POST is supported"), 405)
   }
@@ -139,7 +149,7 @@ Deno.serve(async (req) => {
     return json(
       fail(null, -32000, "Authentication required"),
       401,
-      { "WWW-Authenticate": WWW_AUTHENTICATE },
+      { "WWW-Authenticate": wwwAuth },
     )
   }
 
@@ -175,7 +185,7 @@ Deno.serve(async (req) => {
       return json(
         fail(null, -32000, err.message),
         401,
-        { "WWW-Authenticate": WWW_AUTHENTICATE },
+        { "WWW-Authenticate": wwwAuth },
       )
     }
     // Internal error — auth resolver throwing for non-401 reasons (env
