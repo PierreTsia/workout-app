@@ -16,23 +16,25 @@ GymLogic ships its MCP server and the matching `gymlogic-mcp` skill into Anthrop
 - **All 10 tools** in `file:supabase/functions/mcp/tools/registry.ts` expose `name`, `description`, `inputSchema`, and `handler` only. **No `annotations` block** — Claude has no protocol-level signal for read-only vs destructive, no human-readable `title`, no idempotency hint. Result: every tool call prompts the user; auto-permissions don't kick in for reads.
 - **OAuth flow** is wired up via `file:supabase/functions/mcp/index.ts` exposing `.well-known/oauth-protected-resource` (RFC 9728) and proxying `.well-known/oauth-authorization-server` (RFC 8414) from Supabase Auth. The `resource` field and `WWW-Authenticate` header are hardcoded to the Supabase URL. Consent UI already lives at `gymlogic.me/oauth/consent`.
 - **Skill `file:skills/gymlogic-mcp/SKILL.md`** is internally inconsistent — line 13 says "**nine** tools", line 66 says "**Ten** tools total" (the registry has 10, including `resolve_exercises` from #310). The issue body's annotation table omits `resolve_exercises` entirely.
-- **Privacy policy** does not exist as a public URL on `gymlogic.me`. Resend / transactional email already use Cloudflare-managed DNS (`file:docs/done/T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md`), so DNS for `mcp.gymlogic.me` is straightforward — no provider migration.
+- **Privacy policy** already exists at `https://www.gymlogic.me/privacy` via `file:src/pages/PrivacyPage.tsx` (bilingual FR/EN, last updated March 2026). Covers all 6 Anthropic-required points (data collection, usage, storage, third-party sharing, retention, contact). Gap to close: zero mention of MCP/AI-agent integrations — addressed in Track A4. Apex `gymlogic.me/privacy` 307-redirects to `www`; `www` is canonical. Resend / transactional email already use Cloudflare-managed DNS (`file:docs/done/T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md`), so DNS for `mcp.gymlogic.me` is straightforward — no provider migration.
 - **Plugin packaging**: the skill is a Cursor-style markdown file. Anthropic's plugin format requires a public GitHub repo + `claude plugin validate` pass — not validated yet.
 - **Issue #302** (`file:docs/Tech_Plan_—_A4_Connect_Claude_#302.md`) ships the public docs URL `docs.gymlogic.me/connect/claude` that the Anthropic submission form will point at. Currently embedded in the Astro mini-site epic #298. Not yet shipped; partially blocking this epic.
 - **Decisions already locked in** via grilling on this branch: tool annotation type shape, per-tool annotation matrix, code organization, Cloudflare Worker passthrough + kill switch, OAuth issuer policy, backward-compat strategy. Captured in `file:docs/adr/0001-mcp-public-url-and-oauth-issuer.md` and `file:docs/CONTEXT.md`.
 
 **Pain points:**
 
-| Pain | Impact |
-|---|---|
-| Setup requires technical comfort with Custom Connector dialogs | Non-tech users hit a wall; the "ouvre Claude, cherche GymLogic, clique install" pitch doesn't work today |
-| Supabase-generated hostname looks phishy | Trust friction at install — even technical users hesitate |
-| No tool annotations | Every tool call prompts user; auto-permissions disabled; UX worse than competitors |
-| No public privacy policy | Submission criterion failure; Directory listing rejected |
-| Plugin not packaged | Plugins Directory listing impossible until skill is validated |
-| Existing public docs URL is the GitHub repo path (`docs/mcp-connect/claude-desktop.md`) | Submission requires a polished, public URL — depends on #302 |
-| Tool count + naming inconsistency in skill | Future maintainers and submitters confused about ground truth |
-| URL change risks breaking existing installs | Maintainer + early beta testers; mitigated by keeping both URLs alive |
+
+| Pain                                                                                    | Impact                                                                                                   |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Setup requires technical comfort with Custom Connector dialogs                          | Non-tech users hit a wall; the "ouvre Claude, cherche GymLogic, clique install" pitch doesn't work today |
+| Supabase-generated hostname looks phishy                                                | Trust friction at install — even technical users hesitate                                                |
+| No tool annotations                                                                     | Every tool call prompts user; auto-permissions disabled; UX worse than competitors                       |
+| No public privacy policy                                                                | Submission criterion failure; Directory listing rejected                                                 |
+| Plugin not packaged                                                                     | Plugins Directory listing impossible until skill is validated                                            |
+| Existing public docs URL is the GitHub repo path (`docs/mcp-connect/claude-desktop.md`) | Submission requires a polished, public URL — depends on #302                                             |
+| Tool count + naming inconsistency in skill                                              | Future maintainers and submitters confused about ground truth                                            |
+| URL change risks breaking existing installs                                             | Maintainer + early beta testers; mitigated by keeping both URLs alive                                    |
+
 
 ---
 
@@ -40,7 +42,7 @@ GymLogic ships its MCP server and the matching `gymlogic-mcp` skill into Anthrop
 
 1. As an **Anthropic Directory reviewer** evaluating the GymLogic submission, I want every tool to declare proper `annotations` (`title`, `readOnlyHint` for reads, `destructiveHint` for writes, `idempotentHint` where applicable), so that I can verify the submission meets the published review criteria without manual inspection of each tool's behavior.
 2. As an **Anthropic Directory reviewer**, I want the MCP server to be hosted on a domain matching the GymLogic brand (`mcp.gymlogic.me`), so that I can confirm the server is operated by the service it claims to integrate with.
-3. As an **Anthropic Directory reviewer**, I want a public privacy policy at `https://gymlogic.me/privacy` covering data collection, usage, storage, third-party sharing, retention, and contact, so that I can validate the GDPR/CCPA-adjacent baseline before approving the listing.
+3. As an **Anthropic Directory reviewer**, I want a public privacy policy at `https://www.gymlogic.me/privacy` covering data collection, usage, storage, third-party sharing, retention, and contact (including AI-agent integrations), so that I can validate the GDPR/CCPA-adjacent baseline before approving the listing.
 4. As an **Anthropic Directory reviewer**, I want a public documentation URL (`https://docs.gymlogic.me/connect/claude`) describing the connector setup, so that I can verify the install flow before users hit it.
 5. As an **Anthropic Directory reviewer**, I want a working test account with realistic data (active program, recent workouts, varied exercise log) and a long-lived PAT, so that I can manually invoke each tool and confirm meaningful, non-error responses.
 6. As an **Anthropic Plugin Directory reviewer** evaluating the `gymlogic-mcp` plugin submission, I want the plugin packaged in a public GitHub repo passing `claude plugin validate`, with a clear cross-reference to the connector listing, so that I can approve the dual-listing.
@@ -57,13 +59,15 @@ GymLogic ships its MCP server and the matching `gymlogic-mcp` skill into Anthrop
 
 ### Success measures
 
-| Story # | Measure |
-|---|---|
-| 1, 10, 11 | All 10 tools (`search_exercises`, `resolve_exercises`, `get_exercise_details`, `get_workout_history`, `get_training_stats`, `get_upcoming_workouts`, `list_programs`, `get_program_details`, `create_program`, `update_program`) expose `annotations.title` plus the correct hint per the matrix in ADR 0001. Verified by `tools/registry_test.ts` property assertions. |
-| 2, 8, 9, 14 | `https://mcp.gymlogic.me/functions/v1/mcp` returns identical JSON-RPC responses to the Supabase URL for `initialize`, `tools/list`, `resources/list`. Both URLs alive — verified by `curl` against each. |
-| 5 | Every tool returns a non-error response when invoked via MCP Inspector with the test account's PAT. Zero `Authentication required` or generic 5xx responses on the validation pass. |
-| 13 | `KILL_SWITCH=true` env var flip on the Worker returns `503` for POST requests within 60s of dashboard save; `.well-known/*` GETs still resolve. |
-| - | **Final**: GymLogic appears in `claude.com/connectors/directory` AND the corresponding Plugin Directory, installable in one click from Claude Desktop / Claude.ai. |
+
+| Story #     | Measure                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1, 10, 11   | All 10 tools (`search_exercises`, `resolve_exercises`, `get_exercise_details`, `get_workout_history`, `get_training_stats`, `get_upcoming_workouts`, `list_programs`, `get_program_details`, `create_program`, `update_program`) expose `annotations.title` plus the correct hint per the matrix in ADR 0001. Verified by `tools/registry_test.ts` property assertions. |
+| 2, 8, 9, 14 | `https://mcp.gymlogic.me/functions/v1/mcp` returns identical JSON-RPC responses to the Supabase URL for `initialize`, `tools/list`, `resources/list`. Both URLs alive — verified by `curl` against each.                                                                                                                                                                |
+| 5           | Every tool returns a non-error response when invoked via MCP Inspector with the test account's PAT. Zero `Authentication required` or generic 5xx responses on the validation pass.                                                                                                                                                                                     |
+| 13          | `KILL_SWITCH=true` env var flip on the Worker returns `503` for POST requests within 60s of dashboard save; `.well-known/*` GETs still resolve.                                                                                                                                                                                                                         |
+| -           | **Final**: GymLogic appears in `claude.com/connectors/directory` AND the corresponding Plugin Directory, installable in one click from Claude Desktop / Claude.ai.                                                                                                                                                                                                      |
+
 
 Stories 3, 4, 6, 7, 12, 15, 16 are validated qualitatively (manual inspection of the listed URL, social card debugger, reviewer feedback, ADR review).
 
@@ -89,8 +93,8 @@ Stories 3, 4, 6, 7, 12, 15, 16 are validated qualitatively (manual inspection of
   - A3.1 `skills/gymlogic-mcp/SKILL.md`: switch line 57's URL to `mcp.gymlogic.me`; fix line 13's "nine tools" → "ten tools" (line 66 already correct).
   - A3.2 All `docs/mcp-connect/*.md` files (`claude-desktop.md`, `cursor.md`, `le-chat.md`, `openclaw.md`, `example-prompts.md`): URL update.
 - **A4 — Privacy policy publication**:
-  - A4.1 Author privacy policy copy covering 6 points: data collection (what we collect from MCP requests + OAuth), usage (training/coaching purposes only), storage (Supabase EU region), third-party sharing (Resend for email; no marketing partners), retention (per Supabase auth defaults; PAT lifetime user-controlled), contact (`admin@gymlogic.me`).
-  - A4.2 Publish at `https://gymlogic.me/privacy` (or `/legal/privacy`) on the Astro mini-site or current SPA — surface decision in Tech Plan.
+  - A4.1 Existing privacy page already covers all 6 Anthropic-required points (data collection, usage, storage, third-party sharing, retention, contact). Add MCP/AI-agent disclosure: one new i18n key `s2AIAgent` describing OAuth/PAT auth, read-only-by-default behavior, write confirmation handshake. Update `s3Body` to list MCP routing (Cloudflare Worker → Supabase Edge Function → user data) as a sub-processor flow. Both locales (FR + EN), bump `lastUpdated`.
+  - A4.2 Privacy page already lives at `https://www.gymlogic.me/privacy` via `file:src/pages/PrivacyPage.tsx` — A4 reduces to copy edits (the new key + `s3Body` revision + `lastUpdated` bump). No new component, no new route.
 - **A5 — Public documentation URL** (depends on #302):
   - A5.1 `https://docs.gymlogic.me/connect/claude` ships per `file:docs/Tech_Plan_—_A4_Connect_Claude_#302.md`. This epic depends on it; #302 should pick up the new `mcp.gymlogic.me` URL on rebase.
 - **A6 — Test account preparation**:
@@ -132,7 +136,7 @@ Stories 3, 4, 6, 7, 12, 15, 16 are validated qualitatively (manual inspection of
 - Submission to other AI marketplaces (OpenAI Apps Directory, Mistral, Cursor's own marketplace) — separate tickets if/when they exist.
 - Desktop extension (MCPB) format — staying with remote MCP only.
 - Migration to a custom OAuth Authorization Server replacing Supabase Auth — only if Anthropic reviewers reject on issuer-domain grounds (ADR sequel triggers this).
-- Full OAuth proxy at `mcp.gymlogic.me/auth/*` — same condition as above.
+- Full OAuth proxy at `mcp.gymlogic.me/auth/`* — same condition as above.
 - Canary subdomain `mcp-canary.gymlogic.me` for staging — premature at current user count (= maintainer); kill switch + fast rollback give equivalent safety.
 - Privacy policy legal review by a lawyer — self-authored copy is acceptable for v1; revisit if audience grows or B2B pivot happens.
 - Auto-sync between `skills/gymlogic-mcp/SKILL.md` and `docs/mcp-connect/*.md` — manual is fine at current scale.
@@ -146,12 +150,12 @@ Stories 3, 4, 6, 7, 12, 15, 16 are validated qualitatively (manual inspection of
 - All 10 MCP tools expose `annotations` with `title` per the matrix (verified via `tools/registry_test.ts`).
 - `https://mcp.gymlogic.me/functions/v1/mcp` returns identical JSON-RPC responses to the Supabase URL for `initialize`, `tools/list`, `resources/list` (verified by `curl + diff`).
 - Both URLs alive: Supabase URL returns same responses as before (no behavior change for existing users).
-- `https://gymlogic.me/privacy` returns 200 over HTTPS, content covers all 6 required points.
+- `https://www.gymlogic.me/privacy` returns 200 over HTTPS (apex `gymlogic.me/privacy` 307-redirects there); content covers all 6 required points AND the new MCP/AI-agent disclosure.
 - `https://docs.gymlogic.me/connect/claude` returns 200 (depends on #302).
 - Connector submission form submitted with all required fields populated.
 - Plugin validates via `claude plugin validate` and is submitted via the plugin form.
 - MCP Inspector pass: each of 10 tools returns a meaningful, non-error response with the test account's PAT.
-- `KILL_SWITCH=true` flips the Worker's MCP RPC traffic to 503 within 60s; `.well-known/*` still resolves.
+- `KILL_SWITCH=true` flips the Worker's MCP RPC traffic to 503 within 60s; `.well-known/`* still resolves.
 - ADR 0001 + glossary entries exist in `docs/`.
 
 **Qualitative:**
@@ -194,9 +198,9 @@ Things resolved in the brief but worth de-risking before or during the Tech Plan
   - `file:docs/adr/0001-mcp-public-url-and-oauth-issuer.md`
   - `file:docs/CONTEXT.md` (MCP glossary section)
 - Anthropic docs:
-  - Submission: https://claude.com/docs/connectors/building/submission
-  - Review criteria: https://claude.com/docs/connectors/building/review-criteria
-  - Connector form: https://clau.de/mcp-directory-submission
-  - Plugin form: https://claude.com/plugins/submit
-  - Directory: https://claude.com/connectors/directory
+  - Submission: [https://claude.com/docs/connectors/building/submission](https://claude.com/docs/connectors/building/submission)
+  - Review criteria: [https://claude.com/docs/connectors/building/review-criteria](https://claude.com/docs/connectors/building/review-criteria)
+  - Connector form: [https://clau.de/mcp-directory-submission](https://clau.de/mcp-directory-submission)
+  - Plugin form: [https://claude.com/plugins/submit](https://claude.com/plugins/submit)
+  - Directory: [https://claude.com/connectors/directory](https://claude.com/connectors/directory)
 - Workspace rules: `file:.cursor/rules/docs-format.mdc` (Epic Brief template), `file:.cursor/rules/build-sandbox-caveat.mdc` (build commands), `file:.cursor/rules/no-commit-without-permission.mdc`

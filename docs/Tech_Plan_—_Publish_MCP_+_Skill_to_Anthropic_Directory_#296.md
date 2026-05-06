@@ -18,9 +18,9 @@
 | Kill switch granularity | **`KILL_SWITCH=true` blocks POST only**; `.well-known/*` GETs and OPTIONS pass through | Killing OAuth metadata mid-flow strands users; killing only MCP RPC is the safe granularity. Decided in grilling Q8 follow-up. |
 | **Worker→function header convention** | **`X-Forwarded-Host`** | Industry-standard header name; Cloudflare doesn't strip user-provided ones. Switch to a custom `X-MCP-Forwarded-Host` only if smoke test reveals stripping. |
 | **Worker env var management** | **`KILL_SWITCH` set as a runtime variable via Cloudflare dashboard, NOT in `wrangler.toml`** | Flippable in seconds via dashboard; `wrangler.toml` `[vars]` would require a redeploy to flip — defeats the kill switch purpose. `wrangler.toml` only declares the var is expected. |
-| Function-side change | **Single helper `getPublicMcpUrl(req: Request): string` in `file:supabase/functions/mcp/index.ts`**; reads `X-Forwarded-Host` header, falls back to `${SUPABASE_URL}/functions/v1/mcp` | Per-request derivation; works whether request comes via Worker (forwarded host present) or direct (Supabase URL). Used in `.well-known/oauth-protected-resource.resource` field and in `WWW-Authenticate` header. |
-| **`getPublicMcpUrl` test coverage** | **No dedicated unit test; covered transitively by manual smoke test against both URLs** | At ~5 LOC the helper is trivial; the only meaningful failure mode (wrong fallback URL) is caught by `curl-ing` `.well-known/oauth-protected-resource` against both URLs and asserting each advertises itself. Bake the smoke test into the PR review checklist. |
-| **Worker testing strategy** | **Vanilla `vitest` in `infra/cloudflare/mcp-proxy/`** with `Request`/`Response` mocks; local `npm test` only, **not** in CI | Worker is 50 LOC; `@cloudflare/vitest-pool-workers` setup overhead exceeds value at this size. CI extension for the Worker can land later if Worker iteration accelerates. |
+| Function-side change | **Helper `getPublicMcpUrl(req: Request, supabaseUrl: string): string` extracted into `file:supabase/functions/mcp/lib/publicUrl.ts`**, imported by `index.ts`; reads `X-Forwarded-Host` header, falls back to `${supabaseUrl}/functions/v1/mcp` | Per-request derivation; works whether request comes via Worker (forwarded host present) or direct (Supabase URL). Living in `lib/` matches the existing pattern (`auth.ts`, `format.ts`, `jwt.ts`) and falls inside the existing CI `deno-unit` glob. Pure function (env var passed as param) — trivial to test. |
+| **`getPublicMcpUrl` test coverage** | **Helper extracted to `file:supabase/functions/mcp/lib/publicUrl.ts`; tested in `lib/publicUrl_test.ts` with two cases (with/without `X-Forwarded-Host`)** | Initial decision (skip the unit test) was wrong: the helper is the load-bearing primitive of the entire URL strategy, and a future refactor without re-running the smoke test would silently break direct-Supabase-URL users. Two-case test is ~15 LOC. Manual smoke test stays as defense in depth. |
+| **Worker testing strategy** | **Vanilla `vitest` in `infra/cloudflare/mcp-proxy/`** with `Request`/`Response` mocks; **`worker-unit` CI job** conditional on `infra/cloudflare/**` changes (mirrors the existing `web-type-check` paths-filter pattern) | The Worker is the public-facing entry point; a CI gate against future passthrough/kill-switch regressions costs ~25 lines of YAML. `@cloudflare/vitest-pool-workers` still rejected — vanilla vitest with `Request`/`Response` mocks is sufficient at this size. |
 | Cloudflare deployment binding | **Custom Domain in `wrangler.toml`** (`routes = [{ pattern = "mcp.gymlogic.me/*", custom_domain = true }]`) | Modern Cloudflare way; auto-provisions TLS. Worker Routes (older, manual SSL) rejected. |
 | Migration smoke test | **Manual `curl + diff` against both URLs before merge**; kill switch as rollback lever | Per Q10 grilling — solo-dev tempo, no real users to protect. Automated diff test is nice-to-have, not blocking. |
 | Backward compat for Supabase URL | **Supabase URL stays alive forever; not blocked, deprecated, or sunset** | Per ADR 0001 + grilling Q9. |
@@ -48,7 +48,7 @@
 
 **The skill update collision risk with #302's `claude-desktop.md` sync** is real but manageable: this PR ships first; #302 picks up the new URL on rebase. If #302 ships first (unlikely given dependency direction — A4 of #298 depends on this for the URL), the conflict is a 1-line resolution. Tag the #302 implementer when this PR opens.
 
-**The privacy policy is served by the SPA at `gymlogic.me/privacy`.** Anthropic submission form fills `https://gymlogic.me/privacy` as the privacy URL — this URL works **today** with the existing page, but the content gap (no MCP mention) means the URL is "live but technically incomplete" until A4 lands. Sequencing: ship A4 in this PR so the URL is content-complete the moment it's submitted in A9.
+**The privacy policy is served by the SPA at `https://www.gymlogic.me/privacy`** (apex `gymlogic.me/privacy` 307-redirects to `www`; both URLs functionally work, `www` is canonical). Anthropic submission form fills `https://www.gymlogic.me/privacy` as the privacy URL — this URL works **today** with the existing page, but the content gap (no MCP mention) means the URL is "live but technically incomplete" until A4 lands. Sequencing: ship A4 in this PR so the URL is content-complete the moment it's submitted in A9. **Note**: the canonical apex-vs-www split is opposite of typical SaaS (most apps use apex-canonical post-2020); migrating to apex-canonical is a separate ticket and out of scope for #296.
 
 **The `npm run lint` and `tsc -b` jobs in CI cover `src/**` (SPA root) but NOT the Worker subfolder.** Adding `infra/cloudflare/mcp-proxy/` won't break root lint/type-check (excluded by tsconfig). Worker has its own `tsconfig.json` + types. Worker code does NOT compile via the root `tsc -b`; verified by leaving it out of the root tsconfig's `references`/`include`.
 
@@ -143,15 +143,17 @@ interface Env {
 ```
 
 ```ts
-// New helper in supabase/functions/mcp/index.ts
-function getPublicMcpUrl(req: Request): string {
+// New helper in supabase/functions/mcp/lib/publicUrl.ts
+export function getPublicMcpUrl(req: Request, supabaseUrl: string): string {
   const forwardedHost = req.headers.get("X-Forwarded-Host")
   if (forwardedHost) {
     return `https://${forwardedHost}/functions/v1/mcp`
   }
-  return `${SUPABASE_URL}/functions/v1/mcp`
+  return `${supabaseUrl}/functions/v1/mcp`
 }
 ```
+
+Pure function — `supabaseUrl` is passed as a parameter rather than read from `Deno.env` inside, so tests don't need env-var setup. `index.ts` passes `Deno.env.get("SUPABASE_URL")!` at the call site.
 
 ### 5. Privacy policy locale shape (modified)
 
@@ -160,7 +162,7 @@ Both `file:src/locales/en/privacy.json` and `file:src/locales/fr/privacy.json` g
 ```jsonc
 {
   // existing keys ...
-  "s2AIAgent": "AI agent integrations: when you connect GymLogic to Claude, Cursor, Le Chat, or another MCP-compatible AI client (using either OAuth or a Personal Access Token you generate at /account/api-tokens), the agent reads your workout data, training stats, and exercise catalog to answer questions or build programs on your behalf. Writes (program creation, program updates) are explicitly prompted before execution. The integration runs on a Cloudflare Worker proxying to a Supabase Edge Function — no third party stores your data; the agent's own provider (Anthropic, OpenAI, Mistral) processes only what you ask it.",
+  "s2AIAgent": "AI agent integrations (Claude, Cursor, Le Chat, etc.): when you connect GymLogic via OAuth or a Personal Access Token, the agent reads your training data on your behalf. Writes (program creation/updates) require your explicit confirmation in-chat before execution.",
   // ...
 }
 ```
@@ -168,7 +170,7 @@ Both `file:src/locales/en/privacy.json` and `file:src/locales/fr/privacy.json` g
 `s3Body` ("Where your data is processed") is updated to list MCP/agent providers as a flow path:
 
 ```jsonc
-"s3Body": "Your data is stored in Supabase (database, auth, file storage). AI generation requests are sent to Google Gemini. AI agent integrations (Claude / Cursor / Le Chat / etc.) access your data on-demand via MCP — these requests are routed through Cloudflare and Supabase, with the agent's provider (Anthropic, OpenAI, Mistral, etc.) processing the prompt and response. The app is hosted on Vercel. These are the only sub-processors. We do not sell or share your data with anyone else."
+"s3Body": "Your data is stored in Supabase (database, auth, file storage). AI generation requests are sent to Google Gemini. AI agent integrations are routed through Cloudflare and Supabase, with the agent's provider (Anthropic, OpenAI, Mistral, etc.) processing only the prompt and response. The app is hosted on Vercel. These are the only sub-processors. We do not sell or share your data with anyone else."
 ```
 
 `PrivacyPage.tsx` renders the new key alongside existing s2 keys (one new `<p>{t("s2AIAgent")}</p>` line).
@@ -255,6 +257,8 @@ graph TD
 | `infra/cloudflare/mcp-proxy/src/index.ts` | **New** — fetch handler. ~50 LOC: parses incoming request, checks `env.KILL_SWITCH === "true"` for POSTs (returns 503 if killed), constructs upstream URL preserving path/query, sets `X-Forwarded-Host` header, fetches upstream, streams response back. Emits one `console.log` per request. |
 | `infra/cloudflare/mcp-proxy/src/index.test.ts` | **New** — `vitest` against `Request`/`Response` mocks. Cases: passthrough preserves method/path/query, `X-Forwarded-Host` is added correctly, kill switch blocks POST when `KILL_SWITCH=true`, kill switch does NOT block GET to `.well-known/*` even when set, errors from upstream propagate as-is. |
 | `infra/cloudflare/mcp-proxy/.gitignore` | **New** — `node_modules/`, `.wrangler/`, `dist/`, `.dev.vars`. |
+| `supabase/functions/mcp/lib/publicUrl.ts` | **New** — extracted helper `getPublicMcpUrl(req, supabaseUrl)` (~5 LOC). Pure function: returns `https://${X-Forwarded-Host}/functions/v1/mcp` if header present, else `${supabaseUrl}/functions/v1/mcp`. Imported by `index.ts`. |
+| `supabase/functions/mcp/lib/publicUrl_test.ts` | **New** — Deno test. Two cases: (a) `Request` with `X-Forwarded-Host: mcp.gymlogic.me` → returns `https://mcp.gymlogic.me/functions/v1/mcp`; (b) `Request` without the header → returns `${supabaseUrl}/functions/v1/mcp` fallback. ~15 LOC. Covered by existing CI `deno-unit` glob (`lib/*_test.ts`). |
 | `supabase/functions/mcp/tools/registry_test.ts` | **New** — Deno test (matches Deno test convention `_test.ts`). Two property assertions: `every tool exposes annotations.title via toolRegistry.list()`; `no tool claims both readOnlyHint and destructiveHint`. ~25 LOC. |
 
 ### Modified Files
@@ -272,9 +276,9 @@ graph TD
 | `file:supabase/functions/mcp/tools/getProgramDetails.ts` | Add `annotations: { title: "Get program details", readOnlyHint: true, idempotentHint: true }`. |
 | `file:supabase/functions/mcp/tools/createProgram.ts` | Add `annotations: { title: "Create or replace active program", destructiveHint: true, idempotentHint: false }`. |
 | `file:supabase/functions/mcp/tools/updateProgram.ts` | Add `annotations: { title: "Update existing program (preserves history)", destructiveHint: true, idempotentHint: true }`. |
-| `file:supabase/functions/mcp/index.ts` | Add `getPublicMcpUrl(req)` helper (5 LOC). Replace `MCP_URL` constant uses in (1) `RESOURCE_METADATA_URL` computation (now per-request), (2) `WWW_AUTHENTICATE` header (now per-request), (3) `.well-known/oauth-protected-resource` `resource` field (now `getPublicMcpUrl(req)`). Two of these are computed at module-load today; they move into the request handler. |
-| `file:.github/workflows/ci.yml` | Update `deno-unit` job's command from `deno test "supabase/functions/mcp/lib/*_test.ts" --allow-env` to `deno test "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env` (two patterns; Deno accepts multiple paths). |
-| `file:skills/gymlogic-mcp/SKILL.md` | Line 13: change "**nine tools** (seven reads, two writes)" to "**ten tools** (eight reads, two writes)" — matches line 66's correct count. Line 57: change `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp` to `https://mcp.gymlogic.me/functions/v1/mcp`. |
+| `file:supabase/functions/mcp/index.ts` | Import `getPublicMcpUrl` from `./lib/publicUrl.ts`. Replace `MCP_URL` constant uses in (1) `RESOURCE_METADATA_URL` computation (now per-request via `getPublicMcpUrl(req, SUPABASE_URL)`), (2) `WWW_AUTHENTICATE` header (now per-request), (3) `.well-known/oauth-protected-resource` `resource` field. Two of these are computed at module-load today; they move into the request handler. Net diff: ~5 LOC removed (old hardcoded constants), ~3 LOC added (import + 3 call sites). |
+| `file:.github/workflows/ci.yml` | **Four changes**: (1) Update `deno-unit` job's command from `deno test "supabase/functions/mcp/lib/*_test.ts" --allow-env` to `deno test "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env` (Deno accepts multiple paths). (2) Extend the `changes` job's `paths-filter` with a `worker` output matching `infra/cloudflare/**`. (3) Add a new `worker-unit` job conditional on `needs.changes.outputs.worker == 'true'` running `cd infra/cloudflare/mcp-proxy && npm ci && npm test`. (4) Rename `web-checks-passed` to `subproject-checks-passed`, add `worker-unit` to its `needs:`, and extend the body to verify both `web-*` and `worker-*` results follow the success-or-skipped pattern. **Branch protection**: after the rename, update the required check from `web-checks-passed` to `subproject-checks-passed`. |
+| `file:skills/gymlogic-mcp/SKILL.md` | **Three lines to fix** (verified by `rg -i "nine\s+(tool\|read)" skills/`): Line 13 ("**nine tools** (seven reads, two writes)" → "**ten tools** (eight reads, two writes)"); Line 60 ("All **nine** tools 401 if no auth context" → "All **ten** tools 401 if no auth context"); Line 57 (URL: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp` → `https://mcp.gymlogic.me/functions/v1/mcp`). Line 66 ("Ten tools total — eight reads, two writes") is already correct. |
 | `file:docs/mcp-connect/claude-desktop.md` | URL update: `*.supabase.co/functions/v1/mcp` → `mcp.gymlogic.me/functions/v1/mcp`. Verify `mcp-remote` config example URLs are also updated. |
 | `file:docs/mcp-connect/cursor.md` | URL update (same pattern). |
 | `file:docs/mcp-connect/le-chat.md` | URL update (same pattern). |
@@ -331,23 +335,24 @@ export default {
 - **Header forwarding**: `Authorization`, `Origin`, `Accept`, `Content-Type` etc. are forwarded by default via `new Headers(req.headers)`. Cloudflare strips a few hop-by-hop headers automatically.
 - **CORS**: the upstream function already sets `Access-Control-Allow-Origin: *` etc. (`file:supabase/functions/mcp/index.ts:6-11`). The Worker doesn't need to add CORS headers — the upstream's response carries them.
 
-**Function helper `getPublicMcpUrl(req)` (`supabase/functions/mcp/index.ts`)**
+**Function helper `getPublicMcpUrl(req, supabaseUrl)` (`supabase/functions/mcp/lib/publicUrl.ts`)**
 
 ```ts
-function getPublicMcpUrl(req: Request): string {
+export function getPublicMcpUrl(req: Request, supabaseUrl: string): string {
   const forwardedHost = req.headers.get("X-Forwarded-Host")
   if (forwardedHost) {
     return `https://${forwardedHost}/functions/v1/mcp`
   }
-  return `${SUPABASE_URL}/functions/v1/mcp`
+  return `${supabaseUrl}/functions/v1/mcp`
 }
 ```
 
+- **Pure function**: takes `supabaseUrl` as a parameter rather than reading `Deno.env.get("SUPABASE_URL")!` inline. Trivial to test (no env-var setup required); `index.ts` passes `Deno.env.get("SUPABASE_URL")!` at the call site.
 - **Path 1** (Worker-routed request): `X-Forwarded-Host: mcp.gymlogic.me` → returns `https://mcp.gymlogic.me/functions/v1/mcp`.
 - **Path 2** (direct Supabase URL request): no `X-Forwarded-Host` → returns `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp` (the legacy URL existing users hit).
 - **Used in**: (1) the `resource` field of `.well-known/oauth-protected-resource` response, (2) the `resource_metadata` URL in the `WWW-Authenticate` header on 401 responses.
 - **Not used for**: `.well-known/oauth-authorization-server` (that proxies Supabase's AS metadata which already points at `*.supabase.co/auth/v1` — out of scope per ADR 0001 Option A).
-- **Not unit-tested**: at ~5 LOC, the only meaningful failure mode (wrong fallback URL) is caught by the manual smoke test asserting both URLs return self-consistent `.well-known/oauth-protected-resource.resource` values.
+- **Unit-tested in `lib/publicUrl_test.ts`** with two cases (with/without `X-Forwarded-Host`); manual smoke test stays as defense in depth.
 
 **`registry_test.ts`** (Deno test)
 
@@ -389,7 +394,7 @@ Deno.test("registry: no tool claims both readOnlyHint and destructiveHint", () =
 | **Cloudflare TLS provisioning takes 15+ min on first deploy** | First `wrangler deploy` returns success, but `https://mcp.gymlogic.me/...` returns TLS handshake errors until cert provisions. **Detection**: `curl -v https://mcp.gymlogic.me/functions/v1/mcp -X OPTIONS` returns SSL error. **Resolution**: wait. **Mitigation**: schedule deploy during a no-stress window. |
 | **Worker deploys but custom-domain binding fails silently** | Worker is live but `mcp.gymlogic.me` returns 522 / 1014 / generic Cloudflare error. **Detection**: dashboard shows "Custom Domain: error" on the Worker. **Resolution**: re-bind via dashboard or `wrangler` CLI; verify zone ownership. |
 | **`X-Forwarded-Host` header dropped in transit** (Cloudflare strips it, or upstream filters it) | Function falls back to `SUPABASE_URL`-derived public URL even when called via Worker. Claude sees the Supabase URL in `.well-known/oauth-protected-resource.resource` — branding regression but functionally OK. **Detection**: smoke test (`curl https://mcp.gymlogic.me/functions/v1/mcp/.well-known/oauth-protected-resource`) returns `resource: *.supabase.co/...` instead of `mcp.gymlogic.me/...`. **Resolution**: switch to a custom header name like `X-MCP-Forwarded-Host` (rename in both Worker and function). |
-| **`getPublicMcpUrl` fallback returns wrong URL on direct Supabase access** | E.g. typo: `https://${forwardedHost}` (correct) vs `https:/${forwardedHost}` (typo). **Detection**: manual smoke test (`curl ${SUPABASE_URL}/functions/v1/mcp/.well-known/oauth-protected-resource` returns wrong resource field). **Resolution**: ship the fix. **Mitigation**: PR review checklist includes the smoke command before merge. |
+| **`getPublicMcpUrl` fallback returns wrong URL on direct Supabase access** | E.g. typo: `https://${forwardedHost}` (correct) vs `https:/${forwardedHost}` (typo). **Detection**: (a) `lib/publicUrl_test.ts` covers both branches (with/without `X-Forwarded-Host`), running in CI `deno-unit` job; (b) manual smoke test as defense in depth. **Resolution**: ship the fix. |
 | **`.well-known/oauth-authorization-server` proxy fails** (existing code, not changed by this PR) | Falls back to 502 per `file:supabase/functions/mcp/index.ts:111-114`. Not a new failure mode but worth verifying it still works post-deploy. |
 | **Kill switch flipped accidentally in dashboard** | All POSTs return 503; OAuth flow still works (metadata GETs unaffected); MCP RPC dies. **Detection**: any tool call returns 503 in Claude. **Resolution**: flip `KILL_SWITCH` back to anything other than `"true"` in dashboard; takes < 60s to propagate. |
 | **Worker exceeds free tier (100k requests/day)** | Cloudflare returns 1015 (rate limited). **Detection**: dashboard analytics show ramp toward limit. **Resolution**: upgrade to Workers Paid ($5/mo for 10M requests). **Mitigation**: log-based monitoring at the maintainer level; not realistic at current usage. |
@@ -415,9 +420,9 @@ Breadcrumbs for the implementer (probably future-me):
 
 - **Commit sequencing — 5 commits, in this order:**
   1. `feat(mcp): add Tool Annotations to all 10 tools` — modifies `registry.ts` (type) atomically with all 10 tool files (annotations); adds `tools/registry_test.ts`; updates `ci.yml` glob. **Critical**: type change + annotation addition must be in the same commit so TS compiles between commits.
-  2. `feat(mcp): add per-request public URL derivation in function` — modifies `supabase/functions/mcp/index.ts` (adds `getPublicMcpUrl(req)`, refactors `.well-known/oauth-protected-resource` and `WWW-Authenticate` to use it). **No dedicated test** — covered by manual smoke in the PR review checklist.
-  3. `feat(infra): Cloudflare Worker proxy at mcp.gymlogic.me` — adds `infra/cloudflare/mcp-proxy/{wrangler.toml,package.json,tsconfig.json,src/index.ts,src/index.test.ts,.gitignore}`. **Worker is not deployed in this commit** — that happens manually post-merge. Tests run via `cd infra/cloudflare/mcp-proxy && npm install && npm test`.
-  4. `docs: switch MCP user-facing docs to mcp.gymlogic.me` — updates `skills/gymlogic-mcp/SKILL.md` (URL on line 57 + nine→ten on line 13) and all `docs/mcp-connect/*.md` files. **Sanity check**: `grep -rn "favusepjqwpcroiolvaz" docs/ skills/` should return only the ADR 0001 hit (intentional glossary reference).
+  2. `feat(mcp): extract getPublicMcpUrl helper to lib/publicUrl.ts` — adds `supabase/functions/mcp/lib/publicUrl.ts` (5 LOC pure helper, takes `supabaseUrl` as a param) and `lib/publicUrl_test.ts` (2 cases: with/without `X-Forwarded-Host`). Modifies `index.ts` to import the helper and use it in `.well-known/oauth-protected-resource.resource` field and `WWW-Authenticate` header. Tests run in the existing CI `deno-unit` job (covered by the existing `lib/*_test.ts` glob — no glob extension needed for THIS commit; the glob extension lands in commit 1 for `tools/registry_test.ts`).
+  3. `feat(infra): Cloudflare Worker proxy at mcp.gymlogic.me` — adds `infra/cloudflare/mcp-proxy/{wrangler.toml,package.json,tsconfig.json,src/index.ts,src/index.test.ts,.gitignore}` AND extends `.github/workflows/ci.yml` with: (a) `worker` output in the `changes` `paths-filter` job, (b) new `worker-unit` job conditional on `needs.changes.outputs.worker == 'true'` running `cd infra/cloudflare/mcp-proxy && npm ci && npm test`, (c) renames `web-checks-passed` to `subproject-checks-passed` and extends its `needs:` array to include `worker-unit` (also update the body verification to check both `web-*` and `worker-*` results). **Worker is not deployed in this commit** — that happens manually post-merge. **Branch protection note**: after the rename, update branch protection rules to require `subproject-checks-passed` instead of `web-checks-passed`.
+  4. `docs: switch MCP user-facing docs to mcp.gymlogic.me` — updates `skills/gymlogic-mcp/SKILL.md` (URL on line 57; nine→ten on lines 13 AND 60) and all `docs/mcp-connect/*.md` files. **Sanity checks** (run after commit, both should be clean): (a) `rg "favusepjqwpcroiolvaz" docs/ skills/` returns only the ADR 0001 hit (intentional glossary reference); (b) `rg -i "nine\s+(tool\|read)" skills/` returns 0 hits.
   5. `feat(privacy): document MCP / AI agent integrations` — adds `s2AIAgent` to both locale JSONs, updates `s3Body`, bumps `lastUpdated`, renders the new key in `PrivacyPage.tsx`. Update `PrivacyPage.test.tsx` if it asserts on rendered content.
 
 - **Worker `wrangler.toml` template:**
