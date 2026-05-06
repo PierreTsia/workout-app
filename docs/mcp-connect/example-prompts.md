@@ -22,6 +22,7 @@ Why this works zero-shot: the tool descriptions and the SKILL.md *Discovery flow
 ### For Claude Desktop — paste in Custom Instructions
 
 > When the user asks me to review, summarize, compare, or critique any of their GymLogic training programs, I will:
+>
 > 1. Call `list_programs` first to see all available programs.
 > 2. Match the user's intent to a specific program ID, or ask if ambiguous.
 > 3. Call `get_program_details(id)` to load the full structure.
@@ -41,7 +42,7 @@ Expected agent behavior:
 
 Variant — when the user is mid-cycle and wants to compare against what's coming up rather than naming a second program:
 
-1. Call `get_upcoming_workouts` to get the active program's id (now surfaced in the response header as `*(id: <uuid>)*`).
+1. Call `get_upcoming_workouts` to get the active program's id (now surfaced in the response header as `*(id: <uuid>)`*).
 2. Call `list_programs(include_archived: true)` to find the candidate alternative.
 3. Call `get_program_details` on the alternative.
 4. Compare against what was returned by `get_upcoming_workouts` directly.
@@ -51,6 +52,7 @@ This second variant only works because `get_upcoming_workouts` now returns the a
 ### For Claude Desktop — paste in Custom Instructions (extends the block above)
 
 > When the user asks me to compare two GymLogic programs:
+>
 > 1. Resolve both program IDs via `list_programs` (or use the active program's `id` from `get_upcoming_workouts` if the user said "compare to what I'm doing now").
 > 2. Call `get_program_details(id)` on each.
 > 3. Show a diff table covering: total days, exercises per day, muscle coverage overlap, weekly volume by muscle group.
