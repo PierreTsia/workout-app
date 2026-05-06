@@ -6,7 +6,7 @@ compatibility_date = "2025-01-01"
 # Set up via `wrangler deploy`; DNS lives in this same Cloudflare account
 # (see docs/done/T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md).
 [[routes]]
-pattern = "mcp.gymlogic.me/*"
+pattern = "mcp.gymlogic.me"
 custom_domain = true
 
 # UPSTREAM_URL is committed because it's not a secret — it's the Supabase
