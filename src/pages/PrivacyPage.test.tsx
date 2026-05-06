@@ -42,4 +42,12 @@ describe("PrivacyPage", () => {
     renderWithProviders(<PrivacyPage />)
     expect(screen.getByText(/pseudonymised/i)).toBeInTheDocument()
   })
+
+  it("discloses AI-agent integrations and Cloudflare routing (required for Anthropic directory submission, #296)", () => {
+    renderWithProviders(<PrivacyPage />)
+    const body = document.body.textContent ?? ""
+    expect(body).toMatch(/Claude/)
+    expect(body).toMatch(/Cursor/)
+    expect(body).toMatch(/Cloudflare/)
+  })
 })
