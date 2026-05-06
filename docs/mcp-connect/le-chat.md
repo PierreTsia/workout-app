@@ -27,7 +27,7 @@ Le Chat's Custom MCP Connector lets you authenticate with a static API Key, whic
 4. Switch to the **Custom MCP Connector** tab
 5. Fill in:
   - **Connector Name**: `gymlogic`
-  - **Connector Server**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
+  - **Connector Server**: `https://mcp.gymlogic.me/functions/v1/mcp`
   - **Authentication Method**: select **API Key**
   - **API Key**: paste your `glp_…` token from step 1
 6. Click **Connect** — Le Chat probes the server and saves the connector
@@ -110,7 +110,7 @@ The rest of the setup (Agent + chat) is identical.
 The same PAT also works as a Bearer token for direct HTTP calls to the MCP server — handy for CI jobs, custom agents, or `curl`-based debugging:
 
 ```bash
-curl -X POST https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp \
+curl -X POST https://mcp.gymlogic.me/functions/v1/mcp \
   -H "Authorization: Bearer <YOUR_PAT>" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'

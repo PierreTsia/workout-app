@@ -16,7 +16,7 @@ Use your training data and exercise catalog in Claude conversations via GymLogic
 3. Click **Add custom connector**
 4. Fill in:
   - **Name**: `Gymlogic`
-  - **URL**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
+  - **URL**: `https://mcp.gymlogic.me/functions/v1/mcp`
   - Leave **OAuth Client ID** and **OAuth Client Secret** empty (GymLogic uses dynamic registration)
 5. Click **Add**
 
@@ -84,7 +84,7 @@ OAuth is the default and the smoothest path for the desktop app. If you prefer n
 {
   "mcpServers": {
     "gymlogic": {
-      "url": "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+      "url": "https://mcp.gymlogic.me/functions/v1/mcp",
       "headers": {
         "Authorization": "Bearer <YOUR_PAT>"
       }
@@ -110,7 +110,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
       "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
       "args": [
         "mcp-remote",
-        "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp"
+        "https://mcp.gymlogic.me/functions/v1/mcp"
       ]
     }
   }
@@ -128,7 +128,7 @@ To use a PAT instead of OAuth with `mcp-remote`, pass it as a header:
       "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
       "args": [
         "mcp-remote",
-        "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+        "https://mcp.gymlogic.me/functions/v1/mcp",
         "--header",
         "Authorization: Bearer <YOUR_PAT>"
       ]

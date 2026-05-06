@@ -10,7 +10,7 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **nine tools** (seven reads, two writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **ten tools** (eight reads, two writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
 GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it (`get_*` reads) or shape their program with `create_program` (new) or `update_program` (in-place edits — preserves training history).
 
@@ -54,10 +54,10 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 ### Server endpoint
 
 ```
-https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp
+https://mcp.gymlogic.me/functions/v1/mcp
 ```
 
-All nine tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All ten tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 

@@ -30,7 +30,7 @@ Edit `~/.openclaw/openclaw.json` (overridable via `OPENCLAW_CONFIG_PATH`):
   "mcp": {
     "servers": {
       "gymlogic": {
-        "url": "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+        "url": "https://mcp.gymlogic.me/functions/v1/mcp",
         "headers": {
           "Authorization": "Bearer <YOUR_PAT>"
         }
@@ -47,7 +47,7 @@ Edit `~/.openclaw/openclaw.json` (overridable via `OPENCLAW_CONFIG_PATH`):
 If you'd rather not edit JSON by hand:
 
 ```bash
-openclaw mcp set gymlogic '{"url":"https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp","headers":{"Authorization":"Bearer <YOUR_PAT>"}}'
+openclaw mcp set gymlogic '{"url":"https://mcp.gymlogic.me/functions/v1/mcp","headers":{"Authorization":"Bearer <YOUR_PAT>"}}'
 openclaw mcp list                # confirms "gymlogic" is registered
 openclaw mcp show gymlogic       # prints the stored config
 openclaw mcp unset gymlogic      # remove
@@ -147,7 +147,7 @@ Or template the file with `envsubst` and run `openclaw config validate` as a pre
 The same PAT works as a Bearer token for direct HTTP calls — handy for CI jobs or `curl`-based debugging:
 
 ```bash
-curl -X POST https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp \
+curl -X POST https://mcp.gymlogic.me/functions/v1/mcp \
   -H "Authorization: Bearer <YOUR_PAT>" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
