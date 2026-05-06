@@ -40,7 +40,11 @@ export default {
     )
 
     const headers = new Headers(req.headers)
-    headers.set("X-Forwarded-Host", incomingUrl.host)
+    // Custom header (not `X-Forwarded-Host`) because Supabase's edge gateway
+    // strips/overrides the standard one before it reaches the Deno deploy
+    // runtime — verified live during T105 smoke. The function-side helper
+    // (lib/publicUrl.ts) reads this same name. See ADR 0001 follow-ups.
+    headers.set("X-MCP-Forwarded-Host", incomingUrl.host)
 
     // Streaming bodies require duplex: 'half' on Node's fetch — Cloudflare's
     // runtime accepts this too. Cast keeps strict TS happy until the type

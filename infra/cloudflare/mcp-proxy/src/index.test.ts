@@ -40,7 +40,7 @@ describe("mcp-proxy Worker", () => {
     expect((init as RequestInit).method).toBe("POST")
   })
 
-  it("stamps X-Forwarded-Host with the incoming request's host", async () => {
+  it("stamps X-MCP-Forwarded-Host with the incoming request's host", async () => {
     const req = new Request("https://mcp.gymlogic.me/functions/v1/mcp", {
       method: "POST",
     })
@@ -49,7 +49,7 @@ describe("mcp-proxy Worker", () => {
 
     const init = fetchMock.mock.calls[0][1] as RequestInit
     const headers = init.headers as Headers
-    expect(headers.get("X-Forwarded-Host")).toBe("mcp.gymlogic.me")
+    expect(headers.get("X-MCP-Forwarded-Host")).toBe("mcp.gymlogic.me")
   })
 
   it("returns 503 with Retry-After when KILL_SWITCH=true blocks a POST and skips upstream", async () => {
