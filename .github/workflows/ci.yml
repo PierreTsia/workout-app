@@ -16,6 +16,7 @@ jobs:
     outputs:
       web: ${{ steps.filter.outputs.web }}
       spa: ${{ steps.filter.outputs.spa }}
+      worker: ${{ steps.filter.outputs.worker }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -27,6 +28,9 @@ jobs:
             spa:
               - '**'
               - '!web/**'
+              - '!infra/**'
+            worker:
+              - 'infra/cloudflare/**'
 
   lint:
     runs-on: ubuntu-latest
@@ -200,24 +204,46 @@ jobs:
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-  # Always-runs summary job that succeeds when ALL of preview-deploy-web AND
-  # web-type-check are `success` OR `skipped`. This is the required check added
-  # to branch protection (M6), avoiding the stuck-PR trap on SPA-only PRs where
-  # web/ jobs are paths-filtered out and would otherwise block merges if listed
-  # directly.
-  web-checks-passed:
-    needs: [changes, preview-deploy-web, web-type-check]
+  # Cloudflare Worker proxy (infra/cloudflare/mcp-proxy/) — public-URL frontend
+  # for the MCP Edge Function. Runs vanilla vitest against Request/Response
+  # mocks; only triggers when `infra/cloudflare/**` actually changes so SPA-only
+  # PRs skip it cleanly. Ships in T102, deployed in T105 post-merge.
+  worker-unit:
+    needs: [changes]
+    if: needs.changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: infra/cloudflare/mcp-proxy/package-lock.json
+      - run: cd infra/cloudflare/mcp-proxy && npm ci
+      - run: cd infra/cloudflare/mcp-proxy && npm test
+
+  # Always-runs summary job that succeeds when ALL gated subproject checks are
+  # `success` OR `skipped`. This is the required check added to branch
+  # protection (M6), avoiding the stuck-PR trap on PRs where one subtree is
+  # paths-filtered out and would otherwise block merges if listed directly.
+  # Covers: web/ Astro mini-site (preview-deploy-web, web-type-check) AND the
+  # Cloudflare Worker proxy (worker-unit).
+  subproject-checks-passed:
+    needs: [changes, preview-deploy-web, web-type-check, worker-unit]
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Verify web checks
+      - name: Verify subproject checks
         run: |
           preview="${{ needs.preview-deploy-web.result }}"
           types="${{ needs.web-type-check.result }}"
+          worker="${{ needs.worker-unit.result }}"
           echo "preview-deploy-web: $preview"
           echo "web-type-check: $types"
+          echo "worker-unit: $worker"
           if [[ ("$preview" == "success" || "$preview" == "skipped") && \
-                ("$types"   == "success" || "$types"   == "skipped") ]]; then
+                ("$types"   == "success" || "$types"   == "skipped") && \
+                ("$worker"  == "success" || "$worker"  == "skipped") ]]; then
             exit 0
           else
             exit 1
