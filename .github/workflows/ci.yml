@@ -77,7 +77,12 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno test "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env
+      # `--node-modules-dir=auto` lets Deno resolve transitive npm types
+      # (e.g. `@types/node` reached through supabase-js declarations imported
+      # by `tools/registry.ts`). Local Deno auto-installs; the CI runner is
+      # clean by default, so we have to opt in explicitly. Without this flag
+      # the type-check phase fails with `Could not find "@types/node"`.
+      - run: deno test --node-modules-dir=auto "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env
 
   e2e:
     runs-on: ubuntu-latest
