@@ -184,6 +184,7 @@ type SessionFinishedStats = {
   setsDone: number
   totalExercises: number
   prExercises: { exerciseId: string; name: string; emoji: string }[]
+  durationMs: number
 }
 
 export function WorkoutPage() {
@@ -902,6 +903,7 @@ export function WorkoutPage() {
       setsDone: daySetsDone,
       totalExercises: exercises.length,
       prExercises,
+      durationMs: activeDurationMs,
     })
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
@@ -1003,6 +1005,7 @@ export function WorkoutPage() {
         exercisesCompleted={finishedStats?.exercisesCompleted ?? exercisesCompleted}
         totalExercises={finishedStats?.totalExercises ?? exercises.length}
         prExercises={finishedStats?.prExercises ?? prExercises}
+        durationMs={finishedStats?.durationMs}
         onNewSession={handleNewSession}
         quickWorkoutDayId={finishedQuickInfo?.dayId}
         quickWorkoutName={finishedQuickInfo?.name}
