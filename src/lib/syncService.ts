@@ -626,26 +626,19 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       logged_at: new Date(p.loggedAt).toISOString(),
     }
 
-    const row =
-      "durationSeconds" in p
-        ? {
-            ...base,
-            reps_logged: null,
-            duration_seconds: p.durationSeconds,
-            estimated_1rm: null,
-            was_pr: p.wasPr === true,
-            rir: null,
-            rest_seconds: p.restSeconds ?? null,
-          }
-        : {
-            ...base,
-            reps_logged: p.repsLogged,
-            duration_seconds: null,
-            estimated_1rm: p.estimatedOneRM || null,
-            was_pr: p.wasPr,
-            rir: p.rir ?? null,
-            rest_seconds: p.restSeconds ?? null,
-          }
+    // Avoid a union object type here: Supabase's upsert typing + excess-property
+    // checking can choke on unions, even when each branch is individually valid.
+    const isDuration = "durationSeconds" in p
+
+    const row = {
+      ...base,
+      reps_logged: isDuration ? null : p.repsLogged,
+      duration_seconds: isDuration ? p.durationSeconds : null,
+      estimated_1rm: isDuration ? null : p.estimatedOneRM || null,
+      was_pr: p.wasPr === true,
+      rir: isDuration ? null : (p.rir ?? null),
+      rest_seconds: p.restSeconds ?? null,
+    }
 
     const { error } = await supabase
       .from("set_logs")
