@@ -89,24 +89,29 @@ describe("SessionSummary", () => {
     expect(screen.getByText("Bench Press")).toBeInTheDocument()
   })
 
-  it("uses session startedAt to compute duration", () => {
+  it("renders provided durationMs as formatted text, ignoring sessionAtom", () => {
     const { store } = renderWithProviders(
-      <SessionSummary {...BASE_PROPS} />,
+      <SessionSummary {...BASE_PROPS} durationMs={5 * 60 * 1000} />,
     )
 
-    // When startedAt is null, duration shows a dash placeholder
-    expect(screen.getByText("—")).toBeInTheDocument()
+    expect(screen.getByText("5m 00s")).toBeInTheDocument()
 
-    // Set a valid startedAt on the session atom
+    // Mutating sessionAtom must NOT change the displayed duration:
+    // SessionSummary is fully prop-driven (snapshot pattern), preventing
+    // post-finish state drift from corrupting the summary screen.
     act(() => {
       store.set(sessionAtom, (prev) => ({
         ...prev,
-        startedAt: Date.now() - 5 * 60 * 1000, // 5 minutes ago
+        startedAt: Date.now() - 99 * 60 * 1000,
         isActive: false,
       }))
     })
 
-    // After startedAt is set, a formatted duration should replace the dash
-    expect(screen.queryByText("—")).not.toBeInTheDocument()
+    expect(screen.getByText("5m 00s")).toBeInTheDocument()
+  })
+
+  it("renders — when durationMs is undefined", () => {
+    renderWithProviders(<SessionSummary {...BASE_PROPS} />)
+    expect(screen.getByText("—")).toBeInTheDocument()
   })
 })

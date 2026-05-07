@@ -1,9 +1,5 @@
-import { useState } from "react"
-import { useAtomValue } from "jotai"
 import { Trophy, Clock, Dumbbell, RotateCcw, Flame, PartyPopper, Eye } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { sessionAtom } from "@/store/atoms"
-import { getEffectiveElapsed } from "@/lib/session"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -31,6 +27,7 @@ interface SessionSummaryProps {
   totalExercises: number
   prExercises: PrExercise[]
   onNewSession: () => void
+  durationMs?: number
   quickWorkoutDayId?: string
   quickWorkoutName?: string
   cycleComplete?: boolean
@@ -43,18 +40,16 @@ export function SessionSummary({
   totalExercises,
   prExercises,
   onNewSession,
+  durationMs,
   quickWorkoutDayId,
   quickWorkoutName,
   cycleComplete,
   cycleId,
 }: SessionSummaryProps) {
   const { t } = useTranslation("workout")
-  const session = useAtomValue(sessionAtom)
 
-  const [finishedAt] = useState(() => Date.now())
-  const duration = session.startedAt
-    ? formatDuration(getEffectiveElapsed(session, finishedAt))
-    : "—"
+  const duration =
+    durationMs != null && durationMs > 0 ? formatDuration(durationMs) : "—"
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6">

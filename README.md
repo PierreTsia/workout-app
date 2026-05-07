@@ -264,7 +264,7 @@ Playwright tests expect local Supabase. Start the stack before `npm run test:e2e
 src/
 ├── components/
 │   ├── ui/            # shadcn primitives
-│   ├── workout/       # DaySelector, ExerciseStrip, SetsTable, RestTimerOverlay, SessionSummary
+│   ├── workout/       # WorkoutDayCarousel, ExerciseStrip, SetsTable, RestTimerOverlay, SessionSummary
 │   ├── history/       # StatsDashboard, SessionList, ActivityTab, Heatmap
 │   ├── builder/       # DayList, DayEditor, ExerciseLibraryPicker
 │   ├── library/       # ExerciseCatalog, AddExerciseToDaySheet

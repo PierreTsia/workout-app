@@ -38,7 +38,7 @@ import {
   useSwapExerciseInDay,
 } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
-import { useLastWeights } from "@/hooks/useLastWeights"
+import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } from "@/lib/syncService"
 import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance, type VolumePrescription } from "@/lib/progression"
@@ -68,7 +68,6 @@ import {
 } from "@/lib/sessionExercisePatchStorage"
 import { resetSessionAtoms } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
-import { fetchLastWeightsForExerciseIds } from "@/lib/lastWeightsFromSetLogs"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
@@ -184,6 +183,7 @@ type SessionFinishedStats = {
   setsDone: number
   totalExercises: number
   prExercises: { exerciseId: string; name: string; emoji: string }[]
+  durationMs: number
 }
 
 export function WorkoutPage() {
@@ -448,7 +448,9 @@ export function WorkoutPage() {
       try {
         if (pendingScope.kind === "swap") {
           const { row, picked } = pendingScope
-          const w = await fetchLastWeightsForExerciseIds([picked.id])
+          const w = await queryClient.fetchQuery(
+            lastWeightsQueryConfig([picked.id]),
+          )
           const weightStr = templateWeightKgToString(w[picked.id] ?? 0)
           if (scope === "session") {
             setPreSessionPatch((p) => applySessionSwap(p, row, picked, weightStr))
@@ -488,7 +490,9 @@ export function WorkoutPage() {
           }
         } else {
           const { picked } = pendingScope
-          const w = await fetchLastWeightsForExerciseIds([picked.id])
+          const w = await queryClient.fetchQuery(
+            lastWeightsQueryConfig([picked.id]),
+          )
           const weightStr = templateWeightKgToString(w[picked.id] ?? 0)
           const maxSortSession =
             exercises.length === 0
@@ -902,6 +906,7 @@ export function WorkoutPage() {
       setsDone: daySetsDone,
       totalExercises: exercises.length,
       prExercises,
+      durationMs: activeDurationMs,
     })
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
@@ -1003,6 +1008,7 @@ export function WorkoutPage() {
         exercisesCompleted={finishedStats?.exercisesCompleted ?? exercisesCompleted}
         totalExercises={finishedStats?.totalExercises ?? exercises.length}
         prExercises={finishedStats?.prExercises ?? prExercises}
+        durationMs={finishedStats?.durationMs}
         onNewSession={handleNewSession}
         quickWorkoutDayId={finishedQuickInfo?.dayId}
         quickWorkoutName={finishedQuickInfo?.name}
