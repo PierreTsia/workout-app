@@ -52,14 +52,14 @@ A real conversation against `mcp.gymlogic.me`, run from Claude Desktop with two 
 
 <Screenshot
   src={byoaDemoProgram}
-  alt="Claude Desktop generates a 3-day full body program inside the Gymlogic connector: bilingual exercise names, sets/reps/weight/rest formatting, and a follow-up prompt asking to replace Tuesday squats with leg press."
-  caption='"Design me a 3-day full body program." The agent asks goal/experience/equipment first, resolves every exercise against the catalog, then calls `create_program` to persist the result. The follow-up at the bottom triggers `update_program` — iterative coaching, not one-shot generation.'
+  alt="Claude Desktop renders an analytics dashboard from real April training data: volume by muscle group, push/pull/legs balance, and muscle group ratios in kg."
+  caption='"How much did I lift in April? Make a graph so I can evaluate the balance." Claude reads the actual session log through `get_workout_history` and `get_training_stats` (148k kg across 18 sessions, 454 sets, 20+ PRs) and renders the balance breakdown in canvas — no prompt rewriting on my side, just tool calls the agent picked.'
 />
 
 <Screenshot
   src={byoaDemoAnalytics}
-  alt="Claude Desktop renders an analytics dashboard from real April training data: volume by muscle group, push/pull/legs balance, and muscle group ratios in kg."
-  caption='"How much did I lift in April? Make a graph so I can evaluate the balance." Claude reads the actual session log through `get_workout_history` and `get_training_stats` (148k kg across 18 sessions, 454 sets, 20+ PRs) and renders the balance breakdown in canvas — no prompt rewriting on my side, just tool calls the agent picked.'
+  alt="Claude Desktop generates a 3-day full body program inside the Gymlogic connector: bilingual exercise names, sets/reps/weight/rest formatting, and a follow-up prompt asking to replace Tuesday squats with leg press."
+  caption='"Design me a 3-day full body program." The agent asks goal/experience/equipment first, resolves every exercise against the catalog, then calls `create_program` to persist the result. The follow-up at the bottom triggers `update_program` — iterative coaching, not one-shot generation.'
 />
 
 The split is the point. The body did its job: returned structured, RLS-scoped data through ten MCP tools and one resource, validated the catalog, persisted the writes. The brain (Claude in this run, Le Chat in another) reasoned across the conversation, asked clarifying questions, and made every call.
