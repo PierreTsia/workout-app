@@ -8,12 +8,13 @@ tags:
   - agentic
   - architecture
   - build-log
-draft: true
+draft: false
 ---
 
-import Callout from '@/components/mdx/Callout.astro'
 import Screenshot from '@/components/mdx/Screenshot.astro'
 import aiUnmasked from '@/assets/screenshots/ai-unmasked-meme.png'
+import byoaDemoAnalytics from '@/assets/screenshots/byoa-demo-1.png'
+import byoaDemoProgram from '@/assets/screenshots/byoa-demo-2.png'
 
 GymLogic is a workout app, built on the side as a solo project. This is the build log of an architecture pivot, with a couple of real conversation screenshots further down so you can see what the bet bought.
 
@@ -39,7 +40,7 @@ It worked. It was also, in retrospect, the meme.
 
 MCP (the **Model Context Protocol**) is an open spec from Anthropic that lets an LLM agent discover and call your tools over HTTP, with OAuth-scoped access and a JSON-RPC payload. The transport is boring on purpose. The interesting part is what it implies architecturally: your product stops being an LLM caller and becomes an LLM callee. Claude Desktop, Cursor, Le Chat, Gemini CLI all speak it.
 
-BYOA, or **Bring Your Own Agent**, is the consequence, and the architecture under most actually-agentic AI products. Users connect *their* agent (the one that already knows their calendar, their email, their codebase, their life) to *your* server. They authenticate via OAuth. They ask their agent something. The agent decides which of your tools to call, in what order. You expose data, schemas, and guardrails. You no longer pick the model. You no longer write the prompt. You don't pay for inference.
+BYOA, or **Bring Your Own Agent**, is the consequence, and the architecture under most actually-agentic AI products. Users connect *their* agent (the one that already knows their calendar, their email, their codebase, their life) to *your* server. They authenticate via OAuth. They ask their agent something. The agent decides which of your tools to call, in what order. You expose data, schemas, and guardrails. You no longer pick the model or write the prompt. The user's agent provider pays for inference.
 
 The line that crystallized this for me, written in the epic brief and never edited since:
 
@@ -47,29 +48,23 @@ The line that crystallized this for me, written in the epic brief and never edit
 
 ## What that looks like
 
-A real conversation against `mcp.gymlogic.me`, run from Claude Desktop with two months of training data behind it. No prompt engineering on the GymLogic side; the agent picked which tools to call and how to combine them.
+A real conversation against `mcp.gymlogic.me`, run from Claude Desktop with two months of training data behind it. No prompt engineering on the GymLogic side; the agent picked which tools to call, asked its own clarifying questions, and figured out the rest.
 
-<Callout type="note" title="Editing TODO — drop demo screenshots">
-  Pick two Claude Desktop screenshots from the archive. One should show the
-  agent calling tools (`get_workout_history`, `get_training_stats`) on its
-  own initiative. The other should show the analytical output: a coaching
-  insight grounded in real session data, not a templated workout. Save them
-  to `web/src/assets/screenshots/byoa-demo-1.png` and `byoa-demo-2.png`,
-  import them at the top of this file, and replace this callout with two
-  `<Screenshot>` components matching the captions below.
+<Screenshot
+  src={byoaDemoProgram}
+  alt="Claude Desktop generates a 3-day full body program inside the Gymlogic connector: bilingual exercise names, sets/reps/weight/rest formatting, and a follow-up prompt asking to replace Tuesday squats with leg press."
+  caption='"Design me a 3-day full body program." The agent asks goal/experience/equipment first, resolves every exercise against the catalog, then calls `create_program` to persist the result. The follow-up at the bottom triggers `update_program` — iterative coaching, not one-shot generation.'
+/>
 
-  Caption 1: *Claude calling `get_training_stats` and `get_workout_history`
-  on its own initiative. The OAuth-scoped session enforces RLS, so it only
-  sees this user's data.*
+<Screenshot
+  src={byoaDemoAnalytics}
+  alt="Claude Desktop renders an analytics dashboard from real April training data: volume by muscle group, push/pull/legs balance, and muscle group ratios in kg."
+  caption='"How much did I lift in April? Make a graph so I can evaluate the balance." Claude reads the actual session log through `get_workout_history` and `get_training_stats` (148k kg across 18 sessions, 454 sets, 20+ PRs) and renders the balance breakdown in canvas — no prompt rewriting on my side, just tool calls the agent picked.'
+/>
 
-  Caption 2: *The output isn't a generated workout. It's an analysis of a
-  training pattern across multiple sessions — reasoning that wouldn't fit
-  in a single Gemini prompt.*
-</Callout>
+The split is the point. The body did its job: returned structured, RLS-scoped data through ten MCP tools and one resource, validated the catalog, persisted the writes. The brain (Claude in this run, Le Chat in another) reasoned across the conversation, asked clarifying questions, and made every call.
 
-The split is the point. The body did its job: returned structured, RLS-scoped data through ten MCP tools and one resource. The brain (Claude in this run, Le Chat in another) reasoned across a conversation, asked clarifying questions, and produced something that read like a coach instead of a generator.
-
-If you build software, the meaningful detail is which tools the agent chose unprompted and which ones it ignored. If you train, the meaningful detail is that the analysis used actual session history, not a templated guess.
+If you build software, the meaningful detail is which tools the agent chose unprompted and which ones it ignored. If you train, the meaningful detail is that 148k kg is real data — and the program ends up in your account afterward, in the same `programs` and `workout_days` rows the React app would have created.
 
 ## What I deleted to ship it
 
@@ -95,23 +90,23 @@ The Phase 2/3 tech plan re-scoped the work. The line I kept verbatim:
 
 > Expertise lives in the agent, not in a suite of MCP coaching micro-tools.
 
-The deferred list is still on disk in `file:docs/done/Tech_Plan_—_MCP-First_Architecture_#231_Phase_2_and_3.md`. Nothing about the rejection was a flash of insight; I drafted it, read it back, and recognized my own handwriting in what I was supposedly leaving behind. The harder lesson is that BYOA is a daily decision, not a one-time architecture pick: every new MCP tool gets the same test, asking whether it exposes data and guardrails or bakes in cached reasoning. The first kind compounds; the second kind quietly accumulates the same coupling I just paid to escape.
+The deferred list is still on disk in `file:docs/done/Tech_Plan_—_MCP-First_Architecture_#231_Phase_2_and_3.md`. Nothing about the rejection was a flash of insight; I drafted it, read it back, and recognized my own handwriting in what I was supposedly leaving behind. The harder lesson is that BYOA is a daily decision, not a one-time architecture pick: every new MCP tool gets the same test, asking whether it exposes data and guardrails or bakes in cached reasoning. The first kind compounds. The second kind is the same coupling I just paid to escape, dressed up.
 
 ## "But what about quality?"
 
-The strongest pushback on BYOA comes from the closed-loop defender, and it's not stupid. You give up polish. You can't optimize for any single agent because you don't know which one the user brought. You can't pin a model that's been quietly tuned for your use case. Vertical integration wins on quality when product polish matters, the argument goes.
+The strongest pushback on BYOA comes from the closed-loop defender, and it's not stupid. You give up polish. There's no optimizing for a single agent (you don't know which one the user brought) and no pinning a model tuned for your use case. Vertical integration wins on quality when product polish matters, the argument goes.
 
 It's right, on its time horizon. It's also more right when you can afford it.
 
 A closed loop done well (pinned model, tuned prompts, shaped outputs, regression evals) is real data-science work. This is a side project shipped in weeks, on evenings, with a budget of zero. Even if vertical integration were the strategically better bet here, I couldn't run it. BYOA isn't just a different bet for me; it's the only one a solo dev can maintain. Probably true for most of the indie "AI apps" you see in 2026: wrappers, not because their builders are wrong about strategy, but because the alternative needs a team they don't have.
 
-The disagreement, for builders who have the option, is which bet to make. A closed loop bets that **one model wins**: yours, picked once, optimized around, never swapped. BYOA bets the model layer commodifies, that "which AI we use" becomes as boring as "which CDN we use". Both bets can be right. They have different lifespans.
+The disagreement, for builders who have the option, is which bet to make. A closed loop bets that **one model wins**: yours, picked once, optimized around, never swapped. BYOA bets the model layer commodifies, that "which AI we use" becomes as boring as "which CDN we use".
 
 If you've watched the last three model upgrades quietly break your "optimized prompt", you already half-agree. The quality advantage of a tuned closed loop shrinks every six weeks; the data and guardrails advantage compounds.
 
 ## What's next
 
-The server is live at `https://mcp.gymlogic.me/functions/v1/mcp`, fronted by a Cloudflare Worker proxy with a kill switch. The why-not-Supabase-custom-domain story is in `file:docs/adr/0001-mcp-public-url-and-oauth-issuer.md`. Submission to Anthropic's Connectors Directory is in flight. Ten tools and one resource, with `create_program` and `update_program` shipped behind a `dry_run`-by-default guardrail.
+Live at `mcp.gymlogic.me/functions/v1/mcp` if you want to point your own agent at it.
 
 The next post is the gory technical autopsy: what's in those 120 lines of JSON-RPC, how OAuth 2.1 lands under MCP, and what I'd cut differently if I did it again. This one was about the bet.
 
