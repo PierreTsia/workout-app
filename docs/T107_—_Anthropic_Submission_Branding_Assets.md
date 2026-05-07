@@ -24,12 +24,14 @@ Addresses Epic Brief Track **A7**: branding assets for submission.
 
 ### 1. Logo
 
-| Field | Value |
-|---|---|
-| Source | `web/src/components/branding/Logo.tsx` (or wherever #302 placed the master logo) |
-| Format | SVG (preferred) or PNG @ 512×512 |
-| Hosting | Either inline base64 in the form OR a public URL (e.g. `https://www.gymlogic.me/logo.svg` if served by the SPA) |
-| Background | Transparent — Anthropic's directory may render on light or dark themes |
+
+| Field      | Value                                                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Source     | `web/src/components/branding/Logo.tsx` (or wherever #302 placed the master logo)                                |
+| Format     | SVG (preferred) or PNG @ 512×512                                                                                |
+| Hosting    | Either inline base64 in the form OR a public URL (e.g. `https://www.gymlogic.me/logo.svg` if served by the SPA) |
+| Background | Transparent — Anthropic's directory may render on light or dark themes                                          |
+
 
 If a hostable URL doesn't exist yet, drop the SVG file in `public/` of the SPA so it serves at `https://www.gymlogic.me/logo.svg`. One-line change; piggyback on this ticket.
 
@@ -41,13 +43,16 @@ Already exists at `https://www.gymlogic.me/favicon.ico` (or `.svg`). Verify by `
 
 Capture sources (similar to T95 but tailored for the directory listing, not the docs page):
 
-| # | File | What to capture | Notes |
-|---|------|-----------------|-------|
-| 1 | `directory-hero.webp` | **HERO** — Claude Desktop showing a `create_program` dry-run preview with a polished multi-day program structure visible | Aim for square-ish or 16:10; this is the thumbnail in the directory grid |
-| 2 | `directory-tools.webp` | Hammer icon expanded showing all 10 tools with their `annotations.title` visible | Confirms annotations feature; visually proves the tool surface is rich |
-| 3 (optional) | `directory-stats.webp` | A `get_training_stats` response in chat with rendered numbers | Shows real-data flow |
+
+| #            | File                   | What to capture                                                                                                          | Notes                                                                    |
+| ------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| 1            | `directory-hero.webp`  | **HERO** — Claude Desktop showing a `create_program` dry-run preview with a polished multi-day program structure visible | Aim for square-ish or 16:10; this is the thumbnail in the directory grid |
+| 2            | `directory-tools.webp` | Hammer icon expanded showing all 10 tools with their `annotations.title` visible                                         | Confirms annotations feature; visually proves the tool surface is rich   |
+| 3 (optional) | `directory-stats.webp` | A `get_training_stats` response in chat with rendered numbers                                                            | Shows real-data flow                                                     |
+
 
 **Capture environment**:
+
 - Use the test account from T106 — show real names, real exercises, real numbers.
 - Claude Desktop locale: English (per T95 convention; document if you deviate to FR).
 - macOS `Cmd+Shift+4` window capture; trim to chat content (avoid OS chrome).
@@ -100,12 +105,12 @@ This snippet feeds T108's form-fill.
 
 ## Acceptance Criteria
 
-- [ ] Logo SVG/PNG accessible at a public URL (or saved as a file ready to upload).
-- [ ] Favicon URL verified (`curl -I` returns 200).
-- [ ] At least 2 WebP screenshots captured from the test account (T106), showing real data, < 200KB each.
-- [ ] Screenshots stored at a public URL OR ready as local files for direct form upload.
-- [ ] Asset bundle snippet saved in maintainer's password manager.
-- [ ] Demoable: a colleague reviewing the screenshot bundle can describe what GymLogic does + what tools it offers, without prior context.
+- Logo SVG/PNG accessible at a public URL (or saved as a file ready to upload).
+- Favicon URL verified (`curl -I` returns 200).
+- At least 2 WebP screenshots captured from the test account (T106), showing real data, < 200KB each.
+- Screenshots stored at a public URL OR ready as local files for direct form upload.
+- Asset bundle snippet saved in maintainer's password manager.
+- Demoable: a colleague reviewing the screenshot bundle can describe what GymLogic does + what tools it offers, without prior context.
 
 ## References
 
@@ -113,3 +118,4 @@ This snippet feeds T108's form-fill.
 - Tech Plan: `file:docs/Tech_Plan_—_Publish_MCP_+_Skill_to_Anthropic_Directory_#296.md` (Implementation Notes → Deferred ticket scope: A7)
 - #302 branding work: `file:docs/T87_—_Port_shadcn_Primitives_+_Logo.md`
 - Capture pattern reference: `file:docs/T95_—_Claude_Content_+_Screenshots.md` (cwebp conversion, dimension targets)
+

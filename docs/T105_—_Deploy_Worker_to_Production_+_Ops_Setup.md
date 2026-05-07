@@ -52,7 +52,7 @@ Navigate to **Workers & Pages → gymlogic-mcp-proxy**.
 **(b) Environment variable: KILL_SWITCH**:
 
 - Navigate to **Settings → Variables**.
-- Add a new variable: `Name: KILL_SWITCH`, `Value: ` (empty), Type: **plaintext** (NOT secret — needs to be flippable without redeploy).
+- Add a new variable: `Name: KILL_SWITCH`, `Value:`  (empty), Type: **plaintext** (NOT secret — needs to be flippable without redeploy).
 - Save. The variable now exists; setting it to `"true"` later will activate the kill switch within ~60s.
 
 ### 3. TLS provisioning wait — verification
@@ -114,6 +114,7 @@ If anything fails: flip `KILL_SWITCH=true` in Cloudflare dashboard (kills POST b
 Navigate to **GitHub → Repository → Settings → Branches → main → Edit protection rule**.
 
 Find the required check `web-checks-passed` and:
+
 - Remove `web-checks-passed`.
 - Add `subproject-checks-passed`.
 
@@ -124,6 +125,7 @@ This is necessary because T102's CI changes renamed the aggregator job. PRs that
 ### 7. Document the deploy
 
 Add a short note to the PR description (or open a follow-up comment on PR #322) capturing:
+
 - Deploy timestamp
 - Worker version ID (from `wrangler deploy` output)
 - Smoke test results (paste curl outputs)
@@ -140,15 +142,15 @@ Updating the runbook (if you have one): no formal runbook today; this ticket's s
 
 ## Acceptance Criteria
 
-- [ ] `wrangler deploy` succeeded; Worker version logged in PR description.
-- [ ] `mcp.gymlogic.me` resolves with valid TLS cert (Cloudflare-issued).
-- [ ] `KILL_SWITCH` env var declared in Cloudflare dashboard (empty value initially).
-- [ ] Smoke test 4: `tools/list` returns identical responses on both URLs.
-- [ ] Smoke test 4: `.well-known/oauth-protected-resource.resource` correctly reflects each host.
-- [ ] Smoke test 5: fresh Claude Desktop install pointing at `mcp.gymlogic.me` completes OAuth and lists 10 tools with annotations.
-- [ ] GitHub branch protection rule updated: `subproject-checks-passed` is required, `web-checks-passed` removed.
-- [ ] PR description (or follow-up comment) documents deploy details + smoke results.
-- [ ] Demoable: install GymLogic in a colleague's Claude Desktop using only `mcp.gymlogic.me` (no Supabase URL fallback needed) → success.
+- `wrangler deploy` succeeded; Worker version logged in PR description.
+- `mcp.gymlogic.me` resolves with valid TLS cert (Cloudflare-issued).
+- `KILL_SWITCH` env var declared in Cloudflare dashboard (empty value initially).
+- Smoke test 4: `tools/list` returns identical responses on both URLs.
+- Smoke test 4: `.well-known/oauth-protected-resource.resource` correctly reflects each host.
+- Smoke test 5: fresh Claude Desktop install pointing at `mcp.gymlogic.me` completes OAuth and lists 10 tools with annotations.
+- GitHub branch protection rule updated: `subproject-checks-passed` is required, `web-checks-passed` removed.
+- PR description (or follow-up comment) documents deploy details + smoke results.
+- Demoable: install GymLogic in a colleague's Claude Desktop using only `mcp.gymlogic.me` (no Supabase URL fallback needed) → success.
 
 ## References
 
@@ -158,3 +160,4 @@ Updating the runbook (if you have one): no formal runbook today; this ticket's s
 - Predecessor work: T55 (DNS/Cloudflare for `gymlogic.me` zone — `file:docs/done/T55_—_Resend_Cloudflare_DNS_&_Domain_Setup_(No-Code).md`)
 - Cloudflare docs: [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), [Environment Variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)
 - Code anchors: `file:infra/cloudflare/mcp-proxy/wrangler.toml` (deploy target config)
+

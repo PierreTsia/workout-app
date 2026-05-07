@@ -24,7 +24,7 @@ End-to-end demoable: install GymLogic in a fresh Claude Desktop using the test a
 
 ### 1. Account creation
 
-- Sign up at https://www.gymlogic.me/auth using a dedicated email (e.g. `directory-reviewer@gymlogic.me` if you control the inbox, or a `+directory-reviewer@` alias).
+- Sign up at [https://www.gymlogic.me/auth](https://www.gymlogic.me/auth) using a dedicated email (e.g. `directory-reviewer@gymlogic.me` if you control the inbox, or a `+directory-reviewer@` alias).
 - Complete onboarding: choose goal (e.g. "build muscle"), experience (e.g. "intermediate"), equipment (full gym), age/weight (realistic).
 - Avatar: optional, use a generic placeholder.
 
@@ -33,10 +33,12 @@ End-to-end demoable: install GymLogic in a fresh Claude Desktop using the test a
 Two options:
 
 **(a) Use the app UI** (more authentic-feeling for reviewers):
+
 - Open Programs → Generate or Build → create a 4-day split (push / pull / legs / accessory or upper/lower split).
 - Activate the program.
 
 **(b) Use the existing seed script** (faster, more consistent):
+
 - `npm run seed:history -- --user <directory-reviewer-uuid>` (script: `file:scripts/seed-local-history.ts` — verify it still works against prod).
 - If the script targets local Supabase only, copy the pattern and run an ad-hoc SQL block via Supabase Studio.
 
@@ -45,6 +47,7 @@ Either way: the result must be one **active** program with 4 training days, each
 ### 3. Seed ≥15 logged workouts spanning the last 30 days
 
 Target distribution:
+
 - 15-20 logged sessions over the last 30 days (mix completed and planned).
 - Spread across multiple training days from the active program.
 - Variety: don't use the same 5 exercises repeatedly — show range.
@@ -56,7 +59,7 @@ If using the seed script doesn't naturally produce a PR-eligible session, manual
 
 ### 4. Generate a long-lived PAT
 
-- Navigate to https://www.gymlogic.me/account/api-tokens (signed in as the test account).
+- Navigate to [https://www.gymlogic.me/account/api-tokens](https://www.gymlogic.me/account/api-tokens) (signed in as the test account).
 - Generate a new PAT with name `Anthropic Directory Reviewers — DO NOT REVOKE BEFORE APPROVAL`.
 - Copy the PAT immediately (it won't be shown again).
 - Note: PATs in this app default to no expiry (long-lived). Verify in the UI that no auto-expiry is set.
@@ -64,6 +67,7 @@ If using the seed script doesn't naturally produce a PR-eligible session, manual
 ### 5. Document credentials privately
 
 Store in the maintainer's password manager (1Password / Bitwarden / etc.):
+
 - Account email + Google OAuth (no separate password — Google handles auth).
 - PAT (copy the full token).
 - Last seeding date (so you can refresh data if it ages out before review).
@@ -78,11 +82,11 @@ Test the reviewer experience yourself:
 2. Add Custom Connector → `https://mcp.gymlogic.me/functions/v1/mcp` → Name: `GymLogic`.
 3. OAuth flow → log in with the test account's Google account → Accept consent.
 4. Open chat, invoke each of these prompts:
-   - "What programs do I have?" → should call `list_programs` → return the active 4-day split.
-   - "Show me my workout history for the last 2 weeks" → `get_workout_history` → ≥10 sessions.
-   - "What are my training stats?" → `get_training_stats` → meaningful numbers.
-   - "What's coming up this week?" → `get_upcoming_workouts` → upcoming sessions from the active program.
-   - "Search for bench press exercises" → `search_exercises` → catalog matches.
+  - "What programs do I have?" → should call `list_programs` → return the active 4-day split.
+  - "Show me my workout history for the last 2 weeks" → `get_workout_history` → ≥10 sessions.
+  - "What are my training stats?" → `get_training_stats` → meaningful numbers.
+  - "What's coming up this week?" → `get_upcoming_workouts` → upcoming sessions from the active program.
+  - "Search for bench press exercises" → `search_exercises` → catalog matches.
 
 If any prompt returns "no data" or hits an error path, fix the seeding before declaring done.
 
@@ -109,19 +113,20 @@ Save this snippet for T108 form-fill use.
 
 ## Acceptance Criteria
 
-- [ ] Account `directory-reviewer@gymlogic.me` (or chosen alias) signed up and onboarded.
-- [ ] One active program with 4 training days, each populated with realistic exercises.
-- [ ] ≥15 logged workouts over the last 30 days with varied exercises across muscle groups.
-- [ ] ≥1 PR-eligible session in History.
-- [ ] Long-lived PAT generated with descriptive name; PAT stored in password manager (NOT in repo).
-- [ ] Fresh Claude Desktop install via OAuth completes; all 5 verification prompts return meaningful responses.
-- [ ] T108-ready snippet (test credentials + program summary) saved alongside the PAT in the password manager.
-- [ ] Demoable: walk a colleague through the install flow on a fresh Claude profile; they see real-looking data immediately.
+- Account `directory-reviewer@gymlogic.me` (or chosen alias) signed up and onboarded.
+- One active program with 4 training days, each populated with realistic exercises.
+- ≥15 logged workouts over the last 30 days with varied exercises across muscle groups.
+- ≥1 PR-eligible session in History.
+- Long-lived PAT generated with descriptive name; PAT stored in password manager (NOT in repo).
+- Fresh Claude Desktop install via OAuth completes; all 5 verification prompts return meaningful responses.
+- T108-ready snippet (test credentials + program summary) saved alongside the PAT in the password manager.
+- Demoable: walk a colleague through the install flow on a fresh Claude profile; they see real-looking data immediately.
 
 ## References
 
 - Epic Brief: `file:docs/Epic_Brief_—_Publish_MCP_+_Skill_to_Anthropic_Directory_#296.md` (Track A6, story 5)
 - Tech Plan: `file:docs/Tech_Plan_—_Publish_MCP_+_Skill_to_Anthropic_Directory_#296.md` (Implementation Notes → Deferred ticket scope: A6)
 - Seed script reference: `file:scripts/seed-local-history.ts`
-- App URLs: https://www.gymlogic.me/auth, https://www.gymlogic.me/account/api-tokens
+- App URLs: [https://www.gymlogic.me/auth](https://www.gymlogic.me/auth), [https://www.gymlogic.me/account/api-tokens](https://www.gymlogic.me/account/api-tokens)
 - Predecessor: T64 OAuth setup (`file:docs/done/T64_—_OAuth_2.1_+_Consent_Page.md`), Long-Lived MCP Auth via PATs (`file:docs/done/Tech_Plan_—_Long-Lived_MCP_Auth_via_Personal_Access_Tokens.md`)
+
