@@ -1,0 +1,118 @@
+---
+title: 'Stop being the brain, become the body'
+date: 2026-05-07
+excerpt: Most AI apps are LLM wrappers behind a UI. The agentic shift inverts that — your product becomes the body, the user's agent the brain. A build log on flipping GymLogic to BYOA, with the near-miss I almost shipped.
+tags:
+  - mcp
+  - byoa
+  - agentic
+  - architecture
+  - build-log
+draft: true
+---
+
+import Callout from '@/components/mdx/Callout.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+import aiUnmasked from '@/assets/screenshots/ai-unmasked-meme.png'
+
+GymLogic is a workout app, built on the side as a solo project. This is the build log of an architecture pivot, with a couple of real conversation screenshots further down so you can see what the bet bought.
+
+Most "AI apps" shipping in 2026 are thin wrappers: an LLM behind a UI, sometimes dressed up as magic, sometimes as a polished if-else tree. The agentic shift inverts that. Your product becomes the thing agents *call*, not the thing that calls an LLM on the user's behalf. I shipped the wrapper version of GymLogic too. Then I flipped it. The user's own agent calls my server now. The product is the **body**: data, catalog, guardrails, persistence. The agent is the **brain**. I brought my own everything; I now bring almost nothing.
+
+This post is why I did it, what I deleted to ship it, and the moment I almost rebuilt the wrapper I was trying to escape.
+
+## I was the black box too
+
+The first version of GymLogic's "AI features" looked like every other AI app. The React UI sent a structured prompt to a Supabase Edge Function. The function bundled the user's profile, recent training history, and a slice of the catalog. Gemini 2.5 Flash returned a generated workout, parsed and validated against a schema. The UI rendered it. The user never saw the model, never picked it, and couldn't bring their own.
+
+The catalog (360+ exercises, fully tagged) was locked behind in-app search. The progression logic (RIR-based set adjustment, Epley 1RM, volume-by-muscle-group analytics) lived in `file:src/lib/`, reachable only through a React component tree. Every generation cost a Gemini call, and every model swap meant re-tuning a prompt the user couldn't read.
+
+It worked. It was also, in retrospect, the meme.
+
+<Screenshot
+  src={aiUnmasked}
+  alt="Scooby Doo unmasking meme: under the AI hood, an if-then-else tree."
+  caption="Same energy as most 'AI apps'. I was one of them."
+/>
+
+## BYOA, briefly
+
+MCP (the **Model Context Protocol**) is an open spec from Anthropic that lets an LLM agent discover and call your tools over HTTP, with OAuth-scoped access and a JSON-RPC payload. The transport is boring on purpose. The interesting part is what it implies architecturally: your product stops being an LLM caller and becomes an LLM callee. Claude Desktop, Cursor, Le Chat, Gemini CLI all speak it.
+
+BYOA, or **Bring Your Own Agent**, is the consequence, and the architecture under most actually-agentic AI products. Users connect *their* agent (the one that already knows their calendar, their email, their codebase, their life) to *your* server. They authenticate via OAuth. They ask their agent something. The agent decides which of your tools to call, in what order. You expose data, schemas, and guardrails. You no longer pick the model. You no longer write the prompt. You don't pay for inference.
+
+The line that crystallized this for me, written in the epic brief and never edited since:
+
+> Stop being the brain. Become the body.
+
+## What that looks like
+
+A real conversation against `mcp.gymlogic.me`, run from Claude Desktop with two months of training data behind it. No prompt engineering on the GymLogic side; the agent picked which tools to call and how to combine them.
+
+<Callout type="note" title="Editing TODO — drop demo screenshots">
+  Pick two Claude Desktop screenshots from the archive. One should show the
+  agent calling tools (`get_workout_history`, `get_training_stats`) on its
+  own initiative. The other should show the analytical output: a coaching
+  insight grounded in real session data, not a templated workout. Save them
+  to `web/src/assets/screenshots/byoa-demo-1.png` and `byoa-demo-2.png`,
+  import them at the top of this file, and replace this callout with two
+  `<Screenshot>` components matching the captions below.
+
+  Caption 1: *Claude calling `get_training_stats` and `get_workout_history`
+  on its own initiative. The OAuth-scoped session enforces RLS, so it only
+  sees this user's data.*
+
+  Caption 2: *The output isn't a generated workout. It's an analysis of a
+  training pattern across multiple sessions — reasoning that wouldn't fit
+  in a single Gemini prompt.*
+</Callout>
+
+The split is the point. The body did its job: returned structured, RLS-scoped data through ten MCP tools and one resource. The brain (Claude in this run, Le Chat in another) reasoned across a conversation, asked clarifying questions, and produced something that read like a coach instead of a generator.
+
+If you build software, the meaningful detail is which tools the agent chose unprompted and which ones it ignored. If you train, the meaningful detail is that the analysis used actual session history, not a templated guess.
+
+## What I deleted to ship it
+
+The plan, originally, was Hono for HTTP, the MCP TypeScript SDK for protocol handling, and Zod for tool input validation. Three frameworks. Standard 2026 stack. I shipped none of them.
+
+`Hono` went first. The MCP function only handles three HTTP methods: POST for JSON-RPC, OPTIONS for CORS, DELETE for session close. A full HTTP framework added cold-start weight for routing logic that fits in 30 lines of plain `Deno.serve`.
+
+`@modelcontextprotocol/sdk` went next. The SDK's `McpServer` plus its Streamable HTTP transport pulled heavyweight dependencies into Edge Function bundles for what is, beneath the abstractions, a thin JSON-RPC dispatcher. I replaced it with a ~120-line `handleRpc` switch that routes `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read` directly. Tool registration became plain objects with `handler` functions in `file:supabase/functions/mcp/tools/registry.ts`.
+
+`Zod` followed. Without the SDK there was no `registerTool()` expecting Zod schemas. Tool `inputSchema` is declared as plain JSON Schema, sufficient for MCP client introspection and lighter at runtime.
+
+The end state is a Supabase Edge Function with **zero npm dependencies**. The only import is `esm.sh/@supabase/supabase-js@2`, consistent with the other Edge Functions in the codebase. This isn't a "frameworks are bad" argument. The honest read is narrower: MCP turned out to be small enough that the frameworks were taxing me for routing logic I didn't have. If your MCP server has dozens of tools, the math may flip; mine doesn't.
+
+## I almost rebuilt the wrapper, in MCP costume
+
+The first tech plan, before the rewrite, scoped four "Phase 2" tools: `suggest_progression`, `calculate_1rm`, `validate_workout_plan`, `get_muscle_balance_report`. Each one wrapped a piece of in-app domain logic and re-exposed it as an MCP tool. The pitch sounded right at the time. Coaching expertise, available to the agent, powered by my science.
+
+It was the wrapper, in MCP costume.
+
+A `suggest_progression` tool encodes my opinion about how the user should progress — the same opinion that previously lived inside a Gemini prompt. The agent now calls my cached opinion instead of reasoning from data. The medium changed; the closed loop didn't.
+
+The Phase 2/3 tech plan re-scoped the work. The line I kept verbatim:
+
+> Expertise lives in the agent, not in a suite of MCP coaching micro-tools.
+
+The deferred list is still on disk in `file:docs/done/Tech_Plan_—_MCP-First_Architecture_#231_Phase_2_and_3.md`. Nothing about the rejection was a flash of insight; I drafted it, read it back, and recognized my own handwriting in what I was supposedly leaving behind. The harder lesson is that BYOA is a daily decision, not a one-time architecture pick: every new MCP tool gets the same test, asking whether it exposes data and guardrails or bakes in cached reasoning. The first kind compounds; the second kind quietly accumulates the same coupling I just paid to escape.
+
+## "But what about quality?"
+
+The strongest pushback on BYOA comes from the closed-loop defender, and it's not stupid. You give up polish. You can't optimize for any single agent because you don't know which one the user brought. You can't pin a model that's been quietly tuned for your use case. Vertical integration wins on quality when product polish matters, the argument goes.
+
+It's right, on its time horizon. It's also more right when you can afford it.
+
+A closed loop done well (pinned model, tuned prompts, shaped outputs, regression evals) is real data-science work. This is a side project shipped in weeks, on evenings, with a budget of zero. Even if vertical integration were the strategically better bet here, I couldn't run it. BYOA isn't just a different bet for me; it's the only one a solo dev can maintain. Probably true for most of the indie "AI apps" you see in 2026: wrappers, not because their builders are wrong about strategy, but because the alternative needs a team they don't have.
+
+The disagreement, for builders who have the option, is which bet to make. A closed loop bets that **one model wins**: yours, picked once, optimized around, never swapped. BYOA bets the model layer commodifies, that "which AI we use" becomes as boring as "which CDN we use". Both bets can be right. They have different lifespans.
+
+If you've watched the last three model upgrades quietly break your "optimized prompt", you already half-agree. The quality advantage of a tuned closed loop shrinks every six weeks; the data and guardrails advantage compounds.
+
+## What's next
+
+The server is live at `https://mcp.gymlogic.me/functions/v1/mcp`, fronted by a Cloudflare Worker proxy with a kill switch. The why-not-Supabase-custom-domain story is in `file:docs/adr/0001-mcp-public-url-and-oauth-issuer.md`. Submission to Anthropic's Connectors Directory is in flight. Ten tools and one resource, with `create_program` and `update_program` shipped behind a `dry_run`-by-default guardrail.
+
+The next post is the gory technical autopsy: what's in those 120 lines of JSON-RPC, how OAuth 2.1 lands under MCP, and what I'd cut differently if I did it again. This one was about the bet.
+
+Stop being the brain. Become the body.
