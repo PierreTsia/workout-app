@@ -65,7 +65,7 @@ If you can't use OAuth or need a headless setup, see [Alternative authentication
 
 2. In the **Add custom connector** dialog, fill in:
    - **Name**: `Gymlogic`
-   - **URL**: `https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp`
+   - **URL**: `https://mcp.gymlogic.me/functions/v1/mcp`
    - Leave **OAuth Client ID** and **OAuth Client Secret** empty — GymLogic uses dynamic registration.
 
    Click **Add**.
@@ -139,7 +139,7 @@ The cleanest PAT path on Claude Desktop is via the `mcp-remote` adapter (since t
         "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
         "args": [
           "mcp-remote",
-          "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp",
+          "https://mcp.gymlogic.me/functions/v1/mcp",
           "--header",
           "Authorization: Bearer <YOUR_PAT>"
         ]
@@ -167,7 +167,7 @@ For Claude Desktop builds where the native Custom Connector UI isn't available, 
         "command": "/Users/you/.nvm/versions/node/v20.9.0/bin/npx",
         "args": [
           "mcp-remote",
-          "https://favusepjqwpcroiolvaz.supabase.co/functions/v1/mcp"
+          "https://mcp.gymlogic.me/functions/v1/mcp"
         ]
       }
     }
