@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import {
   useThread,
   useAbandonThread,
+  useSendMessage,
 } from "./useEmbeddedAgentThread"
 
 vi.mock("@/lib/supabase", () => ({
@@ -81,5 +82,53 @@ describe("useAbandonThread", () => {
     })
 
     await waitFor(() => expect(result.current.thread.data?.thread_id).toBe("t-2"))
+  })
+})
+
+describe("useSendMessage", () => {
+  it("posts /message with content + locale and returns the assistant payload", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        assistant: { content: "Hello back!", ts: "2026-05-08T12:00:00Z" },
+        ready_for_draft: false,
+      },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() => useSendMessage())
+
+    const data = await result.current.mutateAsync({ content: "Hi", locale: "en" })
+
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "send", content: "Hi", locale: "en" },
+    })
+    expect(data.assistant.content).toBe("Hello back!")
+    expect(data.ready_for_draft).toBe(false)
+  })
+
+  it("surfaces 429 turn_quota_exceeded as a typed error so the UI can render the cap banner", async () => {
+    const quotaError = Object.assign(new Error("Edge Function returned non-2xx status"), {
+      context: new Response(
+        JSON.stringify({ error: "turn_quota_exceeded", limit: 40, used: 40 }),
+        { status: 429 },
+      ),
+    })
+    invokeMock.mockResolvedValueOnce({ data: null, error: quotaError })
+
+    const { result } = renderHookWithProviders(() => useSendMessage())
+
+    let caught: unknown = null
+    try {
+      await result.current.mutateAsync({ content: "Hi", locale: "en" })
+    } catch (err) {
+      caught = err
+    }
+
+    const isQuotaError =
+      typeof caught === "object" &&
+      caught !== null &&
+      "kind" in caught &&
+      (caught as { kind: unknown }).kind === "quota"
+    expect(isQuotaError).toBe(true)
   })
 })

@@ -14,11 +14,57 @@ export interface ThreadPayload {
   messages: ThreadMessage[]
 }
 
+export interface SendMessageResponse {
+  assistant: { content: string; ts: string }
+  ready_for_draft: boolean
+}
+
+export type EmbeddedAgentError =
+  | { kind: "quota"; limit: number; used: number }
+  | { kind: "no_active_thread" }
+  | { kind: "model_failure" }
+  | { kind: "unknown"; message: string }
+
 const THREAD_QUERY_KEY = ["embedded-agent", "thread"] as const
+
+interface InvokeError {
+  context?: Response
+  message?: string
+}
+
+async function readErrorBody(error: InvokeError): Promise<Record<string, unknown> | null> {
+  try {
+    const ctx = error.context
+    if (!ctx || typeof ctx.json !== "function") return null
+    return await ctx.clone().json() as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+async function toEmbeddedAgentError(error: InvokeError): Promise<EmbeddedAgentError> {
+  const status = error.context?.status
+  const body = await readErrorBody(error)
+  const code = typeof body?.error === "string" ? body.error : undefined
+
+  if (status === 429 || code === "turn_quota_exceeded") {
+    return {
+      kind: "quota",
+      limit: typeof body?.limit === "number" ? body.limit : 40,
+      used: typeof body?.used === "number" ? body.used : 40,
+    }
+  }
+  if (status === 409 || code === "no_active_thread") return { kind: "no_active_thread" }
+  if (status === 502 || code === "model_failure") return { kind: "model_failure" }
+  return { kind: "unknown", message: error.message ?? code ?? "Unknown error" }
+}
 
 async function callEmbeddedAgent<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("embedded-agent", { body })
-  if (error) throw error
+  if (error) {
+    const typed = await toEmbeddedAgentError(error as InvokeError)
+    throw typed
+  }
   if (!data) throw new Error("Empty response from embedded-agent")
   return data as T
 }
@@ -45,6 +91,35 @@ export function useAbandonThread() {
     mutationFn: () => callEmbeddedAgent<{ ok: true }>({ action: "abandon" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+    },
+  })
+}
+
+/**
+ * Sends one user message to `/message`. On success, optimistically appends
+ * both the user and assistant turns into the thread query cache so the chat
+ * surface re-renders without a refetch. Errors come back as a typed
+ * `EmbeddedAgentError` so the UI can branch on `kind` for quota vs model
+ * vs no_active_thread copy.
+ */
+export function useSendMessage() {
+  const queryClient = useQueryClient()
+  return useMutation<SendMessageResponse, EmbeddedAgentError, { content: string; locale: "en" | "fr" }>({
+    mutationFn: ({ content, locale }) =>
+      callEmbeddedAgent<SendMessageResponse>({ action: "send", content, locale }),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<ThreadPayload>(THREAD_QUERY_KEY, (prev) => {
+        if (!prev) return prev
+        const userTs = new Date().toISOString()
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
+            { role: "user", content: variables.content, ts: userTs },
+            { role: "assistant", content: data.assistant.content, ts: data.assistant.ts },
+          ],
+        }
+      })
     },
   })
 }

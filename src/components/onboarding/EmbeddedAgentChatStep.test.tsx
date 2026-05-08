@@ -153,4 +153,87 @@ describe("EmbeddedAgentChatStep", () => {
     })
     expect(onBack).toHaveBeenCalledTimes(1)
   })
+
+  // ---------- T118: chat surface ----------
+
+  it("submits the input and renders both user and assistant bubbles", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "chat0001-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          assistant: { content: "Tell me more about your back.", ts: "2026-05-08T12:00:00Z" },
+          ready_for_draft: false,
+        },
+        error: null,
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread chat0001/)
+
+    const user = userEvent.setup()
+    const input = screen.getByPlaceholderText(/write a message/i)
+    await user.type(input, "My back hurts when I squat.")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    expect(await screen.findByText("My back hurts when I squat.")).toBeInTheDocument()
+    expect(await screen.findByText(/Tell me more about your back/i)).toBeInTheDocument()
+
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "send", content: "My back hurts when I squat.", locale: "en" },
+    })
+  })
+
+  it("renders the friendly cap card on a 429 quota response", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "chat0002-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("429"), {
+          context: new Response(
+            JSON.stringify({ error: "turn_quota_exceeded", limit: 40, used: 40 }),
+            { status: 429 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread chat0002/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "hi")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    expect(await screen.findByText(/Slow down a moment/i)).toBeInTheDocument()
+    expect(screen.queryByText(/turn_quota_exceeded/i)).not.toBeInTheDocument()
+  })
+
+  it("renders an error card with retry on a 5xx model failure", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "chat0003-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("502"), {
+          context: new Response(JSON.stringify({ error: "model_failure" }), { status: 502 }),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread chat0003/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "hi")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    expect(await screen.findByText(/Something went wrong/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument()
+  })
 })

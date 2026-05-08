@@ -1,6 +1,7 @@
 import { corsHeaders } from "../_shared/cors.ts"
-import { createUserClient } from "../_shared/supabase.ts"
+import { createServiceClient, createUserClient } from "../_shared/supabase.ts"
 import {
+  appendMessage,
   getActiveThread,
   getOrCreateActiveThread,
   markStaleIfDue,
@@ -9,46 +10,81 @@ import {
   type Thread,
   type ThreadLocale,
 } from "./threadStore.ts"
+import {
+  enforceTurnQuota,
+  logBillableCall,
+  type QuotaSupabaseLike,
+} from "./quota.ts"
+import { callChatGemini } from "./chatModel.ts"
+import type { UserContextProfile } from "./prompt.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
 
 /**
- * Embedded Agent edge function (T117). Currently exposes a single `POST` route
- * keyed off `body.action`:
+ * Embedded Agent edge function (T117 + T118). Single POST endpoint multiplexed
+ * on `body.action`:
  *
- *   - `{ action: "open", locale: "en" | "fr" }` → resume or create the user's
- *     active onboarding thread. Returns `{ thread_id, status, resumed,
- *     messages }`. Performs the lazy 7d staleness sweep on resume.
- *   - `{ action: "abandon" }` → mark the user's active thread abandoned.
+ *   - `{ action: "open", locale: "en" | "fr" }` — resume or create the user's
+ *     active onboarding thread. Lazy 7d staleness sweep on resume.
+ *   - `{ action: "abandon" }` — mark the user's active thread abandoned.
  *     Idempotent when there is none.
+ *   - `{ action: "send", content, locale }` — append the user message,
+ *     enforce the 40 turns/h quota, call the model, log the billable call
+ *     (success or failure: log_everything), append the assistant message,
+ *     return `{ assistant: { content, ts }, ready_for_draft }`.
  *
- * Future routes for `/message`, `/draft`, `/commit` (T118-T120) will branch
- * here off the same Deno.serve.
+ * `/draft` and `/commit` arrive in T119/T120.
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
   }
 
-  // The narrow `SupabaseLike` interface in threadStore.ts mirrors the chain
-  // shape we actually use; the real client returns wider types per call. We
-  // cast at the boundary so unit tests stay decoupled from supabase-js.
-  const supabase = createUserClient(
-    req.headers.get("Authorization") ?? "",
-  ) as unknown as SupabaseLike
+  const authHeader = req.headers.get("Authorization") ?? ""
+  // The narrow `SupabaseLike` / `QuotaSupabaseLike` interfaces mirror the
+  // chain shape we actually use; the real client returns wider types per
+  // call. We cast at the boundary so unit tests stay decoupled from
+  // supabase-js.
+  //
+  // Thread + profile reads/writes go through the user-scoped client (RLS
+  // restricts them to the authenticated user). Quota counting + billable
+  // logging go through the service client (`ai_generation_log` has RLS
+  // enabled with no policies, so user-scoped writes are denied — same
+  // pattern as `_shared/aiQuota.ts`). The userId we feed quota helpers
+  // comes from the verified `getUser()` JWT, so service-role can't be
+  // abused to log against another user.
+  const userClient = createUserClient(authHeader)
+  const serviceClient = createServiceClient()
+  const threadDb = userClient as unknown as SupabaseLike
+  const quotaDb = serviceClient as unknown as QuotaSupabaseLike
 
   const res = await handleEmbeddedAgent(req, {
-    getUser: async (authHeader) => {
-      if (!authHeader) return null
-      const userScoped = createUserClient(authHeader)
-      const { data, error } = await userScoped.auth.getUser()
+    getUser: async (header) => {
+      if (!header) return null
+      const { data, error } = await userClient.auth.getUser()
       if (error || !data.user?.id) return null
       return { userId: data.user.id }
     },
-    getActiveThread: (userId: string) => getActiveThread(supabase, userId),
-    getOrCreateActiveThread: (userId: string, locale: ThreadLocale) =>
-      getOrCreateActiveThread(supabase, userId, locale),
-    markStaleIfDue: (thread: Thread) => markStaleIfDue(supabase, thread),
-    setStatusToAbandoned: (thread: Thread) => setStatus(supabase, thread, "abandoned"),
+    getActiveThread: (userId) => getActiveThread(threadDb, userId),
+    getOrCreateActiveThread: (userId, locale: ThreadLocale) =>
+      getOrCreateActiveThread(threadDb, userId, locale),
+    markStaleIfDue: (thread: Thread) => markStaleIfDue(threadDb, thread),
+    setStatusToAbandoned: (thread: Thread) => setStatus(threadDb, thread, "abandoned"),
+    appendMessage: async (thread, role, content) => {
+      await appendMessage(threadDb, thread, role, content)
+      const { data, error } = await userClient
+        .from("embedded_agent_threads")
+        .select("*")
+        .eq("id", thread.id)
+        .single()
+      if (error || !data) {
+        throw new Error(`appendMessage reload failed: ${error?.message ?? "no row"}`)
+      }
+      return data as Thread
+    },
+    enforceTurnQuota: (userId) => enforceTurnQuota(quotaDb, userId),
+    logBillableCall: (userId, source) => logBillableCall(quotaDb, userId, source),
+    chatModel: callChatGemini,
+    loadProfile: (userId) => loadProfile(userClient, userId),
     log: emitLog,
   })
 
@@ -56,6 +92,21 @@ Deno.serve(async (req) => {
   for (const [k, v] of Object.entries(corsHeaders)) merged.set(k, v)
   return new Response(res.body, { status: res.status, headers: merged })
 })
+
+async function loadProfile(
+  supabase: ReturnType<typeof createUserClient>,
+  userId: string,
+): Promise<UserContextProfile | null> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select(
+      "goal, experience, equipment, training_days_per_week, session_duration_minutes, age, weight_kg, gender",
+    )
+    .eq("user_id", userId)
+    .maybeSingle()
+  if (error || !data) return null
+  return data as UserContextProfile
+}
 
 function emitLog(event: LogEvent): void {
   const payload = JSON.stringify({ ts: new Date().toISOString(), ...event })
