@@ -306,6 +306,129 @@ describe("EmbeddedAgentChatStep", () => {
     })
   })
 
+  // ---------- T119: Generate my plan CTA ----------
+
+  function makeMessages(turns: number) {
+    // Builds a transcript with `turns` assistant messages (and one user
+    // message before each) so the CTA visibility logic — which keys off
+    // the assistant turn count — can be exercised deterministically.
+    return Array.from({ length: turns }).flatMap((_, i) => [
+      { role: "user" as const, content: `user ${i}`, ts: `2026-05-08T12:00:0${i}Z` },
+      { role: "assistant" as const, content: `assistant ${i}`, ts: `2026-05-08T12:00:0${i}Z` },
+    ])
+  }
+
+  it("hides the Generate my plan CTA on the very first assistant turn (premature)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "cta00001-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: true,
+        messages: makeMessages(1),
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread cta00001/)
+
+    expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
+  })
+
+  it("shows the Generate my plan CTA once the assistant has answered 2 turns", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "cta00002-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: true,
+        messages: makeMessages(2),
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread cta00002/)
+
+    expect(screen.getByRole("button", { name: /generate my plan/i })).toBeInTheDocument()
+  })
+
+  it("clicking the CTA fires /draft with trigger:user_cta and calls onPreviewReady on success", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "cta00003-0000-0000-0000-000000000000",
+          status: "open",
+          resumed: true,
+          messages: makeMessages(2),
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          status: "preview_ready",
+          preview: { args: { name: "Strength — 4 days/wk", days: [] } },
+          trigger: "user_cta",
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "cta00003-0000-0000-0000-000000000000",
+          status: "preview_ready",
+          resumed: true,
+          messages: makeMessages(2),
+        },
+        error: null,
+      })
+
+    const onPreviewReady = vi.fn()
+    renderWithProviders(
+      <EmbeddedAgentChatStep locale="en" onBack={() => {}} onPreviewReady={onPreviewReady} />,
+    )
+    await screen.findByText(/Thread cta00003/)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: /generate my plan/i }))
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+        body: { action: "draft", trigger: "user_cta", locale: "en" },
+      })
+    })
+
+    await waitFor(() => expect(onPreviewReady).toHaveBeenCalledTimes(1))
+  })
+
+  it("renders the friendly draft cap card on a 429 draft_quota_exceeded response", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "cta00004-0000-0000-0000-000000000000",
+          status: "open",
+          resumed: true,
+          messages: makeMessages(2),
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("429"), {
+          context: new Response(
+            JSON.stringify({ error: "draft_quota_exceeded", limit: 3, used: 3 }),
+            { status: 429 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread cta00004/)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: /generate my plan/i }))
+
+    expect(await screen.findByText(/daily draft limit reached/i)).toBeInTheDocument()
+  })
+
   it("renders an error card with retry on a 5xx model failure", async () => {
     invokeMock
       .mockResolvedValueOnce({

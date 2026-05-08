@@ -87,6 +87,12 @@
     "restartConfirmCta": "Tout recommencer",
     "restartCancelCta": "Continuer",
     "resumedBadge": "Conversation reprise",
-    "backCta": "Retour"
+    "backCta": "Retour",
+    "generateCta": "Générer mon programme",
+    "generatingStatus": "Lecture de vos réponses · brouillon · validation · préparation de l'aperçu",
+    "draftQuotaTitle": "Limite quotidienne atteinte",
+    "draftQuotaBody": "Vous avez déjà utilisé vos 3 brouillons du jour. Revenez demain pour explorer un autre angle.",
+    "programQuotaTitle": "Quota de programmes atteint",
+    "programQuotaBody": "Vous avez atteint le plafond mensuel de programmes générés. Utilisez un de vos programmes existants ou attendez le mois prochain."
   }
 }

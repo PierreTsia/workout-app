@@ -31,6 +31,7 @@ type WizardStep =
   | "ai_generating"
   | "ai_preview"
   | "embedded_chat"
+  | "embedded_preview"
 
 const ANALYTICS_STEP_INDEX = {
   welcome: 1,
@@ -192,7 +193,8 @@ export function OnboardingPage() {
   // The chat step needs noticeably more horizontal real estate than the
   // questionnaire / template / preview steps — bumped to 3xl so the
   // assistant's longer, markdown-rich replies actually breathe.
-  const containerWidth = step === "embedded_chat" ? "max-w-3xl" : "max-w-lg"
+  const containerWidth =
+    step === "embedded_chat" || step === "embedded_preview" ? "max-w-3xl" : "max-w-lg"
 
   // The chat step locks its layout to viewport height so the message
   // transcript scrolls *inside* the card instead of the whole page. Other
@@ -296,7 +298,20 @@ export function OnboardingPage() {
           <EmbeddedAgentChatStep
             locale={i18n.language === "fr" ? "fr" : "en"}
             onBack={() => setStep("path")}
+            onPreviewReady={() => setStep("embedded_preview")}
           />
+        )}
+
+        {step === "embedded_preview" && (
+          // T120 lands the real preview screen; T119 just parks the
+          // wizard here so the round-trip from /draft to a new step is
+          // observable end-to-end.
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+            <p className="text-lg font-semibold">Preview ready 🎉</p>
+            <p className="text-sm text-muted-foreground">
+              The program preview UI ships in T120.
+            </p>
+          </div>
         )}
       </div>
     </div>

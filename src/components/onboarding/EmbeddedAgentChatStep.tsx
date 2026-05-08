@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   useAbandonThread,
+  useGenerateDraft,
   useSendMessage,
   useThread,
   type EmbeddedAgentError,
@@ -28,9 +29,23 @@ import {
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { cn } from "@/lib/utils"
 
+// CTA visibility gate. Originally 4 per the ticket, lowered to 2 after
+// real-user feedback: by the time the assistant has answered twice
+// most users have already shared everything they want to share, and
+// hiding the CTA past that felt artificial. The pulse + ready-signal
+// behaviour still kicks in only when the model emits the literal
+// READY_FOR_PROGRAM_DRAFT JSON line — so the visual upgrade still
+// rewards "the model said it's ready", we just don't gate visibility
+// itself behind a tour-de-table count anymore.
+const CTA_MIN_ASSISTANT_TURNS = 2
+
 interface EmbeddedAgentChatStepProps {
   locale: "en" | "fr"
   onBack: () => void
+  // Wizard advance hook fired once `/draft` flips status to
+  // `preview_ready`. T119 just calls it; T120 lands the actual
+  // `embedded_preview` step it advances to.
+  onPreviewReady?: () => void
 }
 
 const SHORT_ID_LENGTH = 8
@@ -39,13 +54,30 @@ function shortenId(id: string): string {
   return id.slice(0, SHORT_ID_LENGTH)
 }
 
-export function EmbeddedAgentChatStep({ locale, onBack }: EmbeddedAgentChatStepProps) {
+export function EmbeddedAgentChatStep({
+  locale,
+  onBack,
+  onPreviewReady,
+}: EmbeddedAgentChatStepProps) {
   const { t } = useTranslation("onboarding")
   const isOnline = useOnlineStatus()
   const thread = useThread(locale)
   const abandon = useAbandonThread()
   const sendMessage = useSendMessage()
+  const generateDraft = useGenerateDraft()
   const [draft, setDraft] = useState("")
+  // Latch the ready-signal so the CTA pulse persists across subsequent
+  // turns instead of disappearing the moment the user replies and the
+  // last `/message` payload turns into stale `data`.
+  const [hasReadySignal, setHasReadySignal] = useState(false)
+
+  // Pulse the CTA the moment the model emits READY_FOR_PROGRAM_DRAFT.
+  // Mutating state inside an effect (vs. derived from `sendMessage.data`
+  // directly) keeps the latch sticky across follow-up turns.
+  // NOTE: must stay above the early-return for React's hook-order rule.
+  useEffect(() => {
+    if (sendMessage.data?.ready_for_draft) setHasReadySignal(true)
+  }, [sendMessage.data])
 
   // Story 8: never trap the user in an infinite spinner when the network is
   // gone. Surface an explicit offline banner whether the browser flagged it
@@ -66,6 +98,8 @@ export function EmbeddedAgentChatStep({ locale, onBack }: EmbeddedAgentChatStepP
   const handleConfirmRestart = async () => {
     await abandon.mutateAsync()
     sendMessage.reset()
+    generateDraft.reset()
+    setHasReadySignal(false)
     setDraft("")
   }
 
@@ -87,11 +121,33 @@ export function EmbeddedAgentChatStep({ locale, onBack }: EmbeddedAgentChatStepP
     }
   }
 
+  const handleGenerateDraft = async () => {
+    try {
+      await generateDraft.mutateAsync({ trigger: "user_cta", locale })
+      onPreviewReady?.()
+    } catch {
+      // Same pattern as `handleSend`: error is mapped to the typed
+      // `EmbeddedAgentError` on `generateDraft.error`; the UI banner
+      // branches on `kind` / `which`.
+    }
+  }
+
   const messages = thread.data?.messages ?? []
+  const assistantTurnCount = messages.filter((m) => m.role === "assistant").length
+  const showCta = assistantTurnCount >= CTA_MIN_ASSISTANT_TURNS
+
   const sendError = sendMessage.error as EmbeddedAgentError | null
-  const isQuotaError = sendError?.kind === "quota"
-  const isFatalError = sendError !== null && !isQuotaError
-  const composeDisabled = sendMessage.isPending || isQuotaError
+  const draftError = generateDraft.error as EmbeddedAgentError | null
+  // Both surfaces can hit the quota / model_failure paths; we render the
+  // first banner that fired so we don't stack two error cards.
+  const activeError = draftError ?? sendError
+  const isTurnQuotaError =
+    activeError?.kind === "quota" && activeError.which !== "draft" && activeError.which !== "program"
+  const isDraftQuotaError = activeError?.kind === "quota" && activeError.which === "draft"
+  const isProgramQuotaError = activeError?.kind === "quota" && activeError.which === "program"
+  const isFatalError = activeError !== null && activeError.kind !== "quota"
+  const composeDisabled =
+    sendMessage.isPending || generateDraft.isPending || isTurnQuotaError
 
   return (
     // min-h-0 is critical: without it, this flex child refuses to shrink
@@ -126,10 +182,24 @@ export function EmbeddedAgentChatStep({ locale, onBack }: EmbeddedAgentChatStepP
             assistantTypingLabel={t("embeddedAgent.assistantTyping")}
           />
 
-          {isQuotaError ? (
+          {isTurnQuotaError ? (
             <QuotaBanner
               title={t("embeddedAgent.quotaTitle")}
               body={t("embeddedAgent.quotaBody")}
+            />
+          ) : null}
+
+          {isDraftQuotaError ? (
+            <QuotaBanner
+              title={t("embeddedAgent.draftQuotaTitle")}
+              body={t("embeddedAgent.draftQuotaBody")}
+            />
+          ) : null}
+
+          {isProgramQuotaError ? (
+            <QuotaBanner
+              title={t("embeddedAgent.programQuotaTitle")}
+              body={t("embeddedAgent.programQuotaBody")}
             />
           ) : null}
 
@@ -138,7 +208,20 @@ export function EmbeddedAgentChatStep({ locale, onBack }: EmbeddedAgentChatStepP
               title={t("embeddedAgent.errorTitle")}
               body={t("embeddedAgent.errorBody")}
               retryLabel={t("embeddedAgent.retryCta")}
-              onRetry={() => sendMessage.reset()}
+              onRetry={() => {
+                sendMessage.reset()
+                generateDraft.reset()
+              }}
+            />
+          ) : null}
+
+          {showCta ? (
+            <GenerateCta
+              label={t("embeddedAgent.generateCta")}
+              pulsing={hasReadySignal && !generateDraft.isPending}
+              isPending={generateDraft.isPending}
+              pendingLabel={t("embeddedAgent.generatingStatus")}
+              onClick={handleGenerateDraft}
             />
           ) : null}
 
@@ -349,6 +432,38 @@ function ComposeRow({
         {sendLabel}
       </Button>
     </form>
+  )
+}
+
+interface GenerateCtaProps {
+  label: string
+  pulsing: boolean
+  isPending: boolean
+  pendingLabel: string
+  onClick: () => void
+}
+
+function GenerateCta({ label, pulsing, isPending, pendingLabel, onClick }: GenerateCtaProps) {
+  return (
+    <div className="flex flex-shrink-0 flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3">
+      <Button
+        type="button"
+        size="lg"
+        onClick={onClick}
+        disabled={isPending}
+        // Pulse only kicks in when the model has signaled readiness AND
+        // we're not already mid-flight. The animation is purely visual;
+        // server is the source of truth for whether the user *can* draft.
+        className={cn("self-stretch", pulsing && "animate-pulse")}
+      >
+        {label}
+      </Button>
+      {isPending ? (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {pendingLabel}
+        </p>
+      ) : null}
+    </div>
   )
 }
 

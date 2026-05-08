@@ -19,8 +19,30 @@ export interface SendMessageResponse {
   ready_for_draft: boolean
 }
 
+export type DraftTrigger = "ready_signal" | "turn_cap" | "user_cta"
+
+export interface DraftPreviewArgs {
+  name: string
+  days: Array<{ label: string; exercises: string[] }>
+}
+
+export interface DraftPreview {
+  args: DraftPreviewArgs
+  rendered?: string
+}
+
+export interface GenerateDraftResponse {
+  status: "preview_ready"
+  preview: DraftPreview
+  trigger: DraftTrigger
+}
+
 export type EmbeddedAgentError =
-  | { kind: "quota"; limit: number; used: number }
+  // The chat surface needs to distinguish between hourly turn quota
+  // (`useSendMessage`), the daily draft quota and the cross-source
+  // program quota (both `useGenerateDraft`). `which` lets the UI pick
+  // the right copy without re-decoding the wire error.
+  | { kind: "quota"; which?: "turn" | "draft" | "program"; limit?: number; used?: number }
   | { kind: "no_active_thread" }
   | { kind: "model_failure" }
   | { kind: "unknown"; message: string }
@@ -47,15 +69,37 @@ async function toEmbeddedAgentError(error: InvokeError): Promise<EmbeddedAgentEr
   const body = await readErrorBody(error)
   const code = typeof body?.error === "string" ? body.error : undefined
 
-  if (status === 429 || code === "turn_quota_exceeded") {
+  if (code === "turn_quota_exceeded") {
     return {
       kind: "quota",
+      which: "turn",
       limit: typeof body?.limit === "number" ? body.limit : 40,
       used: typeof body?.used === "number" ? body.used : 40,
     }
   }
+  if (code === "draft_quota_exceeded") {
+    return {
+      kind: "quota",
+      which: "draft",
+      limit: typeof body?.limit === "number" ? body.limit : 3,
+      used: typeof body?.used === "number" ? body.used : 3,
+    }
+  }
+  if (code === "program_quota_exceeded") {
+    return { kind: "quota", which: "program" }
+  }
+  // Generic 429 fallback (no specific code).
+  if (status === 429) return { kind: "quota" }
+
   if (status === 409 || code === "no_active_thread") return { kind: "no_active_thread" }
-  if (status === 502 || code === "model_failure") return { kind: "model_failure" }
+  if (
+    status === 502 ||
+    code === "model_failure" ||
+    code === "draft_failed" ||
+    code === "mcp_failed"
+  ) {
+    return { kind: "model_failure" }
+  }
   return { kind: "unknown", message: error.message ?? code ?? "Unknown error" }
 }
 
@@ -141,6 +185,29 @@ export function useSendMessage() {
           ],
         }
       })
+    },
+  })
+}
+
+/**
+ * Fires the program draft step (`/draft`). On success the server has
+ * persisted `last_preview` and flipped the thread to `preview_ready`;
+ * we invalidate the thread cache so consumers re-fetch the new status
+ * and pick up the preview payload. Errors are typed via
+ * `EmbeddedAgentError` so the UI can branch on quota.which (turn /
+ * draft / program) and model_failure independently.
+ */
+export function useGenerateDraft() {
+  const queryClient = useQueryClient()
+  return useMutation<
+    GenerateDraftResponse,
+    EmbeddedAgentError,
+    { trigger: DraftTrigger; locale: "en" | "fr" }
+  >({
+    mutationFn: ({ trigger, locale }) =>
+      callEmbeddedAgent<GenerateDraftResponse>({ action: "draft", trigger, locale }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
     },
   })
 }

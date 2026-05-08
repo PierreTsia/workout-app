@@ -10,7 +10,9 @@
 import type { AIGenerationSource } from "../_shared/aiQuota.ts"
 
 export const EMBEDDED_TURNS_PER_HOUR = 40
+export const EMBEDDED_DRAFTS_PER_24H = 3
 const HOUR_MS = 60 * 60 * 1000
+const DAY_MS = 24 * HOUR_MS
 const LOG_TABLE = "ai_generation_log"
 
 export interface QuotaResult {
@@ -54,6 +56,37 @@ export async function enforceTurnQuota(
   return {
     allowed: used < EMBEDDED_TURNS_PER_HOUR,
     limit: EMBEDDED_TURNS_PER_HOUR,
+    used,
+  }
+}
+
+/**
+ * Same shape as `enforceTurnQuota` but for the `/draft` route: caps each
+ * user at `EMBEDDED_DRAFTS_PER_24H = 3` program drafts per rolling 24h
+ * window. The cap is enforced via `ai_generation_log` rows tagged with
+ * `source = 'embedded_draft'`, written by `logBillableCall` on both
+ * success and failure paths (log_everything).
+ */
+export async function enforceDraftQuota(
+  supabase: QuotaSupabaseLike,
+  userId: string,
+  nowMs: number = Date.now(),
+): Promise<QuotaResult> {
+  const cutoffIso = new Date(nowMs - DAY_MS).toISOString()
+  const { data, error } = await supabase
+    .from(LOG_TABLE)
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source", "embedded_draft")
+    .gte("created_at", cutoffIso)
+
+  if (error) {
+    throw new Error(`enforceDraftQuota count failed: ${error.message ?? "unknown"}`)
+  }
+  const used = data?.length ?? 0
+  return {
+    allowed: used < EMBEDDED_DRAFTS_PER_24H,
+    limit: EMBEDDED_DRAFTS_PER_24H,
     used,
   }
 }

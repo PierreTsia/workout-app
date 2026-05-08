@@ -229,6 +229,26 @@ export async function setStatus(
     .eq("id", thread.id)
 }
 
+/**
+ * Increment the per-thread draft counter. Source-of-truth for the
+ * 3-drafts-per-24h cap is `ai_generation_log` (see `quota.ts`); this
+ * column is a denormalized fast-path for UI hints (e.g. "2 of 3 drafts
+ * used today") that don't want to round-trip through the log table.
+ */
+export async function bumpDraftCount24h(
+  supabase: SupabaseLike,
+  thread: Thread,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  await supabase
+    .from(THREADS_TABLE)
+    .update({
+      draft_count_24h: (thread.draft_count_24h ?? 0) + 1,
+      updated_at: nowIso,
+    })
+    .eq("id", thread.id)
+}
+
 export async function appendMessage(
   supabase: SupabaseLike,
   thread: Thread,

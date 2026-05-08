@@ -51,6 +51,56 @@ export function buildSystemPrompt({ locale, userProfile }: BuildSystemPromptInpu
   ].join("\n\n")
 }
 
+// ---------- ready-signal parser ----------
+
+export interface ReadySignalResult {
+  ready: boolean
+  summary?: string
+  cleanContent: string
+}
+
+// Matches the literal `READY_FOR_PROGRAM_DRAFT: { ... }` line as taught by
+// the system prompt. We accept anything between the curly braces (validation
+// happens after JSON.parse) and consume optional trailing whitespace so the
+// stripped content doesn't end with awkward dangling newlines. The trailing
+// segment is intentionally non-greedy + non-newline so we only ever consume
+// one line, even if the model accidentally emits multiple signals.
+const READY_SIGNAL_LINE = /READY_FOR_PROGRAM_DRAFT:\s*\{[^\n]*\}/
+
+/**
+ * Extract the ready-signal JSON tail from an assistant reply.
+ *
+ *  - Returns `ready: true` only when the literal JSON line is present
+ *    *and* parses as `{ ready: true, summary: <non-empty string> }`.
+ *  - Always strips the matched line from `cleanContent`, even on malformed
+ *    JSON or a `ready: false` payload — we never want the raw signal to
+ *    leak into the chat UI.
+ *  - Free-text "I'm ready" is intentionally NOT a signal (Tech Plan +
+ *    Epic Brief): only the literal JSON line counts.
+ */
+export function parseReadySignal(content: string): ReadySignalResult {
+  const match = content.match(READY_SIGNAL_LINE)
+  if (!match) {
+    return { ready: false, cleanContent: content }
+  }
+
+  const cleanContent = content.replace(READY_SIGNAL_LINE, "").trimEnd()
+
+  try {
+    const jsonStart = match[0].indexOf("{")
+    const parsed = JSON.parse(match[0].slice(jsonStart)) as {
+      ready?: unknown
+      summary?: unknown
+    }
+    if (parsed.ready === true && typeof parsed.summary === "string" && parsed.summary.length > 0) {
+      return { ready: true, summary: parsed.summary, cleanContent }
+    }
+    return { ready: false, cleanContent }
+  } catch {
+    return { ready: false, cleanContent }
+  }
+}
+
 export function buildUserContext(profile: UserContextProfile): string {
   return [
     `Profile:`,

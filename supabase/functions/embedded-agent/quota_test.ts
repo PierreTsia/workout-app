@@ -1,6 +1,8 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
+  EMBEDDED_DRAFTS_PER_24H,
   EMBEDDED_TURNS_PER_HOUR,
+  enforceDraftQuota,
   enforceTurnQuota,
   logBillableCall,
 } from "./quota.ts"
@@ -147,6 +149,63 @@ Deno.test("enforceTurnQuota does not count rows from other sources (e.g. program
   const { client } = makeFake({ rows })
 
   const result = await enforceTurnQuota(client, "user-1", now)
+
+  assertEquals(result.used, 1)
+})
+
+// ---------- enforceDraftQuota ----------
+
+Deno.test("enforceDraftQuota allows the call when no embedded_draft rows exist", async () => {
+  const { client } = makeFake({ rows: [] })
+
+  const result = await enforceDraftQuota(client, "user-1")
+
+  assertEquals(result.allowed, true)
+  assertEquals(result.used, 0)
+  assertEquals(result.limit, EMBEDDED_DRAFTS_PER_24H)
+})
+
+Deno.test("enforceDraftQuota blocks the call once the user reaches the daily cap", async () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const rows: LoggedRow[] = Array.from({ length: EMBEDDED_DRAFTS_PER_24H }, (_, i) => ({
+    user_id: "user-1",
+    source: "embedded_draft",
+    created_at: new Date(now - i * 60 * 60 * 1000).toISOString(),
+  }))
+  const { client } = makeFake({ rows })
+
+  const result = await enforceDraftQuota(client, "user-1", now)
+
+  assertEquals(result.allowed, false)
+  assertEquals(result.used, EMBEDDED_DRAFTS_PER_24H)
+})
+
+Deno.test("enforceDraftQuota only counts rows within the trailing 24h window", async () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const justInside = new Date(now - 23 * 60 * 60 * 1000).toISOString()
+  const justOutside = new Date(now - 25 * 60 * 60 * 1000).toISOString()
+  const rows: LoggedRow[] = [
+    { user_id: "user-1", source: "embedded_draft", created_at: justInside },
+    { user_id: "user-1", source: "embedded_draft", created_at: justOutside },
+  ]
+  const { client } = makeFake({ rows })
+
+  const result = await enforceDraftQuota(client, "user-1", now)
+
+  assertEquals(result.used, 1)
+  assertEquals(result.allowed, true)
+})
+
+Deno.test("enforceDraftQuota does not count embedded_chat or program rows", async () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const rows: LoggedRow[] = [
+    { user_id: "user-1", source: "embedded_chat", created_at: new Date(now - 1000).toISOString() },
+    { user_id: "user-1", source: "program", created_at: new Date(now - 1000).toISOString() },
+    { user_id: "user-1", source: "embedded_draft", created_at: new Date(now - 1000).toISOString() },
+  ]
+  const { client } = makeFake({ rows })
+
+  const result = await enforceDraftQuota(client, "user-1", now)
 
   assertEquals(result.used, 1)
 })
