@@ -89,10 +89,34 @@
     "resumedBadge": "Resumed conversation",
     "backCta": "Back",
     "generateCta": "Generate my plan",
+    "viewDraftCta": "View your draft",
     "generatingStatus": "Reading your answers · drafting · validating · preparing preview",
     "draftQuotaTitle": "Daily draft limit reached",
     "draftQuotaBody": "You've already used your 3 drafts for today. Come back tomorrow to try a fresh angle.",
     "programQuotaTitle": "Program quota reached",
     "programQuotaBody": "You've hit the monthly cap on AI-generated programs. Use one of your existing programs or wait until next month."
+  },
+
+  "embeddedAgentPreview": {
+    "title": "Your draft program",
+    "subtitle": "Review the plan, then activate it or keep iterating in chat.",
+    "programLine": "{{days}} days · {{exercises}} exercises",
+    "missingPreview": "We couldn't load your draft preview. Go back to chat and try again.",
+    "argsFallbackHint": "Detailed prescriptions will appear in the next refresh — UUID list shown for now.",
+    "exercisesCount": "{{count}} exercises",
+    "confirmCta": "Confirm and activate",
+    "confirmingStatus": "Activating your program…",
+    "regenerateCta": "Regenerate · keep chatting",
+    "regeneratingStatus": "Resetting…",
+    "commitErrorTitle": "We couldn't activate your program",
+    "commitErrorBody": "Something failed on our side. Your draft is still here — try again in a moment.",
+    "commitRetryCta": "Try again",
+    "stuckTitle": "Stuck? Try a different path",
+    "stuckBody": "After a couple of failed attempts the AI flow may not be the right fit right now. Pick a proven template or start with an empty program — your answers are saved.",
+    "stuckTemplateCta": "Pick a template",
+    "stuckBlankCta": "Start blank",
+    "noActiveThreadTitle": "Session expired",
+    "noActiveThreadBody": "Your draft session ended. Start a fresh conversation to build a new program.",
+    "backToChatCta": "Back to chat"
   }
 }

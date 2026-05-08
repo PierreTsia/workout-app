@@ -1,15 +1,18 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   appendMessage,
+  buildDeterministicSummary,
   getOrCreateActiveThread,
   isRetentionDue,
   isStale,
   markStaleIfDue,
   purgeRetentionIfDue,
+  resetForReject,
   setLastPreview,
   setStatus,
   type Thread,
 } from "./threadStore.ts"
+import type { UserContextProfile } from "./prompt.ts"
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
@@ -556,6 +559,152 @@ Deno.test("setStatus('preview_ready') only updates the status (no terminal times
   assertEquals("abandoned_at" in op.values, false)
   assertEquals("messages" in op.values, false)
 })
+
+// ---------- resetForReject ----------
+//
+// Atomically transitions a `preview_ready` thread back to `open` and drops
+// `last_preview`. The combined update is intentional: split into two queries
+// the route would race on a hot reload (preview cleared, status still
+// preview_ready → client lands on a blank preview screen).
+
+Deno.test("resetForReject updates status, clears last_preview, and bumps updated_at in one query", async () => {
+  const { supabase, ops } = makeFakeSupabase()
+  const thread = makeThread({
+    status: "preview_ready",
+    last_preview: { args: { name: "Stub", days: [] } } as Record<string, unknown>,
+  })
+
+  await resetForReject(supabase, thread)
+
+  const updates = ops.filter((o) => o.kind === "update")
+  assertEquals(updates.length, 1)
+  const op = updates[0]
+  if (op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.table, "embedded_agent_threads")
+  assertEquals(op.filters, { id: "thread-1" })
+  assertEquals(op.values.status, "open")
+  assertEquals(op.values.last_preview, null)
+  assertEquals(typeof op.values.updated_at, "string")
+})
+
+// ---------- buildDeterministicSummary ----------
+//
+// Pure-function block — no Supabase chain involved. The summary string is what
+// /commit writes into `embedded_agent_threads.summary` once the user confirms
+// the AI program. It survives raw-transcript purge (T116 retention sweep) and
+// becomes the long-tail audit trail for "how did this program get created?",
+// so a deterministic, model-call-free composer is a hard requirement.
+
+const PROFILE_GYM: UserContextProfile = {
+  goal: "hypertrophy",
+  experience: "intermediate",
+  equipment: "gym",
+  training_days_per_week: 4,
+  session_duration_minutes: 60,
+  age: 32,
+  weight_kg: 78,
+  gender: "male",
+}
+
+Deno.test("buildDeterministicSummary EN renders profile + program shape without signals", () => {
+  const summary = buildDeterministicSummary({
+    locale: "en",
+    profile: PROFILE_GYM,
+    programDays: 4,
+    programExerciseCount: 24,
+  })
+
+  assertEquals(
+    summary,
+    "AI onboarding program created. Goal: Hypertrophy · 4 d/wk · 60 min · gym. Program: 4 days, 24 exercises.",
+  )
+})
+
+Deno.test("buildDeterministicSummary EN appends Notable input from chat when signals are present", () => {
+  const summary = buildDeterministicSummary({
+    locale: "en",
+    profile: PROFILE_GYM,
+    programDays: 4,
+    programExerciseCount: 24,
+    signals: ["shoulder injury", "no overhead press"],
+  })
+
+  assertEquals(
+    summary,
+    "AI onboarding program created. Goal: Hypertrophy · 4 d/wk · 60 min · gym. Notable input from chat: shoulder injury, no overhead press. Program: 4 days, 24 exercises.",
+  )
+})
+
+Deno.test("buildDeterministicSummary skips Notable input when signals is an empty array", () => {
+  // Note: cadence on the first line comes from profile (user *intent*), while
+  // "Program: N days" comes from the actual draft (what got built). They can
+  // diverge if the model proposes a different shape — the summary captures
+  // both facts distinctly rather than picking a winner.
+  const summary = buildDeterministicSummary({
+    locale: "en",
+    profile: PROFILE_GYM,
+    programDays: 3,
+    programExerciseCount: 15,
+    signals: [],
+  })
+
+  assertEquals(
+    summary,
+    "AI onboarding program created. Goal: Hypertrophy · 4 d/wk · 60 min · gym. Program: 3 days, 15 exercises.",
+  )
+})
+
+Deno.test("buildDeterministicSummary FR translates labels and uses jours/sem cadence", () => {
+  const summary = buildDeterministicSummary({
+    locale: "fr",
+    profile: { ...PROFILE_GYM, goal: "strength", equipment: "home" },
+    programDays: 3,
+    programExerciseCount: 18,
+    signals: ["genou sensible"],
+  })
+
+  assertEquals(
+    summary,
+    "Programme créé via l'agent IA. Objectif : Force · 4 j/sem · 60 min · maison. Apport notable du chat : genou sensible. Programme : 3 jours, 18 exercices.",
+  )
+})
+
+Deno.test("buildDeterministicSummary is deterministic — same input always returns the same string", () => {
+  // Property guard: this string lives forever in the audit trail. If we ever
+  // sneak a `Date.now()` or `Math.random()` into the implementation this test
+  // catches it before the row contents start drifting between commits.
+  const input = {
+    locale: "en" as const,
+    profile: PROFILE_GYM,
+    programDays: 4,
+    programExerciseCount: 24,
+    signals: ["shoulder injury"],
+  }
+  assertEquals(
+    buildDeterministicSummary(input),
+    buildDeterministicSummary(input),
+  )
+})
+
+Deno.test("buildDeterministicSummary falls back to raw values for unknown goal/equipment", () => {
+  // Defensive against future profile schema additions: unknown values get
+  // surfaced verbatim instead of crashing or printing "undefined". The
+  // alternative — throwing — would break /commit on a perfectly valid program
+  // just because we haven't shipped a label yet.
+  const summary = buildDeterministicSummary({
+    locale: "en",
+    profile: { ...PROFILE_GYM, goal: "powerlifting", equipment: "garage" },
+    programDays: 4,
+    programExerciseCount: 24,
+  })
+
+  assertEquals(
+    summary,
+    "AI onboarding program created. Goal: powerlifting · 4 d/wk · 60 min · garage. Program: 4 days, 24 exercises.",
+  )
+})
+
+// ---------- appendMessage ----------
 
 Deno.test("appendMessage(assistant) bumps assistant_turn_count and preserves prior messages", async () => {
   const { supabase, ops } = makeFakeSupabase()

@@ -48,6 +48,8 @@ interface DepsCalls {
   setLastPreview: Array<{ thread: Thread; preview: LastPreview }>
   setStatusToPreviewReady: Array<{ thread: Thread }>
   bumpDraftCount24h: Array<{ thread: Thread }>
+  resetForReject: Array<{ thread: Thread }>
+  setStatusToCommitted: Array<{ thread: Thread; patch: { program_id: string; summary?: string } }>
   logEvents: LogEvent[]
 }
 
@@ -72,6 +74,11 @@ interface DepsOverrides {
   setLastPreview?: (thread: Thread, preview: LastPreview) => Promise<void>
   setStatusToPreviewReady?: (thread: Thread) => Promise<void>
   bumpDraftCount24h?: (thread: Thread) => Promise<void>
+  resetForReject?: (thread: Thread) => Promise<void>
+  setStatusToCommitted?: (
+    thread: Thread,
+    patch: { program_id: string; summary?: string },
+  ) => Promise<void>
 }
 
 function makeDeps(overrides: DepsOverrides = {}) {
@@ -93,6 +100,8 @@ function makeDeps(overrides: DepsOverrides = {}) {
     setLastPreview: [],
     setStatusToPreviewReady: [],
     bumpDraftCount24h: [],
+    resetForReject: [],
+    setStatusToCommitted: [],
     logEvents: [],
   }
 
@@ -211,6 +220,17 @@ function makeDeps(overrides: DepsOverrides = {}) {
       calls.bumpDraftCount24h.push({ thread })
       if (overrides.bumpDraftCount24h) await overrides.bumpDraftCount24h(thread)
     },
+    resetForReject: async (thread: Thread) => {
+      calls.resetForReject.push({ thread })
+      if (overrides.resetForReject) await overrides.resetForReject(thread)
+    },
+    setStatusToCommitted: async (
+      thread: Thread,
+      patch: { program_id: string; summary?: string },
+    ) => {
+      calls.setStatusToCommitted.push({ thread, patch })
+      if (overrides.setStatusToCommitted) await overrides.setStatusToCommitted(thread, patch)
+    },
     log: (event: LogEvent) => {
       calls.logEvents.push(event)
     },
@@ -253,6 +273,32 @@ Deno.test("POST /thread { open, en } returns the freshly created thread shape", 
   assertEquals(calls.getUser.length, 1)
   assertEquals(calls.getOrCreateActiveThread.length, 1)
   assertEquals(calls.getOrCreateActiveThread[0], { userId: "user-1", locale: "en" })
+})
+
+Deno.test("POST /thread { open } surfaces last_preview when status is preview_ready (so PreviewStep renders without a second fetch)", async () => {
+  const previewPayload = {
+    args: {
+      name: "Hypertrophy — 4 d/wk",
+      days: [{ label: "Push", exercises: ["ex-1"] }],
+    },
+    rendered: [{ label: "Push", lines: ["Bench Press — 4 × 8 × 80 kg total"] }],
+  } as Record<string, unknown>
+  const existing = makeThread({
+    id: "t-pr",
+    status: "preview_ready",
+    last_preview: previewPayload,
+  })
+  const { deps } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: existing, resumed: true }),
+  })
+
+  const res = await handleEmbeddedAgent(jsonRequest({ action: "open", locale: "en" }), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.thread_id, "t-pr")
+  assertEquals(body.status, "preview_ready")
+  assertEquals(body.last_preview, previewPayload)
 })
 
 Deno.test("POST /thread { open } returns resumed:true when an active thread already exists", async () => {
@@ -749,6 +795,323 @@ Deno.test("POST /draft rejects an unknown trigger value with 400 invalid_trigger
   assertEquals(res.status, 400)
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "invalid_trigger")
+})
+
+// ---------- /reject ----------
+//
+// Reject is the "user wasn't sold by the draft" escape from preview_ready
+// back to chat. Locked behavior: status flips to `open`, last_preview is
+// cleared, no fake assistant turn is injected (the user types whatever they
+// want next and that becomes the next-draft signal). Idempotent at the
+// route boundary so the client can fire-and-forget on Regenerate clicks.
+
+function rejectRequest(options: { withAuth?: boolean } = {}): Request {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  return new Request("https://example.test/reject", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ action: "reject" }),
+  })
+}
+
+Deno.test("POST /reject flips preview_ready → open and clears last_preview", async () => {
+  const active = makeThread({
+    id: "t-pr",
+    status: "preview_ready",
+    last_preview: { args: { name: "x", days: [] } } as Record<string, unknown>,
+  })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+  })
+
+  const res = await handleEmbeddedAgent(rejectRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.ok, true)
+  assertEquals(body.status, "open")
+  assertEquals(calls.resetForReject.length, 1)
+  assertEquals(calls.resetForReject[0].thread.id, "t-pr")
+})
+
+Deno.test("POST /reject is a silent no-op when the active thread is already 'open' (idempotent)", async () => {
+  const active = makeThread({ id: "t-open", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+  })
+
+  const res = await handleEmbeddedAgent(rejectRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.ok, true)
+  assertEquals(body.status, "open")
+  // No state mutation when status is already where reject would land.
+  assertEquals(calls.resetForReject.length, 0)
+})
+
+Deno.test("POST /reject is a silent no-op when there is no active thread at all", async () => {
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => null,
+  })
+
+  const res = await handleEmbeddedAgent(rejectRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.ok, true)
+  assertEquals(calls.resetForReject.length, 0)
+})
+
+Deno.test("POST /reject returns 401 when the auth header is missing", async () => {
+  const { deps, calls } = makeDeps({
+    getUser: async () => null,
+  })
+
+  const res = await handleEmbeddedAgent(rejectRequest({ withAuth: false }), deps)
+
+  assertEquals(res.status, 401)
+  assertEquals(calls.resetForReject.length, 0)
+})
+
+// ---------- /commit ----------
+//
+// Closes the onboarding program commit gate (Story 6 — agent proposes, user
+// decides). Locked behavior:
+//   - server-trusted gate: `confirm: true` is required, even though the UI
+//     would never POST without it (defense in depth).
+//   - state guard: only `preview_ready` threads with a stashed `last_preview`
+//     can commit; anything else is 409.
+//   - on success the thread becomes terminal `committed`, raw `messages` are
+//     purged via `setStatus('committed')` (T116 retention behavior), and the
+//     route returns the freshly-minted `program_id` so the client can route
+//     to it.
+//   - on MCP failure status STAYS `preview_ready` so the user retries commit
+//     without losing the preview (T120 failure-mode table).
+
+function commitRequest(
+  body: Record<string, unknown> = { confirm: true },
+  options: { withAuth?: boolean } = {},
+): Request {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  return new Request("https://example.test/commit", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ action: "commit", ...body }),
+  })
+}
+
+const PREVIEW_READY_THREAD = (): Thread =>
+  makeThread({
+    id: "thread-pr",
+    status: "preview_ready",
+    locale: "en",
+    last_preview: {
+      args: {
+        name: "Hypertrophy — 4 days/wk",
+        days: [
+          { label: "Day 1", exercises: ["ex-1", "ex-2"] },
+          { label: "Day 2", exercises: ["ex-3"] },
+        ],
+      },
+    } as Record<string, unknown>,
+  })
+
+function makeMcpCommitOk(programId: string): CallMcpToolResult {
+  return {
+    ok: true,
+    value: {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          dry_run: false,
+          program_id: programId,
+          workout_day_ids: ["d1", "d2"],
+          message: "Program created and set active.",
+        }),
+      }],
+    },
+  }
+}
+
+Deno.test("POST /commit happy path: MCP dry_run:false, status → committed, summary built, returns program_id", async () => {
+  const active = PREVIEW_READY_THREAD()
+  let mcpReceived: Record<string, unknown> | null = null
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async (args) => {
+      mcpReceived = args as unknown as Record<string, unknown>
+      return makeMcpCommitOk("prog-123")
+    },
+  })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.program_id, "prog-123")
+
+  // MCP called with dry_run: false and the persisted args.
+  assertEquals(calls.callMcp.length, 1)
+  const mcp = mcpReceived as Record<string, unknown> | null
+  if (!mcp) throw new Error("expected MCP call")
+  assertEquals(mcp.dry_run, false)
+  assertEquals(mcp.name, "Hypertrophy — 4 days/wk")
+
+  // Status transition with program_id + summary.
+  assertEquals(calls.setStatusToCommitted.length, 1)
+  assertEquals(calls.setStatusToCommitted[0].patch.program_id, "prog-123")
+  // Summary is built from profile + program shape; we don't pin the exact
+  // string here (that's exercised in threadStore_test.ts) — just verify the
+  // route plumbs *some* summary through.
+  const summary = calls.setStatusToCommitted[0].patch.summary
+  assertEquals(typeof summary, "string")
+  if (typeof summary === "string") {
+    // Profile loadProfile returns goal=hypertrophy by default in this fixture.
+    assertEquals(summary.includes("Hypertrophy"), true)
+    assertEquals(summary.includes("Program: 2 days, 3 exercises"), true)
+  }
+
+  // Profile was loaded for summary composition.
+  assertEquals(calls.loadProfile.length, 1)
+  assertEquals(calls.loadProfile[0].userId, "user-1")
+})
+
+Deno.test("POST /commit returns 400 invalid_confirm when confirm !== true (server-trusted gate)", async () => {
+  const active = PREVIEW_READY_THREAD()
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: false }), deps)
+
+  assertEquals(res.status, 400)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "invalid_confirm")
+  // Defense in depth: no MCP call, no state mutation.
+  assertEquals(calls.callMcp.length, 0)
+  assertEquals(calls.setStatusToCommitted.length, 0)
+})
+
+Deno.test("POST /commit returns 400 invalid_confirm when confirm is missing entirely", async () => {
+  const { deps, calls } = makeDeps({ getActiveThread: async () => PREVIEW_READY_THREAD() })
+
+  const res = await handleEmbeddedAgent(commitRequest({}), deps)
+
+  assertEquals(res.status, 400)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "invalid_confirm")
+  assertEquals(calls.callMcp.length, 0)
+})
+
+Deno.test("POST /commit returns 409 no_active_thread when there is no active thread", async () => {
+  const { deps, calls } = makeDeps({ getActiveThread: async () => null })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "no_active_thread")
+  assertEquals(calls.callMcp.length, 0)
+})
+
+Deno.test("POST /commit returns 409 not_preview_ready when status is still 'open'", async () => {
+  const active = makeThread({ status: "open" })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "not_preview_ready")
+  assertEquals(calls.callMcp.length, 0)
+})
+
+Deno.test("POST /commit returns 409 no_preview when status is preview_ready but last_preview is missing", async () => {
+  // Edge case — shouldn't happen with healthy data, but defensive: the
+  // commit gate should not call MCP with empty args even if the row got
+  // into a half-state somehow.
+  const active = makeThread({ status: "preview_ready", last_preview: null })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "no_preview")
+  assertEquals(calls.callMcp.length, 0)
+})
+
+Deno.test("POST /commit returns 502 commit_failed and KEEPS status preview_ready on MCP transport error", async () => {
+  const active = PREVIEW_READY_THREAD()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async () => ({ ok: false, kind: "transport_error", message: "fetch died" }),
+  })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "commit_failed")
+  assertEquals(body.kind, "transport_error")
+  // Status sticks so the user can retry from the same preview.
+  assertEquals(calls.setStatusToCommitted.length, 0)
+})
+
+Deno.test("POST /commit returns 502 commit_failed on MCP rpc_error and surfaces the kind", async () => {
+  const active = PREVIEW_READY_THREAD()
+  const { deps } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async () => ({
+      ok: false,
+      kind: "rpc_error",
+      rpc: { code: -32600, message: "Invalid Request" },
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "commit_failed")
+  assertEquals(body.kind, "rpc_error")
+})
+
+Deno.test("POST /commit returns 502 commit_failed when MCP responds OK but text has no program_id (malformed)", async () => {
+  // The MCP server is the source of truth for program_id. If we can't parse
+  // one out of the success response, the row may or may not have actually
+  // landed — bailing with 502 + status-stays is the safer default than
+  // returning a phantom program_id and breaking client navigation.
+  const active = PREVIEW_READY_THREAD()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async () => ({
+      ok: true,
+      value: { content: [{ type: "text", text: '{"dry_run": false, "message": "?"}' }] },
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(commitRequest({ confirm: true }), deps)
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "commit_failed")
+  assertEquals(body.kind, "invalid_response")
+  assertEquals(calls.setStatusToCommitted.length, 0)
+})
+
+Deno.test("POST /commit returns 401 when the auth header is missing", async () => {
+  const { deps, calls } = makeDeps({ getUser: async () => null })
+
+  const res = await handleEmbeddedAgent(
+    commitRequest({ confirm: true }, { withAuth: false }),
+    deps,
+  )
+
+  assertEquals(res.status, 401)
+  assertEquals(calls.callMcp.length, 0)
+  assertEquals(calls.setStatusToCommitted.length, 0)
 })
 
 Deno.test("GET /thread returns 405 method_not_allowed", async () => {

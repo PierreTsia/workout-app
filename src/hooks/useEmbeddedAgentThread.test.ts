@@ -7,6 +7,8 @@ import {
   useAbandonThread,
   useSendMessage,
   useGenerateDraft,
+  useRejectPreview,
+  useCommitPreview,
 } from "./useEmbeddedAgentThread"
 
 vi.mock("@/lib/supabase", () => ({
@@ -141,7 +143,9 @@ describe("useGenerateDraft", () => {
         status: "preview_ready",
         preview: {
           args: { name: "Strength — 4 days/wk", days: [{ label: "Day 1", exercises: ["ex-1"] }] },
-          rendered: "Bench Press — 3 × 10 × 0 kg per_hand — 90s rest",
+          rendered: [
+            { label: "Day 1", lines: ["Bench Press — 3 × 10 × 0 kg per_hand — 90s rest"] },
+          ],
         },
         trigger: "user_cta",
       },
@@ -220,5 +224,160 @@ describe("useGenerateDraft", () => {
     }
 
     expect(caught).toMatchObject({ kind: "model_failure" })
+  })
+})
+
+describe("useRejectPreview", () => {
+  it("posts /reject and invalidates the thread cache so the consumer re-fetches the now-open thread", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "t-1",
+          status: "preview_ready",
+          resumed: true,
+          messages: [{ role: "user", content: "hi", ts: "x" }],
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: { ok: true, status: "open" }, error: null })
+      .mockResolvedValueOnce({
+        data: { thread_id: "t-1", status: "open", resumed: true, messages: [] },
+        error: null,
+      })
+
+    const { result } = renderHookWithProviders(() => ({
+      thread: useThread("en"),
+      reject: useRejectPreview(),
+    }))
+
+    await waitFor(() => expect(result.current.thread.isSuccess).toBe(true))
+    expect(result.current.thread.data?.status).toBe("preview_ready")
+
+    await result.current.reject.mutateAsync()
+
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", { body: { action: "reject" } })
+
+    // Cache invalidation refetches and surfaces the now-open thread.
+    await waitFor(() => expect(result.current.thread.data?.status).toBe("open"))
+  })
+})
+
+describe("useCommitPreview", () => {
+  it("posts /commit { confirm: true } automatically (UI never has to think about the gate) and returns program_id", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { program_id: "prog-abc" },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() => useCommitPreview())
+
+    const data = await result.current.mutateAsync()
+
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "commit", confirm: true },
+    })
+    expect(data.program_id).toBe("prog-abc")
+  })
+
+  it("syncs hasProgramAtom + activeProgramIdAtom and invalidates program-related caches on success (parity with legacy AIProgramPreviewStep)", async () => {
+    // Without this sync the user navigates to "/" but the home shell still
+    // thinks they have no program (atom=false) → infinite redirect loop or
+    // empty home. The legacy AI flow does this from the component; we do it
+    // from the hook so any caller of useCommitPreview gets it for free.
+    const { hasProgramAtom, activeProgramIdAtom } = await import("@/store/atoms")
+
+    invokeMock.mockResolvedValueOnce({ data: { program_id: "prog-sync-1" }, error: null })
+
+    const { result, store, queryClient } = renderHookWithProviders(() =>
+      useCommitPreview(),
+    )
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
+    store.set(hasProgramAtom, false)
+    store.set(activeProgramIdAtom, null)
+
+    await result.current.mutateAsync()
+
+    expect(store.get(hasProgramAtom)).toBe(true)
+    expect(store.get(activeProgramIdAtom)).toBe("prog-sync-1")
+
+    // Caches the home shell + program pages depend on must be invalidated
+    // so the navigation to "/" lands on fresh data.
+    const invalidatedKeys = invalidateSpy.mock.calls.map(
+      (c) => (c[0] as { queryKey: readonly unknown[] })?.queryKey?.[0],
+    )
+    expect(invalidatedKeys).toContain("workout-days")
+    expect(invalidatedKeys).toContain("active-program")
+    expect(invalidatedKeys).toContain("user-programs")
+  })
+
+  it("invalidates the thread cache after a successful commit so consumers see the committed status", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "t-1", status: "preview_ready", resumed: true, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: { program_id: "prog-1" }, error: null })
+      .mockResolvedValueOnce({
+        data: { thread_id: "t-1", status: "committed", resumed: true, messages: [] },
+        error: null,
+      })
+
+    const { result } = renderHookWithProviders(() => ({
+      thread: useThread("en"),
+      commit: useCommitPreview(),
+    }))
+
+    await waitFor(() => expect(result.current.thread.isSuccess).toBe(true))
+
+    await result.current.commit.mutateAsync()
+
+    await waitFor(() => expect(result.current.thread.data?.status).toBe("committed"))
+  })
+
+  it("maps a 502 commit_failed into a typed commit_failed error so the UI can show retry without losing the preview", async () => {
+    const err = Object.assign(new Error("502"), {
+      context: new Response(
+        JSON.stringify({ error: "commit_failed", kind: "transport_error" }),
+        { status: 502 },
+      ),
+    })
+    invokeMock.mockResolvedValueOnce({ data: null, error: err })
+
+    const { result } = renderHookWithProviders(() => useCommitPreview())
+
+    let caught: unknown = null
+    try {
+      await result.current.mutateAsync()
+    } catch (e) {
+      caught = e
+    }
+
+    expect(caught).toMatchObject({ kind: "commit_failed" })
+  })
+
+  it("maps state-violation 409s (no_active_thread, not_preview_ready, no_preview) into a typed no_active_thread error", async () => {
+    // All three 409 codes mean "your client state has drifted from the
+    // server" — the UI should bail back to chat and let the user start over.
+    // We collapse them to a single `no_active_thread` kind so the consumer
+    // doesn't have to switch on three near-identical conditions.
+    for (const code of ["no_active_thread", "not_preview_ready", "no_preview"]) {
+      invokeMock.mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("409"), {
+          context: new Response(JSON.stringify({ error: code }), { status: 409 }),
+        }),
+      })
+
+      const { result } = renderHookWithProviders(() => useCommitPreview())
+
+      let caught: unknown = null
+      try {
+        await result.current.mutateAsync()
+      } catch (e) {
+        caught = e
+      }
+
+      expect(caught).toMatchObject({ kind: "no_active_thread" })
+    }
   })
 })

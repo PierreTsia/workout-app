@@ -346,87 +346,116 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(
+      <EmbeddedAgentChatStep
+        locale="en"
+        onBack={() => {}}
+        onGenerateRequest={() => {}}
+      />,
+    )
     await screen.findByText(/Thread cta00002/)
 
     expect(screen.getByRole("button", { name: /generate my plan/i })).toBeInTheDocument()
   })
 
-  it("clicking the CTA fires /draft with trigger:user_cta and calls onPreviewReady on success", async () => {
-    invokeMock
-      .mockResolvedValueOnce({
-        data: {
-          thread_id: "cta00003-0000-0000-0000-000000000000",
-          status: "open",
-          resumed: true,
-          messages: makeMessages(2),
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: {
-          status: "preview_ready",
-          preview: { args: { name: "Strength — 4 days/wk", days: [] } },
-          trigger: "user_cta",
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: {
-          thread_id: "cta00003-0000-0000-0000-000000000000",
-          status: "preview_ready",
-          resumed: true,
-          messages: makeMessages(2),
-        },
-        error: null,
-      })
+  it("clicking the CTA delegates to onGenerateRequest (no inline /draft call — the next wizard step owns the mutation)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "cta00003-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: true,
+        messages: makeMessages(2),
+      },
+      error: null,
+    })
 
-    const onPreviewReady = vi.fn()
+    const onGenerateRequest = vi.fn()
     renderWithProviders(
-      <EmbeddedAgentChatStep locale="en" onBack={() => {}} onPreviewReady={onPreviewReady} />,
+      <EmbeddedAgentChatStep
+        locale="en"
+        onBack={() => {}}
+        onGenerateRequest={onGenerateRequest}
+      />,
     )
     await screen.findByText(/Thread cta00003/)
 
     const user = userEvent.setup()
     await user.click(screen.getByRole("button", { name: /generate my plan/i }))
 
-    await waitFor(() => {
-      expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "draft", trigger: "user_cta", locale: "en" },
-      })
-    })
-
-    await waitFor(() => expect(onPreviewReady).toHaveBeenCalledTimes(1))
+    expect(onGenerateRequest).toHaveBeenCalledTimes(1)
+    // Critical: the chat step itself must NOT fire /draft — only /thread
+    // (the initial open). Anything else means the loading-state refactor
+    // regressed and we're back to the disabled-button-only UX.
+    expect(invokeMock).toHaveBeenCalledTimes(1)
   })
 
-  it("renders the friendly draft cap card on a 429 draft_quota_exceeded response", async () => {
-    invokeMock
-      .mockResolvedValueOnce({
-        data: {
-          thread_id: "cta00004-0000-0000-0000-000000000000",
-          status: "open",
-          resumed: true,
-          messages: makeMessages(2),
-        },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: null,
-        error: Object.assign(new Error("429"), {
-          context: new Response(
-            JSON.stringify({ error: "draft_quota_exceeded", limit: 3, used: 3 }),
-            { status: 429 },
-          ),
-        }),
-      })
+  it("hides the Generate my plan CTA when no onGenerateRequest handler is wired (defensive — would be a no-op click)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "cta00005-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: true,
+        messages: makeMessages(2),
+      },
+      error: null,
+    })
 
     renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
-    await screen.findByText(/Thread cta00004/)
+    await screen.findByText(/Thread cta00005/)
 
-    const user = userEvent.setup()
-    await user.click(screen.getByRole("button", { name: /generate my plan/i }))
+    expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
+  })
 
-    expect(await screen.findByText(/daily draft limit reached/i)).toBeInTheDocument()
+  // ---------- T120 fix: resumed preview_ready threads shouldn't 409 on Generate ----------
+
+  it("hides the Generate my plan CTA when the resumed thread is already in preview_ready (would 409 on /draft)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "resume01-0000-0000-0000-000000000000",
+        status: "preview_ready",
+        resumed: true,
+        messages: makeMessages(3),
+        last_preview: { args: { name: "Existing draft", days: [] } },
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread resume01/)
+
+    expect(
+      screen.queryByRole("button", { name: /generate my plan/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows a View your draft CTA when the thread is preview_ready, and clicking it calls onPreviewReady without a server call", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "resume02-0000-0000-0000-000000000000",
+        status: "preview_ready",
+        resumed: true,
+        messages: makeMessages(3),
+        last_preview: { args: { name: "Existing draft", days: [] } },
+      },
+      error: null,
+    })
+
+    const onPreviewReady = vi.fn()
+    renderWithProviders(
+      <EmbeddedAgentChatStep
+        locale="en"
+        onBack={() => {}}
+        onPreviewReady={onPreviewReady}
+      />,
+    )
+    await screen.findByText(/Thread resume02/)
+
+    const viewBtn = await screen.findByRole("button", { name: /view your draft/i })
+    await userEvent.click(viewBtn)
+
+    expect(onPreviewReady).toHaveBeenCalledTimes(1)
+    // Pure navigation — no extra MCP/edge call beyond the initial /thread fetch.
+    expect(invokeMock).toHaveBeenCalledTimes(1)
   })
 
   it("renders an error card with retry on a 5xx model failure", async () => {

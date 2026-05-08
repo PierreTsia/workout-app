@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   useAbandonThread,
-  useGenerateDraft,
   useSendMessage,
   useThread,
   type EmbeddedAgentError,
@@ -42,9 +41,14 @@ const CTA_MIN_ASSISTANT_TURNS = 2
 interface EmbeddedAgentChatStepProps {
   locale: "en" | "fr"
   onBack: () => void
-  // Wizard advance hook fired once `/draft` flips status to
-  // `preview_ready`. T119 just calls it; T120 lands the actual
-  // `embedded_preview` step it advances to.
+  // Fired when the user clicks the "Generate my plan" CTA — pure
+  // navigation. The actual /draft mutation runs in
+  // EmbeddedAgentGeneratingStep so the user sees a proper animated
+  // loading screen instead of a disabled button on top of the chat.
+  onGenerateRequest?: () => void
+  // Fired when the chat step detects it was resumed onto an existing
+  // preview_ready thread (no fresh draft needed). Lets the wizard hop
+  // straight to the preview screen via the "View your draft" CTA.
   onPreviewReady?: () => void
 }
 
@@ -57,6 +61,7 @@ function shortenId(id: string): string {
 export function EmbeddedAgentChatStep({
   locale,
   onBack,
+  onGenerateRequest,
   onPreviewReady,
 }: EmbeddedAgentChatStepProps) {
   const { t } = useTranslation("onboarding")
@@ -64,7 +69,6 @@ export function EmbeddedAgentChatStep({
   const thread = useThread(locale)
   const abandon = useAbandonThread()
   const sendMessage = useSendMessage()
-  const generateDraft = useGenerateDraft()
   const [draft, setDraft] = useState("")
   // Latch the ready-signal so the CTA pulse persists across subsequent
   // turns instead of disappearing the moment the user replies and the
@@ -98,7 +102,6 @@ export function EmbeddedAgentChatStep({
   const handleConfirmRestart = async () => {
     await abandon.mutateAsync()
     sendMessage.reset()
-    generateDraft.reset()
     setHasReadySignal(false)
     setDraft("")
   }
@@ -121,33 +124,29 @@ export function EmbeddedAgentChatStep({
     }
   }
 
-  const handleGenerateDraft = async () => {
-    try {
-      await generateDraft.mutateAsync({ trigger: "user_cta", locale })
-      onPreviewReady?.()
-    } catch {
-      // Same pattern as `handleSend`: error is mapped to the typed
-      // `EmbeddedAgentError` on `generateDraft.error`; the UI banner
-      // branches on `kind` / `which`.
-    }
-  }
-
   const messages = thread.data?.messages ?? []
   const assistantTurnCount = messages.filter((m) => m.role === "assistant").length
-  const showCta = assistantTurnCount >= CTA_MIN_ASSISTANT_TURNS
+  // Resumed threads can land here in `preview_ready` (the user closed the
+  // tab on the preview screen and came back). Hiding the Generate CTA in
+  // that case prevents the inevitable 409 from /draft (which only accepts
+  // status=open) and we surface a "View your draft" CTA instead so the
+  // user has an obvious path forward to the preview they already paid for.
+  const isPreviewReady = thread.data?.status === "preview_ready"
+  const showGenerateCta =
+    !isPreviewReady &&
+    assistantTurnCount >= CTA_MIN_ASSISTANT_TURNS &&
+    Boolean(onGenerateRequest)
+  const showViewDraftCta = isPreviewReady && Boolean(onPreviewReady)
 
   const sendError = sendMessage.error as EmbeddedAgentError | null
-  const draftError = generateDraft.error as EmbeddedAgentError | null
-  // Both surfaces can hit the quota / model_failure paths; we render the
-  // first banner that fired so we don't stack two error cards.
-  const activeError = draftError ?? sendError
+  // Quota / fatal banners shown HERE only cover /message — /draft errors
+  // surface in EmbeddedAgentGeneratingStep where the mutation now lives.
   const isTurnQuotaError =
-    activeError?.kind === "quota" && activeError.which !== "draft" && activeError.which !== "program"
-  const isDraftQuotaError = activeError?.kind === "quota" && activeError.which === "draft"
-  const isProgramQuotaError = activeError?.kind === "quota" && activeError.which === "program"
-  const isFatalError = activeError !== null && activeError.kind !== "quota"
-  const composeDisabled =
-    sendMessage.isPending || generateDraft.isPending || isTurnQuotaError
+    sendError?.kind === "quota" &&
+    sendError.which !== "draft" &&
+    sendError.which !== "program"
+  const isFatalError = sendError !== null && sendError.kind !== "quota"
+  const composeDisabled = sendMessage.isPending || isTurnQuotaError
 
   return (
     // min-h-0 is critical: without it, this flex child refuses to shrink
@@ -189,20 +188,6 @@ export function EmbeddedAgentChatStep({
             />
           ) : null}
 
-          {isDraftQuotaError ? (
-            <QuotaBanner
-              title={t("embeddedAgent.draftQuotaTitle")}
-              body={t("embeddedAgent.draftQuotaBody")}
-            />
-          ) : null}
-
-          {isProgramQuotaError ? (
-            <QuotaBanner
-              title={t("embeddedAgent.programQuotaTitle")}
-              body={t("embeddedAgent.programQuotaBody")}
-            />
-          ) : null}
-
           {isFatalError ? (
             <ErrorBanner
               title={t("embeddedAgent.errorTitle")}
@@ -210,19 +195,27 @@ export function EmbeddedAgentChatStep({
               retryLabel={t("embeddedAgent.retryCta")}
               onRetry={() => {
                 sendMessage.reset()
-                generateDraft.reset()
               }}
             />
           ) : null}
 
-          {showCta ? (
+          {showGenerateCta ? (
             <GenerateCta
               label={t("embeddedAgent.generateCta")}
-              pulsing={hasReadySignal && !generateDraft.isPending}
-              isPending={generateDraft.isPending}
-              pendingLabel={t("embeddedAgent.generatingStatus")}
-              onClick={handleGenerateDraft}
+              pulsing={hasReadySignal}
+              onClick={() => onGenerateRequest?.()}
             />
+          ) : null}
+
+          {showViewDraftCta ? (
+            <Button
+              type="button"
+              size="lg"
+              className="mx-4 my-2 sm:mx-6"
+              onClick={() => onPreviewReady?.()}
+            >
+              {t("embeddedAgent.viewDraftCta")}
+            </Button>
           ) : null}
 
           <ComposeRow
@@ -438,31 +431,24 @@ function ComposeRow({
 interface GenerateCtaProps {
   label: string
   pulsing: boolean
-  isPending: boolean
-  pendingLabel: string
   onClick: () => void
 }
 
-function GenerateCta({ label, pulsing, isPending, pendingLabel, onClick }: GenerateCtaProps) {
+function GenerateCta({ label, pulsing, onClick }: GenerateCtaProps) {
   return (
     <div className="flex flex-shrink-0 flex-col gap-2 rounded-md border border-primary/20 bg-primary/5 p-3">
       <Button
         type="button"
         size="lg"
         onClick={onClick}
-        disabled={isPending}
-        // Pulse only kicks in when the model has signaled readiness AND
-        // we're not already mid-flight. The animation is purely visual;
-        // server is the source of truth for whether the user *can* draft.
+        // Pulse signals the model just emitted READY_FOR_PROGRAM_DRAFT —
+        // it's a "you can press me now" hint, not a loading indicator.
+        // Loading state lives in EmbeddedAgentGeneratingStep on the next
+        // wizard step.
         className={cn("self-stretch", pulsing && "animate-pulse")}
       >
         {label}
       </Button>
-      {isPending ? (
-        <p className="text-xs text-muted-foreground" aria-live="polite">
-          {pendingLabel}
-        </p>
-      ) : null}
     </div>
   )
 }

@@ -89,10 +89,34 @@
     "resumedBadge": "Conversation reprise",
     "backCta": "Retour",
     "generateCta": "Générer mon programme",
+    "viewDraftCta": "Voir ton brouillon",
     "generatingStatus": "Lecture de vos réponses · brouillon · validation · préparation de l'aperçu",
     "draftQuotaTitle": "Limite quotidienne atteinte",
     "draftQuotaBody": "Vous avez déjà utilisé vos 3 brouillons du jour. Revenez demain pour explorer un autre angle.",
     "programQuotaTitle": "Quota de programmes atteint",
     "programQuotaBody": "Vous avez atteint le plafond mensuel de programmes générés. Utilisez un de vos programmes existants ou attendez le mois prochain."
+  },
+
+  "embeddedAgentPreview": {
+    "title": "Votre programme proposé",
+    "subtitle": "Vérifiez le plan, puis activez-le ou continuez à itérer dans le chat.",
+    "programLine": "{{days}} jours · {{exercises}} exercices",
+    "missingPreview": "Impossible de charger votre aperçu. Retournez au chat et réessayez.",
+    "argsFallbackHint": "Les prescriptions détaillées apparaîtront au prochain rafraîchissement — liste d'UUID affichée pour l'instant.",
+    "exercisesCount": "{{count}} exercices",
+    "confirmCta": "Confirmer et activer",
+    "confirmingStatus": "Activation de votre programme…",
+    "regenerateCta": "Régénérer · continuer à discuter",
+    "regeneratingStatus": "Réinitialisation…",
+    "commitErrorTitle": "Activation impossible",
+    "commitErrorBody": "Quelque chose a échoué de notre côté. Votre brouillon est toujours là — réessayez dans un instant.",
+    "commitRetryCta": "Réessayer",
+    "stuckTitle": "Bloqué ? Essayez une autre voie",
+    "stuckBody": "Après quelques tentatives infructueuses, le flux IA n'est peut-être pas le plus adapté pour le moment. Choisissez un modèle éprouvé ou démarrez un programme vide — vos réponses sont sauvegardées.",
+    "stuckTemplateCta": "Choisir un modèle",
+    "stuckBlankCta": "Démarrer vide",
+    "noActiveThreadTitle": "Session expirée",
+    "noActiveThreadBody": "Votre session brouillon a pris fin. Démarrez une nouvelle conversation pour créer un nouveau programme.",
+    "backToChatCta": "Retour au chat"
   }
 }

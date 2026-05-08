@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useStore } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { activeProgramIdAtom, hasProgramAtom } from "@/store/atoms"
 
 export interface ThreadMessage {
   role: "user" | "assistant"
@@ -12,6 +14,10 @@ export interface ThreadPayload {
   status: "open" | "preview_ready" | "committed" | "abandoned"
   resumed: boolean
   messages: ThreadMessage[]
+  // Mirrors `embedded_agent_threads.last_preview`. Non-null only when
+  // status === 'preview_ready'; the EmbeddedAgentPreviewStep renders
+  // straight from this without a second fetch.
+  last_preview: DraftPreview | null
 }
 
 export interface SendMessageResponse {
@@ -26,15 +32,31 @@ export interface DraftPreviewArgs {
   days: Array<{ label: string; exercises: string[] }>
 }
 
+/**
+ * One day's worth of preview echo lines, ready to render in the preview UI
+ * without further parsing. Mirrors `RenderedDay` from
+ * `supabase/functions/embedded-agent/draft.ts`. Optional on `DraftPreview`
+ * because the size guard drops it past 32 KB and the client falls back to
+ * rendering from `args` directly.
+ */
+export interface RenderedDay {
+  label: string
+  lines: string[]
+}
+
 export interface DraftPreview {
   args: DraftPreviewArgs
-  rendered?: string
+  rendered?: RenderedDay[]
 }
 
 export interface GenerateDraftResponse {
   status: "preview_ready"
   preview: DraftPreview
   trigger: DraftTrigger
+}
+
+export interface CommitPreviewResponse {
+  program_id: string
 }
 
 export type EmbeddedAgentError =
@@ -45,6 +67,7 @@ export type EmbeddedAgentError =
   | { kind: "quota"; which?: "turn" | "draft" | "program"; limit?: number; used?: number }
   | { kind: "no_active_thread" }
   | { kind: "model_failure" }
+  | { kind: "commit_failed"; mcp_kind?: string }
   | { kind: "unknown"; message: string }
 
 const THREAD_QUERY_KEY = ["embedded-agent", "thread"] as const
@@ -91,7 +114,27 @@ async function toEmbeddedAgentError(error: InvokeError): Promise<EmbeddedAgentEr
   // Generic 429 fallback (no specific code).
   if (status === 429) return { kind: "quota" }
 
-  if (status === 409 || code === "no_active_thread") return { kind: "no_active_thread" }
+  // /commit failure modes. Server-trusted gate returned 502 — the client
+  // surfaces this as a distinct kind so the preview UI can render a retry
+  // button without dumping the user back to chat (the preview is still in
+  // last_preview server-side, status stays at preview_ready).
+  if (code === "commit_failed") {
+    const mcpKind = typeof body?.kind === "string" ? body.kind : undefined
+    return { kind: "commit_failed", mcp_kind: mcpKind }
+  }
+
+  // Three 409 codes from /commit (no_active_thread, not_preview_ready,
+  // no_preview) all indicate "your client state has drifted from the
+  // server" — collapse to a single `no_active_thread` kind so the consumer
+  // UI doesn't need to switch on near-identical conditions.
+  if (
+    status === 409 ||
+    code === "no_active_thread" ||
+    code === "not_preview_ready" ||
+    code === "no_preview"
+  ) {
+    return { kind: "no_active_thread" }
+  }
   if (
     status === 502 ||
     code === "model_failure" ||
@@ -208,6 +251,61 @@ export function useGenerateDraft() {
       callEmbeddedAgent<GenerateDraftResponse>({ action: "draft", trigger, locale }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+    },
+  })
+}
+
+/**
+ * Reject the stashed preview (`/reject`). Server flips the thread back to
+ * `open` and clears `last_preview`; we invalidate the thread cache so the
+ * consumer re-fetches the now-open thread and the preview screen
+ * unmounts. Idempotent server-side, so the UI can fire this on every
+ * "Regenerate" click without guarding.
+ */
+export function useRejectPreview() {
+  const queryClient = useQueryClient()
+  return useMutation<{ ok: true; status: "open" }, EmbeddedAgentError, void>({
+    mutationFn: () =>
+      callEmbeddedAgent<{ ok: true; status: "open" }>({ action: "reject" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+    },
+  })
+}
+
+/**
+ * Close the commit gate (`/commit`). Always sends `confirm: true`; the UI
+ * never has to think about the gate (the gate is enforced server-side as
+ * defense in depth, not because we trust the wire). On success the thread
+ * flips to `committed` and we invalidate the cache so consumers see the
+ * terminal state. Errors:
+ *   - `commit_failed` (502): MCP transport / rpc / invalid response. The
+ *     server kept status at `preview_ready` so the user can retry without
+ *     re-drafting; the UI surfaces this with a retry button on the preview.
+ *   - `no_active_thread` (409): client state drifted (no thread, status
+ *     not preview_ready, or last_preview gone) — UI bails to chat.
+ */
+export function useCommitPreview() {
+  const queryClient = useQueryClient()
+  // Grab the ambient store via the hook so we work with whatever JotaiProvider
+  // wraps the tree (production: default global store; tests: per-test store).
+  // Using `getDefaultStore()` directly would skip provider isolation and break
+  // test parallelism.
+  const store = useStore()
+  return useMutation<CommitPreviewResponse, EmbeddedAgentError, void>({
+    mutationFn: () =>
+      callEmbeddedAgent<CommitPreviewResponse>({ action: "commit", confirm: true }),
+    onSuccess: (data) => {
+      // Mirror the legacy AIProgramPreviewStep post-create sync so the home
+      // shell sees the new active program immediately on navigation. Without
+      // this, the user lands on "/" with `hasProgramAtom === false` and gets
+      // bounced back into onboarding (or sees an empty home).
+      store.set(hasProgramAtom, true)
+      store.set(activeProgramIdAtom, data.program_id)
+      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ["workout-days"] })
+      queryClient.invalidateQueries({ queryKey: ["active-program"] })
+      queryClient.invalidateQueries({ queryKey: ["user-programs"] })
     },
   })
 }

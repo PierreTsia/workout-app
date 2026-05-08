@@ -9,6 +9,7 @@ import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
+import { useOnboardingResume } from "@/hooks/useOnboardingResume"
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep"
 import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
@@ -17,6 +18,8 @@ import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
 import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
 import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
 import { EmbeddedAgentChatStep } from "@/components/onboarding/EmbeddedAgentChatStep"
+import { EmbeddedAgentGeneratingStep } from "@/components/onboarding/EmbeddedAgentGeneratingStep"
+import { EmbeddedAgentPreviewStep } from "@/components/onboarding/EmbeddedAgentPreviewStep"
 import { isEmbeddedAgentEnabled } from "@/lib/featureFlags"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
@@ -31,6 +34,7 @@ type WizardStep =
   | "ai_generating"
   | "ai_preview"
   | "embedded_chat"
+  | "embedded_generating"
   | "embedded_preview"
 
 const ANALYTICS_STEP_INDEX = {
@@ -62,6 +66,8 @@ export function OnboardingPage() {
   const generateProgram = useGenerateProgram()
   const trackEvent = useTrackEvent()
   const trackedStart = useRef(false)
+  const resume = useOnboardingResume()
+  const resumeAppliedRef = useRef(false)
 
   useEffect(() => {
     if (!trackedStart.current) {
@@ -69,6 +75,19 @@ export function OnboardingPage() {
       trackEvent.mutate({ eventType: "onboarding_started" })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resume from server-persisted state on first load: skip welcome +
+  // questionnaire when the user already has a profile, and jump straight
+  // back into the embedded chat / preview when a thread is still active.
+  // Guarded by a ref so user-driven `setStep` calls later in the session
+  // don't get clobbered by a stale resume decision.
+  useEffect(() => {
+    if (resumeAppliedRef.current) return
+    if (resume.isLoading) return
+    resumeAppliedRef.current = true
+    if (resume.profile) setProfileData(resume.profile)
+    if (resume.initialStep !== "welcome") setStep(resume.initialStep)
+  }, [resume])
 
   // Do not redirect on every `hasProgram` render: blank/skip flows set hasProgram before
   // `navigate("/builder/...")` runs after `await mutateAsync`, and `<Navigate to="/" />`
@@ -190,18 +209,31 @@ export function OnboardingPage() {
     )
   }
 
+  // Hold the wizard back until the resume probe resolves. Without this we
+  // flash "welcome" for a frame before snapping to the resumed step, which
+  // is jarring on a fast network and causes the analytics step counter to
+  // double-fire.
+  if (resume.isLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   // The chat step needs noticeably more horizontal real estate than the
   // questionnaire / template / preview steps — bumped to 3xl so the
   // assistant's longer, markdown-rich replies actually breathe.
   const containerWidth =
     step === "embedded_chat" || step === "embedded_preview" ? "max-w-3xl" : "max-w-lg"
 
-  // The chat step locks its layout to viewport height so the message
-  // transcript scrolls *inside* the card instead of the whole page. Other
-  // steps keep min-h-dvh so they grow naturally with their content.
-  const isChatStep = step === "embedded_chat"
-  const outerHeight = isChatStep ? "h-dvh overflow-hidden" : "min-h-dvh"
-  const innerMinHeight = isChatStep ? "min-h-0" : ""
+  // The chat + preview steps lock their layout to viewport height so the
+  // transcript / preview list scrolls *inside* the card instead of the
+  // whole page. Other steps keep min-h-dvh so they grow naturally with
+  // their content.
+  const isLockedHeightStep = step === "embedded_chat" || step === "embedded_preview"
+  const outerHeight = isLockedHeightStep ? "h-dvh overflow-hidden" : "min-h-dvh"
+  const innerMinHeight = isLockedHeightStep ? "min-h-0" : ""
 
   return (
     <div className={`flex ${outerHeight} flex-col items-center`}>
@@ -299,19 +331,33 @@ export function OnboardingPage() {
             locale={i18n.language === "fr" ? "fr" : "en"}
             onBack={() => setStep("path")}
             onPreviewReady={() => setStep("embedded_preview")}
+            onGenerateRequest={() => setStep("embedded_generating")}
+          />
+        )}
+
+        {step === "embedded_generating" && (
+          <EmbeddedAgentGeneratingStep
+            locale={i18n.language === "fr" ? "fr" : "en"}
+            onSuccess={() => setStep("embedded_preview")}
+            onFallbackTemplate={() => setStep("recommendation")}
+            onFallbackBlank={handleAIFallbackBlank}
           />
         )}
 
         {step === "embedded_preview" && (
-          // T120 lands the real preview screen; T119 just parks the
-          // wizard here so the round-trip from /draft to a new step is
-          // observable end-to-end.
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-            <p className="text-lg font-semibold">Preview ready 🎉</p>
-            <p className="text-sm text-muted-foreground">
-              The program preview UI ships in T120.
-            </p>
-          </div>
+          <EmbeddedAgentPreviewStep
+            locale={i18n.language === "fr" ? "fr" : "en"}
+            onRegenerate={() => setStep("embedded_chat")}
+            onCommitted={(programId) => {
+              trackEvent.mutate({
+                eventType: "program_created",
+                payload: { program_id: programId, template_id: null, path: "ai" },
+              })
+              navigate("/", { replace: true })
+            }}
+            onFallbackTemplate={() => setStep("recommendation")}
+            onFallbackBlank={handleAIFallbackBlank}
+          />
         )}
       </div>
     </div>

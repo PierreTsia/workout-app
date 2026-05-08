@@ -6,6 +6,7 @@ import {
   getActiveThread,
   getOrCreateActiveThread,
   markStaleIfDue,
+  resetForReject,
   setLastPreview,
   setStatus,
   type SupabaseLike,
@@ -38,8 +39,8 @@ import { callMcpTool } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
 
 /**
- * Embedded Agent edge function (T117 + T118 + T119). Single POST endpoint
- * multiplexed on `body.action`:
+ * Embedded Agent edge function (T117 + T118 + T119 + T120). Single POST
+ * endpoint multiplexed on `body.action`:
  *
  *   - `{ action: "open", locale: "en" | "fr" }` — resume or create the user's
  *     active onboarding thread. Lazy 7d staleness sweep on resume.
@@ -52,8 +53,11 @@ import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
  *   - `{ action: "draft", trigger, locale }` — run the program draft step
  *     (catalog + chat transcript → Gemini → validate → MCP `create_program`
  *     dry_run), persist `last_preview`, flip status to `preview_ready`.
- *
- * `/commit` arrives in T120.
+ *   - `{ action: "reject" }` — reject the stashed preview, flip back to
+ *     `open`, clear `last_preview`. Idempotent.
+ *   - `{ action: "commit", confirm: true }` — close the commit gate. Calls
+ *     MCP `create_program` with `dry_run: false`, transitions thread to
+ *     `committed`, purges raw messages, returns `{ program_id }`.
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -137,6 +141,11 @@ Deno.serve(async (req) => {
       setLastPreview(threadDb, thread, preview as unknown as Record<string, unknown>),
     setStatusToPreviewReady: (thread: Thread) => setStatus(threadDb, thread, "preview_ready"),
     bumpDraftCount24h: (thread: Thread) => bumpDraftCount24h(threadDb, thread),
+    resetForReject: (thread: Thread) => resetForReject(threadDb, thread),
+    setStatusToCommitted: (
+      thread: Thread,
+      patch: { program_id: string; summary?: string },
+    ) => setStatus(threadDb, thread, "committed", patch),
     log: emitLog,
   })
 

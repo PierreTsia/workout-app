@@ -3,6 +3,8 @@
 // raw transcript while active, deterministic summary on commit, lazy 7d
 // staleness, lazy 90d body purge.
 
+import type { UserContextProfile } from "./prompt.ts"
+
 const STALENESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const RETENTION_WINDOW_MS = 90 * 24 * 60 * 60 * 1000
 const THREADS_TABLE = "embedded_agent_threads"
@@ -230,6 +232,30 @@ export async function setStatus(
 }
 
 /**
+ * Atomically transition a `preview_ready` thread back to `open` and drop the
+ * stashed preview. Used by `/reject` when the user wants to keep iterating
+ * in chat after seeing a draft they don't love. Single update statement is
+ * intentional: split into two queries the route would race on hot reload
+ * (preview cleared, status still `preview_ready` → client lands on a blank
+ * preview screen). The route layer guards against pointless writes when the
+ * thread is already in `open` — this helper assumes preview_ready input.
+ */
+export async function resetForReject(
+  supabase: SupabaseLike,
+  thread: Thread,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  await supabase
+    .from(THREADS_TABLE)
+    .update({
+      status: "open",
+      last_preview: null,
+      updated_at: nowIso,
+    })
+    .eq("id", thread.id)
+}
+
+/**
  * Increment the per-thread draft counter. Source-of-truth for the
  * 3-drafts-per-24h cap is `ai_generation_log` (see `quota.ts`); this
  * column is a denormalized fast-path for UI hints (e.g. "2 of 3 drafts
@@ -247,6 +273,92 @@ export async function bumpDraftCount24h(
       updated_at: nowIso,
     })
     .eq("id", thread.id)
+}
+
+// ---------- buildDeterministicSummary ----------
+//
+// Pure composer for the long-tail audit string written into
+// `embedded_agent_threads.summary` on commit. Stays pure (no model call, no
+// I/O) so it survives the 90d transcript purge from T116 — the row keeps a
+// human-readable trace of "how did this program get created" even after we
+// drop `messages`. Locale-aware so users see their own language; falls back
+// to raw values for unknown goal/equipment instead of crashing /commit.
+
+const GOAL_LABELS: Record<ThreadLocale, Record<string, string>> = {
+  en: {
+    strength: "Strength",
+    hypertrophy: "Hypertrophy",
+    endurance: "Endurance",
+    general_fitness: "General fitness",
+  },
+  fr: {
+    strength: "Force",
+    hypertrophy: "Hypertrophie",
+    endurance: "Endurance",
+    general_fitness: "Forme générale",
+  },
+}
+
+const EQUIPMENT_LABELS: Record<ThreadLocale, Record<string, string>> = {
+  en: {
+    gym: "gym",
+    home: "home",
+    minimal: "minimal",
+  },
+  fr: {
+    gym: "salle complète",
+    home: "maison",
+    minimal: "matériel minimal",
+  },
+}
+
+const SUMMARY_TEMPLATES = {
+  en: {
+    headline: "AI onboarding program created.",
+    goal: (g: string) => `Goal: ${g}`,
+    cadence: (n: number) => `${n} d/wk`,
+    duration: (m: number) => `${m} min`,
+    signals: (s: string) => `Notable input from chat: ${s}.`,
+    program: (d: number, e: number) => `Program: ${d} days, ${e} exercises.`,
+  },
+  fr: {
+    headline: "Programme créé via l'agent IA.",
+    goal: (g: string) => `Objectif : ${g}`,
+    cadence: (n: number) => `${n} j/sem`,
+    duration: (m: number) => `${m} min`,
+    signals: (s: string) => `Apport notable du chat : ${s}.`,
+    program: (d: number, e: number) => `Programme : ${d} jours, ${e} exercices.`,
+  },
+} as const
+
+export interface DeterministicSummaryInput {
+  locale: ThreadLocale
+  profile: UserContextProfile
+  programDays: number
+  programExerciseCount: number
+  signals?: string[]
+}
+
+export function buildDeterministicSummary(input: DeterministicSummaryInput): string {
+  const t = SUMMARY_TEMPLATES[input.locale]
+  const goalLabel = GOAL_LABELS[input.locale][input.profile.goal] ?? input.profile.goal
+  const equipmentLabel = EQUIPMENT_LABELS[input.locale][input.profile.equipment] ??
+    input.profile.equipment
+
+  const profileLine = [
+    t.goal(goalLabel),
+    t.cadence(input.profile.training_days_per_week),
+    t.duration(input.profile.session_duration_minutes),
+    equipmentLabel,
+  ].join(" · ")
+
+  const signalsSentence = input.signals && input.signals.length > 0
+    ? ` ${t.signals(input.signals.join(", "))}`
+    : ""
+
+  const programSentence = t.program(input.programDays, input.programExerciseCount)
+
+  return `${t.headline} ${profileLine}.${signalsSentence} ${programSentence}`
 }
 
 export async function appendMessage(

@@ -26,6 +26,7 @@ import {
 } from "../generate-program/prompt.ts"
 import { validateProgram } from "../generate-program/validate.ts"
 import type { GenerateProgramResponse } from "../generate-program/types.ts"
+import type { McpToolResult } from "../_shared/mcpClient.ts"
 
 export const LAST_PREVIEW_MAX_BYTES = 32_768
 
@@ -117,16 +118,19 @@ export async function runProgramDraftStep(
     exerciseBounds,
   )
 
-  if (
-    validated.days.length === 0 ||
-    validated.days.every((d) => d.exercise_ids.length === 0)
-  ) {
+  // Drop days that ended up empty after validation + backfill: this happens
+  // in the wild when the model proposes more days than the catalog can fill
+  // (small equipment categories, repeated muscle_focus exhausting the pool).
+  // MCP `create_program` rejects days with `exercises: []` as a tool_error,
+  // so we filter here rather than ship a draft we know will fail downstream.
+  const nonEmptyDays = validated.days.filter((d) => d.exercise_ids.length > 0)
+  if (nonEmptyDays.length === 0) {
     return { ok: false, error: "empty_program" }
   }
 
   const args: DraftArgs = {
     name: programNameFor(constraints, input.locale),
-    days: validated.days.map((d) => ({
+    days: nonEmptyDays.map((d) => ({
       label: d.label,
       // Bare UUIDs — MCP `create_program` accepts these natively and
       // applies catalog defaults (3 sets, 10 reps, 0 kg, 90s rest). T120
@@ -195,27 +199,84 @@ function programNameFor(
   return `${goalLabel} — ${cadence}`
 }
 
+// ---------- MCP dry-run response → structured rendered preview ----------
+
+/**
+ * One day's worth of preview echo lines, ready to render in the preview UI
+ * without further parsing. The MCP `create_program` dry-run already produces
+ * `formatPrescriptionLine`-shaped strings (e.g. "Bench Press — 4 × 8 × 80 kg
+ * total — 120s rest"); we just lift them out of the JSON-as-text wrapper and
+ * pair them with their day label so the client doesn't need to JSON.parse a
+ * 10 KB MCP payload to display 8 lines.
+ */
+export interface RenderedDay {
+  label: string
+  lines: string[]
+}
+
+/**
+ * Defensive parser: walks `mcpResult.value.content` (or whatever the caller
+ * passed), pulls the JSON tail out of the text content, and returns
+ * `RenderedDay[]` if the shape matches `{ days: [{ label, rendered }] }`.
+ * Returns `null` whenever anything unexpected happens (no content, non-JSON
+ * text, missing `days` array). The /draft route treats `null` as "fall back
+ * to args-only preview" rather than a 502 — the user still gets a usable
+ * draft, just rendered client-side from `args` instead of MCP echo lines.
+ */
+export function extractRenderedFromMcpResult(result: McpToolResult): RenderedDay[] | null {
+  const text = (result.content ?? [])
+    .filter((c): c is { type: "text"; text: string } =>
+      c?.type === "text" && typeof c.text === "string"
+    )
+    .map((c) => c.text)
+    .join("\n")
+  if (!text) return null
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return null
+  }
+  if (!parsed || typeof parsed !== "object") return null
+
+  const days = (parsed as { days?: unknown }).days
+  if (!Array.isArray(days)) return null
+
+  return days.map((d) => {
+    const dayObj = (d ?? {}) as Record<string, unknown>
+    const label = typeof dayObj.label === "string" ? dayObj.label : ""
+    const rawRendered = Array.isArray(dayObj.rendered) ? dayObj.rendered : []
+    const lines = rawRendered.filter((x): x is string => typeof x === "string")
+    return { label, lines }
+  })
+}
+
 // ---------- last_preview size guard ----------
 
 export interface BuildLastPreviewInput {
   args: DraftArgs
-  rendered: string
+  rendered?: RenderedDay[]
 }
 
 export interface LastPreview {
   args: DraftArgs
-  rendered?: string
+  rendered?: RenderedDay[]
 }
 
 /**
  * Trim the persisted preview payload so we don't bloat
- * `embedded_agent_threads.last_preview` past 32 KB. The `rendered` echo
- * (human-readable lines like "Bench Press — 4 × 8 × 80 kg total") is the
- * largest field by far; when we strip it the client re-renders preview
- * lines from `args` directly. Constant lives here so test + route share
- * the same threshold.
+ * `embedded_agent_threads.last_preview` past 32 KB. Two ways the rendered
+ * field gets dropped:
+ *   1. caller passed undefined / empty array — no useful preview to ship,
+ *      collapse to args-only so the client only has one fallback path to
+ *      handle ("rendered missing" === "render from args").
+ *   2. payload exceeds 32 KB once serialized — same fallback applies.
  */
 export function buildLastPreview(input: BuildLastPreviewInput): LastPreview {
+  if (!input.rendered || input.rendered.length === 0) {
+    return { args: input.args }
+  }
   const full: LastPreview = { args: input.args, rendered: input.rendered }
   const size = new TextEncoder().encode(JSON.stringify(full)).length
   if (size <= LAST_PREVIEW_MAX_BYTES) return full

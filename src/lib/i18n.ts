@@ -1,6 +1,7 @@
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 import LanguageDetector from "i18next-browser-languagedetector"
+import { readPersistedLocale } from "@/lib/persistedLocale"
 
 import enCommon from "@/locales/en/common.json"
 import enAuth from "@/locales/en/auth.json"
@@ -101,5 +102,19 @@ i18n
       caches: [],
     },
   })
+
+// Override the LanguageDetector pick when jotai has stored a locale under
+// the same `localStorage["locale"]` key. atomWithStorage JSON-stringifies
+// values ('"fr"'); LanguageDetector reads them raw, can't match
+// supportedLngs, and silently falls back to navigator. Without this the
+// auth + onboarding screens (which live outside AppShell so SideDrawer
+// never gets a chance to call i18n.changeLanguage) load in the browser
+// language regardless of the user's saved preference.
+if (typeof window !== "undefined") {
+  const persisted = readPersistedLocale(window.localStorage)
+  if (persisted && persisted !== i18n.language) {
+    void i18n.changeLanguage(persisted)
+  }
+}
 
 export default i18n
