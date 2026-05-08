@@ -119,7 +119,7 @@ should see:
 - `dry_run: true` echoed back from MCP
 - A `program` object with the name you sent
 - A `days[].workout_exercises[]` entry with **real catalog snapshots**
-  (`name_snapshot`, `muscle_snapshot`, `emoji_snapshot`)
+(`name_snapshot`, `muscle_snapshot`, `emoji_snapshot`)
 - Default prescription applied: 3×10 × 0 kg × 90s rest
 - Progression bounds (`rep_range_min/max`, `set_range_min/max`)
 - A `note` from MCP saying "Re-call with dry_run false to persist."

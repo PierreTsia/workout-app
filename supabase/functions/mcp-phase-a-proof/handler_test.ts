@@ -9,8 +9,8 @@ import type { CallMcpToolArgs, CallMcpToolResult } from "../_shared/mcpClient.ts
 function makeDeps(overrides: Partial<PhaseAProofDeps> = {}): PhaseAProofDeps {
   return {
     mcpUrl: "https://mcp.test/functions/v1/mcp",
-    getUser: async (_authHeader: string) => ({ userId: "user_abc" }),
-    callMcp: async (_args: CallMcpToolArgs): Promise<CallMcpToolResult> => ({
+    getUser: async () => ({ userId: "user_abc" }),
+    callMcp: async (): Promise<CallMcpToolResult> => ({
       ok: true,
       value: { content: [{ type: "text", text: "preview ok" }] },
     }),
