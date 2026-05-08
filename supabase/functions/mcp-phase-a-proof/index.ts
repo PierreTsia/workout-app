@@ -1,7 +1,9 @@
 import { corsHeaders } from "../_shared/cors.ts"
 import { createUserClient } from "../_shared/supabase.ts"
 import { callMcpTool } from "../_shared/mcpClient.ts"
-import { handlePhaseAProof } from "./handler.ts"
+import { handlePhaseAProof, type LogEvent } from "./handler.ts"
+
+const FEATURE = "mcp-phase-a-proof"
 
 /**
  * Phase A proof endpoint (T114). Demonstrates that an Edge Function can act
@@ -17,12 +19,27 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders })
   }
 
+  const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID()
+
   if (req.method !== "POST") {
+    emitLog({
+      level: "error",
+      feature: FEATURE,
+      error_kind: "method_not_allowed",
+      request_id: requestId,
+      message: req.method,
+    })
     return jsonResponse({ error: "Method not allowed" }, 405)
   }
 
   const mcpUrl = resolveMcpUrl()
   if (!mcpUrl) {
+    emitLog({
+      level: "error",
+      feature: FEATURE,
+      error_kind: "mcp_url_not_configured",
+      request_id: requestId,
+    })
     return jsonResponse({ error: "mcp_url_not_configured" }, 500)
   }
 
@@ -35,15 +52,7 @@ Deno.serve(async (req) => {
       return { userId: data.user.id }
     },
     callMcp: callMcpTool,
-    log: (event) => {
-      // Single-line JSON keeps Supabase log explorer / grep friendly. We
-      // avoid console.error here because the runtime would inject a stack
-      // and call the line "Edge function error" — these are *expected*
-      // structured events, not unhandled crashes.
-      const payload = JSON.stringify({ ts: new Date().toISOString(), ...event })
-      if (event.level === "error") console.error(payload)
-      else console.warn(payload)
-    },
+    log: emitLog,
   })
 
   // Re-emit headers with CORS — handler returns plain Response.json, we layer
@@ -52,6 +61,19 @@ Deno.serve(async (req) => {
   for (const [k, v] of Object.entries(corsHeaders)) merged.set(k, v)
   return new Response(res.body, { status: res.status, headers: merged })
 })
+
+/**
+ * Emit a single-line JSON log line. We route through console.error/warn so
+ * that Supabase's log explorer attaches the right severity to each entry —
+ * this lets you filter on `level=error` directly in the dashboard. These
+ * are *structured events*, not unhandled crashes; the runtime will not
+ * decorate them with a stack trace because we never throw.
+ */
+function emitLog(event: LogEvent): void {
+  const payload = JSON.stringify({ ts: new Date().toISOString(), ...event })
+  if (event.level === "error") console.error(payload)
+  else console.warn(payload)
+}
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
