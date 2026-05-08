@@ -60,13 +60,18 @@ classDiagram
 - **RLS**: `user_id = auth.uid()` for read/write.
 - **FK**: `user_id → auth.users(id) ON DELETE CASCADE` to guarantee immediate erase on account deletion.
 - **Partial unique index**: at most one active onboarding thread per user where `status IN ('open', 'preview_ready')`.
+- **Active-thread UX**: DB uniqueness is enforced, but user flow should not be “error-driven”. Implement `getOrCreateActiveThread(user_id)`:
+  - If an active thread exists, **resume it** and return `resumed: true` (no silent reject).
+  - If the user explicitly wants to restart, provide a **Restart** action that first marks the active thread `abandoned` (with `abandoned_at`) and then creates a new thread.
 - **Hybrid transcript**:
   - While active (`open`, `preview_ready`): `messages` stores raw transcript (role/content/timestamp minimal fields).
   - On commit (`committed`): compute deterministic `summary`, set `messages` to `null`/empty, keep `program_id` + timestamps and optional `last_preview`.
+- **Deterministic summary**: generated without an extra model call (no tokens). Build from structured onboarding form constraints + a small whitelist of extracted chat signals (e.g. injury flags) and store in `summary`.
 - **Retention**:
   - Lazy cleanup in Edge: when loading/updating a thread, if `committed_at`/`abandoned_at` older than 90d → clear `messages` (if any) or delete per policy.
 - **Staleness**:
   - Lazy, server-side only: on thread touch, if `updated_at` older than 7d → set `abandoned`.
+  - If `updated_at` is old but < 7d (e.g. 6d), **resume** normally; optionally show a “resumed conversation” banner in UI and allow Restart.
 
 ---
 
@@ -129,7 +134,7 @@ graph TD
 
 `**embedded-agent Edge function**`
 - Auth: `supabase.auth.getUser()` to resolve `user_id`
-- `/thread`: load active thread (or create); lazy staleness abandon (7d)
+- `/thread`: load active thread (or create) via `getOrCreateActiveThread`; lazy staleness abandon (7d) and resume banner metadata
 - `/message`:
   - Persist user msg
   - Enforce **turns/hour** cap (40/h)
@@ -142,6 +147,9 @@ graph TD
   - Run Program draft step (log billable calls)
   - Call MCP `create_program` with `dry_run:true` and store `last_preview`
   - Transition to `preview_ready`
+- `last_preview` size guard:
+  - Store the **minimal** `create_program` arguments needed for commit gate (name + days + prescription objects) and optional rendered lines.
+  - Enforce an Edge-side max JSON size (implementation constant) before writing `last_preview`; if exceeded, store only arguments and re-render preview client-side.
 - `/commit`:
   - Requires explicit user confirmation
   - Call MCP `create_program` with `dry_run:false` using `last_preview` payload

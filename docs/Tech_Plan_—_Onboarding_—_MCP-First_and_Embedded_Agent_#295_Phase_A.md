@@ -10,7 +10,7 @@
 | First-party (server-side) MCP caller | Add a tiny JSON-RPC client helper in Edge Functions | There is no MCP client helper in `src/`; Phase B needs a canonical way to call `tools/call` |
 | Auth to MCP | Forward the user Supabase access token as `Authorization: Bearer <token>` | Matches MCP auth posture: non-PAT tokens are passed through and used for RLS (`file:supabase/functions/mcp/lib/authLogic.ts`) |
 | Program persistence contract | Use MCP `create_program` only | Canonical validated write path with `dry_run` preview and strict validation (`file:supabase/functions/mcp/tools/createProgram.ts`) |
-| Phase A→B cutover mechanism | Build-time env flag (`VITE_*`) | v1 simplicity; accepts redeploy for flips (Epic Brief cutover section) |
+| Phase A→B cutover mechanism | Build-time env flag (`VITE_*`) | v1 simplicity; accepts redeploy for flips (Epic Brief cutover section). Preview/branch deploys can set a different flag value than production, enabling safe beta on preview URLs |
 
 ### Critical Constraints
 
