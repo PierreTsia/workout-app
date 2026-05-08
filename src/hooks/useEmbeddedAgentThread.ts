@@ -96,26 +96,47 @@ export function useAbandonThread() {
 }
 
 /**
- * Sends one user message to `/message`. On success, optimistically appends
- * both the user and assistant turns into the thread query cache so the chat
- * surface re-renders without a refetch. Errors come back as a typed
- * `EmbeddedAgentError` so the UI can branch on `kind` for quota vs model
- * vs no_active_thread copy.
+ * Sends one user message to `/message`.
+ *
+ * UX contract:
+ *  - `onMutate` optimistically appends the user bubble *before* the network
+ *    call so the chat surface reacts on submit (Telegram/WhatsApp feel),
+ *    not after Gemini finally answers ~5–15s later.
+ *  - This is safe because the server persists the user message *first*
+ *    (before the quota check or model call), so even on quota / model
+ *    failure the cache stays consistent with the database.
+ *  - `onSuccess` then appends the assistant turn.
+ *  - On error we keep the user bubble (it's persisted server-side) and let
+ *    the UI branch on `EmbeddedAgentError.kind` to show the right banner.
  */
 export function useSendMessage() {
   const queryClient = useQueryClient()
-  return useMutation<SendMessageResponse, EmbeddedAgentError, { content: string; locale: "en" | "fr" }>({
+  return useMutation<
+    SendMessageResponse,
+    EmbeddedAgentError,
+    { content: string; locale: "en" | "fr" }
+  >({
     mutationFn: ({ content, locale }) =>
       callEmbeddedAgent<SendMessageResponse>({ action: "send", content, locale }),
-    onSuccess: (data, variables) => {
+    onMutate: (variables) => {
       queryClient.setQueryData<ThreadPayload>(THREAD_QUERY_KEY, (prev) => {
         if (!prev) return prev
-        const userTs = new Date().toISOString()
         return {
           ...prev,
           messages: [
             ...prev.messages,
-            { role: "user", content: variables.content, ts: userTs },
+            { role: "user", content: variables.content, ts: new Date().toISOString() },
+          ],
+        }
+      })
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<ThreadPayload>(THREAD_QUERY_KEY, (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
             { role: "assistant", content: data.assistant.content, ts: data.assistant.ts },
           ],
         }

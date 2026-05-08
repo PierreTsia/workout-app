@@ -213,6 +213,99 @@ describe("EmbeddedAgentChatStep", () => {
     expect(screen.queryByText(/turn_quota_exceeded/i)).not.toBeInTheDocument()
   })
 
+  // ---------- UX polish: optimistic user bubble + typing indicator ----------
+
+  it("renders the user bubble and typing indicator immediately, before the assistant reply arrives", async () => {
+    let resolveSend: (value: { data: unknown; error: null }) => void = () => {}
+    const pending = new Promise<{ data: unknown; error: null }>((resolve) => {
+      resolveSend = resolve
+    })
+
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "opt00001-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockReturnValueOnce(pending)
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread opt00001/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "Quick question.")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    expect(await screen.findByText("Quick question.")).toBeInTheDocument()
+    expect(screen.getByText(/typing|écrit/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Here is my reply/i)).not.toBeInTheDocument()
+
+    resolveSend({
+      data: {
+        assistant: { content: "Here is my reply.", ts: "2026-05-08T12:00:00Z" },
+        ready_for_draft: false,
+      },
+      error: null,
+    })
+
+    expect(await screen.findByText("Here is my reply.")).toBeInTheDocument()
+    expect(screen.queryByText(/typing|écrit/i)).not.toBeInTheDocument()
+  })
+
+  // ---------- UI polish: markdown rendering + Enter-to-send ----------
+
+  it("renders **bold** in assistant replies as a real <strong> element", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "md000001-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: false,
+        messages: [
+          { role: "assistant", content: "Try **deadlifts** twice a week.", ts: "2026-05-08T12:00:00Z" },
+        ],
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+
+    const bold = await screen.findByText("deadlifts")
+    expect(bold.tagName).toBe("STRONG")
+  })
+
+  it("submits on Enter and inserts a newline on Shift+Enter", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "kbd00001-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          assistant: { content: "Got it.", ts: "2026-05-08T12:00:00Z" },
+          ready_for_draft: false,
+        },
+        error: null,
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread kbd00001/)
+
+    const user = userEvent.setup()
+    const textarea = screen.getByPlaceholderText(/write a message/i) as HTMLTextAreaElement
+    await user.click(textarea)
+
+    await user.keyboard("line one{Shift>}{Enter}{/Shift}line two")
+    expect(textarea.value).toBe("line one\nline two")
+    expect(invokeMock).toHaveBeenCalledTimes(1) // /thread open only
+
+    await user.keyboard("{Enter}")
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+        body: { action: "send", content: "line one\nline two", locale: "en" },
+      })
+    })
+  })
+
   it("renders an error card with retry on a 5xx model failure", async () => {
     invokeMock
       .mockResolvedValueOnce({

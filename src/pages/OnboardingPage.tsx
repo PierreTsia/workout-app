@@ -189,9 +189,21 @@ export function OnboardingPage() {
     )
   }
 
+  // The chat step needs noticeably more horizontal real estate than the
+  // questionnaire / template / preview steps — bumped to 3xl so the
+  // assistant's longer, markdown-rich replies actually breathe.
+  const containerWidth = step === "embedded_chat" ? "max-w-3xl" : "max-w-lg"
+
+  // The chat step locks its layout to viewport height so the message
+  // transcript scrolls *inside* the card instead of the whole page. Other
+  // steps keep min-h-dvh so they grow naturally with their content.
+  const isChatStep = step === "embedded_chat"
+  const outerHeight = isChatStep ? "h-dvh overflow-hidden" : "min-h-dvh"
+  const innerMinHeight = isChatStep ? "min-h-0" : ""
+
   return (
-    <div className="flex min-h-dvh flex-col items-center">
-      <div className="flex w-full max-w-lg flex-1 flex-col">
+    <div className={`flex ${outerHeight} flex-col items-center`}>
+      <div className={`flex w-full ${containerWidth} flex-1 flex-col ${innerMinHeight}`}>
         <header className="flex items-center gap-2 px-6 py-4">
           <Dumbbell className="h-6 w-6 text-primary" />
         </header>
