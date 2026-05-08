@@ -94,7 +94,10 @@
     "draftQuotaTitle": "Limite quotidienne atteinte",
     "draftQuotaBody": "Vous avez déjà utilisé vos 3 brouillons du jour. Revenez demain pour explorer un autre angle.",
     "programQuotaTitle": "Quota de programmes atteint",
-    "programQuotaBody": "Vous avez atteint le plafond mensuel de programmes générés. Utilisez un de vos programmes existants ou attendez le mois prochain."
+    "programQuotaBody": "Vous avez atteint le plafond mensuel de programmes générés. Utilisez un de vos programmes existants ou attendez le mois prochain.",
+    "disclosureTitle": "À savoir avant de discuter",
+    "disclosureBody": "Vos réponses sont stockées sur nos serveurs et envoyées à Google Gemini pour générer un programme. Le contenu brut du chat est purgé 90 jours après création ou abandon. Nous ne filtrons pas vos messages — évitez d'y inclure des informations sensibles sans rapport avec l'entraînement.",
+    "disclosureLink": "Lire la politique de confidentialité"
   },
 
   "embeddedAgentPreview": {

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -171,6 +172,8 @@ export function EmbeddedAgentChatStep({
               ) : null}
             </div>
           ) : null}
+
+          <DisclosureCard />
         </CardHeader>
 
         <CardContent className="flex flex-1 flex-col gap-3 overflow-hidden pb-4">
@@ -450,6 +453,30 @@ function GenerateCta({ label, pulsing, onClick }: GenerateCtaProps) {
         {label}
       </Button>
     </div>
+  )
+}
+
+// T121 — inline non-blocking privacy disclosure shown above the chat.
+// Renders on every onboarding session by design (no dismiss state in v1)
+// so the surface stays deterministic and the GA flag flip is defensible.
+// Body and link are split into two i18n keys so the link can be a real
+// React Router <Link> (no Trans gymnastics) and the FR/EN copy can vary
+// the body sentence without touching the link label.
+function DisclosureCard() {
+  const { t } = useTranslation("onboarding")
+  return (
+    <Alert className="flex-shrink-0 border-primary/20 bg-primary/5">
+      <AlertTitle>{t("embeddedAgent.disclosureTitle")}</AlertTitle>
+      <AlertDescription className="text-xs leading-relaxed text-muted-foreground">
+        {t("embeddedAgent.disclosureBody")}{" "}
+        <Link
+          to="/privacy"
+          className="font-medium text-primary underline-offset-2 hover:underline"
+        >
+          {t("embeddedAgent.disclosureLink")}
+        </Link>
+      </AlertDescription>
+    </Alert>
   )
 }
 

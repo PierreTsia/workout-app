@@ -65,6 +65,12 @@ export function PrivacyPage() {
 
         <Separator className="mb-10" />
 
+        <Section title={t("s8Title")}>
+          <p>{t("s8Body")}</p>
+        </Section>
+
+        <Separator className="mb-10" />
+
         <Section title={t("s5Title")}>
           <p>{t("s5Access")}</p>
           <p>{t("s5Delete")}</p>

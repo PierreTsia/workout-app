@@ -94,7 +94,10 @@
     "draftQuotaTitle": "Daily draft limit reached",
     "draftQuotaBody": "You've already used your 3 drafts for today. Come back tomorrow to try a fresh angle.",
     "programQuotaTitle": "Program quota reached",
-    "programQuotaBody": "You've hit the monthly cap on AI-generated programs. Use one of your existing programs or wait until next month."
+    "programQuotaBody": "You've hit the monthly cap on AI-generated programs. Use one of your existing programs or wait until next month.",
+    "disclosureTitle": "Heads-up before you chat",
+    "disclosureBody": "Your answers are stored on our servers and sent to Google Gemini to draft a program. Raw chat content is purged 90 days after you commit or abandon. We do not scrub your messages — avoid sharing anything sensitive that isn't about training.",
+    "disclosureLink": "Read the Privacy Policy"
   },
 
   "embeddedAgentPreview": {

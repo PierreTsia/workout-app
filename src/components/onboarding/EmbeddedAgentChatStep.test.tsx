@@ -27,6 +27,31 @@ afterEach(() => {
 })
 
 describe("EmbeddedAgentChatStep", () => {
+  // ---------- T121: Privacy disclosure card ----------
+
+  it("renders an inline privacy disclosure card linking to /privacy on every onboarding session (T121)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "discl001-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: false,
+        messages: [],
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread discl001/)
+
+    // The card surfaces both the retention claim AND the verbatim warning.
+    // Without these the disclosure is incomplete and the GA flag must stay off.
+    expect(screen.getByText(/90 days/i)).toBeInTheDocument()
+    expect(screen.getByText(/avoid sharing/i)).toBeInTheDocument()
+
+    const link = screen.getByRole("link", { name: /privacy policy/i })
+    expect(link).toHaveAttribute("href", "/privacy")
+  })
+
   it("renders the thread shortened id, status and a Restart action once /thread resolves", async () => {
     invokeMock.mockResolvedValueOnce({
       data: {
