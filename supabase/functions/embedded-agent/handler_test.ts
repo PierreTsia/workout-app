@@ -248,15 +248,30 @@ function makeDeps(overrides: DepsOverrides = {}) {
 
 function jsonRequest(
   body: Record<string, unknown>,
-  options: { withAuth?: boolean; method?: string } = {},
+  options: { withAuth?: boolean; method?: string; requestId?: string } = {},
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  if (options.requestId) headers["x-request-id"] = options.requestId
   const method = options.method ?? "POST"
   return new Request("https://example.test/thread", {
     method,
     headers,
     body: method === "GET" ? undefined : JSON.stringify(body),
+  })
+}
+
+// PR review #3: builder for malformed-body requests so we can exercise the
+// `req.json()` parse-failure guard. JSON.stringify-based helper above
+// always produces valid JSON; this one does not.
+function rawRequest(rawBody: string): Request {
+  return new Request("https://example.test/thread", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer jwt_test",
+    },
+    body: rawBody,
   })
 }
 
@@ -444,6 +459,43 @@ Deno.test("POST /thread with an unknown action returns 400 invalid_action", asyn
   assertEquals(body.error, "invalid_action")
   assertEquals(calls.getOrCreateActiveThread.length, 0)
   assertEquals(calls.setStatusToAbandoned.length, 0)
+})
+
+// PR review #3: malformed JSON body must produce a structured 400 + warn,
+// not a bare 500 from an unguarded `req.json()` throw.
+Deno.test("POST /thread with malformed JSON body returns 400 invalid_json + warn log", async () => {
+  const { deps, calls } = makeDeps()
+
+  const res = await handleEmbeddedAgent(rawRequest("{ this is not json"), deps)
+
+  assertEquals(res.status, 400)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "invalid_json")
+  assertEquals(calls.getOrCreateActiveThread.length, 0)
+  const warns = calls.logEvents.filter((e) => e.level === "warn")
+  assertEquals(warns.some((e) => e.error_kind === "invalid_json"), true)
+  // The auth check runs before parsing so the user_id is attributable.
+  const invalidJsonLog = warns.find((e) => e.error_kind === "invalid_json")
+  assertEquals(invalidJsonLog?.user_id, "user-1")
+  assertEquals(invalidJsonLog?.route, "/thread")
+})
+
+// PR review #5: when the client sends `x-request-id`, every log line on
+// the request must carry that id (so browser ↔ edge logs correlate).
+// Mirrors the contract honoured by `mcp-phase-a-proof`.
+Deno.test("POST /thread propagates x-request-id from the client into structured logs", async () => {
+  const { deps, calls } = makeDeps({ getUser: async () => null })
+  const requestId = "req-from-browser-123"
+
+  await handleEmbeddedAgent(
+    jsonRequest({ action: "open", locale: "en" }, { requestId }),
+    deps,
+  )
+
+  // The auth_missing log line is emitted before any other code path; if
+  // request-id propagation is broken we'd see a fresh UUID instead.
+  const authLog = calls.logEvents.find((e) => e.error_kind === "auth_missing")
+  assertEquals(authLog?.request_id, requestId)
 })
 
 function sendRequest(
@@ -803,6 +855,43 @@ Deno.test("POST /draft logs the billable call AND returns 502 when runDraftStep 
   assertEquals(calls.logBillableCall[0].source, "embedded_draft")
   // Status stays open so the user can retry from chat.
   assertEquals(calls.setStatusToPreviewReady.length, 0)
+})
+
+// PR review #4: an unexpected throw inside `runDraftStep` (catalog/profile
+// fetch failure, validation crash, etc.) used to surface as an unstructured
+// 500 because the call was wrapped only in try/finally. We now catch it,
+// log a canonical `provider_failure` line, return the standard 502 contract,
+// AND still credit the billable call (log_everything).
+Deno.test("POST /draft maps an unexpected runDraftStep throw to provider_failure 502 + billable log", async () => {
+  const active = makeThread({ id: "t-x", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    runDraftStep: async () => {
+      throw new Error("catalog fetch crashed unexpectedly")
+    },
+  })
+
+  const res = await handleEmbeddedAgent(
+    draftRequest({ trigger: "user_cta", locale: "en" }),
+    deps,
+  )
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "draft_failed")
+  assertEquals(body.reason, "internal")
+  assertEquals(calls.logBillableCall.length, 1)
+  assertEquals(calls.setStatusToPreviewReady.length, 0)
+  // One canonical error log line with the right kind/route.
+  const errors = calls.logEvents.filter((e) => e.level === "error")
+  const providerFailure = errors.find((e) => e.error_kind === "provider_failure")
+  assertEquals(providerFailure?.route, "/draft")
+  assertEquals(providerFailure?.thread_id, "t-x")
+  assertEquals(typeof providerFailure?.message === "string", true)
+  assertEquals(
+    (providerFailure?.message as string).includes("catalog fetch crashed unexpectedly"),
+    true,
+  )
 })
 
 Deno.test("POST /draft returns 502 on MCP transport error and keeps the thread status at 'open'", async () => {

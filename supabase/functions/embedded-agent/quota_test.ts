@@ -28,10 +28,13 @@ interface FakeOptions {
 interface FakeClient {
   client: {
     from(table: string): {
-      select(columns: string): {
+      select(
+        columns: string,
+        opts?: { count?: "exact"; head?: boolean },
+      ): {
         eq(col: string, val: unknown): {
           eq(col: string, val: unknown): {
-            gte(col: string, val: string): Promise<{ data: LoggedRow[]; error: null }>
+            gte(col: string, val: string): Promise<{ count: number | null; error: null }>
           }
         }
       }
@@ -42,6 +45,7 @@ interface FakeClient {
   selects: Array<{
     table: string
     columns: string
+    selectOpts?: { count?: "exact"; head?: boolean }
     filters: Record<string, unknown>
     gteFilter?: { column: string; value: string }
   }>
@@ -54,7 +58,7 @@ function makeFake({ rows = [], insertError = null }: FakeOptions = {}): FakeClie
   const client = {
     from(table: string) {
       return {
-        select(columns: string) {
+        select(columns: string, opts?: { count?: "exact"; head?: boolean }) {
           const filters: Record<string, unknown> = {}
           return {
             eq(col1: string, val1: unknown) {
@@ -67,6 +71,7 @@ function makeFake({ rows = [], insertError = null }: FakeOptions = {}): FakeClie
                       selects.push({
                         table,
                         columns,
+                        selectOpts: opts,
                         filters: { ...filters },
                         gteFilter: { column: col, value: val },
                       })
@@ -76,7 +81,11 @@ function makeFake({ rows = [], insertError = null }: FakeOptions = {}): FakeClie
                         r.source === filters.source &&
                         new Date(r.created_at).getTime() >= cutoffMs
                       )
-                      return { data: matching, error: null }
+                      // PR review #2: helper switched to count-only mode; we
+                      // mirror PostgREST's response shape (no `data`, just
+                      // `count`) so the test fake stays honest about the API
+                      // surface the production code actually depends on.
+                      return { count: matching.length, error: null }
                     },
                   }
                 },
@@ -137,6 +146,19 @@ Deno.test("enforceTurnQuota only counts rows within the trailing 1h window", asy
 
   assertEquals(result.used, 1)
   assertEquals(result.allowed, true)
+})
+
+Deno.test("enforceTurnQuota uses count-only PostgREST mode (no row payload over the wire)", async () => {
+  // PR review #2: previously we did `select('id')` then `data.length`,
+  // which streams every matching row back. The count-only mode
+  // (`{ count: 'exact', head: true }`) returns just a header, mirroring
+  // `_shared/aiQuota.checkQuota`.
+  const { client, selects } = makeFake({ rows: [] })
+
+  await enforceTurnQuota(client, "user-1")
+
+  assertEquals(selects.length, 1)
+  assertEquals(selects[0].selectOpts, { count: "exact", head: true })
 })
 
 Deno.test("enforceTurnQuota does not count rows from other sources (e.g. program, embedded_draft)", async () => {

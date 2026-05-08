@@ -79,6 +79,8 @@
     "errorTitle": "Something went wrong",
     "errorBody": "We couldn't reach the assistant. Try again in a moment.",
     "retryCta": "Try again",
+    "threadErrorTitle": "We couldn't load your conversation",
+    "threadErrorBody": "Something failed on our side. Try again — your draft is safe.",
     "offlineTitle": "You're offline",
     "offlineBody": "Reconnect to keep building your program. We'll pick up right where you left off.",
     "restartCta": "Restart",

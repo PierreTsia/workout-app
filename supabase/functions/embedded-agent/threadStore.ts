@@ -63,7 +63,13 @@ interface SupabaseChain {
   limit(n: number): SupabaseChain
   maybeSingle(): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>
   single(): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>
-  then(resolve: (v: unknown) => void): void
+  // Bare `await` on an update/insert chain (no .single()) resolves to a
+  // PostgREST response shape — typed here so callers can destructure
+  // `{ error }` and surface RLS denials / network blips instead of
+  // treating them as success (T122 PR review #1).
+  then(
+    resolve: (v: { data: unknown; error: { code?: string; message?: string } | null }) => void,
+  ): void
 }
 
 const ACTIVE_STATUSES: ThreadStatus[] = ["open", "preview_ready"]
@@ -180,10 +186,18 @@ export async function purgeRetentionIfDue(
   if (!isRetentionDue(terminalAt, nowMs) || thread.messages === null) {
     return { purged: false }
   }
-  await supabase
+  // PostgREST doesn't throw on RLS denial / network blips — it returns
+  // `{ error }` on the resolved promise. Silently treating that as
+  // success would leave a 90+ day-old transcript on disk in violation
+  // of the retention policy, so we surface the failure as a thrown
+  // Error and let the route layer catch it.
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({ messages: null, updated_at: new Date(nowMs).toISOString() })
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`purgeRetentionIfDue failed: ${error.message ?? "unknown"}`)
+  }
   return { purged: true }
 }
 
@@ -209,12 +223,15 @@ export async function purgeDueForUser(
   nowMs: number = Date.now(),
 ): Promise<void> {
   const cutoffIso = new Date(nowMs - RETENTION_WINDOW_MS).toISOString()
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({ messages: null, updated_at: new Date(nowMs).toISOString() })
     .eq("user_id", userId)
     .eq("status", "abandoned")
     .lt("abandoned_at", cutoffIso)
+  if (error) {
+    throw new Error(`purgeDueForUser failed: ${error.message ?? "unknown"}`)
+  }
 }
 
 export async function setLastPreview(
@@ -223,10 +240,13 @@ export async function setLastPreview(
   payload: Record<string, unknown>,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({ last_preview: payload, updated_at: nowIso })
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`setLastPreview failed: ${error.message ?? "unknown"}`)
+  }
 }
 
 export interface SetStatusPatch {
@@ -258,10 +278,13 @@ export async function setStatus(
     ...abandonedExtras,
   }
 
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update(values)
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`setStatus(${status}) failed: ${error.message ?? "unknown"}`)
+  }
 }
 
 /**
@@ -278,7 +301,7 @@ export async function resetForReject(
   thread: Thread,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({
       status: "open",
@@ -286,6 +309,9 @@ export async function resetForReject(
       updated_at: nowIso,
     })
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`resetForReject failed: ${error.message ?? "unknown"}`)
+  }
 }
 
 /**
@@ -299,13 +325,16 @@ export async function bumpDraftCount24h(
   thread: Thread,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({
       draft_count_24h: (thread.draft_count_24h ?? 0) + 1,
       updated_at: nowIso,
     })
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`bumpDraftCount24h failed: ${error.message ?? "unknown"}`)
+  }
 }
 
 // ---------- buildDeterministicSummary ----------
@@ -408,7 +437,7 @@ export async function appendMessage(
   const userBump = role === "user" ? 1 : 0
   const assistantBump = role === "assistant" ? 1 : 0
 
-  await supabase
+  const { error } = await supabase
     .from(THREADS_TABLE)
     .update({
       messages: nextMessages,
@@ -417,4 +446,7 @@ export async function appendMessage(
       updated_at: nowIso,
     })
     .eq("id", thread.id)
+  if (error) {
+    throw new Error(`appendMessage(${role}) failed: ${error.message ?? "unknown"}`)
+  }
 }

@@ -23,12 +23,23 @@ export interface QuotaResult {
 
 // Narrow shape of the supabase-js client we actually call. Tests inject a
 // fake; the real `@supabase/supabase-js` client satisfies this structurally.
+//
+// PR review #2: we use the count-only PostgREST mode
+// (`select('id', { count: 'exact', head: true })`) to avoid streaming back
+// every matching row just to call `.length`. This mirrors
+// `_shared/aiQuota.checkQuota`.
 export interface QuotaSupabaseLike {
   from(table: string): {
-    select(columns: string): {
+    select(
+      columns: string,
+      opts?: { count?: "exact"; head?: boolean },
+    ): {
       eq(col: string, val: unknown): {
         eq(col: string, val: unknown): {
-          gte(col: string, val: string): Promise<{ data: unknown[] | null; error: { message?: string } | null }>
+          gte(
+            col: string,
+            val: string,
+          ): Promise<{ count: number | null; error: { message?: string } | null }>
         }
       }
     }
@@ -42,9 +53,9 @@ export async function enforceTurnQuota(
   nowMs: number = Date.now(),
 ): Promise<QuotaResult> {
   const cutoffIso = new Date(nowMs - HOUR_MS).toISOString()
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from(LOG_TABLE)
-    .select("id")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("source", "embedded_chat")
     .gte("created_at", cutoffIso)
@@ -52,7 +63,7 @@ export async function enforceTurnQuota(
   if (error) {
     throw new Error(`enforceTurnQuota count failed: ${error.message ?? "unknown"}`)
   }
-  const used = data?.length ?? 0
+  const used = count ?? 0
   return {
     allowed: used < EMBEDDED_TURNS_PER_HOUR,
     limit: EMBEDDED_TURNS_PER_HOUR,
@@ -73,9 +84,9 @@ export async function enforceDraftQuota(
   nowMs: number = Date.now(),
 ): Promise<QuotaResult> {
   const cutoffIso = new Date(nowMs - DAY_MS).toISOString()
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from(LOG_TABLE)
-    .select("id")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("source", "embedded_draft")
     .gte("created_at", cutoffIso)
@@ -83,7 +94,7 @@ export async function enforceDraftQuota(
   if (error) {
     throw new Error(`enforceDraftQuota count failed: ${error.message ?? "unknown"}`)
   }
-  const used = data?.length ?? 0
+  const used = count ?? 0
   return {
     allowed: used < EMBEDDED_DRAFTS_PER_24H,
     limit: EMBEDDED_DRAFTS_PER_24H,

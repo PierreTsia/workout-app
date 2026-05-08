@@ -1,4 +1,7 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import {
+  assertEquals,
+  assertRejects,
+} from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   appendMessage,
   buildDeterministicSummary,
@@ -175,7 +178,9 @@ function makeFakeSupabase(responses: FakeResponses = {}) {
         throw new Error("single without select/insert/update")
       },
       // bare-update (no .single()) — recognised when await is reached without single()
-      then(resolve: (v: unknown) => void) {
+      then(
+        resolve: (v: { data: unknown; error: { code?: string; message?: string } | null }) => void,
+      ) {
         if (pendingUpdate) {
           ops.push({
             kind: "update",
@@ -187,7 +192,9 @@ function makeFakeSupabase(responses: FakeResponses = {}) {
           resolve(takeNext(responses.updateSingle, defaultEmpty, counters.updateSingle))
           return
         }
-        resolve(undefined)
+        // PostgREST always resolves with `{ data, error }`; for an empty
+        // chain with no pending op we simulate a benign success.
+        resolve({ data: null, error: null })
       },
     }
     return builder
@@ -767,4 +774,94 @@ Deno.test("appendMessage(assistant) bumps assistant_turn_count and preserves pri
   assertEquals(typeof messages[1].ts, "string")
   assertEquals(op.values.assistant_turn_count, 1)
   assertEquals(op.values.user_turn_count, 1)
+})
+
+// ---------- write-helpers surface PostgREST errors (PR review #1) ----------
+//
+// PostgREST (and supabase-js) does not throw on RLS denial / network blips;
+// it resolves with `{ data, error }`. Before T122-followup these helpers
+// awaited the chain and discarded the response — a denied UPDATE looked
+// identical to a successful one, silently breaking retention purges,
+// status transitions, and the commit gate. Each helper now destructures
+// `{ error }` and throws; the route layer turns the throw into a 500.
+//
+// One representative test per write helper is enough to lock in the
+// invariant — they all use the same destructure-and-throw pattern.
+
+Deno.test("setStatus throws when PostgREST returns an error (RLS denial)", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "row level security" } },
+  })
+  const thread = makeThread({ status: "open" })
+  await assertRejects(
+    () => setStatus(supabase, thread, "abandoned"),
+    Error,
+    "setStatus(abandoned) failed: row level security",
+  )
+})
+
+Deno.test("setLastPreview throws when PostgREST returns an error", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "boom" } },
+  })
+  const thread = makeThread({ status: "open" })
+  await assertRejects(
+    () => setLastPreview(supabase, thread, { foo: "bar" }),
+    Error,
+    "setLastPreview failed: boom",
+  )
+})
+
+Deno.test("resetForReject throws when PostgREST returns an error", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "boom" } },
+  })
+  const thread = makeThread({ status: "preview_ready" })
+  await assertRejects(
+    () => resetForReject(supabase, thread),
+    Error,
+    "resetForReject failed: boom",
+  )
+})
+
+Deno.test("appendMessage throws when PostgREST returns an error", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "boom" } },
+  })
+  const thread = makeThread({ status: "open" })
+  await assertRejects(
+    () => appendMessage(supabase, thread, "assistant", "salut"),
+    Error,
+    "appendMessage(assistant) failed: boom",
+  )
+})
+
+Deno.test("purgeRetentionIfDue throws when PostgREST returns an error", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "boom" } },
+  })
+  // 100 days old → past the 90d retention window.
+  const ageMs = 100 * ONE_DAY_MS
+  const nowMs = Date.now()
+  const thread = makeThread({
+    status: "abandoned",
+    abandoned_at: new Date(nowMs - ageMs).toISOString(),
+    messages: [{ role: "user", content: "old", ts: "2024-01-01T00:00:00.000Z" }],
+  })
+  await assertRejects(
+    () => purgeRetentionIfDue(supabase, thread, nowMs),
+    Error,
+    "purgeRetentionIfDue failed: boom",
+  )
+})
+
+Deno.test("purgeDueForUser throws when PostgREST returns an error", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "boom" } },
+  })
+  await assertRejects(
+    () => purgeDueForUser(supabase, "user-1"),
+    Error,
+    "purgeDueForUser failed: boom",
+  )
 })

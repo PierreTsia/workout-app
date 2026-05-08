@@ -85,18 +85,46 @@ export function EmbeddedAgentChatStep({
     if (sendMessage.data?.ready_for_draft) setHasReadySignal(true)
   }, [sendMessage.data])
 
-  // Story 8: never trap the user in an infinite spinner when the network is
-  // gone. Surface an explicit offline banner whether the browser flagged it
-  // upfront (`navigator.onLine === false`) or `/thread` itself errored.
-  const isOffline = !isOnline || thread.isError
+  // PR review #7: report /thread fetch failures to Sentry once per error
+  // (not on every re-render). Friendly UX kinds are filtered out by
+  // `captureEmbeddedAgentError`.
+  useEffect(() => {
+    if (thread.isError) {
+      captureEmbeddedAgentError("/thread", thread.error as EmbeddedAgentError)
+    }
+  }, [thread.isError, thread.error])
 
-  if (isOffline) {
+  // Story 8 + PR review #7: never trap the user in an infinite spinner when
+  // the network is gone, but DON'T conflate a real offline event with a
+  // /thread query error. A 401/RLS/5xx surfacing as "You're offline" is
+  // misleading and blocks recovery (the user keeps refreshing instead of
+  // re-authenticating). We split:
+  //   - `!isOnline`         → genuine offline banner (no retry — comes back
+  //                            for free when navigator.onLine flips)
+  //   - `thread.isError`    → "couldn't load conversation" banner with an
+  //                            explicit Retry that re-runs the query
+  if (!isOnline) {
     return (
       <div className="flex flex-1 flex-col gap-4 px-6 py-6">
         <Alert>
           <AlertTitle>{t("embeddedAgent.offlineTitle")}</AlertTitle>
           <AlertDescription>{t("embeddedAgent.offlineBody")}</AlertDescription>
         </Alert>
+      </div>
+    )
+  }
+
+  if (thread.isError) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 px-6 py-6">
+        <ErrorBanner
+          title={t("embeddedAgent.threadErrorTitle")}
+          body={t("embeddedAgent.threadErrorBody")}
+          retryLabel={t("embeddedAgent.retryCta")}
+          onRetry={() => {
+            void thread.refetch()
+          }}
+        />
       </div>
     )
   }

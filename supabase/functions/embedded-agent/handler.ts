@@ -94,7 +94,11 @@ export async function handleEmbeddedAgent(
     return Response.json({ error: "method_not_allowed" }, { status: 405 })
   }
 
-  const requestId = crypto.randomUUID()
+  // PR review #5: propagate `x-request-id` from the client when present so
+  // browser → edge logs share an id (mirrors `mcp-phase-a-proof`'s handler).
+  // Falls back to a fresh UUID when the header is absent (Deno fetch tests,
+  // direct curl, etc.).
+  const requestId = req.headers.get("x-request-id") ?? crypto.randomUUID()
   const authHeader = req.headers.get("Authorization") ?? ""
   const user = await deps.getUser(authHeader)
   if (!user) {
@@ -127,7 +131,25 @@ export async function handleEmbeddedAgent(
     })
   })
 
-  const body = await req.json() as { action?: unknown; locale?: unknown; confirm?: unknown }
+  // PR review #3: `req.json()` throws on malformed JSON / empty body, which
+  // would surface as an unstructured 500 with no log line. Catch the parse
+  // failure here, emit a structured warn (so observability picks it up the
+  // same way other 4xx do), and return a clean 400.
+  let body: { action?: unknown; locale?: unknown; confirm?: unknown }
+  try {
+    body = await req.json() as { action?: unknown; locale?: unknown; confirm?: unknown }
+  } catch (err) {
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/thread",
+      error_kind: "invalid_json",
+      request_id: requestId,
+      user_id: user.userId,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return Response.json({ error: "invalid_json" }, { status: 400 })
+  }
 
   if (body.action === "abandon") {
     return await handleAbandon(user.userId, deps, requestId)
@@ -561,9 +583,20 @@ async function handleDraft(
   // log_everything: count this draft attempt against the embedded_draft
   // quota whether it succeeds or not (Story 19). Wrapped so a model /
   // catalog failure still credits the cap.
-  let draftResult: DraftResult
+  //
+  // PR review #4: `runDraftStep` is the orchestration hub for catalog,
+  // profile, history, validation and the model call. A try/finally only
+  // covers the billable-log credit; if any of those dependencies throws
+  // unexpectedly the handler crashes with a 500 and skips the canonical
+  // `provider_failure` mapping/log line. We catch around the call too,
+  // synthesize an `error: "internal"` DraftResult, and let the existing
+  // `!draftResult.ok` branch turn it into the standard 502 + log.
+  let draftResult: DraftResult | null = null
+  let unexpectedDraftError: unknown = null
   try {
     draftResult = await deps.runDraftStep({ userId, locale, thread: active, profile })
+  } catch (err) {
+    unexpectedDraftError = err
   } finally {
     await deps.logBillableCall(userId, "embedded_draft").catch((err) => {
       // Logging failure must NOT mask a successful draft. We surface a
@@ -579,6 +612,25 @@ async function handleDraft(
         message: err instanceof Error ? err.message : String(err),
       })
     })
+  }
+
+  if (unexpectedDraftError || !draftResult) {
+    deps.log({
+      level: "error",
+      feature: "embedded-agent",
+      route: "/draft",
+      error_kind: "provider_failure",
+      request_id: requestId,
+      user_id: userId,
+      thread_id: active.id,
+      message: unexpectedDraftError instanceof Error
+        ? `runDraftStep threw: ${unexpectedDraftError.message}`
+        : `runDraftStep threw: ${String(unexpectedDraftError)}`,
+    })
+    return Response.json(
+      { error: "draft_failed", reason: "internal", trigger },
+      { status: 502 },
+    )
   }
 
   if (!draftResult.ok) {

@@ -124,12 +124,47 @@ describe("EmbeddedAgentChatStep", () => {
     expect(screen.getByText(/You're offline/i)).toBeInTheDocument()
   })
 
-  it("renders the offline banner when /thread fails to fetch", async () => {
-    invokeMock.mockRejectedValueOnce(new Error("network"))
+  // PR review #7: previously a /thread error (auth/RLS/5xx) was conflated
+  // with a true offline event and shown as "You're offline". That blocked
+  // recovery (the user kept refreshing instead of re-authenticating) and
+  // hid real backend failures from Sentry. We now render a dedicated
+  // "couldn't load conversation" banner with an explicit Retry, and
+  // capture the error to Sentry so we don't lose visibility.
+  it("renders a thread-error banner (not offline) when /thread fails while online", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
 
     renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
 
-    expect(await screen.findByText(/You're offline/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/couldn't load your conversation/i),
+    ).toBeInTheDocument()
+    // Surface a retry CTA so the user can recover without a full reload.
+    expect(
+      screen.getByRole("button", { name: /try again/i }),
+    ).toBeInTheDocument()
+    // The misleading "You're offline" copy must not appear when we still
+    // have network — the failure is server-side.
+    expect(screen.queryByText(/You're offline/i)).not.toBeInTheDocument()
+  })
+
+  it("captures /thread fetch errors to Sentry with the right tags (not the offline path)", async () => {
+    invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+
+    await screen.findByText(/couldn't load your conversation/i)
+    await waitFor(() => {
+      expect(captureExceptionMock).toHaveBeenCalled()
+    })
+    const lastCall = captureExceptionMock.mock.calls[captureExceptionMock.mock.calls.length - 1]
+    expect(lastCall[1]).toEqual(
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          feature: "embedded-agent",
+          route: "/thread",
+        }),
+      }),
+    )
   })
 
   it("Restart confirms, abandons the active thread, and refetches a fresh one", async () => {
