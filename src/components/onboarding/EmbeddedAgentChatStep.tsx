@@ -90,10 +90,20 @@ export function EmbeddedAgentChatStep({
   // PR review #7: report /thread fetch failures to Sentry once per error
   // (not on every re-render). Friendly UX kinds are filtered out by
   // `captureEmbeddedAgentError`.
+  //
+  // `useThread` is a `useQuery`, not a mutation — its TError defaults to
+  // plain `Error` (not `EmbeddedAgentError`), because `callEmbeddedAgent`
+  // throws raw `Error` instances on supabase invoke failures. We wrap
+  // into the canonical `kind: "unknown"` shape so the Sentry helper's
+  // `error.kind` accesses don't surface as `undefined` tags.
   useEffect(() => {
-    if (thread.isError) {
-      captureEmbeddedAgentError("/thread", thread.error as EmbeddedAgentError)
+    if (!thread.isError) return
+    const err = thread.error
+    const wrapped: EmbeddedAgentError = {
+      kind: "unknown",
+      message: err instanceof Error ? err.message : String(err),
     }
+    captureEmbeddedAgentError("/thread", wrapped)
   }, [thread.isError, thread.error])
 
   // Story 8 + PR review #7: never trap the user in an infinite spinner when
