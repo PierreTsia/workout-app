@@ -51,7 +51,21 @@ export async function handlePhaseAProof(
   }
 
   const token = authHeader.replace(/^Bearer\s+/i, "")
-  const body = (await req.json()) as Record<string, unknown>
+  const invalidBody = (message: string) => {
+    logError("invalid_body", { user_id: user.userId, message })
+    return Response.json({ error: "invalid_body" }, { status: 400 })
+  }
+
+  let body: Record<string, unknown>
+  try {
+    const parsed = await req.json()
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return invalidBody("body must be a JSON object")
+    }
+    body = parsed as Record<string, unknown>
+  } catch (err) {
+    return invalidBody(err instanceof Error ? err.message : "JSON parse failed")
+  }
 
   if (body.dry_run === false) {
     logError("persist_not_allowed", { user_id: user.userId })

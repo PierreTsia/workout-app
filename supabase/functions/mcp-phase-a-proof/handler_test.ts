@@ -42,6 +42,48 @@ Deno.test("does not emit any log on the success path", async () => {
   assertEquals(events.length, 0)
 })
 
+Deno.test("returns 400 invalid_body when JSON body cannot be parsed", async () => {
+  const { events, log } = captureLogs()
+  let callMcpInvoked = false
+  const deps = makeDeps({
+    log,
+    callMcp: async () => {
+      callMcpInvoked = true
+      return { ok: true, value: { content: [] } }
+    },
+  })
+
+  const req = new Request("https://edge.test/mcp-phase-a-proof", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer jwt_test",
+      "Content-Type": "application/json",
+    },
+    body: "{not json",
+  })
+  const res = await handlePhaseAProof(req, deps)
+
+  assertEquals(res.status, 400)
+  const json = await res.json()
+  assertEquals(json.error, "invalid_body")
+  assertEquals(callMcpInvoked, false)
+  assertEquals(events.length, 1)
+  assertEquals(events[0].error_kind, "invalid_body")
+  assertEquals(events[0].user_id, "user_abc")
+})
+
+Deno.test("returns 400 invalid_body when body is not a JSON object", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log })
+  const res = await handlePhaseAProof(makeRequest(null), deps)
+
+  assertEquals(res.status, 400)
+  const json = await res.json()
+  assertEquals(json.error, "invalid_body")
+  assertEquals(events.length, 1)
+  assertEquals(events[0].error_kind, "invalid_body")
+})
+
 Deno.test("logs MCP failure with user_id, kind, and message", async () => {
   const { events, log } = captureLogs()
   const deps = makeDeps({
