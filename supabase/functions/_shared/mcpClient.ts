@@ -1,15 +1,17 @@
+type JsonRpcId = string | number
+
 type JsonRpcError = { code: number; message: string; data?: unknown }
 
 type McpToolTextContent = { type: "text"; text: string }
 type McpToolContent = { type: string; text?: string }
 
-type McpToolResult = {
+export type McpToolResult = {
   content: McpToolContent[]
   isError?: boolean
 }
 
-type JsonRpcSuccess = { jsonrpc: "2.0"; id: number; result: McpToolResult }
-type JsonRpcFailure = { jsonrpc: "2.0"; id: number; error: JsonRpcError }
+type JsonRpcSuccess = { jsonrpc: "2.0"; id: JsonRpcId; result: McpToolResult }
+type JsonRpcFailure = { jsonrpc: "2.0"; id: JsonRpcId; error: JsonRpcError }
 type JsonRpcResponse = JsonRpcSuccess | JsonRpcFailure
 
 export type CallMcpToolOk = { ok: true; value: McpToolResult }
@@ -20,14 +22,12 @@ export type CallMcpToolErr =
 
 export type CallMcpToolResult = CallMcpToolOk | CallMcpToolErr
 
-type CallMcpToolArgs = {
+export type CallMcpToolArgs = {
   mcpUrl: string
   userAccessToken: string
   toolName: string
   arguments: Record<string, unknown>
 }
-
-let nextId = 1
 
 function extractToolText(result: McpToolResult): string {
   return (result.content ?? [])
@@ -38,10 +38,9 @@ function extractToolText(result: McpToolResult): string {
 
 export async function callMcpTool(args: CallMcpToolArgs): Promise<CallMcpToolResult> {
   try {
-    const id = nextId++
     const body = {
       jsonrpc: "2.0",
-      id,
+      id: crypto.randomUUID(),
       method: "tools/call",
       params: { name: args.toolName, arguments: args.arguments },
     } as const

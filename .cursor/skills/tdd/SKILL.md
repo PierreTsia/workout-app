@@ -71,19 +71,21 @@ Use `AskQuestion` if the priorities aren't obvious. Skip the question if the use
 Write **ONE** test for the **most important behavior**. The point is to prove the path works end-to-end.
 
 ```
-RED:   write the test → run `npm test -- <file>` → verify it FAILS for the right reason
-GREEN: write the minimum code to pass → re-run → green
+RED:    write the test → run `npm test -- <file>` → verify it FAILS for the right reason
+GREEN:  write the minimum code to pass → re-run → green
+REFACTOR: clean it up under the green test (see Phase 4)
 ```
 
-Verifying the failure reason matters: a test that fails because of a typo or missing import is not red, it's broken.
+**You must actually observe and quote the failing output before writing any implementation.** Paste the failing assertion (or the "module not found" line if the symbol doesn't exist yet) into the conversation. No green code without a visible red. A test that fails because of a typo or missing import is not red, it's broken — fix the test, then verify it fails for the *right* reason.
 
 ### Phase 3 — Incremental loop
 
 For each remaining behavior on the approved list:
 
 ```
-RED:   add the next test, run it, see it fail for the right reason
-GREEN: minimum code to pass, re-run, see it pass
+RED:      add the next test, run it, see it fail for the right reason → quote the failure
+GREEN:    minimum code to pass, re-run, see it pass
+REFACTOR: improve the code under the green safety net (see Phase 4)
 ```
 
 Rules of the loop:
@@ -91,19 +93,34 @@ Rules of the loop:
 - **One test at a time.** No batches.
 - **Only enough code to pass the current test.** Don't anticipate.
 - **Don't refactor while RED.** Get to green first.
+- **Don't stop at green.** Green means the code *works*; refactor turns it into code you'd be proud to merge.
 - **If a behavior wasn't on the approved list, stop and re-confirm** with the user before adding it.
 
-### Phase 4 — Refactor (only on green)
+### Phase 4 — REFACTOR — from working code to code you'd be proud of
 
-Once all approved-list tests pass, look for refactor candidates with the tests as your safety net:
+**Refactor is not optional.** Green just means the test passes. It does not mean the code is good. Every cycle ends with an explicit refactor pass — even if the conclusion is "nothing to clean up here, and here's why".
 
-- Extract duplication
-- **Deepen modules** — move complexity behind a smaller interface
-- Apply functional pipelines per `prefer-functional-style` rule (filter/map/reduce instead of for-loops)
-- Use shadcn primitives per `prefer-shadcn-components` rule
-- Avoid unnecessary effects per `react-no-unnecessary-effects` rule
+Run this pass **after each green**, not just at the end of the ticket. The tests are your safety net; use them.
 
-Re-run the test suite **after each refactor step**, not at the end. If a test breaks during a "pure refactor", either the refactor changed behavior (revert) or the test was binding to implementation (fix the test).
+What to look for:
+
+- **Names**: do variables, functions, and types describe intent? (`extractToolText` > `getText`, `nextId` mutable counter > unclear scope.)
+- **Duplication**: same shape repeated → extract.
+- **Deepen modules** — move complexity behind a smaller interface (see `deepen-architecture` skill). If the test is hard to write, the module is too shallow.
+- **Functional style** per `prefer-functional-style` rule — `filter`/`map`/`reduce` instead of `for` + `push`. All intermediates `const`.
+- **shadcn primitives** per `prefer-shadcn-components` rule for UI.
+- **Avoid unnecessary effects** per `react-no-unnecessary-effects` rule.
+- **Type safety**: replace `any` and unguarded `as` casts with type guards or zod parsing.
+- **Hidden state**: module-level mutable counters, singletons, implicit globals — make dependencies explicit.
+- **Comments**: if a comment explains *what* the code does, rename / restructure until the code says it itself.
+
+Process:
+
+1. Re-read your own diff with fresh eyes.
+2. List candidate refactors out loud (in the conversation). Even if the list is empty, say so.
+3. Apply one refactor at a time. Re-run the test suite **after each step**.
+4. If a test breaks during a "pure refactor", either the refactor changed behavior (revert) or the test was binding to implementation (fix the test).
+5. Stop when there's nothing left that would make a reviewer say "this could be cleaner".
 
 ---
 
@@ -169,17 +186,20 @@ If you find yourself writing a complex test, **stop and consider refactoring the
 [ ] Test names a BEHAVIOR, not a function call
 [ ] Test exercises the PUBLIC interface only
 [ ] Test would survive renaming an internal helper
+[ ] Test ran red BEFORE the implementation, and the failing output was OBSERVED (quoted in chat)
 [ ] Implementation is minimal for THIS test
 [ ] No speculative code added "while we're here"
-[ ] Test ran red BEFORE the implementation
+[ ] Refactored to code I'm proud of — OR explicitly noted "no refactor needed because <reason>"
 ```
 
 ---
 
 ## Stop conditions
 
-- All approved-list behaviors have a passing test.
+- All approved-list behaviors have a passing test **and have been through a refactor pass**.
 - The user wants to ship — print a recap of what's covered and what's deliberately not, then stop.
 - A behavior you discovered mid-loop changes the design materially — pause, surface it, get approval, then resume (or replan).
+
+**Do not stop after green.** Only stop after the refactor pass is done (or you've explicitly justified skipping it for this cycle). Green is the halfway point, not the finish line.
 
 Do **not** keep adding tests beyond the approved list "for coverage". Coverage is a downstream metric of doing TDD right, not a goal.

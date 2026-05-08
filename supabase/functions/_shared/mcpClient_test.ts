@@ -15,15 +15,22 @@ function stubFetch(
   }) as typeof fetch
 }
 
+type CapturedBody = {
+  jsonrpc: string
+  id: unknown
+  method: string
+  params: { name: string; arguments: Record<string, unknown> }
+}
+
 Deno.test("callMcpTool builds tools/call JSON-RPC envelope + Bearer header", async () => {
-  const seen: { url?: string; auth?: string; body?: unknown } = {}
+  const seen: { url?: string; auth?: string; body?: CapturedBody } = {}
   stubFetch(async (req) => {
     seen.url = req.url
     seen.auth = req.headers.get("Authorization") ?? undefined
-    seen.body = await req.json()
+    seen.body = (await req.json()) as CapturedBody
     return Response.json({
       jsonrpc: "2.0",
-      id: 1,
+      id: seen.body.id,
       result: { content: [{ type: "text", text: "ok" }] },
     })
   })
@@ -39,15 +46,13 @@ Deno.test("callMcpTool builds tools/call JSON-RPC envelope + Bearer header", asy
     assertEquals(result.ok, true)
     assertEquals(seen.url, "https://example.test/functions/v1/mcp")
     assertEquals(seen.auth, "Bearer jwt_123")
-    assertEquals(
-      seen.body,
-      {
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "create_program", arguments: { dry_run: true } },
-      },
-    )
+    assertEquals(seen.body?.jsonrpc, "2.0")
+    assertEquals(seen.body?.method, "tools/call")
+    assertEquals(seen.body?.params, {
+      name: "create_program",
+      arguments: { dry_run: true },
+    })
+    assertEquals(typeof seen.body?.id === "string" && seen.body.id.length > 0, true)
   } finally {
     globalThis.fetch = ORIGINAL_FETCH
   }
