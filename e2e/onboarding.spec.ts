@@ -141,32 +141,42 @@ test.describe("Onboarding", () => {
     await expect(page).toHaveURL("/", { timeout: 30_000 })
   })
 
-  test("onboarding AI path — mocked edge function", async ({ page }) => {
+  // T123 cutover: AI path now mounts the Embedded Agent chat shell instead
+  // of the legacy one-shot AIProgramPreviewStep. Full happy-path coverage
+  // (chat → draft → preview → commit) belongs to a follow-up e2e — here we
+  // only assert the routing change: clicking "AI Generate" lands users in
+  // the new shell with a mocked /thread response. Component-level coverage
+  // for the chat/draft/preview/commit flow already lives in vitest.
+  test("onboarding AI path — embedded agent chat shell mounts (mocked /thread)", async ({ page }) => {
     test.setTimeout(120_000)
     const userId = getTestUserId()
-    const admin = getAdmin()
 
     await clearUserData(userId)
 
-    const { data: exercises } = await admin
-      .from("exercises")
-      .select("id")
-      .limit(4)
-    const ids = (exercises ?? []).map((e) => e.id)
-
-    await page.route("**/functions/v1/generate-program", (route) =>
-      route.fulfill({
+    await page.route("**/functions/v1/embedded-agent", async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}") as { action?: string }
+      if (body.action === "open") {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            thread_id: "00000000-0000-0000-0000-000000000abc",
+            status: "open",
+            resumed: false,
+            messages: [],
+            last_preview: null,
+          }),
+        })
+      }
+      // Catch-all for `abandon` / `send` / etc. fired on teardown or
+      // back-navigation. Returning ok: true keeps the client happy without
+      // pulling more flow into this shell-mount test.
+      return route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          rationale: "E2E mock program for testing",
-          days: [
-            { label: "Push", muscle_focus: "chest", exercise_ids: ids.slice(0, 2) },
-            { label: "Pull", muscle_focus: "back", exercise_ids: ids.slice(2, 4) },
-          ],
-        }),
-      }),
-    )
+        body: JSON.stringify({ ok: true }),
+      })
+    })
 
     await page.goto("/")
     await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 })
@@ -187,9 +197,12 @@ test.describe("Onboarding", () => {
     await expect(page.getByText("How do you want to start?")).toBeVisible({ timeout: 5_000 })
     await page.getByText("AI Generate").click()
 
-    await expect(page.getByText("Your AI Program")).toBeVisible({ timeout: 30_000 })
-    await page.getByRole("button", { name: /Create Program/i }).click()
-    await expect(page).toHaveURL("/", { timeout: 30_000 })
+    // The chat shell renders a stable header from the i18n key
+    // `embeddedAgent.title` and a status line built from the mocked thread id.
+    await expect(
+      page.getByRole("heading", { name: /build your program with the assistant/i }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/Thread .* · open/)).toBeVisible({ timeout: 5_000 })
   })
 
   test("onboarding blank path opens builder", async ({ page }) => {

@@ -4,17 +4,19 @@
 
 ### Key Decisions
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| UX scope | AI path only; onboarding form stays; chat additive | Locked in `file:docs/CONTEXT.md` + Epic Brief |
-| Edge function shape | **Hybrid**: one Edge function with multiple handlers/routes | Shared code, fewer deploy units; still clear boundaries for auth/quota/draft/commit |
-| Thread persistence | New `embedded_agent_threads` table + RLS + partial unique index | Resume + quota + single active onboarding attempt |
-| Thread storage strategy | **Hybrid**: raw while active; on `committed` purge raw, keep deterministic summary | Privacy-first without extra model calls |
-| Quota/logging | **log_everything**: log every billable call (turn + draft), failures count | Protects hosted key; avoids “retry loophole” |
-| v1 quota numbers | **Balanced**: 40 assistant turns / hour; 3 drafts / 24h; drafts consume existing `program` quota (5/30d) | Usable but bounded; tunable post-launch |
-| Draft triggers | (A) machine-readable ready signal OR (B) cap OR (C) user CTA | Prevents indefinite waiting; user agency |
-| Persistence | MCP `create_program` with `dry_run` preview + explicit confirm | Single write contract + commit gate |
-| Streaming | No token streaming in v1 | No SSE infra today; ship safer. Preserve a seam for follow-up |
+
+| Decision                | Choice                                                                                                   | Rationale                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| UX scope                | AI path only; onboarding form stays; chat additive                                                       | Locked in `file:docs/CONTEXT.md` + Epic Brief                                       |
+| Edge function shape     | **Hybrid**: one Edge function with multiple handlers/routes                                              | Shared code, fewer deploy units; still clear boundaries for auth/quota/draft/commit |
+| Thread persistence      | New `embedded_agent_threads` table + RLS + partial unique index                                          | Resume + quota + single active onboarding attempt                                   |
+| Thread storage strategy | **Hybrid**: raw while active; on `committed` purge raw, keep deterministic summary                       | Privacy-first without extra model calls                                             |
+| Quota/logging           | **log_everything**: log every billable call (turn + draft), failures count                               | Protects hosted key; avoids “retry loophole”                                        |
+| v1 quota numbers        | **Balanced**: 40 assistant turns / hour; 3 drafts / 24h; drafts consume existing `program` quota (5/30d) | Usable but bounded; tunable post-launch                                             |
+| Draft triggers          | (A) machine-readable ready signal OR (B) cap OR (C) user CTA                                             | Prevents indefinite waiting; user agency                                            |
+| Persistence             | MCP `create_program` with `dry_run` preview + explicit confirm                                           | Single write contract + commit gate                                                 |
+| Streaming               | No token streaming in v1                                                                                 | No SSE infra today; ship safer. Preserve a seam for follow-up                       |
+
 
 ### Critical Constraints
 
@@ -54,6 +56,8 @@ classDiagram
     timestamptz created_at
   }
 ```
+
+
 
 ### Table Notes
 
@@ -110,29 +114,35 @@ graph TD
   Preview -->|Confirm| EA
 ```
 
+
+
 ### New Files & Responsibilities
 
-| File | Purpose |
-|---|---|
-| `file:supabase/functions/embedded-agent/index.ts` | Router with `/thread`, `/message`, `/draft`, `/commit` handlers |
-| `file:supabase/functions/embedded-agent/threadStore.ts` | Thread CRUD, append, lifecycle transitions, purge-on-commit, lazy retention |
-| `file:supabase/functions/embedded-agent/quota.ts` | Enforce v1 caps and **log_everything** to `ai_generation_log` |
-| `file:supabase/functions/embedded-agent/prompt.ts` | System prompt + locale instruction + ready-signal schema |
-| `file:supabase/functions/embedded-agent/draft.ts` | Program draft step using `generate-program` internals + thread context |
-| `file:src/components/onboarding/EmbeddedAgentChatStep.tsx` | shadcn/ui chat UI; typing state + phase statuses; Generate CTA |
-| `file:src/components/onboarding/EmbeddedAgentPreviewStep.tsx` | Preview UI from `last_preview` + confirm/regenerate |
-| `file:supabase/migrations/*_embedded_agent_threads.sql` | DDL + RLS + partial unique + FK cascade |
-| `file:supabase/migrations/*_ai_generation_log_sources_embedded_agent.sql` | Extend `source` CHECK + index for embedded sources |
+
+| File                                                                      | Purpose                                                                     |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `file:supabase/functions/embedded-agent/index.ts`                         | Router with `/thread`, `/message`, `/draft`, `/commit` handlers             |
+| `file:supabase/functions/embedded-agent/threadStore.ts`                   | Thread CRUD, append, lifecycle transitions, purge-on-commit, lazy retention |
+| `file:supabase/functions/embedded-agent/quota.ts`                         | Enforce v1 caps and **log_everything** to `ai_generation_log`               |
+| `file:supabase/functions/embedded-agent/prompt.ts`                        | System prompt + locale instruction + ready-signal schema                    |
+| `file:supabase/functions/embedded-agent/draft.ts`                         | Program draft step using `generate-program` internals + thread context      |
+| `file:src/components/onboarding/EmbeddedAgentChatStep.tsx`                | shadcn/ui chat UI; typing state + phase statuses; Generate CTA              |
+| `file:src/components/onboarding/EmbeddedAgentPreviewStep.tsx`             | Preview UI from `last_preview` + confirm/regenerate                         |
+| `file:supabase/migrations/*_embedded_agent_threads.sql`                   | DDL + RLS + partial unique + FK cascade                                     |
+| `file:supabase/migrations/*_ai_generation_log_sources_embedded_agent.sql` | Extend `source` CHECK + index for embedded sources                          |
+
 
 ### Component Responsibilities
 
-`**EmbeddedAgentChatStep (PWA)**`
+`**EmbeddedAgentChatStep (PWA)`**
+
 - Uses shadcn/ui building blocks (Input/Button/ScrollArea/Card/Skeleton)
 - Shows immediate “assistant thinking” bubble (no token streaming)
 - Shows deterministic phase statuses (read answers / draft / validate / preview)
 - Offers “Generate my plan” CTA any time after form is completed
 
-`**embedded-agent Edge function**`
+`**embedded-agent Edge function`**
+
 - Auth: `supabase.auth.getUser()` to resolve `user_id`
 - `/thread`: load active thread (or create) via `getOrCreateActiveThread`; lazy staleness abandon (7d) and resume banner metadata
 - `/message`:
@@ -155,22 +165,25 @@ graph TD
   - Call MCP `create_program` with `dry_run:false` using `last_preview` payload
   - Set `committed`, store deterministic `summary`, purge raw transcript
 
-`**Program draft step (internal)**`
-- Reuse `file:supabase/functions/generate-program/*` prompt/validate/catalog fetch
+`**Program draft step (internal)`**
+
+- Reuse `file:supabase/functions/generate-program/`* prompt/validate/catalog fetch
 - Expand context: onboarding form constraints + thread transcript + locale
 - Return draft structure that maps into MCP `create_program` arguments
 
 ### Failure Mode Analysis (if applicable)
 
-| Failure | Behavior |
-|---|---|
-| Quota exceeded (turns/hour) | Friendly UI; user can wait or switch path |
-| Quota exceeded (drafts/day) | Friendly UI; retry later; after 2 failures offer Template/Blank escape |
-| Quota exceeded (program 5/30d) | Friendly UI; suggest Template/Blank; explain in non-technical copy |
-| Model invalid ready-signal | Treat as normal message; cap + CTA avoids indefinite waiting |
-| Draft validation failure | Friendly regenerate; log structured error; counts toward quota if billable |
-| MCP dry_run failure | Friendly regenerate; after 2 consecutive failures offer Template/Blank |
-| Commit failure | Keep `preview_ready` so user can retry commit without losing preview |
+
+| Failure                        | Behavior                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| Quota exceeded (turns/hour)    | Friendly UI; user can wait or switch path                                  |
+| Quota exceeded (drafts/day)    | Friendly UI; retry later; after 2 failures offer Template/Blank escape     |
+| Quota exceeded (program 5/30d) | Friendly UI; suggest Template/Blank; explain in non-technical copy         |
+| Model invalid ready-signal     | Treat as normal message; cap + CTA avoids indefinite waiting               |
+| Draft validation failure       | Friendly regenerate; log structured error; counts toward quota if billable |
+| MCP dry_run failure            | Friendly regenerate; after 2 consecutive failures offer Template/Blank     |
+| Commit failure                 | Keep `preview_ready` so user can retry commit without losing preview       |
+
 
 ---
 
@@ -182,4 +195,8 @@ V1 ships without token streaming. To keep streaming additive later:
 - Keep DB writes **final-only**: do **not** persist partial assistant chunks in `embedded_agent_threads`; only persist the assistant message once a **final** event is emitted.
 - Client renders partial text in-memory while streaming; on `final`, replace with the persisted message and store it.
 - Quota/logging remains per provider call (already covered by `log_everything`).
+
 ```
+
+```
+

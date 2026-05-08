@@ -23,6 +23,9 @@
   "s4Analytics": "Analytics events are pseudonymised on account deletion — your user ID is removed but the event record remains in aggregate form. We do not retain any event that can be traced back to you personally.",
   "s4Avatar": "Avatar files stored in our file storage are permanently deleted when you delete your account.",
 
+  "s8Title": "AI onboarding chat (Embedded Agent)",
+  "s8Body": "If you opt into the AI onboarding flow, your free-text chat answers (which may include health-adjacent context like injuries or fuzzy goals) are stored in our database under Row-Level Security and sent verbatim to Google Gemini for inference. Google does not retain your prompts or responses beyond the request itself for the API tier we use. We do not run any text scrubbing on your messages today, so avoid sharing anything you wouldn't want stored — keep it about training. Raw chat content is kept while the onboarding attempt is active; after you commit a program or abandon the chat, the raw text is purged after 90 days while aggregate metadata (status, generated program link, timestamps, summary) is retained. Deleting your account immediately removes all Embedded Agent rows. We never use chat content for marketing or model training.",
+
   "s5Title": "Your rights",
   "s5Access": "Access and correct your data at any time via Account settings.",
   "s5Delete": "Delete your account and all associated data from Account settings. Deletion is immediate and irreversible.",

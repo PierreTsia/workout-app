@@ -77,12 +77,16 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Recursive glob picks up every `*_test.ts` under `supabase/functions/`
+      # — `mcp/lib`, `mcp/tools`, `embedded-agent`, `mcp-phase-a-proof`,
+      # `_shared`. Previously the glob was scoped to two folders and the
+      # embedded-agent suite (115 tests as of T122) silently never ran in CI.
       # `--node-modules-dir=auto` lets Deno resolve transitive npm types
       # (e.g. `@types/node` reached through supabase-js declarations imported
       # by `tools/registry.ts`). Local Deno auto-installs; the CI runner is
       # clean by default, so we have to opt in explicitly. Without this flag
       # the type-check phase fails with `Could not find "@types/node"`.
-      - run: deno test --node-modules-dir=auto "supabase/functions/mcp/lib/*_test.ts" "supabase/functions/mcp/tools/*_test.ts" --allow-env
+      - run: deno test --node-modules-dir=auto "supabase/functions/**/*_test.ts" --allow-env
 
   e2e:
     runs-on: ubuntu-latest

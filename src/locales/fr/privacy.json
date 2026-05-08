@@ -23,6 +23,9 @@
   "s4Analytics": "Les événements analytiques sont pseudonymisés lors de la suppression du compte — votre identifiant utilisateur est retiré, mais l'enregistrement de l'événement subsiste sous forme agrégée. Nous ne conservons aucun événement pouvant être retracé jusqu'à vous personnellement.",
   "s4Avatar": "Les fichiers avatar stockés dans notre espace de fichiers sont définitivement supprimés lors de la suppression de votre compte.",
 
+  "s8Title": "Chat d'onboarding IA (Embedded Agent)",
+  "s8Body": "Si vous utilisez le flux d'onboarding IA, vos réponses libres dans le chat (qui peuvent contenir des informations proches de la santé : blessures, objectifs flous) sont stockées dans notre base de données sous Row-Level Security et transmises telles quelles à Google Gemini pour inférence. Google ne conserve ni vos prompts ni les réponses au-delà de la requête pour le niveau d'API que nous utilisons. Nous n'appliquons aujourd'hui aucun filtrage automatique sur vos messages — évitez donc d'y écrire quoi que ce soit que vous ne voudriez pas voir conservé, restez sur le sujet de l'entraînement. Le contenu brut du chat est conservé tant que la tentative d'onboarding est active ; après création d'un programme ou abandon, le texte brut est purgé après 90 jours, seules des métadonnées agrégées (statut, lien vers le programme généré, dates, résumé) sont conservées. La suppression de votre compte supprime immédiatement toutes les lignes Embedded Agent. Nous n'utilisons jamais le contenu du chat à des fins marketing ou pour entraîner des modèles.",
+
   "s5Title": "Vos droits",
   "s5Access": "Accédez à vos données et corrigez-les à tout moment via les paramètres du compte.",
   "s5Delete": "Supprimez votre compte et toutes les données associées depuis les paramètres du compte. La suppression est immédiate et irréversible.",
