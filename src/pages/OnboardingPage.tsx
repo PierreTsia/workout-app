@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { userProfileToGenerateProgramConstraints } from "@/lib/userProfileToGenerateProgramConstraints"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
@@ -15,37 +14,44 @@ import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
 import { TemplateRecommendationStep } from "@/components/onboarding/TemplateRecommendationStep"
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
-import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
-import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
 import { EmbeddedAgentChatStep } from "@/components/onboarding/EmbeddedAgentChatStep"
 import { EmbeddedAgentGeneratingStep } from "@/components/onboarding/EmbeddedAgentGeneratingStep"
 import { EmbeddedAgentPreviewStep } from "@/components/onboarding/EmbeddedAgentPreviewStep"
-import { isEmbeddedAgentEnabled } from "@/lib/featureFlags"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
-import type { AIGeneratedProgram, GenerateProgramConstraints } from "@/types/aiProgram"
 
+// T123 cutover: the legacy AI wizard (`AIGeneratingStep`/`AIProgramPreviewStep`,
+// `userProfileToGenerateProgramConstraints`, the `ai_constraints/_generating/_preview`
+// step names, `aiConstraints/aiResult` state) is gone from this page. The
+// components themselves still live under `src/components/create-program/`
+// because `CreateProgramPage` (the "create another program" surface at
+// `/create-program`) still uses them. `useGenerateProgram` stays here too
+// for the blank + template paths.
 type WizardStep =
   | "welcome"
   | "questionnaire"
   | "path"
   | "recommendation"
   | "summary"
-  | "ai_generating"
-  | "ai_preview"
   | "embedded_chat"
   | "embedded_generating"
   | "embedded_preview"
 
+// T123 analytics rename: the old `ai_*` step names mapped 1:1 onto the
+// legacy AI wizard layout, which no longer exists on this page. New names
+// describe the Embedded Agent stages so dashboards reflect the actual
+// funnel; indices renumbered to a contiguous 4/5/6 (no more index reuse
+// across paths). Funnel comparisons across the cutover date should be
+// reset (see runbook).
 const ANALYTICS_STEP_INDEX = {
   welcome: 1,
   questionnaire: 2,
   path: 3,
   template_recommendation: 4,
   program_summary: 5,
-  ai_constraints: 4,
-  ai_generating: 5,
-  ai_preview: 6,
+  embedded_agent_started: 4,
+  embedded_agent_drafting: 5,
+  embedded_agent_preview: 6,
 } as const
 
 type AnalyticsStepName = keyof typeof ANALYTICS_STEP_INDEX
@@ -59,8 +65,6 @@ export function OnboardingPage() {
   const [step, setStep] = useState<WizardStep>("welcome")
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<ProgramTemplate | null>(null)
-  const [aiConstraints, setAiConstraints] = useState<GenerateProgramConstraints | null>(null)
-  const [aiResult, setAiResult] = useState<AIGeneratedProgram | null>(null)
 
   const createProfile = useCreateUserProfile()
   const generateProgram = useGenerateProgram()
@@ -184,20 +188,6 @@ export function OnboardingPage() {
     navigate("/", { replace: true })
   }
 
-  function handleAISuccess(result: AIGeneratedProgram) {
-    trackStepCompleted("ai_generating")
-    setAiResult(result)
-    setStep("ai_preview")
-  }
-
-  function handleAIProgramCreated(programId: string) {
-    trackStepCompleted("ai_preview")
-    trackEvent.mutate({
-      eventType: "program_created",
-      payload: { program_id: programId, template_id: null, path: "ai" },
-    })
-  }
-
   if (isGenerating) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
@@ -260,19 +250,15 @@ export function OnboardingPage() {
             onAI={() => {
               if (!profileData) return
               trackStepCompleted("path")
-              if (isEmbeddedAgentEnabled()) {
-                // Phase B Embedded Agent path: chat shell handles its own
-                // thread + future preview. Constraints/aiResult plumbing stays
-                // off this branch entirely (Story 16: legacy state never
-                // leaks into the new flow).
-                setStep("embedded_chat")
-                return
-              }
-              setAiResult(null)
-              const constraints = userProfileToGenerateProgramConstraints(profileData, i18n.language)
-              setAiConstraints(constraints)
-              trackStepCompleted("ai_constraints", { source: "questionnaire_profile" })
-              setStep("ai_generating")
+              // T123 cutover: AI path always lands the user in the
+              // Embedded Agent chat. We fire `embedded_agent_started`
+              // here (transition out of /path) — same boundary the
+              // legacy flow fired `ai_constraints` from. Keeps the
+              // funnel comparable across the cutover and captures
+              // users whose /thread call later fails as drop-offs at
+              // the chat step rather than missing this event entirely.
+              trackStepCompleted("embedded_agent_started", { source: "questionnaire_profile" })
+              setStep("embedded_chat")
             }}
             onTemplate={() => {
               trackStepCompleted("path")
@@ -307,38 +293,32 @@ export function OnboardingPage() {
           />
         )}
 
-        {step === "ai_generating" && aiConstraints && (
-          <AIGeneratingStep
-            constraints={aiConstraints}
-            onSuccess={handleAISuccess}
-            onFallbackTemplate={() => setStep("recommendation")}
-            onFallbackBlank={handleAIFallbackBlank}
-          />
-        )}
-
-        {step === "ai_preview" && aiResult && aiConstraints && (
-          <AIProgramPreviewStep
-            program={aiResult}
-            constraints={aiConstraints}
-            onRegenerate={() => setStep("ai_generating")}
-            successReplacePath="/"
-            onProgramCreated={handleAIProgramCreated}
-          />
-        )}
-
         {step === "embedded_chat" && (
           <EmbeddedAgentChatStep
             locale={i18n.language === "fr" ? "fr" : "en"}
             onBack={() => setStep("path")}
-            onPreviewReady={() => setStep("embedded_preview")}
-            onGenerateRequest={() => setStep("embedded_generating")}
+            onPreviewReady={() => {
+              // Resumed-into-preview path (user closed the tab on the
+              // preview screen and came back). The funnel still needs
+              // to see the preview event so the soak / commit ratio
+              // matches reality.
+              trackStepCompleted("embedded_agent_preview", { source: "resumed_thread" })
+              setStep("embedded_preview")
+            }}
+            onGenerateRequest={() => {
+              trackStepCompleted("embedded_agent_drafting")
+              setStep("embedded_generating")
+            }}
           />
         )}
 
         {step === "embedded_generating" && (
           <EmbeddedAgentGeneratingStep
             locale={i18n.language === "fr" ? "fr" : "en"}
-            onSuccess={() => setStep("embedded_preview")}
+            onSuccess={() => {
+              trackStepCompleted("embedded_agent_preview", { source: "fresh_draft" })
+              setStep("embedded_preview")
+            }}
             onFallbackTemplate={() => setStep("recommendation")}
             onFallbackBlank={handleAIFallbackBlank}
           />

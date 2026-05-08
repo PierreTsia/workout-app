@@ -12,6 +12,7 @@ import {
   type DraftPreview,
   type EmbeddedAgentError,
 } from "@/hooks/useEmbeddedAgentThread"
+import { useTrackEvent } from "@/hooks/useTrackEvent"
 import { captureEmbeddedAgentError } from "@/lib/sentry"
 
 // Threshold above which the "you're stuck — try a template or start blank"
@@ -41,6 +42,7 @@ export function EmbeddedAgentPreviewStep({
   const thread = useThread(locale)
   const commit = useCommitPreview()
   const reject = useRejectPreview()
+  const trackEvent = useTrackEvent()
 
   const threadId = thread.data?.thread_id ?? null
   const { count: failureCount, bump: bumpFailureCount } = useFailureCount(threadId)
@@ -62,6 +64,13 @@ export function EmbeddedAgentPreviewStep({
   }, [commit, onCommitted, bumpFailureCount])
 
   const handleRegenerate = useCallback(async () => {
+    // T123 analytics: fire on intent (before the network call) so a
+    // /reject failure still counts the user's choice. The funnel cares
+    // about "user said no to this draft", not "/reject succeeded".
+    trackEvent.mutate({
+      eventType: "embedded_agent_preview_rejected",
+      payload: { thread_id: threadId, failure_count: failureCount },
+    })
     try {
       await reject.mutateAsync()
     } finally {
@@ -69,7 +78,7 @@ export function EmbeddedAgentPreviewStep({
       // route the user away from the now-stale preview screen.
       onRegenerate()
     }
-  }, [reject, onRegenerate])
+  }, [reject, onRegenerate, trackEvent, threadId, failureCount])
 
   if (thread.isLoading) {
     return <p className="px-6 py-8 text-sm text-muted-foreground">…</p>

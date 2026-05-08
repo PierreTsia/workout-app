@@ -14,12 +14,19 @@ vi.mock("@sentry/react", () => ({
   captureException: vi.fn(),
 }))
 
+// T123: capture analytics events directly (see EmbeddedAgentChatStep.test.tsx).
+const trackEventMock = vi.fn()
+vi.mock("@/hooks/useTrackEvent", () => ({
+  useTrackEvent: () => ({ mutate: trackEventMock }),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
 const captureExceptionMock = Sentry.captureException as unknown as Mock
 
 beforeEach(() => {
   invokeMock.mockReset()
   captureExceptionMock.mockReset()
+  trackEventMock.mockReset()
   vi.useFakeTimers({ shouldAdvanceTime: true })
 })
 
@@ -47,6 +54,32 @@ describe("EmbeddedAgentGeneratingStep", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
       body: { action: "draft", trigger: "user_cta", locale: "en" },
+    })
+  })
+
+  // T123 analytics: emit `embedded_agent_draft_triggered` on intent (before
+  // the network call) so the funnel records the user choice even when
+  // /draft fails. `attempt: 0` on the first try, then increments on retry.
+  it("fires embedded_agent_draft_triggered { trigger: 'user_cta', attempt: 0 } on mount", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { status: "preview_ready", trigger: "user_cta" },
+      error: null,
+    })
+
+    renderWithProviders(
+      <EmbeddedAgentGeneratingStep
+        locale="en"
+        onSuccess={() => {}}
+        onFallbackTemplate={() => {}}
+        onFallbackBlank={() => {}}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(trackEventMock).toHaveBeenCalledWith({
+        eventType: "embedded_agent_draft_triggered",
+        payload: { trigger: "user_cta", attempt: 0 },
+      })
     })
   })
 

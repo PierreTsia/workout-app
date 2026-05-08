@@ -6,6 +6,7 @@ import {
   useGenerateDraft,
   type EmbeddedAgentError,
 } from "@/hooks/useEmbeddedAgentThread"
+import { useTrackEvent } from "@/hooks/useTrackEvent"
 import { captureEmbeddedAgentError } from "@/lib/sentry"
 
 const PHASE_INTERVAL_MS = 2400
@@ -35,6 +36,7 @@ export function EmbeddedAgentGeneratingStep({
   const { t: tCp } = useTranslation("create-program")
   const { t } = useTranslation("onboarding")
   const mutation = useGenerateDraft()
+  const trackEvent = useTrackEvent()
   const inflight = useRef(false)
   const [attempt, retry] = useReducer((n: number) => n + 1, 0)
 
@@ -59,6 +61,16 @@ export function EmbeddedAgentGeneratingStep({
   useEffect(() => {
     if (inflight.current) return
     inflight.current = true
+
+    // T123 analytics: emit the trigger that kicked off this draft so
+    // funnel and quota dashboards can split user-driven vs (future)
+    // auto-triggered drafts. Only `user_cta` ships today; the server
+    // type accepts `ready_signal` and `turn_cap` for the future
+    // self-driving flow described in the Tech Plan.
+    trackEvent.mutate({
+      eventType: "embedded_agent_draft_triggered",
+      payload: { trigger: "user_cta", attempt },
+    })
 
     mutation
       .mutateAsync({ trigger: "user_cta", locale })

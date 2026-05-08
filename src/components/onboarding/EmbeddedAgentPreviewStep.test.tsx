@@ -18,6 +18,12 @@ vi.mock("@sentry/react", () => ({
   captureException: vi.fn(),
 }))
 
+// T123: capture analytics events directly (see EmbeddedAgentChatStep.test.tsx).
+const trackEventMock = vi.fn()
+vi.mock("@/hooks/useTrackEvent", () => ({
+  useTrackEvent: () => ({ mutate: trackEventMock }),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
 const captureExceptionMock = Sentry.captureException as unknown as Mock
 
@@ -53,6 +59,7 @@ const PREVIEW_THREAD = {
 beforeEach(() => {
   invokeMock.mockReset()
   captureExceptionMock.mockReset()
+  trackEventMock.mockReset()
   sessionStorage.clear()
 })
 
@@ -358,6 +365,41 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
 
     await waitFor(() => expect(onRegenerate).toHaveBeenCalledTimes(1))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", { body: { action: "reject" } })
+  })
+
+  // T123 analytics: fire on intent (before /reject) so the funnel records
+  // the user's choice even if the network call fails. Payload includes
+  // thread_id (cross-event correlation) and current failure_count.
+  it("fires embedded_agent_preview_rejected with thread_id + failure_count when the user clicks Regenerate", async () => {
+    invokeMock
+      .mockResolvedValueOnce({ data: PREVIEW_THREAD, error: null })
+      .mockResolvedValueOnce({ data: { ok: true, status: "open" }, error: null })
+      .mockResolvedValueOnce({
+        data: { ...PREVIEW_THREAD, status: "open", last_preview: null },
+        error: null,
+      })
+
+    renderWithProviders(
+      <EmbeddedAgentPreviewStep
+        locale="en"
+        onRegenerate={noop}
+        onCommitted={noop}
+        onFallbackTemplate={noop}
+        onFallbackBlank={noop}
+      />,
+    )
+
+    const regenBtn = await screen.findByRole("button", {
+      name: /Regenerate · keep chatting/i,
+    })
+    await userEvent.click(regenBtn)
+
+    await waitFor(() => {
+      expect(trackEventMock).toHaveBeenCalledWith({
+        eventType: "embedded_agent_preview_rejected",
+        payload: { thread_id: "thread-pr-1", failure_count: 0 },
+      })
+    })
   })
 })
 

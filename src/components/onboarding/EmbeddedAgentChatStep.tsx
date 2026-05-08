@@ -27,6 +27,7 @@ import {
   type ThreadMessage,
 } from "@/hooks/useEmbeddedAgentThread"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
+import { useTrackEvent } from "@/hooks/useTrackEvent"
 import { captureEmbeddedAgentError } from "@/lib/sentry"
 import { cn } from "@/lib/utils"
 
@@ -71,6 +72,7 @@ export function EmbeddedAgentChatStep({
   const thread = useThread(locale)
   const abandon = useAbandonThread()
   const sendMessage = useSendMessage()
+  const trackEvent = useTrackEvent()
   const [draft, setDraft] = useState("")
   // Latch the ready-signal so the CTA pulse persists across subsequent
   // turns instead of disappearing the moment the user replies and the
@@ -146,7 +148,20 @@ export function EmbeddedAgentChatStep({
     if (!trimmed) return
     setDraft("")
     try {
-      await sendMessage.mutateAsync({ content: trimmed, locale })
+      const response = await sendMessage.mutateAsync({ content: trimmed, locale })
+      // T123 analytics: count successful user turns only. Quota / model
+      // failures are already tracked server-side via `ai_generation_log`
+      // (log_everything) — re-counting them client-side would double-bill
+      // the funnel. `ready_for_draft` is captured so the funnel can
+      // measure how often the model self-signals readiness vs the user
+      // pulls the trigger via the CTA on their own.
+      trackEvent.mutate({
+        eventType: "embedded_agent_message_sent",
+        payload: {
+          thread_id: thread.data?.thread_id,
+          ready_for_draft: response.ready_for_draft === true,
+        },
+      })
     } catch (err) {
       // Error is already typed on `sendMessage.error`; the UI branch
       // reads from there. We additionally fan out to Sentry for fatal

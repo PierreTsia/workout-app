@@ -18,6 +18,15 @@ vi.mock("@sentry/react", () => ({
   captureException: vi.fn(),
 }))
 
+// T123: capture analytics events without going through supabase.from()
+// (the production hook short-circuits when authAtom is null, which is the
+// default in tests; mocking the hook lets us assert the event payload
+// regardless of auth wiring).
+const trackEventMock = vi.fn()
+vi.mock("@/hooks/useTrackEvent", () => ({
+  useTrackEvent: () => ({ mutate: trackEventMock }),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
 const captureExceptionMock = Sentry.captureException as unknown as Mock
 
@@ -26,6 +35,7 @@ const realOnLine = Object.getOwnPropertyDescriptor(Navigator.prototype, "onLine"
 beforeEach(() => {
   invokeMock.mockReset()
   captureExceptionMock.mockReset()
+  trackEventMock.mockReset()
   Object.defineProperty(navigator, "onLine", { value: true, configurable: true })
 })
 
@@ -251,6 +261,73 @@ describe("EmbeddedAgentChatStep", () => {
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
       body: { action: "send", content: "My back hurts when I squat.", locale: "en" },
     })
+  })
+
+  // T123: success-only analytics. Counting attempts would double-bill the
+  // funnel — server-side `ai_generation_log` already records every turn
+  // (success and failure) for quota purposes.
+  it("fires embedded_agent_message_sent ONLY on successful turns, with thread_id and ready_for_draft flag", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "anal0001-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          assistant: { content: "Got it.", ts: "2026-05-08T12:00:00Z" },
+          ready_for_draft: true,
+        },
+        error: null,
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread anal0001/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "ready")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(trackEventMock).toHaveBeenCalledWith({
+        eventType: "embedded_agent_message_sent",
+        payload: {
+          thread_id: "anal0001-0000-0000-0000-000000000000",
+          ready_for_draft: true,
+        },
+      })
+    })
+  })
+
+  it("does NOT fire embedded_agent_message_sent when /message fails (server-side log_everything already counts the attempt)", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "anal0002-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("502"), {
+          context: new Response(
+            JSON.stringify({ error: "model_failure" }),
+            { status: 502 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread anal0002/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "boom")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    // Wait until the error UI surfaces so we know the failure path resolved.
+    await screen.findByText(/something went wrong/i)
+    expect(
+      trackEventMock.mock.calls.some(
+        ([call]) => call?.eventType === "embedded_agent_message_sent",
+      ),
+    ).toBe(false)
   })
 
   it("renders the friendly cap card on a 429 quota response", async () => {
