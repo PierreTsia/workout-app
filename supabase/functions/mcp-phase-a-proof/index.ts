@@ -35,6 +35,15 @@ Deno.serve(async (req) => {
       return { userId: data.user.id }
     },
     callMcp: callMcpTool,
+    log: (event) => {
+      // Single-line JSON keeps Supabase log explorer / grep friendly. We
+      // avoid console.error here because the runtime would inject a stack
+      // and call the line "Edge function error" — these are *expected*
+      // structured events, not unhandled crashes.
+      const payload = JSON.stringify({ ts: new Date().toISOString(), ...event })
+      if (event.level === "error") console.error(payload)
+      else console.warn(payload)
+    },
   })
 
   // Re-emit headers with CORS — handler returns plain Response.json, we layer

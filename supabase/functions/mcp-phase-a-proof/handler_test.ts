@@ -1,5 +1,9 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
-import { handlePhaseAProof, type PhaseAProofDeps } from "./handler.ts"
+import {
+  handlePhaseAProof,
+  type LogEvent,
+  type PhaseAProofDeps,
+} from "./handler.ts"
 import type { CallMcpToolArgs, CallMcpToolResult } from "../_shared/mcpClient.ts"
 
 function makeDeps(overrides: Partial<PhaseAProofDeps> = {}): PhaseAProofDeps {
@@ -10,8 +14,14 @@ function makeDeps(overrides: Partial<PhaseAProofDeps> = {}): PhaseAProofDeps {
       ok: true,
       value: { content: [{ type: "text", text: "preview ok" }] },
     }),
+    log: () => {},
     ...overrides,
   }
+}
+
+function captureLogs(): { events: LogEvent[]; log: (e: LogEvent) => void } {
+  const events: LogEvent[] = []
+  return { events, log: (e) => events.push(e) }
 }
 
 function makeRequest(body: unknown, authHeader = "Bearer jwt_test"): Request {
@@ -21,6 +31,97 @@ function makeRequest(body: unknown, authHeader = "Bearer jwt_test"): Request {
     body: JSON.stringify(body),
   })
 }
+
+Deno.test("does not emit any log on the success path", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log })
+
+  const res = await handlePhaseAProof(makeRequest({ name: "Sample" }), deps)
+
+  assertEquals(res.status, 200)
+  assertEquals(events.length, 0)
+})
+
+Deno.test("logs MCP failure with user_id, kind, and message", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({
+    log,
+    callMcp: async () => ({
+      ok: false,
+      kind: "tool_error",
+      message: "exercise_id not in catalog",
+    }),
+  })
+
+  await handlePhaseAProof(makeRequest({ name: "Sample" }), deps)
+
+  assertEquals(events.length, 1)
+  assertEquals(events[0].error_kind, "tool_error")
+  assertEquals(events[0].user_id, "user_abc")
+  assertEquals(events[0].message, "exercise_id not in catalog")
+})
+
+Deno.test("logs persist_not_allowed event with user_id when body sends dry_run:false", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log })
+
+  await handlePhaseAProof(makeRequest({ dry_run: false }), deps)
+
+  assertEquals(events.length, 1)
+  assertEquals(events[0].error_kind, "persist_not_allowed")
+  assertEquals(events[0].user_id, "user_abc")
+})
+
+Deno.test("logs structured error event on invalid_session (getUser returns null)", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log, getUser: async () => null })
+
+  const req = new Request("https://edge.test/mcp-phase-a-proof", {
+    method: "POST",
+    headers: { Authorization: "Bearer expired", "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  })
+  await handlePhaseAProof(req, deps)
+
+  assertEquals(events.length, 1)
+  assertEquals(events[0].error_kind, "invalid_session")
+  assertEquals(events[0].user_id, undefined)
+})
+
+Deno.test("propagates x-request-id header into log event when supplied", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log })
+  const req = new Request("https://edge.test/mcp-phase-a-proof", {
+    method: "POST",
+    headers: { "x-request-id": "trace_xyz_42", "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  })
+
+  await handlePhaseAProof(req, deps)
+
+  assertEquals(events.length, 1)
+  assertEquals(events[0].request_id, "trace_xyz_42")
+})
+
+Deno.test("logs structured error event on auth_missing (no Bearer header)", async () => {
+  const { events, log } = captureLogs()
+  const deps = makeDeps({ log })
+  const req = new Request("https://edge.test/mcp-phase-a-proof", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  })
+
+  await handlePhaseAProof(req, deps)
+
+  assertEquals(events.length, 1)
+  const ev = events[0]
+  assertEquals(ev.level, "error")
+  assertEquals(ev.feature, "mcp-phase-a-proof")
+  assertEquals(ev.error_kind, "auth_missing")
+  assertEquals(typeof ev.request_id === "string" && ev.request_id.length > 0, true)
+  assertEquals(ev.user_id, undefined)
+})
 
 Deno.test("returns 502 when MCP returns a transport_error", async () => {
   const deps = makeDeps({
