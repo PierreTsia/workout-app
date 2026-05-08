@@ -84,6 +84,48 @@ Deno.test("callMcpTool maps JSON-RPC error to ok:false", async () => {
   }
 })
 
+Deno.test("callMcpTool maps a thrown fetch to transport_error with the error message", async () => {
+  globalThis.fetch = (() => {
+    throw new TypeError("network down")
+  }) as typeof fetch
+
+  try {
+    const result = await callMcpTool({
+      mcpUrl: "https://unreachable.test/functions/v1/mcp",
+      userAccessToken: "jwt_123",
+      toolName: "create_program",
+      arguments: {},
+    })
+    assertEquals(result.ok, false)
+    if (result.ok) throw new Error("expected ok:false")
+    assertEquals(result.kind, "transport_error")
+    if (result.kind !== "transport_error") throw new Error("expected transport_error")
+    assertEquals(result.message, "network down")
+  } finally {
+    globalThis.fetch = ORIGINAL_FETCH
+  }
+})
+
+Deno.test("callMcpTool maps a non-JSON response body to transport_error", async () => {
+  stubFetch(() => new Response("<html>503 upstream</html>", { status: 503 }))
+
+  try {
+    const result = await callMcpTool({
+      mcpUrl: "https://example.test/functions/v1/mcp",
+      userAccessToken: "jwt_123",
+      toolName: "create_program",
+      arguments: {},
+    })
+    assertEquals(result.ok, false)
+    if (result.ok) throw new Error("expected ok:false")
+    assertEquals(result.kind, "transport_error")
+    if (result.kind !== "transport_error") throw new Error("expected transport_error")
+    assertEquals(result.message.length > 0, true)
+  } finally {
+    globalThis.fetch = ORIGINAL_FETCH
+  }
+})
+
 Deno.test("callMcpTool maps tool isError to ok:false", async () => {
   stubFetch(() =>
     Response.json({
