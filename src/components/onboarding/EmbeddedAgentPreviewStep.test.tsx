@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import * as Sentry from "@sentry/react"
 import { renderWithProviders } from "@/test/utils"
 import { supabase } from "@/lib/supabase"
 import { EmbeddedAgentPreviewStep } from "./EmbeddedAgentPreviewStep"
@@ -13,7 +14,12 @@ vi.mock("@/lib/supabase", () => ({
   },
 }))
 
+vi.mock("@sentry/react", () => ({
+  captureException: vi.fn(),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
+const captureExceptionMock = Sentry.captureException as unknown as Mock
 
 const PREVIEW_THREAD = {
   thread_id: "thread-pr-1",
@@ -46,6 +52,7 @@ const PREVIEW_THREAD = {
 
 beforeEach(() => {
   invokeMock.mockReset()
+  captureExceptionMock.mockReset()
   sessionStorage.clear()
 })
 
@@ -309,6 +316,17 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
     // collapsible row layout.
     expect(screen.getByText("Bench Press")).toBeInTheDocument()
     expect(onCommitted).not.toHaveBeenCalled()
+
+    // T122: fatal /commit error is captured in Sentry tagged with the
+    // canonical route + error_kind so the dashboard can pair it with
+    // server-side `mcp_*` logs.
+    await waitFor(() => expect(captureExceptionMock).toHaveBeenCalledTimes(1))
+    const callArgs = captureExceptionMock.mock.calls[0]
+    expect(callArgs[1]?.tags).toMatchObject({
+      feature: "embedded-agent",
+      route: "/commit",
+      error_kind: "commit_failed",
+    })
   })
 })
 

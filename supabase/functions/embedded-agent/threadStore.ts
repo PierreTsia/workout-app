@@ -56,6 +56,9 @@ interface SupabaseChain {
   update(values: Record<string, unknown>): SupabaseChain
   eq(column: string, value: unknown): SupabaseChain
   in(column: string, values: unknown[]): SupabaseChain
+  // T122: lazy retention purge needs a `<` filter on abandoned_at.
+  // Mirrors PostgREST's `.lt()` operator.
+  lt(column: string, value: unknown): SupabaseChain
   order(column: string, opts?: { ascending: boolean }): SupabaseChain
   limit(n: number): SupabaseChain
   maybeSingle(): Promise<{ data: unknown; error: { code?: string; message?: string } | null }>
@@ -182,6 +185,36 @@ export async function purgeRetentionIfDue(
     .update({ messages: null, updated_at: new Date(nowMs).toISOString() })
     .eq("id", thread.id)
   return { purged: true }
+}
+
+/**
+ * Per-user 90d retention sweep (T122). Called from the handler at the
+ * top of every authenticated request to fulfill the T121 "raw text is
+ * purged after 90 days" promise without a Supabase cron.
+ *
+ * Targets `abandoned` threads only — `committed` threads have their
+ * `messages` cleared inline at commit time (see `setStatus("committed")`)
+ * so the 90d window for committed threads is effectively 0d. Abandoned
+ * threads keep their transcript until this sweep clears it (in case the
+ * user wants to come back, though we don't expose that path today).
+ *
+ * Single conditional UPDATE — no per-row fetch — gated by user_id so
+ * the sweep cost is O(this user's terminal rows) per request, not O(all
+ * terminal rows in the table). Idempotent: `messages: null` on already
+ * purged rows is a no-op.
+ */
+export async function purgeDueForUser(
+  supabase: SupabaseLike,
+  userId: string,
+  nowMs: number = Date.now(),
+): Promise<void> {
+  const cutoffIso = new Date(nowMs - RETENTION_WINDOW_MS).toISOString()
+  await supabase
+    .from(THREADS_TABLE)
+    .update({ messages: null, updated_at: new Date(nowMs).toISOString() })
+    .eq("user_id", userId)
+    .eq("status", "abandoned")
+    .lt("abandoned_at", cutoffIso)
 }
 
 export async function setLastPreview(

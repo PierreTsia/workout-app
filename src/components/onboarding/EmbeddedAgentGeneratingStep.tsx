@@ -6,6 +6,7 @@ import {
   useGenerateDraft,
   type EmbeddedAgentError,
 } from "@/hooks/useEmbeddedAgentThread"
+import { captureEmbeddedAgentError } from "@/lib/sentry"
 
 const PHASE_INTERVAL_MS = 2400
 
@@ -62,7 +63,12 @@ export function EmbeddedAgentGeneratingStep({
     mutation
       .mutateAsync({ trigger: "user_cta", locale })
       .then(() => onSuccess())
-      .catch(() => {})
+      .catch((err) => {
+        // T122: surface fatal /draft errors to Sentry. The helper
+        // returns early on quota / friendly UX kinds so this stays
+        // signal, not noise.
+        captureEmbeddedAgentError("/draft", err as EmbeddedAgentError)
+      })
       .finally(() => {
         inflight.current = false
       })

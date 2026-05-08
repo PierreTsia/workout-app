@@ -50,6 +50,7 @@ interface DepsCalls {
   bumpDraftCount24h: Array<{ thread: Thread }>
   resetForReject: Array<{ thread: Thread }>
   setStatusToCommitted: Array<{ thread: Thread; patch: { program_id: string; summary?: string } }>
+  purgeRetention: Array<{ userId: string }>
   logEvents: LogEvent[]
 }
 
@@ -79,6 +80,7 @@ interface DepsOverrides {
     thread: Thread,
     patch: { program_id: string; summary?: string },
   ) => Promise<void>
+  purgeRetention?: (userId: string) => Promise<void>
 }
 
 function makeDeps(overrides: DepsOverrides = {}) {
@@ -102,6 +104,7 @@ function makeDeps(overrides: DepsOverrides = {}) {
     bumpDraftCount24h: [],
     resetForReject: [],
     setStatusToCommitted: [],
+    purgeRetention: [],
     logEvents: [],
   }
 
@@ -231,6 +234,10 @@ function makeDeps(overrides: DepsOverrides = {}) {
       calls.setStatusToCommitted.push({ thread, patch })
       if (overrides.setStatusToCommitted) await overrides.setStatusToCommitted(thread, patch)
     },
+    purgeRetention: async (userId: string) => {
+      calls.purgeRetention.push({ userId })
+      if (overrides.purgeRetention) await overrides.purgeRetention(userId)
+    },
     log: (event: LogEvent) => {
       calls.logEvents.push(event)
     },
@@ -273,6 +280,19 @@ Deno.test("POST /thread { open, en } returns the freshly created thread shape", 
   assertEquals(calls.getUser.length, 1)
   assertEquals(calls.getOrCreateActiveThread.length, 1)
   assertEquals(calls.getOrCreateActiveThread[0], { userId: "user-1", locale: "en" })
+
+  // T122: every authenticated request fires the lazy 90d retention sweep.
+  assertEquals(calls.purgeRetention.length, 1)
+  assertEquals(calls.purgeRetention[0].userId, "user-1")
+
+  // T122 boundary info — exactly one info line per /open response,
+  // distinguishing newly-created threads from resumed ones for funnel
+  // analysis.
+  const infos = calls.logEvents.filter((e) => e.level === "info")
+  assertEquals(infos.length, 1)
+  assertEquals(infos[0].message, "thread_created")
+  assertEquals(infos[0].route, "/thread")
+  assertEquals(infos[0].thread_id, "thread-fresh")
 })
 
 Deno.test("POST /thread { open } surfaces last_preview when status is preview_ready (so PreviewStep renders without a second fetch)", async () => {
@@ -359,7 +379,9 @@ Deno.test("POST /thread without a valid auth header returns 401 and logs a warn"
   assertEquals(calls.getOrCreateActiveThread.length, 0)
   assertEquals(calls.logEvents.length, 1)
   assertEquals(calls.logEvents[0].error_kind, "auth_missing")
-  assertEquals(calls.logEvents[0].route, "thread")
+  assertEquals(calls.logEvents[0].route, "/thread")
+  assertEquals(calls.logEvents[0].level, "warn")
+  assertEquals(calls.logEvents[0].feature, "embedded-agent")
 })
 
 Deno.test("POST /thread with an unsupported locale returns 400 invalid_locale", async () => {
@@ -371,6 +393,14 @@ Deno.test("POST /thread with an unsupported locale returns 400 invalid_locale", 
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "invalid_locale")
   assertEquals(calls.getOrCreateActiveThread.length, 0)
+  // T122: every error path emits one structured warn line with the
+  // canonical kind. The user_id is present here because auth succeeded
+  // before the locale guard fired.
+  const warns = calls.logEvents.filter((e) => e.level === "warn")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].error_kind, "invalid_locale")
+  assertEquals(warns[0].route, "/thread")
+  assertEquals(warns[0].user_id, "user-1")
 })
 
 // ---------- /thread abandon ----------
@@ -550,6 +580,15 @@ Deno.test("POST /message returns 429 when quota is saturated, after the user mes
   assertEquals(calls.appendMessage.length, 1)
   assertEquals(calls.appendMessage[0].role, "user")
   assertEquals(calls.chatModel.length, 0)
+
+  // T122: turn_quota_exceeded is logged with the thread_id so a 429
+  // spike on a single onboarding session is greppable. Volume is
+  // bounded by the quota itself.
+  const warns = calls.logEvents.filter((e) => e.level === "warn")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].error_kind, "turn_quota_exceeded")
+  assertEquals(warns[0].route, "/message")
+  assertEquals(warns[0].thread_id, "t-1")
   assertEquals(calls.logBillableCall.length, 0)
 })
 
@@ -580,7 +619,12 @@ Deno.test("POST /message logs the billable call AND returns 502 even when the mo
   assertEquals(calls.appendMessage[0].role, "user")
 
   assertEquals(calls.logEvents.length, 1)
-  assertEquals(calls.logEvents[0].error_kind, "model_failure")
+  // Canonical taxonomy (T122 inventory): the log uses `provider_failure`
+  // even though the wire contract still says `model_failure` — the web
+  // client's error parser depends on the wire string and isn't in scope
+  // for this ticket.
+  assertEquals(calls.logEvents[0].error_kind, "provider_failure")
+  assertEquals(calls.logEvents[0].route, "/message")
 })
 
 Deno.test("POST /message rejects empty content with 400 invalid_content", async () => {
@@ -715,6 +759,11 @@ Deno.test("POST /draft returns 429 draft_quota_exceeded when /24h cap is hit (an
   assertEquals(body.used, 3)
   assertEquals(calls.runDraftStep.length, 0)
   assertEquals(calls.logBillableCall.length, 0)
+  // T122: canonical /draft kind, gated by the per-user 24h cap.
+  const warns = calls.logEvents.filter((e) => e.level === "warn")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].error_kind, "draft_quota_exceeded")
+  assertEquals(warns[0].route, "/draft")
 })
 
 Deno.test("POST /draft returns 429 program_quota_exceeded when the 5/30d program cap is hit", async () => {
@@ -991,6 +1040,12 @@ Deno.test("POST /commit returns 400 invalid_confirm when confirm !== true (serve
   // Defense in depth: no MCP call, no state mutation.
   assertEquals(calls.callMcp.length, 0)
   assertEquals(calls.setStatusToCommitted.length, 0)
+  // T122: canonical /commit kind. Wire still says `invalid_confirm` for
+  // back-compat with the web client; the log uses the canonical name.
+  const warns = calls.logEvents.filter((e) => e.level === "warn")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].error_kind, "confirm_required")
+  assertEquals(warns[0].route, "/commit")
 })
 
 Deno.test("POST /commit returns 400 invalid_confirm when confirm is missing entirely", async () => {

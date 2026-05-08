@@ -6,6 +6,7 @@ import {
   getActiveThread,
   getOrCreateActiveThread,
   markStaleIfDue,
+  purgeDueForUser,
   resetForReject,
   setLastPreview,
   setStatus,
@@ -36,7 +37,8 @@ import type {
 import { callGeminiProgram } from "../generate-program/gemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { callMcpTool } from "../_shared/mcpClient.ts"
-import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
+import { handleEmbeddedAgent } from "./handler.ts"
+import { emitLog } from "./log.ts"
 
 /**
  * Embedded Agent edge function (T117 + T118 + T119 + T120). Single POST
@@ -146,6 +148,7 @@ Deno.serve(async (req) => {
       thread: Thread,
       patch: { program_id: string; summary?: string },
     ) => setStatus(threadDb, thread, "committed", patch),
+    purgeRetention: (userId: string) => purgeDueForUser(threadDb, userId),
     log: emitLog,
   })
 
@@ -248,8 +251,3 @@ function resolveMcpUrl(): string {
   return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/mcp`
 }
 
-function emitLog(event: LogEvent): void {
-  const payload = JSON.stringify({ ts: new Date().toISOString(), ...event })
-  if (event.level === "error") console.error(payload)
-  else console.warn(payload)
-}

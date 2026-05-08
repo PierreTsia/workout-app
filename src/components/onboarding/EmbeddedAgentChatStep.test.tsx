@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import * as Sentry from "@sentry/react"
 import { renderWithProviders } from "@/test/utils"
 import { supabase } from "@/lib/supabase"
 import { EmbeddedAgentChatStep } from "./EmbeddedAgentChatStep"
@@ -13,12 +14,18 @@ vi.mock("@/lib/supabase", () => ({
   },
 }))
 
+vi.mock("@sentry/react", () => ({
+  captureException: vi.fn(),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
+const captureExceptionMock = Sentry.captureException as unknown as Mock
 
 const realOnLine = Object.getOwnPropertyDescriptor(Navigator.prototype, "onLine")
 
 beforeEach(() => {
   invokeMock.mockReset()
+  captureExceptionMock.mockReset()
   Object.defineProperty(navigator, "onLine", { value: true, configurable: true })
 })
 
@@ -505,5 +512,46 @@ describe("EmbeddedAgentChatStep", () => {
 
     expect(await screen.findByText(/Something went wrong/i)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument()
+
+    // T122: fatal /message errors are captured in Sentry with the
+    // canonical route + error_kind tags so the dashboard can pair them
+    // with server-side `provider_failure` logs.
+    await waitFor(() => expect(captureExceptionMock).toHaveBeenCalledTimes(1))
+    const callArgs = captureExceptionMock.mock.calls[0]
+    expect(callArgs[1]?.tags).toMatchObject({
+      feature: "embedded-agent",
+      route: "/message",
+      error_kind: "model_failure",
+    })
+  })
+
+  it("does NOT capture turn-quota errors in Sentry — friendly UX, not fatal (T122)", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "chat0004-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("429"), {
+          context: new Response(
+            JSON.stringify({ error: "turn_quota_exceeded", limit: 40, used: 40 }),
+            { status: 429 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    await screen.findByText(/Thread chat0004/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "hi")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    // Wait for the quota banner to confirm the error path was hit
+    // (i18n key is `embeddedAgent.quotaTitle` → "Slow down a moment"),
+    // then assert Sentry stayed quiet.
+    await screen.findByText(/slow down a moment/i)
+    expect(captureExceptionMock).not.toHaveBeenCalled()
   })
 })

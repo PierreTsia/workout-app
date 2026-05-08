@@ -12,6 +12,7 @@ import {
   type DraftPreview,
   type EmbeddedAgentError,
 } from "@/hooks/useEmbeddedAgentThread"
+import { captureEmbeddedAgentError } from "@/lib/sentry"
 
 // Threshold above which the "you're stuck — try a template or start blank"
 // escape Alert appears (Story 15). 2 matches the ticket's contract: one
@@ -48,11 +49,15 @@ export function EmbeddedAgentPreviewStep({
     try {
       const { program_id } = await commit.mutateAsync()
       onCommitted(program_id)
-    } catch {
+    } catch (err) {
       // Bump on every commit failure — the cap on this is the threshold,
       // not the underlying error type. The mutation's `error` state still
       // surfaces the inline banner.
       bumpFailureCount()
+      // T122: surface fatal /commit errors to Sentry. The helper
+      // returns early on `no_active_thread` (precondition drift, the UI
+      // already handles it).
+      captureEmbeddedAgentError("/commit", err as EmbeddedAgentError)
     }
   }, [commit, onCommitted, bumpFailureCount])
 

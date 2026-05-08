@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import * as Sentry from "@sentry/react"
 import { renderWithProviders } from "@/test/utils"
 import { supabase } from "@/lib/supabase"
 import { EmbeddedAgentGeneratingStep } from "./EmbeddedAgentGeneratingStep"
@@ -9,10 +10,16 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }))
 
+vi.mock("@sentry/react", () => ({
+  captureException: vi.fn(),
+}))
+
 const invokeMock = supabase.functions.invoke as unknown as Mock
+const captureExceptionMock = Sentry.captureException as unknown as Mock
 
 beforeEach(() => {
   invokeMock.mockReset()
+  captureExceptionMock.mockReset()
   vi.useFakeTimers({ shouldAdvanceTime: true })
 })
 
@@ -125,10 +132,47 @@ describe("EmbeddedAgentGeneratingStep", () => {
     // Title + body both render. Wait for the retry button as the readiness signal.
     const retryBtn = await screen.findByRole("button", { name: /^retry$/i })
     expect(retryBtn).toBeInTheDocument()
-    await userEvent.click(retryBtn)
 
+    // T122: fatal /draft error is captured in Sentry tagged with the
+    // canonical route so the dashboard can pair it with server-side
+    // `provider_failure` logs.
+    await waitFor(() => expect(captureExceptionMock).toHaveBeenCalledTimes(1))
+    const callArgs = captureExceptionMock.mock.calls[0]
+    expect(callArgs[1]?.tags).toMatchObject({
+      feature: "embedded-agent",
+      route: "/draft",
+      error_kind: "model_failure",
+    })
+
+    await userEvent.click(retryBtn)
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
     expect(invokeMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("does NOT capture draft-quota errors in Sentry — friendly UX, not fatal (T122)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: null,
+      error: Object.assign(new Error("429"), {
+        context: new Response(
+          JSON.stringify({ error: "draft_quota_exceeded", limit: 3, used: 3 }),
+          { status: 429 },
+        ),
+      }),
+    })
+
+    renderWithProviders(
+      <EmbeddedAgentGeneratingStep
+        locale="en"
+        onSuccess={() => {}}
+        onFallbackTemplate={() => {}}
+        onFallbackBlank={() => {}}
+      />,
+    )
+
+    // Wait for the cap card to confirm the error path was hit, then
+    // assert Sentry stayed quiet.
+    await screen.findByText(/daily draft limit reached/i)
+    expect(captureExceptionMock).not.toHaveBeenCalled()
   })
 
   it("does NOT re-fire /draft when the component re-renders (StrictMode-safe — single inflight call per mount)", async () => {

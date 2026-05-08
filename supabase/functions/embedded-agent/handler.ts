@@ -17,22 +17,14 @@ import {
   type LastPreview,
 } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
+import type { LogEvent } from "./log.ts"
+
+export type { LogEvent } from "./log.ts"
 
 const SUPPORTED_LOCALES: readonly ThreadLocale[] = ["en", "fr"] as const
 
 function isSupportedLocale(value: unknown): value is ThreadLocale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value)
-}
-
-export interface LogEvent {
-  level: "error" | "warn" | "info"
-  feature: "embedded-agent"
-  route: string
-  error_kind?: string
-  request_id: string
-  user_id?: string
-  thread_id?: string
-  message?: string
 }
 
 export interface ChatModelInput {
@@ -77,6 +69,13 @@ export interface EmbeddedAgentDeps {
     thread: Thread,
     patch: { program_id: string; summary?: string },
   ) => Promise<void>
+  /**
+   * Lazy 90d retention sweep keyed on user_id. Called once per
+   * authenticated request (T122). Implementation lives in
+   * `threadStore.purgeDueForUser` and uses a single conditional UPDATE
+   * — no per-row fetch.
+   */
+  purgeRetention: (userId: string) => Promise<void>
   log: (event: LogEvent) => void
 }
 
@@ -99,28 +98,47 @@ export async function handleEmbeddedAgent(
   const authHeader = req.headers.get("Authorization") ?? ""
   const user = await deps.getUser(authHeader)
   if (!user) {
+    // Route attribution at this top-level guard is "/thread" by convention
+    // (matches the legacy log shape from T117). Action-specific routes
+    // can't be inferred reliably yet — `body` hasn't been parsed.
     deps.log({
       level: "warn",
       feature: "embedded-agent",
-      route: "thread",
+      route: "/thread",
       error_kind: "auth_missing",
       request_id: requestId,
     })
     return Response.json({ error: "auth_missing" }, { status: 401 })
   }
 
+  // Lazy 90d retention purge — best-effort, never fails the request.
+  // Lives at the top of the handler (post-auth) so every authenticated
+  // touch eventually sweeps the user's terminal threads, fulfilling the
+  // T121 "raw text is purged after 90 days" promise without a cron.
+  await deps.purgeRetention(user.userId).catch((err) => {
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/thread",
+      error_kind: "retention_purge_failed",
+      request_id: requestId,
+      user_id: user.userId,
+      message: err instanceof Error ? err.message : String(err),
+    })
+  })
+
   const body = await req.json() as { action?: unknown; locale?: unknown; confirm?: unknown }
 
   if (body.action === "abandon") {
-    return await handleAbandon(user.userId, deps)
+    return await handleAbandon(user.userId, deps, requestId)
   }
 
   if (body.action === "open") {
-    return await handleOpen(user.userId, body.locale, deps)
+    return await handleOpen(user.userId, body.locale, deps, requestId)
   }
 
   if (body.action === "send") {
-    return await handleSend(user.userId, body, deps)
+    return await handleSend(user.userId, body, deps, requestId)
   }
 
   if (body.action === "draft") {
@@ -128,13 +146,25 @@ export async function handleEmbeddedAgent(
   }
 
   if (body.action === "reject") {
-    return await handleReject(user.userId, deps)
+    return await handleReject(user.userId, deps, requestId)
   }
 
   if (body.action === "commit") {
     return await handleCommit(user.userId, body, deps, requestId)
   }
 
+  // Unknown action: classified as `internal` per the T122 inventory — we
+  // don't enumerate every misbehaving client. Route attribution is "/thread"
+  // since the action couldn't be dispatched to a real route.
+  deps.log({
+    level: "warn",
+    feature: "embedded-agent",
+    route: "/thread",
+    error_kind: "internal",
+    request_id: requestId,
+    user_id: user.userId,
+    message: `unknown action: ${typeof body.action === "string" ? body.action : "<non-string>"}`,
+  })
   return Response.json({ error: "invalid_action" }, { status: 400 })
 }
 
@@ -152,22 +182,41 @@ async function handleCommit(
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
+  const logWarn = (error_kind: string, thread_id?: string) =>
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/commit",
+      error_kind,
+      request_id: requestId,
+      user_id: userId,
+      thread_id,
+    })
+
   // Defense in depth. The UI never POSTs without `confirm: true`, but the
   // commit gate is a server-trusted invariant — never derive consent from
   // "the request reached this route" alone.
   if (body.confirm !== true) {
+    logWarn("confirm_required")
     return Response.json({ error: "invalid_confirm" }, { status: 400 })
   }
 
   const active = await deps.getActiveThread(userId)
   if (!active) {
+    logWarn("no_active_thread")
     return Response.json({ error: "no_active_thread" }, { status: 409 })
   }
   if (active.status !== "preview_ready") {
+    logWarn("wrong_status", active.id)
     return Response.json({ error: "not_preview_ready" }, { status: 409 })
   }
   const previewArgs = extractPreviewArgs(active.last_preview)
   if (!previewArgs) {
+    // Same canonical kind as a wrong status — both represent "the
+    // server-trusted precondition for committing isn't met". The wire
+    // contract differentiates (`no_preview` vs `not_preview_ready`) for
+    // the client; the log doesn't need to.
+    logWarn("wrong_status", active.id)
     return Response.json({ error: "no_preview" }, { status: 409 })
   }
 
@@ -179,7 +228,7 @@ async function handleCommit(
     deps.log({
       level: "error",
       feature: "embedded-agent",
-      route: "commit",
+      route: "/commit",
       error_kind: `mcp_${mcpResult.kind}`,
       request_id: requestId,
       user_id: userId,
@@ -194,14 +243,18 @@ async function handleCommit(
 
   const programId = parseProgramIdFromMcpResult(mcpResult.value)
   if (!programId) {
+    // Folded into `mcp_tool_error` per the T122 canonical inventory —
+    // a "succeeded but unparseable" response is a tool-side contract
+    // break, not a transport failure.
     deps.log({
       level: "error",
       feature: "embedded-agent",
-      route: "commit",
-      error_kind: "mcp_invalid_response",
+      route: "/commit",
+      error_kind: "mcp_tool_error",
       request_id: requestId,
       user_id: userId,
       thread_id: active.id,
+      message: "create_program returned no program_id",
     })
     return Response.json(
       { error: "commit_failed", kind: "invalid_response" },
@@ -226,6 +279,19 @@ async function handleCommit(
     : undefined
 
   await deps.setStatusToCommitted(active, { program_id: programId, summary })
+
+  // Boundary info — one line per program created. Volume capped by the
+  // 5/30d program quota so this is a sustainable signal for funnel
+  // analysis without spamming the log.
+  deps.log({
+    level: "info",
+    feature: "embedded-agent",
+    route: "/commit",
+    request_id: requestId,
+    user_id: userId,
+    thread_id: active.id,
+    message: "thread_committed",
+  })
 
   return Response.json({ program_id: programId }, { status: 200 })
 }
@@ -284,17 +350,50 @@ function parseProgramIdFromMcpResult(
 async function handleReject(
   userId: string,
   deps: EmbeddedAgentDeps,
+  requestId: string,
 ): Promise<Response> {
   const active = await deps.getActiveThread(userId)
-  if (active && active.status === "preview_ready") {
-    await deps.resetForReject(active)
+  if (!active || active.status !== "preview_ready") {
+    // Idempotent on the wire (200/{ok:true}) but worth a warn for
+    // observability — a /reject from a non-preview state usually means
+    // the client is racing /commit or a tab refresh, both of which are
+    // recoverable but interesting to count.
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/reject",
+      error_kind: "wrong_status",
+      request_id: requestId,
+      user_id: userId,
+      thread_id: active?.id,
+    })
+    return Response.json({ ok: true, status: "open" }, { status: 200 })
   }
+  await deps.resetForReject(active)
   return Response.json({ ok: true, status: "open" }, { status: 200 })
 }
 
-async function handleAbandon(userId: string, deps: EmbeddedAgentDeps): Promise<Response> {
+async function handleAbandon(
+  userId: string,
+  deps: EmbeddedAgentDeps,
+  requestId: string,
+): Promise<Response> {
   const active = await deps.getActiveThread(userId)
-  if (active) await deps.setStatusToAbandoned(active)
+  if (active) {
+    await deps.setStatusToAbandoned(active)
+    // Boundary info — distinguishes user-driven abandon (this path)
+    // from the lazy 7d auto-abandon in `markStaleIfDue`. Useful for
+    // the funnel: voluntary drop-off vs ghost session.
+    deps.log({
+      level: "info",
+      feature: "embedded-agent",
+      route: "/thread",
+      request_id: requestId,
+      user_id: userId,
+      thread_id: active.id,
+      message: "thread_abandoned",
+    })
+  }
   return Response.json({ ok: true }, { status: 200 })
 }
 
@@ -302,11 +401,28 @@ async function handleSend(
   userId: string,
   body: { content?: unknown; locale?: unknown },
   deps: EmbeddedAgentDeps,
+  requestId: string,
 ): Promise<Response> {
+  const logWarn = (error_kind: string, thread_id?: string) =>
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/message",
+      error_kind,
+      request_id: requestId,
+      user_id: userId,
+      thread_id,
+    })
+
   if (!isSupportedLocale(body.locale)) {
+    logWarn("invalid_locale")
     return Response.json({ error: "invalid_locale" }, { status: 400 })
   }
   if (typeof body.content !== "string" || body.content.trim().length === 0) {
+    // `invalid_content` isn't in the canonical inventory — fold it into
+    // `internal` since it's a malformed-input 400, the same bucket as
+    // unknown actions on the main router.
+    logWarn("internal")
     return Response.json({ error: "invalid_content" }, { status: 400 })
   }
   const locale = body.locale
@@ -314,6 +430,7 @@ async function handleSend(
 
   const active = await deps.getActiveThread(userId)
   if (!active || (active.status !== "open" && active.status !== "preview_ready")) {
+    logWarn("no_active_thread", active?.id)
     return Response.json({ error: "no_active_thread" }, { status: 409 })
   }
 
@@ -323,6 +440,7 @@ async function handleSend(
 
   const quota = await deps.enforceTurnQuota(userId)
   if (!quota.allowed) {
+    logWarn("turn_quota_exceeded", active.id)
     return Response.json(
       { error: "turn_quota_exceeded", limit: quota.limit, used: quota.used },
       { status: 429 },
@@ -348,9 +466,9 @@ async function handleSend(
     deps.log({
       level: "error",
       feature: "embedded-agent",
-      route: "message",
-      error_kind: "model_failure",
-      request_id: crypto.randomUUID(),
+      route: "/message",
+      error_kind: "provider_failure",
+      request_id: requestId,
       user_id: userId,
       thread_id: active.id,
       message: err instanceof Error ? err.message : String(err),
@@ -380,10 +498,25 @@ async function handleDraft(
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
+  const logWarn = (error_kind: string, thread_id?: string) =>
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/draft",
+      error_kind,
+      request_id: requestId,
+      user_id: userId,
+      thread_id,
+    })
+
   if (!isSupportedLocale(body.locale)) {
+    logWarn("invalid_locale")
     return Response.json({ error: "invalid_locale" }, { status: 400 })
   }
   if (!isDraftTrigger(body.trigger)) {
+    // Bad request from a misbehaving client — bucket as `internal`
+    // (canonical inventory has no `invalid_trigger`).
+    logWarn("internal")
     return Response.json({ error: "invalid_trigger" }, { status: 400 })
   }
   const locale = body.locale
@@ -391,6 +524,10 @@ async function handleDraft(
 
   const active = await deps.getActiveThread(userId)
   if (!active || active.status !== "open") {
+    // The wire still says `no_active_thread` (back-compat with the web
+    // client). Canonical log kind is `wrong_status` since the route
+    // only proceeds from `open`.
+    logWarn("wrong_status", active?.id)
     return Response.json({ error: "no_active_thread" }, { status: 409 })
   }
 
@@ -400,6 +537,7 @@ async function handleDraft(
   // count than the cross-source program quota, so we check it first.
   const draftQuota = await deps.enforceDraftQuota(userId)
   if (!draftQuota.allowed) {
+    logWarn("draft_quota_exceeded", active.id)
     return Response.json(
       { error: "draft_quota_exceeded", limit: draftQuota.limit, used: draftQuota.used },
       { status: 429 },
@@ -407,11 +545,16 @@ async function handleDraft(
   }
   const programQuota = await deps.enforceProgramQuota(userId)
   if (!programQuota.allowed) {
+    logWarn("program_quota_exceeded", active.id)
     return Response.json({ error: "program_quota_exceeded" }, { status: 429 })
   }
 
   const profile = await deps.loadProfile(userId)
   if (!profile) {
+    // Folded into `wrong_status` — same as the active-thread guard above,
+    // this is a precondition failure (user lacks a profile row). Wire
+    // contract keeps `profile_missing` for the client.
+    logWarn("wrong_status", active.id)
     return Response.json({ error: "profile_missing" }, { status: 409 })
   }
 
@@ -428,7 +571,7 @@ async function handleDraft(
       deps.log({
         level: "warn",
         feature: "embedded-agent",
-        route: "draft",
+        route: "/draft",
         error_kind: "billable_log_failed",
         request_id: requestId,
         user_id: userId,
@@ -439,14 +582,19 @@ async function handleDraft(
   }
 
   if (!draftResult.ok) {
+    // All draft-step failures (`no_catalog`, `empty_program`, model
+    // schema mismatches) are bucketed as `provider_failure` per the
+    // T122 canonical inventory. The original sub-kind survives in
+    // `message` for debugging without polluting the kind taxonomy.
     deps.log({
       level: "error",
       feature: "embedded-agent",
-      route: "draft",
-      error_kind: draftResult.error,
+      route: "/draft",
+      error_kind: "provider_failure",
       request_id: requestId,
       user_id: userId,
       thread_id: active.id,
+      message: draftResult.error,
     })
     return Response.json({ error: "draft_failed", reason: draftResult.error, trigger }, { status: 502 })
   }
@@ -459,7 +607,7 @@ async function handleDraft(
     deps.log({
       level: "error",
       feature: "embedded-agent",
-      route: "draft",
+      route: "/draft",
       error_kind: `mcp_${mcpResult.kind}`,
       request_id: requestId,
       user_id: userId,
@@ -487,16 +635,39 @@ async function handleOpen(
   userId: string,
   rawLocale: unknown,
   deps: EmbeddedAgentDeps,
+  requestId: string,
 ): Promise<Response> {
   if (!isSupportedLocale(rawLocale)) {
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/thread",
+      error_kind: "invalid_locale",
+      request_id: requestId,
+      user_id: userId,
+    })
     return Response.json({ error: "invalid_locale" }, { status: 400 })
   }
   const locale = rawLocale
 
   const initial = await deps.getOrCreateActiveThread(userId, locale)
   const { thread, resumed } = initial.resumed
-    ? await refreshIfStale(initial.thread, userId, locale, deps)
+    ? await refreshIfStale(initial.thread, userId, locale, deps, requestId)
     : initial
+
+  // Boundary info — exactly one line per /open response so onboarding
+  // funnel queries can count "starts" cleanly. The `resumed` flag flips
+  // the message between thread_created and thread_resumed instead of
+  // emitting two events.
+  deps.log({
+    level: "info",
+    feature: "embedded-agent",
+    route: "/thread",
+    request_id: requestId,
+    user_id: userId,
+    thread_id: thread.id,
+    message: resumed ? "thread_resumed" : "thread_created",
+  })
 
   return Response.json(
     {
@@ -520,8 +691,21 @@ async function refreshIfStale(
   userId: string,
   locale: ThreadLocale,
   deps: EmbeddedAgentDeps,
+  requestId: string,
 ): Promise<{ thread: Thread; resumed: boolean }> {
   const { stale } = await deps.markStaleIfDue(thread)
   if (!stale) return { thread, resumed: true }
+  // Auto-abandon (lazy 7d sweep) deserves its own boundary line —
+  // distinguishes silent expiry from an explicit user abandon when
+  // analyzing funnel drop-off.
+  deps.log({
+    level: "info",
+    feature: "embedded-agent",
+    route: "/thread",
+    request_id: requestId,
+    user_id: userId,
+    thread_id: thread.id,
+    message: "thread_abandoned_stale",
+  })
   return await deps.getOrCreateActiveThread(userId, locale)
 }

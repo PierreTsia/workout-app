@@ -6,6 +6,7 @@ import {
   isRetentionDue,
   isStale,
   markStaleIfDue,
+  purgeDueForUser,
   purgeRetentionIfDue,
   resetForReject,
   setLastPreview,
@@ -24,7 +25,13 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000
 // and .select(...).eq(...).maybeSingle(). Anything beyond that is YAGNI.
 
 type RecordedOp =
-  | { kind: "update"; table: string; values: Record<string, unknown>; filters: Record<string, unknown> }
+  | {
+      kind: "update"
+      table: string
+      values: Record<string, unknown>
+      filters: Record<string, unknown>
+      ltFilters?: Record<string, unknown>
+    }
   | { kind: "insert"; table: string; values: Record<string, unknown>; returning?: boolean }
   | {
       kind: "select"
@@ -73,6 +80,7 @@ function makeFakeSupabase(responses: FakeResponses = {}) {
     let pendingSelect: { columns: string } | null = null
     const filters: Record<string, unknown> = {}
     const inFilters: Record<string, unknown[]> = {}
+    const ltFilters: Record<string, unknown> = {}
     let order: { column: string; ascending: boolean } | undefined
     let limit: number | undefined
 
@@ -109,6 +117,10 @@ function makeFakeSupabase(responses: FakeResponses = {}) {
       },
       in(col: string, vals: unknown[]) {
         inFilters[col] = vals
+        return builder
+      },
+      lt(col: string, val: unknown) {
+        ltFilters[col] = val
         return builder
       },
       order(column: string, opts: { ascending: boolean } = { ascending: true }) {
@@ -170,6 +182,7 @@ function makeFakeSupabase(responses: FakeResponses = {}) {
             table,
             values: pendingUpdate,
             filters: { ...filters },
+            ...(Object.keys(ltFilters).length > 0 ? { ltFilters: { ...ltFilters } } : {}),
           })
           resolve(takeNext(responses.updateSingle, defaultEmpty, counters.updateSingle))
           return
@@ -484,6 +497,31 @@ Deno.test("purgeRetentionIfDue is a no-op when messages already null (idempotent
 
   assertEquals(result.purged, false)
   assertEquals(ops.length, 0)
+})
+
+// ---------- purgeDueForUser ----------
+
+Deno.test("purgeDueForUser issues a single conditional UPDATE scoped to the user's abandoned threads past the 90d cutoff", async () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const { supabase, ops } = makeFakeSupabase()
+
+  await purgeDueForUser(supabase, "user-42", now)
+
+  const updates = ops.filter((o) => o.kind === "update")
+  // One UPDATE — not per-row. Hot path: every authenticated request.
+  // Two queries here would be a wasted round-trip.
+  assertEquals(updates.length, 1)
+  const op = updates[0]
+  if (op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.table, "embedded_agent_threads")
+  assertEquals(op.values.messages, null)
+  assertEquals(op.filters.user_id, "user-42")
+  assertEquals(op.filters.status, "abandoned")
+  // 90d cutoff: messages on threads abandoned BEFORE this ISO get cleared.
+  // Pinned to the literal so a regression on the window length (e.g. a
+  // refactor flips to 30d) trips this assertion.
+  const expectedCutoff = new Date(now - 90 * ONE_DAY_MS).toISOString()
+  assertEquals(op.ltFilters?.abandoned_at, expectedCutoff)
 })
 
 // ---------- setLastPreview ----------

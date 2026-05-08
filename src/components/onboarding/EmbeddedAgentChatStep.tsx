@@ -27,6 +27,7 @@ import {
   type ThreadMessage,
 } from "@/hooks/useEmbeddedAgentThread"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
+import { captureEmbeddedAgentError } from "@/lib/sentry"
 import { cn } from "@/lib/utils"
 
 // CTA visibility gate. Originally 4 per the ticket, lowered to 2 after
@@ -118,10 +119,12 @@ export function EmbeddedAgentChatStep({
     setDraft("")
     try {
       await sendMessage.mutateAsync({ content: trimmed, locale })
-    } catch {
-      // Error is already typed on `sendMessage.error`; the UI branch reads
-      // from there. Swallow here so the unhandled rejection doesn't crash
-      // the form submit handler.
+    } catch (err) {
+      // Error is already typed on `sendMessage.error`; the UI branch
+      // reads from there. We additionally fan out to Sentry for fatal
+      // shapes (T122) — `captureEmbeddedAgentError` no-ops on the
+      // friendly UX kinds (quota, no_active_thread).
+      captureEmbeddedAgentError("/message", err as EmbeddedAgentError)
     }
   }
 
