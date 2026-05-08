@@ -1,6 +1,10 @@
 import { createServiceClient } from "./supabase.ts"
 
-export type AIGenerationSource = "program" | "workout"
+export type AIGenerationSource =
+  | "program"
+  | "workout"
+  | "embedded_chat"
+  | "embedded_draft"
 
 const QUOTA_WHITELISTED = 5
 const QUOTA_REGULAR = 5
