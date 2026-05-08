@@ -65,5 +65,20 @@
 
   "validation_required": "Requis",
   "validation_positive": "Doit être positif",
-  "validation_number": "Doit être un nombre"
+  "validation_number": "Doit être un nombre",
+
+  "embeddedAgent": {
+    "title": "Construisez votre programme avec l'assistant",
+    "statusLine": "Thread {{idShort}} · {{status}}",
+    "placeholderBody": "Le chat arrive bientôt…",
+    "offlineTitle": "Vous êtes hors ligne",
+    "offlineBody": "Reconnectez-vous pour continuer à construire votre programme. On reprendra exactement où vous en étiez.",
+    "restartCta": "Recommencer",
+    "restartConfirmTitle": "Démarrer une nouvelle conversation ?",
+    "restartConfirmBody": "Votre brouillon actuel sera supprimé. Action irréversible.",
+    "restartConfirmCta": "Tout recommencer",
+    "restartCancelCta": "Continuer",
+    "resumedBadge": "Conversation reprise",
+    "backCta": "Retour"
+  }
 }

@@ -65,5 +65,20 @@
 
   "validation_required": "Required",
   "validation_positive": "Must be positive",
-  "validation_number": "Must be a number"
+  "validation_number": "Must be a number",
+
+  "embeddedAgent": {
+    "title": "Build your program with the assistant",
+    "statusLine": "Thread {{idShort}} · {{status}}",
+    "placeholderBody": "Chat coming online…",
+    "offlineTitle": "You're offline",
+    "offlineBody": "Reconnect to keep building your program. We'll pick up right where you left off.",
+    "restartCta": "Restart",
+    "restartConfirmTitle": "Start a fresh conversation?",
+    "restartConfirmBody": "Your current draft will be discarded. This can't be undone.",
+    "restartConfirmCta": "Start over",
+    "restartCancelCta": "Keep going",
+    "resumedBadge": "Resumed conversation",
+    "backCta": "Back"
+  }
 }

@@ -17,6 +17,12 @@ export interface ThreadMessage {
   ts: string
 }
 
+// supabase-js returns timestamptz columns as ISO strings on the wire; we
+// keep them as strings here so the runtime shape matches what helpers
+// actually receive. Date-aware helpers (`isStale`, `isRetentionDue`) accept
+// `string | Date` and parse internally so unit fixtures stay readable.
+export type Timestamp = string | Date
+
 export interface Thread {
   id: string
   user_id: string
@@ -29,10 +35,10 @@ export interface Thread {
   user_turn_count: number
   assistant_turn_count: number
   draft_count_24h: number
-  created_at: Date
-  updated_at: Date
-  committed_at: Date | null
-  abandoned_at: Date | null
+  created_at: Timestamp
+  updated_at: Timestamp
+  committed_at: Timestamp | null
+  abandoned_at: Timestamp | null
 }
 
 // Minimal Supabase surface used by this module. Tests inject a fake; the real
@@ -59,6 +65,28 @@ const ACTIVE_STATUSES: ThreadStatus[] = ["open", "preview_ready"]
 const UNIQUE_VIOLATION_CODE = "23505"
 
 /**
+ * Read-only lookup for the user's active onboarding thread. Returns null when
+ * the user has no row in {open, preview_ready}. Use this from routes that
+ * shouldn't side-effect (e.g. `/thread { abandon }` is a no-op when there's
+ * nothing to abandon).
+ */
+export async function getActiveThread(
+  supabase: SupabaseLike,
+  userId: string,
+): Promise<Thread | null> {
+  const { data, error } = await supabase
+    .from(THREADS_TABLE)
+    .select("*")
+    .eq("user_id", userId)
+    .in("status", ACTIVE_STATUSES)
+    .maybeSingle()
+  if (error) {
+    throw new Error(`getActiveThread failed: ${error.message ?? "unknown"}`)
+  }
+  return (data as Thread | null) ?? null
+}
+
+/**
  * Resolve the user's active onboarding thread. If one exists in {open,
  * preview_ready}, return it (`resumed: true`); otherwise insert a fresh
  * `open` row and return it (`resumed: false`). The DB-level partial unique
@@ -70,19 +98,9 @@ export async function getOrCreateActiveThread(
   userId: string,
   locale: ThreadLocale,
 ): Promise<{ thread: Thread; resumed: boolean }> {
-  const { data: existing, error: selectErr } = await supabase
-    .from(THREADS_TABLE)
-    .select("*")
-    .eq("user_id", userId)
-    .in("status", ACTIVE_STATUSES)
-    .maybeSingle()
-
-  if (selectErr) {
-    throw new Error(`getOrCreateActiveThread select failed: ${selectErr.message ?? "unknown"}`)
-  }
-
+  const existing = await getActiveThread(supabase, userId)
   if (existing) {
-    return { thread: existing as Thread, resumed: true }
+    return { thread: existing, resumed: true }
   }
 
   const { data: inserted, error: insertErr } = await supabase
@@ -95,19 +113,11 @@ export async function getOrCreateActiveThread(
   // The partial unique index surfaces this as Postgres 23505. Re-select the
   // winning row instead of letting the user see an error.
   if (insertErr?.code === UNIQUE_VIOLATION_CODE) {
-    const { data: resumedRow, error: resumeErr } = await supabase
-      .from(THREADS_TABLE)
-      .select("*")
-      .eq("user_id", userId)
-      .in("status", ACTIVE_STATUSES)
-      .maybeSingle()
-    if (resumeErr) {
-      throw new Error(`getOrCreateActiveThread resume after race failed: ${resumeErr.message ?? "unknown"}`)
-    }
+    const resumedRow = await getActiveThread(supabase, userId)
     if (!resumedRow) {
       throw new Error("getOrCreateActiveThread race resume returned no row")
     }
-    return { thread: resumedRow as Thread, resumed: true }
+    return { thread: resumedRow, resumed: true }
   }
 
   if (insertErr) {
@@ -119,13 +129,17 @@ export async function getOrCreateActiveThread(
   return { thread: inserted as Thread, resumed: false }
 }
 
-export function isStale(updatedAt: Date, nowMs: number): boolean {
-  return nowMs - updatedAt.getTime() > STALENESS_WINDOW_MS
+function toMs(at: Timestamp): number {
+  return typeof at === "string" ? new Date(at).getTime() : at.getTime()
 }
 
-export function isRetentionDue(at: Date | null, nowMs: number): boolean {
+export function isStale(updatedAt: Timestamp, nowMs: number): boolean {
+  return nowMs - toMs(updatedAt) > STALENESS_WINDOW_MS
+}
+
+export function isRetentionDue(at: Timestamp | null, nowMs: number): boolean {
   if (at === null) return false
-  return nowMs - at.getTime() > RETENTION_WINDOW_MS
+  return nowMs - toMs(at) > RETENTION_WINDOW_MS
 }
 
 /**

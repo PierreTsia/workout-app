@@ -225,6 +225,29 @@ Deno.test("isStale returns false when updated_at is 6 days old", () => {
   assertEquals(isStale(sixDaysAgo, now), false)
 })
 
+// Regression: supabase-js returns timestamptz columns as ISO strings, not
+// Date objects. The `Thread` shape returned from `from(...).select()` therefore
+// has string timestamps. Helpers must accept both so the prod code path
+// doesn't blow up the first time we resume an active thread.
+Deno.test("isStale accepts an ISO string updated_at (matches supabase-js wire shape)", () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const eightDaysAgoIso = new Date(now - 8 * ONE_DAY_MS).toISOString()
+  assertEquals(isStale(eightDaysAgoIso, now), true)
+})
+
+Deno.test("markStaleIfDue accepts an ISO string updated_at (matches supabase-js wire shape)", async () => {
+  const now = new Date("2026-05-08T12:00:00Z").getTime()
+  const stale = makeThread({
+    status: "open",
+    updated_at: new Date(now - 8 * ONE_DAY_MS).toISOString() as unknown as Date,
+  })
+  const { supabase } = makeFakeSupabase()
+
+  const result = await markStaleIfDue(supabase, stale, now)
+
+  assertEquals(result.stale, true)
+})
+
 Deno.test("isRetentionDue returns true past 90 days", () => {
   const now = new Date("2026-05-08T12:00:00Z").getTime()
   const ninetyOneDaysAgo = new Date(now - 91 * ONE_DAY_MS)

@@ -16,6 +16,8 @@ import { TemplateRecommendationStep } from "@/components/onboarding/TemplateReco
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
 import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
 import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
+import { EmbeddedAgentChatStep } from "@/components/onboarding/EmbeddedAgentChatStep"
+import { isEmbeddedAgentEnabled } from "@/lib/featureFlags"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
 import type { AIGeneratedProgram, GenerateProgramConstraints } from "@/types/aiProgram"
@@ -28,6 +30,7 @@ type WizardStep =
   | "summary"
   | "ai_generating"
   | "ai_preview"
+  | "embedded_chat"
 
 const ANALYTICS_STEP_INDEX = {
   welcome: 1,
@@ -211,6 +214,14 @@ export function OnboardingPage() {
             onAI={() => {
               if (!profileData) return
               trackStepCompleted("path")
+              if (isEmbeddedAgentEnabled()) {
+                // Phase B Embedded Agent path: chat shell handles its own
+                // thread + future preview. Constraints/aiResult plumbing stays
+                // off this branch entirely (Story 16: legacy state never
+                // leaks into the new flow).
+                setStep("embedded_chat")
+                return
+              }
               setAiResult(null)
               const constraints = userProfileToGenerateProgramConstraints(profileData, i18n.language)
               setAiConstraints(constraints)
@@ -266,6 +277,13 @@ export function OnboardingPage() {
             onRegenerate={() => setStep("ai_generating")}
             successReplacePath="/"
             onProgramCreated={handleAIProgramCreated}
+          />
+        )}
+
+        {step === "embedded_chat" && (
+          <EmbeddedAgentChatStep
+            locale={i18n.language === "fr" ? "fr" : "en"}
+            onBack={() => setStep("path")}
           />
         )}
       </div>
