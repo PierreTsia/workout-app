@@ -55,11 +55,18 @@ handleVersionUpgrade()
       >
         <QueryClientProvider client={queryClient}>
           <AppErrorBoundary
-            fallback={({ error, errorId, componentStack, resetError }) => (
+            fallback={({
+              error,
+              errorId,
+              componentStack,
+              caughtAt,
+              resetError,
+            }) => (
               <ErrorFallback
                 error={error}
                 errorId={errorId}
                 componentStack={componentStack}
+                caughtAt={caughtAt}
                 resetErrorBoundary={resetError}
                 variant="page"
               />

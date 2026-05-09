@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
@@ -21,9 +21,35 @@ vi.mock("sonner", async () => {
 const testError = new Error("Supabase exploded")
 testError.stack = "Error: Supabase exploded\n    at WorkoutPage.tsx:42"
 
+// Capture the original descriptors so we can restore them after each test —
+// otherwise the clipboard / execCommand stubs leak into other test files
+// running in the same Vitest worker and cause order-dependent failures.
+const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
+  Navigator.prototype,
+  "clipboard",
+)
+const originalExecCommandDescriptor = Object.getOwnPropertyDescriptor(
+  Document.prototype,
+  "execCommand",
+)
+
+function restoreDescriptor(
+  target: object,
+  prop: string,
+  descriptor: PropertyDescriptor | undefined,
+) {
+  delete (target as Record<string, unknown>)[prop]
+  if (descriptor) Object.defineProperty(target, prop, descriptor)
+}
+
 beforeEach(() => {
   toastSuccess.mockReset()
   toastError.mockReset()
+})
+
+afterEach(() => {
+  restoreDescriptor(navigator, "clipboard", originalClipboardDescriptor)
+  restoreDescriptor(document, "execCommand", originalExecCommandDescriptor)
 })
 
 describe("ErrorFallback", () => {

@@ -5,6 +5,7 @@ interface AppErrorBoundaryFallbackContext {
   error: Error
   errorId: string
   componentStack: string | null
+  caughtAt: Date
   resetError: () => void
 }
 
@@ -17,6 +18,7 @@ interface AppErrorBoundaryState {
   error: Error | null
   errorId: string | null
   componentStack: string | null
+  caughtAt: Date | null
 }
 
 /**
@@ -44,12 +46,14 @@ export class AppErrorBoundary extends Component<
     error: null,
     errorId: null,
     componentStack: null,
+    caughtAt: null,
   }
 
   static getDerivedStateFromError(error: Error): Partial<AppErrorBoundaryState> {
     return {
       error,
       errorId: makeErrorId(error),
+      caughtAt: new Date(),
     }
   }
 
@@ -77,16 +81,22 @@ export class AppErrorBoundary extends Component<
   }
 
   private resetError = (): void => {
-    this.setState({ error: null, errorId: null, componentStack: null })
+    this.setState({
+      error: null,
+      errorId: null,
+      componentStack: null,
+      caughtAt: null,
+    })
   }
 
   render(): ReactNode {
-    const { error, errorId, componentStack } = this.state
-    if (error && errorId) {
+    const { error, errorId, componentStack, caughtAt } = this.state
+    if (error && errorId && caughtAt) {
       return this.props.fallback({
         error,
         errorId,
         componentStack,
+        caughtAt,
         resetError: this.resetError,
       })
     }

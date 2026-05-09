@@ -75,6 +75,26 @@ describe("buildErrorReport", () => {
     expect(report.route).toContain("/")
   })
 
+  it("strips search/hash from the auto-detected route to avoid leaking tokens", () => {
+    const original = window.location.href
+    window.history.replaceState(
+      {},
+      "",
+      "/login?code=secret-oauth-code&state=xyz#access_token=jwt-leak",
+    )
+    try {
+      const report = buildErrorReport({
+        id: "err_x",
+        error: new Error("x"),
+      })
+      expect(report.route).toBe("/login")
+      expect(report.route).not.toContain("secret-oauth-code")
+      expect(report.route).not.toContain("jwt-leak")
+    } finally {
+      window.history.replaceState({}, "", original)
+    }
+  })
+
   it("uses 'unknown' when __APP_VERSION__ is missing", () => {
     vi.stubGlobal("__APP_VERSION__", undefined)
     const report = buildErrorReport({

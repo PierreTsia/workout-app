@@ -59,8 +59,10 @@ function readAppVersion(): string {
 
 function readRoute(): string {
   if (typeof window === "undefined") return ""
-  const { pathname, search, hash } = window.location
-  return `${pathname}${search}${hash}`
+  // Pathname only — search/hash can carry sensitive values (OAuth `code`,
+  // Supabase implicit-flow `#access_token`, magic-link tokens, etc.) that
+  // would leak when users paste the report into GitHub issues or chat.
+  return window.location.pathname
 }
 
 function readUserAgent(): string {
