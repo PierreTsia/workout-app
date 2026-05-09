@@ -1,7 +1,18 @@
 import * as Sentry from "@sentry/react"
 import type { EmbeddedAgentError } from "@/hooks/useEmbeddedAgentThread"
 
+let initialized = false
+
+/**
+ * Idempotent Sentry init. Safe to call from multiple paths:
+ *   - `main.tsx` `runWhenIdle` (cold-start init)
+ *   - `AppErrorBoundary.componentDidCatch` (error-path safety net)
+ *
+ * Without the guard, calling `Sentry.init` twice silently replaces the
+ * client — wiping pending breadcrumbs and re-installing integrations.
+ */
 export function initSentry() {
+  if (initialized) return
   const dsn = import.meta.env.VITE_SENTRY_DSN
   if (!dsn) return
 
@@ -11,6 +22,7 @@ export function initSentry() {
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: import.meta.env.PROD ? 0.2 : 1,
   })
+  initialized = true
 }
 
 // T122: route taxonomy mirrors the server-side `LogRoute` union in
