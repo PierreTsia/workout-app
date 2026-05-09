@@ -866,6 +866,15 @@ export function WorkoutPage() {
       })
     }
 
+    const completedDayIds = new Set(cycleProgress.completedDayIds)
+    if (activeSessionDayId) {
+      completedDayIds.add(activeSessionDayId)
+    }
+    const closeCycleOnComplete =
+      !!session.cycleId &&
+      cycleProgress.totalDays > 0 &&
+      completedDayIds.size >= cycleProgress.totalDays
+
     enqueueSessionFinish({
       sessionId,
       workoutDayId: activeSessionDayId ?? "",
@@ -877,6 +886,7 @@ export function WorkoutPage() {
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
+      closeCycleOnComplete,
       progressionTargets: progressionTargets.length > 0 ? progressionTargets : undefined,
     })
     scheduleImmediateDrain()

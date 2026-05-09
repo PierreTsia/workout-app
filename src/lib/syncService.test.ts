@@ -42,6 +42,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
 let sessionsChain = createChain()
 let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
+let cyclesChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -188,11 +189,13 @@ describe("SyncService", () => {
     sessionsChain = createChain()
     setLogsChain = createChain()
     workoutExercisesChain = createChain()
+    cyclesChain = createChain()
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
       if (table === "set_logs") return setLogsChain
       if (table === "workout_exercises") return workoutExercisesChain
+      if (table === "cycles") return cyclesChain
       return createChain()
     })
 
@@ -653,6 +656,28 @@ describe("SyncService", () => {
       await drainQueue(USER_ID)
 
       expect(mockRpc).not.toHaveBeenCalled()
+    })
+
+    it("auto-closes cycle when session_finish payload marks cycle completion", async () => {
+      enqueueSessionFinish({
+        ...makeSessionFinishPayload({ cycleId: "cycle-1" }),
+        closeCycleOnComplete: true,
+      } as import("./syncService").SessionFinishPayload)
+
+      await drainQueue(USER_ID)
+
+      expect(cyclesChain.update).toHaveBeenCalledWith({
+        finished_at: expect.any(String),
+      })
+      expect(cyclesChain.eq).toHaveBeenCalledWith("id", "cycle-1")
+    })
+
+    it("does not auto-close cycle when session_finish payload does not mark completion", async () => {
+      enqueueSessionFinish(makeSessionFinishPayload({ cycleId: "cycle-1" }))
+
+      await drainQueue(USER_ID)
+
+      expect(cyclesChain.update).not.toHaveBeenCalled()
     })
   })
 

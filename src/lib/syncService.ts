@@ -80,6 +80,7 @@ export interface SessionFinishPayload {
   totalSetsDone: number
   hasSkippedSets: boolean
   cycleId?: string | null
+  closeCycleOnComplete?: boolean
   progressionTargets?: ProgressionTarget[]
 }
 
@@ -703,6 +704,19 @@ async function processSessionFinish(
       const failed = results.find((r) => r.error)
       if (failed?.error) {
         console.error("[SyncService] progression target update failed", failed.error)
+        return false
+      }
+    }
+
+    if (p.closeCycleOnComplete && p.cycleId) {
+      const { error: cycleError } = await supabase
+        .from("cycles")
+        .update({ finished_at: new Date(p.finishedAt).toISOString() })
+        .eq("id", p.cycleId)
+        .eq("user_id", userId)
+
+      if (cycleError) {
+        console.error("[SyncService] cycle close update failed", cycleError)
         return false
       }
     }
