@@ -5,6 +5,12 @@
   "goHome": "Retour au training",
   "notFoundTitle": "Rien ici",
   "notFoundDescription": "Cette page a séché l'entraînement — elle n'existe pas.",
-  "details": "Stack trace",
+  "details": "Détails techniques",
+  "errorIdLabel": "ID erreur",
+  "copyReport": "Copier le rapport",
+  "copyReportSuccess": "Rapport copié dans le presse-papiers",
+  "copyReportFailure": "Impossible de copier le rapport",
+  "stackTrace": "Stack",
+  "componentStack": "Stack composants",
   "mutationError": "Un problème est survenu, veuillez réessayer"
 }

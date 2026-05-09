@@ -5,6 +5,12 @@
   "goHome": "Back to workout",
   "notFoundTitle": "Nothing here",
   "notFoundDescription": "This page skipped leg day — it doesn't exist.",
-  "details": "Stack trace",
+  "details": "Technical details",
+  "errorIdLabel": "Error ID",
+  "copyReport": "Copy report",
+  "copyReportSuccess": "Report copied to clipboard",
+  "copyReportFailure": "Couldn't copy the report",
+  "stackTrace": "Stack",
+  "componentStack": "Component stack",
   "mutationError": "Something went wrong, please try again"
 }
