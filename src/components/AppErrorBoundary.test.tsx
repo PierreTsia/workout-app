@@ -62,30 +62,6 @@ describe("AppErrorBoundary", () => {
     expect(screen.getByText(`fb-${ctx.errorId}`)).toBeInTheDocument()
   })
 
-  it("pins caughtAt to the moment of the catch (stable across re-renders)", () => {
-    const fallback = vi.fn(({ caughtAt }) => (
-      <div>{`ts-${caughtAt.toISOString()}`}</div>
-    ))
-
-    const { rerender } = render(
-      <AppErrorBoundary fallback={fallback}>
-        <Boom shouldThrow />
-      </AppErrorBoundary>,
-    )
-
-    const firstCtx = fallback.mock.calls[0]![0] as { caughtAt: Date }
-    const initialIso = firstCtx.caughtAt.toISOString()
-
-    rerender(
-      <AppErrorBoundary fallback={fallback}>
-        <Boom shouldThrow />
-      </AppErrorBoundary>,
-    )
-
-    const lastCtx = fallback.mock.calls.at(-1)![0] as { caughtAt: Date }
-    expect(lastCtx.caughtAt.toISOString()).toEqual(initialIso)
-  })
-
   it("calls initSentry before captureException with error_id tag", async () => {
     render(
       <AppErrorBoundary fallback={({ errorId }) => <div>{errorId}</div>}>

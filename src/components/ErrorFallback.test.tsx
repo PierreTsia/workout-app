@@ -133,6 +133,40 @@ describe("ErrorFallback", () => {
       expect(toastSuccess).toHaveBeenCalled()
     })
 
+    it("uses the provided caughtAt for the report timestamp and keeps it stable across re-renders", async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText },
+        configurable: true,
+      })
+      const caughtAt = new Date("2026-05-09T12:30:00.000Z")
+
+      renderWithProviders(
+        <ErrorFallback
+          error={testError}
+          errorId="err_pinned"
+          caughtAt={caughtAt}
+          componentStack="    at <Foo />"
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: /Copy report/ }))
+      await waitFor(() => expect(writeText).toHaveBeenCalledOnce())
+      const firstPayload = writeText.mock.calls[0]![0] as string
+      expect(firstPayload).toContain("2026-05-09T12:30:00.000Z")
+
+      // Forcing a rerender via the details toggle must not mint a fresh
+      // timestamp — useMemo + the caughtAt prop pins the value.
+      await userEvent.click(
+        screen.getByRole("button", { name: /Technical details/ }),
+      )
+      await userEvent.click(screen.getByRole("button", { name: /Copy report/ }))
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(2))
+      const secondPayload = writeText.mock.calls[1]![0] as string
+      expect(secondPayload).toContain("2026-05-09T12:30:00.000Z")
+    })
+
     it("shows an error toast when clipboard fails", async () => {
       Object.defineProperty(navigator, "clipboard", {
         value: {
