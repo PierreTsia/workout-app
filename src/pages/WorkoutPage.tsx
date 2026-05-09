@@ -75,6 +75,7 @@ import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
 import { useAdvanceWorkoutDayOnDateRollover } from "@/hooks/useAdvanceWorkoutDayOnDateRollover"
 import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsToExerciseList"
 import { useCycleProgress } from "@/hooks/useCycle"
+import { useAutoCloseStuckCycle } from "@/hooks/useAutoCloseStuckCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
@@ -213,6 +214,16 @@ export function WorkoutPage() {
     queryClient,
   })
   const [finished, setFinished] = useState(false)
+  // Self-heal users stuck in the legacy bug state (cycle active + every day
+  // already complete). Disabled while `finished` is true so we don't
+  // double-fire alongside the sync queue's auto-close on a normal session
+  // finish.
+  useAutoCloseStuckCycle({
+    activeCycle,
+    isComplete: cycleProgress.isComplete,
+    isLoading: cycleProgress.isLoading,
+    enabled: !finished,
+  })
   const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string

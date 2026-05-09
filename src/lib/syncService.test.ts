@@ -28,6 +28,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
   } = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
+    is: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     insert: vi.fn(() => chain),
     upsert: vi.fn(() => chain),
@@ -670,6 +671,10 @@ describe("SyncService", () => {
         finished_at: expect.any(String),
       })
       expect(cyclesChain.eq).toHaveBeenCalledWith("id", "cycle-1")
+      // RLS-defensive scoping: must also filter by the calling user.
+      expect(cyclesChain.eq).toHaveBeenCalledWith("user_id", USER_ID)
+      // Idempotency guard: re-running on an already-closed cycle is a no-op.
+      expect(cyclesChain.is).toHaveBeenCalledWith("finished_at", null)
     })
 
     it("does not auto-close cycle when session_finish payload does not mark completion", async () => {

@@ -709,11 +709,17 @@ async function processSessionFinish(
     }
 
     if (p.closeCycleOnComplete && p.cycleId) {
+      // `.is("finished_at", null)` makes this a no-op when the cycle was
+      // already closed (manual close, self-heal, or replay). Without it, a
+      // retry or a later session_finish for the same cycle would clobber the
+      // original `finished_at` with the current session's timestamp and shift
+      // cycle_summary stats.
       const { error: cycleError } = await supabase
         .from("cycles")
         .update({ finished_at: new Date(p.finishedAt).toISOString() })
         .eq("id", p.cycleId)
         .eq("user_id", userId)
+        .is("finished_at", null)
 
       if (cycleError) {
         console.error("[SyncService] cycle close update failed", cycleError)
