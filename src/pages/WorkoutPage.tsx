@@ -45,6 +45,7 @@ import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPresc
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
+import { shouldCloseCycleOnSessionFinish } from "@/lib/cycleCompletion"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
@@ -866,14 +867,19 @@ export function WorkoutPage() {
       })
     }
 
-    const completedDayIds = new Set(cycleProgress.completedDayIds)
-    if (activeSessionDayId) {
-      completedDayIds.add(activeSessionDayId)
-    }
-    const closeCycleOnComplete =
-      !!session.cycleId &&
-      cycleProgress.totalDays > 0 &&
-      completedDayIds.size >= cycleProgress.totalDays
+    const cycleSessionsFromCache = session.cycleId
+      ? queryClient.getQueryData<{ workout_day_id: string | null }[]>([
+          "cycle-sessions",
+          session.cycleId,
+        ])
+      : undefined
+    const closeCycleOnComplete = shouldCloseCycleOnSessionFinish({
+      cycleId: session.cycleId,
+      totalDays: cycleProgress.totalDays,
+      completedDayIds: cycleProgress.completedDayIds,
+      activeSessionDayId: activeSessionDayId ?? null,
+      cycleSessionsFromCache,
+    })
 
     enqueueSessionFinish({
       sessionId,
