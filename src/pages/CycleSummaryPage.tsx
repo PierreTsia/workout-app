@@ -14,7 +14,6 @@ import {
 import { supabase } from "@/lib/supabase"
 import { useCycleStats } from "@/hooks/useCycleStats"
 import { usePreviousCycle } from "@/hooks/usePreviousCycle"
-import { useFinishCycle } from "@/hooks/useFinishCycle"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { formatDate, formatDurationMs } from "@/lib/formatters"
@@ -28,7 +27,6 @@ export function CycleSummaryPage() {
   const { cycleId } = useParams<{ cycleId: string }>()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation("workout")
-  const finishCycle = useFinishCycle()
 
   const { data: cycle, isLoading: cycleLoading } = useQuery<Cycle | null>({
     queryKey: ["cycle", cycleId],
@@ -55,12 +53,6 @@ export function CycleSummaryPage() {
   const cycleProgress = useCycleProgress(cycleId ?? null, days ?? EMPTY_DAYS)
 
   const isLoading = cycleLoading || statsLoading
-
-  async function handleStartNewCycle() {
-    if (!cycleId) return
-    await finishCycle.mutateAsync(cycleId)
-    navigate("/")
-  }
 
   if (isLoading) {
     return (
@@ -151,13 +143,8 @@ export function CycleSummaryPage() {
 
       {/* CTA */}
       <div className="flex w-full max-w-sm flex-col gap-3 pt-2">
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={handleStartNewCycle}
-          disabled={finishCycle.isPending}
-        >
-          {t("cycleSummary.startNewCycle")}
+        <Button size="lg" className="w-full" onClick={() => navigate("/")}>
+          {t("cycleSummary.backToWorkouts")}
         </Button>
       </div>
     </div>

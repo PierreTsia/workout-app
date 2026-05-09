@@ -28,6 +28,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
   } = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
+    is: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     insert: vi.fn(() => chain),
     upsert: vi.fn(() => chain),
@@ -42,6 +43,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
 let sessionsChain = createChain()
 let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
+let cyclesChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -188,11 +190,13 @@ describe("SyncService", () => {
     sessionsChain = createChain()
     setLogsChain = createChain()
     workoutExercisesChain = createChain()
+    cyclesChain = createChain()
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
       if (table === "set_logs") return setLogsChain
       if (table === "workout_exercises") return workoutExercisesChain
+      if (table === "cycles") return cyclesChain
       return createChain()
     })
 
@@ -653,6 +657,32 @@ describe("SyncService", () => {
       await drainQueue(USER_ID)
 
       expect(mockRpc).not.toHaveBeenCalled()
+    })
+
+    it("auto-closes cycle when session_finish payload marks cycle completion", async () => {
+      enqueueSessionFinish({
+        ...makeSessionFinishPayload({ cycleId: "cycle-1" }),
+        closeCycleOnComplete: true,
+      } as import("./syncService").SessionFinishPayload)
+
+      await drainQueue(USER_ID)
+
+      expect(cyclesChain.update).toHaveBeenCalledWith({
+        finished_at: expect.any(String),
+      })
+      expect(cyclesChain.eq).toHaveBeenCalledWith("id", "cycle-1")
+      // RLS-defensive scoping: must also filter by the calling user.
+      expect(cyclesChain.eq).toHaveBeenCalledWith("user_id", USER_ID)
+      // Idempotency guard: re-running on an already-closed cycle is a no-op.
+      expect(cyclesChain.is).toHaveBeenCalledWith("finished_at", null)
+    })
+
+    it("does not auto-close cycle when session_finish payload does not mark completion", async () => {
+      enqueueSessionFinish(makeSessionFinishPayload({ cycleId: "cycle-1" }))
+
+      await drainQueue(USER_ID)
+
+      expect(cyclesChain.update).not.toHaveBeenCalled()
     })
   })
 

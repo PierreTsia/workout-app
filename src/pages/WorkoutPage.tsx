@@ -45,6 +45,7 @@ import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPresc
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
+import { shouldCloseCycleOnSessionFinish } from "@/lib/cycleCompletion"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
@@ -74,6 +75,7 @@ import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
 import { useAdvanceWorkoutDayOnDateRollover } from "@/hooks/useAdvanceWorkoutDayOnDateRollover"
 import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsToExerciseList"
 import { useCycleProgress } from "@/hooks/useCycle"
+import { useAutoCloseStuckCycle } from "@/hooks/useAutoCloseStuckCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
@@ -212,6 +214,16 @@ export function WorkoutPage() {
     queryClient,
   })
   const [finished, setFinished] = useState(false)
+  // Self-heal users stuck in the legacy bug state (cycle active + every day
+  // already complete). Disabled while `finished` is true so we don't
+  // double-fire alongside the sync queue's auto-close on a normal session
+  // finish.
+  useAutoCloseStuckCycle({
+    activeCycle,
+    isComplete: cycleProgress.isComplete,
+    isLoading: cycleProgress.isLoading,
+    enabled: !finished,
+  })
   const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
@@ -866,6 +878,20 @@ export function WorkoutPage() {
       })
     }
 
+    const cycleSessionsFromCache = session.cycleId
+      ? queryClient.getQueryData<{ workout_day_id: string | null }[]>([
+          "cycle-sessions",
+          session.cycleId,
+        ])
+      : undefined
+    const closeCycleOnComplete = shouldCloseCycleOnSessionFinish({
+      cycleId: session.cycleId,
+      totalDays: cycleProgress.totalDays,
+      completedDayIds: cycleProgress.completedDayIds,
+      activeSessionDayId: activeSessionDayId ?? null,
+      cycleSessionsFromCache,
+    })
+
     enqueueSessionFinish({
       sessionId,
       workoutDayId: activeSessionDayId ?? "",
@@ -877,6 +903,7 @@ export function WorkoutPage() {
       totalSetsDone: daySetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
+      closeCycleOnComplete,
       progressionTargets: progressionTargets.length > 0 ? progressionTargets : undefined,
     })
     scheduleImmediateDrain()
