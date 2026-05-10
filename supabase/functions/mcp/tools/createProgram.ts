@@ -2,9 +2,6 @@ import type { ToolDefinition } from "./registry.ts"
 import {
   buildWorkoutExerciseInsertRowsForDay,
   dayEmojiForProgramDayIndex,
-  parseRepsBounds,
-  type CatalogExerciseForProgram,
-  type GeneratedExerciseForProgram,
 } from "../lib/programPersistence.ts"
 import { formatPrescriptionLine, formatWeightConvention } from "../lib/format.ts"
 import {
@@ -14,32 +11,11 @@ import {
   type ParsedExercise,
 } from "../lib/createProgramValidation.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
-import { isUuid } from "../lib/uuid.ts"
+import {
+  buildGeneratedExercise,
+  collectCandidateExerciseIds,
+} from "../lib/exerciseConversion.ts"
 
-/**
- * Walk a raw `exercises[]` payload and extract every entry that LOOKS like a
- * catalog id (bare UUID string or an object with an `exercise_id: <uuid>`).
- * Non-UUID inputs are dropped — they're surfaced later by `validateDayExercises`
- * via `parseExerciseInput`'s locator-aware error message. This keeps the
- * catalog fetch from leaking Postgres "invalid input syntax for type uuid"
- * errors to the agent.
- */
-function collectCandidateExerciseIds(raw: unknown[]): string[] {
-  return raw.flatMap((entry) => {
-    if (typeof entry === "string") {
-      return isUuid(entry) ? [entry] : []
-    }
-    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
-      const id = (entry as Record<string, unknown>).exercise_id
-      return typeof id === "string" && isUuid(id) ? [id] : []
-    }
-    return []
-  })
-}
-
-const DEFAULT_SETS = 3
-const DEFAULT_REPS = "10"
-const DEFAULT_REST_SECONDS = 90
 const MAX_DAYS = 14
 const MAX_EXERCISES_PER_DAY = 40
 
@@ -51,50 +27,6 @@ type DayInput = {
 type ParsedDay = {
   label: string
   exercises: ParsedExercise[]
-}
-
-function defaultGeneratedExercise(ex: CatalogExerciseForProgram): GeneratedExerciseForProgram {
-  const isDuration = ex.measurement_type === "duration"
-  return {
-    exercise: ex,
-    sets: DEFAULT_SETS,
-    reps: isDuration ? "0" : DEFAULT_REPS,
-    restSeconds: DEFAULT_REST_SECONDS,
-    isCompound: false,
-  }
-}
-
-/**
- * Build the persistence input from an object-form parsed exercise. Freezes the
- * progression range bounds to the agent-provided sets and reps (T74 spec).
- * Bodyweight (T75) and duration (T75) branches inside `buildWorkoutExerciseInsertRow`
- * will override these range fields when relevant.
- */
-function geFromParsedObject(
-  parsed: Extract<ParsedExercise, { kind: "object" }>,
-  ex: CatalogExerciseForProgram,
-): GeneratedExerciseForProgram {
-  const bounds = parseRepsBounds(parsed.reps)
-  return {
-    exercise: ex,
-    sets: parsed.sets,
-    reps: parsed.reps,
-    restSeconds: parsed.restSeconds,
-    isCompound: false,
-    weightKg: parsed.weightKg,
-    repRangeMin: bounds.min,
-    repRangeMax: bounds.max,
-    setRangeMin: parsed.sets,
-    setRangeMax: parsed.sets,
-    targetDurationSeconds: parsed.targetDurationSeconds ?? undefined,
-  }
-}
-
-function geFromParsed(
-  parsed: ParsedExercise,
-  ex: CatalogExerciseForProgram,
-): GeneratedExerciseForProgram {
-  return parsed.kind === "bare" ? defaultGeneratedExercise(ex) : geFromParsedObject(parsed, ex)
 }
 
 const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymLogic account (same persistence as the in-app AI program flow).
@@ -317,7 +249,9 @@ export const createProgram: ToolDefinition = {
     // catalog-default target_duration_seconds for bare-string duration entries
     // and the bodyweight branch's defensive weight=0.
     const previewDays = parsedDays.map((day, dayIndex) => {
-      const generated = day.exercises.map((parsed) => geFromParsed(parsed, byId.get(parsed.exerciseId)!))
+      const generated = day.exercises.map((parsed) =>
+        buildGeneratedExercise(parsed, byId.get(parsed.exerciseId)!),
+      )
       const placeholderDayId = `00000000-0000-4000-8000-${String(dayIndex).padStart(12, "0")}`
       const fullRows = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated)
       const workout_exercises = fullRows.map((row) => {
@@ -420,7 +354,9 @@ export const createProgram: ToolDefinition = {
 
         createdDayIds.push(insertedDay.id)
 
-        const generated = day.exercises.map((parsed) => geFromParsed(parsed, byId.get(parsed.exerciseId)!))
+        const generated = day.exercises.map((parsed) =>
+          buildGeneratedExercise(parsed, byId.get(parsed.exerciseId)!),
+        )
         const rows = buildWorkoutExerciseInsertRowsForDay(insertedDay.id, generated)
 
         const { error: exError } = await supabase.from("workout_exercises").insert(rows)

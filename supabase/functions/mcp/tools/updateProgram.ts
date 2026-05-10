@@ -24,7 +24,7 @@
  */
 
 import type { ToolDefinition } from "./registry.ts"
-import { isUuid } from "../lib/uuid.ts"
+import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { validateDayExercises } from "../lib/createProgramValidation.ts"
 import {
@@ -61,25 +61,6 @@ function ok(text: string, isError = false): ToolReply {
 
 function jsonReply(payload: unknown, isError = false): ToolReply {
   return ok(JSON.stringify(payload, null, 2), isError)
-}
-
-/**
- * Filter raw exercise inputs to syntactically-valid UUIDs so the catalog
- * fetch never leaks Postgres "invalid input syntax for type uuid". Mirrors
- * the helper used by `create_program` — duplicated here on purpose to keep
- * this ticket's scope surgical.
- */
-function collectCandidateExerciseIds(raw: unknown[]): string[] {
-  return raw.flatMap((entry) => {
-    if (typeof entry === "string") {
-      return isUuid(entry) ? [entry] : []
-    }
-    if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
-      const id = (entry as Record<string, unknown>).exercise_id
-      return typeof id === "string" && isUuid(id) ? [id] : []
-    }
-    return []
-  })
 }
 
 interface RawProgramRow {
