@@ -45,11 +45,34 @@ interface MockOpts {
   whitelistedRecentCount?: number
 }
 
-// deno-lint-ignore no-explicit-any
-function makeMock(opts: MockOpts): any {
+// Structural type covering the only methods checkQuota exercises. The
+// "real" supabase client returns much wider builders per call; here we
+// describe just the chains we care about and cast through `unknown` at
+// the boundary.
+interface CountBuilder {
+  select(columns: string, opts?: { count?: "exact"; head?: boolean }): CountBuilder
+  eq(column: string, value: unknown): CountBuilder
+  gte(column: string, value: string): Promise<{ count: number; error: null }>
+}
+
+interface WhitelistBuilder {
+  select(columns: string): {
+    eq(column: string, value: unknown): {
+      maybeSingle(): Promise<{ data: { email: string } | null; error: null }>
+    }
+  }
+}
+
+interface MockSupabase {
+  from(table: string): CountBuilder | WhitelistBuilder
+}
+
+type ServiceClientArg = Parameters<typeof checkQuota>[0]
+
+function makeMock(opts: MockOpts): ServiceClientArg {
   let invocation = 0
-  return {
-    from(table: string) {
+  const mock: MockSupabase = {
+    from(table: string): CountBuilder | WhitelistBuilder {
       if (table === "ai_whitelisted_users") {
         return {
           select: () => ({
@@ -67,8 +90,7 @@ function makeMock(opts: MockOpts): any {
       // count. checkQuota issues two separate chains for whitelisted users
       // (regular window + 24h window). The second invocation returns
       // `whitelistedRecentCount` if provided.
-      // deno-lint-ignore no-explicit-any
-      const builder: any = {
+      const builder: CountBuilder = {
         select: () => builder,
         eq: () => builder,
         gte: () => {
@@ -80,6 +102,7 @@ function makeMock(opts: MockOpts): any {
       return builder
     },
   }
+  return mock as unknown as ServiceClientArg
 }
 
 Deno.test("checkQuota allows the 10th quick_workout call but denies the 11th", async () => {

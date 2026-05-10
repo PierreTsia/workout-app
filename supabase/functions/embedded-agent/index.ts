@@ -33,9 +33,6 @@ import {
   fetchCatalog,
   fetchProfile as fetchProgramProfile,
   fetchRecentHistory,
-  type CatalogExercise,
-  type RecentExercise,
-  type UserProfile as ProgramUserProfile,
 } from "../_shared/programCatalog.ts"
 import { callGeminiProgram } from "../generate-program/gemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"

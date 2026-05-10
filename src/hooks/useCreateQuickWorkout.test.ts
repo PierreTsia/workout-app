@@ -41,7 +41,7 @@ vi.mock("@/lib/supabase", () => {
       insert(payload: unknown) {
         insertCalls.push({ table, payload })
         return {
-          select(_cols: string) {
+          select() {
             return {
               single: () =>
                 Promise.resolve({

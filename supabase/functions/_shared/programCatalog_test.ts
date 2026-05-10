@@ -28,37 +28,37 @@ interface InCall {
   values: unknown[]
 }
 
-// deno-lint-ignore no-explicit-any
+type CatalogClientArg = Parameters<typeof fetchCatalog>[0]
+type ProfileClientArg = Parameters<typeof fetchProfile>[0]
+type HistoryClientArg = Parameters<typeof fetchRecentHistory>[0]
+
 function makeCatalogMock(opts: CatalogMockOpts): {
-  client: any
+  client: CatalogClientArg
   calls: FromCall[]
   inCalls: InCall[]
 } {
   const calls: FromCall[] = []
   const inCalls: InCall[] = []
-  return {
-    calls,
-    inCalls,
-    client: {
-      from(table: string) {
-        calls.push({ table })
-        const promise = Promise.resolve({
-          data: opts.rows ?? [],
-          error: opts.error ?? null,
-        })
-        const builder = {
-          select: () => builder,
-          in: (column: string, values: unknown[]) => {
-            inCalls.push({ column, values })
-            return builder
-          },
-          order: () => builder,
-          then: promise.then.bind(promise),
-        }
-        return builder
-      },
+  const client = {
+    from(table: string) {
+      calls.push({ table })
+      const promise = Promise.resolve({
+        data: opts.rows ?? [],
+        error: opts.error ?? null,
+      })
+      const builder = {
+        select: () => builder,
+        in: (column: string, values: unknown[]) => {
+          inCalls.push({ column, values })
+          return builder
+        },
+        order: () => builder,
+        then: promise.then.bind(promise),
+      }
+      return builder
     },
   }
+  return { calls, inCalls, client: client as unknown as CatalogClientArg }
 }
 
 interface ProfileMockOpts {
@@ -66,27 +66,24 @@ interface ProfileMockOpts {
   error?: { message: string } | null
 }
 
-// deno-lint-ignore no-explicit-any
-function makeProfileMock(opts: ProfileMockOpts): { client: any; calls: FromCall[] } {
+function makeProfileMock(opts: ProfileMockOpts): { client: ProfileClientArg; calls: FromCall[] } {
   const calls: FromCall[] = []
-  return {
-    calls,
-    client: {
-      from(table: string) {
-        calls.push({ table })
-        const builder = {
-          select: () => builder,
-          eq: () => builder,
-          maybeSingle: () =>
-            Promise.resolve({
-              data: opts.data ?? null,
-              error: opts.error ?? null,
-            }),
-        }
-        return builder
-      },
+  const client = {
+    from(table: string) {
+      calls.push({ table })
+      const builder = {
+        select: () => builder,
+        eq: () => builder,
+        maybeSingle: () =>
+          Promise.resolve({
+            data: opts.data ?? null,
+            error: opts.error ?? null,
+          }),
+      }
+      return builder
     },
   }
+  return { calls, client: client as unknown as ProfileClientArg }
 }
 
 interface HistoryMockOpts {
@@ -94,35 +91,32 @@ interface HistoryMockOpts {
   setLogs?: Array<{ exercise_id: string; exercise_name_snapshot: string }>
 }
 
-// deno-lint-ignore no-explicit-any
-function makeHistoryMock(opts: HistoryMockOpts): { client: any; calls: FromCall[] } {
+function makeHistoryMock(opts: HistoryMockOpts): { client: HistoryClientArg; calls: FromCall[] } {
   const calls: FromCall[] = []
-  return {
-    calls,
-    client: {
-      from(table: string) {
-        calls.push({ table })
-        if (table === "sessions") {
-          // chain ends on `.limit(5)` returning the sessions list
-          const builder = {
-            select: () => builder,
-            eq: () => builder,
-            not: () => builder,
-            order: () => builder,
-            limit: () =>
-              Promise.resolve({ data: opts.sessions ?? [], error: null }),
-          }
-          return builder
-        }
-        // set_logs : .select(...).in(session_id, [...])
+  const client = {
+    from(table: string) {
+      calls.push({ table })
+      if (table === "sessions") {
+        // chain ends on `.limit(5)` returning the sessions list
         const builder = {
           select: () => builder,
-          in: () => Promise.resolve({ data: opts.setLogs ?? [], error: null }),
+          eq: () => builder,
+          not: () => builder,
+          order: () => builder,
+          limit: () =>
+            Promise.resolve({ data: opts.sessions ?? [], error: null }),
         }
         return builder
-      },
+      }
+      // set_logs : .select(...).in(session_id, [...])
+      const builder = {
+        select: () => builder,
+        in: () => Promise.resolve({ data: opts.setLogs ?? [], error: null }),
+      }
+      return builder
     },
   }
+  return { calls, client: client as unknown as HistoryClientArg }
 }
 
 // ---------------------------------------------------------------------------
