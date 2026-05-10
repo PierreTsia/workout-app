@@ -38,6 +38,62 @@ export const createWorkoutDay: ToolDefinition = {
         type: "array",
         minItems: 1,
         maxItems: MAX_EXERCISES_PER_QUICK_WORKOUT,
+        description:
+          "Ordered exercises for this ad-hoc day. Each item is a UUID string (legacy defaults) OR an object with required prescription fields. Mirrors `create_program`'s per-day exercises shape.",
+        items: {
+          oneOf: [
+            {
+              type: "string",
+              description:
+                "Bare exercise UUID — defaults applied (3 sets, 10 reps, 0 kg, 90s rest).",
+            },
+            {
+              type: "object",
+              description:
+                "Full prescription. All of {exercise_id, sets, reps, weight_kg, rest_seconds} required; target_duration_seconds optional and reserved for duration exercises (T75).",
+              properties: {
+                exercise_id: {
+                  type: "string",
+                  description:
+                    "UUID from `resolve_exercises` (preferred for batch building) or `search_exercises`.",
+                },
+                sets: {
+                  type: "integer",
+                  minimum: 1,
+                  maximum: 10,
+                  description: "Number of working sets per exercise (1-10).",
+                },
+                reps: {
+                  type: "string",
+                  pattern: "^\\d+(-\\d+)?$",
+                  description:
+                    "\"N\" (linear, e.g. \"8\") or \"N-M\" (double progression, e.g. \"8-12\"). Bounds: 1-50 for reps exercises; use \"0\" ONLY for duration exercises (paired with target_duration_seconds).",
+                },
+                weight_kg: {
+                  type: "number",
+                  minimum: 0,
+                  maximum: 500,
+                  description:
+                    "Working weight per set. Per hand for dumbbells/kettlebells, total for barbells/machines (see `weight_convention` returned by `resolve_exercises`).",
+                },
+                rest_seconds: {
+                  type: "integer",
+                  minimum: 0,
+                  maximum: 600,
+                  description: "Rest between sets in seconds (0-600).",
+                },
+                target_duration_seconds: {
+                  type: "integer",
+                  minimum: 5,
+                  maximum: 600,
+                  description:
+                    "Target duration in seconds for time-based exercises (planks, holds). Cross-field rules T75.",
+                },
+              },
+              required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
+            },
+          ],
+        },
       },
       dry_run: { type: "boolean" },
     },
