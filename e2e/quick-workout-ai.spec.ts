@@ -124,9 +124,11 @@ test.describe("Quick Workout AI", () => {
 
     // Drawer for the sheet renders with constraints step active. Defaults
     // (30min / full-gym / full-body) are fine — go straight to AI Generate.
-    await expect(page.getByText("Quick Workout", { exact: false })).toBeVisible({
-      timeout: 10_000,
-    })
+    // Scope to the heading because the side drawer's "Quick Workout" button
+    // stays in the DOM after the click, so a plain getByText is ambiguous.
+    await expect(
+      page.getByRole("heading", { name: /^Quick Workout$/ }),
+    ).toBeVisible({ timeout: 10_000 })
     await page.getByRole("button", { name: /AI Generate/ }).click()
 
     // QuickWorkoutAIGeneratingStep auto-fires the mutation on mount and the
