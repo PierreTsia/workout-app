@@ -63,7 +63,7 @@ PreviewStep:
 
 Phase 2 — Start (MCP write):
   Client → POST /commit-quick-workout
-            { name, exercises[] }   (post-edit payload)
+            { label, exercises[] }   (post-edit payload)
   Edge  → MCP create_workout_day server → MCP via MCP Edge Function URL,
           Authorization: Bearer <user JWT>, dry_run: false
        ← { workout_day_id }
@@ -113,7 +113,7 @@ The **important invariant** is that no write happens until the user explicitly S
 
 4. As a **PWA user** whose AI generation **times out** or returns a network error, I want a **friendly retry button** + a **"Use Quick Generate instead"** escape, so that I'm never stranded on an error screen for a flow whose whole job is "give me a workout in 5 seconds".
 
-5. As a **PWA user** who hits the **`quick_workout` quota cap** (5/30days regular), I want a **clear message** explaining I've hit a limit, so that I'm not confused by an opaque error and I know my deterministic fallback still works.
+5. As a **PWA user** who hits the **`quick_workout` quota cap** (10/30days regular, bumped from legacy `workout`'s 5/30 to match the new daily-cadence positioning), I want a **clear message** explaining I've hit a limit, so that I'm not confused by an opaque error and I know my deterministic fallback still works.
 
 6. As a **PWA user offline**, I want the **AI generate** button to be visibly disabled (as today via `navigator.onLine`), and I want the deterministic generate path to keep working, so that I can still build a session.
 
@@ -153,7 +153,7 @@ The **important invariant** is that no write happens until the user explicitly S
 
 24. As a **maintainer**, I want `create_workout_day` to **NOT include `save_as_draft`** in its inputs, so that the public MCP surface stays scoped to "create a session ready to train" and in-app concepts don't leak to External MCP Clients.
 
-25. As a **maintainer planning post-launch tuning**, I want **`quick_workout`** to inherit the existing **5/30days regular, 5/24h whitelisted** caps unchanged at v1, so that we ship without a cost-shape decision and revisit with real telemetry.
+25. As a **maintainer planning post-launch tuning**, I want **`quick_workout`** to ship at **10/30days regular, 5/24h whitelisted** at v1 (regular cap bumped from legacy `workout`'s 5/30 because the new positioning is daily-cadence, not nice-to-have), so that daily users don't saturate in five days and we can still revisit with real telemetry. Implementation: per-source cap map in `_shared/aiQuota.ts` (today's shared `QUOTA_REGULAR = 5` becomes a per-source record).
 
 ### Success measures
 
@@ -176,7 +176,7 @@ Stories without a numeric measure are validated qualitatively via the user story
 **In scope:**
 
 1. **New Edge endpoint: `generate-quick-workout`** (preview phase) — quota check (`quick_workout`), parallel catalog/profile/history fetch, Gemini one-shot with workout-specific prompt, validate-and-repair (retry once on catastrophic failure), return `{ exercises[], rationale }`. **No database write.**
-2. **New Edge endpoint: `commit-quick-workout`** (write phase, AI Start path only) — accepts `{ name, exercises[] }` (post-edit payload), calls MCP `create_workout_day` server → MCP via `MCP Edge Function URL` with user JWT, `dry_run: false`. Returns `{ workout_day_id }`. **May be one Edge function with two modes or two separate functions** — Tech Plan call.
+2. **New Edge endpoint: `commit-quick-workout`** (write phase, AI Start path only) — accepts `{ label, exercises[] }` (post-edit payload), calls MCP `create_workout_day` server → MCP via the internal MCP Edge Function URL (resolved via `MCP_URL` env or `${SUPABASE_URL}/functions/v1/mcp` fallback, same helper as `embedded-agent`) with user JWT, `dry_run: false`. Returns `{ workout_day_id }`. **Two separate Edge functions — locked decision (ADR 0002 §3); not a Tech Plan choice.**
 3. **New MCP write tool: `create_workout_day`** — inputs `{ label, emoji?, exercises[], dry_run? }`; reuses `create_program`'s `exercises[]` shape and validator (with a small refactor to expose the day-level validator); `destructiveHint: false`; exposed to External MCP Clients via the existing tool registry.
 4. **Quota source extension** — add `"quick_workout"` to `AIGenerationSource`; verify and migrate `ai_generation_log.source` column if needed (Tech Plan determines TEXT vs enum). Quota fires only on `generate-quick-workout` (the LLM call); `commit-quick-workout` is a pure write, no quota.
 5. **PWA wiring change** — replace `useAIGenerateWorkout` with a new hook (`useGenerateQuickWorkoutPreview`?) that POSTs to `/generate-quick-workout` and returns `{ exercises, rationale }`. Add a new commit hook (`useCommitQuickWorkout`?) wired to `QuickWorkoutSheet`'s `handleStart` for the AI path. `QuickWorkoutSheet`'s state machine (constraints → ai-generating → preview) **does not change**. `useCreateQuickWorkout` stays for: (a) deterministic Start, (b) deterministic Save-as-draft, (c) AI Save-as-draft.

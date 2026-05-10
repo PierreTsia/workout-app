@@ -44,7 +44,7 @@ The new Edge surface is **two separate Edge functions** (not one with modes). Th
 
 **Phase 1 — `generate-quick-workout` (preview, idempotent):** quota check (`quick_workout`) → catalog/profile/history fetch → one-shot Gemini → validate-and-repair → return `{ exercises[], rationale }`. **No database write.**
 
-**Phase 2a — `commit-quick-workout` (live workout, AI Start, mutator):** accepts the (post-edit) `{ name, exercises[] }` payload, calls **MCP `create_workout_day` server → MCP via `MCP Edge Function URL` with the user's session JWT as Bearer**, `dry_run: false`. Returns `{ workout_day_id }`. No quota burn (the LLM call already paid).
+**Phase 2a — `commit-quick-workout` (live workout, AI Start, mutator):** accepts the (post-edit) `{ label, exercises[] }` payload, calls **MCP `create_workout_day` server → MCP via `MCP Edge Function URL` with the user's session JWT as Bearer**, `dry_run: false`. Returns `{ workout_day_id }`. No quota burn (the LLM call already paid).
 
 **Phase 2b — AI Save-as-draft:** stays in-app via `useCreateQuickWorkout` (raw Supabase insert with `saved_at`). **Drafts are not in the MCP surface by design** — they're a PWA concept that doesn't make sense for External MCP Clients.
 
@@ -58,7 +58,9 @@ Two server roundtrips on the AI Start happy path (one for generate, one for comm
 
 ### 4. Independent quota source: `quick_workout`
 
-Add `quick_workout` to `AIGenerationSource` in `file:supabase/functions/_shared/aiQuota.ts`. Independent counter from `program` / `embedded_chat` / `embedded_draft` / legacy `workout`. Cap inherited from today's `workout`: 5/30days regular, 5/24h whitelisted.
+Add `quick_workout` to `AIGenerationSource` in `file:supabase/functions/_shared/aiQuota.ts`. Independent counter from `program` / `embedded_chat` / `embedded_draft` / legacy `workout`. **Cap: 10/30days regular** (bumped from legacy `workout`'s 5/30), **5/24h whitelisted** (unchanged). Today's `QUOTA_REGULAR = 5` is shared across sources, so the bump requires introducing a per-source cap map (`QUOTA_REGULAR_BY_SOURCE: Record<AIGenerationSource, number>`); `program` and `workout` keep `5`, `quick_workout` gets `10`.
+
+**Why bump.** The legacy `workout` cap was sized when AI generation was an occasional nice-to-have. Post-migration, Quick Workout AI is positioned as the **daily** AI assistant. 5/30 saturates a daily user in 5 days — 25 days of "limit reached" per month. 10/30 doubles headroom, still bounded, modest token-budget impact (today AI generation is < 5% of Quick Workout starts; even a 3x bump barely moves the cost needle). Revisit with telemetry; 15/30 stays open as a v2 lever.
 
 **Naming.** The first instinct was `embedded_workout` (matches the `embedded_*` family of `embedded_chat` and `embedded_draft`). Rejected: those sources are artifacts of a chat-shaped flow (per-turn or per-draft within a chat thread). Quick Workout AI is a one-shot generator — `embedded_*` would mislead anyone reading logs or quota errors. `quick_workout` matches the simple top-level naming of `program` / `workout`. The legacy `workout` source dies in this same migration so there's no clash.
 
@@ -85,7 +87,7 @@ The migration's actual goal — delete `generate-workout` and `generate-program`
 - **Two write paths persist** for `workout_days` rows: MCP `create_workout_day` (AI Start only) and `useCreateQuickWorkout` (deterministic Start, deterministic Save-as-draft, AI Save-as-draft). Audits and analytics that want a single chokepoint will need to query both. Acceptable for v1; revisit if/when we move drafts to MCP.
 - **Pre-existing `program_id: null` leak is not fixed** by this migration. Filed as a separate follow-up issue; if it bites users between this ticket landing and the follow-up, that's on us.
 - **Adding a new public MCP tool is a versioned API commitment.** External MCP Client installations now expect `create_workout_day` to remain available. Removal would be a breaking change.
-- **The `quick_workout` cap (5/30d) is inherited blindly** from today's `workout` — we have no analytics validating it for the new flow. Tune post-launch.
+- **The `quick_workout` cap (10/30d regular) is a product call without telemetry** — we doubled the legacy `workout` cap based on cadence framing, not user-data. If real usage shows daily-active users still saturating, bump to 15/30. If usage is < 5/month per heavy user, the bump was overkill (no harm, just unused headroom).
 - **`save_as_draft` cannot be requested by external MCP clients** — by design, but if a future use case appears ("Claude, save this as a draft I'll review later"), we'd need a separate MCP tool or to revise the call.
 
 **Follow-ups**

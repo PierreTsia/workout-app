@@ -13,7 +13,9 @@
 | Tool internals | Direct reuse of `validateDayExercises` + `buildWorkoutExerciseInsertRowsForDay` (Edge port) | Both helpers are already day-scoped; no extraction refactor needed. |
 | `dry_run` output parity | Full rendered output (per-row echo lines) on parity with `create_program` | External MCP Clients (Claude Desktop, etc.) rely on the dry_run review pattern. `extractRenderedFromMcpResult` already parses this shape. |
 | Catalog/profile/history | Extract to `_shared/programCatalog.ts`; migrate **`embedded-agent` + `generate-quick-workout` only** | Rule of three (third caller). `generate-program` stays on its inline copy until #343 retires it — smaller diff, lower risk. The TODO at `file:supabase/functions/embedded-agent/index.ts:178-180` is satisfied. |
-| Quota source | New value `'quick_workout'` (5/30d, same posture as `program` and `workout`) | Locked in ADR 0002. Reserves `embedded_*` for chat-shaped flows. |
+| Quota source | New value `'quick_workout'` | Locked in ADR 0002. Reserves `embedded_*` for chat-shaped flows. |
+| Quota cap (regular) | **10/30d** (bumped from legacy `workout`'s 5/30d) | Quick Workout AI is positioned as a **daily** generator post-migration, not the legacy nice-to-have. 5/30 saturates in 5 days; 10/30 doubles headroom while staying bounded. Whitelisted cap stays at 5/24h. |
+| Quota cap mechanism | Introduce a per-source `QUOTA_REGULAR_BY_SOURCE` map in `_shared/aiQuota.ts` | Today's `QUOTA_REGULAR = 5` is a shared constant across all sources (`file:supabase/functions/_shared/aiQuota.ts:10`); bumping `quick_workout` requires per-source caps. `program` and `workout` stay at 5; `quick_workout` ships at 10. |
 | Quota gate | Server-side, before any LLM call, in `generate-quick-workout/handler.ts` | Same posture as `_shared/aiQuota.checkQuota`; protects the hosted Gemini key. |
 | MCP RPC client | Reuse `_shared/mcpClient.ts#callMcpTool` | Already proven in `embedded-agent`. JSON-RPC + Bearer auth. |
 | Web row construction | Refactor `useCreateQuickWorkout` to call `src/lib/programPersistence.ts#buildWorkoutExerciseInsertRowsForDay` | Eliminates shape-parity drift by construction; deterministic + AI paths share the same row builder. |
@@ -66,9 +68,9 @@ Mirrors `file:supabase/migrations/20260508155714_ai_generation_log_sources_embed
   },
   inputSchema: {
     type: "object",
-    required: ["name", "exercises"],
+    required: ["label", "exercises"],
     properties: {
-      name: { type: "string", minLength: 1, maxLength: 100 },
+      label: { type: "string", minLength: 1, maxLength: 100 },
       exercises: {
         type: "array",
         minItems: 1,
@@ -89,6 +91,10 @@ Mirrors `file:supabase/migrations/20260508155714_ai_generation_log_sources_embed
   }
 }
 ```
+
+**Field naming rationale**: `label` matches both the `workout_days` DB column AND `create_program.days[].label` — agents that already speak `create_program` use the same vocabulary. Top-level `name` exists in `create_program` for the multi-day program; that concept doesn't apply here.
+
+**`emoji` is intentionally NOT in the input schema.** The MCP tool hardcodes `emoji: "⚡"` server-side. Quick Workout has a fixed visual identity (the lightning bolt), and v1 keeps the surface tight. If External MCP Clients ask to customize ("Cardio Day 🏃", "Recovery 🧘"), expose `emoji?` as optional in v2 — trivial 5-line addition, zero client churn.
 
 ### `create_workout_day` — output (success, `dry_run: false`)
 
@@ -116,10 +122,10 @@ Quota source changes from `"workout"` to `"quick_workout"`.
 
 ### `commit-quick-workout` — request/response
 
-Request:
+Request (mirrors the MCP tool shape — no field translation in the Edge function, the client speaks the same vocabulary):
 ```typescript
 {
-  name: string;                        // post-edit display name
+  label: string;                       // post-edit display name (1..100 chars)
   exercises: Array<                    // post-edit ordered prescription
     | string                           // bare UUID (defaults applied server-side)
     | {
@@ -135,6 +141,16 @@ Request:
 ```
 
 Response: `{ workout_day_id: string }` on success; `{ error: "commit_failed", kind: "rpc_error"|"tool_error"|"transport_error", message? }` on MCP failure.
+
+**No `label`-translation layer in the Edge function.** The client hook (`useCommitQuickWorkout`) builds the payload with `label` directly (the field name is shared by the PWA, the Edge function, and the MCP tool). The PWA's `GeneratedWorkout.name` field is mapped to `label` at the call site — same translation that already happens today in `useCreateQuickWorkout.ts:25` (`label: workout.name`).
+
+### MCP URL resolution
+
+Both `commit-quick-workout` and any future Edge function that calls MCP server-side use the **same `resolveMcpUrl()` helper** as `embedded-agent` (`file:supabase/functions/embedded-agent/index.ts:244-252`). Resolution order: `Deno.env.get("MCP_URL")` (explicit override for staging/local) → `${SUPABASE_URL}/functions/v1/mcp` (default project URL) → throw if neither is set.
+
+This is the **internal Supabase function-to-function URL**, not the public Cloudflare-fronted `https://mcp.gymlogic.me/functions/v1/mcp`. Rationale: lower latency (no CDN hop), better reliability (no dependency on public DNS / Cloudflare uptime), identical auth (Bearer JWT works on both). External MCP Clients keep using the public URL — that's their concern, not ours.
+
+**Extract to `_shared/mcpClient.ts`** as part of this PR (third caller satisfies rule-of-three; today the helper is duplicated only inside `embedded-agent/index.ts`).
 
 ---
 
@@ -197,13 +213,13 @@ graph TD
 | `file:supabase/functions/commit-quick-workout/handler.ts` | Validate input shape, call `callMcpTool({toolName:"create_workout_day", ...})`, map MCP errors to wire codes, return `{workout_day_id}`. |
 | `file:supabase/functions/mcp/tools/createWorkoutDay.ts` | New MCP tool. Auth → fetch catalog by exercise IDs → `validateDayExercises` → `buildWorkoutExerciseInsertRowsForDay` → insert `workout_days` (`program_id: NULL`) + `workout_exercises`. Full `dry_run` rendered output. ~150 LoC. |
 | `file:src/hooks/useGenerateQuickWorkoutPreview.ts` | Replaces `useAIGenerateWorkout`. Calls `generate-quick-workout`, hydrates `exerciseIds` against the local exercise pool, returns `GeneratedWorkout`. |
-| `file:src/hooks/useCommitQuickWorkout.ts` | New mutation. Posts post-edit `{name, exercises[]}` to `commit-quick-workout`. Returns `{workout_day_id}` and invalidates upcoming-workouts query keys. |
+| `file:src/hooks/useCommitQuickWorkout.ts` | New mutation. Posts post-edit `{label, exercises[]}` to `commit-quick-workout` (mapping `GeneratedWorkout.name → label` at the call site, same translation as `useCreateQuickWorkout.ts:25`). Returns `{workout_day_id}` and invalidates upcoming-workouts query keys. |
 
 ### Modified Files
 
 | File | Modification |
 |---|---|
-| `file:supabase/functions/_shared/aiQuota.ts` | Extend `AIGenerationSource` union with `"quick_workout"`. |
+| `file:supabase/functions/_shared/aiQuota.ts` | (1) Extend `AIGenerationSource` union with `"quick_workout"`. (2) Replace the shared `QUOTA_REGULAR = 5` constant with a per-source `QUOTA_REGULAR_BY_SOURCE: Record<AIGenerationSource, number>` map (`program: 5, workout: 5, embedded_chat: 40, embedded_draft: 3, quick_workout: 10`); `checkQuota` reads the cap by source. Whitelisted cap stays a single shared `5`. Existing callers (`generate-program`, `embedded-agent`'s `enforceProgramQuota`) get the same `5` they had before — no behavior change for them. |
 | `file:supabase/functions/embedded-agent/index.ts` | Replace local `fetchCatalog` / `fetchProgramProfile` / `fetchRecentHistory` with imports from `_shared/programCatalog.ts`. |
 | `file:supabase/functions/mcp/tools/registry.ts` | Add `createWorkoutDay` entry. |
 | `file:src/hooks/useCreateQuickWorkout.ts` | Replace inline row construction (lines 34-60) with `buildWorkoutExerciseInsertRowsForDay` from `src/lib/programPersistence.ts`. |
@@ -230,19 +246,19 @@ graph TD
 **`commit-quick-workout/handler.ts`**
 - Deps interface: `{ getUser, callMcp, log }`. No quota — the LLM call already paid.
 - Defensive shape check on `body.exercises[]` (array, length 1..20, each entry is string OR object with required fields). Bad shapes → 400 with structured error before MCP touches anything.
-- Calls `callMcpTool({ mcpUrl: resolveMcpUrl(), userAccessToken, toolName: "create_workout_day", arguments: { name, exercises, dry_run: false } })`.
+- Calls `callMcpTool({ mcpUrl: resolveMcpUrl(), userAccessToken, toolName: "create_workout_day", arguments: { label, exercises, dry_run: false } })`.
 - Maps MCP errors to wire codes: `rpc_error` / `tool_error` / `transport_error` → 502 with `kind`. RLS denial bubbles up as `tool_error`.
 - Parses `workout_day_id` from MCP success response (defensive: returns 502 on missing field, same pattern as `embedded-agent/handler.ts:347-364`).
 
 **`mcp/tools/createWorkoutDay.ts`**
 - Same skeleton as `createProgram.ts` minus the program-level concerns:
   1. Auth via `authLogic` (PAT or session JWT, identical handling).
-  2. Validate input shape: `name` (string, 1..100 chars), `exercises[]` (1..20 entries).
+  2. Validate input shape: `label` (string, 1..100 chars), `exercises[]` (1..20 entries).
   3. Collect distinct UUIDs from `exercises[]` (bare or `.exercise_id`).
   4. `fetchExercisesByIds(supabase, ids)` → catalog map.
-  5. `validateDayExercises(rawExercises, "Quick Workout", catalogMap)` → returns `ParsedExercise[]` or first error.
+  5. `validateDayExercises(rawExercises, args.label, catalogMap)` → returns `ParsedExercise[]` or first error (the label doubles as the validation locator prefix).
   6. If `dry_run: true`: build `rendered` lines (per-row echo, parity with `createProgram.ts:314-347`) and return without writing.
-  7. Otherwise: insert one `workout_days` row with `program_id: NULL`, `name = args.name`, `day_index: 0`, `emoji: "⚡"`.
+  7. Otherwise: insert one `workout_days` row with `program_id: NULL`, `label: args.label`, `sort_order: 0`, `emoji: "⚡"`, `saved_at: NULL` (live workout, not a draft).
   8. Build rows via `buildWorkoutExerciseInsertRowsForDay(workoutDay.id, generatedExercises)` and bulk-insert.
   9. Return `{ workout_day_id, exercises_count }`.
 - **No deactivate-active-program logic**. This is the entire reason the new tool exists.
@@ -263,7 +279,7 @@ graph TD
 - Adds `const [generationSource, setGenerationSource] = useState<"ai"|"deterministic">("deterministic")`.
 - Set to `"ai"` when entering `AIGeneratingStep`; reset to `"deterministic"` on regenerate-as-deterministic fallback.
 - `handleStart` branches:
-  - `generationSource === "ai"` → `commitQuickWorkout.mutate({name, exercises: workoutToMcpExercises(workout)})`.
+  - `generationSource === "ai"` → `commitQuickWorkout.mutate({label: workout.name, exercises: workoutToMcpExercises(workout)})`.
   - `generationSource === "deterministic"` → existing `createQuickWorkout.mutate(workout)` path.
 - `handleSaveAsDraft` always uses `createQuickWorkout` (drafts skip MCP entirely — Brief Story 9).
 - `workoutToMcpExercises` is a small util mapping a hydrated `GeneratedExercise[]` to the MCP wire shape (object form with all fields). Lives in `src/lib/quickWorkout.ts` or co-located.
@@ -287,7 +303,7 @@ The skill update lands in the same PR as the MCP tool implementation. It is **NO
 
 | Failure | Behavior |
 |---|---|
-| Quota exceeded (`quick_workout` 5/30d) | `generate-quick-workout` returns 429 with `{error:"quota_exceeded", limit, used}`. `AIGeneratingStep` shows the existing quota error UI (already wired for the legacy `quota_exceeded` shape). |
+| Quota exceeded (`quick_workout` 10/30d regular, 5/24h whitelisted) | `generate-quick-workout` returns 429 with `{error:"quota_exceeded", limit, used}`. `AIGeneratingStep` shows the existing quota error UI (already wired for the legacy `quota_exceeded` shape). |
 | Gemini timeout / error | `generate-quick-workout` returns 502; `logBillableCall` already fired in `finally`. UI shows existing fallback behavior in `AIGeneratingStep`. |
 | Gemini returns invalid JSON / fewer IDs than target | `validateAndRepair` backfills from the catalog (existing logic). UI gets a valid `GeneratedWorkout`; user sees the same flow. |
 | User edits past 20 exercises in `PreviewStep` | Client-side input cap (Brief story 11). Backstop: `create_workout_day` rejects `exercises.length > 20` with structured error. |
@@ -309,7 +325,7 @@ The skill update lands in the same PR as the MCP tool implementation. It is **NO
 | Unit (Edge handler) | Vitest (TS) + Deno (parity for hot helpers) | `generate-quick-workout/handler.ts` and `commit-quick-workout/handler.ts` with deps mocked. Quota gate before model call. log_everything on model failure. |
 | Unit (MCP tool) | Vitest (TS) | `createWorkoutDay` happy path, `dry_run: true` rendering, validation rejections, RLS-style denied insert (mocked). |
 | Unit (PWA hooks) | Vitest + React Testing Library | `useGenerateQuickWorkoutPreview` hydration, `useCommitQuickWorkout` error mapping, `useCreateQuickWorkout` row-shape after refactor. |
-| **Shape parity (mandatory)** | Vitest | Same `GeneratedWorkout` input → `useCreateQuickWorkout`'s rows MUST equal `create_workout_day`'s rows (exact deep-equal on all `workout_exercises` columns). After the row-construction refactor this is a regression test against future drift. |
+| **Shape parity (mandatory)** | Vitest | Same `GeneratedWorkout` input → both write paths produce equivalent rows. **Compared fields**: all 19 columns of `workout_exercises` (deep-equal); on `workout_days`, only the prescription-relevant fields: `label`, `emoji`, `sort_order`, `program_id` (both `null`). **Excluded fields**: `id`, `user_id`, `created_at`, and `saved_at` (the latter is the *intentional* difference — `useCreateQuickWorkout` for drafts sets it, `create_workout_day` always leaves it `NULL`). After the row-construction refactor in `useCreateQuickWorkout`, this is a regression check against future drift, not a "do they match today" probe. |
 | **E2E happy path (mandatory)** | Playwright | Open Quick Workout → AI tab → fill constraints → `page.route('**/generate-quick-workout', ...)` returns deterministic stub → preview renders → edit one set → Start → assert workout in upcoming list. **Gemini never called.** |
 | Auth dualism | Vitest | `commit-quick-workout` accepts session JWT; `mcp/tools/createWorkoutDay` works with both PAT and session JWT (calls into `authLogic`). |
 
