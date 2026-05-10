@@ -2,7 +2,7 @@
 
 ## Summary
 
-Migrate **Quick Workout AI** — the last legacy LLM surface in the GymLogic PWA — from its closed-loop `generate-workout` edge function + raw-Supabase write path to an **Embedded Agent**-shaped flow that goes through a new MCP write tool (**`create_workout_day`**). The user-facing UI stays untouched: `ConstraintStep` → AI generate → `PreviewStep` → start. Internally, the LLM call moves to a new `generate-quick-workout` Edge Function that calls **`create_workout_day`** server → MCP with the user's session JWT, and counts against a new independent quota source **`embedded_workout`**. The legacy `file:supabase/functions/generate-workout/` and `file:supabase/functions/generate-program/` (whose deletion was punted from T123) both die as part of this epic. **No user-visible UX change**, no chat surface, no copy review — pure tech migration. Sequencing: lands **before or alongside** #343. Decisions captured in **`docs/CONTEXT.md`** (ubiquitous-language glossary) and **`docs/adr/0002-quick-workout-ai-mcp-migration.md`** (trade-offs).
+Migrate **Quick Workout AI** — the last legacy LLM surface in the GymLogic PWA — from its closed-loop `generate-workout` edge function + raw-Supabase write path to an **Embedded Agent**-shaped flow that goes through a new MCP write tool (**`create_workout_day`**). The user-facing UI stays untouched: `ConstraintStep` → AI generate → `PreviewStep` → start. Internally, the LLM call moves to a new pair of Edge Functions — **`generate-quick-workout`** (preview, no write) and **`commit-quick-workout`** (calls `create_workout_day` server → MCP with the user's session JWT) — with the LLM call counting against a new independent quota source **`quick_workout`**. The legacy `file:supabase/functions/generate-workout/` and `file:supabase/functions/generate-program/` (whose deletion was punted from T123) both die as part of this epic. **No user-visible UX change**, no chat surface, no copy review — pure tech migration. See **Sequencing with #343** below for the inter-epic dependency. Decisions captured in **`docs/CONTEXT.md`** (ubiquitous-language glossary) and **`docs/adr/0002-quick-workout-ai-mcp-migration.md`** (trade-offs).
 
 ---
 
@@ -29,11 +29,11 @@ Migrate **Quick Workout AI** — the last legacy LLM surface in the GymLogic PWA
 
 **Related artifacts:**
 
-- **`docs/CONTEXT.md`** (`## Quick Workout` section): **AI Focus Areas**, **Quick Workout AI (v1)**, **`create_workout_day` MCP tool**, **`embedded_workout` quota source**, **`generate-quick-workout` Edge Function**.
+- **`docs/CONTEXT.md`** (`## Quick Workout` section): **AI Focus Areas**, **Quick Workout AI (v1)**, **`create_workout_day` MCP tool**, **`quick_workout` quota source**, **`generate-quick-workout` + `commit-quick-workout` Edge Functions**.
 - **`docs/adr/0002-quick-workout-ai-mcp-migration.md`** — five sub-decisions and the alternatives we rejected.
 - **`file:supabase/functions/mcp/tools/createProgram.ts`** — canonical existing MCP write tool. `create_workout_day` mirrors its `dry_run`, `exercises[]` shape, and validator.
 - **`file:supabase/functions/mcp/lib/createProgramValidation.ts`** — shared validator that the new tool will reuse (likely with a small extraction of the day-level entry point).
-- **`file:supabase/functions/_shared/aiQuota.ts`** — `AIGenerationSource` union to extend with `"embedded_workout"`; underlying `ai_generation_log.source` column type to verify in Tech Plan.
+- **`file:supabase/functions/_shared/aiQuota.ts`** — `AIGenerationSource` union to extend with `"quick_workout"`; underlying `ai_generation_log.source` column type to verify in Tech Plan.
 - **`file:supabase/functions/embedded-agent/index.ts`** — reference for the Embedded Agent server-side orchestration shape (quota → LLM → MCP call with user JWT).
 - Parent epic **#295** (closed) — explicit punt: *"Quick session can reuse the same tool layer as a follow-on."* This is the follow-on.
 - Companion: **#343** — post-onboarding "Create Program" AI wizard cleanup; sequencing lets Quick Workout's tool-design decisions dictate the shared MCP surface.
@@ -46,11 +46,13 @@ Captured here so tickets cannot re-litigate; details in **ADR 0002** and the glo
 
 **Two-phase flow** because `PreviewStep` allows the user to edit the AI's suggestion (rename, swap, add/remove, change sets/reps, shuffle) before committing — mirrors onboarding's **Onboarding program commit gate** pattern (`dry_run` preview → user confirms → real commit).
 
+**Two separate Edge functions, not one with modes** — locked decision, see **ADR 0002 §3**. Preview is idempotent (rerunnable, GET-like); commit is mutator (POST-like). Different observability shapes, different retry policies — splitting keeps each focused.
+
 ```
 AI Generate (phase 1 — preview, no write):
   Client → POST /generate-quick-workout
             { duration, equipment, muscleGroups, focusAreas?, locale }
-  Edge  → checkQuota("embedded_workout")
+  Edge  → checkQuota("quick_workout")
        → fetch catalog/profile/history
        → Gemini one-shot
        → validate-and-repair (retry once on catastrophic failure)
@@ -75,19 +77,29 @@ Phase 2 — Shuffle (PWA-local, no LLM, no MCP):
   Local deterministic generateWorkout() — no quota burn, instant.
 ```
 
-`/generate-quick-workout` and `/commit-quick-workout` may be one Edge function with two modes or two separate functions — Tech Plan call. The **important invariant** is that no write happens until the user explicitly Starts.
+The **important invariant** is that no write happens until the user explicitly Starts.
 
 **Why not write on first call?** It would orphan rows whenever the user dismisses the sheet without starting, and would either ignore the user's PreviewStep edits or require fragile sync logic to update an already-written row.
 
-**Why not call MCP from the client on Start?** The PWA doesn't speak MCP RPC today; adding a client-side MCP client is non-trivial. The thin Edge wrapper is cheaper, satisfies the issue body's "write path through MCP" requirement, and stays consistent with the **Embedded Agent** glossary entry (server → MCP, user JWT as Bearer).
+**Why not call MCP from the client on Start?** The PWA doesn't speak MCP RPC today; adding a client-side MCP client is non-trivial. The thin Edge wrapper is cheaper, satisfies the issue body's "write path through MCP" requirement, and stays consistent with the **Embedded Agent** glossary entry (server → MCP, user JWT as Bearer). The MCP function's existing auth router (`file:supabase/functions/mcp/lib/authLogic.ts:80-82`) already handles non-PAT bearers (which includes session JWTs) — same path onboarding's Embedded Agent uses, **no new auth surface required**.
 
 **What does NOT change in v1:** `QuickWorkoutSheet`'s step orchestration, `ConstraintStep`, `PreviewStep`, the `QuickWorkoutAIGeneratingStep` skeleton/spinner UI, the deterministic `lib/generateWorkout.ts` fallback, the in-app **`save_as_draft`** path (still uses `useCreateQuickWorkout` for both AI and deterministic flows).
 
 **What changes in v1 (no UI implication):** `useAIGenerateWorkout` is replaced by a new hook that POSTs to `/generate-quick-workout` and returns `{ exercises, rationale }` (resolved against the catalog client-side, same as today). On Start, the AI path no longer calls `useCreateQuickWorkout` — it calls a new commit hook that POSTs to `/commit-quick-workout`.
 
-**What dies in v1:** `file:supabase/functions/generate-workout/`, `file:src/hooks/useAIGenerateWorkout.ts`, `file:supabase/functions/generate-program/` (only after this lands — explicitly part of this epic, completing the T123 punt).
+**What dies in v1:** `file:supabase/functions/generate-workout/`, `file:src/hooks/useAIGenerateWorkout.ts`, `file:supabase/functions/generate-program/` (only after this lands — explicitly part of this epic, completing the T123 punt; sequencing with #343 below).
 
 **`useCreateQuickWorkout` survives but its caller surface narrows** to: (a) deterministic Start, (b) deterministic Save-as-draft, (c) AI Save-as-draft. The AI Start path is the only one that moves to MCP.
+
+### Sequencing with #343
+
+#342 and #343 both block deletion of `file:supabase/functions/generate-program/`, and #343 inherits the MCP write-tool decisions made here (`create_workout_day` shape, `dry_run` pattern, `destructiveHint` posture). Concrete branch points:
+
+- **If #342 ships first** (default expectation): `generate-program` deletion **stays in this epic** as the closing act, after #343's post-onboarding AI wizard cleanup is unblocked by the migration. #343 then becomes a pure UI-deprecation epic — no Edge Function deletion required from it.
+- **If #343 ships first**: `generate-program` deletion **moves to #343** (since by that point the post-onboarding wizard is gone and nothing references the function except this epic's pre-migration state). #342 then loses Story 20 / Scope item 7's `generate-program` line and gets ~1 ticket lighter.
+- **If they ship in the same PR window**: pick a clear owner for the deletion in the merge commit message; the other epic's docs reference the deleting PR.
+
+**No circular dependency** — the *MCP tool decisions* always land here first (the brief is the source of truth); the *function-deletion* is just plumbing that follows whichever epic crosses the finish line second.
 
 ---
 
@@ -101,7 +113,7 @@ Phase 2 — Shuffle (PWA-local, no LLM, no MCP):
 
 4. As a **PWA user** whose AI generation **times out** or returns a network error, I want a **friendly retry button** + a **"Use Quick Generate instead"** escape, so that I'm never stranded on an error screen for a flow whose whole job is "give me a workout in 5 seconds".
 
-5. As a **PWA user** who hits the **`embedded_workout` quota cap** (5/30days regular), I want a **clear message** explaining I've hit a limit, so that I'm not confused by an opaque error and I know my deterministic fallback still works.
+5. As a **PWA user** who hits the **`quick_workout` quota cap** (5/30days regular), I want a **clear message** explaining I've hit a limit, so that I'm not confused by an opaque error and I know my deterministic fallback still works.
 
 6. As a **PWA user offline**, I want the **AI generate** button to be visibly disabled (as today via `navigator.onLine`), and I want the deterministic generate path to keep working, so that I can still build a session.
 
@@ -121,9 +133,9 @@ Phase 2 — Shuffle (PWA-local, no LLM, no MCP):
 
 14. As an **External MCP Client user**, I want `create_workout_day` to be marked **`destructiveHint: false`** so that my host (Claude Desktop, Cursor) doesn't gate the call behind a confirmation prompt — inserting a workout is non-destructive, I can delete it in two taps if I don't like it.
 
-15. As an **External MCP Client user** asking for a workout via Claude, I want my call to **not burn GymLogic's quota** (Claude pays its own LLM tokens, GymLogic only persists), so that third-party AI use cases don't compete with my in-app `embedded_workout` allowance.
+15. As an **External MCP Client user** asking for a workout via Claude, I want my call to **not burn GymLogic's quota** (Claude pays its own LLM tokens, GymLogic only persists), so that third-party AI use cases don't compete with my in-app `quick_workout` allowance.
 
-16. As a **maintainer** auditing AI generation, I want **all `embedded_workout` quota events logged consistently** in `ai_generation_log`, so that the monthly recap (#282) and any future fairness analytics see Quick Workout AI traffic alongside `embedded_chat` / `embedded_draft` / `program`.
+16. As a **maintainer** auditing AI generation, I want **all `quick_workout` quota events logged consistently** in `ai_generation_log`, so that the monthly recap (#282) and any future fairness analytics see Quick Workout AI traffic alongside `embedded_chat` / `embedded_draft` / `program`.
 
 17. As a **maintainer** investigating a broken Quick Workout AI generation, I want **structured server-side logs / Sentry events** with technical detail (tool name, request id, sanitized payload excerpts, error kind), so that I can debug without leaking internals to the user UI — same posture as `Embedded Agent error handling (v1)`.
 
@@ -141,7 +153,7 @@ Phase 2 — Shuffle (PWA-local, no LLM, no MCP):
 
 24. As a **maintainer**, I want `create_workout_day` to **NOT include `save_as_draft`** in its inputs, so that the public MCP surface stays scoped to "create a session ready to train" and in-app concepts don't leak to External MCP Clients.
 
-25. As a **maintainer planning post-launch tuning**, I want **`embedded_workout`** to inherit the existing **5/30days regular, 5/24h whitelisted** caps unchanged at v1, so that we ship without a cost-shape decision and revisit with real telemetry.
+25. As a **maintainer planning post-launch tuning**, I want **`quick_workout`** to inherit the existing **5/30days regular, 5/24h whitelisted** caps unchanged at v1, so that we ship without a cost-shape decision and revisit with real telemetry.
 
 ### Success measures
 
@@ -149,10 +161,11 @@ Phase 2 — Shuffle (PWA-local, no LLM, no MCP):
 |---------|---------|
 | 3 | AI generate latency from tap to preview within ±20% of today's baseline (manual measurement on staging across one slow-network and one fast-network run) |
 | 4 | Quota / network / timeout / validation errors all surface friendly copy + retry button + "Use Quick Generate" escape; covered by component tests on `QuickWorkoutAIGeneratingStep` error states |
-| 8 | Cap enforced in `generate-quick-workout` Edge using `checkQuota("embedded_workout")` before any LLM call (server-side only) — verified by integration test |
+| 8 | Cap enforced in `generate-quick-workout` Edge using `checkQuota("quick_workout")` before any LLM call (server-side only) — verified by integration test |
 | 9 | Server-side retry on catastrophic validation failure (zero valid exerciseIds) implemented and tested as in today's `generate-workout/index.ts:147-170` |
 | 17 | At least one error path emits structured log fields (function name, user id hash, error kind, sanitized payload excerpt) on Edge |
-| 19, 20 | `generate-workout` and `generate-program` directories no longer exist on `main` after epic completion; `useAIGenerateWorkout` deleted |
+| 19, 20 | `generate-workout` and `generate-program` directories no longer exist on `main` after epic completion (deletion lands here or in #343 per **Sequencing with #343**); `useAIGenerateWorkout` deleted |
+| Tests scope | Mandatory shape-parity test between `useCreateQuickWorkout` and `create_workout_day` dry_run; mandatory single Playwright E2E with mocked Gemini (no real LLM in CI ever) |
 
 Stories without a numeric measure are validated qualitatively via the user story itself or by code review against the canonical glossary entries.
 
@@ -162,14 +175,18 @@ Stories without a numeric measure are validated qualitatively via the user story
 
 **In scope:**
 
-1. **New Edge endpoint: `generate-quick-workout`** (preview phase) — quota check (`embedded_workout`), parallel catalog/profile/history fetch, Gemini one-shot with workout-specific prompt, validate-and-repair (retry once on catastrophic failure), return `{ exercises[], rationale }`. **No database write.**
+1. **New Edge endpoint: `generate-quick-workout`** (preview phase) — quota check (`quick_workout`), parallel catalog/profile/history fetch, Gemini one-shot with workout-specific prompt, validate-and-repair (retry once on catastrophic failure), return `{ exercises[], rationale }`. **No database write.**
 2. **New Edge endpoint: `commit-quick-workout`** (write phase, AI Start path only) — accepts `{ name, exercises[] }` (post-edit payload), calls MCP `create_workout_day` server → MCP via `MCP Edge Function URL` with user JWT, `dry_run: false`. Returns `{ workout_day_id }`. **May be one Edge function with two modes or two separate functions** — Tech Plan call.
 3. **New MCP write tool: `create_workout_day`** — inputs `{ label, emoji?, exercises[], dry_run? }`; reuses `create_program`'s `exercises[]` shape and validator (with a small refactor to expose the day-level validator); `destructiveHint: false`; exposed to External MCP Clients via the existing tool registry.
-4. **Quota source extension** — add `"embedded_workout"` to `AIGenerationSource`; verify and migrate `ai_generation_log.source` column if needed (Tech Plan determines TEXT vs enum). Quota fires only on `generate-quick-workout` (the LLM call); `commit-quick-workout` is a pure write, no quota.
+4. **Quota source extension** — add `"quick_workout"` to `AIGenerationSource`; verify and migrate `ai_generation_log.source` column if needed (Tech Plan determines TEXT vs enum). Quota fires only on `generate-quick-workout` (the LLM call); `commit-quick-workout` is a pure write, no quota.
 5. **PWA wiring change** — replace `useAIGenerateWorkout` with a new hook (`useGenerateQuickWorkoutPreview`?) that POSTs to `/generate-quick-workout` and returns `{ exercises, rationale }`. Add a new commit hook (`useCommitQuickWorkout`?) wired to `QuickWorkoutSheet`'s `handleStart` for the AI path. `QuickWorkoutSheet`'s state machine (constraints → ai-generating → preview) **does not change**. `useCreateQuickWorkout` stays for: (a) deterministic Start, (b) deterministic Save-as-draft, (c) AI Save-as-draft.
 6. **i18n** — any new copy (quota cap message, error states for the new path, commit failure copy) gets FR/EN strings. The `locale` field continues to flow on every Edge request (already present in today's hook).
 7. **Decommission** — delete `file:supabase/functions/generate-workout/`, `file:src/hooks/useAIGenerateWorkout.ts`, and (as the closing act) `file:supabase/functions/generate-program/`.
-8. **Tests** — server-side: `generate-quick-workout` happy / quota / timeout / validation paths; `commit-quick-workout` happy / MCP failure / RLS paths; MCP `create_workout_day` dry_run + persist paths; client-side: `QuickWorkoutAIGeneratingStep` error states; a smoke E2E if affordable that runs constraints → AI → preview (with at least one exercise edit) → start.
+8. **Tests** — explicit minimum bar:
+   - **Server-side unit / integration:** `generate-quick-workout` happy / quota / timeout / validation paths; `commit-quick-workout` happy / MCP failure / RLS paths; MCP `create_workout_day` dry_run + persist paths.
+   - **Client-side:** `QuickWorkoutAIGeneratingStep` error states (network / quota / timeout / validation).
+   - **Shape-parity test (mandatory)** — single test that asserts the row shape produced by `useCreateQuickWorkout` (raw Supabase insert, used by deterministic Start + all save-as-draft paths) matches the row shape produced by `create_workout_day` `dry_run: true` for an equivalent input. Fails if either drifts. Protects against the `program_id: null` leak getting *worse* during the coexistence window.
+   - **E2E (mandatory, scoped):** **one** Playwright happy-path test that runs constraints → AI → preview (with at least one user edit) → Start, and asserts a `workout_day` row was created via the MCP path. **The Gemini call MUST be mocked** — never hit the real provider, never burn tokens (CI included). A test fixture in `supabase/functions/generate-quick-workout` should expose a Gemini mock that returns a deterministic exercise list. **Not optional, not "if affordable"** — this is the load-bearing integration test for the whole epic.
 
 **Out of scope:**
 
@@ -177,7 +194,7 @@ Stories without a numeric measure are validated qualitatively via the user story
 - **Reusing `create_program`** with a single-day shape or modeling Quick Workouts as 1-day programs (rejected in ADR 0002, alternatives table).
 - **Routing the deterministic Quick Generate or in-app `save_as_draft` flows through MCP** (`useCreateQuickWorkout` stays).
 - **Fixing the pre-existing `program_id: null` leak** across program-aware screens (separate follow-up issue — likely needs a `workouts` table or similar separation between programmed and ad-hoc sessions).
-- **Tuning `embedded_workout` cap numbers** (inherit existing `workout` cap; revisit post-launch with telemetry).
+- **Tuning `quick_workout` cap numbers** (inherit existing `workout` cap; revisit post-launch with telemetry).
 - **Migrating `embedded_agent_threads`** to a multi-purpose / multi-active-thread schema (covered in #343 if it lands first; otherwise inherits whatever shape that epic settles on — orthogonal to this migration since v1 has no threads).
 - **New product capabilities** for Quick Workout (parity, not features).
 
@@ -188,35 +205,34 @@ Stories without a numeric measure are validated qualitatively via the user story
 - **Qualitative — invisible to the user**: A regression-test pass on the AI generate flow (constraints → AI → preview → start) shows identical UX to today, with no new screens, no chat, no copy review beyond error/quota strings.
 - **Qualitative — MCP write surface for AI Start**: Every AI-generated *live* quick workout (user pressed Start) lands in the database via `create_workout_day`. AI Save-as-draft continues via `useCreateQuickWorkout` by design (drafts are an in-app concept, not an MCP tool surface).
 - **Qualitative — cleanup complete**: After this epic ships, `git ls-files supabase/functions/generate-workout supabase/functions/generate-program` returns empty.
-- **Qualitative — quota independence**: `embedded_workout` increments only on `generate-quick-workout` LLM calls; in-app deterministic generate and External MCP Client calls do not increment it. Verified by integration test or manual log inspection.
+- **Qualitative — quota independence**: `quick_workout` increments only on `generate-quick-workout` LLM calls; in-app deterministic generate and External MCP Client calls do not increment it. Verified by integration test or manual log inspection.
 - **Qualitative — External MCP Client parity**: A manual run from Claude Desktop calling `create_workout_day` with `dry_run: true` then `dry_run: false` produces a workout day visible in the PWA without affecting the user's active program.
 - **Engineering**: RLS on `workout_days` / `workout_exercises` continues to scope writes to the calling user (no new policy required — `create_workout_day` runs with user JWT).
-- **Engineering**: New Edge function emits structured logs on at least one error path; `embedded_workout` rows visible in `ai_generation_log`.
+- **Engineering**: New Edge function emits structured logs on at least one error path; `quick_workout` rows visible in `ai_generation_log`.
 
 ---
 
 ## Decisions already locked (see `docs/CONTEXT.md` and `docs/adr/0002-quick-workout-ai-mcp-migration.md`)
 
-Ubiquitous-language entries **AI Focus Areas**, **Quick Workout AI (v1)**, **`create_workout_day` MCP tool**, **`embedded_workout` quota source**, **`generate-quick-workout` Edge Function** — these should not be re-litigated in tickets except via explicit ADR amend or glossary update. Five sub-decisions captured in **ADR 0002** with rejected alternatives:
+Ubiquitous-language entries **AI Focus Areas**, **Quick Workout AI (v1)**, **`create_workout_day` MCP tool**, **`quick_workout` quota source**, **`generate-quick-workout` + `commit-quick-workout` Edge Functions** — these should not be re-litigated in tickets except via explicit ADR amend or glossary update. Five sub-decisions captured in **ADR 0002** with rejected alternatives:
 
 1. No chat surface for v1 (vs. parity with onboarding's Embedded Agent).
 2. New `create_workout_day` MCP tool (vs. reusing `create_program`'s destructive-on-activate shape; vs. modeling as 1-day program).
-3. Server-side MCP write from `generate-quick-workout` (vs. client calling MCP directly).
-4. Independent `embedded_workout` quota (vs. merging into `program` or reusing `embedded_draft`).
+3. Two-phase server flow with **two separate Edge functions** — `generate-quick-workout` (preview, idempotent) and `commit-quick-workout` (commit, mutator) — vs. one function with modes, vs. client-side MCP calls.
+4. Independent `quick_workout` quota (vs. merging into `program` or reusing `embedded_draft`; vs. naming it `embedded_workout` and inheriting the chat-family prefix).
 5. `useCreateQuickWorkout` survives untouched for non-AI paths (vs. issue body's "decommission or rewrite").
 
 ---
 
 ## Open points for Tech Plan
 
-- **`ai_generation_log.source` column type** — TEXT vs. enum vs. CHECK constraint; migration accordingly when adding `"embedded_workout"`.
+- **`ai_generation_log.source` column type** — TEXT vs. enum vs. CHECK constraint; migration accordingly when adding `"quick_workout"`.
 - **Validator extraction** — refactor `file:supabase/functions/mcp/lib/createProgramValidation.ts` to expose a day-level entry point (`validateDayExercises` is already there; ensure it's importable by `create_workout_day`'s handler).
 - **Prompt builder location** — `supabase/functions/generate-quick-workout/prompt.ts` mirrors today's `generate-workout/prompt.ts`; decide whether catalog/profile/history fetchers move to `_shared/` or stay duplicated until the next consumer appears.
-- **One Edge function or two?** `generate-quick-workout` (preview) and `commit-quick-workout` (write) can be two functions or one with two modes (e.g. `POST /quick-workout-agent` with `{ phase: "preview" | "commit" }`). Two functions = clearer logs, simpler routing. One function = less deploy overhead. Tech Plan call — minor.
 - **Commit auth + idempotency** — the commit endpoint accepts a user-edited payload. Tech Plan should specify (1) the request validation (sane bounds, exercise UUIDs exist), (2) idempotency story if any (today's `useCreateQuickWorkout` is not idempotent — duplicate Start clicks would create duplicate rows; `commit-quick-workout` likely inherits this and that's fine for v1).
 - **Sequencing with #343** — both epics block deletion of `generate-program`. Decide whether #343 ships first (so its post-onboarding wizard cleanup is done before we delete the function), or whether they land in the same window. Per the issue body, Quick Workout's tool-design decisions tend to dictate the shared MCP surface, so this epic should lock decisions first; #343 inherits.
 - **Feature flag?** — onboarding's Phase B used a flag for staged rollout. Quick Workout's UX is identical to today's; not clear a flag is needed. Tech Plan decides — default position: **no flag**, ship behind tests + soak period, since the failure mode (regression of AI generate) is recoverable via the deterministic fallback the user already has.
-- **Analytics events** — names for `embedded_workout` quota hit, `create_workout_day` success / failure, retry / fallback button presses.
+- **Analytics events** — names for `quick_workout` quota hit, `create_workout_day` success / failure, retry / fallback button presses.
 - **External MCP Client tool description** — the `create_workout_day` tool's `description` (LLM-targeted prose) and `annotations.title` (UI-targeted) — needs careful wording so Claude understands when to use it vs `create_program`.
 - **`PreviewStep` rationale rendering** — does today's `PreviewStep` already give the rationale enough visual prominence to satisfy Story 2 ("explicitly acknowledge my AI Focus Areas"), or does the v1 migration also touch the rationale rendering? Quick code check before tech-plan kickoff.
 
