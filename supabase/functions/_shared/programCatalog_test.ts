@@ -23,11 +23,22 @@ interface CatalogMockOpts {
   error?: { message: string } | null
 }
 
+interface InCall {
+  column: string
+  values: unknown[]
+}
+
 // deno-lint-ignore no-explicit-any
-function makeCatalogMock(opts: CatalogMockOpts): { client: any; calls: FromCall[] } {
+function makeCatalogMock(opts: CatalogMockOpts): {
+  client: any
+  calls: FromCall[]
+  inCalls: InCall[]
+} {
   const calls: FromCall[] = []
+  const inCalls: InCall[] = []
   return {
     calls,
+    inCalls,
     client: {
       from(table: string) {
         calls.push({ table })
@@ -37,7 +48,10 @@ function makeCatalogMock(opts: CatalogMockOpts): { client: any; calls: FromCall[
         })
         const builder = {
           select: () => builder,
-          in: () => builder,
+          in: (column: string, values: unknown[]) => {
+            inCalls.push({ column, values })
+            return builder
+          },
           order: () => builder,
           then: promise.then.bind(promise),
         }
@@ -149,6 +163,45 @@ Deno.test("fetchCatalog returns [] when the database returns null data", async (
   const { client } = makeCatalogMock({ rows: undefined })
   const result = await fetchCatalog(client, ["bodyweight"])
   assertEquals(result, [])
+})
+
+Deno.test("fetchCatalog applies the optional muscleGroupFilter as an .in() on muscle_group", async () => {
+  // Quick Workout AI scopes the catalog to the user-selected muscle groups
+  // (unless they pick `full-body`, in which case the caller passes
+  // undefined / []). Embedded-agent always passes undefined.
+  const { client, inCalls } = makeCatalogMock({ rows: [] })
+
+  await fetchCatalog(client, ["barbell", "dumbbell"], ["Pectoraux", "Dos"])
+
+  assertEquals(
+    inCalls,
+    [
+      { column: "equipment", values: ["barbell", "dumbbell"] },
+      { column: "muscle_group", values: ["Pectoraux", "Dos"] },
+    ],
+    "must apply equipment filter, then muscle_group filter, both as .in()",
+  )
+})
+
+Deno.test("fetchCatalog skips the muscle_group filter when muscleGroupFilter is undefined or empty", async () => {
+  // Backward-compat with embedded-agent's caller which never passed a
+  // muscle group filter. Empty array is treated as "no filter" — same as
+  // undefined — so callers don't have to special-case full-body.
+  const undef = makeCatalogMock({ rows: [] })
+  await fetchCatalog(undef.client, ["bodyweight"])
+  assertEquals(
+    undef.inCalls,
+    [{ column: "equipment", values: ["bodyweight"] }],
+    "undefined → only equipment filter",
+  )
+
+  const empty = makeCatalogMock({ rows: [] })
+  await fetchCatalog(empty.client, ["bodyweight"], [])
+  assertEquals(
+    empty.inCalls,
+    [{ column: "equipment", values: ["bodyweight"] }],
+    "[] → only equipment filter (no-op)",
+  )
 })
 
 // ---------------------------------------------------------------------------

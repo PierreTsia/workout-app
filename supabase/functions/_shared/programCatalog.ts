@@ -41,13 +41,21 @@ export interface RecentExercise {
 export async function fetchCatalog(
   supabase: ServiceClient,
   equipmentValues: string[],
+  muscleGroupFilter?: string[],
 ): Promise<CatalogExercise[]> {
-  const { data, error } = await supabase
+  // The query builder is mutable; chain conditionally so embedded-agent's
+  // unfiltered catalog and Quick Workout's muscle-scoped catalog share the
+  // same SELECT shape without duplicating the helper.
+  let query = supabase
     .from("exercises")
     .select("id, name_en, muscle_group, equipment, secondary_muscles, difficulty_level")
     .in("equipment", equipmentValues)
-    .order("muscle_group")
-    .order("name")
+
+  if (muscleGroupFilter && muscleGroupFilter.length > 0) {
+    query = query.in("muscle_group", muscleGroupFilter)
+  }
+
+  const { data, error } = await query.order("muscle_group").order("name")
   if (error) throw error
   return (data ?? []) as CatalogExercise[]
 }

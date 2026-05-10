@@ -7,10 +7,10 @@ import { VOLUME_MAP } from "@/lib/generatorConfig"
 import type { Exercise } from "@/types/database"
 import type { Duration, GeneratedWorkout, GeneratorConstraints } from "@/types/generator"
 import {
-  useAIGenerateWorkout,
+  useGenerateQuickWorkoutPreview,
   isNetworkError,
   isQuotaError,
-} from "@/hooks/useAIGenerateWorkout"
+} from "@/hooks/useGenerateQuickWorkoutPreview"
 
 const PHASE_INTERVAL_MS = 2400
 
@@ -30,7 +30,7 @@ export function QuickWorkoutAIGeneratingStep({
   onFallbackQuickGenerate,
 }: QuickWorkoutAIGeneratingStepProps) {
   const { t } = useTranslation("generator")
-  const mutation = useAIGenerateWorkout({ exercisePool })
+  const mutation = useGenerateQuickWorkoutPreview({ exercisePool })
   const inflight = useRef(false)
   const mounted = useRef(true)
   const [attempt, retry] = useReducer((n: number) => n + 1, 0)
