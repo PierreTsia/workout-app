@@ -4,8 +4,12 @@
 --
 -- The legacy `'workout'` value stays so historical rows from the soon-to-die
 -- `generate-workout` function keep their attribution. Once #343 retires
--- `generate-program`, a follow-up migration can prune both `'program'` and
--- `'workout'` from the union.
+-- `generate-program`, pruning `'program'` and `'workout'` from the union
+-- is a TWO-step data migration (not just a constraint swap): the new
+-- CHECK would reject existing rows on commit, so the follow-up has to
+-- either backfill the legacy rows to a kept source value (e.g. remap
+-- `'workout'` → `'quick_workout'`) or delete them before swapping the
+-- constraint. A bare DROP/ADD will fail validation.
 
 alter table ai_generation_log
   drop constraint chk_ai_generation_log_source;
