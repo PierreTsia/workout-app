@@ -36,7 +36,7 @@ import {
 } from "../_shared/programCatalog.ts"
 import { callGeminiProgram } from "../generate-program/gemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
-import { callMcpTool } from "../_shared/mcpClient.ts"
+import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
 import { emitLog } from "./log.ts"
 
@@ -176,14 +176,3 @@ async function loadProfile(
 // (extracted in T126, #342). The aliasing import above keeps the local
 // `fetchProgramProfile` name to avoid renaming every call site in this
 // file.
-
-function resolveMcpUrl(): string {
-  const explicit = Deno.env.get("MCP_URL")
-  if (explicit) return explicit
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")
-  if (!supabaseUrl) {
-    throw new Error("MCP_URL or SUPABASE_URL must be set")
-  }
-  return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/mcp`
-}
-
