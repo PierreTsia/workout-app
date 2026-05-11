@@ -70,7 +70,7 @@
   "questionnaireErrorTitle": "Impossible d'enregistrer vos réponses",
   "questionnaireErrorBody": "Quelque chose a échoué de notre côté. Réessayez dans un instant.",
   "questionnaireErrorDisplayNameTakenTitle": "Impossible de configurer votre profil",
-  "questionnaireErrorDisplayNameTakenBody": "Un compte similaire existe déjà. Réessayez — nous utiliserons un autre nom par défaut.",
+  "questionnaireErrorDisplayNameTakenBody": "Un compte similaire existe déjà. Réessayez, et si le problème persiste vous pourrez modifier votre nom d'affichage plus tard depuis votre page Compte.",
   "errorAuthExpired": "Votre session a expiré. Veuillez vous reconnecter.",
   "errorGenericProgram": "Impossible de créer votre programme. Réessayez dans un instant.",
 
