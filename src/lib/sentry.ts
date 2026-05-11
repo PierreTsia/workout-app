@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react"
+import { isAuthExpiredError, isDisplayNameTakenError } from "@/hooks/profileErrors"
 import type { EmbeddedAgentError } from "@/hooks/useEmbeddedAgentThread"
 
 let initialized = false
@@ -60,6 +61,46 @@ export function captureEmbeddedAgentError(
       feature: "embedded-agent",
       route,
       error_kind: error.kind,
+    },
+  })
+}
+
+// #348 — onboarding routes that can hit a Supabase/upsert/edge-function
+// rejection. Mirrors the `EmbeddedAgentRoute` shape so the Sentry
+// dashboard stays consistent across the two surfaces.
+export type OnboardingRoute =
+  | "/questionnaire"
+  | "/path"
+  | "/template"
+  | "/summary"
+  | "/ai_fallback"
+
+export type OnboardingErrorKind =
+  | "display_name_taken"
+  | "auth_expired"
+  | "unknown"
+
+function classifyOnboardingError(e: unknown): OnboardingErrorKind {
+  if (isDisplayNameTakenError(e)) return "display_name_taken"
+  if (isAuthExpiredError(e)) return "auth_expired"
+  return "unknown"
+}
+
+/**
+ * Send an onboarding submit failure to Sentry with the same
+ * `feature` + `route` + `error_kind` taxonomy as the embedded-agent
+ * capture path. Lives here (not inline in `OnboardingPage`) so
+ * `@sentry/react` stays a single static import, preserving the
+ * dynamic-import code-split for `AppErrorBoundary`.
+ */
+export function captureOnboardingError(route: OnboardingRoute, e: unknown): void {
+  const kind = classifyOnboardingError(e)
+  const exception = e instanceof Error ? e : new Error(`onboarding ${route} ${kind}`)
+  Sentry.captureException(exception, {
+    tags: {
+      feature: "onboarding",
+      route,
+      error_kind: kind,
     },
   })
 }

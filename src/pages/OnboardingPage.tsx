@@ -4,7 +4,6 @@ import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import * as Sentry from "@sentry/react"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
@@ -15,9 +14,9 @@ import {
   AuthExpiredError,
   DisplayNameTakenError,
   isAuthExpiredError,
-  isDisplayNameTakenError,
 } from "@/hooks/profileErrors"
 import { supabase } from "@/lib/supabase"
+import { captureOnboardingError, type OnboardingRoute } from "@/lib/sentry"
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep"
 import {
   QuestionnaireStep,
@@ -31,33 +30,6 @@ import { EmbeddedAgentGeneratingStep } from "@/components/onboarding/EmbeddedAge
 import { EmbeddedAgentPreviewStep } from "@/components/onboarding/EmbeddedAgentPreviewStep"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
-
-// #348 — taxonomy of onboarding submit failures, mirrored as a Sentry
-// `error_kind` tag so the dashboard can slice the funnel-failure rate
-// instead of seeing opaque `UnhandledRejection`s. Keep this list aligned
-// with the typed errors thrown by `useCreateUserProfile` /
-// `useGenerateProgram` (display_name_taken, auth_expired, unknown).
-type OnboardingErrorKind = "display_name_taken" | "auth_expired" | "unknown"
-type OnboardingRoute = "/questionnaire" | "/path" | "/template" | "/summary" | "/ai_fallback"
-
-function classifyOnboardingError(e: unknown): OnboardingErrorKind {
-  if (isDisplayNameTakenError(e)) return "display_name_taken"
-  if (isAuthExpiredError(e)) return "auth_expired"
-  return "unknown"
-}
-
-function captureOnboardingError(route: OnboardingRoute, e: unknown): void {
-  const kind = classifyOnboardingError(e)
-  const exception =
-    e instanceof Error ? e : new Error(`onboarding ${route} ${kind}`)
-  Sentry.captureException(exception, {
-    tags: {
-      feature: "onboarding",
-      route,
-      error_kind: kind,
-    },
-  })
-}
 
 // T123 cutover: the legacy AI wizard (`AIGeneratingStep`/`AIProgramPreviewStep`,
 // `userProfileToGenerateProgramConstraints`, the `ai_constraints/_generating/_preview`

@@ -1,14 +1,21 @@
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest"
+import { afterEach, beforeEach, describe, it, expect, vi, type Mock } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { QuestionnaireStep, type QuestionnaireStepProps } from "./QuestionnaireStep"
 
-function renderStep(props: Partial<QuestionnaireStepProps> = {}) {
-  const onNext = props.onNext ?? vi.fn()
+interface RenderStepOptions {
+  onNext?: Mock
+  error?: QuestionnaireStepProps["error"]
+}
+
+function renderStep(options: RenderStepOptions = {}) {
+  const onNext = options.onNext ?? vi.fn()
   return {
     onNext,
-    ...renderWithProviders(<QuestionnaireStep {...props} onNext={onNext} />),
+    ...renderWithProviders(
+      <QuestionnaireStep onNext={onNext} error={options.error} />,
+    ),
   }
 }
 
@@ -85,21 +92,24 @@ describe("QuestionnaireStep", () => {
 
   // Regression for #348 — Sentry caught an `UnhandledRejection` because
   // `onSubmit` was sync and dropped the promise from `onNext`. The fix
-  // makes `onSubmit` async + awaits `onNext`, so RHF's internal try/catch
-  // absorbs the rejection and nothing escapes to `window.onunhandledrejection`.
+  // makes `onSubmit` async + try/catches the await on `onNext`, so the
+  // rejection never reaches `window.onunhandledrejection`. We listen on
+  // `window` because that's the exact mechanism Sentry's
+  // `auto.browser.global_handlers.onunhandledrejection` integration
+  // hooks into — same path as the production trace.
   describe("regression: #348 unhandled promise rejection", () => {
     const unhandled: unknown[] = []
-    const onUnhandled = (reason: unknown) => {
-      unhandled.push(reason)
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      unhandled.push(event.reason)
     }
 
     beforeEach(() => {
       unhandled.length = 0
-      process.on("unhandledRejection", onUnhandled)
+      window.addEventListener("unhandledrejection", onUnhandled)
     })
 
     afterEach(() => {
-      process.off("unhandledRejection", onUnhandled)
+      window.removeEventListener("unhandledrejection", onUnhandled)
     })
 
     it("does not leak an unhandled promise rejection when onNext rejects", async () => {
@@ -115,8 +125,9 @@ describe("QuestionnaireStep", () => {
       })
 
       // Let several macrotasks pass so any unhandled rejection has a
-      // chance to surface on `process` (Node's unhandledRejection event
-      // fires on the next macrotask after the promise settles unhandled).
+      // chance to surface on `window.onunhandledrejection` (jsdom +
+      // Node fire it on the next macrotask after the promise settles
+      // unhandled).
       for (let tick = 0; tick < 5; tick++) {
         await new Promise((resolve) => setTimeout(resolve, 0))
       }
