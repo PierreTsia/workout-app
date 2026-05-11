@@ -329,3 +329,24 @@ Deno.test("empty catalog (no exercises match the filters) returns 404 without bi
   assertEquals(calls.callGemini.length, 0)
   assertEquals(calls.logBillableCall.length, 0)
 })
+
+Deno.test("garbage LLM output is silently repaired by backfill (no retry, one billable row)", async () => {
+  // Pins the analysis behind removing the retry path: even when the
+  // model returns 100% invalid ids, `validateAndRepair`'s backfill
+  // produces a usable workout from the catalog. So a "retry on empty
+  // result" branch was unreachable in practice — see PR #347 review C4.
+  const { deps, calls } = makeDeps({
+    callGemini: async () => ({
+      exerciseIds: ["bogus-1", "bogus-2", "bogus-3"],
+      rationale: "all wrong",
+    }),
+  })
+
+  const res = await handleGenerateQuickWorkout(makeRequest(VALID_BODY), deps)
+  assertEquals(res.status, 200)
+  const body = (await res.json()) as { exerciseIds: string[]; repaired: boolean }
+  assertEquals(body.exerciseIds.length > 0, true, "backfill must yield a non-empty workout")
+  assertEquals(body.repaired, true, "response surfaces that the LLM output was repaired")
+  assertEquals(calls.callGemini.length, 1, "one Gemini call total — no hidden retry")
+  assertEquals(calls.logBillableCall.length, 1)
+})

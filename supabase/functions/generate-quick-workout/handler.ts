@@ -1,10 +1,14 @@
 // Pure handler for the generate-quick-workout Edge function (T127, #342).
 // Replaces the inline `Deno.serve` body of the soon-to-die `generate-workout/`
-// function. Logic is byte-equivalent to the legacy path with two delta:
+// function. Logic deltas vs. the legacy path:
 //   1. quota source flips from `'workout'` → `'quick_workout'` (T126)
-//   2. `logBillableCall` runs in `finally` (log_everything), not only on
-//      success — closes the quota-bypass gap where a Gemini failure
-//      previously gave the user a free retry.
+//   2. every Gemini call is wrapped in `callGeminiWithBilling`, which
+//      always credits the cap in `finally` — log_everything per call,
+//      not per request, so a future second model call can't silently
+//      undercount (PR #347 review C4). Today there's only one call:
+//      `validateAndRepair`'s backfill produces a usable workout even
+//      when the LLM returns 100% garbage, so the "retry on empty
+//      result" branch the legacy code carried was unreachable.
 //
 // The deps interface keeps the handler sink-agnostic: tests inject fakes
 // for auth / quota / fetches / model / log; `index.ts` wires the real
@@ -106,6 +110,39 @@ function jsonResponse(data: unknown, status = 200): Response {
   })
 }
 
+/**
+ * Wraps a Gemini call so the cap is credited *per call* — success or
+ * failure — in `finally`. Centralizing the rule here means any future
+ * second model invocation automatically pays its way; a previous
+ * version of this handler called `logBillableCall` only on the success
+ * path and would have undercounted any retry leg (PR #347, C4).
+ *
+ * Cap-write failures are logged but never thrown: a Postgres blip
+ * shouldn't turn a working generation into a 5xx. The same pragmatic
+ * trade-off the legacy generate-workout function made.
+ */
+async function callGeminiWithBilling(
+  prompt: string,
+  deps: Pick<GenerateQuickWorkoutDeps, "callGemini" | "logBillableCall" | "log">,
+  ctx: { userId: string; requestId: string },
+): Promise<{ exerciseIds: string[]; rationale: string }> {
+  try {
+    return await deps.callGemini(prompt)
+  } finally {
+    await deps.logBillableCall(ctx.userId).catch((logErr) => {
+      deps.log({
+        level: "warn",
+        feature: "generate-quick-workout",
+        route: "/generate",
+        error_kind: "log_billable_call_failed",
+        request_id: ctx.requestId,
+        user_id: ctx.userId,
+        message: logErr instanceof Error ? logErr.message : String(logErr),
+      })
+    })
+  }
+}
+
 export async function handleGenerateQuickWorkout(
   req: Request,
   deps: GenerateQuickWorkoutDeps,
@@ -171,21 +208,8 @@ export async function handleGenerateQuickWorkout(
 
   let llmOutput: { exerciseIds: string[]; rationale: string }
   try {
-    llmOutput = await deps.callGemini(prompt)
+    llmOutput = await callGeminiWithBilling(prompt, deps, { userId, requestId })
   } catch (err) {
-    // log_everything: quota row persists even on model failure so retry
-    // budgets aren't bypassed by triggering provider errors.
-    await deps.logBillableCall(userId).catch((logErr) => {
-      deps.log({
-        level: "warn",
-        feature: "generate-quick-workout",
-        route: "/generate",
-        error_kind: "log_billable_call_failed",
-        request_id: requestId,
-        user_id: userId,
-        message: logErr instanceof Error ? logErr.message : String(logErr),
-      })
-    })
     deps.log({
       level: "error",
       feature: "generate-quick-workout",
@@ -202,50 +226,18 @@ export async function handleGenerateQuickWorkout(
     )
   }
 
-  // ---- 6. Validate and repair (with one retry on catastrophic failure) ----
+  // ---- 6. Validate and repair ----
+  // No retry leg: `validateAndRepair`'s backfill yields a usable list as
+  // long as `catalog.length > 0` (gated above), so the legacy "empty →
+  // re-prompt" branch was dead code that just confused the billing
+  // story. If we ever need a real retry, route it through
+  // `callGeminiWithBilling` so the cap stays in sync.
   const catalogIds = catalog.map((e) => ({ id: e.id, muscle_group: e.muscle_group }))
-  let result = validateAndRepair(llmOutput.exerciseIds, catalogIds, targetCount)
-  let rationale = llmOutput.rationale.trim()
-
-  if (result.exerciseIds.length === 0) {
-    const retryPrompt =
-      prompt +
-      "\n\nPREVIOUS ATTEMPT FAILED: all returned exerciseIds were invalid. " +
-      "Return a JSON object with exerciseIds (valid catalog IDs only) and rationale, as specified above."
-
-    try {
-      const retryOutput = await deps.callGemini(retryPrompt)
-      rationale = retryOutput.rationale.trim()
-      result = validateAndRepair(retryOutput.exerciseIds, catalogIds, targetCount)
-    } catch (err) {
-      await deps.logBillableCall(userId).catch(() => {})
-      deps.log({
-        level: "error",
-        feature: "generate-quick-workout",
-        route: "/generate",
-        error_kind: "model_failure_retry",
-        request_id: requestId,
-        user_id: userId,
-        message: err instanceof Error ? err.message : String(err),
-      })
-      return jsonResponse({ error: "model_failure" }, 502)
-    }
-
-    if (result.exerciseIds.length === 0) {
-      await deps.logBillableCall(userId).catch(() => {})
-      return jsonResponse(
-        { error: "AI generation failed after retry — no valid exercises returned" },
-        422,
-      )
-    }
-  }
-
-  // ---- 7. Success path: log + return ----
-  await deps.logBillableCall(userId)
+  const result = validateAndRepair(llmOutput.exerciseIds, catalogIds, targetCount)
 
   return jsonResponse({
     exerciseIds: result.exerciseIds,
     repaired: result.repaired,
-    rationale,
+    rationale: llmOutput.rationale.trim(),
   })
 }
