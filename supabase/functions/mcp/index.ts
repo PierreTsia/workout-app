@@ -69,7 +69,11 @@ async function handleRpc(
       if (!tool) return fail(id, -32601, `Unknown tool: ${name}`)
 
       const client = await resolveAuth(authHeader)
-      const result = await tool.handler(args, client)
+      // Pass the raw bearer so handlers that need the user id can decode it
+      // locally instead of round-tripping through GoTrue (which rejects the
+      // ES256 tokens the local Supabase CLI mints — see ToolDefinition).
+      const accessToken = authHeader.replace(/^Bearer /i, "") || null
+      const result = await tool.handler(args, client, accessToken)
       return ok(id, result)
     }
 
