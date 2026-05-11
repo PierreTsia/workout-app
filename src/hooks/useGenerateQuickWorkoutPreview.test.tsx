@@ -140,9 +140,49 @@ describe("useGenerateQuickWorkoutPreview", () => {
     })
 
     expect(fromExercises).toHaveBeenCalledWith("exercises")
-    expect(workout!.exercises.map((e) => e.exercise.id).sort()).toEqual(
-      ["ex-bench", "ex-missing"].sort(),
+    // Exact (not sorted) — preserves the order the model returned. Sorting
+    // here would hide the bug PR #347 review C5 flagged.
+    expect(workout!.exercises.map((e) => e.exercise.id)).toEqual([
+      "ex-bench",
+      "ex-missing",
+    ])
+  })
+
+  it("hydrates in the AI's exerciseIds order, even when pool + fetch outputs are interleaved", async () => {
+    // The model's ordering is intent (warm-up first, compound second, etc.);
+    // the legacy hydrateExercises returned `[...fromPool, ...fetched]` which
+    // silently reordered the workout. PR #347 review C5 — locked in here.
+    invoke.mockResolvedValueOnce({
+      data: {
+        exerciseIds: ["ex-missing-a", "ex-bench", "ex-missing-b"],
+        rationale: "",
+      },
+      error: null,
+    })
+    const fetchedA = makeExercise("ex-missing-a", { name: "Warm-up" })
+    const fetchedB = makeExercise("ex-missing-b", { name: "Cool-down" })
+    fromExercises.mockReturnValueOnce({
+      select: () => ({
+        // Postgres returns rows in arbitrary order — emulate that by
+        // returning the fetched ids reversed vs. the AI ordering.
+        in: vi.fn().mockResolvedValueOnce({ data: [fetchedB, fetchedA], error: null }),
+      }),
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useGenerateQuickWorkoutPreview({ exercisePool: [POOL_BENCH] }),
     )
+
+    let workout: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      workout = await result.current.mutateAsync(CONSTRAINTS)
+    })
+
+    expect(workout!.exercises.map((e) => e.exercise.id)).toEqual([
+      "ex-missing-a",
+      "ex-bench",
+      "ex-missing-b",
+    ])
   })
 
   it("maps invoke error with 429 context to quota_exceeded", async () => {

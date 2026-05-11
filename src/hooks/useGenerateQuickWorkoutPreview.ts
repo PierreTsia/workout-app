@@ -81,22 +81,29 @@ async function hydrateExercises(
   exerciseIds: string[],
   pool: Exercise[],
 ): Promise<Exercise[]> {
-  // First pass: serve from the local query cache where we can; collect the
-  // ids the cache misses for a single bulk fetch.
-  const poolMap = new Map(pool.map((e) => [e.id, e]))
-  const fromPool = exerciseIds
-    .map((id) => poolMap.get(id))
-    .filter((ex): ex is Exercise => ex !== undefined)
+  // The AI's `exerciseIds` order is intent (warm-up → compound → accessory,
+  // pull-then-push, etc.). Rebuild the result by iterating that list and
+  // looking each id up in the unified (pool || fetched) map — keeps the
+  // model's sequencing intact even when Postgres returns the fallback
+  // fetch in arbitrary order. PR #347 review C5.
+  const poolMap = new Map(pool.map((e) => [e.id, e] as const))
   const missingIds = exerciseIds.filter((id) => !poolMap.has(id))
 
-  if (missingIds.length === 0) return fromPool
+  const fetched: Exercise[] = await (async () => {
+    if (missingIds.length === 0) return []
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("*")
+      .in("id", missingIds)
+    if (error) throw error
+    return (data ?? []) as Exercise[]
+  })()
 
-  const { data: fetched, error } = await supabase
-    .from("exercises")
-    .select("*")
-    .in("id", missingIds)
-  if (error) throw error
-  return [...fromPool, ...((fetched ?? []) as Exercise[])]
+  const fetchedMap = new Map(fetched.map((ex) => [ex.id, ex] as const))
+
+  return exerciseIds
+    .map((id) => poolMap.get(id) ?? fetchedMap.get(id))
+    .filter((ex): ex is Exercise => ex !== undefined)
 }
 
 function buildWorkoutName(constraints: GeneratorConstraints): string {
