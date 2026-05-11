@@ -7,7 +7,6 @@ import {
   buildGeneratedExercise,
   collectCandidateExerciseIds,
 } from "../lib/exerciseConversion.ts"
-import { decodeJwt } from "../../_shared/aiQuota.ts"
 
 const TOOL_DESCRIPTION = `Create a single ad-hoc workout day in the user's GymLogic account (Quick Workout flow).
 
@@ -100,7 +99,7 @@ export const createWorkoutDay: ToolDefinition = {
     },
     required: ["label", "exercises"],
   },
-  async handler(args, supabase, accessToken) {
+  async handler(args, supabase) {
     if (!supabase) {
       return {
         content: [{ type: "text", text: "Authentication required — please provide a valid Bearer token." }],
@@ -154,20 +153,14 @@ export const createWorkoutDay: ToolDefinition = {
       buildGeneratedExercise(p, byId.get(p.exerciseId)!),
     )
 
-    // GoTrue can't verify the asymmetric (ES256) JWTs the local Supabase
-    // CLI mints, so `supabase.auth.getUser()` is unreliable in e2e. We decode
-    // the bearer locally (trust the `sub` claim) and rely on PostgREST + RLS
-    // to enforce the real auth boundary on the workout_days INSERT below:
-    // if the JWT signature is bad, the insert 401s. This is the same pattern
-    // `commit-quick-workout`'s edge handler already uses.
-    const jwt = accessToken ? decodeJwt(accessToken) : null
-    if (!jwt?.sub) {
+    const { data: userData, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !userData?.user) {
       return {
         content: [{ type: "text", text: "Could not identify the authenticated user." }],
         isError: true,
       }
     }
-    const userId = jwt.sub
+    const userId = userData.user.id
 
     // Preview-first by default: dry_run defaults to true, mirroring
     // `create_program`. Callers that intend to write must pass `dry_run: false`

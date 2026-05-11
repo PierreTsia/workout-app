@@ -41,18 +41,9 @@ export interface ToolDefinition {
     properties: Record<string, unknown>
     required?: string[]
   }
-  /**
-   * `accessToken` is the raw bearer the user (or external client) sent. We
-   * forward it because `supabase.auth.getUser()` requires the JWT to be
-   * verifiable by GoTrue — which fails for the asymmetric (ES256) tokens
-   * the local Supabase CLI mints, breaking write tools in e2e (see PR #347).
-   * Handlers can `decodeJwt(accessToken)` to read the `sub` claim and rely
-   * on PostgREST + RLS to enforce the actual auth boundary on writes.
-   */
   handler: (
     args: Record<string, unknown>,
     supabase: SupabaseClient | null,
-    accessToken?: string | null,
   ) => Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }>
 }
 

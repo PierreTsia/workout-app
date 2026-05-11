@@ -32,26 +32,6 @@ const ID_USER = "11111111-1111-4111-8111-111111111111"
 const ID_BENCH = "dddddddd-1111-4111-8111-dddddddddddd"
 const ID_PUSHUP = "dddddddd-2222-4222-8222-dddddddddddd"
 
-/**
- * Forge a minimal unsigned JWT with the given `sub`. The handler decodes it
- * via `decodeJwt` (which only reads payload claims, never verifies the
- * signature — by design, PostgREST is the real auth boundary). A fixed
- * placeholder header + signature keeps the shape valid for `String.split('.')`.
- */
-function jwtForUser(sub: string): string {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }))
-    .replace(/=+$/, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-  const payload = btoa(JSON.stringify({ sub }))
-    .replace(/=+$/, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-  return `${header}.${payload}.unverified-signature`
-}
-
-const TEST_JWT = jwtForUser(ID_USER)
-
 interface CatalogRow {
   id: string
   name: string
@@ -305,7 +285,6 @@ Deno.test("write produces a workout_days row with locked Quick Workout fields", 
       dry_run: false,
     },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(
@@ -352,7 +331,6 @@ Deno.test("write produces workout_exercises rows: bare UUID gets defaults, objec
       dry_run: false,
     },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(
@@ -415,7 +393,6 @@ Deno.test("does not issue any write to the programs table (active program stays 
   const result = await createWorkoutDay.handler(
     { label: "Quick Day", exercises: [ID_BENCH], dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(result.isError, undefined, "happy-path call should succeed")
@@ -444,7 +421,6 @@ Deno.test("dry_run: true returns rendered prescription lines and writes nothing"
       dry_run: true,
     },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(
@@ -485,7 +461,6 @@ Deno.test("rejects missing label with structured error", async () => {
   const result = await createWorkoutDay.handler(
     { exercises: [ID_BENCH], dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(result.isError, true, "missing label must surface as a tool error")
@@ -501,7 +476,6 @@ Deno.test("rejects empty exercises[] with structured error", async () => {
   const result = await createWorkoutDay.handler(
     { label: "Quick Day", exercises: [], dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(result.isError, true, "empty exercises must surface as a tool error")
@@ -522,7 +496,6 @@ Deno.test("rejects > 20 exercises (Quick Workout cap, narrower than create_progr
   const result = await createWorkoutDay.handler(
     { label: "Quick Day", exercises: overCap, dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(result.isError, true, "21 exercises must surface as a tool error")
@@ -542,7 +515,6 @@ Deno.test("surfaces invalid UUID via validateDayExercises (not raw Postgres)", a
   const result = await createWorkoutDay.handler(
     { label: "Quick Day", exercises: ["not-a-uuid"], dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   assertEquals(result.isError, true, "invalid UUID input must surface as a tool error")
@@ -584,7 +556,6 @@ Deno.test("rolls back the inserted workout_days row when workout_exercises inser
   const result = await createWorkoutDay.handler(
     { label: "Quick Push Day", exercises: [ID_BENCH, ID_PUSHUP], dry_run: false },
     mock as unknown as SupabaseClient,
-    TEST_JWT,
   )
 
   // Tool surfaces a structured error to the agent.
