@@ -3,14 +3,25 @@ import { useNavigate } from "react-router-dom"
 import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { toast } from "sonner"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
 import { useOnboardingResume } from "@/hooks/useOnboardingResume"
+import {
+  AuthExpiredError,
+  DisplayNameTakenError,
+  isAuthExpiredError,
+} from "@/hooks/profileErrors"
+import { supabase } from "@/lib/supabase"
+import { captureOnboardingError, type OnboardingRoute } from "@/lib/sentry"
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep"
-import { QuestionnaireStep } from "@/components/onboarding/QuestionnaireStep"
+import {
+  QuestionnaireStep,
+  type QuestionnaireStepError,
+} from "@/components/onboarding/QuestionnaireStep"
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
 import { TemplateRecommendationStep } from "@/components/onboarding/TemplateRecommendationStep"
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
@@ -65,6 +76,12 @@ export function OnboardingPage() {
   const [step, setStep] = useState<WizardStep>("welcome")
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<ProgramTemplate | null>(null)
+  // #348 — surfaced as the inline alert on the questionnaire step. Set
+  // on typed mutation failures so the user sees an actionable message
+  // (display-name collision, generic "try again") instead of a silent
+  // wizard. Cleared on next submit attempt.
+  const [questionnaireError, setQuestionnaireError] =
+    useState<QuestionnaireStepError | null>(null)
 
   const createProfile = useCreateUserProfile()
   const generateProgram = useGenerateProgram()
@@ -114,8 +131,39 @@ export function OnboardingPage() {
 
   const isGenerating = generateProgram.isPending
 
+  // #348 — auth-expired branch: tell the user, sign them out, send them
+  // back to /login. Reused by every onboarding handler so the UX is the
+  // same whether Supabase rejects on the questionnaire upsert or later
+  // on the generate-program edge function.
+  async function handleAuthExpired() {
+    toast.error(t("errorAuthExpired"))
+    await supabase.auth.signOut()
+    navigate("/login", { replace: true })
+  }
+
   async function handleQuestionnaireComplete(data: QuestionnaireOutput) {
-    await createProfile.mutateAsync(data)
+    setQuestionnaireError(null)
+    try {
+      await createProfile.mutateAsync(data)
+    } catch (e) {
+      captureOnboardingError("/questionnaire", e)
+      if (e instanceof AuthExpiredError) {
+        await handleAuthExpired()
+        return
+      }
+      if (e instanceof DisplayNameTakenError) {
+        setQuestionnaireError({
+          title: t("questionnaireErrorDisplayNameTakenTitle"),
+          body: t("questionnaireErrorDisplayNameTakenBody"),
+        })
+        return
+      }
+      setQuestionnaireError({
+        title: t("questionnaireErrorTitle"),
+        body: t("questionnaireErrorBody"),
+      })
+      return
+    }
     trackStepCompleted("questionnaire")
 
     const profile: UserProfile = {
@@ -139,20 +187,46 @@ export function OnboardingPage() {
     setStep("path")
   }
 
-  async function completeBlankProgramAndGoToBuilder(programPath: "self_directed" | "guided") {
+  // #348 — generic safety net for the post-questionnaire mutations
+  // (`generateProgram.mutateAsync` from blank/template/AI-fallback
+  // paths). These don't have an inline error UI like the questionnaire
+  // — the user has already moved past `<QuestionnaireStep>` — so we
+  // surface failures via `toast.error` and keep the wizard on the
+  // current step so they can retry. The Sentry tag still differentiates
+  // by `route` so the dashboard can pinpoint which path is bleeding.
+  function handleProgramGenerationError(route: OnboardingRoute, e: unknown) {
+    captureOnboardingError(route, e)
+    if (isAuthExpiredError(e)) {
+      void handleAuthExpired()
+      return
+    }
+    toast.error(t("errorGenericProgram"))
+  }
+
+  async function completeBlankProgramAndGoToBuilder(
+    programPath: "self_directed" | "guided",
+    route: OnboardingRoute,
+  ) {
     if (!profileData) return
-    const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
-    trackEvent.mutate({
-      eventType: "program_created",
-      payload: { program_id: programId, template_id: null, path: programPath },
-    })
-    navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
+    try {
+      const programId = await generateProgram.mutateAsync({
+        template: null,
+        profile: profileData,
+      })
+      trackEvent.mutate({
+        eventType: "program_created",
+        payload: { program_id: programId, template_id: null, path: programPath },
+      })
+      navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
+    } catch (e) {
+      handleProgramGenerationError(route, e)
+    }
   }
 
   async function handleSelfDirected() {
     if (!profileData) return
     trackStepCompleted("path")
-    await completeBlankProgramAndGoToBuilder("self_directed")
+    await completeBlankProgramAndGoToBuilder("self_directed", "/path")
   }
 
   async function handleSkipTemplate() {
@@ -161,31 +235,42 @@ export function OnboardingPage() {
       eventType: "onboarding_skipped",
       payload: { from_step: 4 },
     })
-    await completeBlankProgramAndGoToBuilder("guided")
+    await completeBlankProgramAndGoToBuilder("guided", "/template")
   }
 
   async function handleAIFallbackBlank() {
     if (!profileData) return
-    const programId = await generateProgram.mutateAsync({ template: null, profile: profileData })
-    trackEvent.mutate({
-      eventType: "program_created",
-      payload: { program_id: programId, template_id: null, path: "self_directed" },
-    })
-    navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
+    try {
+      const programId = await generateProgram.mutateAsync({
+        template: null,
+        profile: profileData,
+      })
+      trackEvent.mutate({
+        eventType: "program_created",
+        payload: { program_id: programId, template_id: null, path: "self_directed" },
+      })
+      navigate(`/builder/${programId}`, { replace: true, state: { from: "/onboarding" } })
+    } catch (e) {
+      handleProgramGenerationError("/ai_fallback", e)
+    }
   }
 
   async function handleConfirmProgram() {
     if (!profileData || !selectedTemplate) return
     trackStepCompleted("program_summary")
-    const programId = await generateProgram.mutateAsync({
-      template: selectedTemplate,
-      profile: profileData,
-    })
-    trackEvent.mutate({
-      eventType: "program_created",
-      payload: { program_id: programId, template_id: selectedTemplate.id, path: "guided" },
-    })
-    navigate("/", { replace: true })
+    try {
+      const programId = await generateProgram.mutateAsync({
+        template: selectedTemplate,
+        profile: profileData,
+      })
+      trackEvent.mutate({
+        eventType: "program_created",
+        payload: { program_id: programId, template_id: selectedTemplate.id, path: "guided" },
+      })
+      navigate("/", { replace: true })
+    } catch (e) {
+      handleProgramGenerationError("/summary", e)
+    }
   }
 
   if (isGenerating) {
@@ -242,7 +327,10 @@ export function OnboardingPage() {
         )}
 
         {step === "questionnaire" && (
-          <QuestionnaireStep onNext={handleQuestionnaireComplete} />
+          <QuestionnaireStep
+            onNext={handleQuestionnaireComplete}
+            error={questionnaireError}
+          />
         )}
 
         {step === "path" && (

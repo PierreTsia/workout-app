@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
+import { AuthExpiredError, DisplayNameTakenError } from "@/hooks/profileErrors"
 import type { UserGoal, UserExperience, UserEquipment, UserGender } from "@/types/onboarding"
 
 interface ProfileInput {
@@ -56,7 +57,18 @@ export function useCreateUserProfile() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        // #348 — translate Postgres / PostgREST codes into typed errors
+        // so the parent can branch UX (inline alert vs sign-out
+        // redirect) and Sentry capture by `error_kind` instead of
+        // landing in `window.onunhandledrejection` as an opaque
+        // PostgrestError. Mirrors the mapping in `useUpdateUserProfile`.
+        if (error.code === "23505") throw new DisplayNameTakenError()
+        if (error.code === "PGRST301" || error.code === "42501") {
+          throw new AuthExpiredError()
+        }
+        throw error
+      }
       return data
     },
   })

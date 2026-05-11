@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react"
+import { isAuthExpiredError, isDisplayNameTakenError } from "@/hooks/profileErrors"
 import type { EmbeddedAgentError } from "@/hooks/useEmbeddedAgentThread"
 
 let initialized = false
@@ -61,5 +62,61 @@ export function captureEmbeddedAgentError(
       route,
       error_kind: error.kind,
     },
+  })
+}
+
+// #348 — onboarding routes that can hit a Supabase/upsert/edge-function
+// rejection. Mirrors the `EmbeddedAgentRoute` shape so the Sentry
+// dashboard stays consistent across the two surfaces.
+export type OnboardingRoute =
+  | "/questionnaire"
+  | "/path"
+  | "/template"
+  | "/summary"
+  | "/ai_fallback"
+
+export type OnboardingErrorKind =
+  | "display_name_taken"
+  | "auth_expired"
+  | "unknown"
+
+function classifyOnboardingError(e: unknown): OnboardingErrorKind {
+  if (isDisplayNameTakenError(e)) return "display_name_taken"
+  if (isAuthExpiredError(e)) return "auth_expired"
+  return "unknown"
+}
+
+/**
+ * Send an onboarding submit failure to Sentry with the same
+ * `feature` + `route` + `error_kind` taxonomy as the embedded-agent
+ * capture path. Lives in `lib/sentry.ts` (not inline in
+ * `OnboardingPage`) so every Sentry capture site goes through one
+ * helper module — same convention as `captureEmbeddedAgentError`.
+ *
+ * Note on bundling: `@sentry/react` is currently statically imported
+ * here and pulled in eagerly by the EmbeddedAgent components, so the
+ * dynamic-import in `AppErrorBoundary` no longer code-splits Sentry
+ * out of the main bundle (Vite warns about this on build). Reworking
+ * the helpers to lazy-load `@sentry/react` is a separate architectural
+ * call — out of scope for #348.
+ */
+export function captureOnboardingError(route: OnboardingRoute, e: unknown): void {
+  const kind = classifyOnboardingError(e)
+  const isErr = e instanceof Error
+  const exception = isErr ? e : new Error(`onboarding ${route} ${kind}`)
+  Sentry.captureException(exception, {
+    tags: {
+      feature: "onboarding",
+      route,
+      error_kind: kind,
+    },
+    // When `e` isn't an Error subclass (e.g. a raw Supabase
+    // PostgrestError, which is a plain object with `{code, details,
+    // hint, message}`), wrapping it in `new Error(...)` above strips
+    // the structured fields. Attach the original payload as `extra` so
+    // the Sentry issue panel still shows `code` / `details` / `hint`
+    // for the `unknown` kind — that's exactly the observability gap
+    // that made the original Sentry event in #348 useless.
+    extra: isErr ? undefined : { original: e },
   })
 }

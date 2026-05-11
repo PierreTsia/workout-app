@@ -67,6 +67,13 @@
   "validation_positive": "Must be positive",
   "validation_number": "Must be a number",
 
+  "questionnaireErrorTitle": "We couldn't save your answers",
+  "questionnaireErrorBody": "Something went wrong on our side. Try again in a moment.",
+  "questionnaireErrorDisplayNameTakenTitle": "We couldn't set up your profile",
+  "questionnaireErrorDisplayNameTakenBody": "An account with a similar name already exists. Try again, and if it keeps failing you can change your display name later from your Account page.",
+  "errorAuthExpired": "Your session expired. Please sign in again.",
+  "errorGenericProgram": "We couldn't create your program. Try again in a moment.",
+
   "embeddedAgent": {
     "title": "Build your program with the assistant",
     "statusLine": "Thread {{idShort}} · {{status}}",
