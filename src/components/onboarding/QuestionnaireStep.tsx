@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Form } from "@/components/ui/form"
 import {
@@ -11,11 +13,22 @@ import {
 } from "./schema"
 import { QuestionnaireTrainingFields } from "./QuestionnaireTrainingFields"
 
-interface QuestionnaireStepProps {
-  onNext: (data: QuestionnaireOutput) => void
+export interface QuestionnaireStepError {
+  title: string
+  body: string
 }
 
-export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
+export interface QuestionnaireStepProps {
+  onNext: (data: QuestionnaireOutput) => void | Promise<void>
+  // When set, renders an inline destructive alert above the submit button.
+  // The parent (`OnboardingPage`) owns this state and feeds it from a
+  // try/catch around `createProfile.mutateAsync` (#348). This component
+  // stays dumb on purpose — Sentry capture / toast / sign-out redirect
+  // all live in the parent so each error class can branch its UX.
+  error?: QuestionnaireStepError | null
+}
+
+export function QuestionnaireStep({ onNext, error }: QuestionnaireStepProps) {
   const { t } = useTranslation("onboarding")
 
   const form = useForm<QuestionnaireValues>({
@@ -33,8 +46,22 @@ export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
     },
   })
 
-  function onSubmit(data: QuestionnaireValues) {
-    onNext(toQuestionnaireOutput(data))
+  // #348 — onSubmit is async + awaits onNext + swallows the rejection.
+  // Previously this was sync and dropped the promise from `onNext`,
+  // which let a raw Supabase PostgrestError escape to
+  // `window.onunhandledrejection` and showed up in Sentry as opaque
+  // `UnhandledRejection`s. RHF v7's `handleSubmit` does NOT swallow
+  // async errors — it re-rejects, which React then fails to await on
+  // the form's `onSubmit` prop, producing the same unhandled-rejection
+  // class. The try/catch here is the belt: the parent's mutation hook
+  // already owns the error (it's exposed via the `error` prop and via
+  // `mutation.error` for Sentry/toast in the parent's catch).
+  async function onSubmit(data: QuestionnaireValues) {
+    try {
+      await onNext(toQuestionnaireOutput(data))
+    } catch {
+      // Intentionally swallowed — parent handles UX + telemetry.
+    }
   }
 
   return (
@@ -47,7 +74,20 @@ export function QuestionnaireStep({ onNext }: QuestionnaireStepProps) {
 
         <QuestionnaireTrainingFields />
 
-        <Button type="submit" size="lg" className="mt-auto w-full">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{error.title}</AlertTitle>
+            <AlertDescription>{error.body}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-auto w-full"
+          disabled={form.formState.isSubmitting}
+        >
           {t("next")}
         </Button>
       </form>
