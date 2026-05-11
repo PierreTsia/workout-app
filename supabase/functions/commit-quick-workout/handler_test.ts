@@ -16,7 +16,10 @@
 //   9. MCP success but no workout_day_id in payload → 502 invalid_response.
 //  10. Happy path → 200 with workout_day_id.
 
-import { assertEquals, assertExists } from "jsr:@std/assert@1.0.6"
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   handleCommitQuickWorkout,
   type CommitQuickWorkoutDeps,
