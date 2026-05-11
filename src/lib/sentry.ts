@@ -95,12 +95,21 @@ function classifyOnboardingError(e: unknown): OnboardingErrorKind {
  */
 export function captureOnboardingError(route: OnboardingRoute, e: unknown): void {
   const kind = classifyOnboardingError(e)
-  const exception = e instanceof Error ? e : new Error(`onboarding ${route} ${kind}`)
+  const isErr = e instanceof Error
+  const exception = isErr ? e : new Error(`onboarding ${route} ${kind}`)
   Sentry.captureException(exception, {
     tags: {
       feature: "onboarding",
       route,
       error_kind: kind,
     },
+    // When `e` isn't an Error subclass (e.g. a raw Supabase
+    // PostgrestError, which is a plain object with `{code, details,
+    // hint, message}`), wrapping it in `new Error(...)` above strips
+    // the structured fields. Attach the original payload as `extra` so
+    // the Sentry issue panel still shows `code` / `details` / `hint`
+    // for the `unknown` kind — that's exactly the observability gap
+    // that made the original Sentry event in #348 useless.
+    extra: isErr ? undefined : { original: e },
   })
 }
