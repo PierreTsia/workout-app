@@ -29,14 +29,14 @@ import {
   type DraftResult,
   type LastPreview,
 } from "./draft.ts"
-import type {
-  CatalogExercise,
-  RecentExercise,
-  UserProfile as ProgramUserProfile,
-} from "../generate-program/prompt.ts"
+import {
+  fetchCatalog,
+  fetchProfile as fetchProgramProfile,
+  fetchRecentHistory,
+} from "../_shared/programCatalog.ts"
 import { callGeminiProgram } from "../generate-program/gemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
-import { callMcpTool } from "../_shared/mcpClient.ts"
+import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
 import { emitLog } from "./log.ts"
 
@@ -172,82 +172,7 @@ async function loadProfile(
   return data as UserContextProfile
 }
 
-// ---------- generate-program parity helpers ----------
-//
-// These mirror the equivalents in `supabase/functions/generate-program/index.ts`.
-// We don't import them because that file uses `Deno.serve` at the top
-// level, which would double-register a handler if we pulled the module
-// in. Worth extracting to `_shared/programCatalog.ts` as a follow-up.
-
-async function fetchCatalog(
-  supabase: ReturnType<typeof createServiceClient>,
-  equipmentValues: string[],
-): Promise<CatalogExercise[]> {
-  const { data, error } = await supabase
-    .from("exercises")
-    .select("id, name_en, muscle_group, equipment, secondary_muscles, difficulty_level")
-    .in("equipment", equipmentValues)
-    .order("muscle_group")
-    .order("name")
-  if (error) throw error
-  return (data ?? []) as CatalogExercise[]
-}
-
-async function fetchProgramProfile(
-  supabase: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<ProgramUserProfile | null> {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("experience, goal, equipment, training_days_per_week, age, gender")
-    .eq("user_id", userId)
-    .maybeSingle()
-  if (error) throw error
-  return data as ProgramUserProfile | null
-}
-
-async function fetchRecentHistory(
-  supabase: ReturnType<typeof createServiceClient>,
-  userId: string,
-): Promise<{ exercises: RecentExercise[]; lastSessionAt: string | null }> {
-  const { data: sessions, error: sessionsError } = await supabase
-    .from("sessions")
-    .select("id, finished_at")
-    .eq("user_id", userId)
-    .not("finished_at", "is", null)
-    .order("finished_at", { ascending: false })
-    .limit(5)
-  if (sessionsError) throw sessionsError
-  if (!sessions || sessions.length === 0) return { exercises: [], lastSessionAt: null }
-
-  const lastSessionAt = (sessions[0] as { finished_at: string }).finished_at
-  const sessionIds = sessions.map((s: { id: string }) => s.id)
-
-  const { data: logs, error: logsError } = await supabase
-    .from("set_logs")
-    .select("exercise_id, exercise_name_snapshot")
-    .in("session_id", sessionIds)
-  if (logsError) throw logsError
-  if (!logs) return { exercises: [], lastSessionAt }
-
-  const seen = new Set<string>()
-  const unique: RecentExercise[] = []
-  for (const log of logs as RecentExercise[]) {
-    if (!seen.has(log.exercise_id)) {
-      seen.add(log.exercise_id)
-      unique.push(log)
-    }
-  }
-  return { exercises: unique, lastSessionAt }
-}
-
-function resolveMcpUrl(): string {
-  const explicit = Deno.env.get("MCP_URL")
-  if (explicit) return explicit
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")
-  if (!supabaseUrl) {
-    throw new Error("MCP_URL or SUPABASE_URL must be set")
-  }
-  return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/mcp`
-}
-
+// Catalog / profile / history readers live in `_shared/programCatalog.ts`
+// (extracted in T126, #342). The aliasing import above keeps the local
+// `fetchProgramProfile` name to avoid renaming every call site in this
+// file.

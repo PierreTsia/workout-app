@@ -5,9 +5,33 @@ export type AIGenerationSource =
   | "workout"
   | "embedded_chat"
   | "embedded_draft"
+  | "quick_workout"
 
 const QUOTA_WHITELISTED = 5
-const QUOTA_REGULAR = 5
+
+/**
+ * Per-source regular cap, evaluated over the rolling 30-day window. Replaces
+ * the old single `QUOTA_REGULAR = 5` constant when epic #342 introduced an
+ * independent budget for the Quick Workout flow.
+ *
+ * - `program` (5/30) and `workout` (5/30) keep their historical caps so
+ *   `generate-program` and the legacy `generate-workout` ship unchanged.
+ * - `quick_workout` (10/30) gets a higher cap because it's a smaller call
+ *   (single day instead of a multi-day program) and a more frequent action.
+ * - `embedded_chat` (40) and `embedded_draft` (3) are listed for
+ *   completeness — those quotas are enforced by `embedded-agent/quota.ts`,
+ *   not via `checkQuota`. Keeping them here makes the cap surface
+ *   exhaustive over `AIGenerationSource` so the type checker flags any
+ *   future source that forgets to declare a cap.
+ */
+export const QUOTA_REGULAR_BY_SOURCE: Record<AIGenerationSource, number> = {
+  program: 5,
+  workout: 5,
+  embedded_chat: 40,
+  embedded_draft: 3,
+  quick_workout: 10,
+}
+
 const WINDOW_WHITELISTED_MS = 24 * 60 * 60 * 1000
 const WINDOW_REGULAR_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -77,5 +101,5 @@ export async function checkQuota(
     return { allowed: (recentCount ?? 0) < QUOTA_WHITELISTED }
   }
 
-  return { allowed: totalCount < QUOTA_REGULAR }
+  return { allowed: totalCount < QUOTA_REGULAR_BY_SOURCE[source] }
 }

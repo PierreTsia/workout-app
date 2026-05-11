@@ -10,9 +10,9 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **ten tools** (eight reads, two writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **eleven tools** (eight reads, three writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
-GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it (`get_*` reads) or shape their program with `create_program` (new) or `update_program` (in-place edits — preserves training history).
+GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it (`get_*` reads), shape their multi-day plan with `create_program` (new) or `update_program` (in-place edits — preserves training history), or drop in a single ad-hoc session with `create_workout_day` (Quick Workout — leaves the active program untouched).
 
 ---
 
@@ -24,6 +24,8 @@ Trigger on any sport / training / fitness intent, in **French or English**:
 - "What did I train this week?", "Search for chest exercises with dumbbells", "How's my training volume?"
 - "Donne-moi un programme 4 jours full body" → design + `create_program`
 - "Remplace mon programme actuel par X" → `create_program` (replaces active program)
+- "Crée-moi une séance d'aujourd'hui" / "fais-moi un quick workout pecs/triceps maintenant" → `create_workout_day` (single session, **leaves the active program untouched**)
+- "I want a quick workout for today, just one session" / "give me a 30-min full-body workout right now" → `create_workout_day`
 - Ambiguous coaching prompts ("je stagne au bench") → start with `get_workout_history` + `get_training_stats`, then advise
 
 Do **not** invoke for:
@@ -57,13 +59,13 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 https://mcp.gymlogic.me/functions/v1/mcp
 ```
 
-All ten tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All eleven tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 
 ## Tool reference (intent → tool)
 
-Ten tools total — eight reads, two writes.
+Eleven tools total — eight reads, three writes.
 
 ### Catalog tools — which one when
 
@@ -88,8 +90,9 @@ The catalog has three tools that look superficially similar. Pick by **what you 
 | "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). For exploring an exercise the user is curious about (instructions, video, common mistakes). **Not** needed before `create_program` — `resolve_exercises` already returns what `create_program` needs. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
 | "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
-| "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Deactivates other active programs. |
+| "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. **Deactivates other active programs** — for a single ad-hoc session that should NOT replace the user's active program, use `create_workout_day` instead. |
 | "Rename / edit / tweak / swap exercises in a program (without losing history)" | `update_program` | In-place edit by `program_id`. **Preserves all logged sessions** — never recreate via `create_program` for an existing program (that orphans history). PATCH at top-level (`name?`, `days?`); inside `days`, declarative full-list with optional `id` per day (id present → UPDATE, id absent → INSERT, **omitted current day → DELETE**). `dry_run: true` by default. Removing days requires `confirm: true` along with `dry_run: false`. Mid-cycle edits surface a French warning. Atomicity is per-day → on failure, response includes `applied_days` / `failed_at` / `remaining_days` + retry guidance. |
+| "Quick workout for today / one ad-hoc session / extra workout this week" | `create_workout_day` | **Single ad-hoc day** — does NOT replace or deactivate the user's active program (the headline differentiator vs `create_program`). Persists as a standalone `workout_days` row with `program_id: NULL` and the visual identity emoji `⚡`. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Max **20 exercises** per call (narrower than `create_program`'s 40 — Quick Workout is one session, not a plan). Same exercise object form as `create_program` (bare UUIDs for catalog defaults, full object for explicit prescription). |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
 
@@ -256,6 +259,40 @@ create_program({
 5. Apply: same call with `dry_run: false`. Confirm: *"Program created and set active."*
 
 **Server defaults (bare UUID form)**: 3 sets × 10 reps × 90s rest, weight 0 (or duration mode for time-based exercises). The user can fine-tune in-app afterwards.
+
+### Pattern 5 — Quick ad-hoc workout (single session, leaves active program intact)
+
+User: *"crée-moi un quick workout pecs / triceps pour aujourd'hui, 4 exos"* / *"give me a quick chest+triceps session for today"*
+
+**Use `create_workout_day` — never `create_program`.** `create_program` would deactivate the user's running plan; `create_workout_day` adds an unattached `workout_days` row (`program_id: NULL`) and leaves their active program exactly as it was. The user keeps tomorrow's programmed session AND gets today's extra workout.
+
+1. (Optional) Read context: `get_training_stats` to spot weak points, `get_upcoming_workouts` to avoid clashing with what's programmed for today.
+2. Resolve exercise names in **one call**: `resolve_exercises({ queries: [...] })`. Same flow as Pattern 4 — the response carries `weight_convention` / `measurement_type` per match.
+3. Dry-run preview:
+
+```jsonc
+create_workout_day({
+  label: "Quick Push Day",   // 1..100 chars; shown in-app as the day's title
+  exercises: [
+    // Bare UUID → defaults (3 × 10, 0 kg, 90s rest)
+    "<uuid-bench>",
+    // Object form → explicit prescription (same shape as create_program)
+    { exercise_id: "<uuid-incline-db>", sets: 3, reps: "10", weight_kg: 22.5, rest_seconds: 90 },
+    { exercise_id: "<uuid-tri-pushdown>", sets: 4, reps: "12", weight_kg: 25, rest_seconds: 60 },
+    "<uuid-pushup>"           // bodyweight; weight_kg defaults to 0
+  ],
+  dry_run: true
+})
+// → { dry_run: true, workout_day: { label, emoji: "⚡", sort_order: 0, program_id: null,
+//      workout_exercises: [...], rendered: ["Bench Press — 3 × 10 × 0 kg total — 90s rest", ...] } }
+```
+
+4. Echo the `rendered` lines back to the user, get explicit consent. The propose-confirm-act handshake applies here too — agents that auto-write a Quick Workout will silently field-drop on long lists just like with `create_program`.
+5. Apply: same call with `dry_run: false`. Server returns `{ workout_day_id: <uuid>, exercises_count: <n> }`. The user's active program **stays active** — confirm this in your echo: *"Séance Quick Push créée. Ton programme actif reste inchangé."*
+
+**Limits**: max 20 exercises per call. Same input shape as `create_program`'s per-day `exercises` array (mix bare UUIDs and prescription objects freely). The server hardcodes `emoji: "⚡"` for visual identity in the app — agents do NOT pass `emoji`.
+
+**When to reach for `create_program` instead**: the user wants a *recurring* split (e.g. *"un programme push/pull/legs"*) — that's a multi-day plan with `program_id`, weekly cadence, and active-cycle semantics. Quick Workout is for one-off sessions only.
 
 ### Common write patterns (v0.3.0+ object form)
 
@@ -504,6 +541,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 | `Authentication required` / `401` | Auth expired or revoked. **Default fix — OAuth (most users):** ask the user to refresh the connection from their client's connectors UI (e.g. *Settings → Connectors → gymlogic → Disconnect, then reconnect*) to trigger a fresh OAuth flow. **Only if the user is explicitly on PAT auth** (token starts with `glp_`, set up manually): tell them the token is expired or revoked and to mint a fresh one at `/account/api-tokens`. When in doubt, recommend the OAuth refresh first — it's the right answer in the vast majority of cases. |
 | Ambiguous muscle group (`"chest"` vs `"Pectoraux"`) | `search_exercises` accepts both — pass the user's term as-is. For `get_training_stats` the filter must be the FR name (`Pectoraux`). |
 | User asks to *modify* one day, swap an exercise, or rename an existing program | Use `update_program` (NEVER `create_program` — that would orphan training history). Pull the current structure with `list_programs` → `get_program_details` first to read every day's `id` and exercise prescription, then send a patch that **echoes every current day** (modifying the affected ones; omitting any day = DELETE). Always `dry_run: true` first. |
+| User wants a one-off / extra session today without touching their active program ("quick workout maintenant", "an extra workout for today") | Use `create_workout_day` (NEVER `create_program` — that would deactivate the active program). Single day, max 20 exercises, `program_id: NULL`. See Pattern 5. |
 
 ---
 
@@ -517,6 +555,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 - **Difficulty**: `beginner`, `intermediate`, `advanced`.
 - **`create_program` limits**: max **14 days**, max **40 exercises per day**.
 - **`create_program.dry_run`**: defaults to `true`. **Always preview first.** Only set `false` after explicit user consent. The apply path deactivates other active programs and sets the new one active — there is no undo in-app beyond reverting via another `create_program` call.
+- **`create_workout_day` limits**: `label` 1..100 chars, max **20 exercises** per call. `emoji` is server-controlled (always `⚡`); do not pass it. `dry_run` defaults to `true` — preview first, apply on consent. The apply path adds a single standalone `workout_days` row and **never touches the user's active program**.
 
 ---
 

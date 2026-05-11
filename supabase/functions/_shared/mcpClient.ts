@@ -36,6 +36,28 @@ function extractToolText(result: McpToolResult): string {
     .join("\n")
 }
 
+/**
+ * Resolves the MCP server URL for server-to-server JSON-RPC calls. The
+ * order matters: `MCP_URL` overrides everything (test / staging / future
+ * external host), then we fall back to the internal Supabase function URL
+ * that lives next door. We intentionally do NOT use the public
+ * Cloudflare-fronted `https://mcp.gymlogic.me/...` host — same auth
+ * (Bearer JWT) but a CDN hop and public DNS dependency we don't need
+ * inside the data plane.
+ *
+ * Throws if neither env var is set so misconfiguration surfaces at boot,
+ * not on the first commit attempt.
+ */
+export function resolveMcpUrl(): string {
+  const explicit = Deno.env.get("MCP_URL")
+  if (explicit) return explicit
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")
+  if (!supabaseUrl) {
+    throw new Error("MCP_URL or SUPABASE_URL must be set")
+  }
+  return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/mcp`
+}
+
 export async function callMcpTool(args: CallMcpToolArgs): Promise<CallMcpToolResult> {
   try {
     const body = {
