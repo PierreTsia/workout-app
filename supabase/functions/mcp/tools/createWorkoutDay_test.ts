@@ -83,6 +83,12 @@ interface Filter {
 
 interface MockState {
   catalog: CatalogRow[]
+  /**
+   * When set, the mock returns an error from `workout_exercises.insert(...)`.
+   * Drives the rollback test (#3 review feedback): handler must compensate by
+   * deleting the orphan `workout_days` row before returning the error.
+   */
+  failOnExerciseInsertWith?: string
 }
 
 class MockSupabase {
@@ -137,6 +143,11 @@ class MockBuilder {
     return this
   }
 
+  delete(): this {
+    this.entry.op = "delete"
+    return this
+  }
+
   eq(col: string, val: unknown): this {
     this.filters.push({ type: "eq", col, val })
     return this
@@ -152,12 +163,12 @@ class MockBuilder {
     return this
   }
 
-  single(): Promise<{ data: unknown; error: null }> {
+  single(): Promise<{ data: unknown; error: unknown }> {
     this.entry.terminal = "single"
     return this.execute()
   }
 
-  maybeSingle(): Promise<{ data: unknown; error: null }> {
+  maybeSingle(): Promise<{ data: unknown; error: unknown }> {
     this.entry.terminal = "maybeSingle"
     return this.execute()
   }
@@ -165,13 +176,13 @@ class MockBuilder {
   // Thenable: enables `await builder` for chains without single/maybeSingle
   // (e.g. `from("workout_exercises").insert([...])` and bulk SELECTs).
   then<T1, T2>(
-    onFulfilled: (v: { data: unknown; error: null }) => T1 | PromiseLike<T1>,
+    onFulfilled: (v: { data: unknown; error: unknown }) => T1 | PromiseLike<T1>,
     onRejected?: (reason: unknown) => T2 | PromiseLike<T2>,
   ): Promise<T1 | T2> {
     return this.execute().then(onFulfilled, onRejected)
   }
 
-  private async execute(): Promise<{ data: unknown; error: null }> {
+  private async execute(): Promise<{ data: unknown; error: unknown }> {
     this.entry.filters = this.filters
     this.mock.callLog.push(this.entry)
 
@@ -194,6 +205,20 @@ class MockBuilder {
     }
 
     if (this.entry.op === "insert" && this.table === "workout_exercises") {
+      if (this.mock.state.failOnExerciseInsertWith) {
+        return {
+          data: null,
+          // Mirror PostgrestError shape (message field) so the handler's
+          // existing `exErr.message` access stays untouched.
+          error: { message: this.mock.state.failOnExerciseInsertWith },
+        }
+      }
+      return { data: null, error: null }
+    }
+
+    if (this.entry.op === "delete") {
+      // Rollback path: workout_exercises.delete().eq() and
+      // workout_days.delete().eq() both resolve to no-op success.
       return { data: null, error: null }
     }
 
@@ -512,4 +537,70 @@ Deno.test("surfaces invalid UUID via validateDayExercises (not raw Postgres)", a
 
   const writes = mock.callLog.filter((e) => e.op !== "select")
   assertEquals(writes.length, 0, "rejection must not write")
+})
+
+// ---------------------------------------------------------------------------
+// PR review #3 — partial-failure rollback.
+// `create_program` deletes its created rows when the workout_exercises insert
+// fails. `create_workout_day` must do the same — otherwise the user ends up
+// with an empty Quick Workout day cluttering the UI for every transient
+// `workout_exercises` insert error.
+// ---------------------------------------------------------------------------
+
+Deno.test("rolls back the inserted workout_days row when workout_exercises insert fails", async () => {
+  const mock = new MockSupabase({
+    catalog: [BENCH, PUSHUP],
+    failOnExerciseInsertWith: "duplicate key violates constraint",
+  })
+
+  const result = await createWorkoutDay.handler(
+    { label: "Quick Push Day", exercises: [ID_BENCH, ID_PUSHUP], dry_run: false },
+    mock as unknown as SupabaseClient,
+  )
+
+  // Tool surfaces a structured error to the agent.
+  assertEquals(result.isError, true, "exercise insert failure must surface as tool error")
+  assertStringIncludes(
+    result.content[0].text,
+    "duplicate key violates constraint",
+    "agent should see the underlying message so it can adapt",
+  )
+
+  // The day row got inserted then deleted. Order matters: the delete must
+  // come AFTER the failing exercise insert (we're compensating, not skipping).
+  const dayInsert = mock.callLog.findIndex(
+    (e) => e.op === "insert" && e.table === "workout_days",
+  )
+  const exInsert = mock.callLog.findIndex(
+    (e) => e.op === "insert" && e.table === "workout_exercises",
+  )
+  const dayDelete = mock.callLog.findIndex(
+    (e) => e.op === "delete" && e.table === "workout_days",
+  )
+
+  assertNotEquals(dayInsert, -1, "workout_days insert must have happened")
+  assertNotEquals(exInsert, -1, "workout_exercises insert must have been attempted")
+  assertNotEquals(
+    dayDelete,
+    -1,
+    "rollback: workout_days delete must be issued after the failed insert",
+  )
+  assertEquals(
+    dayInsert < exInsert && exInsert < dayDelete,
+    true,
+    `expected order insert(day) → insert(ex) → delete(day); got ${JSON.stringify(
+      mock.callLog.map((e) => `${e.op} ${e.table}`),
+    )}`,
+  )
+
+  // Delete targets the exact row we just inserted (id = mock-day-1).
+  const deleteEntry = mock.callLog.find(
+    (e) => e.op === "delete" && e.table === "workout_days",
+  )
+  const idFilter = deleteEntry?.filters.find((f) => f.col === "id")
+  assertEquals(
+    idFilter?.val,
+    "mock-day-1",
+    "rollback must scope the delete to the just-inserted day id",
+  )
 })

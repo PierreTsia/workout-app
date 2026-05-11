@@ -236,6 +236,14 @@ export const createWorkoutDay: ToolDefinition = {
 
     const { error: exErr } = await supabase.from("workout_exercises").insert(exerciseRows)
     if (exErr) {
+      // Compensating delete: without this the user keeps an empty "Quick
+      // Workout" day cluttering their UI for every transient
+      // `workout_exercises` insert failure. We mirror `create_program`'s
+      // rollback shape (delete dependent rows first, then the parent),
+      // ignoring the cleanup outcome — we still surface the original
+      // exercise-insert error to the agent. See PR #347 review.
+      await supabase.from("workout_exercises").delete().eq("workout_day_id", workoutDayId)
+      await supabase.from("workout_days").delete().eq("id", workoutDayId)
       return {
         content: [
           { type: "text", text: `Failed to insert workout exercises: ${exErr.message}` },
