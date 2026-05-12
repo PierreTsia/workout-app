@@ -87,6 +87,46 @@ AI branch (new):
 
 **What does NOT die in v1:** `file:supabase/functions/generate-program/` — that deletion sequences with #342 (Quick Workout migration). See below.
 
+### Bundle composition + token budget (v1 lock)
+
+The pre-loaded `bundle_context` shape, captured-once at thread open:
+
+```json
+{
+  "profile": { /* same UserContextProfile shape as onboarding: goal, experience, equipment, training_days_per_week, session_duration_minutes, age, weight_kg, gender */ },
+  "active_program": null | { "name": string, "days_count": number, "day_labels": string[], "exercises_per_day": number[] },
+  "training_stats_4w": {
+    "completed_sessions": number,
+    "top_muscle_groups": Array<{ "muscle": string, "volume_kg": number }>,  // top 3
+    "plateau_flags": Array<{ "exercise_id": string, "exercise_name": string, "weeks_stuck": number }>  // exercises with no PR in 4+ weeks, max ~5
+  }
+}
+```
+
+**No raw per-set data** in the bundle. Aggregates only.
+
+**Estimated token budget per system prompt** (Gemini 1.5 Flash tokenization):
+
+| Element | Tokens (rough) |
+|---|---|
+| Profile | ~100 |
+| Active program summary | ~150 (null if no active program) |
+| 4w training stats (aggregated) | ~200 |
+| **Bundle subtotal** | **~450** |
+| System prompt boilerplate (scope rules, locale, ready-signal spec) | ~250 |
+| Transcript (assistant + user turns) | grows linearly |
+
+The bundle is duplicated in every turn's system prompt. At 6-8 turns per conversation × ~450 bundle tokens = ~3K-4K bundle tokens per conversation — well within Gemini 1.5 Flash's 1M context window; cost-wise it's a ~3-5× increase over onboarding's bundle-less prompt but still negligible per conversation. Cap implication for `embedded_chat` (40 turns / 30d) is monitored, not bumped at v1 — see Open Tech Plan points.
+
+### Empty active program (v1 lock — Story 15)
+
+When the user reaches this flow without an active program (rare: manual deactivation, account state edge case, multi-device race), the bundle reports `active_program: null`. The `additional-program` system prompt has a **conditional clause**:
+
+- **If `active_program` is null**: agent opens with *"You don't have an active program right now — what kind of training plan are you looking to build?"* (FR / EN). Does NOT fabricate references to "your current plan" or "your recent training" (the stats still exist if the user trained on ad-hoc workouts, but the prompt focuses on intent rather than transition).
+- **Motivation gate still applies** — even without an active program, the user has a reason for being here. `other` remains a valid motivation. The flow does NOT redirect to onboarding or Template / Blank.
+
+This is the v1 default. Lock-in here so no ticket needs to re-litigate the empty-active-program shape.
+
 ### Sequencing with #342
 
 Both epics block deletion of `file:supabase/functions/generate-program/`. Per the issue body and the #342 Epic Brief:
@@ -176,7 +216,7 @@ This epic does **not** own the `generate-program/` directory deletion.
 | 24, 25 | Migration applied to a copy of production data leaves zero rows with NULL `purpose`; index swap completes in the same transaction; verified by migration test or staging dry-run |
 | 29 | `embedded_draft` cap is `10` in `QUOTA_REGULAR_BY_SOURCE` post-merge; inline comment cites this brief / ADR 0003 follow-ups |
 | 30 | After epic completion, `git ls-files src/hooks/useAIGenerateProgram.ts src/components/create-program/AI*.tsx` returns empty (excepting non-AI files in that directory if any) |
-| Tests scope | **One Playwright happy-path E2E** covering path-choice → AI → chat (1-2 turns) → motivation classified → draft → preview → commit, with Gemini mocked (no real LLM in CI). Plus the existing Embedded Agent test suite generalized to cover both `purpose` values. |
+| Tests scope | **Two mandatory Playwright E2Es** — (1) new happy-path for additional-program (path-choice → AI → chat → motivation → draft → preview → commit, Gemini mocked), (2) **onboarding regression gate** — the existing onboarding E2E must pass unchanged after the relocation + `prompt/` refactor (if no onboarding E2E exists today, this epic adds one). Plus the existing Embedded Agent test suite generalized to cover both `purpose` values. **Plus** a validator-rejection integration test (malformed ready signal → Edge rejects → event fires → counter increments → conversation continues). |
 
 Stories without a numeric measure are validated qualitatively via the story itself or by code review against the canonical glossary / ADR entries.
 
@@ -187,33 +227,38 @@ Stories without a numeric measure are validated qualitatively via the story itse
 **In scope:**
 
 1. **Schema migration** — add `purpose` (TEXT + CHECK, NOT NULL, default `'onboarding'`), `change_motivation` (TEXT + CHECK, nullable), `bundle_context` (JSONB, nullable) to `embedded_agent_threads`. Drop existing partial unique index, create `(user_id, purpose) WHERE status IN ('open','preview_ready')`. Single migration file, transactional.
-2. **`embedded-agent` Edge function changes** — handler routes by thread `purpose`; on thread open for `additional_program`, fetches and persists the **pre-loaded bundle** (profile + active program summary + 4-week training stats) into `bundle_context`; per-flow prompt builder selection; per-flow ready-signal validator (additional-program requires `motivation`); thread lifecycle (resume / staleness / abandonment) keyed on `(user, purpose)`.
+2. **`embedded-agent` Edge function changes** — handler routes by thread `purpose`; on thread open for `additional_program`, fetches and persists the **pre-loaded bundle** (profile + active program summary + 4-week training stats) into `bundle_context`; per-flow prompt builder selection; **per-flow ready-signal validator (server-side, code-level — not prompt-level)**: parses the `READY_FOR_PROGRAM_DRAFT: {...}` JSON line; for additional-program, rejects the signal (treats as `ready: false`) if `motivation` is absent or outside the controlled vocabulary; on rejection, the Edge handler **continues the conversation** (asks the model another turn) — it does NOT bubble an error to the UI. Rejection is observable via a counter (see Analytics §9). Thread lifecycle (resume / staleness / abandonment) keyed on `(user, purpose)`.
 3. **System prompt restructure** — `prompt.ts` → `prompt/{shared,onboarding,additional-program}.ts` + colocated tests. Additional-program scope rules explicitly require change-motivation elicitation; user-context builder consumes the bundle.
 4. **Bundle composition** — new server-side function (`buildAdditionalProgramBundle(userId)`) producing the snapshot shape. Lives in `embedded-agent/` or `_shared/` per Tech Plan.
 5. **Quota bump** — `embedded_draft: 3 → 10` in `file:supabase/functions/_shared/aiQuota.ts`, with rationale comment.
 6. **Component relocation + parameterization** — `EmbeddedAgent{Chat,Preview,Generating}Step.tsx` (and tests) move from `src/components/onboarding/` to `src/components/embedded-agent/`. New props: `namespace: 'onboarding' | 'create-program'`, `purpose: ThreadPurpose`, plus existing fallback handlers stay. `useTranslation` consumes the new `namespace` prop instead of hardcoded `"onboarding"`.
 7. **PWA wiring change** — `CreateProgramPage`'s AI branch swaps `ai-constraints` / `ai-generating` / `ai-preview` for the relocated Embedded Agent components, passing `purpose="additional_program"` + `namespace="create-program"`. `OnboardingPage`'s imports update; same components, new path, explicit `purpose="onboarding"` + `namespace="onboarding"`.
 8. **`useEmbeddedAgentThread` resume logic** — accept a `purpose` parameter; route Edge requests with it; resume the matching `(user, purpose)` row.
-9. **Analytics extension** — enumerated per event below; reuse existing event names where possible, **add one new event** (`embedded_agent_preview_committed`) symmetric with the existing reject event:
+9. **Analytics extension** — enumerated per event below; reuse existing event names where possible, **add two new events** (`embedded_agent_preview_committed` symmetric with the existing reject event, plus `embedded_agent_motivation_classification_failed` to isolate validator rejections from genuine `other` motivations):
 
    | Event | Status today | This epic |
    |---|---|---|
    | `embedded_agent_message_sent` | exists (`EmbeddedAgentChatStep`) | add `purpose` payload field |
    | `embedded_agent_draft_triggered` | exists (`EmbeddedAgentGeneratingStep`) | add `purpose` payload field |
    | `embedded_agent_preview_rejected` | exists (`EmbeddedAgentPreviewStep`) | add `purpose` payload field |
-   | `embedded_agent_preview_committed` | **does not exist** — onboarding tracks the milestone via `program_created` | **new event**, payload: `{ thread_id, program_id, purpose, motivation?, locale }`. Fired by `EmbeddedAgentPreviewStep` on successful commit (both flows). Onboarding still fires `program_created` for the full-onboarding-funnel milestone (additive, no removal). |
+   | `embedded_agent_preview_committed` | **does not exist** — onboarding tracks the milestone via `program_created` | **new event**, payload: `{ thread_id, program_id, purpose, motivation?, locale, validator_rejection_count? }`. Fired by `EmbeddedAgentPreviewStep` on successful commit (both flows). Onboarding still fires `program_created` for the full-onboarding-funnel milestone (additive, no removal). |
+   | `embedded_agent_motivation_classification_failed` | **does not exist** | **new event**, fired by the Edge handler each time the additional-program ready-signal validator rejects a signal (malformed JSON, missing `motivation`, value outside controlled vocab). Payload: `{ thread_id, purpose, attempt_number, rejection_reason: 'missing' \| 'invalid_value' \| 'malformed_json' }`. Lets us answer "is `other` rate inflated by validator rejections or genuine 'no specific reason'?" without joining tables. |
    | `onboarding_step_completed` (wizard step names) | exists (`OnboardingPage`) | **unchanged** — onboarding-specific. The additional-program flow uses its own page-level step tracking pattern at `CreateProgramPage` if needed (Tech Plan decides — likely a simple `create_program_step_completed` mirror, scope-flagged below). |
    | `program_created` | exists (`OnboardingPage`) | **unchanged** for onboarding. Additional-program flow does **not** fire this; the commit milestone is captured by the new `embedded_agent_preview_committed` event. |
+
+   **Validator rejection counter on the thread row.** In addition to the per-rejection event, persist a `validator_rejection_count` integer on `embedded_agent_threads` (incremented on every rejection, included in the `committed` event payload). Belt-and-suspenders — the event stream is the analytics source of truth, the column is the easy-debug breadcrumb on a stuck thread. Tech Plan decides exact column name + whether it's a real column or a field inside `bundle_context`.
 
    **Open Tech Plan question (deferred from this brief):** does `CreateProgramPage` need a `create_program_step_completed` event family for funnel parity with onboarding's `onboarding_step_completed`? Default position: **no** for v1 — `embedded_agent_*` events plus a per-flow `program_created` equivalent are enough for the funnel; revisit if drop-off analytics need finer granularity.
 10. **i18n** — extend the `create-program` namespace with the chat / motivation / commit copy keys (FR + EN). The `locale` flow on every Edge request stays as-is.
 11. **Decommission** — delete `file:src/hooks/useAIGenerateProgram.ts`, `file:src/components/create-program/AIGeneratingStep.tsx`, `file:src/components/create-program/AIProgramPreviewStep.tsx`, `file:src/components/create-program/AIConstraintStep.tsx`, and the obsolete wizard step types in `file:src/pages/CreateProgramPage.tsx`.
 12. **Glossary patches** — already landed in this session (`Additional program creation flow`, `Change motivation (Additional program creation)`, extended `Embedded Agent thread` + `Embedded Agent thread lifecycle`, sharpened `Embedded Agent onboarding (v1)`). No further glossary churn unless tickets surface a gap.
 13. **Tests** — explicit minimum bar:
-    - **Server-side unit / integration:** thread purpose routing; bundle composition (happy + empty-active-program + missing-profile edge cases); per-flow ready-signal validators (both flows, both happy and error paths); migration smoke test against a copy of staging data (no NULL `purpose` rows post-migration); index relaxation does not regress onboarding's "one active thread per user-per-purpose" guarantee.
+    - **Server-side unit / integration:** thread purpose routing; bundle composition (happy + empty-active-program + missing-profile edge cases); per-flow ready-signal validators (both flows, both happy and error paths — including the additional-program validator's rejection of malformed / missing-`motivation` / invalid-`motivation` payloads); validator rejection counter increments correctly; migration smoke test against a copy of staging data (no NULL `purpose` rows post-migration); index relaxation does not regress the "one active thread per user-per-purpose" guarantee.
     - **Client-side:** `EmbeddedAgentChatStep` renders with each `namespace` prop; existing onboarding tests pass post-relocation; new `purpose` prop is wired through.
     - **Resume logic:** `useEmbeddedAgentThread` returns the right row for `(user, purpose)`; doesn't return cross-purpose rows.
-    - **E2E (mandatory, scoped):** **one** Playwright happy-path test that runs `/library/programs/create` → AI → chat (1-2 user turns, mocked Gemini response classifying motivation) → ready signal → preview → commit, asserting a `programs` row + `workout_days` + `workout_exercises` rows land via `create_program`. **Gemini MUST be mocked** — never hit the real provider in CI.
+    - **E2E — additional-program (new, mandatory):** **one** Playwright happy-path test that runs `/library/programs/create` → AI → chat (1-2 user turns, mocked Gemini response classifying motivation) → ready signal → preview → commit, asserting a `programs` row + `workout_days` + `workout_exercises` rows land via `create_program`. **Gemini MUST be mocked** — never hit the real provider in CI.
+    - **E2E — onboarding regression gate (mandatory, non-negotiable):** the existing onboarding Playwright happy-path E2E **must pass unchanged** after the component relocation (`onboarding/` → `embedded-agent/`) and the `prompt/` folder refactor. If onboarding does not have an E2E today, this epic adds one — the relocation is the load-bearing risk and we won't ship blind. Tech Plan confirms which existing test(s) cover the path and whether new coverage is needed before merge.
+    - **Validator rejection observability test:** one integration test where the mocked Gemini deliberately returns a malformed / motivation-less ready signal — assert the Edge handler rejects it, fires `embedded_agent_motivation_classification_failed`, increments the thread's `validator_rejection_count`, and continues the conversation with another assistant turn (no UI error).
 
 **Out of scope:**
 
@@ -276,10 +321,10 @@ Additional locked-in points not in the ADRs but in the glossary:
 
 ## Open points for Tech Plan
 
-- **Bundle composition shape** — exact JSONB shape for `bundle_context`: column-by-column profile snapshot vs. the existing `UserContextProfile` shape; active program summary fields (just `{ name, days_count, day_labels[], exercises_per_day[] }` or richer?); 4-week stats fields (`{ completed_sessions, top_muscle_groups[], plateau_flags[] }` — what counts as a plateau flag?). Decide and document.
+- **Bundle composition shape — fine-tuning** — the shape is locked in "Architectural shape" above; Tech Plan resolves the remaining details: what counts as a `plateau_flag` (no PR in 4w? specific threshold?); how `top_muscle_groups` is computed (total volume? working-set count?); whether `weight_kg` in profile is included as-is or null-handled.
 - **`bundle_context` storage location** — JSONB column on `embedded_agent_threads` (locked) but: do we also persist a denormalized `purpose` on `ai_generation_log` rows so analytics queries don't need a join? Cheap denormalization; recommended yes.
 - **Bundle builder location** — `supabase/functions/embedded-agent/lib/bundle.ts` or `_shared/`? If `_shared/`, future flows (bilan mensuel) can reuse. Default: `_shared/embeddedAgentBundle.ts`.
-- **Empty active-program handling** — Story 15: a user with no active program (deleted / deactivated manually). Bundle reports `active_program: null`; agent's system prompt needs to handle this without fabricating ("I see you're on..."). Specify the prompt rule + a test.
+- **`embedded_chat` cap monitoring** — bundle-bearing conversations cost ~3-5× the per-turn tokens onboarding pays (see token budget table). Cap stays at 40 turns / 30d at v1; the open question is *whether we bump it post-launch* if a measurable cohort hits it. Decide observability: a cap-hit event already exists? if not, this epic adds `embedded_agent_quota_exhausted { source, purpose, cap }`.
 - **Component prop API** — exact prop signature for the relocated components: `namespace` strongly typed (`'onboarding' | 'create-program'`)? `purpose` as a separate prop, or derived from `namespace`? Default: pass both explicitly — they're related but not redundant (e.g. future flow may share `create-program` namespace but have a different `purpose`).
 - **Fallback handler routing** — additional-program flow's `onFallbackTemplate` / `onFallbackBlank` routes back to `CreateProgramPage`'s path-choice step; onboarding's routes to its own path-choice. Concrete handlers per page.
 - **i18n key naming** — convention for additional-program chat keys under the `create-program` namespace (e.g. `create-program:ai.chat.*`, `create-program:ai.motivation.*`, `create-program:ai.preview.*`). Settle and document.
