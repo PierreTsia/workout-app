@@ -18,17 +18,23 @@ const QUOTA_WHITELISTED = 5
  *   `generate-program` and the legacy `generate-workout` ship unchanged.
  * - `quick_workout` (10/30) gets a higher cap because it's a smaller call
  *   (single day instead of a multi-day program) and a more frequent action.
- * - `embedded_chat` (40) and `embedded_draft` (3) are listed for
+ * - `embedded_chat` (40) and `embedded_draft` (10) are listed for
  *   completeness — those quotas are enforced by `embedded-agent/quota.ts`,
  *   not via `checkQuota`. Keeping them here makes the cap surface
  *   exhaustive over `AIGenerationSource` so the type checker flags any
  *   future source that forgets to declare a cap.
+ *
+ * `embedded_draft` was bumped 3 → 10 in T131 (#343) — when both the
+ * onboarding AND the additional-program flow share the cap, an engaged
+ * user creates ~6 programs/year × ~1.5 drafts each (with regenerates)
+ * ≈ ~9/year peak demand. 3/24h saturates fast for repeat creators;
+ * 10/24h leaves headroom while staying bounded. See ADR 0003.
  */
 export const QUOTA_REGULAR_BY_SOURCE: Record<AIGenerationSource, number> = {
   program: 5,
   workout: 5,
   embedded_chat: 40,
-  embedded_draft: 3,
+  embedded_draft: 10,
   quick_workout: 10,
 }
 

@@ -23,12 +23,20 @@ const FAILURE_THRESHOLD = 2
 
 const FAILURE_KEY_PREFIX = "embedded_agent_failures::"
 
+// T135 (#343) — see EmbeddedAgentChatStep for rationale on the constrained
+// namespace / purpose vocabulary.
+type EmbeddedAgentI18nNamespace = "onboarding" | "create-program"
+type EmbeddedAgentPurpose = "onboarding" | "additional_program"
+
 interface EmbeddedAgentPreviewStepProps {
   locale: "en" | "fr"
   onRegenerate: () => void
   onCommitted: (programId: string) => void
   onFallbackTemplate: () => void
   onFallbackBlank: () => void
+  // T135 (#343) — see EmbeddedAgentChatStep for context.
+  purpose: EmbeddedAgentPurpose
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }
 
 export function EmbeddedAgentPreviewStep({
@@ -37,11 +45,13 @@ export function EmbeddedAgentPreviewStep({
   onCommitted,
   onFallbackTemplate,
   onFallbackBlank,
+  purpose,
+  i18nNamespace,
 }: EmbeddedAgentPreviewStepProps) {
-  const { t } = useTranslation("onboarding")
-  const thread = useThread(locale)
-  const commit = useCommitPreview()
-  const reject = useRejectPreview()
+  const { t } = useTranslation(i18nNamespace)
+  const thread = useThread(purpose, locale)
+  const commit = useCommitPreview(purpose)
+  const reject = useRejectPreview(purpose)
   const trackEvent = useTrackEvent()
 
   const threadId = thread.data?.thread_id ?? null
@@ -49,8 +59,24 @@ export function EmbeddedAgentPreviewStep({
 
   const handleConfirm = useCallback(async () => {
     try {
-      const { program_id } = await commit.mutateAsync()
-      onCommitted(program_id)
+      const result = await commit.mutateAsync()
+      // T136 (#343) — fire `embedded_agent_preview_committed` on success
+      // so the funnel can join end-to-end (open → message → draft →
+      // commit) without joining on thread_id. `motivation` is null for
+      // onboarding (the motivation gate is additional-program-only); we
+      // still send it so downstream queries can count "with motivation /
+      // without motivation" without forking on purpose.
+      trackEvent.mutate({
+        eventType: "embedded_agent_preview_committed",
+        payload: {
+          thread_id: result.thread_id,
+          program_id: result.program_id,
+          purpose,
+          motivation: result.motivation,
+          locale,
+        },
+      })
+      onCommitted(result.program_id)
     } catch (err) {
       // Bump on every commit failure — the cap on this is the threshold,
       // not the underlying error type. The mutation's `error` state still
@@ -61,7 +87,7 @@ export function EmbeddedAgentPreviewStep({
       // already handles it).
       captureEmbeddedAgentError("/commit", err as EmbeddedAgentError)
     }
-  }, [commit, onCommitted, bumpFailureCount])
+  }, [commit, onCommitted, bumpFailureCount, trackEvent, purpose, locale])
 
   const handleRegenerate = useCallback(async () => {
     // T123 analytics: fire on intent (before the network call) so a
@@ -69,7 +95,9 @@ export function EmbeddedAgentPreviewStep({
     // about "user said no to this draft", not "/reject succeeded".
     trackEvent.mutate({
       eventType: "embedded_agent_preview_rejected",
-      payload: { thread_id: threadId, failure_count: failureCount },
+      // T136 (#343) — `purpose` joined the payload so the funnel can
+      // split rejections by flow.
+      payload: { thread_id: threadId, failure_count: failureCount, purpose },
     })
     try {
       await reject.mutateAsync()
@@ -78,7 +106,7 @@ export function EmbeddedAgentPreviewStep({
       // route the user away from the now-stale preview screen.
       onRegenerate()
     }
-  }, [reject, onRegenerate, trackEvent, threadId, failureCount])
+  }, [reject, onRegenerate, trackEvent, threadId, failureCount, purpose])
 
   if (thread.isLoading) {
     return <p className="px-6 py-8 text-sm text-muted-foreground">…</p>
@@ -125,7 +153,7 @@ export function EmbeddedAgentPreviewStep({
         </CardHeader>
 
         <CardContent className="flex-1 overflow-y-auto">
-          <PreviewBody preview={preview} />
+          <PreviewBody preview={preview} i18nNamespace={i18nNamespace} />
         </CardContent>
 
         {commit.error ? (
@@ -133,6 +161,7 @@ export function EmbeddedAgentPreviewStep({
             error={commit.error}
             onRetry={handleConfirm}
             disabled={commit.isPending}
+            i18nNamespace={i18nNamespace}
           />
         ) : null}
 
@@ -140,6 +169,7 @@ export function EmbeddedAgentPreviewStep({
           <FallbackEscape
             onTemplate={onFallbackTemplate}
             onBlank={onFallbackBlank}
+            i18nNamespace={i18nNamespace}
           />
         ) : null}
 
@@ -198,7 +228,13 @@ interface DayDescriptor {
   lines?: string[]
 }
 
-function PreviewBody({ preview }: { preview: DraftPreview }) {
+function PreviewBody({
+  preview,
+  i18nNamespace,
+}: {
+  preview: DraftPreview
+  i18nNamespace: EmbeddedAgentI18nNamespace
+}) {
   // Build a unified day descriptor list so the expand/collapse logic
   // doesn't fork between rendered and args-only paths. The Array.isArray
   // guard also catches legacy persisted threads where `rendered` was stored
@@ -230,6 +266,7 @@ function PreviewBody({ preview }: { preview: DraftPreview }) {
           day={day}
           isExpanded={expandedDay === i}
           onToggle={() => setExpandedDay(expandedDay === i ? null : i)}
+          i18nNamespace={i18nNamespace}
         />
       ))}
     </div>
@@ -241,10 +278,11 @@ interface DayCardProps {
   day: DayDescriptor
   isExpanded: boolean
   onToggle: () => void
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }
 
-function DayCard({ index, day, isExpanded, onToggle }: DayCardProps) {
-  const { t } = useTranslation("onboarding")
+function DayCard({ index, day, isExpanded, onToggle, i18nNamespace }: DayCardProps) {
+  const { t } = useTranslation(i18nNamespace)
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <button
@@ -303,12 +341,14 @@ function CommitErrorBanner({
   error,
   onRetry,
   disabled,
+  i18nNamespace,
 }: {
   error: EmbeddedAgentError
   onRetry: () => void
   disabled: boolean
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }) {
-  const { t } = useTranslation("onboarding")
+  const { t } = useTranslation(i18nNamespace)
   // We display the same friendly title for both `commit_failed` and
   // `no_active_thread` here — the distinction matters for navigation
   // (the page wrapper handles bouncing back to chat on no_active_thread)
@@ -340,11 +380,13 @@ function CommitErrorBanner({
 function FallbackEscape({
   onTemplate,
   onBlank,
+  i18nNamespace,
 }: {
   onTemplate: () => void
   onBlank: () => void
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }) {
-  const { t } = useTranslation("onboarding")
+  const { t } = useTranslation(i18nNamespace)
   return (
     <Alert className="mx-4 my-2">
       <AlertTitle>{t("embeddedAgentPreview.stuckTitle")}</AlertTitle>

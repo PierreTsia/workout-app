@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest"
-import { validateProgram } from "../../supabase/functions/generate-program/validate"
-import type { GenerateProgramResponse } from "../../supabase/functions/generate-program/types"
+import {
+  validateProgram,
+  type GenerateProgramResponse,
+} from "../../supabase/functions/_shared/programDraft"
 
 const catalog = [
   { id: "c1", muscle_group: "chest" },

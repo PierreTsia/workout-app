@@ -4,7 +4,7 @@ import {
   buildUserContext,
   parseReadySignal,
   type UserContextProfile,
-} from "./prompt.ts"
+} from "./onboarding.ts"
 
 function makeProfile(overrides: Partial<UserContextProfile> = {}): UserContextProfile {
   return {

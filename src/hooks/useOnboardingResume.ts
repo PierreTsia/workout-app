@@ -52,9 +52,14 @@ export function useOnboardingResume(): OnboardingResumeState {
   const { data: threadStatus, isLoading: threadLoading } = useQuery<EmbeddedThreadStatus>({
     queryKey: [...RESUME_THREAD_QUERY_KEY, user?.id],
     queryFn: async () => {
+      // T131 (#343) — filter on `purpose='onboarding'` so this resume probe
+      // ignores additional-program threads (post-onboarding flow). Without
+      // the filter, a user with an active additional_program thread would
+      // be bounced back into the onboarding chat on every page load.
       const { data, error } = await supabase
         .from("embedded_agent_threads")
         .select("status")
+        .eq("purpose", "onboarding")
         .in("status", ["open", "preview_ready"])
         .order("updated_at", { ascending: false })
         .limit(1)

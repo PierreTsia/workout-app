@@ -76,6 +76,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -104,6 +106,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -143,6 +147,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -174,6 +180,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -201,6 +209,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -224,6 +234,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -244,6 +256,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -261,7 +275,14 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
   it("clicking Confirm fires /commit with confirm:true and calls onCommitted with the program_id", async () => {
     invokeMock
       .mockResolvedValueOnce({ data: PREVIEW_THREAD, error: null })
-      .mockResolvedValueOnce({ data: { program_id: "prog-xyz" }, error: null })
+      .mockResolvedValueOnce({
+        // T136 (#343) — handler now returns thread_id + motivation
+        // alongside program_id so the client can fire the new
+        // `embedded_agent_preview_committed` event with correlation
+        // identifiers.
+        data: { program_id: "prog-xyz", thread_id: "thread-pr-1", motivation: null },
+        error: null,
+      })
       .mockResolvedValueOnce({
         data: { ...PREVIEW_THREAD, status: "committed", last_preview: null },
         error: null,
@@ -271,6 +292,8 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={onCommitted}
         onFallbackTemplate={noop}
@@ -283,7 +306,51 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
 
     await waitFor(() => expect(onCommitted).toHaveBeenCalledWith("prog-xyz"))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "commit", confirm: true },
+      body: { action: "commit", purpose: "onboarding", confirm: true },
+    })
+  })
+
+  // T136 (#343) — the dedicated commit event keeps the funnel
+  // joinable end-to-end and carries `motivation` for the
+  // additional-program flow.
+  it("fires embedded_agent_preview_committed on successful commit with thread_id + program_id + motivation + purpose + locale", async () => {
+    invokeMock
+      .mockResolvedValueOnce({ data: PREVIEW_THREAD, error: null })
+      .mockResolvedValueOnce({
+        data: { program_id: "prog-AP", thread_id: "thread-pr-1", motivation: "plateau" },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { ...PREVIEW_THREAD, status: "committed", last_preview: null },
+        error: null,
+      })
+
+    renderWithProviders(
+      <EmbeddedAgentPreviewStep
+        locale="en"
+        purpose="additional_program"
+        i18nNamespace="create-program"
+        onRegenerate={noop}
+        onCommitted={noop}
+        onFallbackTemplate={noop}
+        onFallbackBlank={noop}
+      />,
+    )
+
+    const confirmBtn = await screen.findByRole("button", { name: /Activate this program/i })
+    await userEvent.click(confirmBtn)
+
+    await waitFor(() => {
+      expect(trackEventMock).toHaveBeenCalledWith({
+        eventType: "embedded_agent_preview_committed",
+        payload: {
+          thread_id: "thread-pr-1",
+          program_id: "prog-AP",
+          purpose: "additional_program",
+          motivation: "plateau",
+          locale: "en",
+        },
+      })
     })
   })
 
@@ -304,6 +371,8 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={onCommitted}
         onFallbackTemplate={noop}
@@ -351,6 +420,8 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={onRegenerate}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -364,7 +435,9 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     await userEvent.click(regenBtn)
 
     await waitFor(() => expect(onRegenerate).toHaveBeenCalledTimes(1))
-    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", { body: { action: "reject" } })
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "reject", purpose: "onboarding" },
+    })
   })
 
   // T123 analytics: fire on intent (before /reject) so the funnel records
@@ -382,6 +455,8 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -397,7 +472,12 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     await waitFor(() => {
       expect(trackEventMock).toHaveBeenCalledWith({
         eventType: "embedded_agent_preview_rejected",
-        payload: { thread_id: "thread-pr-1", failure_count: 0 },
+        payload: {
+          thread_id: "thread-pr-1",
+          failure_count: 0,
+          // T136 (#343) — `purpose` joined the payload.
+          purpose: "onboarding",
+        },
       })
     })
   })
@@ -423,6 +503,8 @@ describe("EmbeddedAgentPreviewStep — 2-failure escape", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={onFallbackTemplate}

@@ -57,7 +57,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread discl001/)
 
     // The card surfaces both the retention claim AND the verbatim warning.
@@ -80,7 +85,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(
       await screen.findByText(/Thread deadbeef · open/),
@@ -104,7 +114,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(await screen.findByText(/Resumed conversation/i)).toBeInTheDocument()
   })
@@ -120,7 +135,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     await screen.findByText(/Thread fresh/)
     expect(screen.queryByText(/Resumed conversation/i)).not.toBeInTheDocument()
@@ -129,7 +149,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("renders the offline banner instead of waiting forever when navigator.onLine is false", () => {
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(screen.getByText(/You're offline/i)).toBeInTheDocument()
   })
@@ -143,7 +168,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("renders a thread-error banner (not offline) when /thread fails while online", async () => {
     invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(
       await screen.findByText(/couldn't load your conversation/i),
@@ -160,7 +190,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("captures /thread fetch errors to Sentry with the right tags (not the offline path)", async () => {
     invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     await screen.findByText(/couldn't load your conversation/i)
     await waitFor(() => {
@@ -189,7 +224,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(await screen.findByText(/Thread old1/)).toBeInTheDocument()
 
@@ -200,7 +240,7 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "abandon" },
+        body: { action: "abandon", purpose: "onboarding" },
       })
     })
 
@@ -216,7 +256,14 @@ describe("EmbeddedAgentChatStep", () => {
       .mockResolvedValueOnce({ data: { ok: true }, error: null })
 
     const onBack = vi.fn()
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={onBack} />)
+    renderWithProviders(
+      <EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={onBack}
+      />,
+    )
 
     await screen.findByText(/Thread th-1234/)
 
@@ -225,7 +272,7 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "abandon" },
+        body: { action: "abandon", purpose: "onboarding" },
       })
     })
     expect(onBack).toHaveBeenCalledTimes(1)
@@ -247,7 +294,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0001/)
 
     const user = userEvent.setup()
@@ -259,7 +311,12 @@ describe("EmbeddedAgentChatStep", () => {
     expect(await screen.findByText(/Tell me more about your back/i)).toBeInTheDocument()
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "send", content: "My back hurts when I squat.", locale: "en" },
+      body: {
+        action: "send",
+        purpose: "onboarding",
+        content: "My back hurts when I squat.",
+        locale: "en",
+      },
     })
   })
 
@@ -280,7 +337,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread anal0001/)
 
     const user = userEvent.setup()
@@ -293,9 +355,142 @@ describe("EmbeddedAgentChatStep", () => {
         payload: {
           thread_id: "anal0001-0000-0000-0000-000000000000",
           ready_for_draft: true,
+          // T136 (#343) — `purpose` joined the payload so the funnel can
+          // split onboarding vs additional_program without joining on
+          // thread_id.
+          purpose: "onboarding",
         },
       })
     })
+  })
+
+  // T136 (#343) — additional-program /send may surface
+  // `validator_rejection` when the model emits a ready signal with
+  // missing/invalid motivation or out-of-bounds overrides. The chat
+  // surface fires a dedicated event so we can monitor the
+  // motivation-classification pain points without grepping logs.
+  it("fires embedded_agent_motivation_classification_failed when /send response carries validator_rejection (additional_program)", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "valrej01-0000-0000-0000-000000000000",
+          status: "open",
+          resumed: false,
+          messages: [],
+          bundle_summary: { sessions_per_week: 3, active_program_name: "PPL" },
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          assistant: { content: "Could you tell me why you want a new program?", ts: "2026-05-12T12:00:00Z" },
+          ready_for_draft: false,
+          validator_rejection: { reason: "invalid_override", field: "daysPerWeek" },
+        },
+        error: null,
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+      locale="en"
+      purpose="additional_program"
+      i18nNamespace="create-program"
+      onBack={() => {}}
+    />)
+    await screen.findByText(/Thread valrej01/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "I want 14 days/wk")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    await waitFor(() => {
+      expect(trackEventMock).toHaveBeenCalledWith({
+        eventType: "embedded_agent_motivation_classification_failed",
+        payload: {
+          thread_id: "valrej01-0000-0000-0000-000000000000",
+          purpose: "additional_program",
+          rejection_reason: "invalid_override",
+          field: "daysPerWeek",
+          locale: "en",
+        },
+      })
+    })
+  })
+
+  // T136 (#343) — the additional-program flow surfaces an inline chip so
+  // the user knows the assistant is iterating on their existing program.
+  // Onboarding threads never receive `bundle_summary` (server contract),
+  // so the chip stays hidden there.
+  it("renders the bundle summary chip with active program when purpose='additional_program' and bundle_summary is present", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "chip0001-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: false,
+        messages: [],
+        bundle_summary: { sessions_per_week: 4, active_program_name: "Hypertrophy 4-day", top_muscle_group: "back" },
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+      locale="en"
+      purpose="additional_program"
+      i18nNamespace="create-program"
+      onBack={() => {}}
+    />)
+    await screen.findByText(/Thread chip0001/)
+
+    expect(
+      await screen.findByText(/Building on top of Hypertrophy 4-day · 4 sessions\/wk/i),
+    ).toBeInTheDocument()
+  })
+
+  it("renders the bundle summary 'no active program' variant when bundle_summary lacks active_program_name", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "chip0002-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: false,
+        messages: [],
+        bundle_summary: { sessions_per_week: 2 },
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+      locale="en"
+      purpose="additional_program"
+      i18nNamespace="create-program"
+      onBack={() => {}}
+    />)
+    await screen.findByText(/Thread chip0002/)
+
+    expect(
+      await screen.findByText(/No active program · 2 sessions\/wk recently/i),
+    ).toBeInTheDocument()
+  })
+
+  it("does NOT render the bundle summary chip for onboarding threads (regression — server omits bundle_summary)", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        thread_id: "chip0003-0000-0000-0000-000000000000",
+        status: "open",
+        resumed: false,
+        messages: [],
+      },
+      error: null,
+    })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+      locale="en"
+      purpose="onboarding"
+      i18nNamespace="onboarding"
+      onBack={() => {}}
+    />)
+    await screen.findByText(/Thread chip0003/)
+
+    expect(screen.queryByText(/Building on top of/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No active program/i)).not.toBeInTheDocument()
   })
 
   it("does NOT fire embedded_agent_message_sent when /message fails (server-side log_everything already counts the attempt)", async () => {
@@ -314,7 +509,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread anal0002/)
 
     const user = userEvent.setup()
@@ -346,7 +546,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0002/)
 
     const user = userEvent.setup()
@@ -372,7 +577,12 @@ describe("EmbeddedAgentChatStep", () => {
       })
       .mockReturnValueOnce(pending)
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread opt00001/)
 
     const user = userEvent.setup()
@@ -410,7 +620,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     const bold = await screen.findByText("deadlifts")
     expect(bold.tagName).toBe("STRONG")
@@ -430,7 +645,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread kbd00001/)
 
     const user = userEvent.setup()
@@ -445,7 +665,12 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "send", content: "line one\nline two", locale: "en" },
+        body: {
+          action: "send",
+          purpose: "onboarding",
+          content: "line one\nline two",
+          locale: "en",
+        },
       })
     })
   })
@@ -473,7 +698,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread cta00001/)
 
     expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
@@ -493,6 +723,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onGenerateRequest={() => {}}
       />,
@@ -517,6 +749,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onGenerateRequest={onGenerateRequest}
       />,
@@ -544,7 +778,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread cta00005/)
 
     expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
@@ -564,7 +803,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread resume01/)
 
     expect(
@@ -588,6 +832,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onPreviewReady={onPreviewReady}
       />,
@@ -615,7 +861,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0003/)
 
     const user = userEvent.setup()
@@ -653,7 +904,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0004/)
 
     const user = userEvent.setup()

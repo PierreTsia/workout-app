@@ -3,13 +3,19 @@ import { createServiceClient, createUserClient } from "../_shared/supabase.ts"
 import {
   appendMessage,
   bumpDraftCount24h,
+  consumePendingOverrides as consumePendingOverridesOnThread,
   getActiveThread,
   getOrCreateActiveThread,
+  incrementValidatorRejection as incrementValidatorRejectionOnThread,
   markStaleIfDue,
   purgeDueForUser,
   resetForReject,
+  setBundle as setBundleOnThread,
+  setChangeMotivation as setChangeMotivationOnThread,
   setLastPreview,
+  setPendingConstraintOverrides as setPendingConstraintOverridesOnThread,
   setStatus,
+  type PendingConstraintOverrides,
   type SupabaseLike,
   type Thread,
   type ThreadLocale,
@@ -21,7 +27,7 @@ import {
   type QuotaSupabaseLike,
 } from "./quota.ts"
 import { callChatGemini } from "./chatModel.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import {
   runProgramDraftStep,
   type DraftArgs,
@@ -34,11 +40,17 @@ import {
   fetchProfile as fetchProgramProfile,
   fetchRecentHistory,
 } from "../_shared/programCatalog.ts"
-import { callGeminiProgram } from "../generate-program/gemini.ts"
+import { callGeminiProgram } from "../_shared/programGemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
 import { emitLog } from "./log.ts"
+import { buildAdditionalProgramBundle } from "./lib/bundle.ts"
+import {
+  fetchActiveProgramForBundle,
+  fetchProfileForBundle,
+  fetchRecentStatsForBundle,
+} from "./lib/bundleQueries.ts"
 
 /**
  * Embedded Agent edge function (T117 + T118 + T119 + T120). Single POST
@@ -104,9 +116,9 @@ Deno.serve(async (req) => {
       if (error || !data.user?.id) return null
       return { userId: data.user.id }
     },
-    getActiveThread: (userId) => getActiveThread(threadDb, userId),
-    getOrCreateActiveThread: (userId, locale: ThreadLocale) =>
-      getOrCreateActiveThread(threadDb, userId, locale),
+    getActiveThread: (userId, purpose) => getActiveThread(threadDb, userId, purpose),
+    getOrCreateActiveThread: (userId, locale: ThreadLocale, purpose) =>
+      getOrCreateActiveThread(threadDb, userId, locale, purpose),
     markStaleIfDue: (thread: Thread) => markStaleIfDue(threadDb, thread),
     setStatusToAbandoned: (thread: Thread) => setStatus(threadDb, thread, "abandoned"),
     appendMessage: async (thread, role, content) => {
@@ -149,6 +161,33 @@ Deno.serve(async (req) => {
       patch: { program_id: string; summary?: string },
     ) => setStatus(threadDb, thread, "committed", patch),
     purgeRetention: (userId: string) => purgeDueForUser(threadDb, userId),
+    // T133 (#343) — additional-program bundle wiring. Queries go through
+    // the service client so RLS doesn't filter out the `programs` rows
+    // we need for the snapshot; the bundle is server-trusted and only
+    // ever exposed to the LLM, never returned to the client raw.
+    buildBundle: (userId: string) =>
+      buildAdditionalProgramBundle(userId, {
+        fetchProfile: (uid) => fetchProfileForBundle(serviceClient, uid),
+        fetchActiveProgram: (uid) => fetchActiveProgramForBundle(serviceClient, uid),
+        fetchRecentStats: (uid, windowDays) =>
+          fetchRecentStatsForBundle(serviceClient, uid, windowDays),
+      }),
+    setBundle: (thread: Thread, bundle) =>
+      setBundleOnThread(threadDb, thread, bundle as unknown as Record<string, unknown>),
+    // T134 (#343) — additional-program /send + /draft + /reject persistence
+    // hooks. All four are no-ops for onboarding (handler gates by purpose).
+    incrementValidatorRejection: (thread: Thread) =>
+      incrementValidatorRejectionOnThread(threadDb, thread),
+    setChangeMotivation: (thread: Thread, motivation) =>
+      setChangeMotivationOnThread(threadDb, thread, motivation),
+    setPendingConstraintOverrides: (thread: Thread, overrides) =>
+      setPendingConstraintOverridesOnThread(
+        threadDb,
+        thread,
+        overrides as PendingConstraintOverrides | null,
+      ),
+    consumePendingOverrides: (thread: Thread) =>
+      consumePendingOverridesOnThread(threadDb, thread),
     log: emitLog,
   })
 

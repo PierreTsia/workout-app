@@ -2,18 +2,18 @@ import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { parseFocusAreasField } from "../_shared/aiFocusAreas.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
-import { callGeminiProgram } from "./gemini.ts"
 import {
   buildProgramPrompt,
   capCatalog,
   getEquipmentValues,
   getExerciseBounds,
+  validateProgram,
   type CatalogExercise,
-  type UserProfile,
-  type RecentExercise,
   type ProgramConstraints,
-} from "./prompt.ts"
-import { validateProgram } from "./validate.ts"
+  type RecentExercise,
+  type UserProfile,
+} from "../_shared/programDraft.ts"
+import { callGeminiProgram } from "../_shared/programGemini.ts"
 
 const TRAINING_GAP_DAYS = 14
 

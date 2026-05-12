@@ -30,7 +30,9 @@ Deno.test("QUOTA_REGULAR_BY_SOURCE locks the canonical caps per source", () => {
   assertEquals(QUOTA_REGULAR_BY_SOURCE.workout, 5)
   assertEquals(QUOTA_REGULAR_BY_SOURCE.quick_workout, 10)
   assertEquals(QUOTA_REGULAR_BY_SOURCE.embedded_chat, 40)
-  assertEquals(QUOTA_REGULAR_BY_SOURCE.embedded_draft, 3)
+  // T131 (#343) — embedded_draft bumped 3 → 10 when the additional-program
+  // flow joined onboarding on the same cap. See ADR 0003.
+  assertEquals(QUOTA_REGULAR_BY_SOURCE.embedded_draft, 10)
 })
 
 // ---------------------------------------------------------------------------

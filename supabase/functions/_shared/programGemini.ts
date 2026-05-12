@@ -1,3 +1,10 @@
+// Gemini HTTP call for program drafting — split from `_shared/programDraft.ts`
+// to keep that module pure-TS so it stays vitest-importable from `src/test/`.
+// This file references `Deno.env.get` and is exclusively reached from Deno
+// runtime entrypoints (`generate-program/index.ts`, `embedded-agent/index.ts`).
+
+import type { GenerateProgramResponse } from "./programDraft.ts"
+
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
@@ -14,9 +21,6 @@ interface GeminiResponse {
   }>
   error?: { message: string }
 }
-
-export type { ProgramDay, GenerateProgramResponse } from "./types.ts"
-import type { GenerateProgramResponse } from "./types.ts"
 
 const RESPONSE_SCHEMA = {
   type: "OBJECT",
@@ -41,7 +45,7 @@ const RESPONSE_SCHEMA = {
   required: ["rationale", "days"],
 }
 
-function parseResponse(raw: string): GenerateProgramResponse {
+function parseGeminiResponse(raw: string): GenerateProgramResponse {
   let text = raw.trim()
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim()
 
@@ -101,7 +105,7 @@ export async function callGeminiProgram(prompt: string): Promise<GenerateProgram
       throw new Error("Gemini returned no output text (only thinking)")
     }
 
-    return parseResponse(outputPart.text)
+    return parseGeminiResponse(outputPart.text)
   } finally {
     clearTimeout(timeout)
   }

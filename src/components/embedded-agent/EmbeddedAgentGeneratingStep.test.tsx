@@ -45,6 +45,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={onSuccess}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -53,7 +55,7 @@ describe("EmbeddedAgentGeneratingStep", () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "draft", trigger: "user_cta", locale: "en" },
+      body: { action: "draft", purpose: "onboarding", trigger: "user_cta", locale: "en" },
     })
   })
 
@@ -69,6 +71,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -78,7 +82,9 @@ describe("EmbeddedAgentGeneratingStep", () => {
     await waitFor(() => {
       expect(trackEventMock).toHaveBeenCalledWith({
         eventType: "embedded_agent_draft_triggered",
-        payload: { trigger: "user_cta", attempt: 0 },
+        // T136 (#343) — `purpose` joined the payload so the funnel can
+        // split draft triggers by flow.
+        payload: { trigger: "user_cta", attempt: 0, purpose: "onboarding" },
       })
     })
   })
@@ -90,6 +96,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     const { container } = renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -122,6 +130,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={onTemplate}
         onFallbackBlank={onBlank}
@@ -156,6 +166,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={onSuccess}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -196,6 +208,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -217,6 +231,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     const { rerender } = renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -227,6 +243,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     rerender(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}

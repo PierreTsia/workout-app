@@ -3,7 +3,7 @@
 // raw transcript while active, deterministic summary on commit, lazy 7d
 // staleness, lazy 90d body purge.
 
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 
 const STALENESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const RETENTION_WINDOW_MS = 90 * 24 * 60 * 60 * 1000
@@ -12,6 +12,37 @@ const THREADS_TABLE = "embedded_agent_threads"
 export type ThreadStatus = "open" | "preview_ready" | "committed" | "abandoned"
 export type ThreadRole = "user" | "assistant"
 export type ThreadLocale = "en" | "fr"
+export type ThreadPurpose = "onboarding" | "additional_program"
+
+// Controlled vocabulary captured by the additional-program motivation gate.
+// Enforced in the DB via the `change_motivation` CHECK constraint; mirrored
+// here so analytics + UI can switch on a closed set without re-parsing.
+export type ChangeMotivation =
+  | "variety"
+  | "plateau"
+  | "injury"
+  | "priority_shift"
+  | "equipment_change"
+  | "return_from_break"
+  | "other"
+
+// Validated subset of the ready-signal payload that survives /send and is
+// consumed by /draft. Keys are intentionally optional — the validator only
+// emits this column when at least one constraint changed vs the profile.
+export interface PendingConstraintOverrides {
+  daysPerWeek?: number
+  duration?: number
+  equipmentCategory?: string
+  goal?: string
+  experience?: string
+  focusAreas?: string
+  splitPreference?: string
+}
+
+// Pre-loaded user context snapshotted at /open for the additional-program
+// flow. Shape is intentionally opaque at the type level (Record<string,unknown>)
+// — the bundle builder owns its schema; threadStore just persists/reads.
+export type BundleContext = Record<string, unknown>
 
 export interface ThreadMessage {
   role: ThreadRole
@@ -41,6 +72,13 @@ export interface Thread {
   updated_at: Timestamp
   committed_at: Timestamp | null
   abandoned_at: Timestamp | null
+  // T131 (#343) — multi-purpose extension. See migration
+  // 20260512120000_embedded_agent_threads_multi_purpose.sql.
+  purpose: ThreadPurpose
+  change_motivation: ChangeMotivation | null
+  bundle_context: BundleContext | null
+  validator_rejection_count: number
+  pending_constraint_overrides: PendingConstraintOverrides | null
 }
 
 // Minimal Supabase surface used by this module. Tests inject a fake; the real
@@ -76,19 +114,26 @@ const ACTIVE_STATUSES: ThreadStatus[] = ["open", "preview_ready"]
 const UNIQUE_VIOLATION_CODE = "23505"
 
 /**
- * Read-only lookup for the user's active onboarding thread. Returns null when
- * the user has no row in {open, preview_ready}. Use this from routes that
- * shouldn't side-effect (e.g. `/thread { abandon }` is a no-op when there's
- * nothing to abandon).
+ * Read-only lookup for the user's active thread on a given purpose. Returns
+ * null when there is no row in {open, preview_ready} for that (user_id,
+ * purpose) pair. Use this from routes that shouldn't side-effect (e.g.
+ * `/abandon` is a no-op when there's nothing to abandon).
+ *
+ * Keyed on `(user_id, purpose)` since T131 (#343) — a user can hold one
+ * active onboarding thread AND one active additional_program thread
+ * simultaneously; this lookup scopes by purpose so the two flows don't
+ * leak into each other.
  */
 export async function getActiveThread(
   supabase: SupabaseLike,
   userId: string,
+  purpose: ThreadPurpose,
 ): Promise<Thread | null> {
   const { data, error } = await supabase
     .from(THREADS_TABLE)
     .select("*")
     .eq("user_id", userId)
+    .eq("purpose", purpose)
     .in("status", ACTIVE_STATUSES)
     .maybeSingle()
   if (error) {
@@ -98,33 +143,37 @@ export async function getActiveThread(
 }
 
 /**
- * Resolve the user's active onboarding thread. If one exists in {open,
- * preview_ready}, return it (`resumed: true`); otherwise insert a fresh
- * `open` row and return it (`resumed: false`). The DB-level partial unique
- * index guarantees at most one active row per user; on a concurrent insert
- * race we surface the existing row rather than throw.
+ * Resolve the user's active thread for a given purpose. If one exists in
+ * {open, preview_ready}, return it (`resumed: true`); otherwise insert a
+ * fresh `open` row tagged with that purpose and return it (`resumed: false`).
+ * The DB-level partial unique index `(user_id, purpose) WHERE status IN
+ * ('open','preview_ready')` guarantees at most one active row per
+ * (user, purpose); on a concurrent insert race we surface the existing row
+ * rather than throw.
  */
 export async function getOrCreateActiveThread(
   supabase: SupabaseLike,
   userId: string,
   locale: ThreadLocale,
+  purpose: ThreadPurpose,
 ): Promise<{ thread: Thread; resumed: boolean }> {
-  const existing = await getActiveThread(supabase, userId)
+  const existing = await getActiveThread(supabase, userId, purpose)
   if (existing) {
     return { thread: existing, resumed: true }
   }
 
   const { data: inserted, error: insertErr } = await supabase
     .from(THREADS_TABLE)
-    .insert({ user_id: userId, status: "open", locale })
+    .insert({ user_id: userId, status: "open", locale, purpose })
     .select("*")
     .single()
 
-  // Multi-tab race: another concurrent caller already inserted an active row.
-  // The partial unique index surfaces this as Postgres 23505. Re-select the
-  // winning row instead of letting the user see an error.
+  // Multi-tab race: another concurrent caller already inserted an active row
+  // for this (user_id, purpose). The partial unique index surfaces this as
+  // Postgres 23505. Re-select the winning row instead of letting the user
+  // see an error.
   if (insertErr?.code === UNIQUE_VIOLATION_CODE) {
-    const resumedRow = await getActiveThread(supabase, userId)
+    const resumedRow = await getActiveThread(supabase, userId, purpose)
     if (!resumedRow) {
       throw new Error("getOrCreateActiveThread race resume returned no row")
     }
@@ -249,6 +298,110 @@ export async function setLastPreview(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional-program flow helpers (T131, #343)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Persist the snapshotted user context (profile + active program summary +
+ * 4-week training stats) into `bundle_context`. Written once at /open for
+ * additional_program threads. Bound to ~8 KB by the bundle builder.
+ */
+export async function setBundle(
+  supabase: SupabaseLike,
+  thread: Thread,
+  bundle: BundleContext,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  const { error } = await supabase
+    .from(THREADS_TABLE)
+    .update({ bundle_context: bundle, updated_at: nowIso })
+    .eq("id", thread.id)
+  if (error) {
+    throw new Error(`setBundle failed: ${error.message ?? "unknown"}`)
+  }
+}
+
+/**
+ * Bump `validator_rejection_count` by 1. Used by /send when the ready-signal
+ * validator rejects (missing motivation, `invalid_override`, etc.) so the
+ * agent's prompt can include the bounded retry counter and give up gracefully
+ * after the cap.
+ */
+export async function incrementValidatorRejection(
+  supabase: SupabaseLike,
+  thread: Thread,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  const { error } = await supabase
+    .from(THREADS_TABLE)
+    .update({
+      validator_rejection_count: (thread.validator_rejection_count ?? 0) + 1,
+      updated_at: nowIso,
+    })
+    .eq("id", thread.id)
+  if (error) {
+    throw new Error(`incrementValidatorRejection failed: ${error.message ?? "unknown"}`)
+  }
+}
+
+/**
+ * Persist the validated change motivation classification. First-accept-only
+ * policy lives at the call site (validator checks `thread.change_motivation
+ * === null` before invoking this); the helper itself is an unconditional
+ * UPDATE so a retried server-side rewrite is idempotent.
+ */
+export async function setChangeMotivation(
+  supabase: SupabaseLike,
+  thread: Thread,
+  motivation: ChangeMotivation,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  const { error } = await supabase
+    .from(THREADS_TABLE)
+    .update({ change_motivation: motivation, updated_at: nowIso })
+    .eq("id", thread.id)
+  if (error) {
+    throw new Error(`setChangeMotivation failed: ${error.message ?? "unknown"}`)
+  }
+}
+
+/**
+ * Stash validated constraint_overrides from a ready-signal payload so /draft
+ * can read them race-free without re-parsing the transcript. /send writes
+ * the overrides on accept; /draft calls `consumePendingOverrides` to clear
+ * the slot once it has used them.
+ *
+ * Pass `null` to clear without consuming through the normal path (e.g. when
+ * a follow-up /send supersedes a stashed signal).
+ */
+export async function setPendingConstraintOverrides(
+  supabase: SupabaseLike,
+  thread: Thread,
+  overrides: PendingConstraintOverrides | null,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  const { error } = await supabase
+    .from(THREADS_TABLE)
+    .update({ pending_constraint_overrides: overrides, updated_at: nowIso })
+    .eq("id", thread.id)
+  if (error) {
+    throw new Error(`setPendingConstraintOverrides failed: ${error.message ?? "unknown"}`)
+  }
+}
+
+/**
+ * Clear `pending_constraint_overrides` after /draft has merged them into the
+ * effective constraints. Idempotent: a no-op when the slot is already NULL.
+ */
+export async function consumePendingOverrides(
+  supabase: SupabaseLike,
+  thread: Thread,
+  nowIso: string = new Date().toISOString(),
+): Promise<void> {
+  await setPendingConstraintOverrides(supabase, thread, null, nowIso)
+}
+
 export interface SetStatusPatch {
   program_id?: string
   summary?: string
@@ -316,9 +469,10 @@ export async function resetForReject(
 
 /**
  * Increment the per-thread draft counter. Source-of-truth for the
- * 3-drafts-per-24h cap is `ai_generation_log` (see `quota.ts`); this
- * column is a denormalized fast-path for UI hints (e.g. "2 of 3 drafts
- * used today") that don't want to round-trip through the log table.
+ * drafts-per-24h cap is `ai_generation_log` (see `quota.ts`,
+ * `EMBEDDED_DRAFTS_PER_24H`); this column is a denormalized fast-path
+ * for UI hints (e.g. "2 of N drafts used today") that don't want to
+ * round-trip through the log table.
  */
 export async function bumpDraftCount24h(
   supabase: SupabaseLike,

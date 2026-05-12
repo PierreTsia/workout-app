@@ -1,42 +1,24 @@
 /**
  * Shared catalog / profile / history readers used by every Edge function
  * that builds a generation prompt from the user's training context. Extracted
- * from `embedded-agent/index.ts` (T126, #342) to deduplicate with the
- * upcoming `generate-quick-workout` (T127).
+ * from `embedded-agent/index.ts` (T126, #342) to deduplicate with
+ * `generate-quick-workout` (T127).
  *
- * The interface shapes mirror the (untouched) ones in
- * `generate-program/prompt.ts` — duplicated intentionally so this module
- * doesn't grow a dependency on a feature module that #343 will retire. When
- * `generate-program` dies, these stay; when something else reads catalog
- * data, it imports from here.
+ * Catalog row / profile / recent-exercise shapes are re-exported from
+ * `programDraft.ts` (T130, #343) so the readers (here) and the prompt builder
+ * (`programDraft.ts`) stay structurally aligned — single source of truth.
  */
 
 import type { createServiceClient } from "./supabase.ts"
+import type {
+  CatalogExercise,
+  RecentExercise,
+  UserProfile,
+} from "./programDraft.ts"
+
+export type { CatalogExercise, RecentExercise, UserProfile }
 
 type ServiceClient = ReturnType<typeof createServiceClient>
-
-export interface CatalogExercise {
-  id: string
-  name_en: string | null
-  muscle_group: string
-  equipment: string
-  secondary_muscles: string[] | null
-  difficulty_level: string | null
-}
-
-export interface UserProfile {
-  experience: string
-  goal: string
-  equipment: string
-  training_days_per_week: number
-  age: number | null
-  gender: string | null
-}
-
-export interface RecentExercise {
-  exercise_id: string
-  exercise_name_snapshot: string
-}
 
 export async function fetchCatalog(
   supabase: ServiceClient,

@@ -5,7 +5,7 @@ import {
   capCatalog,
   buildProgramPrompt,
   type CatalogExercise,
-} from "../../supabase/functions/generate-program/prompt"
+} from "../../supabase/functions/_shared/programDraft"
 
 function makeExercise(id: string, group: string): CatalogExercise {
   return {

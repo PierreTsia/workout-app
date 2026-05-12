@@ -1,11 +1,55 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
-import type { Thread, ThreadLocale, ThreadMessage } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threadStore.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
+import {
+  BundleSizeExceeded,
+  ProfileMissing,
+  type AdditionalProgramBundle,
+} from "./lib/bundle.ts"
+import type {
+  ChangeMotivation,
+  ConstraintOverrides,
+} from "./prompt/index.ts"
 
 // ---------- factories ----------
+
+function makeStubBundle(
+  overrides: Partial<AdditionalProgramBundle> = {},
+): AdditionalProgramBundle {
+  return {
+    v: 1,
+    captured_at: "2026-05-12T12:00:00.000Z",
+    profile: {
+      goal: "hypertrophy",
+      experience: "intermediate",
+      equipment: "gym",
+      training_days_per_week: 4,
+      session_duration_minutes: 60,
+      age: 30,
+      weight_kg: 75,
+      gender: "male",
+    },
+    active_program: {
+      id: "prog-1",
+      name: "Push Pull Legs",
+      days: [
+        { label: "Push", exercise_count: 4, muscle_groups: ["chest", "shoulders", "triceps"] },
+        { label: "Pull", exercise_count: 2, muscle_groups: ["back", "biceps"] },
+      ],
+    },
+    recent_stats: {
+      window_days: 28,
+      total_sessions: 8,
+      sessions_per_week: 2,
+      top_muscle_groups: ["chest", "back"],
+      avg_session_duration_minutes: 55,
+    },
+    ...overrides,
+  }
+}
 
 function makeThread(overrides: Partial<Thread> = {}): Thread {
   return {
@@ -24,6 +68,11 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     updated_at: new Date("2026-05-08T10:00:00Z"),
     committed_at: null,
     abandoned_at: null,
+    purpose: "onboarding",
+    change_motivation: null,
+    bundle_context: null,
+    validator_rejection_count: 0,
+    pending_constraint_overrides: null,
     ...overrides,
   }
 }
@@ -32,8 +81,8 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
 
 interface DepsCalls {
   getUser: Array<{ authHeader: string }>
-  getActiveThread: Array<{ userId: string }>
-  getOrCreateActiveThread: Array<{ userId: string; locale: ThreadLocale }>
+  getActiveThread: Array<{ userId: string; purpose: ThreadPurpose }>
+  getOrCreateActiveThread: Array<{ userId: string; locale: ThreadLocale; purpose: ThreadPurpose }>
   markStaleIfDue: Array<{ thread: Thread }>
   setStatusToAbandoned: Array<{ thread: Thread }>
   appendMessage: Array<{ thread: Thread; role: "user" | "assistant"; content: string }>
@@ -43,7 +92,12 @@ interface DepsCalls {
   logBillableCall: Array<{ userId: string; source: "embedded_chat" | "embedded_draft" }>
   chatModel: Array<{ systemPrompt: string; messages: ThreadMessage[] }>
   loadProfile: Array<{ userId: string }>
-  runDraftStep: Array<{ userId: string; locale: ThreadLocale; thread: Thread }>
+  runDraftStep: Array<{
+    userId: string
+    locale: ThreadLocale
+    thread: Thread
+    constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+  }>
   callMcp: Array<{ args: DraftArgs }>
   setLastPreview: Array<{ thread: Thread; preview: LastPreview }>
   setStatusToPreviewReady: Array<{ thread: Thread }>
@@ -51,15 +105,22 @@ interface DepsCalls {
   resetForReject: Array<{ thread: Thread }>
   setStatusToCommitted: Array<{ thread: Thread; patch: { program_id: string; summary?: string } }>
   purgeRetention: Array<{ userId: string }>
+  buildBundle: Array<{ userId: string }>
+  setBundle: Array<{ threadId: string; bundle: AdditionalProgramBundle }>
+  incrementValidatorRejection: Array<{ threadId: string }>
+  setChangeMotivation: Array<{ threadId: string; motivation: ChangeMotivation }>
+  setPendingConstraintOverrides: Array<{ threadId: string; overrides: ConstraintOverrides | null }>
+  consumePendingOverrides: Array<{ threadId: string }>
   logEvents: LogEvent[]
 }
 
 interface DepsOverrides {
   getUser?: (authHeader: string) => Promise<{ userId: string } | null>
-  getActiveThread?: (userId: string) => Promise<Thread | null>
+  getActiveThread?: (userId: string, purpose: ThreadPurpose) => Promise<Thread | null>
   getOrCreateActiveThread?: (
     userId: string,
     locale: ThreadLocale,
+    purpose: ThreadPurpose,
   ) => Promise<{ thread: Thread; resumed: boolean }>
   markStaleIfDue?: (thread: Thread) => Promise<{ stale: boolean; thread: Thread }>
   setStatusToAbandoned?: (thread: Thread) => Promise<void>
@@ -70,7 +131,13 @@ interface DepsOverrides {
   logBillableCall?: (userId: string, source: "embedded_chat" | "embedded_draft") => Promise<void>
   chatModel?: (input: { systemPrompt: string; messages: ThreadMessage[] }) => Promise<{ content: string }>
   loadProfile?: (userId: string) => Promise<UserContextProfile | null>
-  runDraftStep?: (input: { userId: string; locale: ThreadLocale; thread: Thread; profile: UserContextProfile }) => Promise<DraftResult>
+  runDraftStep?: (input: {
+    userId: string
+    locale: ThreadLocale
+    thread: Thread
+    profile: UserContextProfile
+    constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+  }) => Promise<DraftResult>
   callMcp?: (args: DraftArgs) => Promise<CallMcpToolResult>
   setLastPreview?: (thread: Thread, preview: LastPreview) => Promise<void>
   setStatusToPreviewReady?: (thread: Thread) => Promise<void>
@@ -81,6 +148,15 @@ interface DepsOverrides {
     patch: { program_id: string; summary?: string },
   ) => Promise<void>
   purgeRetention?: (userId: string) => Promise<void>
+  buildBundle?: (userId: string) => Promise<AdditionalProgramBundle>
+  setBundle?: (thread: Thread, bundle: AdditionalProgramBundle) => Promise<void>
+  incrementValidatorRejection?: (thread: Thread) => Promise<void>
+  setChangeMotivation?: (thread: Thread, motivation: ChangeMotivation) => Promise<void>
+  setPendingConstraintOverrides?: (
+    thread: Thread,
+    overrides: ConstraintOverrides | null,
+  ) => Promise<void>
+  consumePendingOverrides?: (thread: Thread) => Promise<void>
 }
 
 function makeDeps(overrides: DepsOverrides = {}) {
@@ -105,6 +181,12 @@ function makeDeps(overrides: DepsOverrides = {}) {
     resetForReject: [],
     setStatusToCommitted: [],
     purgeRetention: [],
+    buildBundle: [],
+    setBundle: [],
+    incrementValidatorRejection: [],
+    setChangeMotivation: [],
+    setPendingConstraintOverrides: [],
+    consumePendingOverrides: [],
     logEvents: [],
   }
 
@@ -115,17 +197,17 @@ function makeDeps(overrides: DepsOverrides = {}) {
         ? await overrides.getUser(authHeader)
         : { userId: "user-1" }
     },
-    getActiveThread: async (userId: string) => {
-      calls.getActiveThread.push({ userId })
+    getActiveThread: async (userId: string, purpose: ThreadPurpose) => {
+      calls.getActiveThread.push({ userId, purpose })
       return overrides.getActiveThread
-        ? await overrides.getActiveThread(userId)
+        ? await overrides.getActiveThread(userId, purpose)
         : null
     },
-    getOrCreateActiveThread: async (userId: string, locale: ThreadLocale) => {
-      calls.getOrCreateActiveThread.push({ userId, locale })
+    getOrCreateActiveThread: async (userId: string, locale: ThreadLocale, purpose: ThreadPurpose) => {
+      calls.getOrCreateActiveThread.push({ userId, locale, purpose })
       return overrides.getOrCreateActiveThread
-        ? await overrides.getOrCreateActiveThread(userId, locale)
-        : { thread: makeThread({ user_id: userId, locale }), resumed: false }
+        ? await overrides.getOrCreateActiveThread(userId, locale, purpose)
+        : { thread: makeThread({ user_id: userId, locale, purpose }), resumed: false }
     },
     markStaleIfDue: async (thread: Thread) => {
       calls.markStaleIfDue.push({ thread })
@@ -190,8 +272,19 @@ function makeDeps(overrides: DepsOverrides = {}) {
             gender: "male",
           }
     },
-    runDraftStep: async (input: { userId: string; locale: ThreadLocale; thread: Thread; profile: UserContextProfile }) => {
-      calls.runDraftStep.push({ userId: input.userId, locale: input.locale, thread: input.thread })
+    runDraftStep: async (input: {
+      userId: string
+      locale: ThreadLocale
+      thread: Thread
+      profile: UserContextProfile
+      constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+    }) => {
+      calls.runDraftStep.push({
+        userId: input.userId,
+        locale: input.locale,
+        thread: input.thread,
+        constraintOverrides: input.constraintOverrides,
+      })
       return overrides.runDraftStep
         ? await overrides.runDraftStep(input)
         : ({
@@ -238,6 +331,40 @@ function makeDeps(overrides: DepsOverrides = {}) {
       calls.purgeRetention.push({ userId })
       if (overrides.purgeRetention) await overrides.purgeRetention(userId)
     },
+    buildBundle: async (userId: string) => {
+      calls.buildBundle.push({ userId })
+      return overrides.buildBundle
+        ? await overrides.buildBundle(userId)
+        : makeStubBundle()
+    },
+    setBundle: async (thread: Thread, bundle: AdditionalProgramBundle) => {
+      calls.setBundle.push({ threadId: thread.id, bundle })
+      if (overrides.setBundle) await overrides.setBundle(thread, bundle)
+    },
+    incrementValidatorRejection: async (thread: Thread) => {
+      calls.incrementValidatorRejection.push({ threadId: thread.id })
+      if (overrides.incrementValidatorRejection) {
+        await overrides.incrementValidatorRejection(thread)
+      }
+    },
+    setChangeMotivation: async (thread: Thread, motivation: ChangeMotivation) => {
+      calls.setChangeMotivation.push({ threadId: thread.id, motivation })
+      if (overrides.setChangeMotivation) {
+        await overrides.setChangeMotivation(thread, motivation)
+      }
+    },
+    setPendingConstraintOverrides: async (thread: Thread, payload: ConstraintOverrides | null) => {
+      calls.setPendingConstraintOverrides.push({ threadId: thread.id, overrides: payload })
+      if (overrides.setPendingConstraintOverrides) {
+        await overrides.setPendingConstraintOverrides(thread, payload)
+      }
+    },
+    consumePendingOverrides: async (thread: Thread) => {
+      calls.consumePendingOverrides.push({ threadId: thread.id })
+      if (overrides.consumePendingOverrides) {
+        await overrides.consumePendingOverrides(thread)
+      }
+    },
     log: (event: LogEvent) => {
       calls.logEvents.push(event)
     },
@@ -254,10 +381,15 @@ function jsonRequest(
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
   if (options.requestId) headers["x-request-id"] = options.requestId
   const method = options.method ?? "POST"
+  // T131 (#343) — default `purpose: 'onboarding'` so pre-T131 fixtures
+  // exercise the same flow they did before this epic. Tests that want
+  // the back-compat path explicitly omit `purpose`; tests on the
+  // additional_program flow override.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/thread", {
     method,
     headers,
-    body: method === "GET" ? undefined : JSON.stringify(body),
+    body: method === "GET" ? undefined : JSON.stringify(bodyWithPurpose),
   })
 }
 
@@ -294,7 +426,11 @@ Deno.test("POST /thread { open, en } returns the freshly created thread shape", 
 
   assertEquals(calls.getUser.length, 1)
   assertEquals(calls.getOrCreateActiveThread.length, 1)
-  assertEquals(calls.getOrCreateActiveThread[0], { userId: "user-1", locale: "en" })
+  assertEquals(calls.getOrCreateActiveThread[0], {
+    userId: "user-1",
+    locale: "en",
+    purpose: "onboarding",
+  })
 
   // T122: every authenticated request fires the lazy 90d retention sweep.
   assertEquals(calls.purgeRetention.length, 1)
@@ -499,15 +635,17 @@ Deno.test("POST /thread propagates x-request-id from the client into structured 
 })
 
 function sendRequest(
-  body: { content?: unknown; locale?: unknown },
+  body: { content?: unknown; locale?: unknown; purpose?: unknown },
   options: { withAuth?: boolean } = {},
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 send tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/message", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "send", ...body }),
+    body: JSON.stringify({ action: "send", ...bodyWithPurpose }),
   })
 }
 
@@ -711,15 +849,17 @@ Deno.test("POST /message rejects an unsupported locale with 400 invalid_locale",
 // ---------- /draft ----------
 
 function draftRequest(
-  body: { trigger?: unknown; locale?: unknown },
+  body: { trigger?: unknown; locale?: unknown; purpose?: unknown },
   options: { withAuth?: boolean } = {},
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 draft tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/message", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "draft", ...body }),
+    body: JSON.stringify({ action: "draft", ...bodyWithPurpose }),
   })
 }
 
@@ -1034,10 +1174,12 @@ function commitRequest(
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 commit tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/commit", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "commit", ...body }),
+    body: JSON.stringify({ action: "commit", ...bodyWithPurpose }),
   })
 }
 
@@ -1090,6 +1232,12 @@ Deno.test("POST /commit happy path: MCP dry_run:false, status → committed, sum
   assertEquals(res.status, 200)
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.program_id, "prog-123")
+  // T136 (#343) — `thread_id` is now part of the response so the client
+  // can correlate `embedded_agent_preview_committed` with prior funnel
+  // events. `motivation` is `null` on this onboarding fixture (the
+  // motivation gate is additional-program-only).
+  assertEquals(body.thread_id, active.id)
+  assertEquals(body.motivation, null)
 
   // MCP called with dry_run: false and the persisted args.
   assertEquals(calls.callMcp.length, 1)
@@ -1169,6 +1317,32 @@ Deno.test("POST /commit returns 409 not_preview_ready when status is still 'open
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "not_preview_ready")
   assertEquals(calls.callMcp.length, 0)
+})
+
+// T136 (#343) — additional-program commits surface the persisted
+// `change_motivation` in the response so the client can fire
+// `embedded_agent_preview_committed` with the motivation field. The
+// rest of the commit path is identical to the onboarding test above,
+// which already covers MCP wiring + summary composition.
+Deno.test("POST /commit returns thread_id + motivation on additional-program threads (T136 funnel correlation)", async () => {
+  const active = PREVIEW_READY_THREAD()
+  active.purpose = "additional_program"
+  active.change_motivation = "plateau"
+  const { deps } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async () => makeMcpCommitOk("prog-AP-1"),
+  })
+
+  const res = await handleEmbeddedAgent(
+    commitRequest({ confirm: true, purpose: "additional_program" }),
+    deps,
+  )
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.program_id, "prog-AP-1")
+  assertEquals(body.thread_id, active.id)
+  assertEquals(body.motivation, "plateau")
 })
 
 Deno.test("POST /commit returns 409 no_preview when status is preview_ready but last_preview is missing", async () => {
@@ -1270,4 +1444,644 @@ Deno.test("GET /thread returns 405 method_not_allowed", async () => {
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "method_not_allowed")
   assertEquals(calls.getUser.length, 0)
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Purpose dispatch (T131, #343)
+// ─────────────────────────────────────────────────────────────────────────────
+
+Deno.test("POST { action: open, purpose: 'additional_program' } scopes the thread lookup by purpose", async () => {
+  // T131 (#343) — purpose plumbs from the request body through to the
+  // threadStore deps so the (user_id, purpose) unique index is honored.
+  const { deps, calls } = makeDeps()
+
+  const res = await handleEmbeddedAgent(
+    jsonRequest({ action: "open", locale: "en", purpose: "additional_program" }),
+    deps,
+  )
+
+  assertEquals(res.status, 200)
+  assertEquals(calls.getOrCreateActiveThread.length, 1)
+  assertEquals(calls.getOrCreateActiveThread[0], {
+    userId: "user-1",
+    locale: "en",
+    purpose: "additional_program",
+  })
+  // No back-compat warn when purpose is explicit.
+  const warns = calls.logEvents.filter((e) => e.error_kind === "missing_purpose_default_applied")
+  assertEquals(warns.length, 0)
+})
+
+Deno.test("POST without `purpose` defaults to 'onboarding' AND emits a warn log (back-compat for stale tabs)", async () => {
+  // T131 (#343) — pre-T131 clients send no `purpose` field; we default to
+  // 'onboarding' so they keep working, but emit a single warn log so
+  // observability picks up "your users are running stale code".
+  const { deps, calls } = makeDeps()
+
+  // Hand-rolled request that bypasses jsonRequest's purpose default.
+  const req = new Request("https://example.test/thread", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer jwt_test",
+    },
+    body: JSON.stringify({ action: "open", locale: "en" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+
+  assertEquals(res.status, 200)
+  assertEquals(calls.getOrCreateActiveThread[0]?.purpose, "onboarding")
+  const warns = calls.logEvents.filter((e) =>
+    e.error_kind === "missing_purpose_default_applied"
+  )
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].purpose, "onboarding")
+})
+
+Deno.test("POST with an unknown `purpose` returns 400 invalid_purpose and never dispatches", async () => {
+  // T131 (#343) — invalid purpose 400s up front rather than poisoning
+  // downstream dispatch with an unchecked string.
+  const { deps, calls } = makeDeps()
+
+  const req = new Request("https://example.test/thread", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer jwt_test",
+    },
+    body: JSON.stringify({ action: "open", locale: "en", purpose: "weight_loss_plan" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+
+  assertEquals(res.status, 400)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "invalid_purpose")
+  assertEquals(calls.getOrCreateActiveThread.length, 0)
+  const warns = calls.logEvents.filter((e) => e.error_kind === "invalid_purpose")
+  assertEquals(warns.length, 1)
+})
+
+// ============================================================================
+// T133 (#343) — bundle wiring on /open for additional_program
+// ============================================================================
+
+function openAdditionalProgramRequest(): Request {
+  return jsonRequest({
+    action: "open",
+    locale: "en",
+    purpose: "additional_program",
+  })
+}
+
+Deno.test("POST /thread { open, additional_program } (fresh) builds + persists bundle and returns bundle_summary", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-fresh",
+    user_id: "user-1",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.thread_id, "thread-ap-fresh")
+
+  // Bundle was built + persisted exactly once.
+  assertEquals(calls.buildBundle.length, 1)
+  assertEquals(calls.buildBundle[0].userId, "user-1")
+  assertEquals(calls.setBundle.length, 1)
+  assertEquals(calls.setBundle[0].threadId, "thread-ap-fresh")
+  assertEquals(calls.setBundle[0].bundle.v, 1)
+
+  // Response carries the compact summary so the UI can render the
+  // "we're building on top of X" chip without a second roundtrip.
+  assertEquals(body.bundle_summary, {
+    active_program_name: "Push Pull Legs",
+    sessions_per_week: 2,
+    top_muscle_group: "chest",
+  })
+
+  // Purpose is plumbed through every action handler's log line.
+  const info = calls.logEvents.find((e) => e.level === "info" && e.route === "/thread")
+  assertEquals(info?.purpose, "additional_program")
+  assertEquals(info?.message, "thread_created")
+})
+
+Deno.test("POST /thread { open, additional_program } (resumed with bundle present) does NOT rebuild", async () => {
+  const existingBundle = makeStubBundle({
+    active_program: {
+      id: "prog-existing",
+      name: "Existing Program",
+      days: [{ label: "Day 1", exercise_count: 3, muscle_groups: ["chest"] }],
+    },
+  })
+  const resumed = makeThread({
+    id: "thread-ap-resumed",
+    user_id: "user-1",
+    purpose: "additional_program",
+    bundle_context: existingBundle as unknown as Record<string, unknown>,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: resumed, resumed: true }),
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+
+  // Resumed threads with an existing bundle never re-trigger the builder.
+  assertEquals(calls.buildBundle.length, 0)
+  assertEquals(calls.setBundle.length, 0)
+
+  // Summary is projected from the persisted snapshot.
+  assertEquals(body.bundle_summary, {
+    active_program_name: "Existing Program",
+    sessions_per_week: 2,
+    top_muscle_group: "chest",
+  })
+})
+
+Deno.test("POST /thread { open, onboarding } does NOT touch the bundle builder (regression)", async () => {
+  const fresh = makeThread({ id: "thread-onb", purpose: "onboarding", bundle_context: null })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+  })
+
+  const res = await handleEmbeddedAgent(jsonRequest({ action: "open", locale: "en" }), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+
+  // Bundle deps untouched on the onboarding path.
+  assertEquals(calls.buildBundle.length, 0)
+  assertEquals(calls.setBundle.length, 0)
+  // Response shape stays clean for onboarding — `bundle_summary` only
+  // appears for additional_program (avoids polluting the funnel).
+  assertEquals("bundle_summary" in body, false)
+})
+
+Deno.test("POST /thread { open, additional_program } returns 409 profile_missing when ProfileMissing is thrown", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-no-profile",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+    buildBundle: async () => {
+      throw new ProfileMissing()
+    },
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "profile_missing")
+
+  // Builder ran, persist never happened (no bundle to write).
+  assertEquals(calls.buildBundle.length, 1)
+  assertEquals(calls.setBundle.length, 0)
+
+  // Structured warn on the failure path.
+  const warns = calls.logEvents.filter((e) => e.error_kind === "profile_missing")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].route, "/thread")
+  assertEquals(warns[0].purpose, "additional_program")
+})
+
+Deno.test("POST /thread { open, additional_program } returns 500 internal + error log when BundleSizeExceeded is thrown", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-oversize",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+    buildBundle: async () => {
+      throw new BundleSizeExceeded(9000)
+    },
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 500)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "internal")
+
+  // Persist never runs for a builder failure.
+  assertEquals(calls.setBundle.length, 0)
+
+  // Builder-bug → structured *error* level (vs warn for the user-facing
+  // 409 path above).
+  const errors = calls.logEvents.filter((e) => e.level === "error")
+  assertEquals(errors.length, 1)
+  assertEquals(errors[0].error_kind, "internal")
+  assertEquals(errors[0].route, "/thread")
+  assertEquals(errors[0].purpose, "additional_program")
+})
+
+// ============================================================================
+// T134 (#343) — /send + /draft + /reject for additional_program
+// ============================================================================
+
+function sendAdditionalProgramRequest(content: string): Request {
+  return new Request("https://example.test/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "send",
+      content,
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+}
+
+function activeAdditionalProgramThread(overrides: Partial<Thread> = {}): Thread {
+  return makeThread({
+    id: "thread-ap-active",
+    purpose: "additional_program",
+    status: "open",
+    bundle_context: makeStubBundle() as unknown as Record<string, unknown>,
+    ...overrides,
+  })
+}
+
+// ---------- /send (additional_program) ----------
+
+Deno.test("POST /send { additional_program } without bundle_context returns 409 bundle_missing", async () => {
+  const active = activeAdditionalProgramThread({ bundle_context: null })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const res = await handleEmbeddedAgent(sendAdditionalProgramRequest("hi"), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "bundle_missing")
+
+  // Never touched the model when the precondition fails.
+  assertEquals(calls.chatModel.length, 0)
+  // Never persisted anything (user msg gate is after bundle check).
+  assertEquals(calls.appendMessage.length, 0)
+  const warns = calls.logEvents.filter((e) => e.error_kind === "bundle_missing")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].purpose, "additional_program")
+})
+
+Deno.test("POST /send { additional_program } uses the additional-program prompt + validator (bundle context appears in system prompt)", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({ content: "Got it." }),
+  })
+
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("Tell me my options."), deps)
+
+  assertEquals(calls.chatModel.length, 1)
+  // The system prompt for additional_program embeds the bundle as a JSON
+  // code-fence and includes the motivation gate copy. We only assert the
+  // bundle render here (motivation copy is fully covered by the
+  // prompt/additional-program_test.ts suite).
+  assertStringIncludes(calls.chatModel[0].systemPrompt, "Push Pull Legs")
+  assertStringIncludes(calls.chatModel[0].systemPrompt, "Motivation gate")
+})
+
+Deno.test("POST /send { additional_program } rejects malformed motivation: counter++, validator_rejection in payload, conversation continues", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({
+      content:
+        "Sounds good!\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"missing motivation"}',
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  // Ready signal was rejected by the validator (motivation missing).
+  assertEquals(body.ready_for_draft, false)
+  assertEquals(body.validator_rejection, { reason: "missing" })
+
+  // Counter bumped exactly once.
+  assertEquals(calls.incrementValidatorRejection.length, 1)
+  assertEquals(calls.incrementValidatorRejection[0].threadId, "thread-ap-active")
+
+  // No motivation persisted (the rejection happens BEFORE setChangeMotivation).
+  assertEquals(calls.setChangeMotivation.length, 0)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+
+  // The signal line is stripped from the persisted transcript and the wire.
+  const assistant = body.assistant as { content: string }
+  assertEquals(assistant.content.includes("READY_FOR_PROGRAM_DRAFT"), false)
+})
+
+Deno.test("POST /send { additional_program } first accepted signal persists change_motivation; subsequent signals do NOT overwrite", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({
+      content:
+        "Logged.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"injury","motivation":"injury"}',
+    }),
+  })
+
+  // First accept on an empty `change_motivation` → persists.
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+  assertEquals(calls.setChangeMotivation.length, 1)
+  assertEquals(calls.setChangeMotivation[0].motivation, "injury")
+
+  // Second accept where the thread already has a motivation. Handler
+  // reads `change_motivation` from `getActiveThread`; we now return a
+  // thread carrying the persisted value.
+  const withMotivation = activeAdditionalProgramThread({ change_motivation: "injury" })
+  const second = makeDeps({
+    getActiveThread: async () => withMotivation,
+    chatModel: async () => ({
+      content:
+        "Re-affirmed.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"variety","motivation":"variety"}',
+    }),
+  })
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("ready again"), second.deps)
+  // First-accept-only — the new motivation is silently ignored.
+  assertEquals(second.calls.setChangeMotivation.length, 0)
+})
+
+Deno.test("POST /send { additional_program } accepted signal persists pending_constraint_overrides; overwrites on a later accept; clears on no-overrides accept", async () => {
+  // First accept with overrides → persisted.
+  {
+    const active = activeAdditionalProgramThread()
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Got it.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"3d","motivation":"variety","constraint_overrides":{"daysPerWeek":3}}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, { daysPerWeek: 3 })
+  }
+
+  // Second accept with DIFFERENT overrides → overwritten.
+  {
+    const active = activeAdditionalProgramThread({
+      change_motivation: "variety",
+      pending_constraint_overrides: { daysPerWeek: 3 },
+    })
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Updated.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"5d","motivation":"variety","constraint_overrides":{"daysPerWeek":5,"duration":45}}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("change my mind"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, {
+      daysPerWeek: 5,
+      duration: 45,
+    })
+  }
+
+  // Third accept with NO overrides → cleared (null wins over stale).
+  {
+    const active = activeAdditionalProgramThread({
+      change_motivation: "variety",
+      pending_constraint_overrides: { daysPerWeek: 5, duration: 45 },
+    })
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Back to defaults.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"defaults","motivation":"variety"}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("nvm"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, null)
+  }
+})
+
+Deno.test("POST /send { onboarding } never invokes the additional-program persistence hooks (regression)", async () => {
+  const active = makeThread({ id: "thread-onb", purpose: "onboarding", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({ content: "Onboarding reply." }),
+  })
+
+  await handleEmbeddedAgent(
+    new Request("https://example.test/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+      body: JSON.stringify({ action: "send", content: "Hi", locale: "en", purpose: "onboarding" }),
+    }),
+    deps,
+  )
+
+  assertEquals(calls.incrementValidatorRejection.length, 0)
+  assertEquals(calls.setChangeMotivation.length, 0)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+})
+
+// ---------- /draft (additional_program) ----------
+
+Deno.test("POST /draft { additional_program } forwards pending_constraint_overrides to runDraftStep and consumes them on success", async () => {
+  const active = activeAdditionalProgramThread({
+    change_motivation: "plateau",
+    pending_constraint_overrides: { daysPerWeek: 3, equipmentCategory: "bodyweight" },
+  })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+  })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+
+  // Override flowed into runDraftStep verbatim.
+  assertEquals(calls.runDraftStep.length, 1)
+  assertEquals(calls.runDraftStep[0].constraintOverrides, {
+    daysPerWeek: 3,
+    equipmentCategory: "bodyweight",
+  })
+
+  // Consumed once after success (no double-apply on retry).
+  assertEquals(calls.consumePendingOverrides.length, 1)
+  assertEquals(calls.consumePendingOverrides[0].threadId, "thread-ap-active")
+})
+
+Deno.test("POST /draft { onboarding } does NOT pass constraintOverrides or call consumePendingOverrides (regression)", async () => {
+  const active = makeThread({ id: "t-onb", purpose: "onboarding", status: "open" })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "onboarding",
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+  assertEquals(calls.runDraftStep.length, 1)
+  assertEquals(calls.runDraftStep[0].constraintOverrides, undefined)
+  assertEquals(calls.consumePendingOverrides.length, 0)
+})
+
+Deno.test("POST /draft { additional_program } with no pending overrides does NOT call consumePendingOverrides (nothing to consume)", async () => {
+  const active = activeAdditionalProgramThread({ pending_constraint_overrides: null })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+
+  await handleEmbeddedAgent(req, deps)
+  assertEquals(calls.consumePendingOverrides.length, 0)
+})
+
+// ---------- /reject (additional_program) ----------
+
+Deno.test("POST /reject { additional_program } clears pending_constraint_overrides (preview_ready → open)", async () => {
+  const active = activeAdditionalProgramThread({
+    status: "preview_ready",
+    pending_constraint_overrides: { daysPerWeek: 5 },
+  })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({ action: "reject", purpose: "additional_program" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+  assertEquals(calls.resetForReject.length, 1)
+  // Overrides cleared as part of the reject path.
+  assertEquals(calls.setPendingConstraintOverrides.length, 1)
+  assertEquals(calls.setPendingConstraintOverrides[0].overrides, null)
+})
+
+Deno.test("POST /reject { onboarding } does NOT call setPendingConstraintOverrides (regression)", async () => {
+  const active = makeThread({ id: "t-onb-pr", purpose: "onboarding", status: "preview_ready" })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({ action: "reject", purpose: "onboarding" }),
+  })
+
+  await handleEmbeddedAgent(req, deps)
+  assertEquals(calls.resetForReject.length, 1)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+})
+
+// ---------- Server-side e2e (open → send → draft → preview_ready) ----------
+
+Deno.test("E2E server-side: open → send (accepted signal w/ motivation+overrides) → draft → preview_ready", async () => {
+  // /open: creates a fresh additional_program thread + builds the bundle.
+  // We simulate the full sequence by reusing one deps object so the call
+  // log accumulates across the three actions.
+  const freshThread = activeAdditionalProgramThread({
+    id: "thread-e2e",
+    bundle_context: null,
+  })
+
+  let currentThread = freshThread
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: currentThread, resumed: false }),
+    getActiveThread: async () => currentThread,
+    chatModel: async () => ({
+      content:
+        "Locked in.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"3d plateau","motivation":"plateau","constraint_overrides":{"daysPerWeek":3}}',
+    }),
+  })
+
+  // 1) /open builds the bundle.
+  const openRes = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+  assertEquals(openRes.status, 200)
+  assertEquals(calls.buildBundle.length, 1)
+
+  // Hand-update the in-memory thread so subsequent getActiveThread sees
+  // the bundle that /open just persisted (the real DB would do this for us).
+  currentThread = {
+    ...currentThread,
+    bundle_context: makeStubBundle() as unknown as Record<string, unknown>,
+  }
+
+  // 2) /send accepts the ready signal — persists motivation + overrides.
+  const sendRes = await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+  assertEquals(sendRes.status, 200)
+  const sendBody = await sendRes.json() as Record<string, unknown>
+  assertEquals(sendBody.ready_for_draft, true)
+  assertEquals(calls.setChangeMotivation[0].motivation, "plateau")
+  assertEquals(calls.setPendingConstraintOverrides[0].overrides, { daysPerWeek: 3 })
+
+  // Reflect the persistence in our in-memory fixture so /draft picks it up.
+  currentThread = {
+    ...currentThread,
+    change_motivation: "plateau",
+    pending_constraint_overrides: { daysPerWeek: 3 },
+  }
+
+  // 3) /draft consumes the overrides + flips status to preview_ready.
+  const draftRes = await handleEmbeddedAgent(
+    new Request("https://example.test/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+      body: JSON.stringify({
+        action: "draft",
+        trigger: "ready_signal",
+        locale: "en",
+        purpose: "additional_program",
+      }),
+    }),
+    deps,
+  )
+  assertEquals(draftRes.status, 200)
+  const draftBody = await draftRes.json() as Record<string, unknown>
+  assertEquals(draftBody.status, "preview_ready")
+  assertEquals(calls.runDraftStep[0].constraintOverrides, { daysPerWeek: 3 })
+  assertEquals(calls.consumePendingOverrides.length, 1)
+  assertEquals(calls.setStatusToPreviewReady.length, 1)
 })

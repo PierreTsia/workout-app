@@ -11,11 +11,17 @@
 // inventory.
 
 export type LogRoute = "/thread" | "/message" | "/draft" | "/commit" | "/reject"
+export type LogPurpose = "onboarding" | "additional_program"
 
 export interface LogEvent {
   level: "error" | "warn" | "info"
   feature: "embedded-agent"
   route: LogRoute
+  // T131 (#343) — present on every action log so funnel queries can split
+  // onboarding vs additional_program without re-parsing the message.
+  // Optional only on pre-purpose-resolution failures (auth_missing,
+  // invalid_json, invalid_purpose itself).
+  purpose?: LogPurpose
   // Required for warn/error events. Optional on info boundaries where
   // there is no error to classify (thread_created etc. encode the kind
   // of boundary in `message` instead).

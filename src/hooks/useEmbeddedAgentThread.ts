@@ -3,10 +3,26 @@ import { useStore } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { activeProgramIdAtom, hasProgramAtom } from "@/store/atoms"
 
+// T131 (#343) — mirrors `ThreadPurpose` on the Edge function. Single source
+// of truth for the wire contract lives in
+// `supabase/functions/embedded-agent/threadStore.ts`; duplicated here so
+// frontend code doesn't reach across the supabase/ boundary at type level.
+export type ThreadPurpose = "onboarding" | "additional_program"
+
 export interface ThreadMessage {
   role: "user" | "assistant"
   content: string
   ts: string
+}
+
+// T133/T136 (#343) — compact snapshot of the additional-program bundle,
+// surfaced on `/open` so the chat surface can render the "we're building
+// on top of <X>" chip. Only present for `purpose === 'additional_program'`;
+// the field is omitted entirely on onboarding threads (server contract).
+export interface BundleSummary {
+  sessions_per_week: number
+  active_program_name?: string
+  top_muscle_group?: string
 }
 
 export interface ThreadPayload {
@@ -18,11 +34,27 @@ export interface ThreadPayload {
   // status === 'preview_ready'; the EmbeddedAgentPreviewStep renders
   // straight from this without a second fetch.
   last_preview: DraftPreview | null
+  // T136 (#343) — present only on additional_program threads (server
+  // contract). `null` when the bundle was persisted but the projection
+  // produced no useful chip data (e.g. user with no active program AND
+  // no recent training).
+  bundle_summary?: BundleSummary | null
+}
+
+// T136 (#343) — additional-program /send may reject the model's ready
+// signal mid-conversation when motivation is missing/invalid or an
+// override is out of bounds. The chat surface fires
+// `embedded_agent_motivation_classification_failed` when this is
+// present. Field is omitted for onboarding entirely.
+export interface ValidatorRejection {
+  reason: "malformed_json" | "missing" | "invalid_value" | "invalid_override"
+  field?: string
 }
 
 export interface SendMessageResponse {
   assistant: { content: string; ts: string }
   ready_for_draft: boolean
+  validator_rejection?: ValidatorRejection
 }
 
 export type DraftTrigger = "ready_signal" | "turn_cap" | "user_cta"
@@ -57,6 +89,12 @@ export interface GenerateDraftResponse {
 
 export interface CommitPreviewResponse {
   program_id: string
+  // T136 (#343) — both surfaced so the client can fire
+  // `embedded_agent_preview_committed` with the same correlation IDs
+  // the rest of the funnel uses. `motivation` is null on onboarding
+  // commits (the motivation gate is additional-program-only).
+  thread_id: string
+  motivation: string | null
 }
 
 export type EmbeddedAgentError =
@@ -70,7 +108,11 @@ export type EmbeddedAgentError =
   | { kind: "commit_failed"; mcp_kind?: string }
   | { kind: "unknown"; message: string }
 
-const THREAD_QUERY_KEY = ["embedded-agent", "thread"] as const
+// T131 (#343) — cache key includes `purpose` so onboarding and
+// additional_program threads have independent React Query entries; mutations
+// invalidate only their own purpose.
+const threadQueryKey = (purpose: ThreadPurpose) =>
+  ["embedded-agent", "thread", purpose] as const
 
 interface InvokeError {
   context?: Response
@@ -157,27 +199,31 @@ async function callEmbeddedAgent<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 /**
- * Resumes-or-creates the user's active onboarding thread by hitting the
- * `/thread { action: "open" }` Edge route. Single-flight via the
- * `embedded-agent/thread` cache key so any consumer shares the same row.
+ * Resumes-or-creates the user's active thread for `purpose` by hitting the
+ * `/thread { action: "open" }` Edge route. Single-flight per purpose via
+ * the `embedded-agent/thread/<purpose>` cache key so onboarding and
+ * additional-program flows have isolated caches.
  */
-export function useThread(locale: "en" | "fr") {
+export function useThread(purpose: ThreadPurpose, locale: "en" | "fr") {
   return useQuery<ThreadPayload>({
-    queryKey: THREAD_QUERY_KEY,
-    queryFn: () => callEmbeddedAgent<ThreadPayload>({ action: "open", locale }),
+    queryKey: threadQueryKey(purpose),
+    queryFn: () =>
+      callEmbeddedAgent<ThreadPayload>({ action: "open", purpose, locale }),
   })
 }
 
 /**
- * Abandons the active thread, then invalidates the thread cache so the next
- * mount of `useThread` creates a fresh row. Idempotent on the server.
+ * Abandons the user's active thread for `purpose`, then invalidates the
+ * matching thread cache so the next mount creates a fresh row. Idempotent
+ * on the server. Other purposes' caches are untouched.
  */
-export function useAbandonThread() {
+export function useAbandonThread(purpose: ThreadPurpose) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () => callEmbeddedAgent<{ ok: true }>({ action: "abandon" }),
+    mutationFn: () =>
+      callEmbeddedAgent<{ ok: true }>({ action: "abandon", purpose }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: threadQueryKey(purpose) })
     },
   })
 }
@@ -196,17 +242,23 @@ export function useAbandonThread() {
  *  - On error we keep the user bubble (it's persisted server-side) and let
  *    the UI branch on `EmbeddedAgentError.kind` to show the right banner.
  */
-export function useSendMessage() {
+export function useSendMessage(purpose: ThreadPurpose) {
   const queryClient = useQueryClient()
+  const queryKey = threadQueryKey(purpose)
   return useMutation<
     SendMessageResponse,
     EmbeddedAgentError,
     { content: string; locale: "en" | "fr" }
   >({
     mutationFn: ({ content, locale }) =>
-      callEmbeddedAgent<SendMessageResponse>({ action: "send", content, locale }),
+      callEmbeddedAgent<SendMessageResponse>({
+        action: "send",
+        purpose,
+        content,
+        locale,
+      }),
     onMutate: (variables) => {
-      queryClient.setQueryData<ThreadPayload>(THREAD_QUERY_KEY, (prev) => {
+      queryClient.setQueryData<ThreadPayload>(queryKey, (prev) => {
         if (!prev) return prev
         return {
           ...prev,
@@ -218,7 +270,7 @@ export function useSendMessage() {
       })
     },
     onSuccess: (data) => {
-      queryClient.setQueryData<ThreadPayload>(THREAD_QUERY_KEY, (prev) => {
+      queryClient.setQueryData<ThreadPayload>(queryKey, (prev) => {
         if (!prev) return prev
         return {
           ...prev,
@@ -240,7 +292,7 @@ export function useSendMessage() {
  * `EmbeddedAgentError` so the UI can branch on quota.which (turn /
  * draft / program) and model_failure independently.
  */
-export function useGenerateDraft() {
+export function useGenerateDraft(purpose: ThreadPurpose) {
   const queryClient = useQueryClient()
   return useMutation<
     GenerateDraftResponse,
@@ -248,9 +300,14 @@ export function useGenerateDraft() {
     { trigger: DraftTrigger; locale: "en" | "fr" }
   >({
     mutationFn: ({ trigger, locale }) =>
-      callEmbeddedAgent<GenerateDraftResponse>({ action: "draft", trigger, locale }),
+      callEmbeddedAgent<GenerateDraftResponse>({
+        action: "draft",
+        purpose,
+        trigger,
+        locale,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: threadQueryKey(purpose) })
     },
   })
 }
@@ -262,13 +319,13 @@ export function useGenerateDraft() {
  * unmounts. Idempotent server-side, so the UI can fire this on every
  * "Regenerate" click without guarding.
  */
-export function useRejectPreview() {
+export function useRejectPreview(purpose: ThreadPurpose) {
   const queryClient = useQueryClient()
   return useMutation<{ ok: true; status: "open" }, EmbeddedAgentError, void>({
     mutationFn: () =>
-      callEmbeddedAgent<{ ok: true; status: "open" }>({ action: "reject" }),
+      callEmbeddedAgent<{ ok: true; status: "open" }>({ action: "reject", purpose }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: threadQueryKey(purpose) })
     },
   })
 }
@@ -285,7 +342,7 @@ export function useRejectPreview() {
  *   - `no_active_thread` (409): client state drifted (no thread, status
  *     not preview_ready, or last_preview gone) — UI bails to chat.
  */
-export function useCommitPreview() {
+export function useCommitPreview(purpose: ThreadPurpose) {
   const queryClient = useQueryClient()
   // Grab the ambient store via the hook so we work with whatever JotaiProvider
   // wraps the tree (production: default global store; tests: per-test store).
@@ -294,7 +351,11 @@ export function useCommitPreview() {
   const store = useStore()
   return useMutation<CommitPreviewResponse, EmbeddedAgentError, void>({
     mutationFn: () =>
-      callEmbeddedAgent<CommitPreviewResponse>({ action: "commit", confirm: true }),
+      callEmbeddedAgent<CommitPreviewResponse>({
+        action: "commit",
+        purpose,
+        confirm: true,
+      }),
     onSuccess: (data) => {
       // Mirror the legacy AIProgramPreviewStep post-create sync so the home
       // shell sees the new active program immediately on navigation. Without
@@ -302,7 +363,7 @@ export function useCommitPreview() {
       // bounced back into onboarding (or sees an empty home).
       store.set(hasProgramAtom, true)
       store.set(activeProgramIdAtom, data.program_id)
-      queryClient.invalidateQueries({ queryKey: THREAD_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: threadQueryKey(purpose) })
       queryClient.invalidateQueries({ queryKey: ["workout-days"] })
       queryClient.invalidateQueries({ queryKey: ["active-program"] })
       queryClient.invalidateQueries({ queryKey: ["user-programs"] })

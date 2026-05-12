@@ -13,19 +13,19 @@
 // without spinning up Supabase or Gemini.
 
 import type { Thread, ThreadMessage } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import {
   buildProgramPrompt,
   capCatalog,
   getEquipmentValues,
   getExerciseBounds,
+  validateProgram,
   type CatalogExercise,
+  type GenerateProgramResponse,
   type ProgramConstraints,
   type RecentExercise,
   type UserProfile as ProgramUserProfile,
-} from "../generate-program/prompt.ts"
-import { validateProgram } from "../generate-program/validate.ts"
-import type { GenerateProgramResponse } from "../generate-program/types.ts"
+} from "../_shared/programDraft.ts"
 import type { McpToolResult } from "../_shared/mcpClient.ts"
 
 export const LAST_PREVIEW_MAX_BYTES = 32_768
@@ -41,11 +41,25 @@ export interface DraftDeps {
   callModel: (prompt: string) => Promise<GenerateProgramResponse>
 }
 
+// T134 (#343) — overrides supplied by the additional-program ready signal.
+// Each field, when present, takes precedence over the corresponding profile
+// field when building `ProgramConstraints`. Validated (bounds-checked) before
+// reaching this layer — `runProgramDraftStep` trusts the input.
+export interface DraftConstraintOverrides {
+  daysPerWeek?: number
+  duration?: number
+  equipmentCategory?: string
+  goal?: string
+}
+
 export interface DraftInput {
   userId: string
   locale: "en" | "fr"
   thread: Thread
   profile: UserContextProfile
+  // Optional. Onboarding never sets this; additional-program may pass an
+  // accepted-and-persisted overrides record from `thread.pending_constraint_overrides`.
+  constraintOverrides?: DraftConstraintOverrides
 }
 
 export interface DraftArgs {
@@ -63,13 +77,26 @@ export async function runProgramDraftStep(
   input: DraftInput,
   deps: DraftDeps,
 ): Promise<DraftResult> {
-  const constraints: ProgramConstraints = {
+  const profileConstraints: ProgramConstraints = {
     daysPerWeek: input.profile.training_days_per_week,
     duration: input.profile.session_duration_minutes,
     equipmentCategory: profileEquipmentToCategory(input.profile.equipment),
     goal: input.profile.goal,
     experience: input.profile.experience,
     locale: input.locale,
+  }
+  // Overrides win, profile fills the gaps. Built as a merge so we don't
+  // mutate `profileConstraints` and so debugging is easy: the input
+  // overrides are the diff vs profile.
+  const overrides = input.constraintOverrides ?? {}
+  const constraints: ProgramConstraints = {
+    ...profileConstraints,
+    ...(overrides.daysPerWeek !== undefined && { daysPerWeek: overrides.daysPerWeek }),
+    ...(overrides.duration !== undefined && { duration: overrides.duration }),
+    ...(overrides.equipmentCategory !== undefined && {
+      equipmentCategory: overrides.equipmentCategory,
+    }),
+    ...(overrides.goal !== undefined && { goal: overrides.goal }),
   }
 
   const equipmentValues = getEquipmentValues(constraints.equipmentCategory)
