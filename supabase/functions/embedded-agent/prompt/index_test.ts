@@ -21,19 +21,25 @@ const PROFILE = {
 }
 
 const BUNDLE: additional.AdditionalProgramBundle = {
+  v: 1,
+  captured_at: "2026-05-12T12:00:00.000Z",
   profile: {
     goal: "strength",
     experience: "beginner",
     equipment: "minimal",
     training_days_per_week: 3,
     session_duration_minutes: 45,
+    age: 30,
+    weight_kg: 80,
+    gender: "m",
   },
   active_program: null,
   recent_stats: {
-    sessions_completed: 0,
-    avg_session_duration: 0,
-    last_session_at: null,
-    most_used_exercises: [],
+    window_days: 28,
+    total_sessions: 0,
+    sessions_per_week: 0,
+    top_muscle_groups: [],
+    avg_session_duration_minutes: null,
   },
 }
 

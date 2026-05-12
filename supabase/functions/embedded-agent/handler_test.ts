@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
 import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threadStore.ts"
 import type { UserContextProfile } from "./prompt/index.ts"
@@ -9,6 +9,10 @@ import {
   ProfileMissing,
   type AdditionalProgramBundle,
 } from "./lib/bundle.ts"
+import type {
+  ChangeMotivation,
+  ConstraintOverrides,
+} from "./prompt/index.ts"
 
 // ---------- factories ----------
 
@@ -88,7 +92,12 @@ interface DepsCalls {
   logBillableCall: Array<{ userId: string; source: "embedded_chat" | "embedded_draft" }>
   chatModel: Array<{ systemPrompt: string; messages: ThreadMessage[] }>
   loadProfile: Array<{ userId: string }>
-  runDraftStep: Array<{ userId: string; locale: ThreadLocale; thread: Thread }>
+  runDraftStep: Array<{
+    userId: string
+    locale: ThreadLocale
+    thread: Thread
+    constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+  }>
   callMcp: Array<{ args: DraftArgs }>
   setLastPreview: Array<{ thread: Thread; preview: LastPreview }>
   setStatusToPreviewReady: Array<{ thread: Thread }>
@@ -98,6 +107,10 @@ interface DepsCalls {
   purgeRetention: Array<{ userId: string }>
   buildBundle: Array<{ userId: string }>
   setBundle: Array<{ threadId: string; bundle: AdditionalProgramBundle }>
+  incrementValidatorRejection: Array<{ threadId: string }>
+  setChangeMotivation: Array<{ threadId: string; motivation: ChangeMotivation }>
+  setPendingConstraintOverrides: Array<{ threadId: string; overrides: ConstraintOverrides | null }>
+  consumePendingOverrides: Array<{ threadId: string }>
   logEvents: LogEvent[]
 }
 
@@ -118,7 +131,13 @@ interface DepsOverrides {
   logBillableCall?: (userId: string, source: "embedded_chat" | "embedded_draft") => Promise<void>
   chatModel?: (input: { systemPrompt: string; messages: ThreadMessage[] }) => Promise<{ content: string }>
   loadProfile?: (userId: string) => Promise<UserContextProfile | null>
-  runDraftStep?: (input: { userId: string; locale: ThreadLocale; thread: Thread; profile: UserContextProfile }) => Promise<DraftResult>
+  runDraftStep?: (input: {
+    userId: string
+    locale: ThreadLocale
+    thread: Thread
+    profile: UserContextProfile
+    constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+  }) => Promise<DraftResult>
   callMcp?: (args: DraftArgs) => Promise<CallMcpToolResult>
   setLastPreview?: (thread: Thread, preview: LastPreview) => Promise<void>
   setStatusToPreviewReady?: (thread: Thread) => Promise<void>
@@ -131,6 +150,13 @@ interface DepsOverrides {
   purgeRetention?: (userId: string) => Promise<void>
   buildBundle?: (userId: string) => Promise<AdditionalProgramBundle>
   setBundle?: (thread: Thread, bundle: AdditionalProgramBundle) => Promise<void>
+  incrementValidatorRejection?: (thread: Thread) => Promise<void>
+  setChangeMotivation?: (thread: Thread, motivation: ChangeMotivation) => Promise<void>
+  setPendingConstraintOverrides?: (
+    thread: Thread,
+    overrides: ConstraintOverrides | null,
+  ) => Promise<void>
+  consumePendingOverrides?: (thread: Thread) => Promise<void>
 }
 
 function makeDeps(overrides: DepsOverrides = {}) {
@@ -157,6 +183,10 @@ function makeDeps(overrides: DepsOverrides = {}) {
     purgeRetention: [],
     buildBundle: [],
     setBundle: [],
+    incrementValidatorRejection: [],
+    setChangeMotivation: [],
+    setPendingConstraintOverrides: [],
+    consumePendingOverrides: [],
     logEvents: [],
   }
 
@@ -242,8 +272,19 @@ function makeDeps(overrides: DepsOverrides = {}) {
             gender: "male",
           }
     },
-    runDraftStep: async (input: { userId: string; locale: ThreadLocale; thread: Thread; profile: UserContextProfile }) => {
-      calls.runDraftStep.push({ userId: input.userId, locale: input.locale, thread: input.thread })
+    runDraftStep: async (input: {
+      userId: string
+      locale: ThreadLocale
+      thread: Thread
+      profile: UserContextProfile
+      constraintOverrides?: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string }
+    }) => {
+      calls.runDraftStep.push({
+        userId: input.userId,
+        locale: input.locale,
+        thread: input.thread,
+        constraintOverrides: input.constraintOverrides,
+      })
       return overrides.runDraftStep
         ? await overrides.runDraftStep(input)
         : ({
@@ -299,6 +340,30 @@ function makeDeps(overrides: DepsOverrides = {}) {
     setBundle: async (thread: Thread, bundle: AdditionalProgramBundle) => {
       calls.setBundle.push({ threadId: thread.id, bundle })
       if (overrides.setBundle) await overrides.setBundle(thread, bundle)
+    },
+    incrementValidatorRejection: async (thread: Thread) => {
+      calls.incrementValidatorRejection.push({ threadId: thread.id })
+      if (overrides.incrementValidatorRejection) {
+        await overrides.incrementValidatorRejection(thread)
+      }
+    },
+    setChangeMotivation: async (thread: Thread, motivation: ChangeMotivation) => {
+      calls.setChangeMotivation.push({ threadId: thread.id, motivation })
+      if (overrides.setChangeMotivation) {
+        await overrides.setChangeMotivation(thread, motivation)
+      }
+    },
+    setPendingConstraintOverrides: async (thread: Thread, payload: ConstraintOverrides | null) => {
+      calls.setPendingConstraintOverrides.push({ threadId: thread.id, overrides: payload })
+      if (overrides.setPendingConstraintOverrides) {
+        await overrides.setPendingConstraintOverrides(thread, payload)
+      }
+    },
+    consumePendingOverrides: async (thread: Thread) => {
+      calls.consumePendingOverrides.push({ threadId: thread.id })
+      if (overrides.consumePendingOverrides) {
+        await overrides.consumePendingOverrides(thread)
+      }
     },
     log: (event: LogEvent) => {
       calls.logEvents.push(event)
@@ -1589,4 +1654,402 @@ Deno.test("POST /thread { open, additional_program } returns 500 internal + erro
   assertEquals(errors[0].error_kind, "internal")
   assertEquals(errors[0].route, "/thread")
   assertEquals(errors[0].purpose, "additional_program")
+})
+
+// ============================================================================
+// T134 (#343) — /send + /draft + /reject for additional_program
+// ============================================================================
+
+function sendAdditionalProgramRequest(content: string): Request {
+  return new Request("https://example.test/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "send",
+      content,
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+}
+
+function activeAdditionalProgramThread(overrides: Partial<Thread> = {}): Thread {
+  return makeThread({
+    id: "thread-ap-active",
+    purpose: "additional_program",
+    status: "open",
+    bundle_context: makeStubBundle() as unknown as Record<string, unknown>,
+    ...overrides,
+  })
+}
+
+// ---------- /send (additional_program) ----------
+
+Deno.test("POST /send { additional_program } without bundle_context returns 409 bundle_missing", async () => {
+  const active = activeAdditionalProgramThread({ bundle_context: null })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const res = await handleEmbeddedAgent(sendAdditionalProgramRequest("hi"), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "bundle_missing")
+
+  // Never touched the model when the precondition fails.
+  assertEquals(calls.chatModel.length, 0)
+  // Never persisted anything (user msg gate is after bundle check).
+  assertEquals(calls.appendMessage.length, 0)
+  const warns = calls.logEvents.filter((e) => e.error_kind === "bundle_missing")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].purpose, "additional_program")
+})
+
+Deno.test("POST /send { additional_program } uses the additional-program prompt + validator (bundle context appears in system prompt)", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({ content: "Got it." }),
+  })
+
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("Tell me my options."), deps)
+
+  assertEquals(calls.chatModel.length, 1)
+  // The system prompt for additional_program embeds the bundle as a JSON
+  // code-fence and includes the motivation gate copy. We only assert the
+  // bundle render here (motivation copy is fully covered by the
+  // prompt/additional-program_test.ts suite).
+  assertStringIncludes(calls.chatModel[0].systemPrompt, "Push Pull Legs")
+  assertStringIncludes(calls.chatModel[0].systemPrompt, "Motivation gate")
+})
+
+Deno.test("POST /send { additional_program } rejects malformed motivation: counter++, validator_rejection in payload, conversation continues", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({
+      content:
+        "Sounds good!\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"missing motivation"}',
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  // Ready signal was rejected by the validator (motivation missing).
+  assertEquals(body.ready_for_draft, false)
+  assertEquals(body.validator_rejection, { reason: "missing" })
+
+  // Counter bumped exactly once.
+  assertEquals(calls.incrementValidatorRejection.length, 1)
+  assertEquals(calls.incrementValidatorRejection[0].threadId, "thread-ap-active")
+
+  // No motivation persisted (the rejection happens BEFORE setChangeMotivation).
+  assertEquals(calls.setChangeMotivation.length, 0)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+
+  // The signal line is stripped from the persisted transcript and the wire.
+  const assistant = body.assistant as { content: string }
+  assertEquals(assistant.content.includes("READY_FOR_PROGRAM_DRAFT"), false)
+})
+
+Deno.test("POST /send { additional_program } first accepted signal persists change_motivation; subsequent signals do NOT overwrite", async () => {
+  const active = activeAdditionalProgramThread()
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({
+      content:
+        "Logged.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"injury","motivation":"injury"}',
+    }),
+  })
+
+  // First accept on an empty `change_motivation` → persists.
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+  assertEquals(calls.setChangeMotivation.length, 1)
+  assertEquals(calls.setChangeMotivation[0].motivation, "injury")
+
+  // Second accept where the thread already has a motivation. Handler
+  // reads `change_motivation` from `getActiveThread`; we now return a
+  // thread carrying the persisted value.
+  const withMotivation = activeAdditionalProgramThread({ change_motivation: "injury" })
+  const second = makeDeps({
+    getActiveThread: async () => withMotivation,
+    chatModel: async () => ({
+      content:
+        "Re-affirmed.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"variety","motivation":"variety"}',
+    }),
+  })
+  await handleEmbeddedAgent(sendAdditionalProgramRequest("ready again"), second.deps)
+  // First-accept-only — the new motivation is silently ignored.
+  assertEquals(second.calls.setChangeMotivation.length, 0)
+})
+
+Deno.test("POST /send { additional_program } accepted signal persists pending_constraint_overrides; overwrites on a later accept; clears on no-overrides accept", async () => {
+  // First accept with overrides → persisted.
+  {
+    const active = activeAdditionalProgramThread()
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Got it.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"3d","motivation":"variety","constraint_overrides":{"daysPerWeek":3}}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, { daysPerWeek: 3 })
+  }
+
+  // Second accept with DIFFERENT overrides → overwritten.
+  {
+    const active = activeAdditionalProgramThread({
+      change_motivation: "variety",
+      pending_constraint_overrides: { daysPerWeek: 3 },
+    })
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Updated.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"5d","motivation":"variety","constraint_overrides":{"daysPerWeek":5,"duration":45}}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("change my mind"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, {
+      daysPerWeek: 5,
+      duration: 45,
+    })
+  }
+
+  // Third accept with NO overrides → cleared (null wins over stale).
+  {
+    const active = activeAdditionalProgramThread({
+      change_motivation: "variety",
+      pending_constraint_overrides: { daysPerWeek: 5, duration: 45 },
+    })
+    const { deps, calls } = makeDeps({
+      getActiveThread: async () => active,
+      chatModel: async () => ({
+        content:
+          "Back to defaults.\n" +
+          'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"defaults","motivation":"variety"}',
+      }),
+    })
+    await handleEmbeddedAgent(sendAdditionalProgramRequest("nvm"), deps)
+    assertEquals(calls.setPendingConstraintOverrides.length, 1)
+    assertEquals(calls.setPendingConstraintOverrides[0].overrides, null)
+  }
+})
+
+Deno.test("POST /send { onboarding } never invokes the additional-program persistence hooks (regression)", async () => {
+  const active = makeThread({ id: "thread-onb", purpose: "onboarding", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async () => ({ content: "Onboarding reply." }),
+  })
+
+  await handleEmbeddedAgent(
+    new Request("https://example.test/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+      body: JSON.stringify({ action: "send", content: "Hi", locale: "en", purpose: "onboarding" }),
+    }),
+    deps,
+  )
+
+  assertEquals(calls.incrementValidatorRejection.length, 0)
+  assertEquals(calls.setChangeMotivation.length, 0)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+})
+
+// ---------- /draft (additional_program) ----------
+
+Deno.test("POST /draft { additional_program } forwards pending_constraint_overrides to runDraftStep and consumes them on success", async () => {
+  const active = activeAdditionalProgramThread({
+    change_motivation: "plateau",
+    pending_constraint_overrides: { daysPerWeek: 3, equipmentCategory: "bodyweight" },
+  })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+  })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+
+  // Override flowed into runDraftStep verbatim.
+  assertEquals(calls.runDraftStep.length, 1)
+  assertEquals(calls.runDraftStep[0].constraintOverrides, {
+    daysPerWeek: 3,
+    equipmentCategory: "bodyweight",
+  })
+
+  // Consumed once after success (no double-apply on retry).
+  assertEquals(calls.consumePendingOverrides.length, 1)
+  assertEquals(calls.consumePendingOverrides[0].threadId, "thread-ap-active")
+})
+
+Deno.test("POST /draft { onboarding } does NOT pass constraintOverrides or call consumePendingOverrides (regression)", async () => {
+  const active = makeThread({ id: "t-onb", purpose: "onboarding", status: "open" })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "onboarding",
+    }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+  assertEquals(calls.runDraftStep.length, 1)
+  assertEquals(calls.runDraftStep[0].constraintOverrides, undefined)
+  assertEquals(calls.consumePendingOverrides.length, 0)
+})
+
+Deno.test("POST /draft { additional_program } with no pending overrides does NOT call consumePendingOverrides (nothing to consume)", async () => {
+  const active = activeAdditionalProgramThread({ pending_constraint_overrides: null })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({
+      action: "draft",
+      trigger: "ready_signal",
+      locale: "en",
+      purpose: "additional_program",
+    }),
+  })
+
+  await handleEmbeddedAgent(req, deps)
+  assertEquals(calls.consumePendingOverrides.length, 0)
+})
+
+// ---------- /reject (additional_program) ----------
+
+Deno.test("POST /reject { additional_program } clears pending_constraint_overrides (preview_ready → open)", async () => {
+  const active = activeAdditionalProgramThread({
+    status: "preview_ready",
+    pending_constraint_overrides: { daysPerWeek: 5 },
+  })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({ action: "reject", purpose: "additional_program" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+  assertEquals(res.status, 200)
+  assertEquals(calls.resetForReject.length, 1)
+  // Overrides cleared as part of the reject path.
+  assertEquals(calls.setPendingConstraintOverrides.length, 1)
+  assertEquals(calls.setPendingConstraintOverrides[0].overrides, null)
+})
+
+Deno.test("POST /reject { onboarding } does NOT call setPendingConstraintOverrides (regression)", async () => {
+  const active = makeThread({ id: "t-onb-pr", purpose: "onboarding", status: "preview_ready" })
+  const { deps, calls } = makeDeps({ getActiveThread: async () => active })
+
+  const req = new Request("https://example.test/reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+    body: JSON.stringify({ action: "reject", purpose: "onboarding" }),
+  })
+
+  await handleEmbeddedAgent(req, deps)
+  assertEquals(calls.resetForReject.length, 1)
+  assertEquals(calls.setPendingConstraintOverrides.length, 0)
+})
+
+// ---------- Server-side e2e (open → send → draft → preview_ready) ----------
+
+Deno.test("E2E server-side: open → send (accepted signal w/ motivation+overrides) → draft → preview_ready", async () => {
+  // /open: creates a fresh additional_program thread + builds the bundle.
+  // We simulate the full sequence by reusing one deps object so the call
+  // log accumulates across the three actions.
+  const freshThread = activeAdditionalProgramThread({
+    id: "thread-e2e",
+    bundle_context: null,
+  })
+
+  let currentThread = freshThread
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: currentThread, resumed: false }),
+    getActiveThread: async () => currentThread,
+    chatModel: async () => ({
+      content:
+        "Locked in.\n" +
+        'READY_FOR_PROGRAM_DRAFT: {"v":1,"ready":true,"summary":"3d plateau","motivation":"plateau","constraint_overrides":{"daysPerWeek":3}}',
+    }),
+  })
+
+  // 1) /open builds the bundle.
+  const openRes = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+  assertEquals(openRes.status, 200)
+  assertEquals(calls.buildBundle.length, 1)
+
+  // Hand-update the in-memory thread so subsequent getActiveThread sees
+  // the bundle that /open just persisted (the real DB would do this for us).
+  currentThread = {
+    ...currentThread,
+    bundle_context: makeStubBundle() as unknown as Record<string, unknown>,
+  }
+
+  // 2) /send accepts the ready signal — persists motivation + overrides.
+  const sendRes = await handleEmbeddedAgent(sendAdditionalProgramRequest("ready"), deps)
+  assertEquals(sendRes.status, 200)
+  const sendBody = await sendRes.json() as Record<string, unknown>
+  assertEquals(sendBody.ready_for_draft, true)
+  assertEquals(calls.setChangeMotivation[0].motivation, "plateau")
+  assertEquals(calls.setPendingConstraintOverrides[0].overrides, { daysPerWeek: 3 })
+
+  // Reflect the persistence in our in-memory fixture so /draft picks it up.
+  currentThread = {
+    ...currentThread,
+    change_motivation: "plateau",
+    pending_constraint_overrides: { daysPerWeek: 3 },
+  }
+
+  // 3) /draft consumes the overrides + flips status to preview_ready.
+  const draftRes = await handleEmbeddedAgent(
+    new Request("https://example.test/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer jwt_test" },
+      body: JSON.stringify({
+        action: "draft",
+        trigger: "ready_signal",
+        locale: "en",
+        purpose: "additional_program",
+      }),
+    }),
+    deps,
+  )
+  assertEquals(draftRes.status, 200)
+  const draftBody = await draftRes.json() as Record<string, unknown>
+  assertEquals(draftBody.status, "preview_ready")
+  assertEquals(calls.runDraftStep[0].constraintOverrides, { daysPerWeek: 3 })
+  assertEquals(calls.consumePendingOverrides.length, 1)
+  assertEquals(calls.setStatusToPreviewReady.length, 1)
 })

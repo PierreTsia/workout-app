@@ -6,14 +6,18 @@ import {
   type ThreadPurpose,
 } from "./threadStore.ts"
 import {
-  buildSystemPrompt,
-  parseReadySignal,
+  buildSystemPromptFor,
+  parseReadySignalFor,
+  type ChangeMotivation,
+  type ConstraintOverrides,
   type UserContextProfile,
+  type ValidatorRejection,
 } from "./prompt/index.ts"
 import {
   buildLastPreview,
   extractRenderedFromMcpResult,
   type DraftArgs,
+  type DraftConstraintOverrides,
   type DraftResult,
   type LastPreview,
 } from "./draft.ts"
@@ -48,6 +52,10 @@ export interface DraftStepInput {
   locale: ThreadLocale
   thread: Thread
   profile: UserContextProfile
+  // T134 (#343) — populated only for additional_program threads.
+  // Onboarding always passes `undefined`. Forwarded verbatim to
+  // `runProgramDraftStep` which merges them on top of profile constraints.
+  constraintOverrides?: DraftConstraintOverrides
 }
 
 export interface EmbeddedAgentDeps {
@@ -98,6 +106,33 @@ export interface EmbeddedAgentDeps {
    * one — caller guards on null).
    */
   setBundle: (thread: Thread, bundle: AdditionalProgramBundle) => Promise<void>
+  /**
+   * T134 (#343) — bump `validator_rejection_count` by 1 when the
+   * additional-program /send validator rejects a malformed ready signal.
+   * Used downstream by the agent's bounded retry mechanic.
+   */
+  incrementValidatorRejection: (thread: Thread) => Promise<void>
+  /**
+   * T134 (#343) — write the first-accepted `change_motivation` for an
+   * additional-program thread. Caller enforces first-accept-only.
+   */
+  setChangeMotivation: (thread: Thread, motivation: ChangeMotivation) => Promise<void>
+  /**
+   * T134 (#343) — overwrite `pending_constraint_overrides`. Pass `null`
+   * to clear (latest accepted wins; if a later signal has no overrides
+   * we drop the stale value).
+   */
+  setPendingConstraintOverrides: (
+    thread: Thread,
+    overrides: ConstraintOverrides | null,
+  ) => Promise<void>
+  /**
+   * T134 (#343) — clear `pending_constraint_overrides` after /draft has
+   * consumed them. Race-safe: even if MCP fails later and the user
+   * retries, /draft falls back to profile defaults (the agent must
+   * re-emit overrides to re-apply).
+   */
+  consumePendingOverrides: (thread: Thread) => Promise<void>
   log: (event: LogEvent) => void
 }
 
@@ -490,6 +525,13 @@ async function handleReject(
     return Response.json({ ok: true, status: "open" }, { status: 200 })
   }
   await deps.resetForReject(active)
+  // T134 (#343) — rejected previews must NOT leave their overrides
+  // dangling: a subsequent /draft would silently re-apply them, surprising
+  // the user. Clear unconditionally for additional_program (no-op when
+  // the column was already null).
+  if (purpose === "additional_program") {
+    await deps.setPendingConstraintOverrides(active, null)
+  }
   return Response.json({ ok: true, status: "open" }, { status: 200 })
 }
 
@@ -558,6 +600,15 @@ async function handleSend(
     return Response.json({ error: "no_active_thread" }, { status: 409 })
   }
 
+  // T134 (#343) — additional-program threads MUST have a bundle by the
+  // time /send runs. /open is the only writer; absence here means the
+  // client raced past /open (stale tab) or the row was hand-edited. 409
+  // forces a re-open instead of generating a draft from thin air.
+  if (purpose === "additional_program" && active.bundle_context === null) {
+    logWarn("bundle_missing", active.id)
+    return Response.json({ error: "bundle_missing" }, { status: 409 })
+  }
+
   // Persist-first: user message lands BEFORE quota / model so abandoned
   // attempts still leave evidence in the transcript (Story 19).
   const afterUser = await deps.appendMessage(active, "user", content)
@@ -571,10 +622,7 @@ async function handleSend(
     )
   }
 
-  const profile = await deps.loadProfile(userId)
-  const systemPrompt = profile
-    ? buildSystemPrompt({ locale, userProfile: profile })
-    : `Always respond in ${locale === "fr" ? "French" : "English"}.`
+  const systemPrompt = await buildSendSystemPrompt(userId, locale, purpose, active, deps)
 
   // log_everything: counted against quota even if the model fails (Story 19).
   // Wrapping in try/finally keeps the count consistent without leaking
@@ -607,14 +655,98 @@ async function handleSend(
   // transcript nor the wire response ever leaks raw `READY_FOR_PROGRAM_DRAFT:
   // {...}` JSON to the client. The boolean below is the only thing the UI
   // needs to flip the "Generate my plan" CTA visual (T119).
-  const signal = parseReadySignal(modelOutput.content)
+  const parsed = parseReadySignalFor(purpose, modelOutput.content)
 
-  await deps.appendMessage(afterUser, "assistant", signal.cleanContent)
-  const ts = new Date().toISOString()
-  return Response.json({
-    assistant: { content: signal.cleanContent, ts },
-    ready_for_draft: signal.ready,
+  // T134 (#343) — additional-program flow: validator rejections bump a
+  // counter + surface the reason to the client (so the UI can render a
+  // hint; the agent retries through normal turns, not a server retry).
+  // Accepted signals persist `change_motivation` (first wins) and
+  // `pending_constraint_overrides` (latest wins).
+  let validatorRejection: ValidatorRejection | undefined
+  if (parsed.purpose === "additional_program") {
+    const result = parsed.result
+    if (result.validatorRejection) {
+      validatorRejection = result.validatorRejection
+      await deps.incrementValidatorRejection(active)
+    } else if (result.ready) {
+      await persistAcceptedAdditionalProgramSignal(active, result.motivation, result.constraintOverrides, deps)
+    }
+  }
+
+  const afterAssistant = await deps.appendMessage(afterUser, "assistant", parsed.result.cleanContent)
+
+  const responseBody: Record<string, unknown> = {
+    assistant: {
+      content: parsed.result.cleanContent,
+      ts: latestAssistantTs(afterAssistant.messages),
+    },
+    ready_for_draft: parsed.result.ready,
+  }
+  if (validatorRejection) responseBody.validator_rejection = validatorRejection
+  return Response.json(responseBody)
+}
+
+/**
+ * Compose the system prompt for /send. Splits cleanly on purpose so the
+ * onboarding path stays byte-identical to its pre-T134 shape (degraded
+ * fallback included), while additional-program reads the bundle that
+ * /open snapshotted into `thread.bundle_context`.
+ */
+async function buildSendSystemPrompt(
+  userId: string,
+  locale: ThreadLocale,
+  purpose: ThreadPurpose,
+  thread: Thread,
+  deps: EmbeddedAgentDeps,
+): Promise<string> {
+  if (purpose === "onboarding") {
+    const profile = await deps.loadProfile(userId)
+    if (!profile) {
+      // Degraded fallback preserved from the pre-T134 handler — keeps
+      // onboarding alive when `user_profiles` is missing rather than
+      // 5xx'ing the chat turn. The agent gets a locale hint and nothing
+      // else, which is the same UX as a brand-new account.
+      return `Always respond in ${locale === "fr" ? "French" : "English"}.`
+    }
+    return buildSystemPromptFor({ purpose: "onboarding", locale, userProfile: profile })
+  }
+
+  // additional_program — `bundle_context` is the source of truth; we
+  // already 409'd above if it's missing.
+  return buildSystemPromptFor({
+    purpose: "additional_program",
+    locale,
+    bundle: thread.bundle_context as unknown as AdditionalProgramBundle,
   })
+}
+
+/**
+ * Persist the accepted ready-signal payload for an additional-program
+ * thread:
+ *   - first-accept-only on `change_motivation` (the FIRST classification
+ *     is canonical — see ADR 0003 §"Motivation gate enforcement");
+ *   - latest-wins on `pending_constraint_overrides`, including clearing
+ *     a stale value when the new signal carries none. `setPending`
+ *     receiving `null` is an explicit no-overrides reset.
+ */
+async function persistAcceptedAdditionalProgramSignal(
+  thread: Thread,
+  motivation: ChangeMotivation | undefined,
+  overrides: ConstraintOverrides | undefined,
+  deps: EmbeddedAgentDeps,
+): Promise<void> {
+  if (motivation && thread.change_motivation === null) {
+    await deps.setChangeMotivation(thread, motivation)
+  }
+  await deps.setPendingConstraintOverrides(thread, overrides ?? null)
+}
+
+function latestAssistantTs(messages: ThreadMessage[] | null): string {
+  // Use the appended message's timestamp rather than `new Date()` so the
+  // wire timestamp matches what we persisted (helps client-side reconciliation).
+  if (!messages || messages.length === 0) return new Date().toISOString()
+  const last = messages[messages.length - 1]
+  return last?.ts ?? new Date().toISOString()
 }
 
 async function handleDraft(
@@ -685,6 +817,14 @@ async function handleDraft(
     return Response.json({ error: "profile_missing" }, { status: 409 })
   }
 
+  // T134 (#343) — additional_program threads carry validated overrides
+  // in `pending_constraint_overrides` (persisted from /send). The draft
+  // step merges them on top of profile defaults; onboarding never sets
+  // this field so the spread below is a no-op for that flow.
+  const constraintOverrides = purpose === "additional_program"
+    ? coercePendingOverrides(active.pending_constraint_overrides as Record<string, unknown> | null)
+    : undefined
+
   // log_everything: count this draft attempt against the embedded_draft
   // quota whether it succeeds or not (Story 19). Wrapped so a model /
   // catalog failure still credits the cap.
@@ -699,7 +839,13 @@ async function handleDraft(
   let draftResult: DraftResult | null = null
   let unexpectedDraftError: unknown = null
   try {
-    draftResult = await deps.runDraftStep({ userId, locale, thread: active, profile })
+    draftResult = await deps.runDraftStep({
+      userId,
+      locale,
+      thread: active,
+      profile,
+      constraintOverrides,
+    })
   } catch (err) {
     unexpectedDraftError = err
   } finally {
@@ -789,7 +935,37 @@ async function handleDraft(
   await deps.setStatusToPreviewReady(active)
   await deps.bumpDraftCount24h(active)
 
+  // T134 (#343) — consume pending overrides AFTER the MCP dry_run + state
+  // flip succeeds. If MCP fails earlier we keep the overrides so the user
+  // can /reject + retry without losing them; if /draft itself errors we
+  // never reach this line. Idempotent on null (consume → setNull).
+  if (purpose === "additional_program" && constraintOverrides) {
+    await deps.consumePendingOverrides(active)
+  }
+
   return Response.json({ status: "preview_ready", preview, trigger })
+}
+
+/**
+ * Defensive coercion of `thread.pending_constraint_overrides` (typed as
+ * `Record<string, unknown>` in the row) into the DraftConstraintOverrides
+ * shape. Returns `undefined` (skip overrides entirely) when the persisted
+ * value is `null`, the wrong shape, or all keys would round-trip to
+ * undefined — `runProgramDraftStep` treats undefined as "no overrides".
+ *
+ * The validator in /send is the source of truth for bounds; this is just
+ * a runtime type guard against a stale row written by an older client.
+ */
+function coercePendingOverrides(
+  raw: Record<string, unknown> | null,
+): { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string } | undefined {
+  if (!raw || typeof raw !== "object") return undefined
+  const out: { daysPerWeek?: number; duration?: number; equipmentCategory?: string; goal?: string } = {}
+  if (typeof raw.daysPerWeek === "number") out.daysPerWeek = raw.daysPerWeek
+  if (typeof raw.duration === "number") out.duration = raw.duration
+  if (typeof raw.equipmentCategory === "string") out.equipmentCategory = raw.equipmentCategory
+  if (typeof raw.goal === "string") out.goal = raw.goal
+  return Object.keys(out).length === 0 ? undefined : out
 }
 
 async function handleOpen(

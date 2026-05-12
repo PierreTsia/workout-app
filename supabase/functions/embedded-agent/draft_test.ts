@@ -305,6 +305,73 @@ Deno.test("runProgramDraftStep maps the equipment category to the catalog filter
   assertEquals(calls.fetchCatalog[0].equipmentValues.length > 0, true)
 })
 
+// T134 (#343) — overrides win over profile when building ProgramConstraints.
+
+Deno.test("runProgramDraftStep with constraintOverrides.daysPerWeek=3 produces a 3-day program (overrides win over profile.training_days_per_week=4)", async () => {
+  const { deps, calls } = makeDeps({
+    callModel: async () =>
+      ({
+        rationale: "3 days hypertrophy",
+        days: [
+          { label: "Day 1", muscle_focus: "chest", exercise_ids: ["ex-chest-01"] },
+          { label: "Day 2", muscle_focus: "back", exercise_ids: ["ex-back-01"] },
+          { label: "Day 3", muscle_focus: "legs", exercise_ids: ["ex-leg-01"] },
+        ],
+      } as GenerateProgramResponse),
+  })
+
+  const result = await runProgramDraftStep(
+    makeInput({
+      profile: makeProfile({ training_days_per_week: 4 }),
+      constraintOverrides: { daysPerWeek: 3 },
+    }),
+    deps,
+  )
+
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+  // The override flows through programNameFor too — the program name is
+  // derived from constraints, not the raw profile.
+  assertMatch(result.args.name, /3/)
+  // Sanity: the prompt the model received reflects 3 days, not 4.
+  assertEquals(calls.callModel.length, 1)
+  assertMatch(calls.callModel[0].prompt, /3 day/i)
+})
+
+Deno.test("runProgramDraftStep with constraintOverrides.equipmentCategory='bodyweight' filters the catalog by bodyweight (overrides profile 'full-gym')", async () => {
+  const { deps, calls } = makeDeps()
+
+  await runProgramDraftStep(
+    makeInput({
+      profile: makeProfile({ equipment: "gym" }),
+      constraintOverrides: { equipmentCategory: "bodyweight" },
+    }),
+    deps,
+  )
+
+  // 'bodyweight' resolves to a single-element equipment list — distinct
+  // from the 8 values 'full-gym' produces.
+  assertEquals(calls.fetchCatalog.length, 1)
+  assertEquals(calls.fetchCatalog[0].equipmentValues, ["bodyweight"])
+})
+
+Deno.test("runProgramDraftStep with empty constraintOverrides behaves identically to no overrides (regression)", async () => {
+  const { deps, calls } = makeDeps()
+
+  const baseline = await runProgramDraftStep(makeInput(), deps)
+  const withEmpty = await runProgramDraftStep(
+    makeInput({ constraintOverrides: {} }),
+    deps,
+  )
+
+  assertEquals(baseline.ok, true)
+  assertEquals(withEmpty.ok, true)
+  if (!baseline.ok || !withEmpty.ok) return
+  // Same prompt → same args. Catalog filter identical too.
+  assertEquals(withEmpty.args.name, baseline.args.name)
+  assertEquals(calls.fetchCatalog[0].equipmentValues, calls.fetchCatalog[1].equipmentValues)
+})
+
 Deno.test("runProgramDraftStep translates questionnaire equipment vocab ('gym' / 'home' / 'minimal') to constraint vocab BEFORE filtering the catalog (regression: empty catalog from raw 'gym' value)", async () => {
   const { deps, calls } = makeDeps()
   await runProgramDraftStep(

@@ -9,6 +9,12 @@
 
 import type { ThreadLocale } from "../threadStore.ts"
 import { LOCALE_INSTRUCTION, parseReadySignalCore } from "./shared.ts"
+// Bundle is the canonical wire shape locked by T133. Re-exported from here
+// (instead of redefining) so the prompt module + handler + builder all
+// share a single source of truth — eliminates the structural-mismatch
+// risk that bit us in T134 wiring.
+import type { AdditionalProgramBundle } from "../lib/bundle.ts"
+export type { AdditionalProgramBundle }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -31,34 +37,6 @@ export interface ConstraintOverrides {
   duration?: number
   equipmentCategory?: EquipmentCategory
   goal?: ProgramGoal
-}
-
-export interface AdditionalProgramBundle {
-  profile: {
-    goal: string
-    experience: string
-    equipment: string
-    training_days_per_week: number
-    session_duration_minutes: number
-  }
-  // Snapshot of the user's currently-active program, or `null` when they
-  // have none right now (post-abandon, deleted, etc.). The system prompt
-  // switches greeting + opening question on `null`.
-  active_program: null | {
-    name: string
-    days_per_week: number
-    duration_minutes: number
-    goal: string
-    days: Array<{ label: string; exercises: string[] }>
-  }
-  // Rolling 4-week training stats. Shape opaque on purpose — render as
-  // structured context, don't switch logic on subfields.
-  recent_stats: {
-    sessions_completed: number
-    avg_session_duration: number
-    last_session_at: string | null
-    most_used_exercises: string[]
-  }
 }
 
 export interface BuildAdditionalProgramPromptInput {

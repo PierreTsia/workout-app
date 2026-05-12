@@ -17,29 +17,33 @@ import {
 
 function makeBundle(overrides: Partial<AdditionalProgramBundle> = {}): AdditionalProgramBundle {
   return {
+    v: 1,
+    captured_at: "2026-05-12T12:00:00.000Z",
     profile: {
       goal: "hypertrophy",
       experience: "intermediate",
       equipment: "full-gym",
       training_days_per_week: 4,
       session_duration_minutes: 60,
+      age: 30,
+      weight_kg: 75,
+      gender: "male",
     },
     active_program: {
+      id: "prog-existing",
       name: "Push-Pull-Legs 4d",
-      days_per_week: 4,
-      duration_minutes: 60,
-      goal: "hypertrophy",
       days: [
-        { label: "Push", exercises: ["bench", "ohp"] },
-        { label: "Pull", exercises: ["row", "pulldown"] },
-        { label: "Legs", exercises: ["squat", "rdl"] },
+        { label: "Push", exercise_count: 4, muscle_groups: ["chest", "shoulders", "triceps"] },
+        { label: "Pull", exercise_count: 3, muscle_groups: ["back", "biceps"] },
+        { label: "Legs", exercise_count: 4, muscle_groups: ["glutes", "hamstrings", "quads"] },
       ],
     },
     recent_stats: {
-      sessions_completed: 12,
-      avg_session_duration: 58,
-      last_session_at: "2026-05-08T18:00:00Z",
-      most_used_exercises: ["bench", "squat", "row"],
+      window_days: 28,
+      total_sessions: 12,
+      sessions_per_week: 3,
+      top_muscle_groups: ["chest", "back", "quads"],
+      avg_session_duration_minutes: 58,
     },
     ...overrides,
   }

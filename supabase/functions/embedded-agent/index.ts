@@ -3,14 +3,19 @@ import { createServiceClient, createUserClient } from "../_shared/supabase.ts"
 import {
   appendMessage,
   bumpDraftCount24h,
+  consumePendingOverrides as consumePendingOverridesOnThread,
   getActiveThread,
   getOrCreateActiveThread,
+  incrementValidatorRejection as incrementValidatorRejectionOnThread,
   markStaleIfDue,
   purgeDueForUser,
   resetForReject,
   setBundle as setBundleOnThread,
+  setChangeMotivation as setChangeMotivationOnThread,
   setLastPreview,
+  setPendingConstraintOverrides as setPendingConstraintOverridesOnThread,
   setStatus,
+  type PendingConstraintOverrides,
   type SupabaseLike,
   type Thread,
   type ThreadLocale,
@@ -169,6 +174,20 @@ Deno.serve(async (req) => {
       }),
     setBundle: (thread: Thread, bundle) =>
       setBundleOnThread(threadDb, thread, bundle as unknown as Record<string, unknown>),
+    // T134 (#343) — additional-program /send + /draft + /reject persistence
+    // hooks. All four are no-ops for onboarding (handler gates by purpose).
+    incrementValidatorRejection: (thread: Thread) =>
+      incrementValidatorRejectionOnThread(threadDb, thread),
+    setChangeMotivation: (thread: Thread, motivation) =>
+      setChangeMotivationOnThread(threadDb, thread, motivation),
+    setPendingConstraintOverrides: (thread: Thread, overrides) =>
+      setPendingConstraintOverridesOnThread(
+        threadDb,
+        thread,
+        overrides as PendingConstraintOverrides | null,
+      ),
+    consumePendingOverrides: (thread: Thread) =>
+      consumePendingOverridesOnThread(threadDb, thread),
     log: emitLog,
   })
 

@@ -33,6 +33,10 @@ export {
 export type {
   AdditionalProgramBundle,
   AdditionalProgramReadySignalResult,
+  ChangeMotivation,
+  ConstraintOverrides,
+  EquipmentCategory,
+  ProgramGoal,
   ValidatorRejection,
 } from "./additional-program.ts"
 
