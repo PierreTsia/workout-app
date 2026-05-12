@@ -308,6 +308,23 @@ Deno.test("buildAdditionalProgramBundle throws BundleSizeExceeded when JSON woul
   )
 })
 
+// PR #350 review: the size guard must count UTF-8 bytes, not UTF-16
+// code units. A string of 4500 × `é` is 4500 code units (`.length` =
+// 4500, well under 8192) but 9000 UTF-8 bytes — over the cap. The old
+// `.length`-based guard would have let this through; the
+// `TextEncoder`-based guard catches it.
+Deno.test("buildAdditionalProgramBundle counts UTF-8 bytes, not JS string length, against the size cap", async () => {
+  const multiByte = "é".repeat(4500)
+  const { deps } = makeDeps({
+    fetchProfile: async () => makeProfileRow({ goal: multiByte }),
+  })
+
+  await assertRejects(
+    () => buildAdditionalProgramBundle("user-1", deps),
+    BundleSizeExceeded,
+  )
+})
+
 // ---------- missing profile ----------
 
 Deno.test("buildAdditionalProgramBundle throws ProfileMissing when the profile fetcher returns null", async () => {

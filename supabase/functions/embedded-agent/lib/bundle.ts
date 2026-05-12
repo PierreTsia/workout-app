@@ -168,7 +168,12 @@ export async function buildAdditionalProgramBundle(
     recent_stats: projectRecentStats(recentStatsResult.value),
   }
 
-  const bytes = JSON.stringify(bundle).length
+  // PR #350 review: count real UTF-8 bytes, not UTF-16 code units. Active
+  // program names and day labels can carry non-ASCII (French accents,
+  // emojis if a user is feeling spicy) — `.length` would undercount and
+  // let the bundle slip past BUNDLE_MAX_BYTES while the error message
+  // still claimed bytes. TextEncoder.encode is the canonical byte count.
+  const bytes = new TextEncoder().encode(JSON.stringify(bundle)).length
   if (bytes > BUNDLE_MAX_BYTES) {
     throw new BundleSizeExceeded(bytes)
   }
