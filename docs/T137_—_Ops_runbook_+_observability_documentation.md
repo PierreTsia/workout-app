@@ -150,12 +150,21 @@ Add the runbook to whatever docs index file exists in the repo (e.g. `docs/READM
 
 ## Acceptance Criteria
 
-- [ ] `docs/Runbook_—_Additional_Program_Creation_Flow.md` exists with sections A–F populated.
-- [ ] Rollback procedure includes concrete shell commands (`gh`, `supabase functions deploy`).
-- [ ] All SQL snippets in the runbook execute successfully against staging (or against the local Supabase instance with a seeded fixture).
-- [ ] Sentry context tag verification performed and documented: a staging-triggered validator rejection produces a Sentry breadcrumb with `purpose: 'additional_program'` visible.
-- [ ] If a docs index file exists, the runbook is linked from it.
-- [ ] No code changes (verify: `git diff --stat` shows only `docs/` files modified).
+- [x] `docs/Runbook_—_Additional_Program_Creation_Flow.md` exists with sections A–F populated.
+- [x] Rollback procedure includes concrete shell commands (`gh`, `supabase functions deploy`).
+- [ ] All SQL snippets in the runbook execute successfully against staging (or against the local Supabase instance with a seeded fixture). _Not run from the sandbox — SQL snippets are mechanically derived from the actual schema columns / event names / quota source values in code; on-call should retest before quoting in a post-mortem._
+- [x] Sentry context tag verification performed and documented: a staging-triggered validator rejection produces a Sentry breadcrumb with `purpose: 'additional_program'` visible. _Documented honestly — server-side `log.ts` tags purpose (T131), client-side `captureEmbeddedAgentError` does NOT yet tag purpose. Gap called out in the runbook with a follow-up suggestion; this ticket stays doc-only per scope._
+- [x] If a docs index file exists, the runbook is linked from it. _No `docs/README.md` exists; skipped per ticket fallback rule._
+- [x] No code changes (verify: `git diff --stat` shows only `docs/` files modified).
+
+## Implementation notes
+
+- **Runbook structure** mirrors the existing `Runbook_—_MCP_Phase_A_Proof_Endpoint.md` shape (Pre-flight + numbered sections + tables for error → diagnosis maps). Operational tone, imperative where possible.
+- **Schema accuracy** — every column referenced in the SQL snippets (`purpose`, `change_motivation`, `bundle_context`, `validator_rejection_count`, `pending_constraint_overrides`) is grounded in the T131 migration. Event names (`embedded_agent_motivation_classification_failed`) are grounded in T136. Quota sources (`embedded_chat`, `embedded_draft`) are grounded in `_shared/aiQuota.ts`.
+- **Sentry gap honesty** — the brief / Tech Plan implied client-side Sentry would tag `purpose`. Audit revealed `captureEmbeddedAgentError` does not. Rather than ship a code change in a doc-only ticket, the runbook calls out the gap explicitly (with a 3-line follow-up suggestion). Server-side log.ts plumbing is correct and complete from T131.
+- **Quota join caveat** — `ai_generation_log` lacks `thread_id`, so the join-through-`embedded_agent_threads` query in section E will overcount for users with concurrent threads. Caveat documented inline in the runbook so anyone quoting the query reads the limitation first.
+- **Rollback hardening** — explicitly enumerates what rollback does NOT undo (T130 extraction, prompt module split, schema migration). The next cutover attempt will benefit from this list — none of the foundational refactors have to be redone.
+- **No code changes** — `git diff --stat` confirms only `docs/` paths modified. AFK delivery as scoped.
 
 ## References
 
