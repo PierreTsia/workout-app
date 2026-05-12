@@ -13,10 +13,10 @@ import type { Thread, ThreadMessage } from "./threadStore.ts"
 import type { UserContextProfile } from "./prompt.ts"
 import type {
   CatalogExercise,
+  GenerateProgramResponse,
   RecentExercise,
   UserProfile as ProgramUserProfile,
-} from "../generate-program/prompt.ts"
-import type { GenerateProgramResponse } from "../generate-program/types.ts"
+} from "../_shared/programDraft.ts"
 
 // ---------- factories ----------
 

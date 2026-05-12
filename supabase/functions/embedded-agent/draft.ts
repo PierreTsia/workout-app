@@ -19,13 +19,13 @@ import {
   capCatalog,
   getEquipmentValues,
   getExerciseBounds,
+  validateProgram,
   type CatalogExercise,
+  type GenerateProgramResponse,
   type ProgramConstraints,
   type RecentExercise,
   type UserProfile as ProgramUserProfile,
-} from "../generate-program/prompt.ts"
-import { validateProgram } from "../generate-program/validate.ts"
-import type { GenerateProgramResponse } from "../generate-program/types.ts"
+} from "../_shared/programDraft.ts"
 import type { McpToolResult } from "../_shared/mcpClient.ts"
 
 export const LAST_PREVIEW_MAX_BYTES = 32_768

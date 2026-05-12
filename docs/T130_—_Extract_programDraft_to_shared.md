@@ -20,80 +20,66 @@ None. This unblocks T131 and the rest of the epic.
 
 ## Scope
 
-### New file
+### New files
 
 | File | Contents |
 |---|---|
-| `supabase/functions/_shared/programDraft.ts` | Re-exports of all symbols listed below; concrete implementations moved from `generate-program/` |
+| `supabase/functions/_shared/programDraft.ts` | Pure-TS module: types, prompt builder, validator. Vitest-importable. |
+| `supabase/functions/_shared/programGemini.ts` | Deno-only `callGeminiProgram` HTTP call (separated so `programDraft.ts` stays vitest-importable). |
 
-### Symbols to move
+### Why two files (not one)
 
-| Source file | Symbol | Notes |
+`embedded-agent/index.ts` also imports `callGeminiProgram` from `generate-program/gemini.ts` — caught during execution as a third cross-Edge dependency not listed in the original ticket draft. Initial attempt: unify everything in `programDraft.ts`. Result: `tsc` (following imports from `src/test/*.test.ts`) chokes on `Deno.env.get` + `Array.findLast` reachability. Split is forced by the type system; it also happens to be the correct architectural cut (pure logic vs runtime IO).
+
+### Symbols moved (final scope)
+
+| Source file (deleted) | Symbol | Now lives in |
 |---|---|---|
-| `supabase/functions/generate-program/prompt.ts` | `buildProgramPrompt` | function |
-| `supabase/functions/generate-program/prompt.ts` | `capCatalog` | function |
-| `supabase/functions/generate-program/prompt.ts` | `getEquipmentValues` | function |
-| `supabase/functions/generate-program/prompt.ts` | `getExerciseBounds` | function |
-| `supabase/functions/generate-program/prompt.ts` | `CatalogExercise` (type) | exported type |
-| `supabase/functions/generate-program/prompt.ts` | `ProgramConstraints` (type) | exported type |
-| `supabase/functions/generate-program/prompt.ts` | `RecentExercise` (type) | exported type |
-| `supabase/functions/generate-program/prompt.ts` | `UserProfile` (type — alias `ProgramUserProfile` in callers) | exported type |
-| `supabase/functions/generate-program/validate.ts` | `validateProgram` | function |
-| `supabase/functions/generate-program/types.ts` | `GenerateProgramResponse` (type) | optional move — if the type is used only by `embedded-agent` + `generate-program`, move it; else re-export from `_shared` |
+| `generate-program/prompt.ts` | `buildProgramPrompt`, `capCatalog`, `getEquipmentValues`, `getExerciseBounds` | `_shared/programDraft.ts` |
+| `generate-program/prompt.ts` | types: `CatalogExercise`, `ProgramConstraints`, `RecentExercise`, `UserProfile` | `_shared/programDraft.ts` |
+| `generate-program/validate.ts` | `validateProgram`, types `CatalogEntry`, `ValidatedDay`, `ValidateProgramResult` | `_shared/programDraft.ts` |
+| `generate-program/types.ts` | `ProgramDay`, `GenerateProgramResponse` | `_shared/programDraft.ts` |
+| `generate-program/gemini.ts` | `callGeminiProgram` | `_shared/programGemini.ts` |
 
-If the source files have additional internal-only helpers that don't need to be shared, leave them in place — only move the surface that `embedded-agent/draft.ts` imports.
+All 4 source files **deleted**. `generate-program/` now contains only `index.ts` — independently deletable post-T129 (#342) without code-motion coordination.
 
-### Import flip — `embedded-agent/draft.ts`
+### Bonus refactor (Phase 4 — captured under green tests)
 
-```diff
-- import {
--   buildProgramPrompt,
--   capCatalog,
--   getEquipmentValues,
--   getExerciseBounds,
--   type CatalogExercise,
--   type ProgramConstraints,
--   type RecentExercise,
--   type UserProfile as ProgramUserProfile,
-- } from "../generate-program/prompt.ts"
-- import { validateProgram } from "../generate-program/validate.ts"
-- import type { GenerateProgramResponse } from "../generate-program/types.ts"
-+ import {
-+   buildProgramPrompt,
-+   capCatalog,
-+   getEquipmentValues,
-+   getExerciseBounds,
-+   validateProgram,
-+   type CatalogExercise,
-+   type ProgramConstraints,
-+   type RecentExercise,
-+   type UserProfile as ProgramUserProfile,
-+   type GenerateProgramResponse,
-+ } from "../_shared/programDraft.ts"
-```
+`_shared/programCatalog.ts` previously duplicated `CatalogExercise`, `UserProfile`, `RecentExercise` types verbatim, with a comment justifying the duplication as "avoiding a dependency on a feature module that #343 will retire." That justification became false the moment those types moved into `_shared/`. Deduped: `programCatalog.ts` now re-exports the types from `programDraft.ts` instead of redeclaring them. Single source of truth.
 
-### Import flip — `generate-program/index.ts`
+### Import sites updated (6 total)
 
-Update internal imports inside `generate-program/` (the function still exists post-refactor; it just imports from `_shared` instead of its sibling files). `prompt.ts` and `validate.ts` become thin re-export files OR are deleted entirely if no other consumer remains — verify with `rg` before deletion.
+| File | Change |
+|---|---|
+| `embedded-agent/draft.ts` | 3 imports from `../generate-program/{prompt,validate,types}` → 1 import from `../_shared/programDraft.ts` |
+| `embedded-agent/draft_test.ts` | 2 type imports from `../generate-program/*` → 1 from `../_shared/programDraft.ts` |
+| `embedded-agent/index.ts` | `callGeminiProgram` from `../generate-program/gemini.ts` → from `../_shared/programGemini.ts` |
+| `generate-program/index.ts` | local imports → `../_shared/programDraft.ts` + `../_shared/programGemini.ts` |
+| `src/test/validate-program.test.ts` (vitest) | imports from `../../supabase/functions/generate-program/{validate,types}` → `../../supabase/functions/_shared/programDraft` |
+| `src/test/prompt-program.test.ts` (vitest) | imports from `../../supabase/functions/generate-program/prompt` → `../../supabase/functions/_shared/programDraft` |
 
 ### Tests
 
-Move co-located tests for the extracted symbols (`prompt_test.ts`, `validate_test.ts` portions) into `_shared/programDraft_test.ts`. If splitting a test file is awkward (single file covers both moved + non-moved code), keep the file in place and import from `_shared/`.
+No test code is moved — the existing tests (`embedded-agent/draft_test.ts`, `src/test/validate-program.test.ts`, `src/test/prompt-program.test.ts`) serve as the green-baseline safety net. They keep passing after import flips because behavior is unchanged.
 
 ## Out of Scope
 
-- Deleting `supabase/functions/generate-program/index.ts` or `gemini.ts` (the Edge function still serves Quick Workout AI until #342 cuts over).
-- Any behavioral change — this is a rename + import flip only.
-- Inlining `_shared/programCatalog.ts` (separate prior extraction; out of scope).
+- Deleting `supabase/functions/generate-program/index.ts` (still serves the legacy AI program creation route until #343's cutover ticket lands; killed in #342's T129 conditional cleanup).
+- Any behavioral change — pure code motion + dedup.
 
 ## Acceptance Criteria
 
-- [ ] `supabase/functions/_shared/programDraft.ts` exists and exports `buildProgramPrompt`, `capCatalog`, `getEquipmentValues`, `getExerciseBounds`, `validateProgram` + 4 (or 5) types.
-- [ ] `supabase/functions/embedded-agent/draft.ts` no longer imports from `../generate-program/*` (verify: `rg "from \"\.\./generate-program" supabase/functions/embedded-agent/` returns empty).
-- [ ] `supabase/functions/generate-program/index.ts` imports the moved symbols from `../_shared/programDraft.ts`.
-- [ ] All existing Deno unit tests under `supabase/functions/embedded-agent/` and `supabase/functions/generate-program/` pass unchanged.
-- [ ] `e2e/onboarding.spec.ts` passes (Embedded Agent draft step still works end-to-end).
-- [ ] `e2e/quick-workout-ai.spec.ts` passes (Quick Workout flow still works — companion epic regression gate).
+- [x] `supabase/functions/_shared/programDraft.ts` exists; exports `buildProgramPrompt`, `capCatalog`, `getEquipmentValues`, `getExerciseBounds`, `validateProgram` + types (`CatalogExercise`, `UserProfile`, `RecentExercise`, `ProgramConstraints`, `CatalogEntry`, `ValidatedDay`, `ValidateProgramResult`, `ProgramDay`, `GenerateProgramResponse`).
+- [x] `supabase/functions/_shared/programGemini.ts` exists; exports `callGeminiProgram`.
+- [x] `supabase/functions/embedded-agent/{draft,draft_test,index}.ts` no longer imports from `../generate-program/*` (verified: `rg "from \"\.\./generate-program" supabase/functions/embedded-agent/` returns empty).
+- [x] `supabase/functions/generate-program/{prompt,validate,gemini,types}.ts` deleted; only `index.ts` remains.
+- [x] `_shared/programCatalog.ts` re-exports its catalog/profile types from `programDraft.ts` (deduped — single source of truth).
+- [x] All 244 Deno tests (`deno test "supabase/functions/**/*_test.ts"`) pass unchanged.
+- [x] All 34 vitest tests touching the moved code (`src/test/{validate,prompt}-program.test.ts`) pass unchanged.
+- [x] `deno check supabase/functions/{embedded-agent,generate-program,generate-quick-workout}/index.ts` clean.
+- [x] `npx tsc --noEmit -p tsconfig.app.json` clean.
+- [ ] `e2e/onboarding.spec.ts` passes (deferred — verified on PR CI).
+- [ ] `e2e/quick-workout-ai.spec.ts` passes (deferred — verified on PR CI).
 
 ## References
 

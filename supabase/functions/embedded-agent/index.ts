@@ -34,7 +34,7 @@ import {
   fetchProfile as fetchProgramProfile,
   fetchRecentHistory,
 } from "../_shared/programCatalog.ts"
-import { callGeminiProgram } from "../generate-program/gemini.ts"
+import { callGeminiProgram } from "../_shared/programGemini.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
