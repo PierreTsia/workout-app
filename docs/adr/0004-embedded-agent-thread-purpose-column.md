@@ -24,7 +24,15 @@ This is a schema change on a production table with RLS policies, a partial uniqu
 
 ## Decision
 
-We will extend `embedded_agent_threads` with three new columns and relax the partial unique index in a single migration.
+We will extend `embedded_agent_threads` with **five new columns** and relax the partial unique index in a single migration:
+
+- `purpose` — flow discriminator (§1)
+- `change_motivation` — controlled-vocab classification, additional-program flow only (§2)
+- `bundle_context` — snapshotted user context, additional-program flow only (§3)
+- `validator_rejection_count` — bounded retry counter for the ready-signal validator (§4)
+- `pending_constraint_overrides` — race-free handoff for validated constraint overrides between `/send` and `/draft` (§5)
+
+The first three are the conceptual core of the multi-flow extension and got grilled out during the brief / Tech Plan phase. `validator_rejection_count` and `pending_constraint_overrides` are *implementation-shape* columns that fell out of T134 (handler wiring) — captured here as part of the same audit trail so future schema spelunkers find the full picture in one place.
 
 ### 1. `purpose` column — flow discriminator
 
@@ -63,7 +71,31 @@ ALTER TABLE embedded_agent_threads
 - **JSONB**, not a relational shape, because the bundle is a *snapshot* of denormalized state (profile fields + active program summary + 4-week stats) that the agent reads as-is. Normalizing it back into FKs would make the snapshot semantics impossible — the whole point is that subsequent training activity doesn't mutate it.
 - **Persisted, not recomputed**. Captured once on thread open by the Edge function (the `/thread` endpoint that materializes the row). Never refreshed during the thread's lifetime. ADR 0003 §2 accepts the staleness trade-off.
 
-### 4. Relax the partial unique index to be `purpose`-keyed
+### 4. `validator_rejection_count` column — bounded retry counter
+
+```sql
+ALTER TABLE embedded_agent_threads
+  ADD COLUMN validator_rejection_count INT NOT NULL DEFAULT 0;
+```
+
+- The ready-signal validator (additional-program flow) can reject the model's `{"ready":true,...}` line when motivation is missing/invalid or constraint overrides are out of bounds. Each rejection bumps this counter so the system prompt can surface a bounded retry hint and the agent can give up gracefully instead of looping the user (§"Validator rejection investigation" of the runbook).
+- **NOT NULL DEFAULT 0** — onboarding rows leave it at 0 (no motivation gate, no rejections). The default keeps reads from caring whether a thread predates the column.
+- Server-side only. The counter is never exposed on the wire; the chat UI fires a separate `embedded_agent_motivation_classification_failed` analytics event when `/send` returns a `validator_rejection`.
+- The read-modify-write pattern in `incrementValidatorRejection` is *not* atomic across concurrent writers. We accepted this trade-off because the column is a prompt-side tripwire, not a billing or quota field — a dropped increment under a multi-tab race means the agent is at most one rejection more patient than intended, which is a UX rounding error rather than a correctness bug. If the counter ever gains a behavior with sharper edges (e.g. billing) the pattern should be promoted to an SQL `col + 1` via RPC.
+
+### 5. `pending_constraint_overrides` column — race-free `/send` → `/draft` handoff
+
+```sql
+ALTER TABLE embedded_agent_threads
+  ADD COLUMN pending_constraint_overrides JSONB;
+```
+
+- The validator may accept a ready signal that carries structured `constraint_overrides` (e.g. `{"sessions_per_week": 5}`). Those overrides need to reach `/draft` exactly as `/send` validated them — without re-parsing the assistant turn (race) or stuffing them through a query parameter.
+- Written by `/send` on validator-accept; consumed (cleared to `NULL`) by `/draft` after `setStatusToPreviewReady` succeeds, so an MCP dry-run failure preserves them for retry. `/reject` also clears them so a stale override doesn't survive into the next chat round.
+- **JSONB** for the same reasons as `bundle_context` — the shape is small but unconstrained at the SQL layer; the server validator is the source of truth for what values are valid.
+- **Nullable** is the default state. Onboarding threads never touch this column.
+
+### 6. Relax the partial unique index to be `purpose`-keyed
 
 ```sql
 DROP INDEX <existing_index_name>;
@@ -76,9 +108,9 @@ CREATE UNIQUE INDEX embedded_agent_threads_one_active_per_purpose
 - Allows one active onboarding thread **and** one active additional-program thread per user, simultaneously. Multiple active threads of the **same** purpose remain forbidden — that's still the right constraint (no zombie second-open thread on the same flow).
 - Preserves the resume semantics defined in **Embedded Agent thread lifecycle**: load the single active row for the `(user, purpose)` pair, or insert a new one.
 
-### 5. Backfill strategy
+### 7. Backfill strategy
 
-The `purpose` column gets `DEFAULT 'onboarding'` on the `ADD COLUMN` statement, so existing rows are populated transactionally with no manual backfill needed. `change_motivation` and `bundle_context` default to NULL, which is correct for all existing (onboarding) rows.
+The `purpose` column gets `DEFAULT 'onboarding'` on the `ADD COLUMN` statement, so existing rows are populated transactionally with no manual backfill needed. `change_motivation`, `bundle_context`, and `pending_constraint_overrides` default to NULL, which is correct for all existing (onboarding) rows. `validator_rejection_count` defaults to 0.
 
 The index swap (`DROP INDEX` + `CREATE UNIQUE INDEX`) is done **inside the same migration** as the column addition. The window between drop and create is microseconds; production write traffic on this table is low (one INSERT per onboarding start) and the new constraint is strictly *weaker* than the old one (any data that satisfied the old constraint also satisfies the new one), so concurrent inserts can't violate it during the swap.
 
