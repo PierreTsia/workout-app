@@ -4,15 +4,22 @@ import { useTranslation } from "react-i18next"
 import { ArrowLeft, Dumbbell } from "lucide-react"
 import { PathChoiceStep } from "@/components/create-program/PathChoiceStep"
 import { BlankProgramStep } from "@/components/create-program/BlankProgramStep"
-import { AIConstraintStep } from "@/components/create-program/AIConstraintStep"
-import { AIGeneratingStep } from "@/components/create-program/AIGeneratingStep"
-import { AIProgramPreviewStep } from "@/components/create-program/AIProgramPreviewStep"
+import { EmbeddedAgentChatStep } from "@/components/embedded-agent/EmbeddedAgentChatStep"
+import { EmbeddedAgentGeneratingStep } from "@/components/embedded-agent/EmbeddedAgentGeneratingStep"
+import { EmbeddedAgentPreviewStep } from "@/components/embedded-agent/EmbeddedAgentPreviewStep"
 import { TemplateChoiceStep } from "@/components/create-program/TemplateChoiceStep"
-import type { GenerateProgramConstraints, AIGeneratedProgram } from "@/types/aiProgram"
 
+// T136 (#343) — replaced the legacy AI branch (`ai-constraints` →
+// `ai-generating` → `ai-preview` driven by `useAIGenerateProgram` /
+// `AIConstraintStep` / `AIProgramPreviewStep`) with the Embedded Agent
+// chat flow consuming `purpose='additional_program'`. The wizard now
+// has one less step (no constraints form; the model elicits them in
+// chat) and the thread `.status` drives chat ↔ preview transitions.
+// `ai-generating` stays as a transient UI state during the `/draft`
+// mutation — not a thread status.
 type WizardStep =
   | "path-choice"
-  | "ai-constraints"
+  | "ai-chat"
   | "ai-generating"
   | "ai-preview"
   | "template-choice"
@@ -20,17 +27,15 @@ type WizardStep =
   | "blank"
 
 export function CreateProgramPage() {
-  const { t } = useTranslation("create-program")
+  const { t, i18n } = useTranslation("create-program")
   const navigate = useNavigate()
 
   const [step, setStep] = useState<WizardStep>("path-choice")
-  const [constraints, setConstraints] = useState<GenerateProgramConstraints | null>(null)
-  const [aiResult, setAiResult] = useState<AIGeneratedProgram | null>(null)
 
   function handlePathSelect(selected: "ai" | "template" | "blank") {
     switch (selected) {
       case "ai":
-        setStep("ai-constraints")
+        setStep("ai-chat")
         break
       case "template":
         setStep("template-choice")
@@ -41,29 +46,23 @@ export function CreateProgramPage() {
     }
   }
 
-  function handleConstraintsSubmit(c: GenerateProgramConstraints) {
-    setConstraints(c)
-    setStep("ai-generating")
-  }
-
-  function handleAISuccess(result: AIGeneratedProgram) {
-    setAiResult(result)
-    setStep("ai-preview")
-  }
-
   function handleBack() {
     switch (step) {
       case "path-choice":
         navigate("/library/programs")
         return
-      case "ai-constraints":
+      case "ai-chat":
         setStep("path-choice")
         return
       case "ai-generating":
-        setStep("ai-constraints")
+        // Mid-draft back is purely navigational; the /draft mutation
+        // either resolved into preview_ready (next step takes over) or
+        // surfaced an error inline. Returning to chat lets the user
+        // pick up the same thread without re-eliciting motivation.
+        setStep("ai-chat")
         return
       case "ai-preview":
-        setStep("ai-constraints")
+        setStep("ai-chat")
         return
       case "template-choice":
         setStep("path-choice")
@@ -76,6 +75,8 @@ export function CreateProgramPage() {
         return
     }
   }
+
+  const locale: "en" | "fr" = i18n.language === "fr" ? "fr" : "en"
 
   return (
     <div className="flex min-h-dvh flex-col items-center">
@@ -98,24 +99,37 @@ export function CreateProgramPage() {
 
         {step === "blank" && <BlankProgramStep />}
 
-        {step === "ai-constraints" && (
-          <AIConstraintStep onSubmit={handleConstraintsSubmit} />
+        {step === "ai-chat" && (
+          <EmbeddedAgentChatStep
+            locale={locale}
+            purpose="additional_program"
+            i18nNamespace="create-program"
+            onBack={() => setStep("path-choice")}
+            onGenerateRequest={() => setStep("ai-generating")}
+            onPreviewReady={() => setStep("ai-preview")}
+          />
         )}
 
-        {step === "ai-generating" && constraints && (
-          <AIGeneratingStep
-            constraints={constraints}
-            onSuccess={handleAISuccess}
+        {step === "ai-generating" && (
+          <EmbeddedAgentGeneratingStep
+            locale={locale}
+            purpose="additional_program"
+            i18nNamespace="create-program"
+            onSuccess={() => setStep("ai-preview")}
             onFallbackTemplate={() => setStep("template-choice")}
             onFallbackBlank={() => setStep("blank")}
           />
         )}
 
-        {step === "ai-preview" && aiResult && constraints && (
-          <AIProgramPreviewStep
-            program={aiResult}
-            constraints={constraints}
-            onRegenerate={() => setStep("ai-generating")}
+        {step === "ai-preview" && (
+          <EmbeddedAgentPreviewStep
+            locale={locale}
+            purpose="additional_program"
+            i18nNamespace="create-program"
+            onRegenerate={() => setStep("ai-chat")}
+            onCommitted={() => navigate("/library/programs")}
+            onFallbackTemplate={() => setStep("template-choice")}
+            onFallbackBlank={() => setStep("blank")}
           />
         )}
 

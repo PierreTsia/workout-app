@@ -31,13 +31,14 @@ import { EmbeddedAgentPreviewStep } from "@/components/embedded-agent/EmbeddedAg
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
 
-// T123 cutover: the legacy AI wizard (`AIGeneratingStep`/`AIProgramPreviewStep`,
-// `userProfileToGenerateProgramConstraints`, the `ai_constraints/_generating/_preview`
-// step names, `aiConstraints/aiResult` state) is gone from this page. The
-// components themselves still live under `src/components/create-program/`
-// because `CreateProgramPage` (the "create another program" surface at
-// `/create-program`) still uses them. `useGenerateProgram` stays here too
-// for the blank + template paths.
+// T123 onboarding cutover + T136 #343 cleanup: the legacy AI wizard
+// (`AIGeneratingStep` / `AIProgramPreviewStep` / `useAIGenerateProgram`,
+// `userProfileToGenerateProgramConstraints`, the
+// `ai_constraints/_generating/_preview` step names, `aiConstraints/aiResult`
+// state) is entirely gone. `CreateProgramPage` now also consumes the
+// relocated Embedded Agent components with `purpose='additional_program'`,
+// so onboarding and "create another program" share one chat surface.
+// `useGenerateProgram` stays here for the blank + template paths.
 type WizardStep =
   | "welcome"
   | "questionnaire"

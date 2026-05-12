@@ -15,6 +15,16 @@ export interface ThreadMessage {
   ts: string
 }
 
+// T133/T136 (#343) — compact snapshot of the additional-program bundle,
+// surfaced on `/open` so the chat surface can render the "we're building
+// on top of <X>" chip. Only present for `purpose === 'additional_program'`;
+// the field is omitted entirely on onboarding threads (server contract).
+export interface BundleSummary {
+  sessions_per_week: number
+  active_program_name?: string
+  top_muscle_group?: string
+}
+
 export interface ThreadPayload {
   thread_id: string
   status: "open" | "preview_ready" | "committed" | "abandoned"
@@ -24,11 +34,27 @@ export interface ThreadPayload {
   // status === 'preview_ready'; the EmbeddedAgentPreviewStep renders
   // straight from this without a second fetch.
   last_preview: DraftPreview | null
+  // T136 (#343) — present only on additional_program threads (server
+  // contract). `null` when the bundle was persisted but the projection
+  // produced no useful chip data (e.g. user with no active program AND
+  // no recent training).
+  bundle_summary?: BundleSummary | null
+}
+
+// T136 (#343) — additional-program /send may reject the model's ready
+// signal mid-conversation when motivation is missing/invalid or an
+// override is out of bounds. The chat surface fires
+// `embedded_agent_motivation_classification_failed` when this is
+// present. Field is omitted for onboarding entirely.
+export interface ValidatorRejection {
+  reason: "malformed_json" | "missing" | "invalid_value" | "invalid_override"
+  field?: string
 }
 
 export interface SendMessageResponse {
   assistant: { content: string; ts: string }
   ready_for_draft: boolean
+  validator_rejection?: ValidatorRejection
 }
 
 export type DraftTrigger = "ready_signal" | "turn_cap" | "user_cta"
@@ -63,6 +89,12 @@ export interface GenerateDraftResponse {
 
 export interface CommitPreviewResponse {
   program_id: string
+  // T136 (#343) — both surfaced so the client can fire
+  // `embedded_agent_preview_committed` with the same correlation IDs
+  // the rest of the funnel uses. `motivation` is null on onboarding
+  // commits (the motivation gate is additional-program-only).
+  thread_id: string
+  motivation: string | null
 }
 
 export type EmbeddedAgentError =

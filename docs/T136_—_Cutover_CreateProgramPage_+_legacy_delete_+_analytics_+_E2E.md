@@ -189,18 +189,33 @@ Update existing `useSendMessage` / `useGenerateDraft` / `useRejectPreview` consu
 
 ## Acceptance Criteria
 
-- [ ] `CreateProgramPage.tsx` step types: `'path-choice' | 'ai-chat' | 'ai-generating' | 'ai-preview' | 'template-choice' | 'blank'`. The legacy `'ai-constraints'` step type is removed.
-- [ ] AI branch renders relocated `EmbeddedAgent*Step` components with `purpose='additional_program'` + `i18nNamespace='create-program'`.
-- [ ] Template + Blank branches are unchanged.
-- [ ] Deleted files (verified with `rg`): `src/hooks/useAIGenerateProgram.ts`, `src/components/create-program/AIConstraintStep.tsx`, `src/components/create-program/AIProgramPreviewStep.tsx`, `src/components/create-program/AIGeneratingStep.tsx`, + their test files.
-- [ ] `src/locales/{en,fr}/create-program.json` includes `embedded_agent.*` keys per the table above.
-- [ ] Existing `embedded_agent_message_sent`, `embedded_agent_draft_triggered`, `embedded_agent_preview_rejected` events carry `purpose` in their payloads (both onboarding and additional-program firings).
-- [ ] NEW event `embedded_agent_preview_committed` fires from `useCommitPreview.onSuccess` with `{ thread_id, program_id, purpose, motivation?, locale }`.
-- [ ] NEW event `embedded_agent_motivation_classification_failed` fires from `useSendMessage.onSuccess` when the response payload carries `validator_rejection`, with `{ thread_id, purpose, rejection_reason, field?, locale }`.
-- [ ] `e2e/create-program-ai.spec.ts` passes (full path-choice → AI → chat → motivation → ready → draft → preview → commit happy path, mocked Gemini + MCP).
-- [ ] `e2e/onboarding.spec.ts` passes unchanged (regression).
-- [ ] Post-commit, the home shell shows the new active program (`useCommitPreview.onSuccess` cache invalidations work for additional-program just as for onboarding).
-- [ ] `npx tsc --noEmit` produces no errors.
+- [x] `CreateProgramPage.tsx` step types: `'path-choice' | 'ai-chat' | 'ai-generating' | 'ai-preview' | 'template-choice' | 'blank'`. The legacy `'ai-constraints'` step type is removed.
+- [x] AI branch renders relocated `EmbeddedAgent*Step` components with `purpose='additional_program'` + `i18nNamespace='create-program'`.
+- [x] Template + Blank branches are unchanged.
+- [x] Deleted files (verified with `rg`): `src/hooks/useAIGenerateProgram.ts`, `src/components/create-program/AIConstraintStep.tsx`, `src/components/create-program/AIProgramPreviewStep.tsx`, `src/components/create-program/AIGeneratingStep.tsx`, + their test files. **Additional dead code cleaned up**: `src/components/create-program/schema.ts`, `src/lib/userProfileToGenerateProgramConstraints.ts` (+ test), `src/types/aiProgram.ts` (last referenced by the deleted hook/components).
+- [x] `src/locales/{en,fr}/create-program.json` includes `embeddedAgent.*` + `embeddedAgentPreview.*` keys (note: nested under camelCase namespace to match the existing onboarding shape, not the snake_case in the brief — the actual key path the components consume).
+- [x] Existing `embedded_agent_message_sent`, `embedded_agent_draft_triggered`, `embedded_agent_preview_rejected` events carry `purpose` in their payloads (both onboarding and additional-program firings).
+- [x] NEW event `embedded_agent_preview_committed` fires from `useCommitPreview.onSuccess` with `{ thread_id, program_id, purpose, motivation, locale }` (`motivation` always present, `null` for onboarding — easier to query than an optional field).
+- [x] NEW event `embedded_agent_motivation_classification_failed` fires from `useSendMessage.onSuccess` when the response payload carries `validator_rejection`, with `{ thread_id, purpose, rejection_reason, field?, locale }`.
+- [ ] `e2e/create-program-ai.spec.ts` passes (full path-choice → AI → chat → motivation → ready → draft → preview → commit happy path, mocked Gemini + MCP). _Spec is written and committed; not run locally (sandbox lacks a Supabase + Vite dev server) — CI is the ground-truth gate._
+- [ ] `e2e/onboarding.spec.ts` passes unchanged (regression). _Same caveat — CI runs it on every push._
+- [x] Post-commit, the home shell shows the new active program (`useCommitPreview.onSuccess` cache invalidations work for additional-program just as for onboarding — verified by code reuse: `useCommitPreview` is purpose-agnostic).
+- [x] `npx tsc --noEmit` produces no errors.
+
+## Implementation notes
+
+- **Handler `/commit` extension** — the response now includes `thread_id` + `motivation` so the client can fire `embedded_agent_preview_committed` with the same correlation identifiers the funnel uses elsewhere. `motivation` reads from `thread.change_motivation` (null on onboarding, never null on a fully-gated additional_program commit).
+- **Hook type extensions** (`useEmbeddedAgentThread.ts`):
+  - `ThreadPayload.bundle_summary?: BundleSummary | null` — surfaced only on additional_program threads (server contract).
+  - `SendMessageResponse.validator_rejection?: ValidatorRejection` — present only when the additional-program flow's motivation gate rejects a ready signal.
+  - `CommitPreviewResponse.thread_id` + `motivation: string | null` — required fields so the analytics consumer doesn't have to defensive-code optionals.
+- **i18n strategy** — `create-program.json` mirrors the `embeddedAgent` / `embeddedAgentPreview` blocks from `onboarding.json` with copy tuned for the additional-program voice (less "let's get started", more "let's switch things up"). Two new keys (`bundleChipActive`, `bundleChipNoActive`) live under `embeddedAgent` for the chip variants. EN and FR shipped in parity per Story 17.
+- **Bundle summary chip** — small inline `Badge` rendered in the chat header, gated on `purpose === 'additional_program' && thread.data?.bundle_summary`. Onboarding never receives the field; the chip stays dormant. Two copy variants: with active program ("Building on top of X · N/wk") and without ("No active program · N/wk recently"). `sessions_per_week === 0` is rendered verbatim — it's the correct number for a returning user who hasn't trained in 4 weeks.
+- **Analytics fan-out** — each of the three existing events (`message_sent`, `draft_triggered`, `preview_rejected`) gained `purpose` from the component prop. The new `preview_committed` event reads from the typed `CommitPreviewResponse`, not from `useTrackEvent` (so a future server-side analytics rewrite doesn't have to re-thread the IDs). `motivation_classification_failed` fires conditionally on the response payload — no client-side validation, no logic duplication with the server.
+- **Legacy deletion cascade** — beyond the four files in the ticket scope, the now-orphaned `schema.ts` / `userProfileToGenerateProgramConstraints.ts` / `types/aiProgram.ts` were also deleted. `rg` confirmed no remaining callers; tsc + the full vitest suite stayed green. Net file delta: −10 source files (including tests), +1 (`e2e/create-program-ai.spec.ts`).
+- **`CreateProgramPage` step shape change** — the legacy wizard had `[constraints, aiResult]` local state because the constraint step and preview step lived independently. With the chat thread on the server now driving status transitions, the page reduces to pure step routing — no client state, no thread coupling. The wizard lost one step (`ai-constraints` → just `ai-chat`).
+- **Test totals** — vitest: **1509 passing** (152 files). Deno: **201 passing** (all embedded-agent suites). `tsc --noEmit`: clean. Net change vs T135: −8 tests from deleted legacy test files, +6 new T136 tests (chat motivation event, chat bundle chip × 3 variants, preview committed event, handler commit thread_id+motivation).
+- **E2E** — `e2e/create-program-ai.spec.ts` mirrors `e2e/onboarding.spec.ts`'s shell-mount pattern but takes it through draft + commit. Mock returns stateful `/message` responses so the first turn is a vanilla ack and the second turn carries the ready signal — matches the real motivation-gate UX. Token-burn check (Gemini route abort assertion) is included.
 
 ## References
 

@@ -59,8 +59,24 @@ export function EmbeddedAgentPreviewStep({
 
   const handleConfirm = useCallback(async () => {
     try {
-      const { program_id } = await commit.mutateAsync()
-      onCommitted(program_id)
+      const result = await commit.mutateAsync()
+      // T136 (#343) — fire `embedded_agent_preview_committed` on success
+      // so the funnel can join end-to-end (open → message → draft →
+      // commit) without joining on thread_id. `motivation` is null for
+      // onboarding (the motivation gate is additional-program-only); we
+      // still send it so downstream queries can count "with motivation /
+      // without motivation" without forking on purpose.
+      trackEvent.mutate({
+        eventType: "embedded_agent_preview_committed",
+        payload: {
+          thread_id: result.thread_id,
+          program_id: result.program_id,
+          purpose,
+          motivation: result.motivation,
+          locale,
+        },
+      })
+      onCommitted(result.program_id)
     } catch (err) {
       // Bump on every commit failure — the cap on this is the threshold,
       // not the underlying error type. The mutation's `error` state still
@@ -71,7 +87,7 @@ export function EmbeddedAgentPreviewStep({
       // already handles it).
       captureEmbeddedAgentError("/commit", err as EmbeddedAgentError)
     }
-  }, [commit, onCommitted, bumpFailureCount])
+  }, [commit, onCommitted, bumpFailureCount, trackEvent, purpose, locale])
 
   const handleRegenerate = useCallback(async () => {
     // T123 analytics: fire on intent (before the network call) so a
@@ -79,7 +95,9 @@ export function EmbeddedAgentPreviewStep({
     // about "user said no to this draft", not "/reject succeeded".
     trackEvent.mutate({
       eventType: "embedded_agent_preview_rejected",
-      payload: { thread_id: threadId, failure_count: failureCount },
+      // T136 (#343) — `purpose` joined the payload so the funnel can
+      // split rejections by flow.
+      payload: { thread_id: threadId, failure_count: failureCount, purpose },
     })
     try {
       await reject.mutateAsync()
@@ -88,7 +106,7 @@ export function EmbeddedAgentPreviewStep({
       // route the user away from the now-stale preview screen.
       onRegenerate()
     }
-  }, [reject, onRegenerate, trackEvent, threadId, failureCount])
+  }, [reject, onRegenerate, trackEvent, threadId, failureCount, purpose])
 
   if (thread.isLoading) {
     return <p className="px-6 py-8 text-sm text-muted-foreground">…</p>

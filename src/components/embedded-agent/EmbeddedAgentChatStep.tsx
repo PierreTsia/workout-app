@@ -23,6 +23,7 @@ import {
   useAbandonThread,
   useSendMessage,
   useThread,
+  type BundleSummary,
   type EmbeddedAgentError,
   type ThreadMessage,
 } from "@/hooks/useEmbeddedAgentThread"
@@ -183,13 +184,34 @@ export function EmbeddedAgentChatStep({
       // the funnel. `ready_for_draft` is captured so the funnel can
       // measure how often the model self-signals readiness vs the user
       // pulls the trigger via the CTA on their own.
+      //
+      // T136 (#343) — `purpose` is added so funnel queries can split
+      // onboarding vs additional_program without joining on thread_id.
       trackEvent.mutate({
         eventType: "embedded_agent_message_sent",
         payload: {
           thread_id: thread.data?.thread_id,
           ready_for_draft: response.ready_for_draft === true,
+          purpose,
         },
       })
+      // T136 (#343) — additional-program validator rejections surface in
+      // the response payload (server keeps the conversation alive). Fire
+      // a dedicated event so we can monitor the motivation-classification
+      // pain points without grepping logs. Onboarding never emits this
+      // (no validator on that purpose).
+      if (response.validator_rejection) {
+        trackEvent.mutate({
+          eventType: "embedded_agent_motivation_classification_failed",
+          payload: {
+            thread_id: thread.data?.thread_id,
+            purpose,
+            rejection_reason: response.validator_rejection.reason,
+            field: response.validator_rejection.field,
+            locale,
+          },
+        })
+      }
     } catch (err) {
       // Error is already typed on `sendMessage.error`; the UI branch
       // reads from there. We additionally fan out to Sentry for fatal
@@ -245,6 +267,18 @@ export function EmbeddedAgentChatStep({
                 <Badge variant="secondary">{t("embeddedAgent.resumedBadge")}</Badge>
               ) : null}
             </div>
+          ) : null}
+
+          {/* T136 (#343) — additional-program threads surface a compact
+              context chip so the user knows the assistant is iterating
+              on top of their existing program, not starting from
+              scratch. Bundle is server-truthed via /open. Onboarding
+              threads never receive this payload. */}
+          {purpose === "additional_program" && thread.data?.bundle_summary ? (
+            <BundleSummaryChip
+              summary={thread.data.bundle_summary}
+              i18nNamespace={i18nNamespace}
+            />
           ) : null}
 
           <DisclosureCard i18nNamespace={i18nNamespace} />
@@ -536,6 +570,36 @@ function GenerateCta({ label, pulsing, onClick }: GenerateCtaProps) {
 // Body and link are split into two i18n keys so the link can be a real
 // React Router <Link> (no Trans gymnastics) and the FR/EN copy can vary
 // the body sentence without touching the link label.
+// T136 (#343) — compact context chip surfaced only on the additional-
+// program flow. Renders one of two copy variants depending on whether
+// the user has an active program: "Building on top of X · N/wk" or
+// "No active program · N/wk recently". `sessionsPerWeek === 0` is
+// rendered verbatim — it's the correct number for a returning user
+// who hasn't trained in 4 weeks and tells the model not to assume
+// momentum.
+function BundleSummaryChip({
+  summary,
+  i18nNamespace,
+}: {
+  summary: BundleSummary
+  i18nNamespace: EmbeddedAgentI18nNamespace
+}) {
+  const { t } = useTranslation(i18nNamespace)
+  const label = summary.active_program_name
+    ? t("embeddedAgent.bundleChipActive", {
+        programName: summary.active_program_name,
+        sessionsPerWeek: summary.sessions_per_week,
+      })
+    : t("embeddedAgent.bundleChipNoActive", {
+        sessionsPerWeek: summary.sessions_per_week,
+      })
+  return (
+    <Badge variant="outline" className="w-fit gap-1.5 text-xs font-normal">
+      {label}
+    </Badge>
+  )
+}
+
 function DisclosureCard({ i18nNamespace }: { i18nNamespace: EmbeddedAgentI18nNamespace }) {
   const { t } = useTranslation(i18nNamespace)
   return (

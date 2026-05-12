@@ -446,7 +446,19 @@ async function handleCommit(
     message: "thread_committed",
   })
 
-  return Response.json({ program_id: programId }, { status: 200 })
+  // T136 (#343) — surface `thread_id` + `change_motivation` so the client
+  // can fire `embedded_agent_preview_committed` with the same correlation
+  // identifiers the funnel events use. `motivation` is non-null only on
+  // additional_program threads that completed the motivation gate; for
+  // onboarding it stays null and the analytics consumer omits the field.
+  return Response.json(
+    {
+      program_id: programId,
+      thread_id: active.id,
+      motivation: active.change_motivation,
+    },
+    { status: 200 },
+  )
 }
 
 interface PreviewArgs {

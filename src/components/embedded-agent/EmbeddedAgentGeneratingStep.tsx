@@ -82,7 +82,7 @@ export function EmbeddedAgentGeneratingStep({
     // self-driving flow described in the Tech Plan.
     trackEvent.mutate({
       eventType: "embedded_agent_draft_triggered",
-      payload: { trigger: "user_cta", attempt },
+      payload: { trigger: "user_cta", attempt, purpose },
     })
 
     mutation

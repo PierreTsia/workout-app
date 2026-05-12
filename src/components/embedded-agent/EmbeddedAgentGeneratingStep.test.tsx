@@ -82,7 +82,9 @@ describe("EmbeddedAgentGeneratingStep", () => {
     await waitFor(() => {
       expect(trackEventMock).toHaveBeenCalledWith({
         eventType: "embedded_agent_draft_triggered",
-        payload: { trigger: "user_cta", attempt: 0 },
+        // T136 (#343) — `purpose` joined the payload so the funnel can
+        // split draft triggers by flow.
+        payload: { trigger: "user_cta", attempt: 0, purpose: "onboarding" },
       })
     })
   })

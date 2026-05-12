@@ -1232,6 +1232,12 @@ Deno.test("POST /commit happy path: MCP dry_run:false, status → committed, sum
   assertEquals(res.status, 200)
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.program_id, "prog-123")
+  // T136 (#343) — `thread_id` is now part of the response so the client
+  // can correlate `embedded_agent_preview_committed` with prior funnel
+  // events. `motivation` is `null` on this onboarding fixture (the
+  // motivation gate is additional-program-only).
+  assertEquals(body.thread_id, active.id)
+  assertEquals(body.motivation, null)
 
   // MCP called with dry_run: false and the persisted args.
   assertEquals(calls.callMcp.length, 1)
@@ -1311,6 +1317,32 @@ Deno.test("POST /commit returns 409 not_preview_ready when status is still 'open
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "not_preview_ready")
   assertEquals(calls.callMcp.length, 0)
+})
+
+// T136 (#343) — additional-program commits surface the persisted
+// `change_motivation` in the response so the client can fire
+// `embedded_agent_preview_committed` with the motivation field. The
+// rest of the commit path is identical to the onboarding test above,
+// which already covers MCP wiring + summary composition.
+Deno.test("POST /commit returns thread_id + motivation on additional-program threads (T136 funnel correlation)", async () => {
+  const active = PREVIEW_READY_THREAD()
+  active.purpose = "additional_program"
+  active.change_motivation = "plateau"
+  const { deps } = makeDeps({
+    getActiveThread: async () => active,
+    callMcp: async () => makeMcpCommitOk("prog-AP-1"),
+  })
+
+  const res = await handleEmbeddedAgent(
+    commitRequest({ confirm: true, purpose: "additional_program" }),
+    deps,
+  )
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.program_id, "prog-AP-1")
+  assertEquals(body.thread_id, active.id)
+  assertEquals(body.motivation, "plateau")
 })
 
 Deno.test("POST /commit returns 409 no_preview when status is preview_ready but last_preview is missing", async () => {
