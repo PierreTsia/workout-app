@@ -21,7 +21,7 @@ import {
   type QuotaSupabaseLike,
 } from "./quota.ts"
 import { callChatGemini } from "./chatModel.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import {
   runProgramDraftStep,
   type DraftArgs,

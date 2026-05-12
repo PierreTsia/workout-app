@@ -115,17 +115,42 @@ Per the project convention, system prompt strings live in TS source (not JSON lo
 
 ## Acceptance Criteria
 
-- [ ] `prompt/` folder exists with `shared.ts` + `onboarding.ts` + `additional-program.ts` + `index.ts`; old `prompt.ts` is deleted.
-- [ ] `buildSystemPromptFor('onboarding', { locale, userProfile })` returns a string byte-equivalent to the legacy `buildSystemPrompt({ locale, userProfile })` output (golden test).
-- [ ] `parseReadySignalFor('onboarding', content)` produces the same result as the legacy `parseReadySignal(content)` for all existing test fixtures (regression).
-- [ ] `parseReadySignalFor('additional_program', content)` accepts a valid signal with `motivation: 'plateau'` (no overrides).
-- [ ] Validator rejects ready signal with missing `motivation` → `validatorRejection: { reason: 'missing' }`.
-- [ ] Validator rejects ready signal with `motivation: 'badvalue'` → `validatorRejection: { reason: 'invalid_value' }`.
-- [ ] Validator rejects ready signal with `constraint_overrides: { daysPerWeek: 14 }` → `validatorRejection: { reason: 'invalid_override', field: 'daysPerWeek' }`.
-- [ ] Validator silently drops unknown override keys (forward-compat for v2) — returns `{ ready: true, ..., constraintOverrides: { ...knownKeysOnly } }`.
-- [ ] `buildSystemPromptFor('additional_program', { locale: 'en', bundle: { active_program: null, ... } })` includes the empty-active-program greeting clause.
-- [ ] `buildSystemPromptFor('additional_program', { locale: 'fr', ... })` returns French copy.
-- [ ] `e2e/onboarding.spec.ts` passes unchanged — onboarding system prompt + validator behavior preserved.
+- [x] `prompt/` folder exists with `shared.ts` + `onboarding.ts` + `additional-program.ts` + `index.ts`; old `prompt.ts` is deleted.
+- [x] `buildSystemPromptFor({ purpose: 'onboarding', locale, userProfile })` returns a string byte-equivalent to the legacy `buildSystemPrompt({ locale, userProfile })` output. — Locked by `prompt/index_test.ts`.
+- [x] `parseReadySignalFor('onboarding', content)` produces the same result as the legacy `parseReadySignal(content)` for all existing test fixtures. — Existing 16 onboarding regression tests survive under `prompt/onboarding_test.ts`.
+- [x] `parseReadySignalFor('additional_program', content)` accepts a valid signal with `motivation: 'plateau'` (no overrides). — `prompt/additional-program_test.ts`.
+- [x] Validator rejects ready signal with missing `motivation` → `validatorRejection: { reason: 'missing' }`.
+- [x] Validator rejects ready signal with `motivation: 'badvalue'` → `validatorRejection: { reason: 'invalid_value' }`.
+- [x] Validator rejects ready signal with `constraint_overrides: { daysPerWeek: 14 }` → `validatorRejection: { reason: 'invalid_override', field: 'daysPerWeek' }`. — Plus equivalents for `duration` and `equipmentCategory`.
+- [x] Validator silently drops unknown override keys (forward-compat for v2) — returns `{ ready: true, ..., constraintOverrides: { ...knownKeysOnly } }`.
+- [x] `buildSystemPromptFor({ purpose: 'additional_program', locale: 'en', bundle: { active_program: null, ... } })` includes the empty-active-program greeting clause.
+- [x] `buildSystemPromptFor({ purpose: 'additional_program', locale: 'fr', ... })` returns French copy.
+- [ ] `e2e/onboarding.spec.ts` passes unchanged. — **deferred to PR CI**; the onboarding system prompt + validator are byte-equivalent to pre-T132 behavior under the new file layout.
+
+## Implementation Notes (delivered)
+
+**Folder structure**
+- `prompt/shared.ts` — `LOCALE_INSTRUCTION`, `READY_SIGNAL_LINE`, `parseReadySignalCore`, `UserContextProfile`.
+- `prompt/onboarding.ts` — `buildSystemPrompt`, `parseReadySignal`, `buildUserContext`, `ReadySignalResult` (moved verbatim from `prompt.ts`).
+- `prompt/additional-program.ts` — `buildSystemPrompt(locale, bundle)`, `parseReadySignal(content)`, the 7-value `ChangeMotivation` vocab, `ConstraintOverrides`, `ValidatorRejection`, `AdditionalProgramBundle`.
+- `prompt/index.ts` — back-compat re-exports for the onboarding surface (so `handler.ts` keeps working) PLUS the new dispatchers `buildSystemPromptFor(args)` / `parseReadySignalFor(purpose, content)`. The dispatcher signature is a discriminated union so the compiler enforces "pass `userProfile` for onboarding and `bundle` for additional_program".
+- Old `prompt.ts` deleted.
+
+**Dispatcher shape decision.** `buildSystemPromptFor` takes a single discriminated-union arg `{ purpose, locale, ... }` rather than `(purpose, args)` so TypeScript can narrow the rest of the bag per purpose. This is the only shape change vs the ticket's stated `(purpose, args)` signature.
+
+**Signal-payload-authority rule** is in both EN and FR prompts (UX-mismatch failure mode mitigation from the Tech Plan). Locked by an `assertMatch` regex that tolerates ordering ("constraint_overrides ... authoritative" or vice versa).
+
+**Validator behavior matrix** — 11 test cases covering: no-signal, valid-with-motivation-only, valid-with-overrides, missing-motivation, invalid-motivation, malformed-JSON, out-of-bounds daysPerWeek, out-of-bounds duration, unknown equipmentCategory, unknown override keys silently dropped, ready:false JSON (model said "not yet" via JSON — treated as a normal no-signal turn, no rejection).
+
+**Brand-free.** The "no Claude/Gemini/GPT/OpenAI/Anthropic" lock from the legacy onboarding prompt is replicated on the additional-program prompt (both locales).
+
+**Safety net green:**
+- 288/288 Deno tests pass (was 255 pre-T132 — added 5 shared + 23 additional + 5 dispatch).
+- 1511/1511 Vitest tests pass (unchanged).
+- `deno check` clean on `embedded-agent/index.ts`.
+- `tsc --noEmit -p tsconfig.app.json` clean.
+
+The handler-side wiring of the additional-program validator + counter increment + retry mechanic is **T134**'s responsibility. T132 ships PURE prompt + validator modules.
 
 ## References
 

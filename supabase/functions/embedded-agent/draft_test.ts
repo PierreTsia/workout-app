@@ -10,7 +10,7 @@ import {
 } from "./draft.ts"
 import type { McpToolResult } from "../_shared/mcpClient.ts"
 import type { Thread, ThreadMessage } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import type {
   CatalogExercise,
   GenerateProgramResponse,

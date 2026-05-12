@@ -1,7 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
 import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
 

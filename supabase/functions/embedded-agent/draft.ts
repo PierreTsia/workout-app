@@ -13,7 +13,7 @@
 // without spinning up Supabase or Gemini.
 
 import type { Thread, ThreadMessage } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 import {
   buildProgramPrompt,
   capCatalog,

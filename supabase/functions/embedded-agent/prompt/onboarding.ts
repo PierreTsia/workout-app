@@ -1,33 +1,25 @@
-// System prompt + user-context composition for the Embedded Agent. Locale,
-// scope rules, and the ready-signal schema all live here so a single string
-// review captures every model-facing change.
+// Onboarding system prompt + per-flow ready-signal validator.
+// Extracted from the legacy `prompt.ts` in T132 (#343); behavior is
+// preserved byte-for-byte so `prompt_test.ts` (now `onboarding_test.ts`)
+// continues to pass without fixture changes.
 //
 // Style rules baked in here (Story 4): GymLogic-native voice — never reveal
 // or namedrop the underlying provider (Claude / Gemini / OpenAI / GPT /
-// Anthropic). The brand-free constraint is enforced by `prompt_test.ts`.
+// Anthropic). The brand-free constraint is enforced by `onboarding_test.ts`.
 
-import type { ThreadLocale } from "./threadStore.ts"
+import type { ThreadLocale } from "../threadStore.ts"
+import {
+  LOCALE_INSTRUCTION,
+  parseReadySignalCore,
+  type UserContextProfile,
+} from "./shared.ts"
 
-export interface UserContextProfile {
-  goal: string
-  experience: string
-  equipment: string
-  training_days_per_week: number
-  session_duration_minutes: number
-  age: number | null
-  weight_kg: number | null
-  gender: string | null
-}
+export type { UserContextProfile }
 
 export interface BuildSystemPromptInput {
   locale: ThreadLocale
   userProfile: UserContextProfile
   recentSignals?: string[]
-}
-
-const LOCALE_INSTRUCTION: Record<ThreadLocale, string> = {
-  en: "Always respond in English for both natural-language replies and any structured JSON.",
-  fr: "Réponds toujours en français pour les réponses en langage naturel comme pour le JSON structuré.",
 }
 
 const SCOPE_RULES = `Scope:
@@ -59,14 +51,6 @@ export interface ReadySignalResult {
   cleanContent: string
 }
 
-// Matches the literal `READY_FOR_PROGRAM_DRAFT: { ... }` line as taught by
-// the system prompt. We accept anything between the curly braces (validation
-// happens after JSON.parse) and consume optional trailing whitespace so the
-// stripped content doesn't end with awkward dangling newlines. The trailing
-// segment is intentionally non-greedy + non-newline so we only ever consume
-// one line, even if the model accidentally emits multiple signals.
-const READY_SIGNAL_LINE = /READY_FOR_PROGRAM_DRAFT:\s*\{[^\n]*\}/
-
 /**
  * Extract the ready-signal JSON tail from an assistant reply.
  *
@@ -79,25 +63,22 @@ const READY_SIGNAL_LINE = /READY_FOR_PROGRAM_DRAFT:\s*\{[^\n]*\}/
  *    Epic Brief): only the literal JSON line counts.
  */
 export function parseReadySignal(content: string): ReadySignalResult {
-  const match = content.match(READY_SIGNAL_LINE)
-  if (!match) {
-    return { ready: false, cleanContent: content }
+  const core = parseReadySignalCore(content)
+  if (!core.found) {
+    return { ready: false, cleanContent: core.cleanContent }
   }
 
-  const cleanContent = content.replace(READY_SIGNAL_LINE, "").trimEnd()
-
   try {
-    const jsonStart = match[0].indexOf("{")
-    const parsed = JSON.parse(match[0].slice(jsonStart)) as {
+    const parsed = JSON.parse(core.rawPayload ?? "") as {
       ready?: unknown
       summary?: unknown
     }
     if (parsed.ready === true && typeof parsed.summary === "string" && parsed.summary.length > 0) {
-      return { ready: true, summary: parsed.summary, cleanContent }
+      return { ready: true, summary: parsed.summary, cleanContent: core.cleanContent }
     }
-    return { ready: false, cleanContent }
+    return { ready: false, cleanContent: core.cleanContent }
   } catch {
-    return { ready: false, cleanContent }
+    return { ready: false, cleanContent: core.cleanContent }
   }
 }
 

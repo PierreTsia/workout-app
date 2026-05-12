@@ -3,7 +3,7 @@
 // raw transcript while active, deterministic summary on commit, lazy 7d
 // staleness, lazy 90d body purge.
 
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 
 const STALENESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const RETENTION_WINDOW_MS = 90 * 24 * 60 * 60 * 1000

@@ -22,7 +22,7 @@ import {
   setStatus,
   type Thread,
 } from "./threadStore.ts"
-import type { UserContextProfile } from "./prompt.ts"
+import type { UserContextProfile } from "./prompt/index.ts"
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 

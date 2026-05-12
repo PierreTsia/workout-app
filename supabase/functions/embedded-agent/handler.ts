@@ -9,7 +9,7 @@ import {
   buildSystemPrompt,
   parseReadySignal,
   type UserContextProfile,
-} from "./prompt.ts"
+} from "./prompt/index.ts"
 import {
   buildLastPreview,
   extractRenderedFromMcpResult,
