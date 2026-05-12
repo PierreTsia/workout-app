@@ -182,14 +182,46 @@ Wire up in `index.ts` with the service client.
 
 ## Acceptance Criteria
 
-- [ ] `supabase/functions/embedded-agent/lib/bundle.ts` exports `buildAdditionalProgramBundle`, `buildBundleSummary`, `BundleSizeExceeded`, `ProfileMissing`, types.
-- [ ] `buildAdditionalProgramBundle` unit tests pass for the 5 scenarios listed above.
-- [ ] Size guard verified with a fixture: 8 KB+ bundle throws `BundleSizeExceeded`.
-- [ ] Handler integration test: POST `embedded-agent { action: 'open', purpose: 'additional_program', locale: 'en' }` returns a thread with `bundle_summary` in the response payload AND `bundle_context` populated in the DB row.
-- [ ] Resumed additional-program thread (second `/open` call) does NOT call `buildBundle` again (verified by spy or mock counter).
-- [ ] Onboarding `/open` flow does NOT call `buildBundle` (regression verification).
-- [ ] `/open` for additional-program with no `user_profiles` row returns 409 `profile_missing` (defensive — realistically unreachable).
-- [ ] `e2e/onboarding.spec.ts` passes unchanged.
+- [x] `supabase/functions/embedded-agent/lib/bundle.ts` exports `buildAdditionalProgramBundle`, `buildBundleSummary`, `BundleSizeExceeded`, `ProfileMissing`, types.
+- [x] `buildAdditionalProgramBundle` unit tests pass for the 5 scenarios listed above.
+- [x] Size guard verified with a fixture: 8 KB+ bundle throws `BundleSizeExceeded`.
+- [x] Handler integration test: POST `embedded-agent { action: 'open', purpose: 'additional_program', locale: 'en' }` returns a thread with `bundle_summary` in the response payload AND `bundle_context` populated in the DB row.
+- [x] Resumed additional-program thread (second `/open` call) does NOT call `buildBundle` again (verified by spy or mock counter).
+- [x] Onboarding `/open` flow does NOT call `buildBundle` (regression verification).
+- [x] `/open` for additional-program with no `user_profiles` row returns 409 `profile_missing` (defensive — realistically unreachable).
+- [ ] `e2e/onboarding.spec.ts` passes unchanged. *(deferred to PR CI; local Playwright run is non-trivial inside the sandbox)*
+
+## Implementation Notes (post-merge)
+
+### Files added
+
+- `supabase/functions/embedded-agent/lib/bundle.ts` — pure projection module. Exports `buildAdditionalProgramBundle`, `buildBundleSummary`, `BUNDLE_VERSION`, `BUNDLE_MAX_BYTES`, `BUNDLE_WINDOW_DAYS`, `BundleSizeExceeded`, `ProfileMissing`, plus the wire-shape types (`AdditionalProgramBundle`, `BundleProfile`, `BundleProgramDay`, `BundleActiveProgram`, `BundleRecentStats`, `BundleSummary`) and the DI row shapes (`ProfileRow`, `ActiveProgramRow`, `ActiveProgramDayRow`, `RecentStatsRow`, `BuildBundleDeps`).
+- `supabase/functions/embedded-agent/lib/bundle_test.ts` — 11 unit tests covering: happy path, day muscle-group cap at 5 (with `exercise_count` preserved), `sessions_per_week` rounding to 1 decimal, deterministic lexical tie-break in `top_muscle_groups`, `active_program === null` path, zero-session window, oversized bundle, missing profile, plus 3 `buildBundleSummary` projections.
+- `supabase/functions/embedded-agent/lib/bundleQueries.ts` — concrete Supabase reads (service-client scope). `fetchProfileForBundle`, `fetchActiveProgramForBundle` (programs → workout_days → workout_exercises with `muscle_snapshot`, **not** the live catalog join), `fetchRecentStatsForBundle` (sessions filtered by `finished_at >= now - 28d`, joined with `exercises` for `muscle_group`, avg duration computed from `finished_at - started_at`).
+
+### Files modified
+
+- `supabase/functions/embedded-agent/handler.ts` — added `buildBundle` + `setBundle` to `EmbeddedAgentDeps`. Extracted bundle resolution into `resolveBundleOnOpen` helper so `handleOpen` stays readable: returns `{ thread }` on success or `{ error: Response }` on user-facing failure. `ProfileMissing` → 409 + warn log (`error_kind: 'profile_missing'`), `BundleSizeExceeded` → 500 + error log (`error_kind: 'internal'`, builder-bug semantics). Response payload conditionally includes `bundle_summary` (additional_program only — onboarding stays clean).
+- `supabase/functions/embedded-agent/handler_test.ts` — added `makeStubBundle` factory, `buildBundle`/`setBundle` mocks in `makeDeps`, and 5 T133 tests (`open additional_program (fresh)`, `(resumed)`, `onboarding regression`, `ProfileMissing → 409`, `BundleSizeExceeded → 500`).
+- `supabase/functions/embedded-agent/index.ts` — wired the bundle DI to the service client. Bundle queries bypass RLS by design — they're server-side reads consumed only by the LLM prompt, never returned raw to the client.
+
+### Decisions made under green tests
+
+- **Muscle-group source for active program days**: used `workout_exercises.muscle_snapshot` instead of joining to the live `exercises.muscle_group`. A future catalog rename will not silently mutate an old persisted bundle — the snapshot is contemporaneous with the program design.
+- **Muscle-group source for recent stats**: used a live join `set_logs → exercises(muscle_group)` because `set_logs` doesn't carry a snapshot column. Acceptable risk: catalog renames are rare and the window is bounded to 28 days.
+- **Deterministic ordering**: `top_muscle_groups` ties broken lexically; `muscle_groups` per day are sorted ascending then truncated. Two `/open` calls on the same data produce byte-identical bundles → prompt caching stays effective.
+- **Bundle is server-trusted**: queries run through the service client. The bundle is never returned in raw form to the client — only its compact `BundleSummary` projection (which omits everything except `active_program_name`, `sessions_per_week`, and `top_muscle_group`).
+- **Size guard semantics**: tripping `BundleSizeExceeded` is mapped to 500 (`error_kind: 'internal'`) on purpose. The shape is bounded by design (5 days × 5 muscles × 5 top groups + scalar stats); a future schema change widening it past 8 KB is a builder bug, not a user-facing failure mode.
+- **Bundle immutability**: built once on `bundle_context === null`, persisted, never refreshed mid-thread. Resumes reuse the snapshot. Documented in `docs/CONTEXT.md` (v1 product constraint).
+
+### Test stats
+
+- Bundle module: 11 unit tests (all green).
+- Handler module: +5 T133 tests (47 → 52 total, all green).
+- Deno suite total: 304 tests passing (288 pre-T133).
+- Vitest: 1511 tests passing (unchanged).
+- `deno check supabase/functions/embedded-agent/index.ts`: clean.
+- `tsc --noEmit -p tsconfig.app.json`: clean.
 
 ## References
 

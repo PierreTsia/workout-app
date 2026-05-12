@@ -4,8 +4,48 @@ import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threa
 import type { UserContextProfile } from "./prompt/index.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
+import {
+  BundleSizeExceeded,
+  ProfileMissing,
+  type AdditionalProgramBundle,
+} from "./lib/bundle.ts"
 
 // ---------- factories ----------
+
+function makeStubBundle(
+  overrides: Partial<AdditionalProgramBundle> = {},
+): AdditionalProgramBundle {
+  return {
+    v: 1,
+    captured_at: "2026-05-12T12:00:00.000Z",
+    profile: {
+      goal: "hypertrophy",
+      experience: "intermediate",
+      equipment: "gym",
+      training_days_per_week: 4,
+      session_duration_minutes: 60,
+      age: 30,
+      weight_kg: 75,
+      gender: "male",
+    },
+    active_program: {
+      id: "prog-1",
+      name: "Push Pull Legs",
+      days: [
+        { label: "Push", exercise_count: 4, muscle_groups: ["chest", "shoulders", "triceps"] },
+        { label: "Pull", exercise_count: 2, muscle_groups: ["back", "biceps"] },
+      ],
+    },
+    recent_stats: {
+      window_days: 28,
+      total_sessions: 8,
+      sessions_per_week: 2,
+      top_muscle_groups: ["chest", "back"],
+      avg_session_duration_minutes: 55,
+    },
+    ...overrides,
+  }
+}
 
 function makeThread(overrides: Partial<Thread> = {}): Thread {
   return {
@@ -56,6 +96,8 @@ interface DepsCalls {
   resetForReject: Array<{ thread: Thread }>
   setStatusToCommitted: Array<{ thread: Thread; patch: { program_id: string; summary?: string } }>
   purgeRetention: Array<{ userId: string }>
+  buildBundle: Array<{ userId: string }>
+  setBundle: Array<{ threadId: string; bundle: AdditionalProgramBundle }>
   logEvents: LogEvent[]
 }
 
@@ -87,6 +129,8 @@ interface DepsOverrides {
     patch: { program_id: string; summary?: string },
   ) => Promise<void>
   purgeRetention?: (userId: string) => Promise<void>
+  buildBundle?: (userId: string) => Promise<AdditionalProgramBundle>
+  setBundle?: (thread: Thread, bundle: AdditionalProgramBundle) => Promise<void>
 }
 
 function makeDeps(overrides: DepsOverrides = {}) {
@@ -111,6 +155,8 @@ function makeDeps(overrides: DepsOverrides = {}) {
     resetForReject: [],
     setStatusToCommitted: [],
     purgeRetention: [],
+    buildBundle: [],
+    setBundle: [],
     logEvents: [],
   }
 
@@ -243,6 +289,16 @@ function makeDeps(overrides: DepsOverrides = {}) {
     purgeRetention: async (userId: string) => {
       calls.purgeRetention.push({ userId })
       if (overrides.purgeRetention) await overrides.purgeRetention(userId)
+    },
+    buildBundle: async (userId: string) => {
+      calls.buildBundle.push({ userId })
+      return overrides.buildBundle
+        ? await overrides.buildBundle(userId)
+        : makeStubBundle()
+    },
+    setBundle: async (thread: Thread, bundle: AdditionalProgramBundle) => {
+      calls.setBundle.push({ threadId: thread.id, bundle })
+      if (overrides.setBundle) await overrides.setBundle(thread, bundle)
     },
     log: (event: LogEvent) => {
       calls.logEvents.push(event)
@@ -1368,4 +1424,169 @@ Deno.test("POST with an unknown `purpose` returns 400 invalid_purpose and never 
   assertEquals(calls.getOrCreateActiveThread.length, 0)
   const warns = calls.logEvents.filter((e) => e.error_kind === "invalid_purpose")
   assertEquals(warns.length, 1)
+})
+
+// ============================================================================
+// T133 (#343) — bundle wiring on /open for additional_program
+// ============================================================================
+
+function openAdditionalProgramRequest(): Request {
+  return jsonRequest({
+    action: "open",
+    locale: "en",
+    purpose: "additional_program",
+  })
+}
+
+Deno.test("POST /thread { open, additional_program } (fresh) builds + persists bundle and returns bundle_summary", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-fresh",
+    user_id: "user-1",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.thread_id, "thread-ap-fresh")
+
+  // Bundle was built + persisted exactly once.
+  assertEquals(calls.buildBundle.length, 1)
+  assertEquals(calls.buildBundle[0].userId, "user-1")
+  assertEquals(calls.setBundle.length, 1)
+  assertEquals(calls.setBundle[0].threadId, "thread-ap-fresh")
+  assertEquals(calls.setBundle[0].bundle.v, 1)
+
+  // Response carries the compact summary so the UI can render the
+  // "we're building on top of X" chip without a second roundtrip.
+  assertEquals(body.bundle_summary, {
+    active_program_name: "Push Pull Legs",
+    sessions_per_week: 2,
+    top_muscle_group: "chest",
+  })
+
+  // Purpose is plumbed through every action handler's log line.
+  const info = calls.logEvents.find((e) => e.level === "info" && e.route === "/thread")
+  assertEquals(info?.purpose, "additional_program")
+  assertEquals(info?.message, "thread_created")
+})
+
+Deno.test("POST /thread { open, additional_program } (resumed with bundle present) does NOT rebuild", async () => {
+  const existingBundle = makeStubBundle({
+    active_program: {
+      id: "prog-existing",
+      name: "Existing Program",
+      days: [{ label: "Day 1", exercise_count: 3, muscle_groups: ["chest"] }],
+    },
+  })
+  const resumed = makeThread({
+    id: "thread-ap-resumed",
+    user_id: "user-1",
+    purpose: "additional_program",
+    bundle_context: existingBundle as unknown as Record<string, unknown>,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: resumed, resumed: true }),
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+
+  // Resumed threads with an existing bundle never re-trigger the builder.
+  assertEquals(calls.buildBundle.length, 0)
+  assertEquals(calls.setBundle.length, 0)
+
+  // Summary is projected from the persisted snapshot.
+  assertEquals(body.bundle_summary, {
+    active_program_name: "Existing Program",
+    sessions_per_week: 2,
+    top_muscle_group: "chest",
+  })
+})
+
+Deno.test("POST /thread { open, onboarding } does NOT touch the bundle builder (regression)", async () => {
+  const fresh = makeThread({ id: "thread-onb", purpose: "onboarding", bundle_context: null })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+  })
+
+  const res = await handleEmbeddedAgent(jsonRequest({ action: "open", locale: "en" }), deps)
+
+  assertEquals(res.status, 200)
+  const body = await res.json() as Record<string, unknown>
+
+  // Bundle deps untouched on the onboarding path.
+  assertEquals(calls.buildBundle.length, 0)
+  assertEquals(calls.setBundle.length, 0)
+  // Response shape stays clean for onboarding — `bundle_summary` only
+  // appears for additional_program (avoids polluting the funnel).
+  assertEquals("bundle_summary" in body, false)
+})
+
+Deno.test("POST /thread { open, additional_program } returns 409 profile_missing when ProfileMissing is thrown", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-no-profile",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+    buildBundle: async () => {
+      throw new ProfileMissing()
+    },
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 409)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "profile_missing")
+
+  // Builder ran, persist never happened (no bundle to write).
+  assertEquals(calls.buildBundle.length, 1)
+  assertEquals(calls.setBundle.length, 0)
+
+  // Structured warn on the failure path.
+  const warns = calls.logEvents.filter((e) => e.error_kind === "profile_missing")
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].route, "/thread")
+  assertEquals(warns[0].purpose, "additional_program")
+})
+
+Deno.test("POST /thread { open, additional_program } returns 500 internal + error log when BundleSizeExceeded is thrown", async () => {
+  const fresh = makeThread({
+    id: "thread-ap-oversize",
+    purpose: "additional_program",
+    bundle_context: null,
+  })
+  const { deps, calls } = makeDeps({
+    getOrCreateActiveThread: async () => ({ thread: fresh, resumed: false }),
+    buildBundle: async () => {
+      throw new BundleSizeExceeded(9000)
+    },
+  })
+
+  const res = await handleEmbeddedAgent(openAdditionalProgramRequest(), deps)
+
+  assertEquals(res.status, 500)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "internal")
+
+  // Persist never runs for a builder failure.
+  assertEquals(calls.setBundle.length, 0)
+
+  // Builder-bug → structured *error* level (vs warn for the user-facing
+  // 409 path above).
+  const errors = calls.logEvents.filter((e) => e.level === "error")
+  assertEquals(errors.length, 1)
+  assertEquals(errors[0].error_kind, "internal")
+  assertEquals(errors[0].route, "/thread")
+  assertEquals(errors[0].purpose, "additional_program")
 })

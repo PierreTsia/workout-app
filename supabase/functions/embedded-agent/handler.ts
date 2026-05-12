@@ -17,6 +17,12 @@ import {
   type DraftResult,
   type LastPreview,
 } from "./draft.ts"
+import {
+  BundleSizeExceeded,
+  buildBundleSummary,
+  ProfileMissing,
+  type AdditionalProgramBundle,
+} from "./lib/bundle.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
 import type { LogEvent } from "./log.ts"
 
@@ -78,6 +84,20 @@ export interface EmbeddedAgentDeps {
    * — no per-row fetch.
    */
   purgeRetention: (userId: string) => Promise<void>
+  /**
+   * T133 (#343) — build the additional-program bundle on first `/open` for
+   * a thread whose `bundle_context` is null. Resolves to a frozen snapshot
+   * of profile + active program summary + 28d stats; throws `ProfileMissing`
+   * (handler → 409) or `BundleSizeExceeded` (handler → 500 + error log).
+   * Onboarding flow never touches this dep.
+   */
+  buildBundle: (userId: string) => Promise<AdditionalProgramBundle>
+  /**
+   * T133 (#343) — persist a built bundle into the thread row's
+   * `bundle_context` JSONB. Idempotent (no-op when the row already has
+   * one — caller guards on null).
+   */
+  setBundle: (thread: Thread, bundle: AdditionalProgramBundle) => Promise<void>
   log: (event: LogEvent) => void
 }
 
@@ -794,9 +814,25 @@ async function handleOpen(
   const locale = rawLocale
 
   const initial = await deps.getOrCreateActiveThread(userId, locale, purpose)
-  const { thread, resumed } = initial.resumed
+  const postStale = initial.resumed
     ? await refreshIfStale(initial.thread, userId, locale, purpose, deps, requestId)
     : initial
+
+  // T133 (#343) — Bundle context is owned by the additional-program
+  // thread for its entire lifetime. We build + persist once on the very
+  // first /open (when `bundle_context` is null). Subsequent resumes
+  // short-circuit on the null check and reuse the persisted snapshot.
+  // Onboarding never enters this branch (no bundle in v1).
+  const bundleResolution = await resolveBundleOnOpen(
+    postStale.thread,
+    userId,
+    purpose,
+    deps,
+    requestId,
+  )
+  if ("error" in bundleResolution) return bundleResolution.error
+  const { thread } = bundleResolution
+  const resumed = postStale.resumed
 
   // Boundary info — exactly one line per /open response so onboarding
   // funnel queries can count "starts" cleanly. The `resumed` flag flips
@@ -813,21 +849,100 @@ async function handleOpen(
     message: resumed ? "thread_resumed" : "thread_created",
   })
 
-  return Response.json(
-    {
-      thread_id: thread.id,
-      status: thread.status,
-      resumed,
-      messages: thread.messages ?? [],
-      // Surface last_preview so the EmbeddedAgentPreviewStep can render
-      // straight from the thread query without a second round-trip. When
-      // status !== preview_ready the field is null and the preview screen
-      // never mounts in the first place — so the payload is small in
-      // practice, and capped at 32 KB by buildLastPreview's size guard.
-      last_preview: thread.last_preview ?? null,
-    },
-    { status: 200 },
-  )
+  const responseBody: Record<string, unknown> = {
+    thread_id: thread.id,
+    status: thread.status,
+    resumed,
+    messages: thread.messages ?? [],
+    // Surface last_preview so the EmbeddedAgentPreviewStep can render
+    // straight from the thread query without a second round-trip. When
+    // status !== preview_ready the field is null and the preview screen
+    // never mounts in the first place — so the payload is small in
+    // practice, and capped at 32 KB by buildLastPreview's size guard.
+    last_preview: thread.last_preview ?? null,
+  }
+
+  if (purpose === "additional_program") {
+    responseBody.bundle_summary = buildBundleSummary(thread.bundle_context)
+  }
+
+  return Response.json(responseBody, { status: 200 })
+}
+
+interface BundleResolutionOk {
+  thread: Thread
+}
+interface BundleResolutionError {
+  error: Response
+}
+type BundleResolution = BundleResolutionOk | BundleResolutionError
+
+/**
+ * Resolve the bundle for a /open response (T133, #343):
+ *   - onboarding purpose, or a resumed additional-program thread that
+ *     already has a bundle → return the thread unchanged.
+ *   - fresh additional-program thread (bundle_context === null) → build,
+ *     persist, return a thread with `bundle_context` populated locally
+ *     (avoid a re-fetch round-trip).
+ *   - `ProfileMissing` (user has no `user_profiles` row) → 409 +
+ *     `profile_missing` log.
+ *   - `BundleSizeExceeded` → 500 + `internal` error log. This is a
+ *     builder bug (bundle shape is bounded by design) — a real incident,
+ *     surfaced as a structured error so observability picks it up.
+ */
+async function resolveBundleOnOpen(
+  thread: Thread,
+  userId: string,
+  purpose: ThreadPurpose,
+  deps: EmbeddedAgentDeps,
+  requestId: string,
+): Promise<BundleResolution> {
+  if (purpose !== "additional_program") return { thread }
+  if (thread.bundle_context !== null) return { thread }
+
+  try {
+    const bundle = await deps.buildBundle(userId)
+    await deps.setBundle(thread, bundle)
+    return {
+      thread: {
+        ...thread,
+        bundle_context: bundle as unknown as Record<string, unknown>,
+      },
+    }
+  } catch (err) {
+    if (err instanceof ProfileMissing) {
+      deps.log({
+        level: "warn",
+        feature: "embedded-agent",
+        route: "/thread",
+        purpose,
+        error_kind: "profile_missing",
+        request_id: requestId,
+        user_id: userId,
+        thread_id: thread.id,
+      })
+      return {
+        error: Response.json({ error: "profile_missing" }, { status: 409 }),
+      }
+    }
+    if (err instanceof BundleSizeExceeded) {
+      deps.log({
+        level: "error",
+        feature: "embedded-agent",
+        route: "/thread",
+        purpose,
+        error_kind: "internal",
+        request_id: requestId,
+        user_id: userId,
+        thread_id: thread.id,
+        message: err.message,
+      })
+      return {
+        error: Response.json({ error: "internal" }, { status: 500 }),
+      }
+    }
+    throw err
+  }
 }
 
 async function refreshIfStale(

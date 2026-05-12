@@ -8,6 +8,7 @@ import {
   markStaleIfDue,
   purgeDueForUser,
   resetForReject,
+  setBundle as setBundleOnThread,
   setLastPreview,
   setStatus,
   type SupabaseLike,
@@ -39,6 +40,12 @@ import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
 import { emitLog } from "./log.ts"
+import { buildAdditionalProgramBundle } from "./lib/bundle.ts"
+import {
+  fetchActiveProgramForBundle,
+  fetchProfileForBundle,
+  fetchRecentStatsForBundle,
+} from "./lib/bundleQueries.ts"
 
 /**
  * Embedded Agent edge function (T117 + T118 + T119 + T120). Single POST
@@ -149,6 +156,19 @@ Deno.serve(async (req) => {
       patch: { program_id: string; summary?: string },
     ) => setStatus(threadDb, thread, "committed", patch),
     purgeRetention: (userId: string) => purgeDueForUser(threadDb, userId),
+    // T133 (#343) — additional-program bundle wiring. Queries go through
+    // the service client so RLS doesn't filter out the `programs` rows
+    // we need for the snapshot; the bundle is server-trusted and only
+    // ever exposed to the LLM, never returned to the client raw.
+    buildBundle: (userId: string) =>
+      buildAdditionalProgramBundle(userId, {
+        fetchProfile: (uid) => fetchProfileForBundle(serviceClient, uid),
+        fetchActiveProgram: (uid) => fetchActiveProgramForBundle(serviceClient, uid),
+        fetchRecentStats: (uid, windowDays) =>
+          fetchRecentStatsForBundle(serviceClient, uid, windowDays),
+      }),
+    setBundle: (thread: Thread, bundle) =>
+      setBundleOnThread(threadDb, thread, bundle as unknown as Record<string, unknown>),
     log: emitLog,
   })
 
