@@ -283,7 +283,7 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
 
     await waitFor(() => expect(onCommitted).toHaveBeenCalledWith("prog-xyz"))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "commit", confirm: true },
+      body: { action: "commit", purpose: "onboarding", confirm: true },
     })
   })
 
@@ -364,7 +364,9 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     await userEvent.click(regenBtn)
 
     await waitFor(() => expect(onRegenerate).toHaveBeenCalledTimes(1))
-    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", { body: { action: "reject" } })
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "reject", purpose: "onboarding" },
+    })
   })
 
   // T123 analytics: fire on intent (before /reject) so the funnel records

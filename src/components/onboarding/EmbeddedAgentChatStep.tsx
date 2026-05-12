@@ -69,9 +69,9 @@ export function EmbeddedAgentChatStep({
 }: EmbeddedAgentChatStepProps) {
   const { t } = useTranslation("onboarding")
   const isOnline = useOnlineStatus()
-  const thread = useThread(locale)
-  const abandon = useAbandonThread()
-  const sendMessage = useSendMessage()
+  const thread = useThread("onboarding", locale)
+  const abandon = useAbandonThread("onboarding")
+  const sendMessage = useSendMessage("onboarding")
   const trackEvent = useTrackEvent()
   const [draft, setDraft] = useState("")
   // Latch the ready-signal so the CTA pulse persists across subsequent

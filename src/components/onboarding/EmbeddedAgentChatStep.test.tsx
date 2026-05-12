@@ -200,7 +200,7 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "abandon" },
+        body: { action: "abandon", purpose: "onboarding" },
       })
     })
 
@@ -225,7 +225,7 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "abandon" },
+        body: { action: "abandon", purpose: "onboarding" },
       })
     })
     expect(onBack).toHaveBeenCalledTimes(1)
@@ -259,7 +259,12 @@ describe("EmbeddedAgentChatStep", () => {
     expect(await screen.findByText(/Tell me more about your back/i)).toBeInTheDocument()
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "send", content: "My back hurts when I squat.", locale: "en" },
+      body: {
+        action: "send",
+        purpose: "onboarding",
+        content: "My back hurts when I squat.",
+        locale: "en",
+      },
     })
   })
 
@@ -445,7 +450,12 @@ describe("EmbeddedAgentChatStep", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-        body: { action: "send", content: "line one\nline two", locale: "en" },
+        body: {
+          action: "send",
+          purpose: "onboarding",
+          content: "line one\nline two",
+          locale: "en",
+        },
       })
     })
   })

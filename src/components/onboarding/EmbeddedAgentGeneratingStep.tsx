@@ -35,7 +35,7 @@ export function EmbeddedAgentGeneratingStep({
   // the embedded flow shouldn't invent a fourth set of microcopy.
   const { t: tCp } = useTranslation("create-program")
   const { t } = useTranslation("onboarding")
-  const mutation = useGenerateDraft()
+  const mutation = useGenerateDraft("onboarding")
   const trackEvent = useTrackEvent()
   const inflight = useRef(false)
   const [attempt, retry] = useReducer((n: number) => n + 1, 0)

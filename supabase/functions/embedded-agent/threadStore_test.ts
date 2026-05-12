@@ -5,14 +5,20 @@ import {
 import {
   appendMessage,
   buildDeterministicSummary,
+  consumePendingOverrides,
+  getActiveThread,
   getOrCreateActiveThread,
+  incrementValidatorRejection,
   isRetentionDue,
   isStale,
   markStaleIfDue,
   purgeDueForUser,
   purgeRetentionIfDue,
   resetForReject,
+  setBundle,
+  setChangeMotivation,
   setLastPreview,
+  setPendingConstraintOverrides,
   setStatus,
   type Thread,
 } from "./threadStore.ts"
@@ -226,6 +232,11 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     updated_at: new Date("2026-05-01T10:00:00Z"),
     committed_at: null,
     abandoned_at: null,
+    purpose: "onboarding",
+    change_motivation: null,
+    bundle_context: null,
+    validator_rejection_count: 0,
+    pending_constraint_overrides: null,
     ...overrides,
   }
 }
@@ -313,7 +324,66 @@ Deno.test("appendMessage(user) pushes the message and bumps user_turn_count", as
   assertEquals(op.values.assistant_turn_count, 0)
 })
 
+// ---------- getActiveThread ----------
+
+Deno.test("getActiveThread filters on (user_id, purpose) — an additional_program row is invisible to an onboarding query", async () => {
+  // T131 (#343) — the partial unique index moved from (user_id) to
+  // (user_id, purpose). A user can hold one onboarding thread AND one
+  // additional_program thread simultaneously; getActiveThread must scope
+  // by purpose or the wrong row leaks across flows.
+  const { supabase, ops } = makeFakeSupabase({
+    selectMaybeSingle: { data: null, error: null },
+  })
+
+  const result = await getActiveThread(supabase, "user-1", "onboarding")
+
+  assertEquals(result, null)
+  const selects = ops.filter((o) => o.kind === "select")
+  assertEquals(selects.length, 1)
+  const sel = selects[0]
+  if (sel.kind !== "select") throw new Error("expected select op")
+  assertEquals(sel.filters, { user_id: "user-1", purpose: "onboarding" })
+  assertEquals(sel.inFilters, { status: ["open", "preview_ready"] })
+})
+
 // ---------- getOrCreateActiveThread ----------
+
+Deno.test("getOrCreateActiveThread inserts a fresh row with the given purpose — additional_program does NOT collide with an existing onboarding thread", async () => {
+  // T131 (#343) — additional-program flow opens its own thread; the insert
+  // must carry purpose='additional_program' so the (user_id, purpose) unique
+  // index lets it coexist with the user's onboarding row.
+  const inserted = makeThread({
+    id: "thread-additional",
+    user_id: "user-1",
+    purpose: "additional_program",
+    locale: "en",
+  })
+  const { supabase, ops } = makeFakeSupabase({
+    selectMaybeSingle: { data: null, error: null },
+    insertSingle: { data: inserted, error: null },
+  })
+
+  const { thread, resumed } = await getOrCreateActiveThread(
+    supabase,
+    "user-1",
+    "en",
+    "additional_program",
+  )
+
+  assertEquals(resumed, false)
+  assertEquals(thread.purpose, "additional_program")
+
+  const inserts = ops.filter((o) => o.kind === "insert")
+  assertEquals(inserts.length, 1)
+  const ins = inserts[0]
+  if (ins.kind !== "insert") throw new Error("expected insert op")
+  assertEquals(ins.values, {
+    user_id: "user-1",
+    status: "open",
+    locale: "en",
+    purpose: "additional_program",
+  })
+})
 
 Deno.test("getOrCreateActiveThread resumes via re-select when insert hits the partial-unique race (23505)", async () => {
   // Two-tab race: select sees nothing, insert collides with the partial
@@ -327,7 +397,12 @@ Deno.test("getOrCreateActiveThread resumes via re-select when insert hits the pa
     insertSingle: { data: null, error: { code: "23505", message: "duplicate key" } },
   })
 
-  const { thread, resumed } = await getOrCreateActiveThread(supabase, "user-1", "en")
+  const { thread, resumed } = await getOrCreateActiveThread(
+    supabase,
+    "user-1",
+    "en",
+    "onboarding",
+  )
 
   assertEquals(resumed, true)
   assertEquals(thread.id, "thread-other-tab")
@@ -347,7 +422,12 @@ Deno.test("getOrCreateActiveThread inserts a fresh 'open' row when no active thr
     insertSingle: { data: inserted, error: null },
   })
 
-  const { thread, resumed } = await getOrCreateActiveThread(supabase, "user-1", "fr")
+  const { thread, resumed } = await getOrCreateActiveThread(
+    supabase,
+    "user-1",
+    "fr",
+    "onboarding",
+  )
 
   assertEquals(resumed, false)
   assertEquals(thread.id, "thread-new")
@@ -361,6 +441,7 @@ Deno.test("getOrCreateActiveThread inserts a fresh 'open' row when no active thr
     user_id: "user-1",
     status: "open",
     locale: "fr",
+    purpose: "onboarding",
   })
 })
 
@@ -374,7 +455,12 @@ Deno.test("getOrCreateActiveThread resumes an existing active row when one exist
     selectMaybeSingle: { data: existing, error: null },
   })
 
-  const { thread, resumed } = await getOrCreateActiveThread(supabase, "user-1", "en")
+  const { thread, resumed } = await getOrCreateActiveThread(
+    supabase,
+    "user-1",
+    "en",
+    "onboarding",
+  )
 
   assertEquals(resumed, true)
   assertEquals(thread.id, "thread-existing")
@@ -384,7 +470,7 @@ Deno.test("getOrCreateActiveThread resumes an existing active row when one exist
   const sel = selects[0]
   if (sel.kind !== "select") throw new Error("expected select op")
   assertEquals(sel.table, "embedded_agent_threads")
-  assertEquals(sel.filters, { user_id: "user-1" })
+  assertEquals(sel.filters, { user_id: "user-1", purpose: "onboarding" })
   assertEquals(sel.inFilters, { status: ["open", "preview_ready"] })
 
   const inserts = ops.filter((o) => o.kind === "insert")
@@ -864,4 +950,85 @@ Deno.test("purgeDueForUser throws when PostgREST returns an error", async () => 
     Error,
     "purgeDueForUser failed: boom",
   )
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional-program flow helpers (T131, #343)
+// ─────────────────────────────────────────────────────────────────────────────
+
+Deno.test("setBundle writes bundle_context for the given thread", async () => {
+  const thread = makeThread({ id: "thread-abc" })
+  const bundle = { profile: { goal: "strength" }, weeks: 4 }
+  const { supabase, ops } = makeFakeSupabase()
+
+  await setBundle(supabase, thread, bundle)
+
+  const op = ops.filter((o) => o.kind === "update")[0]
+  if (!op || op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.table, "embedded_agent_threads")
+  assertEquals(op.values.bundle_context, bundle)
+  assertEquals(op.filters, { id: "thread-abc" })
+})
+
+Deno.test("setBundle throws when PostgREST returns an error (RLS denial)", async () => {
+  const { supabase } = makeFakeSupabase({
+    updateSingle: { data: null, error: { message: "rls" } },
+  })
+  await assertRejects(
+    () => setBundle(supabase, makeThread(), {}),
+    Error,
+    "setBundle failed: rls",
+  )
+})
+
+Deno.test("incrementValidatorRejection bumps the counter by 1 from the current value", async () => {
+  const thread = makeThread({ id: "thread-r", validator_rejection_count: 2 })
+  const { supabase, ops } = makeFakeSupabase()
+
+  await incrementValidatorRejection(supabase, thread)
+
+  const op = ops.filter((o) => o.kind === "update")[0]
+  if (!op || op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.values.validator_rejection_count, 3)
+  assertEquals(op.filters, { id: "thread-r" })
+})
+
+Deno.test("setChangeMotivation writes the controlled-vocabulary value", async () => {
+  const thread = makeThread({ id: "thread-m" })
+  const { supabase, ops } = makeFakeSupabase()
+
+  await setChangeMotivation(supabase, thread, "plateau")
+
+  const op = ops.filter((o) => o.kind === "update")[0]
+  if (!op || op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.values.change_motivation, "plateau")
+  assertEquals(op.filters, { id: "thread-m" })
+})
+
+Deno.test("setPendingConstraintOverrides stashes the validated payload", async () => {
+  const thread = makeThread({ id: "thread-o" })
+  const overrides = { daysPerWeek: 5, duration: 60 }
+  const { supabase, ops } = makeFakeSupabase()
+
+  await setPendingConstraintOverrides(supabase, thread, overrides)
+
+  const op = ops.filter((o) => o.kind === "update")[0]
+  if (!op || op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.values.pending_constraint_overrides, overrides)
+  assertEquals(op.filters, { id: "thread-o" })
+})
+
+Deno.test("consumePendingOverrides clears the slot to NULL (idempotent)", async () => {
+  const thread = makeThread({
+    id: "thread-c",
+    pending_constraint_overrides: { daysPerWeek: 5 },
+  })
+  const { supabase, ops } = makeFakeSupabase()
+
+  await consumePendingOverrides(supabase, thread)
+
+  const op = ops.filter((o) => o.kind === "update")[0]
+  if (!op || op.kind !== "update") throw new Error("expected update op")
+  assertEquals(op.values.pending_constraint_overrides, null)
+  assertEquals(op.filters, { id: "thread-c" })
 })

@@ -39,9 +39,9 @@ export function EmbeddedAgentPreviewStep({
   onFallbackBlank,
 }: EmbeddedAgentPreviewStepProps) {
   const { t } = useTranslation("onboarding")
-  const thread = useThread(locale)
-  const commit = useCommitPreview()
-  const reject = useRejectPreview()
+  const thread = useThread("onboarding", locale)
+  const commit = useCommitPreview("onboarding")
+  const reject = useRejectPreview("onboarding")
   const trackEvent = useTrackEvent()
 
   const threadId = thread.data?.thread_id ?? null

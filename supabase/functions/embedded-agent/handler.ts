@@ -3,6 +3,7 @@ import {
   type Thread,
   type ThreadLocale,
   type ThreadMessage,
+  type ThreadPurpose,
 } from "./threadStore.ts"
 import {
   buildSystemPrompt,
@@ -45,10 +46,11 @@ export interface DraftStepInput {
 
 export interface EmbeddedAgentDeps {
   getUser: (authHeader: string) => Promise<{ userId: string } | null>
-  getActiveThread: (userId: string) => Promise<Thread | null>
+  getActiveThread: (userId: string, purpose: ThreadPurpose) => Promise<Thread | null>
   getOrCreateActiveThread: (
     userId: string,
     locale: ThreadLocale,
+    purpose: ThreadPurpose,
   ) => Promise<{ thread: Thread; resumed: boolean }>
   markStaleIfDue: (thread: Thread) => Promise<{ stale: boolean; thread: Thread }>
   setStatusToAbandoned: (thread: Thread) => Promise<void>
@@ -84,6 +86,34 @@ type DraftTrigger = typeof VALID_DRAFT_TRIGGERS[number]
 
 function isDraftTrigger(value: unknown): value is DraftTrigger {
   return typeof value === "string" && (VALID_DRAFT_TRIGGERS as readonly string[]).includes(value)
+}
+
+const VALID_PURPOSES: readonly ThreadPurpose[] = ["onboarding", "additional_program"] as const
+
+interface PurposeResolution {
+  purpose: ThreadPurpose
+  defaulted: boolean
+}
+
+/**
+ * Resolve `body.purpose` to a `ThreadPurpose`. Three outcomes:
+ *
+ *  - explicit valid value → returned verbatim.
+ *  - missing (`undefined` / not a string) → defaults to `'onboarding'` with
+ *    `defaulted: true` so the caller can emit the back-compat warn log.
+ *    Covers stale tabs from the pre-T131 client that didn't send `purpose`.
+ *  - unknown string → returns `null` so the caller can 400 with
+ *    `invalid_purpose`.
+ */
+function resolvePurpose(raw: unknown): PurposeResolution | null {
+  if (raw === undefined || raw === null) {
+    return { purpose: "onboarding", defaulted: true }
+  }
+  if (typeof raw !== "string") return null
+  if ((VALID_PURPOSES as readonly string[]).includes(raw)) {
+    return { purpose: raw as ThreadPurpose, defaulted: false }
+  }
+  return null
 }
 
 export async function handleEmbeddedAgent(
@@ -135,9 +165,19 @@ export async function handleEmbeddedAgent(
   // would surface as an unstructured 500 with no log line. Catch the parse
   // failure here, emit a structured warn (so observability picks it up the
   // same way other 4xx do), and return a clean 400.
-  let body: { action?: unknown; locale?: unknown; confirm?: unknown }
+  let body: {
+    action?: unknown
+    locale?: unknown
+    confirm?: unknown
+    purpose?: unknown
+  }
   try {
-    body = await req.json() as { action?: unknown; locale?: unknown; confirm?: unknown }
+    body = await req.json() as {
+      action?: unknown
+      locale?: unknown
+      confirm?: unknown
+      purpose?: unknown
+    }
   } catch (err) {
     deps.log({
       level: "warn",
@@ -151,28 +191,58 @@ export async function handleEmbeddedAgent(
     return Response.json({ error: "invalid_json" }, { status: 400 })
   }
 
+  // T131 (#343) — resolve `purpose` once at the top so every action handler
+  // receives a typed value. Missing `purpose` defaults to 'onboarding' for
+  // back-compat with stale tabs running the pre-T131 client; an unknown
+  // value 400s up front rather than poisoning downstream dispatch.
+  const purposeResult = resolvePurpose(body.purpose)
+  if (!purposeResult) {
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/thread",
+      error_kind: "invalid_purpose",
+      request_id: requestId,
+      user_id: user.userId,
+      message: `unknown purpose: ${typeof body.purpose === "string" ? body.purpose : "<non-string>"}`,
+    })
+    return Response.json({ error: "invalid_purpose" }, { status: 400 })
+  }
+  const { purpose, defaulted: purposeDefaulted } = purposeResult
+  if (purposeDefaulted) {
+    deps.log({
+      level: "warn",
+      feature: "embedded-agent",
+      route: "/thread",
+      purpose,
+      error_kind: "missing_purpose_default_applied",
+      request_id: requestId,
+      user_id: user.userId,
+    })
+  }
+
   if (body.action === "abandon") {
-    return await handleAbandon(user.userId, deps, requestId)
+    return await handleAbandon(user.userId, purpose, deps, requestId)
   }
 
   if (body.action === "open") {
-    return await handleOpen(user.userId, body.locale, deps, requestId)
+    return await handleOpen(user.userId, body.locale, purpose, deps, requestId)
   }
 
   if (body.action === "send") {
-    return await handleSend(user.userId, body, deps, requestId)
+    return await handleSend(user.userId, body, purpose, deps, requestId)
   }
 
   if (body.action === "draft") {
-    return await handleDraft(user.userId, body, deps, requestId)
+    return await handleDraft(user.userId, body, purpose, deps, requestId)
   }
 
   if (body.action === "reject") {
-    return await handleReject(user.userId, deps, requestId)
+    return await handleReject(user.userId, purpose, deps, requestId)
   }
 
   if (body.action === "commit") {
-    return await handleCommit(user.userId, body, deps, requestId)
+    return await handleCommit(user.userId, body, purpose, deps, requestId)
   }
 
   // Unknown action: classified as `internal` per the T122 inventory — we
@@ -182,6 +252,7 @@ export async function handleEmbeddedAgent(
     level: "warn",
     feature: "embedded-agent",
     route: "/thread",
+    purpose,
     error_kind: "internal",
     request_id: requestId,
     user_id: user.userId,
@@ -201,6 +272,7 @@ export async function handleEmbeddedAgent(
 async function handleCommit(
   userId: string,
   body: { confirm?: unknown },
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
@@ -209,6 +281,7 @@ async function handleCommit(
       level: "warn",
       feature: "embedded-agent",
       route: "/commit",
+      purpose,
       error_kind,
       request_id: requestId,
       user_id: userId,
@@ -223,7 +296,7 @@ async function handleCommit(
     return Response.json({ error: "invalid_confirm" }, { status: 400 })
   }
 
-  const active = await deps.getActiveThread(userId)
+  const active = await deps.getActiveThread(userId, purpose)
   if (!active) {
     logWarn("no_active_thread")
     return Response.json({ error: "no_active_thread" }, { status: 409 })
@@ -251,6 +324,7 @@ async function handleCommit(
       level: "error",
       feature: "embedded-agent",
       route: "/commit",
+      purpose,
       error_kind: `mcp_${mcpResult.kind}`,
       request_id: requestId,
       user_id: userId,
@@ -272,6 +346,7 @@ async function handleCommit(
       level: "error",
       feature: "embedded-agent",
       route: "/commit",
+      purpose,
       error_kind: "mcp_tool_error",
       request_id: requestId,
       user_id: userId,
@@ -309,6 +384,7 @@ async function handleCommit(
     level: "info",
     feature: "embedded-agent",
     route: "/commit",
+    purpose,
     request_id: requestId,
     user_id: userId,
     thread_id: active.id,
@@ -371,10 +447,11 @@ function parseProgramIdFromMcpResult(
  */
 async function handleReject(
   userId: string,
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
-  const active = await deps.getActiveThread(userId)
+  const active = await deps.getActiveThread(userId, purpose)
   if (!active || active.status !== "preview_ready") {
     // Idempotent on the wire (200/{ok:true}) but worth a warn for
     // observability — a /reject from a non-preview state usually means
@@ -384,6 +461,7 @@ async function handleReject(
       level: "warn",
       feature: "embedded-agent",
       route: "/reject",
+      purpose,
       error_kind: "wrong_status",
       request_id: requestId,
       user_id: userId,
@@ -397,10 +475,11 @@ async function handleReject(
 
 async function handleAbandon(
   userId: string,
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
-  const active = await deps.getActiveThread(userId)
+  const active = await deps.getActiveThread(userId, purpose)
   if (active) {
     await deps.setStatusToAbandoned(active)
     // Boundary info — distinguishes user-driven abandon (this path)
@@ -410,6 +489,7 @@ async function handleAbandon(
       level: "info",
       feature: "embedded-agent",
       route: "/thread",
+      purpose,
       request_id: requestId,
       user_id: userId,
       thread_id: active.id,
@@ -422,6 +502,7 @@ async function handleAbandon(
 async function handleSend(
   userId: string,
   body: { content?: unknown; locale?: unknown },
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
@@ -430,6 +511,7 @@ async function handleSend(
       level: "warn",
       feature: "embedded-agent",
       route: "/message",
+      purpose,
       error_kind,
       request_id: requestId,
       user_id: userId,
@@ -450,7 +532,7 @@ async function handleSend(
   const locale = body.locale
   const content = body.content
 
-  const active = await deps.getActiveThread(userId)
+  const active = await deps.getActiveThread(userId, purpose)
   if (!active || (active.status !== "open" && active.status !== "preview_ready")) {
     logWarn("no_active_thread", active?.id)
     return Response.json({ error: "no_active_thread" }, { status: 409 })
@@ -489,6 +571,7 @@ async function handleSend(
       level: "error",
       feature: "embedded-agent",
       route: "/message",
+      purpose,
       error_kind: "provider_failure",
       request_id: requestId,
       user_id: userId,
@@ -517,6 +600,7 @@ async function handleSend(
 async function handleDraft(
   userId: string,
   body: { trigger?: unknown; locale?: unknown },
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
@@ -525,6 +609,7 @@ async function handleDraft(
       level: "warn",
       feature: "embedded-agent",
       route: "/draft",
+      purpose,
       error_kind,
       request_id: requestId,
       user_id: userId,
@@ -544,7 +629,7 @@ async function handleDraft(
   const locale = body.locale
   const trigger = body.trigger
 
-  const active = await deps.getActiveThread(userId)
+  const active = await deps.getActiveThread(userId, purpose)
   if (!active || active.status !== "open") {
     // The wire still says `no_active_thread` (back-compat with the web
     // client). Canonical log kind is `wrong_status` since the route
@@ -605,6 +690,7 @@ async function handleDraft(
         level: "warn",
         feature: "embedded-agent",
         route: "/draft",
+        purpose,
         error_kind: "billable_log_failed",
         request_id: requestId,
         user_id: userId,
@@ -619,6 +705,7 @@ async function handleDraft(
       level: "error",
       feature: "embedded-agent",
       route: "/draft",
+      purpose,
       error_kind: "provider_failure",
       request_id: requestId,
       user_id: userId,
@@ -642,6 +729,7 @@ async function handleDraft(
       level: "error",
       feature: "embedded-agent",
       route: "/draft",
+      purpose,
       error_kind: "provider_failure",
       request_id: requestId,
       user_id: userId,
@@ -660,6 +748,7 @@ async function handleDraft(
       level: "error",
       feature: "embedded-agent",
       route: "/draft",
+      purpose,
       error_kind: `mcp_${mcpResult.kind}`,
       request_id: requestId,
       user_id: userId,
@@ -686,6 +775,7 @@ async function handleDraft(
 async function handleOpen(
   userId: string,
   rawLocale: unknown,
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<Response> {
@@ -694,6 +784,7 @@ async function handleOpen(
       level: "warn",
       feature: "embedded-agent",
       route: "/thread",
+      purpose,
       error_kind: "invalid_locale",
       request_id: requestId,
       user_id: userId,
@@ -702,9 +793,9 @@ async function handleOpen(
   }
   const locale = rawLocale
 
-  const initial = await deps.getOrCreateActiveThread(userId, locale)
+  const initial = await deps.getOrCreateActiveThread(userId, locale, purpose)
   const { thread, resumed } = initial.resumed
-    ? await refreshIfStale(initial.thread, userId, locale, deps, requestId)
+    ? await refreshIfStale(initial.thread, userId, locale, purpose, deps, requestId)
     : initial
 
   // Boundary info — exactly one line per /open response so onboarding
@@ -715,6 +806,7 @@ async function handleOpen(
     level: "info",
     feature: "embedded-agent",
     route: "/thread",
+    purpose,
     request_id: requestId,
     user_id: userId,
     thread_id: thread.id,
@@ -742,6 +834,7 @@ async function refreshIfStale(
   thread: Thread,
   userId: string,
   locale: ThreadLocale,
+  purpose: ThreadPurpose,
   deps: EmbeddedAgentDeps,
   requestId: string,
 ): Promise<{ thread: Thread; resumed: boolean }> {
@@ -754,10 +847,11 @@ async function refreshIfStale(
     level: "info",
     feature: "embedded-agent",
     route: "/thread",
+    purpose,
     request_id: requestId,
     user_id: userId,
     thread_id: thread.id,
     message: "thread_abandoned_stale",
   })
-  return await deps.getOrCreateActiveThread(userId, locale)
+  return await deps.getOrCreateActiveThread(userId, locale, purpose)
 }

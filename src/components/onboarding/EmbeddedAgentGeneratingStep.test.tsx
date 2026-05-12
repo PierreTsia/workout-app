@@ -53,7 +53,7 @@ describe("EmbeddedAgentGeneratingStep", () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "draft", trigger: "user_cta", locale: "en" },
+      body: { action: "draft", purpose: "onboarding", trigger: "user_cta", locale: "en" },
     })
   })
 

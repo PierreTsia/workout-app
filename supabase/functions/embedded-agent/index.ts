@@ -104,9 +104,9 @@ Deno.serve(async (req) => {
       if (error || !data.user?.id) return null
       return { userId: data.user.id }
     },
-    getActiveThread: (userId) => getActiveThread(threadDb, userId),
-    getOrCreateActiveThread: (userId, locale: ThreadLocale) =>
-      getOrCreateActiveThread(threadDb, userId, locale),
+    getActiveThread: (userId, purpose) => getActiveThread(threadDb, userId, purpose),
+    getOrCreateActiveThread: (userId, locale: ThreadLocale, purpose) =>
+      getOrCreateActiveThread(threadDb, userId, locale, purpose),
     markStaleIfDue: (thread: Thread) => markStaleIfDue(threadDb, thread),
     setStatusToAbandoned: (thread: Thread) => setStatus(threadDb, thread, "abandoned"),
     appendMessage: async (thread, role, content) => {

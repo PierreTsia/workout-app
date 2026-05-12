@@ -1,6 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
-import type { Thread, ThreadLocale, ThreadMessage } from "./threadStore.ts"
+import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threadStore.ts"
 import type { UserContextProfile } from "./prompt.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
@@ -24,6 +24,11 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     updated_at: new Date("2026-05-08T10:00:00Z"),
     committed_at: null,
     abandoned_at: null,
+    purpose: "onboarding",
+    change_motivation: null,
+    bundle_context: null,
+    validator_rejection_count: 0,
+    pending_constraint_overrides: null,
     ...overrides,
   }
 }
@@ -32,8 +37,8 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
 
 interface DepsCalls {
   getUser: Array<{ authHeader: string }>
-  getActiveThread: Array<{ userId: string }>
-  getOrCreateActiveThread: Array<{ userId: string; locale: ThreadLocale }>
+  getActiveThread: Array<{ userId: string; purpose: ThreadPurpose }>
+  getOrCreateActiveThread: Array<{ userId: string; locale: ThreadLocale; purpose: ThreadPurpose }>
   markStaleIfDue: Array<{ thread: Thread }>
   setStatusToAbandoned: Array<{ thread: Thread }>
   appendMessage: Array<{ thread: Thread; role: "user" | "assistant"; content: string }>
@@ -56,10 +61,11 @@ interface DepsCalls {
 
 interface DepsOverrides {
   getUser?: (authHeader: string) => Promise<{ userId: string } | null>
-  getActiveThread?: (userId: string) => Promise<Thread | null>
+  getActiveThread?: (userId: string, purpose: ThreadPurpose) => Promise<Thread | null>
   getOrCreateActiveThread?: (
     userId: string,
     locale: ThreadLocale,
+    purpose: ThreadPurpose,
   ) => Promise<{ thread: Thread; resumed: boolean }>
   markStaleIfDue?: (thread: Thread) => Promise<{ stale: boolean; thread: Thread }>
   setStatusToAbandoned?: (thread: Thread) => Promise<void>
@@ -115,17 +121,17 @@ function makeDeps(overrides: DepsOverrides = {}) {
         ? await overrides.getUser(authHeader)
         : { userId: "user-1" }
     },
-    getActiveThread: async (userId: string) => {
-      calls.getActiveThread.push({ userId })
+    getActiveThread: async (userId: string, purpose: ThreadPurpose) => {
+      calls.getActiveThread.push({ userId, purpose })
       return overrides.getActiveThread
-        ? await overrides.getActiveThread(userId)
+        ? await overrides.getActiveThread(userId, purpose)
         : null
     },
-    getOrCreateActiveThread: async (userId: string, locale: ThreadLocale) => {
-      calls.getOrCreateActiveThread.push({ userId, locale })
+    getOrCreateActiveThread: async (userId: string, locale: ThreadLocale, purpose: ThreadPurpose) => {
+      calls.getOrCreateActiveThread.push({ userId, locale, purpose })
       return overrides.getOrCreateActiveThread
-        ? await overrides.getOrCreateActiveThread(userId, locale)
-        : { thread: makeThread({ user_id: userId, locale }), resumed: false }
+        ? await overrides.getOrCreateActiveThread(userId, locale, purpose)
+        : { thread: makeThread({ user_id: userId, locale, purpose }), resumed: false }
     },
     markStaleIfDue: async (thread: Thread) => {
       calls.markStaleIfDue.push({ thread })
@@ -254,10 +260,15 @@ function jsonRequest(
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
   if (options.requestId) headers["x-request-id"] = options.requestId
   const method = options.method ?? "POST"
+  // T131 (#343) — default `purpose: 'onboarding'` so pre-T131 fixtures
+  // exercise the same flow they did before this epic. Tests that want
+  // the back-compat path explicitly omit `purpose`; tests on the
+  // additional_program flow override.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/thread", {
     method,
     headers,
-    body: method === "GET" ? undefined : JSON.stringify(body),
+    body: method === "GET" ? undefined : JSON.stringify(bodyWithPurpose),
   })
 }
 
@@ -294,7 +305,11 @@ Deno.test("POST /thread { open, en } returns the freshly created thread shape", 
 
   assertEquals(calls.getUser.length, 1)
   assertEquals(calls.getOrCreateActiveThread.length, 1)
-  assertEquals(calls.getOrCreateActiveThread[0], { userId: "user-1", locale: "en" })
+  assertEquals(calls.getOrCreateActiveThread[0], {
+    userId: "user-1",
+    locale: "en",
+    purpose: "onboarding",
+  })
 
   // T122: every authenticated request fires the lazy 90d retention sweep.
   assertEquals(calls.purgeRetention.length, 1)
@@ -499,15 +514,17 @@ Deno.test("POST /thread propagates x-request-id from the client into structured 
 })
 
 function sendRequest(
-  body: { content?: unknown; locale?: unknown },
+  body: { content?: unknown; locale?: unknown; purpose?: unknown },
   options: { withAuth?: boolean } = {},
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 send tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/message", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "send", ...body }),
+    body: JSON.stringify({ action: "send", ...bodyWithPurpose }),
   })
 }
 
@@ -711,15 +728,17 @@ Deno.test("POST /message rejects an unsupported locale with 400 invalid_locale",
 // ---------- /draft ----------
 
 function draftRequest(
-  body: { trigger?: unknown; locale?: unknown },
+  body: { trigger?: unknown; locale?: unknown; purpose?: unknown },
   options: { withAuth?: boolean } = {},
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 draft tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/message", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "draft", ...body }),
+    body: JSON.stringify({ action: "draft", ...bodyWithPurpose }),
   })
 }
 
@@ -1034,10 +1053,12 @@ function commitRequest(
 ): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" }
   if (options.withAuth ?? true) headers["Authorization"] = "Bearer jwt_test"
+  // T131 (#343) — default purpose so pre-T131 commit tests keep one warn line.
+  const bodyWithPurpose = "purpose" in body ? body : { purpose: "onboarding", ...body }
   return new Request("https://example.test/commit", {
     method: "POST",
     headers,
-    body: JSON.stringify({ action: "commit", ...body }),
+    body: JSON.stringify({ action: "commit", ...bodyWithPurpose }),
   })
 }
 
@@ -1270,4 +1291,81 @@ Deno.test("GET /thread returns 405 method_not_allowed", async () => {
   const body = await res.json() as Record<string, unknown>
   assertEquals(body.error, "method_not_allowed")
   assertEquals(calls.getUser.length, 0)
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Purpose dispatch (T131, #343)
+// ─────────────────────────────────────────────────────────────────────────────
+
+Deno.test("POST { action: open, purpose: 'additional_program' } scopes the thread lookup by purpose", async () => {
+  // T131 (#343) — purpose plumbs from the request body through to the
+  // threadStore deps so the (user_id, purpose) unique index is honored.
+  const { deps, calls } = makeDeps()
+
+  const res = await handleEmbeddedAgent(
+    jsonRequest({ action: "open", locale: "en", purpose: "additional_program" }),
+    deps,
+  )
+
+  assertEquals(res.status, 200)
+  assertEquals(calls.getOrCreateActiveThread.length, 1)
+  assertEquals(calls.getOrCreateActiveThread[0], {
+    userId: "user-1",
+    locale: "en",
+    purpose: "additional_program",
+  })
+  // No back-compat warn when purpose is explicit.
+  const warns = calls.logEvents.filter((e) => e.error_kind === "missing_purpose_default_applied")
+  assertEquals(warns.length, 0)
+})
+
+Deno.test("POST without `purpose` defaults to 'onboarding' AND emits a warn log (back-compat for stale tabs)", async () => {
+  // T131 (#343) — pre-T131 clients send no `purpose` field; we default to
+  // 'onboarding' so they keep working, but emit a single warn log so
+  // observability picks up "your users are running stale code".
+  const { deps, calls } = makeDeps()
+
+  // Hand-rolled request that bypasses jsonRequest's purpose default.
+  const req = new Request("https://example.test/thread", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer jwt_test",
+    },
+    body: JSON.stringify({ action: "open", locale: "en" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+
+  assertEquals(res.status, 200)
+  assertEquals(calls.getOrCreateActiveThread[0]?.purpose, "onboarding")
+  const warns = calls.logEvents.filter((e) =>
+    e.error_kind === "missing_purpose_default_applied"
+  )
+  assertEquals(warns.length, 1)
+  assertEquals(warns[0].purpose, "onboarding")
+})
+
+Deno.test("POST with an unknown `purpose` returns 400 invalid_purpose and never dispatches", async () => {
+  // T131 (#343) — invalid purpose 400s up front rather than poisoning
+  // downstream dispatch with an unchecked string.
+  const { deps, calls } = makeDeps()
+
+  const req = new Request("https://example.test/thread", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer jwt_test",
+    },
+    body: JSON.stringify({ action: "open", locale: "en", purpose: "weight_loss_plan" }),
+  })
+
+  const res = await handleEmbeddedAgent(req, deps)
+
+  assertEquals(res.status, 400)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "invalid_purpose")
+  assertEquals(calls.getOrCreateActiveThread.length, 0)
+  const warns = calls.logEvents.filter((e) => e.error_kind === "invalid_purpose")
+  assertEquals(warns.length, 1)
 })

@@ -29,6 +29,80 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
+describe("useThread purpose isolation (T131, #343)", () => {
+  it("keys the cache by `purpose` so onboarding and additional_program threads are independent queries", async () => {
+    // Same user can have one onboarding thread AND one additional_program
+    // thread alive at the same time; React Query MUST treat them as
+    // separate fetches or the second hook silently reuses the first's data.
+    invokeMock
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "thread-onboarding-1",
+          status: "open",
+          resumed: true,
+          messages: [{ role: "user", content: "from onboarding", ts: "x" }],
+          last_preview: null,
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          thread_id: "thread-additional-1",
+          status: "open",
+          resumed: false,
+          messages: [],
+          last_preview: null,
+        },
+        error: null,
+      })
+
+    const { result } = renderHookWithProviders(() => ({
+      onboarding: useThread("onboarding", "en"),
+      additional: useThread("additional_program", "en"),
+    }))
+
+    await waitFor(() => {
+      expect(result.current.onboarding.isSuccess).toBe(true)
+      expect(result.current.additional.isSuccess).toBe(true)
+    })
+
+    expect(result.current.onboarding.data?.thread_id).toBe("thread-onboarding-1")
+    expect(result.current.additional.data?.thread_id).toBe("thread-additional-1")
+    expect(invokeMock).toHaveBeenCalledTimes(2)
+    expect(invokeMock).toHaveBeenNthCalledWith(1, "embedded-agent", {
+      body: { action: "open", purpose: "onboarding", locale: "en" },
+    })
+    expect(invokeMock).toHaveBeenNthCalledWith(2, "embedded-agent", {
+      body: { action: "open", purpose: "additional_program", locale: "en" },
+    })
+  })
+
+  it("useSendMessage('additional_program') posts purpose in the request body", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        assistant: { content: "Sure — what's changed?", ts: "2026-05-12T10:00:00Z" },
+        ready_for_draft: false,
+      },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useSendMessage("additional_program"),
+    )
+
+    await result.current.mutateAsync({ content: "I want to switch focus", locale: "en" })
+
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: {
+        action: "send",
+        purpose: "additional_program",
+        content: "I want to switch focus",
+        locale: "en",
+      },
+    })
+  })
+})
+
 describe("useThread", () => {
   it("posts /thread { action: open, locale } and returns the thread payload", async () => {
     invokeMock.mockResolvedValueOnce({
@@ -41,12 +115,12 @@ describe("useThread", () => {
       error: null,
     })
 
-    const { result } = renderHookWithProviders(() => useThread("en"))
+    const { result } = renderHookWithProviders(() => useThread("onboarding", "en"))
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "open", locale: "en" },
+      body: { action: "open", purpose: "onboarding", locale: "en" },
     })
     expect(result.current.data).toEqual({
       thread_id: "thread-123",
@@ -71,8 +145,8 @@ describe("useAbandonThread", () => {
       })
 
     const { result } = renderHookWithProviders(() => ({
-      thread: useThread("en"),
-      abandon: useAbandonThread(),
+      thread: useThread("onboarding", "en"),
+      abandon: useAbandonThread("onboarding"),
     }))
 
     await waitFor(() => expect(result.current.thread.isSuccess).toBe(true))
@@ -81,7 +155,7 @@ describe("useAbandonThread", () => {
     await result.current.abandon.mutateAsync()
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "abandon" },
+      body: { action: "abandon", purpose: "onboarding" },
     })
 
     await waitFor(() => expect(result.current.thread.data?.thread_id).toBe("t-2"))
@@ -98,12 +172,12 @@ describe("useSendMessage", () => {
       error: null,
     })
 
-    const { result } = renderHookWithProviders(() => useSendMessage())
+    const { result } = renderHookWithProviders(() => useSendMessage("onboarding"))
 
     const data = await result.current.mutateAsync({ content: "Hi", locale: "en" })
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "send", content: "Hi", locale: "en" },
+      body: { action: "send", purpose: "onboarding", content: "Hi", locale: "en" },
     })
     expect(data.assistant.content).toBe("Hello back!")
     expect(data.ready_for_draft).toBe(false)
@@ -118,7 +192,7 @@ describe("useSendMessage", () => {
     })
     invokeMock.mockResolvedValueOnce({ data: null, error: quotaError })
 
-    const { result } = renderHookWithProviders(() => useSendMessage())
+    const { result } = renderHookWithProviders(() => useSendMessage("onboarding"))
 
     let caught: unknown = null
     try {
@@ -152,12 +226,12 @@ describe("useGenerateDraft", () => {
       error: null,
     })
 
-    const { result } = renderHookWithProviders(() => useGenerateDraft())
+    const { result } = renderHookWithProviders(() => useGenerateDraft("onboarding"))
 
     const data = await result.current.mutateAsync({ trigger: "user_cta", locale: "en" })
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "draft", trigger: "user_cta", locale: "en" },
+      body: { action: "draft", purpose: "onboarding", trigger: "user_cta", locale: "en" },
     })
     expect(data.status).toBe("preview_ready")
     expect(data.preview.args.name).toBe("Strength — 4 days/wk")
@@ -172,7 +246,7 @@ describe("useGenerateDraft", () => {
     })
     invokeMock.mockResolvedValueOnce({ data: null, error: err })
 
-    const { result } = renderHookWithProviders(() => useGenerateDraft())
+    const { result } = renderHookWithProviders(() => useGenerateDraft("onboarding"))
 
     let caught: unknown = null
     try {
@@ -193,7 +267,7 @@ describe("useGenerateDraft", () => {
     })
     invokeMock.mockResolvedValueOnce({ data: null, error: err })
 
-    const { result } = renderHookWithProviders(() => useGenerateDraft())
+    const { result } = renderHookWithProviders(() => useGenerateDraft("onboarding"))
 
     let caught: unknown = null
     try {
@@ -214,7 +288,7 @@ describe("useGenerateDraft", () => {
     })
     invokeMock.mockResolvedValueOnce({ data: null, error: err })
 
-    const { result } = renderHookWithProviders(() => useGenerateDraft())
+    const { result } = renderHookWithProviders(() => useGenerateDraft("onboarding"))
 
     let caught: unknown = null
     try {
@@ -246,8 +320,8 @@ describe("useRejectPreview", () => {
       })
 
     const { result } = renderHookWithProviders(() => ({
-      thread: useThread("en"),
-      reject: useRejectPreview(),
+      thread: useThread("onboarding", "en"),
+      reject: useRejectPreview("onboarding"),
     }))
 
     await waitFor(() => expect(result.current.thread.isSuccess).toBe(true))
@@ -255,7 +329,9 @@ describe("useRejectPreview", () => {
 
     await result.current.reject.mutateAsync()
 
-    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", { body: { action: "reject" } })
+    expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
+      body: { action: "reject", purpose: "onboarding" },
+    })
 
     // Cache invalidation refetches and surfaces the now-open thread.
     await waitFor(() => expect(result.current.thread.data?.status).toBe("open"))
@@ -269,12 +345,12 @@ describe("useCommitPreview", () => {
       error: null,
     })
 
-    const { result } = renderHookWithProviders(() => useCommitPreview())
+    const { result } = renderHookWithProviders(() => useCommitPreview("onboarding"))
 
     const data = await result.current.mutateAsync()
 
     expect(invokeMock).toHaveBeenCalledWith("embedded-agent", {
-      body: { action: "commit", confirm: true },
+      body: { action: "commit", purpose: "onboarding", confirm: true },
     })
     expect(data.program_id).toBe("prog-abc")
   })
@@ -289,7 +365,7 @@ describe("useCommitPreview", () => {
     invokeMock.mockResolvedValueOnce({ data: { program_id: "prog-sync-1" }, error: null })
 
     const { result, store, queryClient } = renderHookWithProviders(() =>
-      useCommitPreview(),
+      useCommitPreview("onboarding"),
     )
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
     store.set(hasProgramAtom, false)
@@ -323,8 +399,8 @@ describe("useCommitPreview", () => {
       })
 
     const { result } = renderHookWithProviders(() => ({
-      thread: useThread("en"),
-      commit: useCommitPreview(),
+      thread: useThread("onboarding", "en"),
+      commit: useCommitPreview("onboarding"),
     }))
 
     await waitFor(() => expect(result.current.thread.isSuccess).toBe(true))
@@ -343,7 +419,7 @@ describe("useCommitPreview", () => {
     })
     invokeMock.mockResolvedValueOnce({ data: null, error: err })
 
-    const { result } = renderHookWithProviders(() => useCommitPreview())
+    const { result } = renderHookWithProviders(() => useCommitPreview("onboarding"))
 
     let caught: unknown = null
     try {
@@ -368,7 +444,7 @@ describe("useCommitPreview", () => {
         }),
       })
 
-      const { result } = renderHookWithProviders(() => useCommitPreview())
+      const { result } = renderHookWithProviders(() => useCommitPreview("onboarding"))
 
       let caught: unknown = null
       try {
