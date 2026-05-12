@@ -10,7 +10,12 @@
 import type { AIGenerationSource } from "../_shared/aiQuota.ts"
 
 export const EMBEDDED_TURNS_PER_HOUR = 40
-export const EMBEDDED_DRAFTS_PER_24H = 3
+// T131 (#343) — bumped 3 → 10 to share the lane between onboarding and
+// the additional-program flow. Engaged users (~6 programs/year × ~1.5
+// drafts with regenerates ≈ ~9/year peak) saturated 3/24h fast; 10/24h
+// leaves headroom while staying bounded. Mirror this constant in
+// `_shared/aiQuota.QUOTA_REGULAR_BY_SOURCE.embedded_draft`.
+export const EMBEDDED_DRAFTS_PER_24H = 10
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 const LOG_TABLE = "ai_generation_log"
@@ -73,7 +78,7 @@ export async function enforceTurnQuota(
 
 /**
  * Same shape as `enforceTurnQuota` but for the `/draft` route: caps each
- * user at `EMBEDDED_DRAFTS_PER_24H = 3` program drafts per rolling 24h
+ * user at `EMBEDDED_DRAFTS_PER_24H` program drafts per rolling 24h
  * window. The cap is enforced via `ai_generation_log` rows tagged with
  * `source = 'embedded_draft'`, written by `logBillableCall` on both
  * success and failure paths (log_everything).

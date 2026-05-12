@@ -469,9 +469,10 @@ export async function resetForReject(
 
 /**
  * Increment the per-thread draft counter. Source-of-truth for the
- * 3-drafts-per-24h cap is `ai_generation_log` (see `quota.ts`); this
- * column is a denormalized fast-path for UI hints (e.g. "2 of 3 drafts
- * used today") that don't want to round-trip through the log table.
+ * drafts-per-24h cap is `ai_generation_log` (see `quota.ts`,
+ * `EMBEDDED_DRAFTS_PER_24H`); this column is a denormalized fast-path
+ * for UI hints (e.g. "2 of N drafts used today") that don't want to
+ * round-trip through the log table.
  */
 export async function bumpDraftCount24h(
   supabase: SupabaseLike,
