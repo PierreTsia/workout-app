@@ -42,17 +42,41 @@ async function dismissNotificationDialog(page: import("@playwright/test").Page) 
 
 interface RouteState {
   sendCount: number
+  // After /draft fires, /open refetches (useGenerateDraft invalidates
+  // the thread query). The refetch needs to surface `last_preview` —
+  // otherwise the preview screen renders its "missing preview" empty
+  // state. We flip this on /draft and read it on /open.
+  draftCommitted: boolean
 }
 
-/**
- * Build the embedded-agent route handler. State lives on `state` so
- * the same `/message` route can return different content on each turn
- * (first turn = generic ack, second turn = ready signal accepted).
- *
- * Belt-and-braces: we never reach Gemini from CI. The page.route at
- * `**/generativelanguage.googleapis.com/**` aborts the request and
- * the spec asserts the abort counter at the end.
- */
+// Shape returned from /draft. Reused on the next /open so the client
+// sees the same preview after the React Query invalidation refetch.
+const DRAFT_PREVIEW = {
+  args: {
+    name: "Plateau Buster — 4 days/wk",
+    days: [
+      { label: "Upper", exercises: ["uuid-1", "uuid-2"] },
+      { label: "Lower", exercises: ["uuid-3"] },
+      { label: "Push", exercises: ["uuid-4", "uuid-5"] },
+      { label: "Pull", exercises: ["uuid-6"] },
+    ],
+  },
+  rendered: [
+    { label: "Upper", lines: ["Bench Press — 4 × 8 — 120s rest"] },
+    { label: "Lower", lines: ["Back Squat — 4 × 6 — 180s rest"] },
+    { label: "Push", lines: ["Overhead Press — 3 × 10 — 90s rest"] },
+    { label: "Pull", lines: ["Pull-up — 3 × 8 — 90s rest"] },
+  ],
+}
+
+// Build the embedded-agent route handler. State lives on `state` so
+// the same `/message` route can return different content on each turn
+// (first turn = generic ack, second turn = ready signal accepted).
+//
+// Belt-and-braces: we never reach Gemini from CI. The page.route on
+// the Gemini glob aborts the request and the spec asserts the abort
+// counter at the end. (Note: this MUST be a line comment, not JSDoc —
+// the Gemini URL contains `**/` which closes block comments early.)
 function makeEmbeddedAgentRoute(state: RouteState) {
   return async (route: import("@playwright/test").Route) => {
     const body = JSON.parse(route.request().postData() ?? "{}") as {
@@ -65,10 +89,14 @@ function makeEmbeddedAgentRoute(state: RouteState) {
         contentType: "application/json",
         body: JSON.stringify({
           thread_id: "00000000-0000-0000-0000-0000000ap001",
-          status: "open",
+          // After /draft, the next /open is the refetch triggered by
+          // useGenerateDraft's invalidation. We have to flip status +
+          // last_preview here, otherwise the preview screen renders
+          // the empty state and the spec times out on the heading.
+          status: state.draftCommitted ? "preview_ready" : "open",
           resumed: false,
           messages: [],
-          last_preview: null,
+          last_preview: state.draftCommitted ? DRAFT_PREVIEW : null,
           // The chat surface renders a context chip when this is set;
           // we assert against it below.
           bundle_summary: {
@@ -110,29 +138,14 @@ function makeEmbeddedAgentRoute(state: RouteState) {
       })
     }
     if (body.action === "draft") {
+      state.draftCommitted = true
       return route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           status: "preview_ready",
           trigger: "user_cta",
-          preview: {
-            args: {
-              name: "Plateau Buster — 4 days/wk",
-              days: [
-                { label: "Upper", exercises: ["uuid-1", "uuid-2"] },
-                { label: "Lower", exercises: ["uuid-3"] },
-                { label: "Push", exercises: ["uuid-4", "uuid-5"] },
-                { label: "Pull", exercises: ["uuid-6"] },
-              ],
-            },
-            rendered: [
-              { label: "Upper", lines: ["Bench Press — 4 × 8 — 120s rest"] },
-              { label: "Lower", lines: ["Back Squat — 4 × 6 — 180s rest"] },
-              { label: "Push", lines: ["Overhead Press — 3 × 10 — 90s rest"] },
-              { label: "Pull", lines: ["Pull-up — 3 × 8 — 90s rest"] },
-            ],
-          },
+          preview: DRAFT_PREVIEW,
         }),
       })
     }
@@ -170,7 +183,7 @@ test.describe("Create Program AI (additional-program flow)", () => {
     // global-setup contract is enough.
     getTestUserId()
 
-    const state: RouteState = { sendCount: 0 }
+    const state: RouteState = { sendCount: 0, draftCommitted: false }
     await page.route("**/functions/v1/embedded-agent", makeEmbeddedAgentRoute(state))
 
     // Token-burn check: nothing must reach the real Gemini endpoint.
