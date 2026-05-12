@@ -139,7 +139,7 @@ This epic does **not** own the `generate-program/` directory deletion.
 
 19. As a **maintainer** auditing per-flow analytics, I want **all `embedded_agent_*` event payloads to carry a `purpose` field** matching `embedded_agent_threads.purpose`, so that funnel queries can group / filter by flow without joining to the thread table.
 
-20. As a **maintainer evaluating commit-rate-by-motivation**, I want **`embedded_agent_preview_committed`** events to include the captured **`motivation`** in their payload, so that I can answer "do plateau-motivated users commit at higher rates than variety-motivated ones?" from a single event stream.
+20. As a **maintainer evaluating commit-rate-by-motivation**, I want a **new `embedded_agent_preview_committed`** event (symmetric with the existing `embedded_agent_preview_rejected`) carrying `purpose`, `program_id`, `thread_id`, `locale`, and **`motivation`** (when the flow captures one), so that I can answer "do plateau-motivated users commit at higher rates than variety-motivated ones?" from a single event stream — onboarding's existing `program_created` event stays for the full-onboarding-funnel milestone, but the Embedded Agent commit gets its own dedicated event symmetric to the reject path.
 
 21. As a **maintainer investigating a stuck thread**, I want **the thread's `purpose`, `change_motivation`, and `bundle_context` columns to be queryable from server-side logs / Sentry context**, so that I can debug without reconstructing state from the transcript alone.
 
@@ -172,7 +172,7 @@ This epic does **not** own the `generate-program/` directory deletion.
 | 9 | Existing `create_program` rollback test coverage applies — no new measure needed, but verified by an integration test that asserts post-commit there is exactly one active program |
 | 10, 11, 16, 26 | Thread resume on `/library/programs/create` returns the user's `(user, 'additional_program')` row when it exists; concurrent `(user, 'onboarding')` rows are not affected; staleness rule (7d) applies independently per row |
 | 18 | Existing onboarding E2E + unit tests continue to pass after the component relocation and the `prompt/` folder refactor — non-negotiable regression gate |
-| 19, 20, 21 | All `embedded_agent_*` events carry `purpose`; `embedded_agent_preview_committed` carries `motivation` when present; verified by analytics dispatch test or grep + manual inspection |
+| 19, 20, 21 | All existing `embedded_agent_*` events carry `purpose`; new `embedded_agent_preview_committed` event exists and carries `motivation` when present; verified by analytics dispatch test or grep + manual inspection |
 | 24, 25 | Migration applied to a copy of production data leaves zero rows with NULL `purpose`; index swap completes in the same transaction; verified by migration test or staging dry-run |
 | 29 | `embedded_draft` cap is `10` in `QUOTA_REGULAR_BY_SOURCE` post-merge; inline comment cites this brief / ADR 0003 follow-ups |
 | 30 | After epic completion, `git ls-files src/hooks/useAIGenerateProgram.ts src/components/create-program/AI*.tsx` returns empty (excepting non-AI files in that directory if any) |
@@ -194,7 +194,18 @@ Stories without a numeric measure are validated qualitatively via the story itse
 6. **Component relocation + parameterization** — `EmbeddedAgent{Chat,Preview,Generating}Step.tsx` (and tests) move from `src/components/onboarding/` to `src/components/embedded-agent/`. New props: `namespace: 'onboarding' | 'create-program'`, `purpose: ThreadPurpose`, plus existing fallback handlers stay. `useTranslation` consumes the new `namespace` prop instead of hardcoded `"onboarding"`.
 7. **PWA wiring change** — `CreateProgramPage`'s AI branch swaps `ai-constraints` / `ai-generating` / `ai-preview` for the relocated Embedded Agent components, passing `purpose="additional_program"` + `namespace="create-program"`. `OnboardingPage`'s imports update; same components, new path, explicit `purpose="onboarding"` + `namespace="onboarding"`.
 8. **`useEmbeddedAgentThread` resume logic** — accept a `purpose` parameter; route Edge requests with it; resume the matching `(user, purpose)` row.
-9. **Analytics extension** — extend all `embedded_agent_*` event payloads with `purpose`; add `motivation` to `embedded_agent_preview_committed` payload when present.
+9. **Analytics extension** — enumerated per event below; reuse existing event names where possible, **add one new event** (`embedded_agent_preview_committed`) symmetric with the existing reject event:
+
+   | Event | Status today | This epic |
+   |---|---|---|
+   | `embedded_agent_message_sent` | exists (`EmbeddedAgentChatStep`) | add `purpose` payload field |
+   | `embedded_agent_draft_triggered` | exists (`EmbeddedAgentGeneratingStep`) | add `purpose` payload field |
+   | `embedded_agent_preview_rejected` | exists (`EmbeddedAgentPreviewStep`) | add `purpose` payload field |
+   | `embedded_agent_preview_committed` | **does not exist** — onboarding tracks the milestone via `program_created` | **new event**, payload: `{ thread_id, program_id, purpose, motivation?, locale }`. Fired by `EmbeddedAgentPreviewStep` on successful commit (both flows). Onboarding still fires `program_created` for the full-onboarding-funnel milestone (additive, no removal). |
+   | `onboarding_step_completed` (wizard step names) | exists (`OnboardingPage`) | **unchanged** — onboarding-specific. The additional-program flow uses its own page-level step tracking pattern at `CreateProgramPage` if needed (Tech Plan decides — likely a simple `create_program_step_completed` mirror, scope-flagged below). |
+   | `program_created` | exists (`OnboardingPage`) | **unchanged** for onboarding. Additional-program flow does **not** fire this; the commit milestone is captured by the new `embedded_agent_preview_committed` event. |
+
+   **Open Tech Plan question (deferred from this brief):** does `CreateProgramPage` need a `create_program_step_completed` event family for funnel parity with onboarding's `onboarding_step_completed`? Default position: **no** for v1 — `embedded_agent_*` events plus a per-flow `program_created` equivalent are enough for the funnel; revisit if drop-off analytics need finer granularity.
 10. **i18n** — extend the `create-program` namespace with the chat / motivation / commit copy keys (FR + EN). The `locale` flow on every Edge request stays as-is.
 11. **Decommission** — delete `file:src/hooks/useAIGenerateProgram.ts`, `file:src/components/create-program/AIGeneratingStep.tsx`, `file:src/components/create-program/AIProgramPreviewStep.tsx`, `file:src/components/create-program/AIConstraintStep.tsx`, and the obsolete wizard step types in `file:src/pages/CreateProgramPage.tsx`.
 12. **Glossary patches** — already landed in this session (`Additional program creation flow`, `Change motivation (Additional program creation)`, extended `Embedded Agent thread` + `Embedded Agent thread lifecycle`, sharpened `Embedded Agent onboarding (v1)`). No further glossary churn unless tickets surface a gap.

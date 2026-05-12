@@ -53,7 +53,7 @@ The agent's system prompt requires eliciting and classifying a **Change motivati
 
 Enforcement lives in the **ready-signal validator** (per-flow): a ready signal without a valid `motivation` field is rejected, and the model is asked to try again. The validator is the gate; the system prompt is the instruction. We trust the model with the classification — if post-launch analytics show high "other" rates or visible misclassification, that's the signal to add an eval suite for motivation classification.
 
-Persisted on the thread row (`embedded_agent_threads.change_motivation`) and surfaced in the `embedded_agent_preview_committed` analytics event payload so funnel queries can compare commit rates by motivation.
+Persisted on the thread row (`embedded_agent_threads.change_motivation`) and surfaced as a payload field on a **new** `embedded_agent_preview_committed` event introduced by this epic (symmetric with the existing `embedded_agent_preview_rejected`), so funnel queries can compare commit rates by motivation without joining to the thread table.
 
 ### 4. Ready signal carries motivation in its JSON payload
 
@@ -98,7 +98,7 @@ Trade-off accepted: a folder restructure of a 117-line file. Justification: pure
   - ADR 0004 records the schema migration that this product shape requires (`purpose` + `change_motivation` + `bundle_context` columns; partial unique index relaxation).
   - Bump `embedded_draft` quota cap from `3` → `10` in `file:supabase/functions/_shared/aiQuota.ts` to accommodate repeat-creation traffic. Documented inline next to the `quick_workout` rationale.
   - Delete `useAIGenerateProgram`, `AIGeneratingStep` (under `create-program/`), `AIProgramPreviewStep` once the new flow ships. `supabase/functions/generate-program/` deletion is sequenced with #342.
-  - Analytics: extend all `embedded_agent_*` event payloads with a `purpose` field matching the thread schema; include `motivation` in `embedded_agent_preview_committed` payload.
+  - Analytics: extend all existing `embedded_agent_*` event payloads (`message_sent`, `draft_triggered`, `preview_rejected`) with a `purpose` field matching the thread schema; **add a new `embedded_agent_preview_committed` event** (symmetric with the existing `_rejected`) carrying `{ thread_id, program_id, purpose, motivation?, locale }`. Onboarding's existing `program_created` event stays for the full-onboarding-funnel milestone.
   - Motivation classification reliability — if "other" rate is suspiciously high post-launch, add an eval suite.
 
 ## Alternatives considered
