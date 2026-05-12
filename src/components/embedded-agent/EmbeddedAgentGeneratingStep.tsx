@@ -17,11 +17,19 @@ const PHASE_INTERVAL_MS = 2400
 // disappear the moment the mutation resolves anyway.
 const SKELETON_DAY_COUNT = 4
 
+// T135 (#343) — see EmbeddedAgentChatStep for rationale on the constrained
+// namespace / purpose vocabulary.
+type EmbeddedAgentI18nNamespace = "onboarding" | "create-program"
+type EmbeddedAgentPurpose = "onboarding" | "additional_program"
+
 interface EmbeddedAgentGeneratingStepProps {
   locale: "en" | "fr"
   onSuccess: () => void
   onFallbackTemplate: () => void
   onFallbackBlank: () => void
+  // T135 (#343) — see EmbeddedAgentChatStep for context.
+  purpose: EmbeddedAgentPurpose
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }
 
 export function EmbeddedAgentGeneratingStep({
@@ -29,13 +37,18 @@ export function EmbeddedAgentGeneratingStep({
   onSuccess,
   onFallbackTemplate,
   onFallbackBlank,
+  purpose,
+  i18nNamespace,
 }: EmbeddedAgentGeneratingStepProps) {
-  // Reuse the legacy `create-program` strings for the gen phases /
-  // error copy / fallback labels — they're already the right tone and
-  // the embedded flow shouldn't invent a fourth set of microcopy.
+  // T135 (#343) — the gen phases / fallback CTA copy lives in the
+  // `create-program` namespace historically; even from onboarding we
+  // already double-loaded that namespace to reuse them. The
+  // surface-specific copy (titles, quota bodies, etc.) flips with
+  // `i18nNamespace` so additional-program can override them without
+  // touching onboarding strings.
   const { t: tCp } = useTranslation("create-program")
-  const { t } = useTranslation("onboarding")
-  const mutation = useGenerateDraft("onboarding")
+  const { t } = useTranslation(i18nNamespace)
+  const mutation = useGenerateDraft(purpose)
   const trackEvent = useTrackEvent()
   const inflight = useRef(false)
   const [attempt, retry] = useReducer((n: number) => n + 1, 0)

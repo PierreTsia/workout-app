@@ -45,6 +45,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={onSuccess}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -69,6 +71,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -90,6 +94,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     const { container } = renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -122,6 +128,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={onTemplate}
         onFallbackBlank={onBlank}
@@ -156,6 +164,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={onSuccess}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -196,6 +206,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -217,6 +229,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     const { rerender } = renderWithProviders(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}
@@ -227,6 +241,8 @@ describe("EmbeddedAgentGeneratingStep", () => {
     rerender(
       <EmbeddedAgentGeneratingStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onSuccess={() => {}}
         onFallbackTemplate={() => {}}
         onFallbackBlank={() => {}}

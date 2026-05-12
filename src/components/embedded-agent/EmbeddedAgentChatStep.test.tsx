@@ -57,7 +57,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread discl001/)
 
     // The card surfaces both the retention claim AND the verbatim warning.
@@ -80,7 +85,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(
       await screen.findByText(/Thread deadbeef · open/),
@@ -104,7 +114,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(await screen.findByText(/Resumed conversation/i)).toBeInTheDocument()
   })
@@ -120,7 +135,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     await screen.findByText(/Thread fresh/)
     expect(screen.queryByText(/Resumed conversation/i)).not.toBeInTheDocument()
@@ -129,7 +149,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("renders the offline banner instead of waiting forever when navigator.onLine is false", () => {
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(screen.getByText(/You're offline/i)).toBeInTheDocument()
   })
@@ -143,7 +168,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("renders a thread-error banner (not offline) when /thread fails while online", async () => {
     invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(
       await screen.findByText(/couldn't load your conversation/i),
@@ -160,7 +190,12 @@ describe("EmbeddedAgentChatStep", () => {
   it("captures /thread fetch errors to Sentry with the right tags (not the offline path)", async () => {
     invokeMock.mockRejectedValueOnce(new Error("Edge function returned 500"))
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     await screen.findByText(/couldn't load your conversation/i)
     await waitFor(() => {
@@ -189,7 +224,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     expect(await screen.findByText(/Thread old1/)).toBeInTheDocument()
 
@@ -216,7 +256,14 @@ describe("EmbeddedAgentChatStep", () => {
       .mockResolvedValueOnce({ data: { ok: true }, error: null })
 
     const onBack = vi.fn()
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={onBack} />)
+    renderWithProviders(
+      <EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={onBack}
+      />,
+    )
 
     await screen.findByText(/Thread th-1234/)
 
@@ -247,7 +294,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0001/)
 
     const user = userEvent.setup()
@@ -285,7 +337,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread anal0001/)
 
     const user = userEvent.setup()
@@ -319,7 +376,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread anal0002/)
 
     const user = userEvent.setup()
@@ -351,7 +413,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0002/)
 
     const user = userEvent.setup()
@@ -377,7 +444,12 @@ describe("EmbeddedAgentChatStep", () => {
       })
       .mockReturnValueOnce(pending)
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread opt00001/)
 
     const user = userEvent.setup()
@@ -415,7 +487,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
 
     const bold = await screen.findByText("deadlifts")
     expect(bold.tagName).toBe("STRONG")
@@ -435,7 +512,12 @@ describe("EmbeddedAgentChatStep", () => {
         error: null,
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread kbd00001/)
 
     const user = userEvent.setup()
@@ -483,7 +565,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread cta00001/)
 
     expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
@@ -503,6 +590,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onGenerateRequest={() => {}}
       />,
@@ -527,6 +616,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onGenerateRequest={onGenerateRequest}
       />,
@@ -554,7 +645,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread cta00005/)
 
     expect(screen.queryByRole("button", { name: /generate my plan/i })).not.toBeInTheDocument()
@@ -574,7 +670,12 @@ describe("EmbeddedAgentChatStep", () => {
       error: null,
     })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread resume01/)
 
     expect(
@@ -598,6 +699,8 @@ describe("EmbeddedAgentChatStep", () => {
     renderWithProviders(
       <EmbeddedAgentChatStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onBack={() => {}}
         onPreviewReady={onPreviewReady}
       />,
@@ -625,7 +728,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0003/)
 
     const user = userEvent.setup()
@@ -663,7 +771,12 @@ describe("EmbeddedAgentChatStep", () => {
         }),
       })
 
-    renderWithProviders(<EmbeddedAgentChatStep locale="en" onBack={() => {}} />)
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
     await screen.findByText(/Thread chat0004/)
 
     const user = userEvent.setup()

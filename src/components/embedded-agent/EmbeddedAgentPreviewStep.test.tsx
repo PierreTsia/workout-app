@@ -76,6 +76,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -104,6 +106,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -143,6 +147,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -174,6 +180,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -201,6 +209,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -224,6 +234,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -244,6 +256,8 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -271,6 +285,8 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={onCommitted}
         onFallbackTemplate={noop}
@@ -304,6 +320,8 @@ describe("EmbeddedAgentPreviewStep — Confirm flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={onCommitted}
         onFallbackTemplate={noop}
@@ -351,6 +369,8 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={onRegenerate}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -384,6 +404,8 @@ describe("EmbeddedAgentPreviewStep — Regenerate flow", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={noop}
@@ -425,6 +447,8 @@ describe("EmbeddedAgentPreviewStep — 2-failure escape", () => {
     renderWithProviders(
       <EmbeddedAgentPreviewStep
         locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
         onRegenerate={noop}
         onCommitted={noop}
         onFallbackTemplate={onFallbackTemplate}

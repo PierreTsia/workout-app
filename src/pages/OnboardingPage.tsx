@@ -25,9 +25,9 @@ import {
 import { PathChoiceStep } from "@/components/onboarding/PathChoiceStep"
 import { TemplateRecommendationStep } from "@/components/onboarding/TemplateRecommendationStep"
 import { ProgramSummaryStep } from "@/components/onboarding/ProgramSummaryStep"
-import { EmbeddedAgentChatStep } from "@/components/onboarding/EmbeddedAgentChatStep"
-import { EmbeddedAgentGeneratingStep } from "@/components/onboarding/EmbeddedAgentGeneratingStep"
-import { EmbeddedAgentPreviewStep } from "@/components/onboarding/EmbeddedAgentPreviewStep"
+import { EmbeddedAgentChatStep } from "@/components/embedded-agent/EmbeddedAgentChatStep"
+import { EmbeddedAgentGeneratingStep } from "@/components/embedded-agent/EmbeddedAgentGeneratingStep"
+import { EmbeddedAgentPreviewStep } from "@/components/embedded-agent/EmbeddedAgentPreviewStep"
 import type { ProgramTemplate, UserProfile } from "@/types/onboarding"
 import type { QuestionnaireOutput } from "@/components/onboarding/schema"
 
@@ -384,6 +384,8 @@ export function OnboardingPage() {
         {step === "embedded_chat" && (
           <EmbeddedAgentChatStep
             locale={i18n.language === "fr" ? "fr" : "en"}
+            purpose="onboarding"
+            i18nNamespace="onboarding"
             onBack={() => setStep("path")}
             onPreviewReady={() => {
               // Resumed-into-preview path (user closed the tab on the
@@ -403,6 +405,8 @@ export function OnboardingPage() {
         {step === "embedded_generating" && (
           <EmbeddedAgentGeneratingStep
             locale={i18n.language === "fr" ? "fr" : "en"}
+            purpose="onboarding"
+            i18nNamespace="onboarding"
             onSuccess={() => {
               trackStepCompleted("embedded_agent_preview", { source: "fresh_draft" })
               setStep("embedded_preview")
@@ -415,6 +419,8 @@ export function OnboardingPage() {
         {step === "embedded_preview" && (
           <EmbeddedAgentPreviewStep
             locale={i18n.language === "fr" ? "fr" : "en"}
+            purpose="onboarding"
+            i18nNamespace="onboarding"
             onRegenerate={() => setStep("embedded_chat")}
             onCommitted={(programId) => {
               trackEvent.mutate({

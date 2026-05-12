@@ -41,6 +41,14 @@ import { cn } from "@/lib/utils"
 // itself behind a tour-de-table count anymore.
 const CTA_MIN_ASSISTANT_TURNS = 2
 
+// T135 (#343) — i18n namespaces this component supports. Onboarding is the
+// historical home; create-program is added in T136 when CreateProgramPage
+// adopts this component for the additional-program flow. Constraining the
+// type at this layer means a future bilan-mensuel flow (Story 27) must
+// declare its namespace before it can render the chat.
+type EmbeddedAgentI18nNamespace = "onboarding" | "create-program"
+type EmbeddedAgentPurpose = "onboarding" | "additional_program"
+
 interface EmbeddedAgentChatStepProps {
   locale: "en" | "fr"
   onBack: () => void
@@ -53,6 +61,14 @@ interface EmbeddedAgentChatStepProps {
   // preview_ready thread (no fresh draft needed). Lets the wizard hop
   // straight to the preview screen via the "View your draft" CTA.
   onPreviewReady?: () => void
+  // T135 (#343) — threading purpose so the hooks scope their thread
+  // queries / mutations correctly (T131 makes `purpose` part of the
+  // cache key).
+  purpose: EmbeddedAgentPurpose
+  // T135 (#343) — which i18n namespace the surface should consume.
+  // Onboarding keeps "onboarding" verbatim; CreateProgramPage (T136)
+  // passes "create-program" so additional-flow copy can diverge.
+  i18nNamespace: EmbeddedAgentI18nNamespace
 }
 
 const SHORT_ID_LENGTH = 8
@@ -66,12 +82,14 @@ export function EmbeddedAgentChatStep({
   onBack,
   onGenerateRequest,
   onPreviewReady,
+  purpose,
+  i18nNamespace,
 }: EmbeddedAgentChatStepProps) {
-  const { t } = useTranslation("onboarding")
+  const { t } = useTranslation(i18nNamespace)
   const isOnline = useOnlineStatus()
-  const thread = useThread("onboarding", locale)
-  const abandon = useAbandonThread("onboarding")
-  const sendMessage = useSendMessage("onboarding")
+  const thread = useThread(purpose, locale)
+  const abandon = useAbandonThread(purpose)
+  const sendMessage = useSendMessage(purpose)
   const trackEvent = useTrackEvent()
   const [draft, setDraft] = useState("")
   // Latch the ready-signal so the CTA pulse persists across subsequent
@@ -229,7 +247,7 @@ export function EmbeddedAgentChatStep({
             </div>
           ) : null}
 
-          <DisclosureCard />
+          <DisclosureCard i18nNamespace={i18nNamespace} />
         </CardHeader>
 
         <CardContent className="flex flex-1 flex-col gap-3 overflow-hidden pb-4">
@@ -518,8 +536,8 @@ function GenerateCta({ label, pulsing, onClick }: GenerateCtaProps) {
 // Body and link are split into two i18n keys so the link can be a real
 // React Router <Link> (no Trans gymnastics) and the FR/EN copy can vary
 // the body sentence without touching the link label.
-function DisclosureCard() {
-  const { t } = useTranslation("onboarding")
+function DisclosureCard({ i18nNamespace }: { i18nNamespace: EmbeddedAgentI18nNamespace }) {
+  const { t } = useTranslation(i18nNamespace)
   return (
     <Alert className="flex-shrink-0 border-primary/20 bg-primary/5">
       <AlertTitle>{t("embeddedAgent.disclosureTitle")}</AlertTitle>

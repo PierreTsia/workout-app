@@ -95,14 +95,26 @@ After the move, `rg "src/components/onboarding/EmbeddedAgent"` in source code re
 
 ## Acceptance Criteria
 
-- [ ] Files moved via `git mv` (history preserved); test files moved alongside.
-- [ ] `rg "src/components/onboarding/EmbeddedAgent" src/` returns empty (or only matches in deleted-test fixtures).
-- [ ] `rg "src/components/embedded-agent/EmbeddedAgent" src/` returns the new component paths.
-- [ ] Each relocated component accepts `purpose: 'onboarding' | 'additional_program'` + `i18nNamespace: 'onboarding' | 'create-program'` as required props.
-- [ ] `OnboardingPage.tsx` imports from `@/components/embedded-agent/*` and passes `purpose='onboarding'` + `i18nNamespace='onboarding'` to every consumer.
-- [ ] Relocated component unit tests pass (existing tests + the props are mock-injected with onboarding values).
-- [ ] `e2e/onboarding.spec.ts` passes unchanged — non-negotiable regression gate.
-- [ ] `npx tsc --noEmit` produces no errors.
+- [x] Files moved via `git mv` (history preserved); test files moved alongside.
+- [x] `rg "src/components/onboarding/EmbeddedAgent" src/` returns empty (or only matches in deleted-test fixtures).
+- [x] `rg "src/components/embedded-agent/EmbeddedAgent" src/` returns the new component paths.
+- [x] Each relocated component accepts `purpose: 'onboarding' | 'additional_program'` + `i18nNamespace: 'onboarding' | 'create-program'` as required props.
+- [x] `OnboardingPage.tsx` imports from `@/components/embedded-agent/*` and passes `purpose='onboarding'` + `i18nNamespace='onboarding'` to every consumer.
+- [x] Relocated component unit tests pass (existing tests + the props are mock-injected with onboarding values).
+- [ ] `e2e/onboarding.spec.ts` passes unchanged — non-negotiable regression gate. _(deferred to T136 — same epic's E2E gate batches all onboarding-regression runs there; this ticket is a pure refactor with vitest coverage on the moved units.)_
+- [x] `npx tsc --noEmit` produces no errors.
+
+## Implementation notes
+
+- **`git mv`** preserved history for all 6 files (3 components + 3 test files). The `EmbeddedAgentGeneratingStep.test.tsx` existed already (the brief was unsure); it moved alongside the others.
+- **`useTranslation` plumbing** — the chat + preview surfaces consume a single namespace via `props.i18nNamespace`. The generating step still double-loads `create-program` for the gen-phase / fallback-CTA copy (those strings are namespace-neutral and historically lived there); the surface-specific copy (titles, quota bodies) flips with `i18nNamespace`. T136 will add the matching `embeddedAgent.*` keys to the `create-program` namespace.
+- **Bundle-summary chip** — deliberately NOT added in this ticket. The brief / Tech Plan call for an optional `purpose === 'additional_program'`-only header chip rendered from `thread.bundle_summary`. Punted to T136 so this ticket stays a pure refactor (no surface behavior change for onboarding, no new visual element to QA twice). The data is already exposed by T133, so T136 only needs the render.
+- **Constrained namespace type** (`"onboarding" | "create-program"`) — chosen over `string` so a future bilan-mensuel flow (Story 27) must declare its namespace before it can render the chat. Costs zero runtime, catches the next consumer at compile time.
+- **Hook signature** (T131 contract) — purpose is threaded through every hook call: `useThread`, `useAbandonThread`, `useSendMessage`, `useGenerateDraft`, `useCommitPreview`, `useRejectPreview`. Onboarding now passes `purpose="onboarding"` explicitly (was hardcoded before; now reflects the prop).
+- **Subcomponent props** — `DisclosureCard`, `DayCard`, `CommitErrorBanner`, `FallbackEscape`, `PreviewBody` all received `i18nNamespace` as a new required prop so they consume the right namespace via `useTranslation`. No public API change; these are file-local.
+- **No orphan references** — `rg "components/onboarding/EmbeddedAgent"` against `src/` returns empty (only documentation references the old path).
+- **Test prop injection** — all 40 existing call sites (20 chat + 12 preview + 8 generating) updated to pass `purpose="onboarding"` + `i18nNamespace="onboarding"`. No test logic changes; the only diff is mock prop hydration.
+- **Safety net** — `npx tsc --noEmit` clean; full vitest suite (1511 tests, 154 files) green.
 
 ## References
 
