@@ -16,12 +16,20 @@ import { ErrorFallback } from "@/components/ErrorFallback"
 import { AppErrorBoundary } from "@/components/AppErrorBoundary"
 import { prepareThemeLocalStorage, THEME_STORAGE_KEY } from "@/lib/themeStorage"
 import { handleVersionUpgrade } from "@/lib/versionManager"
+import { initSentry } from "@/lib/sentry"
 import { Analytics } from "@vercel/analytics/react"
 
-// Defer work that doesn't need to run before first paint:
-//   - Sentry SDK init (dynamic import keeps it out of the main bundle)
-//   - PWA service-worker registration
-// Trade-off: errors fired in the first ~2s of boot may be missed.
+// Sentry used to live behind `requestIdleCallback` to shave FCP ms, but the
+// SDK was already pulled into the main bundle eagerly by static importers
+// (`OnboardingPage` → `captureOnboardingError` → `@sentry/react`), so the
+// deferred init was buying zero bytes while silently dropping errors that
+// fired before the idle callback ran (incl. the `/history` chunk-load
+// failures in #356). Initialise it inline — the SDK chunk is already on
+// the wire by the time this module executes.
+
+// PWA service-worker registration is the one piece that genuinely benefits
+// from idle deferral (its bootstrap is non-trivial and not needed before
+// first paint), so we keep that path.
 const runWhenIdle = (cb: () => void) => {
   if (typeof window === "undefined") return
   const w = window as Window & {
@@ -36,6 +44,8 @@ const runWhenIdle = (cb: () => void) => {
     setTimeout(cb, 500)
   }
 }
+
+initSentry()
 
 handleVersionUpgrade()
   .catch((error) => {
@@ -85,10 +95,6 @@ handleVersionUpgrade()
     )
 
     runWhenIdle(() => {
-      void import("@/lib/sentry")
-        .then(({ initSentry }) => initSentry())
-        .catch(() => {})
-
       void import("@/lib/swReloadOnUpdate")
         .then(({ listenForSwUpdate }) => listenForSwUpdate())
         .catch(() => {})
