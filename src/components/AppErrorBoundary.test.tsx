@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, act } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { AppErrorBoundary } from "./AppErrorBoundary"
 
 const captureExceptionMock = vi.fn()
@@ -16,13 +16,6 @@ vi.mock("@/lib/sentry", () => ({
 function Boom({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) throw new Error("Kaboom")
   return <span>safe</span>
-}
-
-async function flushPromises() {
-  await act(async () => {
-    await Promise.resolve()
-    await Promise.resolve()
-  })
 }
 
 describe("AppErrorBoundary", () => {
@@ -62,14 +55,12 @@ describe("AppErrorBoundary", () => {
     expect(screen.getByText(`fb-${ctx.errorId}`)).toBeInTheDocument()
   })
 
-  it("calls initSentry before captureException with error_id tag", async () => {
+  it("calls initSentry before captureException with error_id tag", () => {
     render(
       <AppErrorBoundary fallback={({ errorId }) => <div>{errorId}</div>}>
         <Boom shouldThrow />
       </AppErrorBoundary>,
     )
-
-    await flushPromises()
 
     expect(initSentryMock).toHaveBeenCalledTimes(1)
     expect(captureExceptionMock).toHaveBeenCalledTimes(1)
@@ -84,6 +75,24 @@ describe("AppErrorBoundary", () => {
     expect(capturedError.message).toBe("Kaboom")
     expect(ctx.tags.error_id).toMatch(/^err_[0-9a-f]{6}$/)
     expect(ctx.contexts.react).toBeDefined()
+  })
+
+  it("swallows Sentry capture errors so the fallback still renders", () => {
+    captureExceptionMock.mockImplementationOnce(() => {
+      throw new Error("sentry transport down")
+    })
+    const fallback = vi.fn(({ errorId }) => <div>{`fb-${errorId}`}</div>)
+
+    expect(() =>
+      render(
+        <AppErrorBoundary fallback={fallback}>
+          <Boom shouldThrow />
+        </AppErrorBoundary>,
+      ),
+    ).not.toThrow()
+    expect(fallback).toHaveBeenCalled()
+    const ctx = fallback.mock.calls[0]![0] as { errorId: string }
+    expect(screen.getByText(`fb-${ctx.errorId}`)).toBeInTheDocument()
   })
 
   it("resetError clears the boundary state", () => {

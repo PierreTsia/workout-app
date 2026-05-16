@@ -92,13 +92,6 @@ function classifyOnboardingError(e: unknown): OnboardingErrorKind {
  * capture path. Lives in `lib/sentry.ts` (not inline in
  * `OnboardingPage`) so every Sentry capture site goes through one
  * helper module — same convention as `captureEmbeddedAgentError`.
- *
- * Note on bundling: `@sentry/react` is currently statically imported
- * here and pulled in eagerly by the EmbeddedAgent components, so the
- * dynamic-import in `AppErrorBoundary` no longer code-splits Sentry
- * out of the main bundle (Vite warns about this on build). Reworking
- * the helpers to lazy-load `@sentry/react` is a separate architectural
- * call — out of scope for #348.
  */
 export function captureOnboardingError(route: OnboardingRoute, e: unknown): void {
   const kind = classifyOnboardingError(e)

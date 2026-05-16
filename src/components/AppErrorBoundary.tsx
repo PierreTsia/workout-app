@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react"
+import { captureException } from "@sentry/react"
+import { initSentry } from "@/lib/sentry"
 import { makeErrorId } from "@/lib/errorReport"
 
 interface AppErrorBoundaryFallbackContext {
@@ -22,21 +24,23 @@ interface AppErrorBoundaryState {
 }
 
 /**
- * Tiny error boundary that keeps `@sentry/react` out of the main bundle.
- * The Sentry SDK is only imported on the error path, so in the happy path
- * we ship zero Sentry bytes here.
+ * Tiny error boundary that captures React-render-time errors to Sentry and
+ * hands the fallback a stable, paste-able `errorId` derived from the error
+ * signature.
  *
- * Two reliability fixes vs the original implementation:
+ * Why static imports: a previous iteration dynamic-imported `@sentry/react`
+ * here to keep the SDK out of the main bundle, but the SDK was already
+ * eagerly pulled in by other call-sites (`OnboardingPage` →
+ * `captureOnboardingError`). The dynamic import bought nothing and risked
+ * silently dropping the capture when the SDK chunk failed to load (which
+ * is exactly what happens during the bug class tracked in #356: stale
+ * service-worker cache vs new deploy → chunk-load failures across the
+ * board). Direct static import is cheaper to reason about and removes the
+ * `.catch(() => {})` swallow path.
  *
- * 1. We import `@/lib/sentry` alongside `@sentry/react` and call
- *    `initSentry()` before `captureException`. `initSentry` is idempotent
- *    (no-op when no DSN, and Sentry's own `init` short-circuits on second
- *    call), but this closes the race where an error fires during the
- *    `requestIdleCallback` window in `main.tsx` — without this guard the
- *    capture is silently dropped because the global hub has no client.
- *
- * 2. The fallback receives an `errorId` (short hash) we tag on the Sentry
- *    event, so the user-visible ID and the dashboard event line up.
+ * `initSentry()` is still called defensively before `captureException` in
+ * case `componentDidCatch` fires before `main.tsx`'s top-level init (e.g.
+ * an error thrown during module evaluation). It's idempotent.
  */
 export class AppErrorBoundary extends Component<
   AppErrorBoundaryProps,
@@ -63,21 +67,19 @@ export class AppErrorBoundary extends Component<
 
     const errorId = this.state.errorId ?? makeErrorId(error)
 
-    void Promise.all([import("@sentry/react"), import("@/lib/sentry")])
-      .then(([sentry, { initSentry }]) => {
-        initSentry()
-        sentry.captureException(error, {
-          tags: { error_id: errorId },
-          contexts: {
-            react: { componentStack: componentStack ?? undefined },
-          },
-        })
+    try {
+      initSentry()
+      captureException(error, {
+        tags: { error_id: errorId },
+        contexts: {
+          react: { componentStack: componentStack ?? undefined },
+        },
       })
-      .catch(() => {
-        // Sentry SDK chunk failed to load (offline / stale SW cache) —
-        // swallow to avoid loops. The user-facing fallback still surfaces
-        // the error id + payload so the crash isn't fully invisible.
-      })
+    } catch {
+      // Sentry init / capture should never throw, but if it does the
+      // user-facing fallback still surfaces the error id + payload so the
+      // crash isn't fully invisible.
+    }
   }
 
   private resetError = (): void => {
