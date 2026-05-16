@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { screen } from "@testing-library/react"
+import { screen, fireEvent } from "@testing-library/react"
 import { render } from "@testing-library/react"
 import { createMemoryRouter, RouterProvider } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -9,6 +9,7 @@ import { RouteErrorFallback } from "./RouteErrorFallback"
 
 const captureExceptionMock = vi.fn()
 const initSentryMock = vi.fn()
+const forceHardReloadMock = vi.fn(() => Promise.resolve())
 
 vi.mock("@sentry/react", () => ({
   captureException: (...args: unknown[]) => captureExceptionMock(...args),
@@ -17,6 +18,16 @@ vi.mock("@sentry/react", () => ({
 vi.mock("@/lib/sentry", () => ({
   initSentry: (...args: unknown[]) => initSentryMock(...args),
 }))
+
+vi.mock("@/lib/lazyWithRecover", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/lazyWithRecover")>(
+    "@/lib/lazyWithRecover",
+  )
+  return {
+    ...actual,
+    forceHardReload: () => forceHardReloadMock(),
+  }
+})
 
 function ThrowingComponent(): never {
   throw new Error("Component blew up")
@@ -51,6 +62,7 @@ describe("RouteErrorFallback", () => {
   beforeEach(() => {
     captureExceptionMock.mockReset()
     initSentryMock.mockReset()
+    forceHardReloadMock.mockClear()
   })
 
   it("catches a render error and shows the error fallback", () => {
@@ -135,6 +147,41 @@ describe("RouteErrorFallback", () => {
       { tags: Record<string, string> },
     ]
     expect(ctx.tags.error_kind).toBe("chunk_load_failed")
+  })
+
+  it("renders the stale-version UI on chunk_load_failed and wires Force refresh", () => {
+    renderWithRouter(
+      [
+        {
+          path: "/",
+          element: <ChunkLoadFailingComponent />,
+          errorElement: <RouteErrorFallback />,
+        },
+      ],
+      ["/"],
+    )
+
+    expect(screen.getByText("New version available")).toBeInTheDocument()
+    const button = screen.getByRole("button", { name: /Refresh now/i })
+    fireEvent.click(button)
+    expect(forceHardReloadMock).toHaveBeenCalledTimes(1)
+    expect(button).toHaveAttribute("aria-busy", "true")
+  })
+
+  it("does NOT show the stale-version UI for generic render errors", () => {
+    renderWithRouter(
+      [
+        {
+          path: "/",
+          element: <ThrowingComponent />,
+          errorElement: <RouteErrorFallback />,
+        },
+      ],
+      ["/"],
+    )
+
+    expect(screen.queryByText("New version available")).not.toBeInTheDocument()
+    expect(screen.getByText("Dropped the bar")).toBeInTheDocument()
   })
 
   it("does NOT report 404s to Sentry", () => {

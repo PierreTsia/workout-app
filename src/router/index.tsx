@@ -1,8 +1,4 @@
-/* eslint-disable react-refresh/only-export-components --
- * This file only exports `router` (config), not components. The local
- * `lazy(...)` consts trip the rule, but there is no fast-refresh surface
- * to break here. */
-import { lazy, Suspense } from "react"
+import { Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import { AuthGuard } from "@/router/AuthGuard"
 import { OnboardingGuard } from "@/router/OnboardingGuard"
@@ -15,87 +11,88 @@ import { LibraryLayout } from "@/pages/library/LibraryLayout"
 import { CreateProgramPage } from "@/pages/CreateProgramPage"
 import { RouteErrorFallback } from "@/components/RouteErrorFallback"
 import { RouteSkeleton } from "@/components/RouteSkeleton"
+import { lazyWithRecover } from "@/lib/lazyWithRecover"
 
-// Named-export → default-export adapter for `React.lazy`. All page files
-// in this repo use named exports, so every dynamic import is translated
-// into a `{ default: ... }` shape. Lazy routes nested under `AppShell`
-// share the Suspense boundary mounted in `AppShell`; the handful of
+// `lazyWithRecover` wraps `React.lazy` with a single auto-reload on
+// chunk-load failure (#356). The named-export → default-export adapter
+// is unchanged; only the failure path is. Lazy routes nested under
+// `AppShell` share the Suspense boundary mounted there; the handful of
 // routes outside it (about, privacy, oauth consent) get an individual
 // wrapper via `standalone()` below.
-const HistoryPage = lazy(() =>
+const HistoryPage = lazyWithRecover(() =>
   import("@/pages/HistoryPage").then((m) => ({ default: m.HistoryPage })),
 )
-const BuilderPage = lazy(() =>
+const BuilderPage = lazyWithRecover(() =>
   import("@/pages/BuilderPage").then((m) => ({ default: m.BuilderPage })),
 )
-const AboutPage = lazy(() =>
+const AboutPage = lazyWithRecover(() =>
   import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })),
 )
-const AdminExercisesPage = lazy(() =>
+const AdminExercisesPage = lazyWithRecover(() =>
   import("@/pages/AdminExercisesPage").then((m) => ({
     default: m.AdminExercisesPage,
   })),
 )
-const AdminExerciseEditPage = lazy(() =>
+const AdminExerciseEditPage = lazyWithRecover(() =>
   import("@/pages/AdminExerciseEditPage").then((m) => ({
     default: m.AdminExerciseEditPage,
   })),
 )
-const LibraryProgramsPage = lazy(() =>
+const LibraryProgramsPage = lazyWithRecover(() =>
   import("@/pages/library/LibraryProgramsPage").then((m) => ({
     default: m.LibraryProgramsPage,
   })),
 )
-const ExerciseLibraryPage = lazy(() =>
+const ExerciseLibraryPage = lazyWithRecover(() =>
   import("@/pages/library/ExerciseLibraryPage").then((m) => ({
     default: m.ExerciseLibraryPage,
   })),
 )
-const ExerciseLibraryExercisePage = lazy(() =>
+const ExerciseLibraryExercisePage = lazyWithRecover(() =>
   import("@/pages/library/ExerciseLibraryExercisePage").then((m) => ({
     default: m.ExerciseLibraryExercisePage,
   })),
 )
-const AdminFeedbackPage = lazy(() =>
+const AdminFeedbackPage = lazyWithRecover(() =>
   import("@/pages/AdminFeedbackPage").then((m) => ({
     default: m.AdminFeedbackPage,
   })),
 )
-const AdminHomePage = lazy(() =>
+const AdminHomePage = lazyWithRecover(() =>
   import("@/pages/AdminHomePage").then((m) => ({ default: m.AdminHomePage })),
 )
-const AdminEnrichmentPage = lazy(() =>
+const AdminEnrichmentPage = lazyWithRecover(() =>
   import("@/pages/AdminEnrichmentPage").then((m) => ({
     default: m.AdminEnrichmentPage,
   })),
 )
-const AdminReviewPage = lazy(() =>
+const AdminReviewPage = lazyWithRecover(() =>
   import("@/pages/AdminReviewPage").then((m) => ({
     default: m.AdminReviewPage,
   })),
 )
-const CycleSummaryPage = lazy(() =>
+const CycleSummaryPage = lazyWithRecover(() =>
   import("@/pages/CycleSummaryPage").then((m) => ({
     default: m.CycleSummaryPage,
   })),
 )
-const AccountPage = lazy(() =>
+const AccountPage = lazyWithRecover(() =>
   import("@/pages/AccountPage").then((m) => ({ default: m.AccountPage })),
 )
-const AccountApiTokensPage = lazy(() =>
+const AccountApiTokensPage = lazyWithRecover(() =>
   import("@/pages/AccountApiTokensPage").then((m) => ({
     default: m.AccountApiTokensPage,
   })),
 )
-const AchievementsPage = lazy(() =>
+const AchievementsPage = lazyWithRecover(() =>
   import("@/pages/AchievementsPage").then((m) => ({
     default: m.AchievementsPage,
   })),
 )
-const PrivacyPage = lazy(() =>
+const PrivacyPage = lazyWithRecover(() =>
   import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
 )
-const OAuthConsentPage = lazy(() =>
+const OAuthConsentPage = lazyWithRecover(() =>
   import("@/pages/OAuthConsentPage").then((m) => ({
     default: m.OAuthConsentPage,
   })),
