@@ -41,6 +41,12 @@ function isSupportedLocale(value: unknown): value is ThreadLocale {
 export interface ChatModelInput {
   systemPrompt: string
   messages: ThreadMessage[]
+  // #358 — Fired once per retry that the chat model performs against the
+  // upstream provider. Handler binds this to a structured `provider_retry`
+  // warn log so we can observe whether retries are actually saving us or
+  // just delaying the inevitable. Implementations that don't retry simply
+  // never call it.
+  onRetry?: (info: { attempt: number; upstreamStatus: number }) => void
 }
 
 export interface ChatModelOutput {
@@ -644,6 +650,23 @@ async function handleSend(
     modelOutput = await deps.chatModel({
       systemPrompt,
       messages: afterUser.messages ?? [],
+      // #358 — Each retry emits a structured warn log so we can spot
+      // "we saved a turn from a 503" vs "we just delayed the inevitable"
+      // in the Supabase Function logs. Same request_id/user_id/thread_id
+      // shape as `provider_failure` so the two events correlate trivially.
+      onRetry: ({ attempt, upstreamStatus }) => {
+        deps.log({
+          level: "warn",
+          feature: "embedded-agent",
+          route: "/message",
+          purpose,
+          error_kind: "provider_retry",
+          request_id: requestId,
+          user_id: userId,
+          thread_id: active.id,
+          message: `attempt=${attempt} upstream_status=${upstreamStatus}`,
+        })
+      },
     })
   } catch (err) {
     await deps.logBillableCall(userId, "embedded_chat")

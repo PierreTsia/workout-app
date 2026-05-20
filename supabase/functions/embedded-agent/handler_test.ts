@@ -1,6 +1,11 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts"
-import { handleEmbeddedAgent, type LogEvent } from "./handler.ts"
-import type { Thread, ThreadLocale, ThreadMessage, ThreadPurpose } from "./threadStore.ts"
+import {
+  handleEmbeddedAgent,
+  type ChatModelInput,
+  type ChatModelOutput,
+  type LogEvent,
+} from "./handler.ts"
+import type { Thread, ThreadLocale, ThreadPurpose } from "./threadStore.ts"
 import type { UserContextProfile } from "./prompt/index.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
@@ -90,7 +95,7 @@ interface DepsCalls {
   enforceDraftQuota: Array<{ userId: string }>
   enforceProgramQuota: Array<{ userId: string }>
   logBillableCall: Array<{ userId: string; source: "embedded_chat" | "embedded_draft" }>
-  chatModel: Array<{ systemPrompt: string; messages: ThreadMessage[] }>
+  chatModel: ChatModelInput[]
   loadProfile: Array<{ userId: string }>
   runDraftStep: Array<{
     userId: string
@@ -129,7 +134,7 @@ interface DepsOverrides {
   enforceDraftQuota?: (userId: string) => Promise<{ allowed: boolean; limit: number; used: number }>
   enforceProgramQuota?: (userId: string) => Promise<{ allowed: boolean }>
   logBillableCall?: (userId: string, source: "embedded_chat" | "embedded_draft") => Promise<void>
-  chatModel?: (input: { systemPrompt: string; messages: ThreadMessage[] }) => Promise<{ content: string }>
+  chatModel?: (input: ChatModelInput) => Promise<ChatModelOutput>
   loadProfile?: (userId: string) => Promise<UserContextProfile | null>
   runDraftStep?: (input: {
     userId: string
@@ -251,7 +256,7 @@ function makeDeps(overrides: DepsOverrides = {}) {
       calls.logBillableCall.push({ userId, source })
       if (overrides.logBillableCall) await overrides.logBillableCall(userId, source)
     },
-    chatModel: async (input: { systemPrompt: string; messages: ThreadMessage[] }) => {
+    chatModel: async (input: ChatModelInput) => {
       calls.chatModel.push(input)
       return overrides.chatModel
         ? await overrides.chatModel(input)
@@ -815,6 +820,40 @@ Deno.test("POST /message logs the billable call AND returns 502 even when the mo
   // for this ticket.
   assertEquals(calls.logEvents[0].error_kind, "provider_failure")
   assertEquals(calls.logEvents[0].route, "/message")
+})
+
+// #358 — When the chat model exposes its retry budget via `input.onRetry`,
+// the handler wires it to a structured `provider_retry` warn log. We
+// verify the wire-up, not the chatModel internals (those are pinned in
+// chatModel_test.ts).
+Deno.test("POST /message emits a provider_retry warn log per chat model retry", async () => {
+  const active = makeThread({ id: "t-1", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: async (input) => {
+      input.onRetry?.({ attempt: 1, upstreamStatus: 503 })
+      input.onRetry?.({ attempt: 2, upstreamStatus: 502 })
+      return { content: "recovered" }
+    },
+  })
+
+  const res = await handleEmbeddedAgent(
+    sendRequest({ content: "hi", locale: "en" }),
+    deps,
+  )
+
+  assertEquals(res.status, 200)
+
+  const retries = calls.logEvents.filter((e) => e.error_kind === "provider_retry")
+  assertEquals(retries.length, 2)
+  assertEquals(retries[0].level, "warn")
+  assertEquals(retries[0].route, "/message")
+  assertEquals(retries[0].thread_id, "t-1")
+  assertEquals(retries[0].purpose, "onboarding")
+  assertStringIncludes(retries[0].message ?? "", "attempt=1")
+  assertStringIncludes(retries[0].message ?? "", "upstream_status=503")
+  assertStringIncludes(retries[1].message ?? "", "attempt=2")
+  assertStringIncludes(retries[1].message ?? "", "upstream_status=502")
 })
 
 Deno.test("POST /message rejects empty content with 400 invalid_content", async () => {
