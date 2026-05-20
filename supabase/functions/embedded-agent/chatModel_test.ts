@@ -79,7 +79,7 @@ Deno.test("callChatGemini — invariants are sane", () => {
 })
 
 Deno.test("callChatGemini — 503 then 200 succeeds and reports one retry", async () => {
-  const { fetchImpl, calls: _ } = makeFetch([
+  const { fetchImpl } = makeFetch([
     makeGeminiErrorResponse(503),
     makeGeminiOkResponse("hello world"),
   ])
@@ -103,7 +103,7 @@ Deno.test("callChatGemini — three 503s exhaust the retry budget and throw", as
   ])
 
   const retries: Array<{ attempt: number; upstreamStatus: number }> = []
-  const err = await assertRejects(
+  await assertRejects(
     () =>
       callChatGemini(
         makeInput({ onRetry: (info) => retries.push(info) }),
@@ -119,9 +119,6 @@ Deno.test("callChatGemini — three 503s exhaust the retry budget and throw", as
   assertEquals(retries.length, 2)
   assertEquals(retries[0], { attempt: 1, upstreamStatus: 503 })
   assertEquals(retries[1], { attempt: 2, upstreamStatus: 503 })
-  // Cast to silence the unused-binding warning on `err` while keeping the
-  // assertion in the rejection.
-  void err
 })
 
 Deno.test("callChatGemini — 400 is NOT retried", async () => {
