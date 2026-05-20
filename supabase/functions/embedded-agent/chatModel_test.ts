@@ -159,6 +159,43 @@ Deno.test("callChatGemini — AbortError from the shared signal is NOT retried",
   assertEquals(retries.length, 0)
 })
 
+Deno.test("callChatGemini — abort during backoff sleep terminates the retry loop", async () => {
+  // PR review (Copilot): the 15s budget covers ALL attempts including the
+  // backoff sleeps between them. If the timeout fires mid-sleep the loop
+  // must bail immediately instead of finishing the nap and burning another
+  // fetch on a doomed signal.
+  const recorder = makeFetch([
+    makeGeminiErrorResponse(503),
+    // The second response is never reached: abort fires inside the sleep
+    // and the race rejects before the loop reaches another fetch.
+    makeGeminiOkResponse("never"),
+  ])
+
+  let capturedController: AbortController | null = null
+  // The sleep aborts the shared controller *synchronously*, then returns
+  // a promise that never resolves. The signal-aware race must rescue us:
+  // if it doesn't, this test will hang and fail by timeout.
+  const sleepImpl = (): Promise<void> => {
+    capturedController?.abort()
+    return new Promise(() => {})
+  }
+
+  await assertRejects(
+    () =>
+      callChatGemini(makeInput(), {
+        fetchImpl: recorder.fetchImpl,
+        sleepImpl,
+        exposeController: (c) => {
+          capturedController = c
+        },
+      }),
+    DOMException,
+    "Aborted",
+  )
+
+  assertEquals(recorder.calls, 1)
+})
+
 Deno.test("callChatGemini — 429 is NOT retried (quota class, not capacity)", async () => {
   // Sanity guard on the status filter: 429 looks like a 5xx-sibling but
   // it's a deterministic quota signal. Retrying it just burns budget.

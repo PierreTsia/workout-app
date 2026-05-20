@@ -49,6 +49,10 @@ export interface CallChatGeminiOptions {
   // setTimeout-backed sleep. Prod code never passes either.
   fetchImpl?: typeof fetch
   sleepImpl?: (ms: number) => Promise<void>
+  // Internal test seam — surfaces the per-call AbortController so tests
+  // can verify abort-during-backoff cancellation without racing real
+  // timers. Production code never sets this.
+  exposeController?: (controller: AbortController) => void
 }
 
 export async function callChatGemini(
@@ -61,9 +65,12 @@ export async function callChatGemini(
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis)
   const sleep = opts.sleepImpl ?? defaultSleep
 
-  // Single shared controller — the 15s budget covers ALL attempts. We
-  // don't want 3 × 15s to add up to a 45s edge function call.
+  // Single shared controller — the 15s budget covers ALL attempts AND
+  // every backoff sleep in between (see `sleepWithAbort` below). Without
+  // racing sleeps against the signal a slow first attempt could push the
+  // total wall-time past TIMEOUT_MS by up to one backoff + jitter.
   const controller = new AbortController()
+  opts.exposeController?.(controller)
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   const url = `${GEMINI_URL}?key=${apiKey}`
@@ -106,7 +113,11 @@ export async function callChatGemini(
 
       const baseBackoff = BACKOFF_MS[attempt - 1]
       const jitter = Math.floor((Math.random() * 2 - 1) * BACKOFF_JITTER_MS)
-      await sleep(Math.max(0, baseBackoff + jitter))
+      // Race the backoff against the shared abort signal so the 15s
+      // total budget actually bounds wall-time. If the timeout fires
+      // mid-sleep we exit immediately instead of finishing the nap and
+      // then handing a doomed fetch an already-aborted signal.
+      await sleepWithAbort(sleep, Math.max(0, baseBackoff + jitter), controller.signal)
     }
     // Unreachable: the loop either returns on a 2xx or throws on an
     // exhausted/non-retryable failure. Kept as a defensive net so the
@@ -132,4 +143,30 @@ function parseSuccess(data: GeminiResponse): ChatModelOutput {
 
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// #358 PR review (Copilot) — backoff sleeps must observe the shared
+// abort signal so the TIMEOUT_MS budget is strictly bounded. We listen
+// once for "abort" and clean up the listener in `finally` so a sleep
+// that wins the race doesn't leave a dangling subscription on the
+// controller.
+async function sleepWithAbort(
+  sleep: (ms: number) => Promise<void>,
+  ms: number,
+  signal: AbortSignal,
+): Promise<void> {
+  if (signal.aborted) {
+    throw new DOMException("Aborted before backoff", "AbortError")
+  }
+  let onAbort: (() => void) | undefined
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () =>
+      reject(new DOMException("Aborted during backoff", "AbortError"))
+    signal.addEventListener("abort", onAbort, { once: true })
+  })
+  try {
+    await Promise.race([sleep(ms), aborted])
+  } finally {
+    if (onAbort) signal.removeEventListener("abort", onAbort)
+  }
 }
