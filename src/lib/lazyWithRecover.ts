@@ -1,18 +1,35 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from "react"
 
-// #356 — `React.lazy` rejects with `TypeError: Failed to fetch dynamically
-// imported module` when the chunk hash on disk no longer matches what the
-// running tab remembers (typical after a deploy: SW or browser cache holds
-// the old `index.html`, the new server serves a 404 page with `text/html`
-// MIME for the missing chunk, the browser refuses to execute it as JS).
+// #356 — `React.lazy` rejects when the chunk hash on disk no longer
+// matches what the running tab remembers (typical after a deploy: SW or
+// browser cache holds the old `index.html` referencing chunk hashes that
+// no longer exist server-side).
 //
-// Strategy: catch the failure in the loader wrapper, reload the page once
-// to pull a fresh `index.html` + fresh chunk hashes. A sessionStorage
-// guard prevents an infinite reload loop when the reload itself fails to
-// recover (CDN issue, broken build, offline). On the second failure we
-// let the error bubble to `RouteErrorFallback`, which surfaces a "Force
-// refresh" button wired to `forceHardReload` — the nuclear option that
-// also clears caches and unregisters the service worker.
+// Two flavors of failure, depending on how the server reacts:
+//   - Returns a real 404 → `import()` rejects with the browser's
+//     "Failed to fetch dynamically imported module" / "Importing a
+//     module script failed" / "error loading dynamically imported
+//     module" (engine-dependent wording).
+//   - Returns 200 + the SPA fallback `index.html` (Vercel/Netlify
+//     rewrite catch-all) → the response is technically OK but
+//     `Content-Type` is `text/html`. Mobile Safari iOS 18 surfaces this
+//     as `TypeError: 'text/html' is not a valid JavaScript MIME type.`
+//     Chromium just says "Failed to fetch ... module".
+//
+// We fixed the 200-text/html flavor at the Vercel rewrite level
+// (`vercel.json` excludes paths with a `.` from the SPA catch-all) so
+// stale chunks now return a real 404. The MIME-type needle below is
+// belt-and-suspenders: any future CDN/proxy/SW layer that re-introduces
+// the 200-text/html shape will still trip the soft reload.
+//
+// Strategy: catch the failure in the loader wrapper, reload the page
+// once to pull a fresh `index.html` + fresh chunk hashes. A
+// sessionStorage guard prevents an infinite reload loop when the reload
+// itself fails to recover (CDN issue, broken build, offline). On the
+// second failure we let the error bubble to `RouteErrorFallback`, which
+// surfaces a "Force refresh" button wired to `forceHardReload` — the
+// nuclear option that also clears caches and unregisters the service
+// worker.
 
 const RELOAD_KEY = "chunk-load-reload-attempted-at"
 const RELOAD_GUARD_MS = 60_000
@@ -21,6 +38,7 @@ const CHUNK_FAILURE_NEEDLES = [
   "Failed to fetch dynamically imported module",
   "Importing a module script failed",
   "error loading dynamically imported module",
+  "is not a valid JavaScript MIME type",
 ] as const
 
 export function isChunkLoadFailure(error: unknown): boolean {
