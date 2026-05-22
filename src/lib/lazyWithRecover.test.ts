@@ -33,6 +33,16 @@ describe("isChunkLoadFailure", () => {
     ).toBe(true)
   })
 
+  it("matches the iOS 18 Mobile Safari MIME-type variant", () => {
+    // Surfaces when the server returns 200 + text/html (e.g. SPA
+    // fallback) instead of the expected JS module. See GYMLOGIC-C.
+    expect(
+      isChunkLoadFailure(
+        new TypeError("'text/html' is not a valid JavaScript MIME type."),
+      ),
+    ).toBe(true)
+  })
+
   it("returns false for unrelated errors and non-Error values", () => {
     expect(isChunkLoadFailure(new Error("Boom"))).toBe(false)
     expect(isChunkLoadFailure("string")).toBe(false)
