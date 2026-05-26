@@ -16,7 +16,7 @@ import { useCycleStats } from "@/hooks/useCycleStats"
 import { usePreviousCycle } from "@/hooks/usePreviousCycle"
 import { useCycleProgress } from "@/hooks/useCycle"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
-import { formatDate, formatDurationMs } from "@/lib/formatters"
+import { formatCompactNumber, formatDate, formatDurationMs } from "@/lib/formatters"
 import { StatCard } from "@/components/cycle-summary/StatCard"
 import { Button } from "@/components/ui/button"
 import type { Cycle, WorkoutDay } from "@/types/database"
@@ -83,7 +83,7 @@ export function CycleSummaryPage() {
   ].join(" → ")
 
   const sessionLabel = `${stats.session_count}/${cycleProgress.totalDays}`
-  const volumeLabel = `${Math.round(stats.total_volume_kg).toLocaleString(locale)} kg`
+  const volumeLabel = `${formatCompactNumber(Math.round(stats.total_volume_kg), locale)} kg`
 
   return (
     <div className="flex flex-1 flex-col items-center gap-6 px-6 py-8">

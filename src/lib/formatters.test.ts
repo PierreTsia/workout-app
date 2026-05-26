@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatDurationShort } from "./formatters"
+import { formatCompactNumber, formatDurationShort } from "./formatters"
 
 describe("formatDurationShort", () => {
   it("formats seconds-only values", () => {
@@ -24,5 +24,27 @@ describe("formatDurationShort", () => {
 
   it("handles negative values by clamping to 0", () => {
     expect(formatDurationShort(-10)).toBe("0s")
+  })
+})
+
+describe("formatCompactNumber", () => {
+  it("compacts six-digit values with one decimal in en", () => {
+    expect(formatCompactNumber(288566, "en")).toBe("288.6K")
+  })
+
+  it("keeps values below 10k exact and locale-formatted", () => {
+    expect(formatCompactNumber(5000, "en")).toBe("5,000")
+    expect(formatCompactNumber(9999, "en")).toBe("9,999")
+  })
+
+  it("uses the FR convention for compact units (lowercase k, any whitespace)", () => {
+    // ICU emits a no-break space here (\u00A0 or \u202F depending on the
+    // ICU/Node version); match either flavor so this doesn't drift on LTS bumps.
+    expect(formatCompactNumber(288566, "fr")).toMatch(/^288,6\sk$/)
+  })
+
+  it("compacts million-scale values with one decimal to keep granularity", () => {
+    expect(formatCompactNumber(1_234_567, "en")).toBe("1.2M")
+    expect(formatCompactNumber(5_000_000, "en")).toBe("5M")
   })
 })
