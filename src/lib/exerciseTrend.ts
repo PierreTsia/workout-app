@@ -68,8 +68,9 @@ function extractTrendPoint(log: SetLog, variant: TrendVariant): TrendPoint | nul
 }
 
 function rollingMean(values: number[], windowSize: number): number[] {
+  const safeWindow = Math.max(1, Math.floor(windowSize))
   return values.map((_, i) => {
-    const start = Math.max(0, i + 1 - windowSize)
+    const start = Math.max(0, i + 1 - safeWindow)
     const slice = values.slice(start, i + 1)
     return slice.reduce((sum, v) => sum + v, 0) / slice.length
   })
