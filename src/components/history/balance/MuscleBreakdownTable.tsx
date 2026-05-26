@@ -2,6 +2,7 @@ import type { TFunction } from "i18next"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown } from "lucide-react"
+import { formatCompactNumber } from "@/lib/formatters"
 import type { VolumeByMuscleRow } from "@/lib/volumeByMuscleGroup"
 import {
   Collapsible,
@@ -32,7 +33,7 @@ export function MuscleBreakdownTable({
   muscles,
   className,
 }: MuscleBreakdownTableProps) {
-  const { t } = useTranslation("history")
+  const { t, i18n } = useTranslation("history")
   const [open, setOpen] = useState(false)
 
   const totalSets = useMemo(
@@ -50,21 +51,21 @@ export function MuscleBreakdownTable({
       .sort((a, b) => b.pct - a.pct)
   }, [muscles, totalSets])
 
-  const fmtInt = useMemo(
+  const fmtPct = useMemo(
     () =>
-      new Intl.NumberFormat(undefined, {
+      new Intl.NumberFormat(i18n.language, {
         maximumFractionDigits: 0,
       }),
-    [],
+    [i18n.language],
   )
 
   const fmtSets = useMemo(
     () =>
-      new Intl.NumberFormat(undefined, {
+      new Intl.NumberFormat(i18n.language, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 1,
       }),
-    [],
+    [i18n.language],
   )
 
   return (
@@ -109,10 +110,10 @@ export function MuscleBreakdownTable({
                   {fmtSets.format(m.total_sets)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {fmtInt.format(m.total_volume_kg)}
+                  {formatCompactNumber(m.total_volume_kg, i18n.language)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {fmtInt.format(m.pct)}%
+                  {fmtPct.format(m.pct)}%
                 </TableCell>
               </TableRow>
             ))}

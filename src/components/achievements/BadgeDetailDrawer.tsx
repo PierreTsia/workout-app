@@ -16,6 +16,7 @@ import { authAtom } from "@/store/atoms"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { cn } from "@/lib/utils"
 import { rankColorText } from "@/lib/achievementUtils"
+import { formatCompactNumber } from "@/lib/formatters"
 import type { BadgeStatusRow } from "@/types/achievements"
 
 interface BadgeDetailDrawerProps {
@@ -105,7 +106,10 @@ export function BadgeDetailDrawer({ badge, onClose }: BadgeDetailDrawerProps) {
         <div className="flex flex-col items-center gap-4 px-6 pb-8">
           <p className="text-sm font-medium text-foreground/80">
             {t(`thresholdHint.${badge.group_slug}`, {
-              target: Math.floor(badge.threshold_value),
+              target: formatCompactNumber(
+                Math.floor(badge.threshold_value),
+                i18n.language,
+              ),
             })}
           </p>
 
@@ -116,7 +120,9 @@ export function BadgeDetailDrawer({ badge, onClose }: BadgeDetailDrawerProps) {
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
-                {t("moreToGo", { count: remaining })}
+                {t("moreToGo", {
+                  count: formatCompactNumber(remaining, i18n.language),
+                })}
               </p>
               <div className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-muted">
                 <div
@@ -126,8 +132,14 @@ export function BadgeDetailDrawer({ badge, onClose }: BadgeDetailDrawerProps) {
               </div>
               <p className="text-xs text-muted-foreground">
                 {t("progress", {
-                  current: Math.floor(badge.current_value),
-                  target: Math.floor(badge.threshold_value),
+                  current: formatCompactNumber(
+                    Math.floor(badge.current_value),
+                    i18n.language,
+                  ),
+                  target: formatCompactNumber(
+                    Math.floor(badge.threshold_value),
+                    i18n.language,
+                  ),
                 })}
               </p>
             </>

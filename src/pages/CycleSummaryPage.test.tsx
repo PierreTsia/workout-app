@@ -44,7 +44,7 @@ vi.mock("@/hooks/useCycleStats", () => ({
       session_count: 4,
       total_duration_ms: 3600000,
       total_sets: 42,
-      total_volume_kg: 1234,
+      total_volume_kg: 288566,
       pr_count: 3,
       duration_days: 28,
       started_at: "2026-01-01T00:00:00.000Z",
@@ -117,5 +117,14 @@ describe("CycleSummaryPage", () => {
 
     await user.click(backButton)
     expect(mockNavigate).toHaveBeenCalledWith("/")
+  })
+
+  it("renders the cycle volume in compact notation, not as a raw integer", async () => {
+    renderWithProviders(<CycleSummaryPage />)
+
+    await screen.findByRole("button", { name: /back to workouts/i })
+
+    expect(screen.getByText("288.6K kg")).toBeInTheDocument()
+    expect(screen.queryByText("288,566 kg")).not.toBeInTheDocument()
   })
 })

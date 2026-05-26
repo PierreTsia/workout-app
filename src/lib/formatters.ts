@@ -30,6 +30,24 @@ export function formatNumber(
   return fmt.format(value)
 }
 
+const COMPACT_THRESHOLD = 10_000
+
+/**
+ * Locale-aware number formatter that switches to compact notation
+ * (e.g. `288.6K`, `1.2M`) at or above {@link COMPACT_THRESHOLD}.
+ * Below the threshold, values render exactly using the locale's grouping
+ * so small totals like "5,000 kg" stay precise and readable.
+ */
+export function formatCompactNumber(value: number, locale: string): string {
+  if (Math.abs(value) < COMPACT_THRESHOLD) {
+    return formatNumber(value, locale)
+  }
+  return formatNumber(value, locale, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  })
+}
+
 const relativeCache = new Map<string, Intl.RelativeTimeFormat>()
 
 function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {

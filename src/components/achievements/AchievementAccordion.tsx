@@ -8,6 +8,7 @@ import {
 import { BadgeIcon } from "./BadgeIcon"
 import { cn } from "@/lib/utils"
 import { rankColorText } from "@/lib/achievementUtils"
+import { formatCompactNumber } from "@/lib/formatters"
 import type { BadgeStatusRow } from "@/types/achievements"
 
 interface AchievementAccordionProps {
@@ -114,8 +115,14 @@ export function AchievementAccordion({ rows, onSelect }: AchievementAccordionPro
                       {isNext && (
                         <span className="text-[10px] text-muted-foreground">
                           {t("progress", {
-                            current: Math.floor(tier.current_value),
-                            target: Math.floor(tier.threshold_value),
+                            current: formatCompactNumber(
+                              Math.floor(tier.current_value),
+                              i18n.language,
+                            ),
+                            target: formatCompactNumber(
+                              Math.floor(tier.threshold_value),
+                              i18n.language,
+                            ),
                           })}
                         </span>
                       )}
