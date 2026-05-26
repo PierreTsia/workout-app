@@ -37,9 +37,10 @@ describe("formatCompactNumber", () => {
     expect(formatCompactNumber(9999, "en")).toBe("9,999")
   })
 
-  it("uses the FR convention for compact units (lowercase k, no-break space)", () => {
-    // `\u00A0` = no-break space, what ICU emits for fr-FR compact notation
-    expect(formatCompactNumber(288566, "fr")).toBe("288,6\u00A0k")
+  it("uses the FR convention for compact units (lowercase k, any whitespace)", () => {
+    // ICU emits a no-break space here (\u00A0 or \u202F depending on the
+    // ICU/Node version); match either flavor so this doesn't drift on LTS bumps.
+    expect(formatCompactNumber(288566, "fr")).toMatch(/^288,6\sk$/)
   })
 
   it("compacts million-scale values with one decimal to keep granularity", () => {
