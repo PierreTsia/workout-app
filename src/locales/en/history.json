@@ -34,6 +34,8 @@
   "date": "Date",
   "holdDuration": "Duration",
   "noData": "No data for this exercise yet.",
+  "trend": "Trend",
+  "loadMore": "Load more",
   "loadingSets": "Loading sets…",
   "noSetsRecorded": "No sets recorded.",
   "noSessions": "No sessions yet.",

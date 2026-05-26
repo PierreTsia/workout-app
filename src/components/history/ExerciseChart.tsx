@@ -1,5 +1,12 @@
-import { useMemo } from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import { useMemo, useState } from "react"
+import {
+  ComposedChart,
+  Line,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts"
 import { Trophy } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
@@ -9,6 +16,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -21,144 +29,197 @@ import { useExerciseById } from "@/hooks/useExerciseById"
 import { useExerciseTrend } from "@/hooks/useExerciseTrend"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
+import { buildExerciseTrendSeries } from "@/lib/exerciseTrend"
 import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
+
+const TABLE_PAGE_SIZE = 100
+
+function LoadMoreButton({
+  visible,
+  total,
+  onClick,
+  label,
+}: {
+  visible: number
+  total: number
+  onClick: () => void
+  label: string
+}) {
+  if (visible >= total) return null
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="self-center"
+    >
+      {label}
+    </Button>
+  )
+}
+
+type TooltipPayloadItem = {
+  dataKey?: string | number
+  payload?: { timestamp?: number }
+}
+
+/**
+ * Wraps `ChartTooltipContent` to (a) format the X-axis timestamp as a date in
+ * the header and (b) hide the raw `timestamp` row that recharts auto-includes
+ * for Scatter series on a numeric X-axis.
+ */
+function TrendChartTooltip({
+  language,
+  active,
+  payload,
+}: {
+  language: string
+  active?: boolean
+  payload?: TooltipPayloadItem[]
+}) {
+  if (!active || !payload || payload.length === 0) return null
+  const filtered = payload.filter((p) => p.dataKey !== "timestamp")
+  const timestamp = payload[0]?.payload?.timestamp
+  return (
+    <ChartTooltipContent
+      active={active}
+      payload={filtered as never}
+      labelFormatter={() =>
+        timestamp != null
+          ? formatDate(new Date(timestamp), language, {
+              month: "short",
+              day: "numeric",
+            })
+          : ""
+      }
+    />
+  )
+}
 
 export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   const { t, i18n } = useTranslation("history")
   const { formatWeight, toDisplay, unit } = useWeightUnit()
   const { data: exercise, isLoading: exerciseLoading } = useExerciseById(exerciseId)
   const { data: logs, isLoading: logsLoading } = useExerciseTrend(exerciseId)
+  const [visibleCount, setVisibleCount] = useState(TABLE_PAGE_SIZE)
   const isDuration = exercise?.measurement_type === "duration"
   const isBodyweight = exercise?.equipment === "bodyweight" && !isDuration
   const loading = logsLoading || exerciseLoading
 
   const chartConfigReps = useMemo<ChartConfig>(
     () => ({
-      reps: {
-        label: t("maxReps"),
-        color: "hsl(var(--primary))",
-      },
+      value: { label: t("maxReps"), color: "hsl(var(--primary))" },
+      trend: { label: t("trend"), color: "hsl(var(--primary))" },
     }),
     [t],
   )
 
   const chartConfigE1rm = useMemo<ChartConfig>(
     () => ({
-      e1rm: {
+      value: {
         label: `${t("oneRm")} (${unit})`,
         color: "hsl(var(--primary))",
       },
+      trend: { label: t("trend"), color: "hsl(var(--primary))" },
     }),
     [t, unit],
   )
 
   const chartConfigDuration = useMemo<ChartConfig>(
     () => ({
-      durationSec: {
-        label: t("holdDuration"),
-        color: "hsl(var(--primary))",
-      },
+      value: { label: t("holdDuration"), color: "hsl(var(--primary))" },
+      trend: { label: t("trend"), color: "hsl(var(--primary))" },
     }),
     [t],
   )
 
   const chartDataReps = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => {
-      const r = parseInt(log.reps_logged ?? "0", 10)
-      return {
-        date: formatDate(log.logged_at, i18n.language, {
-          month: "short",
-          day: "numeric",
-        }),
-        reps: Number.isFinite(r) ? r : 0,
-      }
-    })
-  }, [logs, i18n.language])
+    const series = buildExerciseTrendSeries(logs, "reps")
+    return series.scatter.map((p, i) => ({
+      timestamp: p.timestamp,
+      value: p.value,
+      trend: Math.round(series.trend[i].value * 10) / 10,
+    }))
+  }, [logs])
 
   const chartDataE1rm = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => {
-      const w = Number(log.weight_logged)
-      const r = parseInt(log.reps_logged ?? "0", 10)
-      const e1rm =
-        log.estimated_1rm != null
-          ? Number(log.estimated_1rm)
-          : computeEpley1RM(w, r)
-      return {
-        date: formatDate(log.logged_at, i18n.language, {
-          month: "short",
-          day: "numeric",
-        }),
-        e1rm: Math.round(toDisplay(e1rm) * 10) / 10,
-      }
-    })
-  }, [logs, i18n.language, toDisplay])
+    const series = buildExerciseTrendSeries(logs, "e1rm")
+    return series.scatter.map((p, i) => ({
+      timestamp: p.timestamp,
+      value: Math.round(toDisplay(p.value) * 10) / 10,
+      trend: Math.round(toDisplay(series.trend[i].value) * 10) / 10,
+    }))
+  }, [logs, toDisplay])
 
   const chartDataDuration = useMemo(() => {
     if (!logs) return []
-    return logs
-      .filter((log) => log.duration_seconds != null)
-      .map((log) => ({
-        date: formatDate(log.logged_at, i18n.language, {
-          month: "short",
-          day: "numeric",
-        }),
-        durationSec: Number(log.duration_seconds),
-      }))
-  }, [logs, i18n.language])
+    const series = buildExerciseTrendSeries(logs, "duration")
+    return series.scatter.map((p, i) => ({
+      timestamp: p.timestamp,
+      value: p.value,
+      trend: Math.round(series.trend[i].value),
+    }))
+  }, [logs])
 
   const tableRowsBodyweight = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => ({
-      id: log.id,
-      date: formatDate(log.logged_at, i18n.language, {
-        month: "short",
-        day: "numeric",
-      }),
-      reps: log.reps_logged,
-      wasPr: log.was_pr,
-    }))
-  }, [logs, i18n.language])
-
-  const tableRowsReps = useMemo(() => {
-    if (!logs) return []
-    return logs.map((log) => {
-      const w = Number(log.weight_logged)
-      const r = parseInt(log.reps_logged ?? "0", 10)
-      const e1rm =
-        log.estimated_1rm != null
-          ? Number(log.estimated_1rm)
-          : computeEpley1RM(w, r)
-      return {
+    return logs
+      .map((log) => ({
         id: log.id,
         date: formatDate(log.logged_at, i18n.language, {
           month: "short",
           day: "numeric",
         }),
         reps: log.reps_logged,
-        weightKg: w,
-        e1rm: Math.round(e1rm),
         wasPr: log.was_pr,
-      }
-    })
+      }))
+      .reverse()
+  }, [logs, i18n.language])
+
+  const tableRowsReps = useMemo(() => {
+    if (!logs) return []
+    return logs
+      .map((log) => {
+        const w = Number(log.weight_logged)
+        const r = parseInt(log.reps_logged ?? "0", 10)
+        const e1rm =
+          log.estimated_1rm != null
+            ? Number(log.estimated_1rm)
+            : computeEpley1RM(w, r)
+        return {
+          id: log.id,
+          date: formatDate(log.logged_at, i18n.language, {
+            month: "short",
+            day: "numeric",
+          }),
+          reps: log.reps_logged,
+          weightKg: w,
+          e1rm: Math.round(e1rm),
+          wasPr: log.was_pr,
+        }
+      })
+      .reverse()
   }, [logs, i18n.language])
 
   const tableRowsDuration = useMemo(() => {
     if (!logs) return []
-    return logs.map((log) => ({
-      id: log.id,
-      date: formatDate(log.logged_at, i18n.language, {
-        month: "short",
-        day: "numeric",
-      }),
-      durationLabel:
-        log.duration_seconds != null
-          ? formatSecondsMMSS(log.duration_seconds)
-          : "–",
-      weightKg: Number(log.weight_logged),
-      wasPr: log.was_pr,
-    }))
+    return logs
+      .map((log) => ({
+        id: log.id,
+        date: formatDate(log.logged_at, i18n.language, {
+          month: "short",
+          day: "numeric",
+        }),
+        durationLabel:
+          log.duration_seconds != null
+            ? formatSecondsMMSS(log.duration_seconds)
+            : "–",
+        weightKg: Number(log.weight_logged),
+        wasPr: log.was_pr,
+      }))
+      .reverse()
   }, [logs, i18n.language])
 
   if (loading) {
@@ -177,16 +238,24 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
     return (
       <div className="flex flex-col gap-4">
         <ChartContainer config={chartConfigDuration} className="aspect-2/1 w-full">
-          <LineChart
+          <ComposedChart
             data={chartDataDuration}
             margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="timestamp"
+              type="number"
+              domain={["dataMin", "dataMax"]}
               tickLine={false}
               axisLine={false}
               fontSize={11}
+              tickFormatter={(ts) =>
+                formatDate(new Date(Number(ts)), i18n.language, {
+                  month: "short",
+                  day: "numeric",
+                })
+              }
             />
             <YAxis
               tickLine={false}
@@ -195,15 +264,21 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
               width={40}
               tickFormatter={(v) => (Number(v) >= 60 ? formatSecondsMMSS(Number(v)) : `${v}s`)}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
+            <Scatter
+              dataKey="value"
+              fill="var(--color-value)"
+              fillOpacity={0.4}
+              shape="circle"
+            />
             <Line
-              dataKey="durationSec"
+              dataKey="trend"
               type="monotone"
-              stroke="var(--color-durationSec)"
+              stroke="var(--color-trend)"
               strokeWidth={2}
               dot={false}
             />
-          </LineChart>
+          </ComposedChart>
         </ChartContainer>
 
         <Table className="text-xs">
@@ -216,7 +291,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableRowsDuration.map((row) => (
+            {tableRowsDuration.slice(0, visibleCount).map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="px-2 py-1.5">{row.date}</TableCell>
                 <TableCell className="px-2 py-1.5 font-mono tabular-nums">
@@ -237,6 +312,12 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             ))}
           </TableBody>
         </Table>
+        <LoadMoreButton
+          visible={visibleCount}
+          total={tableRowsDuration.length}
+          onClick={() => setVisibleCount((n) => n + TABLE_PAGE_SIZE)}
+          label={t("loadMore")}
+        />
       </div>
     )
   }
@@ -245,13 +326,21 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
     return (
       <div className="flex flex-col gap-4">
         <ChartContainer config={chartConfigReps} className="aspect-2/1 w-full">
-          <LineChart data={chartDataReps} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+          <ComposedChart data={chartDataReps} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
-              dataKey="date"
+              dataKey="timestamp"
+              type="number"
+              domain={["dataMin", "dataMax"]}
               tickLine={false}
               axisLine={false}
               fontSize={11}
+              tickFormatter={(ts) =>
+                formatDate(new Date(Number(ts)), i18n.language, {
+                  month: "short",
+                  day: "numeric",
+                })
+              }
             />
             <YAxis
               tickLine={false}
@@ -260,15 +349,21 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
               width={40}
               allowDecimals={false}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
+            <Scatter
+              dataKey="value"
+              fill="var(--color-value)"
+              fillOpacity={0.4}
+              shape="circle"
+            />
             <Line
-              dataKey="reps"
+              dataKey="trend"
               type="monotone"
-              stroke="var(--color-reps)"
+              stroke="var(--color-trend)"
               strokeWidth={2}
               dot={false}
             />
-          </LineChart>
+          </ComposedChart>
         </ChartContainer>
 
         <Table className="text-xs">
@@ -280,7 +375,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tableRowsBodyweight.map((row) => (
+            {tableRowsBodyweight.slice(0, visibleCount).map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="px-2 py-1.5">{row.date}</TableCell>
                 <TableCell className="px-2 py-1.5 tabular-nums">{row.reps}</TableCell>
@@ -296,6 +391,12 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             ))}
           </TableBody>
         </Table>
+        <LoadMoreButton
+          visible={visibleCount}
+          total={tableRowsBodyweight.length}
+          onClick={() => setVisibleCount((n) => n + TABLE_PAGE_SIZE)}
+          label={t("loadMore")}
+        />
       </div>
     )
   }
@@ -303,13 +404,21 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <ChartContainer config={chartConfigE1rm} className="aspect-2/1 w-full">
-        <LineChart data={chartDataE1rm} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+        <ComposedChart data={chartDataE1rm} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis
-            dataKey="date"
+            dataKey="timestamp"
+            type="number"
+            domain={["dataMin", "dataMax"]}
             tickLine={false}
             axisLine={false}
             fontSize={11}
+            tickFormatter={(ts) =>
+              formatDate(new Date(Number(ts)), i18n.language, {
+                month: "short",
+                day: "numeric",
+              })
+            }
           />
           <YAxis
             tickLine={false}
@@ -317,15 +426,21 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             fontSize={11}
             width={40}
           />
-          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
+          <Scatter
+            dataKey="value"
+            fill="var(--color-value)"
+            fillOpacity={0.4}
+            shape="circle"
+          />
           <Line
-            dataKey="e1rm"
+            dataKey="trend"
             type="monotone"
-            stroke="var(--color-e1rm)"
+            stroke="var(--color-trend)"
             strokeWidth={2}
             dot={false}
           />
-        </LineChart>
+        </ComposedChart>
       </ChartContainer>
 
       <Table className="text-xs">
@@ -339,7 +454,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tableRowsReps.map((row) => (
+          {tableRowsReps.slice(0, visibleCount).map((row) => (
             <TableRow key={row.id}>
               <TableCell className="px-2 py-1.5">{row.date}</TableCell>
               <TableCell className="px-2 py-1.5 tabular-nums">{row.reps}</TableCell>
@@ -359,6 +474,12 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
           ))}
         </TableBody>
       </Table>
+      <LoadMoreButton
+        visible={visibleCount}
+        total={tableRowsReps.length}
+        onClick={() => setVisibleCount((n) => n + TABLE_PAGE_SIZE)}
+        label={t("loadMore")}
+      />
     </div>
   )
 }
