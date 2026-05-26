@@ -83,7 +83,7 @@ export function ExerciseTab() {
       </Popover>
 
       {selectedId ? (
-        <ExerciseChart exerciseId={selectedId} />
+        <ExerciseChart key={selectedId} exerciseId={selectedId} />
       ) : (
         <p className="py-12 text-center text-sm text-muted-foreground">
           {t("pickExercise")}
