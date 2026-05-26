@@ -58,6 +58,44 @@ function LoadMoreButton({
   )
 }
 
+type TooltipPayloadItem = {
+  dataKey?: string | number
+  payload?: { timestamp?: number }
+}
+
+/**
+ * Wraps `ChartTooltipContent` to (a) format the X-axis timestamp as a date in
+ * the header and (b) hide the raw `timestamp` row that recharts auto-includes
+ * for Scatter series on a numeric X-axis.
+ */
+function TrendChartTooltip({
+  language,
+  active,
+  payload,
+}: {
+  language: string
+  active?: boolean
+  payload?: TooltipPayloadItem[]
+}) {
+  if (!active || !payload || payload.length === 0) return null
+  const filtered = payload.filter((p) => p.dataKey !== "timestamp")
+  const timestamp = payload[0]?.payload?.timestamp
+  return (
+    <ChartTooltipContent
+      active={active}
+      payload={filtered as never}
+      labelFormatter={() =>
+        timestamp != null
+          ? formatDate(new Date(timestamp), language, {
+              month: "short",
+              day: "numeric",
+            })
+          : ""
+      }
+    />
+  )
+}
+
 export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
   const { t, i18n } = useTranslation("history")
   const { formatWeight, toDisplay, unit } = useWeightUnit()
@@ -226,7 +264,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
               width={40}
               tickFormatter={(v) => (Number(v) >= 60 ? formatSecondsMMSS(Number(v)) : `${v}s`)}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
             <Scatter
               dataKey="value"
               fill="var(--color-value)"
@@ -311,7 +349,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
               width={40}
               allowDecimals={false}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
             <Scatter
               dataKey="value"
               fill="var(--color-value)"
@@ -388,7 +426,7 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
             fontSize={11}
             width={40}
           />
-          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartTooltip content={<TrendChartTooltip language={i18n.language} />} />
           <Scatter
             dataKey="value"
             fill="var(--color-value)"
