@@ -46,6 +46,24 @@ describe("buildExerciseTrendSeries — trend semantics", () => {
     expect(endOfDay2).toBeLessThanOrEqual(endOfDay1)
   })
 
+  it("excludes e1rm points whose reps_logged is missing and no estimated_1rm is provided", () => {
+    const logs: SetLog[] = [
+      makeLog({ logged_at: "2026-05-01T10:00:00Z", reps_logged: "8", weight_logged: 40 }),
+      makeLog({
+        logged_at: "2026-05-02T10:00:00Z",
+        reps_logged: null,
+        weight_logged: 40,
+        estimated_1rm: null,
+      }),
+      makeLog({ logged_at: "2026-05-03T10:00:00Z", reps_logged: "10", weight_logged: 40 }),
+    ]
+
+    const series = buildExerciseTrendSeries(logs, "e1rm")
+
+    expect(series.scatter).toHaveLength(2)
+    expect(series.scatter.every((p) => p.value > 0)).toBe(true)
+  })
+
   it("smooths the trend as a rolling mean of the configured window over set values", () => {
     const logs: SetLog[] = [10, 20, 30, 40, 50].map((e1rm, i) =>
       makeLog({

@@ -53,6 +53,7 @@ function extractTrendPoint(log: SetLog, variant: TrendVariant): TrendPoint | nul
               Number(log.weight_logged),
               parseInt(log.reps_logged ?? "0", 10),
             )
+      if (!Number.isFinite(value) || value <= 0) return null
       return { timestamp, value }
     }
     case "reps": {
