@@ -34,6 +34,8 @@
   "date": "Date",
   "holdDuration": "Durée",
   "noData": "Pas encore de données pour cet exercice.",
+  "trend": "Tendance",
+  "loadMore": "Voir plus",
   "loadingSets": "Chargement des séries…",
   "noSetsRecorded": "Aucune série enregistrée.",
   "noSessions": "Aucune séance pour l'instant.",
