@@ -27,6 +27,12 @@ ALTER TABLE set_logs
 -- prescribed_sets uses COUNT(*) OVER (PARTITION BY ...) in a single CTE
 -- pass and is joined back by id — avoids the per-row correlated subquery
 -- that would scale O(N^2) on the set_logs table.
+--
+-- reps_logged is TEXT and may contain range strings ("8-12") and other
+-- non-integer junk left over from the very bug this migration is fixing
+-- (the engine writeback that corrupted Builder data). Anything that isn't
+-- a clean integer is mapped to NULL — engine treats that as "no snapshot"
+-- and falls through to the template path, which is the safe default.
 WITH set_counts AS (
   SELECT
     id,
@@ -36,13 +42,14 @@ WITH set_counts AS (
 UPDATE set_logs sl
 SET
   prescribed_reps = CASE
-    WHEN sl.duration_seconds IS NULL
-      THEN NULLIF(sl.reps_logged, '')::integer
+    WHEN sl.duration_seconds IS NOT NULL THEN NULL
+    WHEN sl.reps_logged IS NULL THEN NULL
+    WHEN trim(sl.reps_logged) ~ '^[0-9]+$' THEN trim(sl.reps_logged)::integer
     ELSE NULL
   END,
   prescribed_weight = sl.weight_logged,
   prescribed_duration_seconds = sl.duration_seconds,
-  prescribed_sets = sc.set_count
+  prescribed_sets = sc.set_count::integer
 FROM set_counts sc
 WHERE sl.id = sc.id
   AND sl.prescribed_reps IS NULL
