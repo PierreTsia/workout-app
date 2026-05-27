@@ -150,9 +150,19 @@ export function buildPrescription(
     }
   }
 
+  // Weight axis under the new Prescription Snapshot semantics (ADR 0006):
+  //   - snapshot path: prescribedWeight is the engine's last recorded target;
+  //     fall back to the logged weight only if the snapshot column is NULL
+  //     (legacy / partial-failure rows).
+  //   - template path (bootstrap OR override window): template wins so user
+  //     deloads via the Builder actually land.
+  //   - A 0 weight in either snapshot or logged weight is treated as "no
+  //     load recorded" → fall back to template (bodyweight / unset case).
   const templateWeight = Number(exercise.weight) || 0
-  const lastSessionWeight = lastPerformance?.[0]?.weight ?? 0
-  const currentWeight = lastSessionWeight > 0 ? lastSessionWeight : templateWeight
+  const snapshotWeight = useSnapshot
+    ? (lastPerformance[0].prescribedWeight ?? lastPerformance[0].weight)
+    : null
+  const currentWeight = snapshotWeight && snapshotWeight > 0 ? snapshotWeight : templateWeight
 
   const snapshotSets = useSnapshot ? lastPerformance[0].prescribedSets : null
   const currentSets = snapshotSets ?? exercise.sets

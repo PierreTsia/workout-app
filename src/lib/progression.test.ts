@@ -419,15 +419,19 @@ describe("buildPrescription", () => {
     expect(result!.repRangeMax).toBe(0)
   })
 
-  it("uses last session weight as currentWeight when last performance exists, overriding template", () => {
+  it("uses last session weight as currentWeight when last performance exists (snapshot path, prescribedWeight NULL legacy row)", () => {
     const exercise = makeExercise({ reps: "10", weight: "48", sets: 3 })
+    // Legacy rows have NULL prescribedWeight; the snapshot path falls back to
+    // the logged weight in that case.
     const lastPerformance: SetPerformance[] = [
       { reps: 10, weight: 57, completed: true, rir: 1 },
       { reps: 10, weight: 57, completed: true, rir: 1 },
       { reps: 10, weight: 57, completed: true, rir: 1 },
     ]
 
-    const result = buildPrescription(exercise, lastPerformance, {})
+    const result = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })
 
     expect(result).not.toBeNull()
     expect(result!.currentWeight).toBe(57)
@@ -520,6 +524,103 @@ describe("buildPrescription", () => {
     })!
 
     expect(prescription.volume.current).toBe(30) // snapshot wins
+  })
+
+  // Weight axis: same Prescription Snapshot semantics. The override window
+  // must let manual Builder edits to weight win (deload / return-from-injury).
+  // Today's code ignores both prescribedWeight and the override window — it
+  // always prefers lastPerformance[0].weight. See ADR 0006.
+  it("snapshot path: currentWeight comes from prescribedWeight, not from logged weight", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "60", // drifted post-bump
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    // Last session: prescribed 50, user actually loaded 55 (typo / impromptu bump).
+    // Snapshot must win — engine's currentWeight = 50, not 55.
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.currentWeight).toBe(50) // snapshot wins
+  })
+
+  it("override window: currentWeight reads template when user edited weight post-session (deload)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "40", // user deloaded from 50 to 40
+      sets: 3,
+      template_updated_at: "2026-06-01T00:00:00Z", // newer than last session
+    })
+
+    // Last session was at 50kg cleanly.
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-15T00:00:00Z", // older than template edit
+    })!
+
+    expect(prescription.currentWeight).toBe(40) // template wins → user's deload respected
   })
 
   // Sets axis: same Prescription Snapshot semantics. Drifted exercise.sets must
