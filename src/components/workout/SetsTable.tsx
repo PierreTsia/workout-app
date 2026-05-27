@@ -94,6 +94,28 @@ export function SetsTable({
   const historicalBest = perfData?.bestValue ?? 0
   const hasPriorSession = perfData?.hasPriorSession ?? false
 
+  // Prescription Snapshot resolved at session-start (ADR 0006).
+  // Engine's suggestion when available; otherwise the bootstrap template.
+  // Stable across the session — set logs all carry the same prescription
+  // regardless of mid-row edits to the displayed values.
+  const sessionPrescription = useMemo(() => {
+    if (suggestion) {
+      return {
+        reps: suggestion.reps,
+        weight: suggestion.weight,
+        sets: suggestion.sets,
+        duration: suggestion.duration,
+      }
+    }
+    const parsedReps = parseInt(exercise.reps, 10)
+    return {
+      reps: isNaN(parsedReps) ? 0 : parsedReps,
+      weight: Number(exercise.weight) || 0,
+      sets: exercise.sets,
+      duration: exercise.target_duration_seconds ?? undefined,
+    }
+  }, [suggestion, exercise.reps, exercise.weight, exercise.sets, exercise.target_duration_seconds])
+
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
   const rawRows = session.setsData[exercise.id] ?? []
@@ -389,6 +411,9 @@ export function SetsTable({
         loggedAt: Date.now(),
         rir,
         restSeconds,
+        prescribedReps: sessionPrescription.reps,
+        prescribedWeight: sessionPrescription.weight,
+        prescribedSets: sessionPrescription.sets,
       })
       scheduleImmediateDrain()
 
@@ -469,6 +494,7 @@ export function SetsTable({
       onBlockedByPause,
       session.pausedAt,
       restSnapshot,
+      sessionPrescription,
     ],
   )
 
@@ -555,6 +581,9 @@ export function SetsTable({
           durationSeconds,
           wasPr,
           restSeconds,
+          prescribedDurationSeconds: sessionPrescription.duration ?? null,
+          prescribedWeight: sessionPrescription.weight,
+          prescribedSets: sessionPrescription.sets,
         })
         scheduleImmediateDrain()
 
@@ -584,6 +613,7 @@ export function SetsTable({
       session.pausedAt,
       onBlockedByPause,
       restSnapshot,
+      sessionPrescription,
     ],
   )
 

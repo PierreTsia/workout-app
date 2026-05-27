@@ -50,6 +50,11 @@ function makeLog(overrides: Record<string, unknown> = {}) {
     rir: 2,
     session_id: SESSION_A,
     duration_seconds: null,
+    prescribed_reps: null,
+    prescribed_weight: null,
+    prescribed_sets: null,
+    prescribed_duration_seconds: null,
+    sessions: { finished_at: "2026-05-01T10:00:00Z" },
     ...overrides,
   }
 }
@@ -102,10 +107,60 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toEqual([
-      { reps: 10, weight: 80, completed: true, rir: 2 },
-      { reps: 8, weight: 80, completed: true, rir: 1 },
+    expect(result.current.data!.sets).toEqual([
+      {
+        reps: 10,
+        weight: 80,
+        completed: true,
+        rir: 2,
+        prescribedReps: null,
+        prescribedWeight: null,
+        prescribedSets: null,
+        prescribedDurationSeconds: null,
+      },
+      {
+        reps: 8,
+        weight: 80,
+        completed: true,
+        rir: 1,
+        prescribedReps: null,
+        prescribedWeight: null,
+        prescribedSets: null,
+        prescribedDurationSeconds: null,
+      },
     ])
+  })
+
+  // Cycle 7: hook surfaces the last session's finished_at + prescribed_* per set.
+  // Engine consumes both to gate the snapshot vs Manual Override Window read paths.
+  // See ADR 0006.
+  it("returns lastSessionFinishedAt and Prescription Snapshot fields", async () => {
+    setLogsChain = createChain({
+      data: [
+        makeLog({
+          reps_logged: "11",
+          weight_logged: 50,
+          prescribed_reps: 10,
+          prescribed_weight: 50,
+          prescribed_sets: 3,
+          sessions: { finished_at: "2026-05-15T14:30:00Z" },
+        }),
+      ],
+    })
+
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data!.lastSessionFinishedAt).toBe("2026-05-15T14:30:00Z")
+    expect(result.current.data!.sets[0]).toMatchObject({
+      reps: 11,
+      prescribedReps: 10,
+      prescribedWeight: 50,
+      prescribedSets: 3,
+    })
   })
 
   it("keeps only the latest session when multiple sessions exist", async () => {
@@ -122,8 +177,8 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(1)
-    expect(result.current.data![0].reps).toBe(12)
+    expect(result.current.data!.sets).toHaveLength(1)
+    expect(result.current.data!.sets[0].reps).toBe(12)
   })
 
   it("filters out duration rows (duration_seconds != null)", async () => {
@@ -140,7 +195,7 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(1)
+    expect(result.current.data!.sets).toHaveLength(1)
   })
 
   it("handles corrupt reps_logged by falling back to 0", async () => {
@@ -154,8 +209,8 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(1)
-    expect(result.current.data![0].reps).toBe(0)
+    expect(result.current.data!.sets).toHaveLength(1)
+    expect(result.current.data!.sets[0].reps).toBe(0)
   })
 
   it("calls .lt to exclude current-session logs when sessionStartedAt is provided", async () => {
@@ -204,10 +259,10 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(2)
-    expect(result.current.data![0].durationSeconds).toBe(30)
-    expect(result.current.data![1].durationSeconds).toBe(25)
-    expect(result.current.data![0].reps).toBe(0)
+    expect(result.current.data!.sets).toHaveLength(2)
+    expect(result.current.data!.sets[0].durationSeconds).toBe(30)
+    expect(result.current.data!.sets[1].durationSeconds).toBe(25)
+    expect(result.current.data!.sets[0].reps).toBe(0)
   })
 
   it("filters out reps rows when measurementType is 'duration'", async () => {
@@ -226,8 +281,8 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(1)
-    expect(result.current.data![0].durationSeconds).toBe(30)
+    expect(result.current.data!.sets).toHaveLength(1)
+    expect(result.current.data!.sets[0].durationSeconds).toBe(30)
   })
 
   it("default measurementType still filters out duration rows (backward compat)", async () => {
@@ -246,8 +301,8 @@ describe("useLastSessionDetail", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data).toHaveLength(1)
-    expect(result.current.data![0].reps).toBe(10)
-    expect(result.current.data![0].durationSeconds).toBeUndefined()
+    expect(result.current.data!.sets).toHaveLength(1)
+    expect(result.current.data!.sets[0].reps).toBe(10)
+    expect(result.current.data!.sets[0].durationSeconds).toBeUndefined()
   })
 })

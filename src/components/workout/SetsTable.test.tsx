@@ -80,6 +80,7 @@ const EXERCISE: WorkoutExercise = {
   set_range_max: 5,
   weight_increment: null,
   max_weight_reached: false,
+  template_updated_at: "2020-01-01T00:00:00Z",
 }
 
 const BASE_SESSION: SessionState = {
@@ -166,6 +167,72 @@ describe("SetsTable", () => {
     expect(next.setsData["workout-ex-1"][0].done).toBe(true)
     expect(next.setsData["workout-ex-1"][0].rir).toBe(2)
     expect(next.totalSetsDone).toBe(1)
+  })
+
+  // Cycle 13: SetsTable must populate the Prescription Snapshot fields on
+  // every enqueueSetLog so the server-side processSetLog can persist them
+  // to set_logs.prescribed_*. Engine reads them on subsequent sessions to
+  // close the feedback loop killed by ADR 0006.
+  it("threads sessionPrescription from suggestion into enqueueSetLog payload", async () => {
+    const user = userEvent.setup()
+    const suggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 11,
+      weight: 60,
+      sets: 3,
+      delta: "+1 rep",
+      volumeType: "reps",
+    }
+    const { store } = renderWithProviders(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={suggestion}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prescribedReps: 11,
+        prescribedWeight: 60,
+        prescribedSets: 3,
+      }),
+    )
+  })
+
+  it("falls back to template values for sessionPrescription when no suggestion (bootstrap)", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const checkboxes = screen.getAllByRole("checkbox")
+    await user.click(checkboxes[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prescribedReps: 10, // parseInt(EXERCISE.reps)
+        prescribedWeight: 60, // Number(EXERCISE.weight)
+        prescribedSets: 3, // EXERCISE.sets
+      }),
+    )
   })
 
   it("clears rir and done when unchecking a completed set", async () => {
@@ -660,6 +727,7 @@ const DURATION_EXERCISE: WorkoutExercise = {
   set_range_max: 4,
   weight_increment: null,
   max_weight_reached: false,
+  template_updated_at: "2020-01-01T00:00:00Z",
 }
 
 // targetSeconds: 3 keeps fake-timer tests fast (3 × 250 ms interval ticks)

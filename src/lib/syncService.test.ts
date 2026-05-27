@@ -141,7 +141,6 @@ let enqueueSetLog: typeof import("./syncService").enqueueSetLog
 let enqueueSessionFinish: typeof import("./syncService").enqueueSessionFinish
 let drainQueue: typeof import("./syncService").drainQueue
 let scheduleImmediateDrain: typeof import("./syncService").scheduleImmediateDrain
-let filterValidProgressionTargets: typeof import("./syncService").filterValidProgressionTargets
 let discardSessionQueue: typeof import("./syncService").discardSessionQueue
 let markSessionCancelled: typeof import("./syncService").markSessionCancelled
 let pruneCancelledSessions: typeof import("./syncService").pruneCancelledSessions
@@ -205,7 +204,6 @@ describe("SyncService", () => {
     enqueueSessionFinish = mod.enqueueSessionFinish
     drainQueue = mod.drainQueue
     scheduleImmediateDrain = mod.scheduleImmediateDrain
-    filterValidProgressionTargets = mod.filterValidProgressionTargets
     discardSessionQueue = mod.discardSessionQueue
     markSessionCancelled = mod.markSessionCancelled
     pruneCancelledSessions = mod.pruneCancelledSessions
@@ -577,6 +575,77 @@ describe("SyncService", () => {
       )
     })
 
+    // Cycle 10: processSetLog writes the Prescription Snapshot columns when
+    // the payload carries them. The engine reads these on subsequent sessions
+    // to gate the snapshot vs Manual Override Window paths. See ADR 0006.
+    it("writes prescribed_reps/weight/sets to set_logs upsert when present on reps payload", async () => {
+      enqueueSetLog(
+        makeSetLogPayload({
+          repsLogged: "10",
+          weightLogged: 50,
+          prescribedReps: 10,
+          prescribedWeight: 50,
+          prescribedSets: 3,
+        }),
+      )
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({
+          prescribed_reps: 10,
+          prescribed_weight: 50,
+          prescribed_sets: 3,
+          prescribed_duration_seconds: null,
+        }),
+      )
+    })
+
+    it("writes prescribed_duration_seconds + prescribed_sets when present on duration payload", async () => {
+      enqueueSetLog({
+        sessionId: "local-session-1",
+        exerciseId: "ex-1",
+        exerciseNameSnapshot: "Plank",
+        setNumber: 1,
+        weightLogged: 0,
+        loggedAt: 1000,
+        durationSeconds: 45,
+        wasPr: false,
+        prescribedDurationSeconds: 40,
+        prescribedSets: 3,
+        prescribedWeight: 0,
+      })
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({
+          prescribed_reps: null,
+          prescribed_weight: 0,
+          prescribed_sets: 3,
+          prescribed_duration_seconds: 40,
+        }),
+      )
+    })
+
+    it("legacy payload without prescribed_* fields writes NULLs", async () => {
+      enqueueSetLog(makeSetLogPayload())
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({
+          prescribed_reps: null,
+          prescribed_weight: null,
+          prescribed_sets: null,
+          prescribed_duration_seconds: null,
+        }),
+      )
+    })
+
     it("includes rest_seconds in upsert row when provided", async () => {
       enqueueSetLog(makeSetLogPayload({ restSeconds: 85 }))
 
@@ -657,6 +726,26 @@ describe("SyncService", () => {
       await drainQueue(USER_ID)
 
       expect(mockRpc).not.toHaveBeenCalled()
+    })
+
+    // Cycle 11: the writeback that caused the bug at #373 must NEVER mutate
+    // workout_exercises anymore — even when the queued payload still carries
+    // legacy progressionTargets (e.g. offline queue items from before deploy).
+    // See ADR 0006.
+    it("never updates workout_exercises, even when legacy progressionTargets are present in the payload", async () => {
+      // Cast through `unknown` because progressionTargets is no longer on the
+      // type — simulating an offline queue item from a pre-deploy build.
+      enqueueSessionFinish({
+        ...makeSessionFinishPayload(),
+        progressionTargets: [
+          { workoutExerciseId: "we-1", reps: 11, weight: 50, sets: 3 },
+          { workoutExerciseId: "we-2", reps: 8, weight: 80, sets: 4 },
+        ],
+      } as unknown as import("./syncService").SessionFinishPayload)
+
+      await drainQueue(USER_ID)
+
+      expect(workoutExercisesChain.update).not.toHaveBeenCalled()
     })
 
     it("auto-closes cycle when session_finish payload marks cycle completion", async () => {
@@ -882,70 +971,4 @@ describe("SyncService", () => {
     })
   })
 
-  // =========================================================================
-  // filterValidProgressionTargets
-  // =========================================================================
-
-  describe("filterValidProgressionTargets", () => {
-    function makeTarget(
-      overrides: Partial<import("./syncService").ProgressionTarget> = {},
-    ): import("./syncService").ProgressionTarget {
-      return {
-        workoutExerciseId: "we-1",
-        reps: 10,
-        weight: 80,
-        sets: 3,
-        ...overrides,
-      }
-    }
-
-    it("returns empty array when targets is undefined", () => {
-      expect(filterValidProgressionTargets(undefined)).toEqual([])
-    })
-
-    it("returns empty array when targets is empty", () => {
-      expect(filterValidProgressionTargets([])).toEqual([])
-    })
-
-    it("keeps a fully valid target", () => {
-      const targets = [makeTarget()]
-      expect(filterValidProgressionTargets(targets)).toHaveLength(1)
-    })
-
-    it("drops target with NaN reps", () => {
-      expect(filterValidProgressionTargets([makeTarget({ reps: NaN })])).toEqual([])
-    })
-
-    it("drops target with NaN weight", () => {
-      expect(filterValidProgressionTargets([makeTarget({ weight: NaN })])).toEqual([])
-    })
-
-    it("drops target with NaN sets", () => {
-      expect(filterValidProgressionTargets([makeTarget({ sets: NaN })])).toEqual([])
-    })
-
-    it("drops target with zero reps", () => {
-      expect(filterValidProgressionTargets([makeTarget({ reps: 0 })])).toEqual([])
-    })
-
-    it("drops target with zero sets", () => {
-      expect(filterValidProgressionTargets([makeTarget({ sets: 0 })])).toEqual([])
-    })
-
-    it("keeps target with zero weight (bodyweight exercise)", () => {
-      const targets = [makeTarget({ weight: 0 })]
-      expect(filterValidProgressionTargets(targets)).toHaveLength(1)
-    })
-
-    it("filters mixed valid and invalid targets", () => {
-      const targets = [
-        makeTarget({ reps: 10 }),
-        makeTarget({ reps: NaN }),
-        makeTarget({ sets: 0 }),
-      ]
-      const result = filterValidProgressionTargets(targets)
-      expect(result).toHaveLength(1)
-      expect(result[0].reps).toBe(10)
-    })
-  })
 })

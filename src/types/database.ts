@@ -65,6 +65,13 @@ export interface WorkoutExercise {
   duration_range_min_seconds?: number | null
   duration_range_max_seconds?: number | null
   duration_increment_seconds?: number | null
+  /**
+   * ISO timestamp of the last user-driven mutation to a session-target field
+   * (`reps` / `weight` / `sets` / `target_duration_seconds`). Maintained by a
+   * Postgres trigger; engine compares against `last_session.finished_at` to
+   * decide whether the **Manual Override Window** is open. See ADR 0006.
+   */
+  template_updated_at: string
 }
 
 /**

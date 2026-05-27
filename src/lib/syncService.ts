@@ -32,6 +32,15 @@ export type SetLogPayloadReps = {
   loggedAt: number
   rir?: number
   restSeconds?: number | null
+  /**
+   * Prescription Snapshot — the engine's pristine target for this set at
+   * session-start. Persisted to `set_logs.prescribed_*` columns so the engine
+   * can read its own past suggestions instead of the (now no-op) writeback
+   * onto `workout_exercises`. Optional for legacy queued payloads. See ADR 0006.
+   */
+  prescribedReps?: number | null
+  prescribedWeight?: number | null
+  prescribedSets?: number | null
 }
 
 /** Time-based set log; mutually exclusive with reps fields at rest. */
@@ -46,28 +55,13 @@ export type SetLogPayloadDuration = {
   /** Omitted on legacy queued payloads — treated as false in `processSetLog`. */
   wasPr?: boolean
   restSeconds?: number | null
+  /** Prescription Snapshot — see {@link SetLogPayloadReps}. */
+  prescribedDurationSeconds?: number | null
+  prescribedWeight?: number | null
+  prescribedSets?: number | null
 }
 
 export type SetLogPayload = SetLogPayloadReps | SetLogPayloadDuration
-
-export interface ProgressionTarget {
-  workoutExerciseId: string
-  reps: number
-  weight: number
-  sets: number
-  /** When present, this is a duration exercise target — write target_duration_seconds, not reps. */
-  targetDurationSeconds?: number
-}
-
-export function filterValidProgressionTargets(
-  targets: ProgressionTarget[] | undefined,
-): ProgressionTarget[] {
-  return (targets ?? []).filter((t) => {
-    if (isNaN(t.weight) || isNaN(t.sets) || t.sets <= 0) return false
-    if (t.targetDurationSeconds != null) return t.targetDurationSeconds > 0
-    return !isNaN(t.reps) && t.reps > 0
-  })
-}
 
 export interface SessionFinishPayload {
   sessionId: string
@@ -81,7 +75,6 @@ export interface SessionFinishPayload {
   hasSkippedSets: boolean
   cycleId?: string | null
   closeCycleOnComplete?: boolean
-  progressionTargets?: ProgressionTarget[]
 }
 
 // ---------------------------------------------------------------------------
@@ -640,6 +633,12 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       was_pr: p.wasPr === true,
       rir: isDuration ? null : (p.rir ?? null),
       rest_seconds: p.restSeconds ?? null,
+      // Prescription Snapshot — see ADR 0006. Reps payload doesn't carry a
+      // duration prescription (and vice versa); each branch nulls the other.
+      prescribed_reps: isDuration ? null : (p.prescribedReps ?? null),
+      prescribed_weight: p.prescribedWeight ?? null,
+      prescribed_sets: p.prescribedSets ?? null,
+      prescribed_duration_seconds: isDuration ? (p.prescribedDurationSeconds ?? null) : null,
     }
 
     const { error } = await supabase
@@ -686,28 +685,11 @@ async function processSessionFinish(
       return false
     }
 
-    const validTargets = filterValidProgressionTargets(p.progressionTargets)
-
-    if (validTargets.length > 0) {
-      const results = await Promise.all(
-        validTargets.map((t) => {
-          const shared = { weight: String(t.weight), sets: t.sets }
-          const fields =
-            t.targetDurationSeconds != null
-              ? { ...shared, target_duration_seconds: t.targetDurationSeconds }
-              : { ...shared, reps: String(t.reps) }
-          return supabase
-            .from("workout_exercises")
-            .update(fields)
-            .eq("id", t.workoutExerciseId)
-        }),
-      )
-      const failed = results.find((r) => r.error)
-      if (failed?.error) {
-        console.error("[SyncService] progression target update failed", failed.error)
-        return false
-      }
-    }
+    // Writeback removed per ADR 0006 — the engine now reads from
+    // set_logs.prescribed_* (the Prescription Snapshot), so mutating the
+    // template here would re-introduce the bug at #373. Legacy queued
+    // payloads carrying `progressionTargets` are tolerated (the field is
+    // ignored); no queue migration needed.
 
     if (p.closeCycleOnComplete && p.cycleId) {
       // `.is("finished_at", null)` makes this a no-op when the cycle was

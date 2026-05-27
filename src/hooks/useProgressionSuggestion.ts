@@ -14,22 +14,24 @@ export function useProgressionSuggestion(
   sessionStartedAt?: number | null,
   catalogExercise?: Exercise | null,
 ): ProgressionSuggestion | null {
-  const { data: lastPerformance } = useLastSessionDetail(
+  const { data: lastSessionDetail } = useLastSessionDetail(
     exercise.exercise_id,
     sessionStartedAt,
     measurementType,
   )
 
   return useMemo(() => {
-    if (!lastPerformance || lastPerformance.length === 0) return null
+    if (!lastSessionDetail || lastSessionDetail.sets.length === 0) return null
 
+    const { sets: lastPerformance, lastSessionFinishedAt } = lastSessionDetail
     const prescription = buildPrescription(exercise, lastPerformance, {
       measurementType,
       equipment,
       catalogExercise,
+      lastSessionFinishedAt,
     })
     if (prescription === null) return null
 
     return computeNextSessionTarget(prescription, lastPerformance)
-  }, [exercise, lastPerformance, measurementType, equipment, catalogExercise])
+  }, [exercise, lastSessionDetail, measurementType, equipment, catalogExercise])
 }

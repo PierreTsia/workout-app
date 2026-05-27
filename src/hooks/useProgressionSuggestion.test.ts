@@ -9,9 +9,18 @@ import type { SetPerformance } from "@/lib/progression"
 // ---------------------------------------------------------------------------
 
 let mockLastPerformance: SetPerformance[] | null = null
+let mockLastSessionFinishedAt = "2026-05-01T00:00:00Z"
 
 vi.mock("@/hooks/useLastSessionDetail", () => ({
-  useLastSessionDetail: () => ({ data: mockLastPerformance }),
+  useLastSessionDetail: () => ({
+    data:
+      mockLastPerformance == null
+        ? null
+        : {
+            sets: mockLastPerformance,
+            lastSessionFinishedAt: mockLastSessionFinishedAt,
+          },
+  }),
 }))
 
 // ---------------------------------------------------------------------------
@@ -37,6 +46,7 @@ function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise
     set_range_max: 5,
     weight_increment: null,
     max_weight_reached: false,
+    template_updated_at: "2020-01-01T00:00:00Z",
     ...overrides,
   }
 }
@@ -173,6 +183,31 @@ describe("useProgressionSuggestion", () => {
     expect(result.current!.reps).toBe(11)
     expect(result.current!.sets).toBe(3)
     expect(result.current!.weight).toBe(80)
+  })
+
+  // Cycle 8: hook threads lastSessionFinishedAt + prescribed_* through to
+  // buildPrescription, so a drifted exercise.reps doesn't poison the engine.
+  // Mirrors the canonical bug at the hook layer. See ADR 0006.
+  it("snapshot path: drifted exercise.reps does NOT trigger HOLD_INCOMPLETE when snapshot is clean", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+    ]
+    mockLastSessionFinishedAt = "2026-05-01T00:00:00Z"
+    const ex = makeExercise({
+      reps: "11", // simulates drifted post-bump or legacy template
+      weight: "50",
+      template_updated_at: "2026-01-01T00:00:00Z", // older than last session
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestion(ex, "reps"),
+    )
+
+    expect(result.current).not.toBeNull()
+    expect(result.current!.rule).toBe("REPS_UP")
+    expect(result.current!.reps).toBe(11)
   })
 
   it("returns HOLD_INCOMPLETE when not all sets were completed", () => {

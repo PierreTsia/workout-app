@@ -4,6 +4,30 @@ import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import type { SetPerformance } from "@/lib/progression"
 
+/**
+ * The last session's per-set log payload + metadata the engine needs to
+ * decide between the **Prescription Snapshot** and **Manual Override Window**
+ * read paths. See ADR 0006.
+ */
+export interface LastSessionDetail {
+  sets: SetPerformance[]
+  lastSessionFinishedAt: string
+}
+
+interface SetLogRow {
+  set_number: number
+  reps_logged: string | null
+  weight_logged: number
+  rir: number | null
+  session_id: string
+  duration_seconds: number | null
+  prescribed_reps: number | null
+  prescribed_weight: number | null
+  prescribed_sets: number | null
+  prescribed_duration_seconds: number | null
+  sessions: { finished_at: string | null } | null
+}
+
 export function useLastSessionDetail(
   exerciseId: string | undefined,
   sessionStartedAt?: number | null,
@@ -11,13 +35,18 @@ export function useLastSessionDetail(
 ) {
   const user = useAtomValue(authAtom)
 
-  return useQuery<SetPerformance[] | null>({
+  return useQuery<LastSessionDetail | null>({
     queryKey: ["last-session-detail", exerciseId, sessionStartedAt ?? null, measurementType ?? "reps"],
     staleTime: 30_000,
-    queryFn: async (): Promise<SetPerformance[] | null> => {
+    queryFn: async (): Promise<LastSessionDetail | null> => {
       let query = supabase
         .from("set_logs")
-        .select("set_number, reps_logged, weight_logged, rir, session_id, duration_seconds")
+        .select(
+          "set_number, reps_logged, weight_logged, rir, session_id, " +
+            "duration_seconds, prescribed_reps, prescribed_weight, " +
+            "prescribed_sets, prescribed_duration_seconds, " +
+            "sessions(finished_at)",
+        )
         .eq("exercise_id", exerciseId!)
 
       if (sessionStartedAt) {
@@ -31,26 +60,15 @@ export function useLastSessionDetail(
       if (error) throw error
       if (!data || data.length === 0) return null
 
-      const latestSessionId = (data[0] as { session_id: string }).session_id
-      const sessionLogs = data.filter(
-        (l) => (l as { session_id: string }).session_id === latestSessionId,
-      )
+      const rows = data as unknown as SetLogRow[]
+      const latestSessionId = rows[0].session_id
+      const sessionLogs = rows.filter((l) => l.session_id === latestSessionId)
 
       const isDuration = measurementType === "duration"
 
-      return sessionLogs
-        .filter((l) => {
-          const dur = (l as { duration_seconds: number | null }).duration_seconds
-          return isDuration ? dur != null : dur == null
-        })
-        .map((l) => {
-          const row = l as {
-            reps_logged: string | null
-            weight_logged: number
-            rir: number | null
-            duration_seconds: number | null
-          }
-
+      const sets = sessionLogs
+        .filter((l) => (isDuration ? l.duration_seconds != null : l.duration_seconds == null))
+        .map((row): SetPerformance => {
           if (isDuration) {
             return {
               reps: 0,
@@ -58,7 +76,11 @@ export function useLastSessionDetail(
               completed: true,
               rir: row.rir,
               durationSeconds: row.duration_seconds ?? 0,
-            } satisfies SetPerformance
+              prescribedReps: row.prescribed_reps,
+              prescribedWeight: row.prescribed_weight,
+              prescribedSets: row.prescribed_sets,
+              prescribedDurationSeconds: row.prescribed_duration_seconds,
+            }
           }
 
           const reps = parseInt(String(row.reps_logged), 10)
@@ -67,8 +89,20 @@ export function useLastSessionDetail(
             weight: Number(row.weight_logged) || 0,
             completed: true,
             rir: row.rir,
-          } satisfies SetPerformance
+            prescribedReps: row.prescribed_reps,
+            prescribedWeight: row.prescribed_weight,
+            prescribedSets: row.prescribed_sets,
+            prescribedDurationSeconds: row.prescribed_duration_seconds,
+          }
         })
+
+      // Embedded resource — Postgres returns sessions.finished_at as nullable;
+      // a session in flight (not yet finished) wouldn't have one. Defensive
+      // fallback to the row's logged_at would mask real bugs, so we coalesce
+      // to empty string and let the engine treat it as "no last session."
+      const lastSessionFinishedAt = rows[0].sessions?.finished_at ?? ""
+
+      return { sets, lastSessionFinishedAt }
     },
     enabled: !!exerciseId && !!user,
   })
