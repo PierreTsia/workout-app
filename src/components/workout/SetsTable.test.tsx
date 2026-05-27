@@ -180,6 +180,7 @@ describe("SetsTable", () => {
       reps: 11,
       weight: 60,
       sets: 3,
+      reasonKey: "progression.repsUp",
       delta: "+1 rep",
       volumeType: "reps",
     }

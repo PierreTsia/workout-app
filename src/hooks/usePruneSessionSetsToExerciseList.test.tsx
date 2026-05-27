@@ -25,6 +25,7 @@ const ROW_A: WorkoutExercise = {
   set_range_max: 5,
   weight_increment: null,
   max_weight_reached: false,
+  template_updated_at: "2020-01-01T00:00:00Z",
 }
 
 const BASE_SESSION: SessionState = {

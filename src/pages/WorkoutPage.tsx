@@ -189,7 +189,7 @@ type SessionFinishedStats = {
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
-  const { toDisplay, toKg } = useWeightUnit()
+  const { toDisplay } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBestPerformance = useSetAtom(sessionBestPerformanceAtom)
@@ -542,6 +542,9 @@ export function WorkoutPage() {
               set_range_max: 5,
               weight_increment: null,
               max_weight_reached: false,
+              // Fresh client-side patch row — no template edit history yet.
+              // Server-side INSERT will stamp the real value via DEFAULT now().
+              template_updated_at: new Date().toISOString(),
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
