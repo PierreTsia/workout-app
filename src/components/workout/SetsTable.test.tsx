@@ -219,8 +219,8 @@ describe("SetsTable", () => {
       ...BASE_SESSION,
       setsData: {
         "workout-ex-1": [
-          { kind: "reps", weight: 60, reps: 10, done: false },
-          { kind: "reps", weight: 60, reps: 10, done: false },
+          { kind: "reps", weight: "60", reps: "10", done: false },
+          { kind: "reps", weight: "60", reps: "10", done: false },
         ],
       },
     }
