@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Play, StopCircle } from "lucide-react"
 import { formatSecondsMMSS } from "@/lib/formatters"
+import { primeAudio, playWarningBeep, playFinishBeeps } from "@/lib/audio"
+import { buildBeepSchedule, type BeepFireSpec } from "@/lib/buildBeepSchedule"
+import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 const VIBRATE_PATTERN = [200, 100, 200] as const
+
+/** Suppress a warning beep if its tick fires this many ms late (pause/throttle). */
+const STALE_WARNING_WINDOW_MS = 1500
 
 interface DurationSetTimerProps {
   targetSeconds: number
@@ -36,9 +42,14 @@ export function DurationSetTimer({
 }: DurationSetTimerProps) {
   const { t } = useTranslation("workout")
   const [nowTick, setNowTick] = useState(() => Date.now())
-  const alarmFiredRef = useRef(false)
+  const firedBeepIndicesRef = useRef<Set<number>>(new Set())
   // Local edit state for the target input (seconds as string)
   const [editValue, setEditValue] = useState(String(targetSeconds))
+
+  const schedule = useMemo(
+    () => buildBeepSchedule(targetSeconds),
+    [targetSeconds],
+  )
 
   // Keep editValue in sync when targetSeconds changes externally
   useEffect(() => {
@@ -52,7 +63,7 @@ export function DurationSetTimer({
   }, [timerStartedAt, isWorkoutPaused])
 
   useEffect(() => {
-    alarmFiredRef.current = false
+    firedBeepIndicesRef.current = new Set()
   }, [timerStartedAt, targetSeconds])
 
   const elapsedSec =
@@ -62,34 +73,59 @@ export function DurationSetTimer({
   const remaining = Math.max(0, targetSeconds - elapsedSec)
   const isRunning = timerStartedAt != null
 
+  useKeepScreenAwake(isRunning && !isWorkoutPaused)
+
   useEffect(() => {
-    if (!isRunning || remaining > 0 || isWorkoutPaused) return
-    if (alarmFiredRef.current) return
-    alarmFiredRef.current = true
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate([...VIBRATE_PATTERN])
+    if (!isRunning || isWorkoutPaused || timerStartedAt == null) return
+    const elapsedMs = nowTick - timerStartedAt
+
+    function handleWarning(spec: BeepFireSpec) {
+      const isStale =
+        elapsedMs - spec.atMsFromStart >= STALE_WARNING_WINDOW_MS
+      if (!isStale) playWarningBeep()
     }
-    try {
-      const ctx = new AudioContext()
-      const o = ctx.createOscillator()
-      const g = ctx.createGain()
-      o.connect(g)
-      g.connect(ctx.destination)
-      g.gain.value = 0.08
-      o.frequency.value = 880
-      o.onended = () => {
-        void ctx.close().catch(() => {
-          /* ignore */
-        })
+
+    function handleFinish() {
+      playFinishBeeps()
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([...VIBRATE_PATTERN])
       }
-      o.start()
-      o.stop(ctx.currentTime + 0.15)
-    } catch {
-      /* ignore */
+      if (
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
+        try {
+          navigator.serviceWorker?.ready
+            .then((reg) =>
+              reg.showNotification(t("holdOverNotif"), {
+                body: t("holdOverBody"),
+              }),
+            )
+            .catch(() => {})
+        } catch {
+          // Notification API unavailable or restricted — silent fallback
+        }
+      }
+      onLog(targetSeconds)
     }
-    // Timer expired → auto-complete, no extra tap required
-    onLog(targetSeconds)
-  }, [remaining, isRunning, isWorkoutPaused, onLog, targetSeconds])
+
+    schedule.forEach((spec, idx) => {
+      if (firedBeepIndicesRef.current.has(idx)) return
+      if (elapsedMs < spec.atMsFromStart) return
+      firedBeepIndicesRef.current.add(idx)
+      if (spec.kind === "warning") handleWarning(spec)
+      else handleFinish()
+    })
+  }, [
+    nowTick,
+    isRunning,
+    isWorkoutPaused,
+    timerStartedAt,
+    schedule,
+    onLog,
+    targetSeconds,
+    t,
+  ])
 
   const timeDisplay = isRunning
     ? formatSecondsMMSS(remaining)
@@ -142,6 +178,7 @@ export function DurationSetTimer({
                 onBlockedByPause?.()
                 return
               }
+              primeAudio()
               onStart()
             }}
           >
