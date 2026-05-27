@@ -97,7 +97,7 @@ describe("useKeepScreenAwake", () => {
     const rejectingRequest = vi.fn().mockRejectedValue(new Error("denied"))
     vi.stubGlobal("navigator", { wakeLock: { request: rejectingRequest } })
     const unhandled = vi.fn()
-    process.on("unhandledRejection", unhandled)
+    window.addEventListener("unhandledrejection", unhandled)
 
     try {
       renderHook(() => useKeepScreenAwake(true))
@@ -105,7 +105,7 @@ describe("useKeepScreenAwake", () => {
       await new Promise((r) => setTimeout(r, 0))
       expect(unhandled).not.toHaveBeenCalled()
     } finally {
-      process.off("unhandledRejection", unhandled)
+      window.removeEventListener("unhandledrejection", unhandled)
     }
   })
 })
