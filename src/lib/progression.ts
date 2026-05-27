@@ -39,6 +39,15 @@ export interface SetPerformance {
   completed: boolean
   rir: number | null
   durationSeconds?: number
+  /**
+   * Prescription Snapshot — the engine's pristine target for this set at session-start.
+   * Source of `volume.current` / `currentSets` / `currentWeight` for subsequent sessions
+   * when the **Manual Override Window** is closed. NULL on legacy rows pre-migration. See ADR 0006.
+   */
+  prescribedReps?: number | null
+  prescribedWeight?: number | null
+  prescribedSets?: number | null
+  prescribedDurationSeconds?: number | null
 }
 
 export interface ProgressionSuggestion {
@@ -73,6 +82,15 @@ export interface BuildPrescriptionOptions {
   measurementType?: "reps" | "duration"
   equipment?: string
   catalogExercise?: { default_duration_seconds?: number | null } | null
+  /**
+   * ISO timestamp of the most recent session that logged this exercise.
+   * Compared against `exercise.template_updated_at` to decide whether the
+   * **Manual Override Window** is open: if the user edited the template
+   * since their last session, the engine reads from **Template Prescription**
+   * (today's path). Otherwise it reads from the **Prescription Snapshot** on
+   * the last session's set logs. See ADR 0006.
+   */
+  lastSessionFinishedAt?: string | null
 }
 
 export function buildPrescription(
@@ -80,13 +98,26 @@ export function buildPrescription(
   lastPerformance: SetPerformance[] | null,
   options: BuildPrescriptionOptions,
 ): ProgressionPrescription | null {
-  const { measurementType, equipment, catalogExercise } = options
+  const { measurementType, equipment, catalogExercise, lastSessionFinishedAt } = options
   const isDuration = measurementType === "duration"
+
+  // Manual Override Window: when the user edited the template since the last
+  // session's finish, the snapshot is stale by definition — fall through to
+  // template values. See ADR 0006.
+  const useSnapshot =
+    lastPerformance != null &&
+    lastPerformance.length > 0 &&
+    lastSessionFinishedAt != null &&
+    new Date(exercise.template_updated_at) <= new Date(lastSessionFinishedAt)
 
   let volume: VolumePrescription
 
   if (isDuration) {
+    const snapshotDuration = useSnapshot
+      ? lastPerformance[0].prescribedDurationSeconds
+      : null
     const target =
+      snapshotDuration ??
       exercise.target_duration_seconds ??
       catalogExercise?.default_duration_seconds ??
       DEFAULT_DURATION_SECONDS
@@ -98,11 +129,17 @@ export function buildPrescription(
       increment: exercise.duration_increment_seconds ?? DEFAULT_DURATION_INCREMENT,
     }
   } else {
-    let currentReps = parseInt(exercise.reps, 10)
-    if (isNaN(currentReps)) {
-      const inferredReps = lastPerformance?.[0]?.reps
-      if (!inferredReps || inferredReps <= 0) return null
-      currentReps = inferredReps
+    const snapshotReps = useSnapshot ? lastPerformance[0].prescribedReps : null
+    let currentReps: number
+    if (snapshotReps != null) {
+      currentReps = snapshotReps
+    } else {
+      currentReps = parseInt(exercise.reps, 10)
+      if (isNaN(currentReps)) {
+        const inferredReps = lastPerformance?.[0]?.reps
+        if (!inferredReps || inferredReps <= 0) return null
+        currentReps = inferredReps
+      }
     }
     volume = {
       type: "reps",
@@ -113,16 +150,29 @@ export function buildPrescription(
     }
   }
 
+  // Weight axis under the new Prescription Snapshot semantics (ADR 0006):
+  //   - snapshot path: prescribedWeight is the engine's last recorded target;
+  //     fall back to the logged weight only if the snapshot column is NULL
+  //     (legacy / partial-failure rows).
+  //   - template path (bootstrap OR override window): template wins so user
+  //     deloads via the Builder actually land.
+  //   - A 0 weight in either snapshot or logged weight is treated as "no
+  //     load recorded" → fall back to template (bodyweight / unset case).
   const templateWeight = Number(exercise.weight) || 0
-  const lastSessionWeight = lastPerformance?.[0]?.weight ?? 0
-  const currentWeight = lastSessionWeight > 0 ? lastSessionWeight : templateWeight
+  const snapshotWeight = useSnapshot
+    ? (lastPerformance[0].prescribedWeight ?? lastPerformance[0].weight)
+    : null
+  const currentWeight = snapshotWeight && snapshotWeight > 0 ? snapshotWeight : templateWeight
+
+  const snapshotSets = useSnapshot ? lastPerformance[0].prescribedSets : null
+  const currentSets = snapshotSets ?? exercise.sets
 
   return {
     volume,
     currentWeight,
-    currentSets: exercise.sets,
-    setRangeMin: exercise.set_range_min ?? Math.max(1, exercise.sets - 1),
-    setRangeMax: exercise.set_range_max ?? Math.min(6, exercise.sets + 2),
+    currentSets,
+    setRangeMin: exercise.set_range_min ?? Math.max(1, currentSets - 1),
+    setRangeMax: exercise.set_range_max ?? Math.min(6, currentSets + 2),
     weightIncrement: resolveWeightIncrement(exercise.weight_increment ?? null, equipment),
     maxWeightReached: exercise.max_weight_reached ?? false,
     currentReps: volume.type === "reps" ? volume.current : 0,

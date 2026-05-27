@@ -31,6 +31,7 @@ function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise
     set_range_max: 5,
     weight_increment: null,
     max_weight_reached: false,
+    template_updated_at: "2020-01-01T00:00:00Z",
     ...overrides,
   }
 }
@@ -38,6 +39,80 @@ function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise
 describe("useProgressionSuggestionsForDay", () => {
   beforeEach(() => {
     rpcMock.mockReset()
+  })
+
+  // Cycle 9: batched RPC hook maps the new prescribed_* + session_finished_at
+  // columns and threads them through buildPrescription. Mirrors the canonical
+  // bug at the day-level layer. See ADR 0006.
+  it("snapshot path: drifted exercise.reps does NOT trigger HOLD_INCOMPLETE when RPC returns clean prescribed_reps", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          exercise_id: "ex-1",
+          session_id: "sess-1",
+          set_number: 1,
+          reps_logged: "10",
+          weight_logged: 50,
+          rir: 2,
+          duration_seconds: null,
+          logged_at: "2026-05-26T10:00:00Z",
+          prescribed_reps: 10,
+          prescribed_weight: 50,
+          prescribed_sets: 3,
+          prescribed_duration_seconds: null,
+          session_finished_at: "2026-05-26T10:30:00Z",
+        },
+        {
+          exercise_id: "ex-1",
+          session_id: "sess-1",
+          set_number: 2,
+          reps_logged: "10",
+          weight_logged: 50,
+          rir: 2,
+          duration_seconds: null,
+          logged_at: "2026-05-26T10:00:00Z",
+          prescribed_reps: 10,
+          prescribed_weight: 50,
+          prescribed_sets: 3,
+          prescribed_duration_seconds: null,
+          session_finished_at: "2026-05-26T10:30:00Z",
+        },
+        {
+          exercise_id: "ex-1",
+          session_id: "sess-1",
+          set_number: 3,
+          reps_logged: "10",
+          weight_logged: 50,
+          rir: 2,
+          duration_seconds: null,
+          logged_at: "2026-05-26T10:00:00Z",
+          prescribed_reps: 10,
+          prescribed_weight: 50,
+          prescribed_sets: 3,
+          prescribed_duration_seconds: null,
+          session_finished_at: "2026-05-26T10:30:00Z",
+        },
+      ],
+      error: null,
+    })
+
+    const exercise = makeExercise({
+      reps: "11", // drifted post-bump
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z", // older than session_finished_at
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [exercise]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const suggestion = result.current.data.get("we-1")
+    expect(suggestion).not.toBeNull()
+    expect(suggestion!.rule).toBe("REPS_UP") // snapshot wins, NOT HOLD_INCOMPLETE
+    expect(suggestion!.reps).toBe(11)
   })
 
   it("returns an empty map and skips the RPC when exercises array is empty", () => {

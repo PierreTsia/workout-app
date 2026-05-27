@@ -29,6 +29,14 @@ interface LastPerformanceRow {
   rir: number | null
   duration_seconds: number | null
   logged_at: string
+  // Prescription Snapshot fields — nullable for legacy/in-flight rows. ADR 0006.
+  prescribed_reps: number | null
+  prescribed_weight: number | null
+  prescribed_sets: number | null
+  prescribed_duration_seconds: number | null
+  // Denormalized from sessions.finished_at — same value repeated on every row
+  // of the latest session. Engine gates the snapshot read on this.
+  session_finished_at: string | null
 }
 
 function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
@@ -39,6 +47,10 @@ function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
     completed: true,
     rir: row.rir,
     durationSeconds: row.duration_seconds ?? undefined,
+    prescribedReps: row.prescribed_reps,
+    prescribedWeight: row.prescribed_weight,
+    prescribedSets: row.prescribed_sets,
+    prescribedDurationSeconds: row.prescribed_duration_seconds,
   }
 }
 
@@ -70,8 +82,12 @@ function computeSuggestion(
   rows: LastPerformanceRow[],
 ): ProgressionSuggestion | null {
   const lastPerformance = rows.length > 0 ? rows.map(rowToSetPerformance) : null
+  // All rows of the latest session carry the same `session_finished_at` (the
+  // RPC denormalizes it). First row is sufficient.
+  const lastSessionFinishedAt = rows[0]?.session_finished_at ?? null
   const prescription = buildPrescription(exercise, lastPerformance, {
     measurementType: inferMeasurementType(rows),
+    lastSessionFinishedAt,
   })
   if (prescription === null) return null
   return computeNextSessionTarget(prescription, lastPerformance)

@@ -366,6 +366,7 @@ function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise
     set_range_max: 5,
     weight_increment: null,
     max_weight_reached: false,
+    template_updated_at: "2020-01-01T00:00:00Z",
     ...overrides,
   }
 }
@@ -418,15 +419,19 @@ describe("buildPrescription", () => {
     expect(result!.repRangeMax).toBe(0)
   })
 
-  it("uses last session weight as currentWeight when last performance exists, overriding template", () => {
+  it("uses last session weight as currentWeight when last performance exists (snapshot path, prescribedWeight NULL legacy row)", () => {
     const exercise = makeExercise({ reps: "10", weight: "48", sets: 3 })
+    // Legacy rows have NULL prescribedWeight; the snapshot path falls back to
+    // the logged weight in that case.
     const lastPerformance: SetPerformance[] = [
       { reps: 10, weight: 57, completed: true, rir: 1 },
       { reps: 10, weight: 57, completed: true, rir: 1 },
       { reps: 10, weight: 57, completed: true, rir: 1 },
     ]
 
-    const result = buildPrescription(exercise, lastPerformance, {})
+    const result = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })
 
     expect(result).not.toBeNull()
     expect(result!.currentWeight).toBe(57)
@@ -465,5 +470,321 @@ describe("buildPrescription", () => {
       min: 10,
       max: 14,
     })
+  })
+
+  // Duration axis: same Prescription Snapshot semantics as reps. The bug at
+  // #373 affects all four volume axes (see ADR 0006); duration must not read
+  // `target_duration_seconds` from a drifted template when the snapshot has
+  // the engine's prescribed value.
+  it("snapshot path: duration volume.current comes from prescribed_duration_seconds", () => {
+    const exercise = makeExercise({
+      reps: "0",
+      weight: "0",
+      sets: 3,
+      target_duration_seconds: 35, // simulates drifted template (post-bump from 30)
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 45,
+      duration_increment_seconds: 5,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 0,
+        weight: 0,
+        completed: true,
+        rir: null,
+        durationSeconds: 30,
+        prescribedDurationSeconds: 30, // engine prescribed 30 last session
+        prescribedSets: 3,
+      },
+      {
+        reps: 0,
+        weight: 0,
+        completed: true,
+        rir: null,
+        durationSeconds: 30,
+        prescribedDurationSeconds: 30,
+        prescribedSets: 3,
+      },
+      {
+        reps: 0,
+        weight: 0,
+        completed: true,
+        rir: null,
+        durationSeconds: 30,
+        prescribedDurationSeconds: 30,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "duration",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.volume.current).toBe(30) // snapshot wins
+  })
+
+  // Weight axis: same Prescription Snapshot semantics. The override window
+  // must let manual Builder edits to weight win (deload / return-from-injury).
+  // Today's code ignores both prescribedWeight and the override window — it
+  // always prefers lastPerformance[0].weight. See ADR 0006.
+  it("snapshot path: currentWeight comes from prescribedWeight, not from logged weight", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "60", // drifted post-bump
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    // Last session: prescribed 50, user actually loaded 55 (typo / impromptu bump).
+    // Snapshot must win — engine's currentWeight = 50, not 55.
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 55,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.currentWeight).toBe(50) // snapshot wins
+  })
+
+  it("override window: currentWeight reads template when user edited weight post-session (deload)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "40", // user deloaded from 50 to 40
+      sets: 3,
+      template_updated_at: "2026-06-01T00:00:00Z", // newer than last session
+    })
+
+    // Last session was at 50kg cleanly.
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-15T00:00:00Z", // older than template edit
+    })!
+
+    expect(prescription.currentWeight).toBe(40) // template wins → user's deload respected
+  })
+
+  // Sets axis: same Prescription Snapshot semantics. Drifted exercise.sets must
+  // not override the engine's prescribed_sets from the snapshot. See ADR 0006.
+  it("snapshot path: currentSets comes from prescribed_sets, not exercise.sets", () => {
+    const exercise = makeExercise({
+      reps: "12",
+      weight: "30",
+      sets: 4, // simulates drifted template (post-bump from 3)
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 12,
+        weight: 30,
+        completed: true,
+        rir: 2,
+        prescribedReps: 12,
+        prescribedWeight: 30,
+        prescribedSets: 3, // engine prescribed 3 sets last session
+      },
+      {
+        reps: 12,
+        weight: 30,
+        completed: true,
+        rir: 2,
+        prescribedReps: 12,
+        prescribedWeight: 30,
+        prescribedSets: 3,
+      },
+      {
+        reps: 12,
+        weight: 30,
+        completed: true,
+        rir: 2,
+        prescribedReps: 12,
+        prescribedWeight: 30,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.currentSets).toBe(3) // snapshot wins
+  })
+
+  // Bootstrap: no last session → no snapshot to read from. Template path always.
+  it("bootstrap: lastSessionFinishedAt null falls through to template", () => {
+    const exercise = makeExercise({ reps: "10", weight: "80", sets: 3 })
+
+    const result = buildPrescription(exercise, null, {
+      lastSessionFinishedAt: null,
+    })!
+
+    expect(result.volume.current).toBe(10)
+  })
+
+  // Manual Override Window: user edited the template after their last session
+  // (e.g. deloaded from 10 → 8 between sessions). Engine should respect the
+  // edit and read from template, not from the snapshot's pre-deload value.
+  // See ADR 0006.
+  it("override window: template wins when template_updated_at > last_session.finished_at", () => {
+    const exercise = makeExercise({
+      reps: "8", // user deloaded from 10 to 8
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-06-01T00:00:00Z", // newer than last session
+    })
+
+    // Last session was prescribed 11 (engine's pre-deload state), user logged 11.
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 11,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 11,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 11,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 11,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 11,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 11,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-15T00:00:00Z", // older than template edit
+    })!
+
+    // Template wins → user's manual deload is respected.
+    expect(prescription.volume.current).toBe(8)
+  })
+
+  // Regression for #373 — see ADR 0006.
+  // Pre-fix: writeback bumped exercise.reps to 11 after a successful REPS_UP,
+  // engine then read template = 11, compared against pre-bump logs of 10 → HOLD_INCOMPLETE.
+  // Post-fix: engine reads volume.current from set_logs.prescribed_reps (the Prescription Snapshot),
+  // ignoring any drift on workout_exercises.reps unless the user manually edited it post-session.
+  it("snapshot path: volume.current comes from prescribed_reps even if exercise.reps drifted", () => {
+    const exercise = makeExercise({
+      reps: "11", // simulates post-bump drift OR a legacy row
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z", // older than last session → snapshot wins
+    })
+
+    const lastPerformance: SetPerformance[] = [
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+      {
+        reps: 10,
+        weight: 50,
+        completed: true,
+        rir: 2,
+        prescribedReps: 10,
+        prescribedWeight: 50,
+        prescribedSets: 3,
+      },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    // Snapshot wins, not the drifted "11" template.
+    expect(prescription.volume.current).toBe(10)
+
+    // And the engine emits REPS_UP, not HOLD_INCOMPLETE — which is the bug fix.
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+    expect(result.rule).toBe("REPS_UP")
+    expect(result.reps).toBe(11)
   })
 })

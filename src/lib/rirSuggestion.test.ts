@@ -48,6 +48,7 @@ function makeExercise(
     weight: "80",
     rest_seconds: 90,
     sort_order: 0,
+    template_updated_at: "2020-01-01T00:00:00Z",
     ...overrides,
   }
 }

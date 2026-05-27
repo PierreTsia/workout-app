@@ -41,8 +41,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } from "@/lib/syncService"
-import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance, type VolumePrescription } from "@/lib/progression"
+import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
@@ -60,7 +59,6 @@ import {
   buildInitialSetRowsForExercise,
   mapRowsUpdateWeight,
   migrateSessionSetsData,
-  normalizeSessionSetRow,
   type SessionSetRow,
 } from "@/lib/sessionSetRow"
 import {
@@ -191,7 +189,7 @@ type SessionFinishedStats = {
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
-  const { toDisplay, toKg } = useWeightUnit()
+  const { toDisplay } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBestPerformance = useSetAtom(sessionBestPerformanceAtom)
@@ -544,6 +542,9 @@ export function WorkoutPage() {
               set_range_max: 5,
               weight_increment: null,
               max_weight_reached: false,
+              // Fresh client-side patch row — no template edit history yet.
+              // Server-side INSERT will stamp the real value via DEFAULT now().
+              template_updated_at: new Date().toISOString(),
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
@@ -766,108 +767,15 @@ export function WorkoutPage() {
       Math.round(getEffectiveElapsed(session, finishedAt)),
     )
 
-    const progressionTargets: ProgressionTarget[] = []
-    const autoDetectLoadingExercises: WorkoutExercise[] = []
-
-    for (const ex of exercises) {
-      const lib = exerciseById.get(ex.exercise_id)
-      const isDuration = lib?.measurement_type === "duration"
+    // Auto-detect loading — independent of the (removed) progression
+    // writeback. If the user logged weight on an exercise flagged as
+    // bodyweight-only (max_weight_reached=true), suggest flipping the flag.
+    // See ADR 0006 for the writeback removal context.
+    const autoDetectLoadingExercises = exercises.filter((ex) => {
+      if (ex.max_weight_reached !== true) return false
       const rawRows = session.setsData[ex.id] ?? []
-      const normalized = rawRows.map((r) => normalizeSessionSetRow(r))
-
-      let volume: VolumePrescription
-      let performance: SetPerformance[]
-
-      if (isDuration) {
-        const target =
-          ex.target_duration_seconds ??
-          lib?.default_duration_seconds ??
-          30
-        volume = {
-          type: "duration",
-          current: target,
-          min: ex.duration_range_min_seconds ?? Math.max(5, target - 10),
-          max: ex.duration_range_max_seconds ?? target + 15,
-          increment: ex.duration_increment_seconds ?? 5,
-        }
-        performance = normalized
-          .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "duration" } => r.kind === "duration")
-          .map((r) => ({
-            reps: 0,
-            weight: toKg(Number(r.weight) || 0),
-            completed: r.done,
-            rir: (r as { rir?: number }).rir ?? null,
-            durationSeconds: r.loggedSeconds ?? r.targetSeconds ?? 0,
-          }))
-      } else {
-        const currentReps = parseInt(ex.reps, 10)
-        if (isNaN(currentReps)) continue
-        volume = {
-          type: "reps",
-          current: currentReps,
-          min: ex.rep_range_min ?? Math.max(1, currentReps - 2),
-          max: ex.rep_range_max ?? currentReps + 2,
-          increment: 1,
-        }
-        performance = normalized
-          .filter((r): r is ReturnType<typeof normalizeSessionSetRow> & { kind: "reps" } => r.kind === "reps")
-          .map((r) => ({
-            reps: parseInt(r.reps, 10) || 0,
-            weight: toKg(Number(r.weight) || 0),
-            completed: r.done,
-            rir: (r as { rir?: number }).rir ?? null,
-          }))
-      }
-
-      if (performance.length === 0) continue
-
-      const maxPerformanceWeight = Math.max(0, ...performance.map((s) => s.weight))
-      const templateWeight = Number(ex.weight) || 0
-      const currentWeight = maxPerformanceWeight > 0 ? maxPerformanceWeight : templateWeight
-
-      const prescription: ProgressionPrescription = {
-        volume,
-        currentWeight,
-        currentSets: ex.sets,
-        setRangeMin: ex.set_range_min ?? Math.max(1, ex.sets - 1),
-        setRangeMax: ex.set_range_max ?? Math.min(6, ex.sets + 2),
-        weightIncrement: resolveWeightIncrement(ex.weight_increment ?? null, lib?.equipment),
-        maxWeightReached: ex.max_weight_reached ?? false,
-        currentReps: volume.type === "reps" ? volume.current : 0,
-        repRangeMin: volume.type === "reps" ? volume.min : 0,
-        repRangeMax: volume.type === "reps" ? volume.max : 0,
-      }
-
-      const suggestion = computeNextSessionTarget(prescription, performance)
-      if (
-        suggestion &&
-        suggestion.rule !== "HOLD_INCOMPLETE" &&
-        suggestion.rule !== "HOLD_NEAR_FAILURE" &&
-        !isNaN(suggestion.weight) &&
-        !isNaN(suggestion.sets) &&
-        suggestion.sets > 0
-      ) {
-        const target: ProgressionTarget = {
-          workoutExerciseId: ex.id,
-          reps: suggestion.reps,
-          weight: suggestion.weight,
-          sets: suggestion.sets,
-        }
-        if (isDuration && suggestion.duration != null) {
-          target.targetDurationSeconds = suggestion.duration
-        }
-        if (!isDuration && (isNaN(suggestion.reps) || suggestion.reps <= 0)) continue
-        progressionTargets.push(target)
-      }
-
-      // Auto-detect loading: if exercise has max_weight_reached=true but user logged weight > 0
-      if (ex.max_weight_reached === true) {
-        const hasWeight = rawRows.some((r) => Number(r.weight) > 0)
-        if (hasWeight) {
-          autoDetectLoadingExercises.push(ex)
-        }
-      }
-    }
+      return rawRows.some((r) => Number(r.weight) > 0)
+    })
 
     for (const ex of autoDetectLoadingExercises) {
       toast(t("autoDetectLoading", { name: ex.name_snapshot }), {
@@ -914,7 +822,6 @@ export function WorkoutPage() {
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
       closeCycleOnComplete,
-      progressionTargets: progressionTargets.length > 0 ? progressionTargets : undefined,
     })
     scheduleImmediateDrain()
 
