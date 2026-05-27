@@ -6,13 +6,18 @@
 
 ## Context
 
-After a successful `REPS_UP`, `enqueueSessionFinish` writes `suggestion.reps` back into `workout_exercises.reps` (`file:src/lib/syncService.ts:694-703`). On the *next* session, the engine reads `volume.current = parseInt(exercise.reps, 10)` from the now-mutated template (`file:src/lib/progression.ts:101`) and compares it against the previous session's logs — which still reflect the *pre-bump* prescription. The result: a clean previous session gets retroactively classified as `HOLD_INCOMPLETE`, with copy that says *"keeping 3×11"* under a *Dernière fois 3×10* line. The engine is scoring its own previous bump as a failure.
+> File references below describe the *pre-fix* code state. They intentionally
+> omit line numbers because the post-fix tree no longer matches; for the
+> historical positions, see PR [#375](https://github.com/PierreTsia/workout-app/pull/375)
+> diff against [merge-base `f5bff12`](https://github.com/PierreTsia/workout-app/commit/f5bff12).
 
-Three things make this worse than a single mislabel:
+After a successful `REPS_UP`, `enqueueSessionFinish` wrote `suggestion.reps` back into `workout_exercises.reps` (in `src/lib/syncService.ts`). On the *next* session, the engine read `volume.current = parseInt(exercise.reps, 10)` from the now-mutated template (in `src/lib/progression.ts`) and compared it against the previous session's logs — which still reflected the *pre-bump* prescription. The result: a clean previous session got retroactively classified as `HOLD_INCOMPLETE`, with copy that said *"keeping 3×11"* under a *Dernière fois 3×10* line. The engine was scoring its own previous bump as a failure.
 
-1. **The template lies about user intent.** The Builder shows `reps = 11` even though the user originally programmed `10`. Range strings (`"8-12"`) get clobbered to single integers (`"9"`) by the writeback's `String(t.reps)` cast, breaking `rirSuggestion.ts`'s range parsing.
-2. **The asymmetry was already documented.** `currentWeight` already prefers `lastPerformance.weight` over `templateWeight` (`file:src/lib/progression.ts:117-118`), making the writeback to `weight` decorative. `reps`, `sets`, and `target_duration_seconds` had no such guard and got the full bug.
-3. **No legitimate readers want the post-bump value.** An audit of every consumer of `workout_exercises.{reps,weight,sets}` found that they either (a) ignore the template in favor of the suggestion or last-row (e.g. `SetsTable.tsx:641`, `ExerciseEditRowControls.tsx:60`), (b) want user intent and are silently corrupted (Builder editors, range parsing), or (c) *are* the engine reading its own previous output.
+Three things made this worse than a single mislabel:
+
+1. **The template lied about user intent.** The Builder showed `reps = 11` even though the user originally programmed `10`. Range strings (`"8-12"`) got clobbered to single integers (`"9"`) by the writeback's `String(t.reps)` cast, breaking `rirSuggestion.ts`'s range parsing.
+2. **The asymmetry was already documented.** `currentWeight` already preferred `lastPerformance.weight` over `templateWeight` (in `src/lib/progression.ts`), making the writeback to `weight` decorative. `reps`, `sets`, and `target_duration_seconds` had no such guard and got the full bug.
+3. **No legitimate readers wanted the post-bump value.** An audit of every consumer of `workout_exercises.{reps,weight,sets}` found that they either (a) ignored the template in favor of the suggestion or last-row (e.g. `SetsTable.tsx`, `ExerciseEditRowControls.tsx`), (b) wanted user intent and were silently corrupted (Builder editors, range parsing), or (c) *were* the engine reading its own previous output.
 
 #371 made the bug visible everywhere by surfacing the **Progression Suggestion** on the pre-session list, but the bug itself predates #371. Same data path will produce identical mislabels on `HOLD_NEAR_FAILURE`, set-count, and duration axes.
 
@@ -56,7 +61,7 @@ We will:
 
 - Update `CONTEXT.md`: revise **Template Prescription**, add **Prescription Snapshot**, add **Manual Override Window**. *(Done in this commit.)*
 - Tech plan for the implementation (migration shape, engine refactor, set-log write path threading).
-- `sessionSummary.ts:121` reads `Number(ex.weight)` as `maxWeight` — latent drift bug now exposed (was masked by the writeback making `ex.weight` the high-water mark by accident). Consider shifting to `MAX(set_logs.weight_logged)`. Out of scope for this ADR.
+- `sessionSummary.ts` reads `Number(ex.weight)` as `maxWeight` — latent drift bug now exposed (was masked by the writeback making `ex.weight` the high-water mark by accident). Consider shifting to `MAX(set_logs.weight_logged)`. Out of scope for this ADR.
 - UX discoverability of the new override capability. With this fix, Builder edits to `weight` / `reps` / `sets` actually stick — but users don't know that. Whether to surface this (a "deload" button, a hint, etc.) is a separate product issue.
 
 ## Alternatives considered
