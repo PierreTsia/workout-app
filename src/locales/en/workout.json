@@ -177,6 +177,7 @@
   "progression.durationUp": "Duration up",
   "progression.durationUpDetail": "You nailed every set last time — bumped to {{duration}}s for {{sets}} sets at {{weight}} {{unit}}.",
   "progression.autoAppliedHint": "Already applied — edit any value to override.",
+  "progression.suggestionsUnavailable": "Suggestions unavailable — showing template values.",
   "progression.tryGenerator": "Try the AI program generator for a new cycle",
   "autoDetectLoading": "{{name}}: you logged weight — unlock weight progression?",
   "autoDetectLoadingAction": "Unlock",

@@ -39,9 +39,15 @@ const APPLIED_RULES = new Set<ProgressionRule>(["REPS_UP", "DURATION_UP", "WEIGH
 
 interface ProgressionPillProps {
   suggestion: ProgressionSuggestion
+  /**
+   * Compact mode renders icon-only — no text label — and exposes the rule reason
+   * as `aria-label` on the trigger. Used in dense surfaces (pre-session list rows)
+   * where the value the pill justifies is already next to it.
+   */
+  compact?: boolean
 }
 
-export function ProgressionPill({ suggestion }: ProgressionPillProps) {
+export function ProgressionPill({ suggestion, compact = false }: ProgressionPillProps) {
   const { t } = useTranslation("workout")
   const { toDisplay, unit } = useWeightUnit()
   const Icon = ICON_MAP[suggestion.rule]
@@ -49,13 +55,14 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
 
   const displayWeight = Math.round(toDisplay(suggestion.weight) * 10) / 10
 
+  const reasonText = t(suggestion.reasonKey)
   const shortLabel = (() => {
-    if (suggestion.delta === "—") return t(suggestion.reasonKey)
+    if (suggestion.delta === "—") return reasonText
     if (suggestion.rule === "WEIGHT_UP") {
       const displayIncrement = Math.round(toDisplay(Number(suggestion.delta)) * 10) / 10
-      return `${t(suggestion.reasonKey)} +${displayIncrement} ${unit}`
+      return `${reasonText} +${displayIncrement} ${unit}`
     }
-    return `${t(suggestion.reasonKey)} ${suggestion.delta}`
+    return `${reasonText} ${suggestion.delta}`
   })()
 
   return (
@@ -63,13 +70,15 @@ export function ProgressionPill({ suggestion }: ProgressionPillProps) {
       <PopoverTrigger asChild>
         <Badge
           variant="outline"
+          aria-label={compact ? reasonText : undefined}
           className={cn(
             "cursor-pointer gap-1.5 py-1 text-[11px] font-medium",
+            compact && "px-1.5",
             COLOR_MAP[suggestion.rule],
           )}
         >
           <Icon className="h-3 w-3 shrink-0" aria-hidden />
-          {shortLabel}
+          {!compact && shortLabel}
         </Badge>
       </PopoverTrigger>
       <PopoverContent side="top" align="end" className="w-64 flex flex-col gap-2 p-3 text-sm">

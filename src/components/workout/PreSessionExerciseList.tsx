@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next"
-import { Plus } from "lucide-react"
+import { AlertCircle, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ExerciseEditRowControls } from "@/components/workout/ExerciseEditRowControls"
+import type { ProgressionSuggestion } from "@/lib/progression"
 import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
 
 export interface PreSessionExerciseListProps {
@@ -14,6 +15,15 @@ export interface PreSessionExerciseListProps {
   onSwapBrowseLibrary: (row: WorkoutExercise) => void
   onRequestAddExerciseSheet: () => void
   onInspectExercise: (exerciseId: string) => void
+  /**
+   * Map of `exercise_id → ProgressionSuggestion | null` for #371.
+   * - Missing key (`undefined`) combined with `suggestionsLoading=true` → row shows skeleton.
+   * - `null` → row falls back to **Template Prescription**, no pill.
+   * - Otherwise → row renders engine values + compact `ProgressionPill`.
+   */
+  suggestionsByExerciseId?: Map<string, ProgressionSuggestion | null>
+  suggestionsLoading?: boolean
+  suggestionsError?: Error | null
 }
 
 export function PreSessionExerciseList({
@@ -25,6 +35,9 @@ export function PreSessionExerciseList({
   onRequestAddExerciseSheet,
   onSwapBrowseLibrary,
   onInspectExercise,
+  suggestionsByExerciseId,
+  suggestionsLoading = false,
+  suggestionsError = null,
 }: PreSessionExerciseListProps) {
   const { t } = useTranslation("workout")
 
@@ -32,6 +45,16 @@ export function PreSessionExerciseList({
 
   return (
     <div className="flex flex-col gap-2">
+      {suggestionsError ? (
+        <div
+          role="status"
+          className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground"
+        >
+          <AlertCircle className="h-3 w-3" aria-hidden />
+          <span>{t("progression.suggestionsUnavailable")}</span>
+        </div>
+      ) : null}
+
       {exercises.map((ex) => (
         <ExerciseEditRowControls
           key={ex.id}
@@ -43,6 +66,8 @@ export function PreSessionExerciseList({
           onDeleteRequested={onDeleteRequested}
           onSwapBrowseLibrary={onSwapBrowseLibrary}
           onInspectDetails={onInspectExercise}
+          suggestion={suggestionsByExerciseId?.get(ex.exercise_id)}
+          isLoadingSuggestion={suggestionsLoading}
         />
       ))}
 

@@ -533,6 +533,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
   queryClient.invalidateQueries({ queryKey: ["last-session-for-day"] })
+  queryClient.invalidateQueries({ queryKey: ["progression-suggestions-for-day"] })
   queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "workout-exercises" })
   queryClient.invalidateQueries({ queryKey: ["pr-aggregates"] })
   queryClient.invalidateQueries({ queryKey: ["training-activity-by-day"] })
