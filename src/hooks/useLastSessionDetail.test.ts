@@ -163,6 +163,26 @@ describe("useLastSessionDetail", () => {
     })
   })
 
+  // PR review #2+3: nullable, not empty-string-coalesced. Engine must gate on
+  // `lastSessionFinishedAt != null`, not on `new Date("") === Invalid Date`.
+  it("returns lastSessionFinishedAt = null when sessions.finished_at is missing (in-flight session)", async () => {
+    setLogsChain = createChain({
+      data: [
+        makeLog({
+          sessions: { finished_at: null },
+        }),
+      ],
+    })
+
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data!.lastSessionFinishedAt).toBeNull()
+  })
+
   it("keeps only the latest session when multiple sessions exist", async () => {
     setLogsChain = createChain({
       data: [

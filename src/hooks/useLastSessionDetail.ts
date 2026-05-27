@@ -8,10 +8,14 @@ import type { SetPerformance } from "@/lib/progression"
  * The last session's per-set log payload + metadata the engine needs to
  * decide between the **Prescription Snapshot** and **Manual Override Window**
  * read paths. See ADR 0006.
+ *
+ * `lastSessionFinishedAt` is null when the last session is in flight (no
+ * `finished_at` yet). The engine treats null as "no closed reference" and
+ * falls through to the template path.
  */
 export interface LastSessionDetail {
   sets: SetPerformance[]
-  lastSessionFinishedAt: string
+  lastSessionFinishedAt: string | null
 }
 
 interface SetLogRow {
@@ -97,10 +101,10 @@ export function useLastSessionDetail(
         })
 
       // Embedded resource — Postgres returns sessions.finished_at as nullable;
-      // a session in flight (not yet finished) wouldn't have one. Defensive
-      // fallback to the row's logged_at would mask real bugs, so we coalesce
-      // to empty string and let the engine treat it as "no last session."
-      const lastSessionFinishedAt = rows[0].sessions?.finished_at ?? ""
+      // a session in flight (not yet finished) wouldn't have one. Returning
+      // null lets the engine gate snapshot usage on `lastSessionFinishedAt !=
+      // null` instead of leaning on Invalid Date semantics.
+      const lastSessionFinishedAt = rows[0].sessions?.finished_at ?? null
 
       return { sets, lastSessionFinishedAt }
     },
