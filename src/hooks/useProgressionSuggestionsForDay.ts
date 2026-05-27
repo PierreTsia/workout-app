@@ -39,9 +39,16 @@ function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
 function groupRowsByExerciseId(
   rows: LastPerformanceRow[],
 ): Map<string, LastPerformanceRow[]> {
+  // Local push into the bucket array — the bucket is owned by the Map we're
+  // building and never escapes this function before assembly is complete, so
+  // semantically pure. Avoids O(N²) allocations from `[...existing, row]`.
   return rows.reduce<Map<string, LastPerformanceRow[]>>((acc, row) => {
-    const existing = acc.get(row.exercise_id) ?? []
-    acc.set(row.exercise_id, [...existing, row])
+    const list = acc.get(row.exercise_id)
+    if (list) {
+      list.push(row)
+    } else {
+      acc.set(row.exercise_id, [row])
+    }
     return acc
   }, new Map())
 }
