@@ -23,6 +23,16 @@ ALTER TABLE set_logs
 -- Eager backfill: legacy rows get prescribed = logged. Honest bounded lie
 -- documented in ADR 0006 — a partially-failed last session is masked as a
 -- clean one, bounded to at most one mislabel per affected user, then clean.
+--
+-- prescribed_sets uses COUNT(*) OVER (PARTITION BY ...) in a single CTE
+-- pass and is joined back by id — avoids the per-row correlated subquery
+-- that would scale O(N^2) on the set_logs table.
+WITH set_counts AS (
+  SELECT
+    id,
+    COUNT(*) OVER (PARTITION BY session_id, exercise_id) AS set_count
+  FROM set_logs
+)
 UPDATE set_logs sl
 SET
   prescribed_reps = CASE
@@ -32,13 +42,10 @@ SET
   END,
   prescribed_weight = sl.weight_logged,
   prescribed_duration_seconds = sl.duration_seconds,
-  prescribed_sets = (
-    SELECT COUNT(*)
-    FROM set_logs sl2
-    WHERE sl2.session_id = sl.session_id
-      AND sl2.exercise_id = sl.exercise_id
-  )
-WHERE sl.prescribed_reps IS NULL
+  prescribed_sets = sc.set_count
+FROM set_counts sc
+WHERE sl.id = sc.id
+  AND sl.prescribed_reps IS NULL
   AND sl.prescribed_weight IS NULL
   AND sl.prescribed_sets IS NULL
   AND sl.prescribed_duration_seconds IS NULL;
