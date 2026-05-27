@@ -39,6 +39,7 @@ import {
 } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
+import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, scheduleImmediateDrain, type ProgressionTarget } from "@/lib/syncService"
 import { computeNextSessionTarget, resolveWeightIncrement, type ProgressionPrescription, type SetPerformance, type VolumePrescription } from "@/lib/progression"
@@ -342,6 +343,15 @@ export function WorkoutPage() {
   const { data: lastWeights = {} } = useLastWeights(exerciseIds)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
+
+  const {
+    data: progressionSuggestionsByRowId,
+    isLoading: progressionSuggestionsLoading,
+    error: progressionSuggestionsError,
+  } = useProgressionSuggestionsForDay(
+    !isDayDoneInCycle ? session.currentDayId ?? null : null,
+    exercises,
+  )
 
   const { data: lastSessionForDay } = useLastSessionForDay(
     isDayDoneInCycle ? session.currentDayId : null,
@@ -1206,6 +1216,9 @@ export function WorkoutPage() {
                   onSwapBrowseLibrary={(row) => setSwapLibraryRowId(row.id)}
                   onRequestAddExerciseSheet={() => setAddExerciseSheetOpen(true)}
                   onInspectExercise={(id) => setInspectedExerciseId(id)}
+                  suggestionsByRowId={progressionSuggestionsByRowId}
+                  suggestionsLoading={progressionSuggestionsLoading}
+                  suggestionsError={progressionSuggestionsError}
                 />
               </div>
             )}

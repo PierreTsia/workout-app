@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest"
 import {
+  buildPrescription,
   computeNextSessionTarget,
   resolveWeightIncrement,
   type ProgressionPrescription,
   type SetPerformance,
   type VolumePrescription,
 } from "./progression"
+import type { WorkoutExercise } from "@/types/database"
 
 function makeVolume(
   overrides: Partial<VolumePrescription> = {},
@@ -342,5 +344,126 @@ describe("resolveWeightIncrement", () => {
     expect(resolveWeightIncrement(null)).toBe(2.5)
     expect(resolveWeightIncrement(null, "barbell")).toBe(2.5)
     expect(resolveWeightIncrement(null, "machine")).toBe(2.5)
+  })
+})
+
+function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise {
+  return {
+    id: "we-1",
+    workout_day_id: "day-1",
+    exercise_id: "ex-1",
+    name_snapshot: "Bench Press",
+    muscle_snapshot: "chest",
+    emoji_snapshot: "🏋️",
+    sets: 3,
+    reps: "10",
+    weight: "80",
+    rest_seconds: 90,
+    sort_order: 0,
+    rep_range_min: 8,
+    rep_range_max: 12,
+    set_range_min: 2,
+    set_range_max: 5,
+    weight_increment: null,
+    max_weight_reached: false,
+    ...overrides,
+  }
+}
+
+describe("buildPrescription", () => {
+  it("bootstraps a reps prescription from template values when no last performance", () => {
+    const exercise = makeExercise({ reps: "10", weight: "80", sets: 3 })
+
+    const result = buildPrescription(exercise, null, {})
+
+    expect(result).not.toBeNull()
+    expect(result!.volume).toMatchObject({
+      type: "reps",
+      current: 10,
+      min: 8,
+      max: 12,
+      increment: 1,
+    })
+    expect(result!.currentWeight).toBe(80)
+    expect(result!.currentSets).toBe(3)
+    expect(result!.weightIncrement).toBe(2.5)
+    expect(result!.maxWeightReached).toBe(false)
+  })
+
+  it("builds a duration prescription from explicit duration_range_* + increment", () => {
+    const exercise = makeExercise({
+      reps: "0",
+      weight: "0",
+      sets: 3,
+      target_duration_seconds: 30,
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 45,
+      duration_increment_seconds: 5,
+    })
+
+    const result = buildPrescription(exercise, null, {
+      measurementType: "duration",
+    })
+
+    expect(result).not.toBeNull()
+    expect(result!.volume).toMatchObject({
+      type: "duration",
+      current: 30,
+      min: 20,
+      max: 45,
+      increment: 5,
+    })
+    expect(result!.currentReps).toBe(0)
+    expect(result!.repRangeMin).toBe(0)
+    expect(result!.repRangeMax).toBe(0)
+  })
+
+  it("uses last session weight as currentWeight when last performance exists, overriding template", () => {
+    const exercise = makeExercise({ reps: "10", weight: "48", sets: 3 })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 10, weight: 57, completed: true, rir: 1 },
+      { reps: 10, weight: 57, completed: true, rir: 1 },
+      { reps: 10, weight: 57, completed: true, rir: 1 },
+    ]
+
+    const result = buildPrescription(exercise, lastPerformance, {})
+
+    expect(result).not.toBeNull()
+    expect(result!.currentWeight).toBe(57)
+  })
+
+  it("returns null when template reps is non-numeric and no inferred reps are available", () => {
+    const exercise = makeExercise({ reps: "AMRAP", weight: "80", sets: 3 })
+
+    expect(buildPrescription(exercise, null, {})).toBeNull()
+    expect(buildPrescription(exercise, [], {})).toBeNull()
+    expect(
+      buildPrescription(exercise, [{ reps: 0, weight: 80, completed: true, rir: 2 }], {}),
+    ).toBeNull()
+  })
+
+  it("infers reps from last performance when template reps is non-numeric", () => {
+    const exercise = makeExercise({
+      reps: "AMRAP",
+      weight: "80",
+      sets: 3,
+      rep_range_min: undefined,
+      rep_range_max: undefined,
+    })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 12, weight: 80, completed: true, rir: 2 },
+      { reps: 11, weight: 80, completed: true, rir: 2 },
+      { reps: 10, weight: 80, completed: true, rir: 1 },
+    ]
+
+    const result = buildPrescription(exercise, lastPerformance, {})
+
+    expect(result).not.toBeNull()
+    expect(result!.volume).toMatchObject({
+      type: "reps",
+      current: 12,
+      min: 10,
+      max: 14,
+    })
   })
 })

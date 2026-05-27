@@ -175,6 +175,7 @@
   "progression.durationUp": "Durée en hausse",
   "progression.durationUpDetail": "Toutes les séries réussies — passé à {{duration}}s pour {{sets}} séries à {{weight}} {{unit}}.",
   "progression.autoAppliedHint": "Déjà appliqué — modifie n'importe quelle valeur si besoin.",
+  "progression.suggestionsUnavailable": "Suggestions indisponibles — valeurs par défaut affichées.",
   "progression.tryGenerator": "Essaye le générateur IA pour un nouveau cycle",
   "historySheet.trendHintBodyweight": "Enregistrez cet exercice sur plusieurs séances pour voir la tendance de vos meilleures répétitions.",
   "historySheet.chartCaptionReps": "Meilleures Reps par séance",

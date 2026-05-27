@@ -104,3 +104,23 @@ The **Embedded Agent**-backed AI generation path triggered from `QuickWorkoutShe
 
 **`generate-quick-workout` + `commit-quick-workout` Edge Functions**:
 **V1** new Supabase Edge surface that backs **Quick Workout AI (v1)**, split into **two separate functions** (locked decision — see **ADR 0002 §3**). **Two-phase, Embedded-Agent-shaped** (see **Embedded Agent**) because `PreviewStep` allows the user to edit the AI's suggestion before committing — mirrors the **Onboarding program commit gate** pattern. **`generate-quick-workout` (preview, idempotent):** runs quota check (**`quick_workout`**), catalog/profile/history fetch, one-shot Gemini call with workout-specific prompt, validate-and-repair, returns `{ exercises[], rationale }` — **no database write**. **`commit-quick-workout` (commit, mutator):** accepts the post-edit `{ label, exercises[] }` payload, calls **MCP `create_workout_day`** server → MCP via **MCP Edge Function URL** with the user's session JWT as Bearer (auth dualism — PATs vs session JWTs — already supported by `file:supabase/functions/mcp/lib/authLogic.ts:80-82`, no new auth surface), `dry_run: false`. Returns `{ workout_day_id }`. No quota burn on commit (the LLM call already paid). **Why two functions, not one with modes:** preview and commit have different semantics (idempotent vs mutator), different observability shapes, different retry policies — splitting keeps each focused. Replaces `file:supabase/functions/generate-workout/` (deleted as part of this migration). **AI Save-as-draft does not flow through these functions** — drafts stay PWA-local via `useCreateQuickWorkout`.
+
+---
+
+## Progression engine
+
+**Progression Rule**:
+The decision the engine emits for a given exercise's next session, based on **Last Performance** + RIR averaging. Enum: `WEIGHT_UP | REPS_UP | SETS_UP | DURATION_UP | HOLD_INCOMPLETE | HOLD_NEAR_FAILURE | PLATEAU`. The first four are **auto-applied** (the **Progression Suggestion**'s value differs from the previous session); the last three hold the value steady for explanatory reasons.
+→ `file:src/lib/progression.ts`
+
+**Progression Suggestion**:
+Engine output for a single exercise: `{ rule, reps, weight, sets, delta, reasonKey, volumeType, duration? }`. The canonical "what should the user do this session" payload — drives the in-session **`SetsTable`**, the in-session `ProgressionPill`, and (post-#371) the pre-session list rows. Computed by `computeNextSessionTarget(prescription, lastPerformance)`. Falls back to `null` when there is no **Last Performance** to anchor against.
+→ `file:src/lib/progression.ts`, `file:src/hooks/useProgressionSuggestion.ts`
+
+**Template Prescription**:
+The `weight` / `reps` / `sets` (+ optional duration / range / increment fields) stored on `workout_exercises`, written exclusively by the Builder. Used by the engine **only as bootstrap fallback** when no **Last Performance** exists (i.e. the very first session for that exercise). Subsequent sessions ignore the template's `weight` and use the **Last Performance** weight instead — manual Builder edits to `weight` after the first session are effectively a no-op for the engine. Pre-existing limitation; deload / return-from-injury flows currently have no clean override path.
+→ `file:src/types/database.ts`
+
+**Last Performance**:
+The `set_logs` rows from the most recent session that logged a given exercise. Source of `currentWeight` for the engine when non-null (beats **Template Prescription**). Filtered by `logged_at < sessionStartedAt` when called in-session (so the live session's own logs don't pollute the comparison) or unfiltered pre-session.
+→ `file:src/hooks/useLastSessionDetail.ts`

@@ -163,4 +163,28 @@ describe("ProgressionPill", () => {
 
     expect(screen.getByText(/nailed every set/i)).toBeTruthy()
   })
+
+  describe("compact mode", () => {
+    it("renders icon only — no label text — but exposes the rule reason as aria-label", () => {
+      renderWithProviders(
+        <ProgressionPill suggestion={makeSuggestion("REPS_UP")} compact />,
+      )
+
+      expect(screen.queryByText(/Reps up/i)).toBeNull()
+      expect(screen.queryByText(/\+1 rep/)).toBeNull()
+      expect(screen.getByLabelText(/Reps up/i)).toBeTruthy()
+    })
+
+    it("opens the same detail popover as the default variant when triggered", async () => {
+      const user = userEvent.setup()
+      renderWithProviders(
+        <ProgressionPill suggestion={makeSuggestion("HOLD_NEAR_FAILURE")} compact />,
+      )
+
+      const trigger = screen.getByLabelText(/Hold.*near failure/i)
+      await user.click(trigger)
+
+      expect(screen.getByText(/Average RIR was very low/i)).toBeTruthy()
+    })
+  })
 })
