@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import type { PostgrestError } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
 import {
   buildPrescription,
@@ -11,7 +12,12 @@ import type { WorkoutExercise } from "@/types/database"
 export interface UseProgressionSuggestionsForDayResult {
   data: Map<string, ProgressionSuggestion | null>
   isLoading: boolean
-  error: Error | null
+  /**
+   * Supabase RPC errors come as `PostgrestError` (not `instanceof Error`).
+   * Typing it accurately so consumers don't accidentally rely on `Error`
+   * semantics like `.stack` / `.name` that won't be there.
+   */
+  error: PostgrestError | null
 }
 
 interface LastPerformanceRow {
@@ -77,7 +83,10 @@ export function useProgressionSuggestionsForDay(
 ): UseProgressionSuggestionsForDayResult {
   const enabled = exercises.length > 0 && dayId != null
 
-  const query = useQuery<Map<string, ProgressionSuggestion | null>>({
+  const query = useQuery<
+    Map<string, ProgressionSuggestion | null>,
+    PostgrestError
+  >({
     queryKey: [
       "progression-suggestions-for-day",
       dayId,
@@ -120,6 +129,6 @@ export function useProgressionSuggestionsForDay(
   return {
     data: query.data ?? new Map<string, ProgressionSuggestion | null>(),
     isLoading: query.isLoading,
-    error: (query.error as Error | null) ?? null,
+    error: query.error ?? null,
   }
 }

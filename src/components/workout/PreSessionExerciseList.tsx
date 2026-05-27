@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { AlertCircle, Plus } from "lucide-react"
+import type { PostgrestError } from "@supabase/supabase-js"
 import { Button } from "@/components/ui/button"
 import { ExerciseEditRowControls } from "@/components/workout/ExerciseEditRowControls"
 import type { ProgressionSuggestion } from "@/lib/progression"
@@ -25,7 +26,7 @@ export interface PreSessionExerciseListProps {
    */
   suggestionsByRowId?: Map<string, ProgressionSuggestion | null>
   suggestionsLoading?: boolean
-  suggestionsError?: Error | null
+  suggestionsError?: PostgrestError | null
 }
 
 export function PreSessionExerciseList({
