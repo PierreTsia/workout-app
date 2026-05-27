@@ -209,6 +209,79 @@ describe("SetsTable", () => {
     )
   })
 
+  // PR review #5: lock the prescription on the FIRST log. If the suggestion
+  // resolves asynchronously *after* the user already logged set 1, set 2 must
+  // still carry the same prescribed_* values — otherwise sets within a session
+  // would have inconsistent snapshots.
+  it("locks prescription on first set log and reuses it after suggestion resolves mid-session", async () => {
+    const user = userEvent.setup()
+    const sessionWithTwoSets: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", weight: 60, reps: 10, done: false },
+          { kind: "reps", weight: 60, reps: 10, done: false },
+        ],
+      },
+    }
+    const { store, rerender } = renderWithProviders(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, sessionWithTwoSets)
+    })
+
+    // First set: no suggestion yet → template values get captured + locked.
+    const checkboxes1 = screen.getAllByRole("checkbox")
+    await user.click(checkboxes1[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        prescribedReps: 10,
+        prescribedWeight: 60,
+        prescribedSets: 3,
+      }),
+    )
+
+    // Suggestion resolves mid-session (simulates async hook update).
+    const lateSuggestion: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 99,
+      weight: 999,
+      sets: 9,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+      volumeType: "reps",
+    }
+    rerender(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={lateSuggestion}
+      />,
+    )
+
+    // Second set: lock still holds → original template values, NOT the new suggestion.
+    const checkboxes2 = screen.getAllByRole("checkbox")
+    await user.click(checkboxes2[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        prescribedReps: 10,
+        prescribedWeight: 60,
+        prescribedSets: 3,
+      }),
+    )
+  })
+
   it("falls back to template values for sessionPrescription when no suggestion (bootstrap)", async () => {
     const user = userEvent.setup()
     const { store } = renderWithProviders(

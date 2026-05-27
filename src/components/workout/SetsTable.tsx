@@ -96,8 +96,10 @@ export function SetsTable({
 
   // Prescription Snapshot resolved at session-start (ADR 0006).
   // Engine's suggestion when available; otherwise the bootstrap template.
-  // Stable across the session — set logs all carry the same prescription
-  // regardless of mid-row edits to the displayed values.
+  // This memo gives us the *latest* prescription — it can flip when
+  // useProgressionSuggestion resolves async. We snapshot it lazily on the
+  // first set log (see `readLockedPrescription` below) so every set inside a
+  // given session carries the same prescribed_* values.
   const sessionPrescription = useMemo(() => {
     if (suggestion) {
       return {
@@ -115,6 +117,22 @@ export function SetsTable({
       duration: exercise.target_duration_seconds ?? undefined,
     }
   }, [suggestion, exercise.reps, exercise.weight, exercise.sets, exercise.target_duration_seconds])
+
+  // PR review #5: lock the prescription on the *first* set log of a session.
+  // Without this, if the user logs set 1 before useProgressionSuggestion
+  // resolves and set 2 after, the two rows carry different prescribed_*
+  // values — violating the "stable across the session" invariant the engine
+  // relies on. Re-keyed by sessionId so a new session captures fresh.
+  const lockedPrescriptionRef = useRef<{
+    sessionId: string
+    value: typeof sessionPrescription
+  } | null>(null)
+  const readLockedPrescription = (): typeof sessionPrescription => {
+    const locked = lockedPrescriptionRef.current
+    if (locked && locked.sessionId === sessionId) return locked.value
+    lockedPrescriptionRef.current = { sessionId, value: sessionPrescription }
+    return sessionPrescription
+  }
 
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
 
@@ -399,6 +417,7 @@ export function SetsTable({
 
       const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
 
+      const prescriptionForLog = readLockedPrescription()
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
@@ -411,9 +430,9 @@ export function SetsTable({
         loggedAt: Date.now(),
         rir,
         restSeconds,
-        prescribedReps: sessionPrescription.reps,
-        prescribedWeight: sessionPrescription.weight,
-        prescribedSets: sessionPrescription.sets,
+        prescribedReps: prescriptionForLog.reps,
+        prescribedWeight: prescriptionForLog.weight,
+        prescribedSets: prescriptionForLog.sets,
       })
       scheduleImmediateDrain()
 
@@ -571,6 +590,7 @@ export function SetsTable({
           ),
         }))
 
+        const prescriptionForLog = readLockedPrescription()
         enqueueSetLog({
           sessionId,
           exerciseId: exercise.exercise_id,
@@ -581,9 +601,9 @@ export function SetsTable({
           durationSeconds,
           wasPr,
           restSeconds,
-          prescribedDurationSeconds: sessionPrescription.duration ?? null,
-          prescribedWeight: sessionPrescription.weight,
-          prescribedSets: sessionPrescription.sets,
+          prescribedDurationSeconds: prescriptionForLog.duration ?? null,
+          prescribedWeight: prescriptionForLog.weight,
+          prescribedSets: prescriptionForLog.sets,
         })
         scheduleImmediateDrain()
 
