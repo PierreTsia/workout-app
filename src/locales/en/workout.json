@@ -55,6 +55,8 @@
   "pausedWorkoutDescription": "Resume the workout to log sets, switch exercises, add exercises, or finish.",
   "restOverNotif": "Rest over!",
   "restOverBody": "Time for your next set",
+  "holdOverNotif": "Hold complete!",
+  "holdOverBody": "Time to log your set",
   "finishEarly": "Finish workout early",
   "weightPerArm": "{{unit}}/arm",
   "addedWeight": "+{{unit}}",

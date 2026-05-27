@@ -55,6 +55,8 @@
   "pausedWorkoutDescription": "Reprenez la séance pour enregistrer les séries, changer d'exercice, en ajouter ou terminer.",
   "restOverNotif": "Repos terminé !",
   "restOverBody": "C'est parti pour la prochaine série",
+  "holdOverNotif": "Hold terminé !",
+  "holdOverBody": "Log ta série",
   "finishEarly": "Terminer la séance",
   "weightPerArm": "{{unit}}/bras",
   "addedWeight": "+{{unit}}",

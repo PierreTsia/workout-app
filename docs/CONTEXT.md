@@ -107,6 +107,18 @@ The **Embedded Agent**-backed AI generation path triggered from `QuickWorkoutShe
 
 ---
 
+## Workout execution
+
+**Duration Set Timer**:
+The in-session timer for duration-based exercises (planks, hollow holds, dead hangs) — distinct from the rest timer. Renders inside `SetsTable` as a two-cell unit (live MM:SS countdown + Play/Stop button). Fires audio + vibration at T=0 and auto-logs the set; the user does not tap a separate Log button. **Pre-existing limitation:** `elapsedSec` is **not pause-aware** (uses raw wall-clock vs **`useRestTimer`**'s `accumulatedPause`); resuming after a long pause insta-fires the alarm. Tracked separately from #374.
+→ `file:src/components/workout/DurationSetTimer.tsx`
+
+**Eyes-off Feedback**:
+The product-level promise that during a held isometric (plank, hollow hold, etc.) the user never needs to look at the screen to know how the set is going. Three layers, in order of reliability: **(1)** screen wake lock via **`useKeepScreenAwake`** to keep the visual countdown legible without re-unlocking the phone (foreground only); **(2)** sequenced audio cues at T-3 / T-2 / T-1 (660 Hz / 150 ms `playWarningBeep`) and a finish chime at T-0 (`playFinishBeeps`, two-note 880 → 1100 Hz) for eyes-closed / looking-up moments; **(3)** a service-worker notification at T-0 (best-effort, mirrors **`useRestTimer`**'s pattern) for the backgrounded / phone-in-pocket case. Centralized through **`src/lib/audio.ts`** + **`useKeepScreenAwake`** (see ADR 0006). Currently scoped to **Duration Set Timer**; **`useRestTimer`**'s 10-second warning is a credible future caller.
+→ `file:src/components/workout/DurationSetTimer.tsx`, `file:src/lib/audio.ts`, `file:src/hooks/useKeepScreenAwake.ts`
+
+---
+
 ## Progression engine
 
 **Progression Rule**:

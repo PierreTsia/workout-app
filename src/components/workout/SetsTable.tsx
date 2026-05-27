@@ -3,6 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBestPerformanceAtom } from "@/store/atoms"
+import { primeAudio } from "@/lib/audio"
 import { enqueueSetLog, scheduleImmediateDrain } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
@@ -339,6 +340,7 @@ export function SetsTable({
         onBlockedByPause?.()
         return
       }
+      primeAudio()
       setPendingSetIdx(null)
 
       const exerciseSets = [...(session.setsData[exercise.id] ?? [])].map((r) =>

@@ -9,43 +9,7 @@ import {
 import { useAtom, useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { restAtom, sessionAtom, type RestState } from "@/store/atoms"
-
-let audioCtx: AudioContext | null = null
-function getAudioCtx(): AudioContext {
-  if (!audioCtx) audioCtx = new AudioContext()
-  return audioCtx
-}
-
-function playBeep(frequency: number, durationMs: number, volume = 0.3) {
-  try {
-    const ctx = getAudioCtx()
-    if (ctx.state === "suspended") ctx.resume()
-
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-
-    osc.frequency.value = frequency
-    osc.type = "sine"
-    gain.gain.setValueAtTime(volume, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + durationMs / 1000)
-
-    osc.start()
-    osc.stop(ctx.currentTime + durationMs / 1000)
-  } catch {
-    // Web Audio not available — silent fallback
-  }
-}
-
-function playWarningBeep() {
-  playBeep(660, 150, 0.2)
-}
-
-function playFinishBeeps() {
-  playBeep(880, 200, 0.5)
-  setTimeout(() => playBeep(1100, 300, 0.5), 250)
-}
+import { playWarningBeep, playFinishBeeps } from "@/lib/audio"
 
 export function formatSeconds(s: number): string {
   const mins = Math.floor(s / 60)
