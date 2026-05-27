@@ -8,6 +8,14 @@ import type {
 } from "@/types/database"
 import type { ProgressionSuggestion } from "@/lib/progression"
 
+// Component import chain transitively pulls in `@/lib/supabase`, which calls
+// `createClient(supabaseUrl, ...)` at module load. CI doesn't expose the env
+// vars, so the import would crash. `vi.mock` is hoisted by vitest, so its
+// position relative to imports doesn't matter — convention here is after.
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 function makeExercise(
   overrides: Partial<WorkoutExercise> = {},
 ): WorkoutExercise {
