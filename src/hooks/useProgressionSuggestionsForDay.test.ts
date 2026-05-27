@@ -104,7 +104,7 @@ describe("useProgressionSuggestionsForDay", () => {
     expect(rpcMock).toHaveBeenCalledWith("get_last_performance_for_exercises", {
       p_exercise_ids: ["ex-1"],
     })
-    const suggestion = result.current.data.get("ex-1")
+    const suggestion = result.current.data.get("we-1")
     expect(suggestion).not.toBeNull()
     expect(suggestion!.rule).toBe("REPS_UP")
     expect(suggestion!.reps).toBe(11)
@@ -166,7 +166,7 @@ describe("useProgressionSuggestionsForDay", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-    const suggestion = result.current.data.get("ex-plank")
+    const suggestion = result.current.data.get("we-plank")
     expect(suggestion).not.toBeNull()
     expect(suggestion!.volumeType).toBe("duration")
     expect(suggestion!.rule).toBe("DURATION_UP")
@@ -203,9 +203,9 @@ describe("useProgressionSuggestionsForDay", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     expect(result.current.data.size).toBe(3)
-    expect(result.current.data.get("ex-1")).not.toBeNull()
-    expect(result.current.data.get("ex-2")).toBeNull()
-    expect(result.current.data.get("ex-3")).toBeNull()
+    expect(result.current.data.get("we-1")).not.toBeNull()
+    expect(result.current.data.get("we-2")).toBeNull()
+    expect(result.current.data.get("we-3")).toBeNull()
   })
 
   it("exposes the RPC error and yields an empty map on failure", async () => {

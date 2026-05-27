@@ -16,12 +16,14 @@ export interface PreSessionExerciseListProps {
   onRequestAddExerciseSheet: () => void
   onInspectExercise: (exerciseId: string) => void
   /**
-   * Map of `exercise_id → ProgressionSuggestion | null` for #371.
+   * Map of `workout_exercises.id → ProgressionSuggestion | null` for #371.
+   * Keyed by row id (not exercise_id) so two rows of the same exercise stay
+   * independent.
    * - Missing key (`undefined`) combined with `suggestionsLoading=true` → row shows skeleton.
    * - `null` → row falls back to **Template Prescription**, no pill.
    * - Otherwise → row renders engine values + compact `ProgressionPill`.
    */
-  suggestionsByExerciseId?: Map<string, ProgressionSuggestion | null>
+  suggestionsByRowId?: Map<string, ProgressionSuggestion | null>
   suggestionsLoading?: boolean
   suggestionsError?: Error | null
 }
@@ -35,7 +37,7 @@ export function PreSessionExerciseList({
   onRequestAddExerciseSheet,
   onSwapBrowseLibrary,
   onInspectExercise,
-  suggestionsByExerciseId,
+  suggestionsByRowId,
   suggestionsLoading = false,
   suggestionsError = null,
 }: PreSessionExerciseListProps) {
@@ -66,7 +68,7 @@ export function PreSessionExerciseList({
           onDeleteRequested={onDeleteRequested}
           onSwapBrowseLibrary={onSwapBrowseLibrary}
           onInspectDetails={onInspectExercise}
-          suggestion={suggestionsByExerciseId?.get(ex.exercise_id)}
+          suggestion={suggestionsByRowId?.get(ex.id)}
           isLoadingSuggestion={suggestionsLoading}
         />
       ))}

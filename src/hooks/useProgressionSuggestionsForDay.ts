@@ -91,10 +91,16 @@ export function useProgressionSuggestionsForDay(
         (data ?? []) as LastPerformanceRow[],
       )
 
+      // Keyed by `workout_exercises.id` (the row id) — not `exercise_id` —
+      // so two rows of the same exercise in a day stay independent (e.g. a
+      // user may queue the same movement twice with different prescriptions).
+      // Same `exercise_id` will read the same Last Performance from set_logs;
+      // resolving the deeper "two rows of the same exo, different intent"
+      // conflation is a pre-existing limitation tracked outside this PR.
       return exercises.reduce<Map<string, ProgressionSuggestion | null>>(
         (acc, exercise) => {
           const rows = rowsByExercise.get(exercise.exercise_id) ?? []
-          acc.set(exercise.exercise_id, computeSuggestion(exercise, rows))
+          acc.set(exercise.id, computeSuggestion(exercise, rows))
           return acc
         },
         new Map(),

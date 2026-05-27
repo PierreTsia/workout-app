@@ -345,7 +345,7 @@ export function WorkoutPage() {
   const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
 
   const {
-    data: progressionSuggestionsByExerciseId,
+    data: progressionSuggestionsByRowId,
     isLoading: progressionSuggestionsLoading,
     error: progressionSuggestionsError,
   } = useProgressionSuggestionsForDay(
@@ -1216,7 +1216,7 @@ export function WorkoutPage() {
                   onSwapBrowseLibrary={(row) => setSwapLibraryRowId(row.id)}
                   onRequestAddExerciseSheet={() => setAddExerciseSheetOpen(true)}
                   onInspectExercise={(id) => setInspectedExerciseId(id)}
-                  suggestionsByExerciseId={progressionSuggestionsByExerciseId}
+                  suggestionsByRowId={progressionSuggestionsByRowId}
                   suggestionsLoading={progressionSuggestionsLoading}
                   suggestionsError={progressionSuggestionsError}
                 />
