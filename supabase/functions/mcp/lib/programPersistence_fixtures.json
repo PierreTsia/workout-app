@@ -106,7 +106,7 @@
       "set_range_max": 5,
       "max_weight_reached": true,
       "duration_range_min_seconds": 20,
-      "duration_range_max_seconds": 45,
+      "duration_range_max_seconds": 90,
       "duration_increment_seconds": 5
     }
   },
@@ -143,7 +143,7 @@
       "set_range_max": 4,
       "max_weight_reached": true,
       "duration_range_min_seconds": 35,
-      "duration_range_max_seconds": 60,
+      "duration_range_max_seconds": 90,
       "duration_increment_seconds": 5
     }
   },
@@ -395,7 +395,7 @@
     }
   },
   {
-    "name": "T75 DURATION-FREEZE — plank 4×30s with targetDurationSeconds=30 freezes duration_range_min/max_seconds to 30 (no spread)",
+    "name": "#379 DURATION-HEADROOM — plank 4×30s with targetDurationSeconds=30 freezes min to 30 but opens max to the 90s progression ceiling",
     "exercise": {
       "id": "ex-plank",
       "name": "Plank",
@@ -429,12 +429,12 @@
       "set_range_max": 6,
       "max_weight_reached": true,
       "duration_range_min_seconds": 30,
-      "duration_range_max_seconds": 30,
+      "duration_range_max_seconds": 90,
       "duration_increment_seconds": 5
     }
   },
   {
-    "name": "T75 DURATION-OVERRIDES-CATALOG — hang 3×60s with targetDurationSeconds=60 overrides catalog default 45",
+    "name": "#379 DURATION-OVERRIDES-CATALOG — hang 3×60s with targetDurationSeconds=60 overrides catalog default 45, max opens to 90s ceiling",
     "exercise": {
       "id": "ex-hang",
       "name": "Hang",
@@ -468,7 +468,7 @@
       "set_range_max": 5,
       "max_weight_reached": true,
       "duration_range_min_seconds": 60,
-      "duration_range_max_seconds": 60,
+      "duration_range_max_seconds": 90,
       "duration_increment_seconds": 5
     }
   }

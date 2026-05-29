@@ -11,6 +11,18 @@
 
 export const AI_PROGRAM_DAY_EMOJIS = ["💪", "🔥", "⚡", "🏋️", "🎯", "🚀"] as const
 
+/**
+ * Web-parity copy of `DURATION_TARGET_CEILING_SECONDS` / `deriveDurationRangeMax`
+ * from `file:src/lib/progression.ts` — Deno can't import the web module. Keep in sync.
+ * Isometric holds progress on time, not load: never freeze the ceiling below this so
+ * the engine keeps suggesting DURATION_UP up to it before a real plateau. See #379.
+ */
+export const DURATION_TARGET_CEILING_SECONDS = 90
+
+export function deriveDurationRangeMax(baseMax: number): number {
+  return Math.max(baseMax, DURATION_TARGET_CEILING_SECONDS)
+}
+
 export function dayEmojiForProgramDayIndex(dayIndex: number): string {
   return AI_PROGRAM_DAY_EMOJIS[dayIndex % AI_PROGRAM_DAY_EMOJIS.length]
 }
@@ -170,9 +182,7 @@ function buildWorkoutExerciseInsertRow(
         : Math.max(5, defaultSec - 10),
     duration_range_max_seconds: !isDuration
       ? null
-      : useExplicitDuration
-        ? effectiveDurationSec
-        : defaultSec + 15,
+      : deriveDurationRangeMax(useExplicitDuration ? effectiveDurationSec : defaultSec + 15),
     duration_increment_seconds: isDuration ? 5 : null,
   }
 }

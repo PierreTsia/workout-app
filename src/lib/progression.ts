@@ -70,6 +70,26 @@ const DURATION_BAND_LOW = 10
 const DURATION_BAND_HIGH = 15
 const DEFAULT_DURATION_INCREMENT = 5
 
+/**
+ * Progression ceiling for isometric/duration exercises (planks, hollow holds, hangs).
+ * Unlike weighted lifts — which progress on load — bodyweight holds have only one
+ * meaningful lever: time. Freezing `duration_range_max_seconds` to the starting
+ * target (T75 behavior) made the engine declare PLATEAU on the very first successful
+ * session. We instead keep climbing the hold in `DEFAULT_DURATION_INCREMENT` steps up
+ * to this ceiling before a real plateau — past which a new stimulus beats raw seconds.
+ * See issue #379.
+ */
+export const DURATION_TARGET_CEILING_SECONDS = 90
+
+/**
+ * Resolve the persisted `duration_range_max_seconds` so the progression engine always
+ * has headroom: never cap below {@link DURATION_TARGET_CEILING_SECONDS}, but preserve a
+ * higher explicit ceiling if a caller deliberately prescribed one (e.g. a 120s plank).
+ */
+export function deriveDurationRangeMax(baseMax: number): number {
+  return Math.max(baseMax, DURATION_TARGET_CEILING_SECONDS)
+}
+
 export function resolveWeightIncrement(
   userIncrement: number | null | undefined,
   equipment?: string,

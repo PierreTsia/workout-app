@@ -1,3 +1,4 @@
+import { deriveDurationRangeMax } from "@/lib/progression"
 import type { GeneratedExercise } from "@/types/generator"
 
 /** Emojis assigned to each program day index when persisting AI-generated programs (matches UI preview). */
@@ -120,9 +121,7 @@ function buildWorkoutExerciseInsertRow(
         : Math.max(5, defaultSec - 10),
     duration_range_max_seconds: !isDuration
       ? null
-      : useExplicitDuration
-        ? effectiveDurationSec
-        : defaultSec + 15,
+      : deriveDurationRangeMax(useExplicitDuration ? effectiveDurationSec : defaultSec + 15),
     duration_increment_seconds: isDuration ? 5 : null,
   }
 }

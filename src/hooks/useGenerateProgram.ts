@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { getDefaultStore } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { adaptForExperience, resolveEquipmentSwap } from "@/lib/generateProgram"
+import { deriveDurationRangeMax } from "@/lib/progression"
 import { fetchExercisesByIds } from "@/lib/fetchExercisesByIds"
 import { authAtom, hasProgramAtom, activeProgramIdAtom } from "@/store/atoms"
 import type { UserProfile, ExerciseAlternative, ProgramTemplate } from "@/types/onboarding"
@@ -143,7 +144,7 @@ export function useGenerateProgram() {
               set_range_max: Math.min(6, adapted.sets + 2),
               max_weight_reached: isBodyweight ? true : false,
               duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
-              duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+              duration_range_max_seconds: isDuration ? deriveDurationRangeMax(defaultSec + 15) : null,
               duration_increment_seconds: isDuration ? 5 : null,
             }
           })
