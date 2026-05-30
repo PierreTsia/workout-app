@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest"
 import {
   buildPrescription,
   computeNextSessionTarget,
+  deriveDurationRangeMax,
   resolveWeightIncrement,
+  DURATION_TARGET_CEILING_SECONDS,
   type ProgressionPrescription,
   type SetPerformance,
   type VolumePrescription,
@@ -320,6 +322,44 @@ describe("computeNextSessionTarget — duration exercises", () => {
     expect(result.rule).toBe("PLATEAU")
     expect(result.duration).toBe(45)
     expect(result.sets).toBe(5)
+  })
+
+  // Regression for #379: an iso bodyweight hold (hollow hold / planche) sitting at
+  // its STARTING target must keep climbing the time axis, not plateau. The bug was a
+  // persistence freeze that set volume.max === volume.current; with the 90s ceiling
+  // the engine correctly suggests DURATION_UP.
+  it("DURATION_UP — iso hold at 5×35s with 90s ceiling keeps climbing (#379)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 35, min: 35, max: 90 }),
+      currentWeight: 0,
+      currentSets: 5,
+      maxWeightReached: true,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(5, 35)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("DURATION_UP")
+    expect(result.duration).toBe(40)
+    expect(result.delta).toBe("+5s")
+    expect(result.sets).toBe(5)
+  })
+
+  // The flip side: once the hold reaches the 90s ceiling and every other axis is
+  // maxed, a real PLATEAU is the correct verdict (time to vary the stimulus).
+  it("PLATEAU — iso hold only once it reaches the 90s ceiling (#379)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 90, min: 35, max: 90 }),
+      currentWeight: 0,
+      currentSets: 5,
+      maxWeightReached: true,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(5, 90)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.duration).toBe(90)
   })
 
   it("first session for duration — returns null", () => {
@@ -786,5 +826,18 @@ describe("buildPrescription", () => {
     const result = computeNextSessionTarget(prescription, lastPerformance)!
     expect(result.rule).toBe("REPS_UP")
     expect(result.reps).toBe(11)
+  })
+})
+
+describe("deriveDurationRangeMax (#379)", () => {
+  it("raises a low ceiling up to the 90s progression ceiling", () => {
+    expect(deriveDurationRangeMax(35)).toBe(90) // explicit freeze case
+    expect(deriveDurationRangeMax(45)).toBe(90) // default 30 + band
+    expect(DURATION_TARGET_CEILING_SECONDS).toBe(90)
+  })
+
+  it("preserves a deliberately higher explicit ceiling", () => {
+    expect(deriveDurationRangeMax(120)).toBe(120)
+    expect(deriveDurationRangeMax(90)).toBe(90)
   })
 })

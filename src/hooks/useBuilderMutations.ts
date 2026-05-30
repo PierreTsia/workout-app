@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { deriveDurationRangeMax } from "@/lib/progression"
 import { authAtom } from "@/store/atoms"
 import type {
   Exercise,
@@ -122,7 +123,7 @@ export function useAddExerciseToDay() {
         set_range_max: 5,
         max_weight_reached: isBodyweight ? true : false,
         duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
-        duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+        duration_range_max_seconds: isDuration ? deriveDurationRangeMax(defaultSec + 15) : null,
         duration_increment_seconds: isDuration ? 5 : null,
       })
       if (error) throw error
@@ -172,7 +173,7 @@ export function useAddExercisesToDay() {
           set_range_max: 5,
           max_weight_reached: isBodyweight ? true : false,
           duration_range_min_seconds: isDuration ? Math.max(5, defaultSec - 10) : null,
-          duration_range_max_seconds: isDuration ? defaultSec + 15 : null,
+          duration_range_max_seconds: isDuration ? deriveDurationRangeMax(defaultSec + 15) : null,
           duration_increment_seconds: isDuration ? 5 : null,
         }
       })
