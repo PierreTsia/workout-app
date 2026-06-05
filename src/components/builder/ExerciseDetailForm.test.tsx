@@ -4,6 +4,10 @@ import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import type { WorkoutExercise } from "@/types/database"
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 const mutate = vi.fn()
 vi.mock("@/hooks/useBuilderMutations", () => ({
   useUpdateExercise: () => ({ mutate }),

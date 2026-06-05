@@ -4,6 +4,10 @@ import { renderWithProviders } from "@/test/utils"
 import type { WorkoutExercise } from "@/types/database"
 import { ExerciseRow } from "./ExerciseRow"
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise {
   return {
     id: "ex-1",
