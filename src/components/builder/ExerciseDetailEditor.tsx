@@ -10,9 +10,12 @@ interface ExerciseDetailEditorProps {
 }
 
 /**
- * Fetches the exercise + its library entry and gates rendering until both are
- * loaded, then mounts {@link ExerciseDetailForm} keyed on exercise + unit so the
- * form's lazy seed always reflects the persisted prescription.
+ * Fetches the exercise + its library entry and gates rendering until the
+ * exercise is found and the library lookup has settled (resolved or
+ * confirmed-absent — `libExercise` may legitimately be `undefined` for an
+ * exercise no longer in the catalog). Then mounts {@link ExerciseDetailForm}
+ * keyed on exercise + unit so the form's lazy seed reflects the persisted
+ * prescription.
  */
 export function ExerciseDetailEditor({
   dayId,
