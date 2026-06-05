@@ -1,7 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Link } from "react-router-dom"
-import { GripVertical, Pencil, Trash2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { GripVertical, Pencil, Timer, Trash2 } from "lucide-react"
 import type { WorkoutExercise } from "@/types/database"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
@@ -17,6 +18,7 @@ interface ExerciseRowProps {
 }
 
 export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
+  const { t } = useTranslation("builder")
   const { formatWeight } = useWeightUnit()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const {
@@ -63,8 +65,14 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-7 w-7" />
           <span className="text-sm font-medium">{exercise.name_snapshot}</span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {exercise.muscle_snapshot} &middot; {summary}
+        <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+          <span>
+            {exercise.muscle_snapshot} &middot; {summary}
+          </span>
+          <span className="inline-flex items-center gap-0.5">
+            &middot; <Timer className="h-3 w-3" />
+            {t("restShort", { seconds: exercise.rest_seconds })}
+          </span>
         </p>
       </div>
 
