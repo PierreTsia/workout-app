@@ -177,7 +177,7 @@ export function buildPrescription(
   // there is no "incomplete weight". The user lifted exactly what they lifted.
   // Reading prescribed_weight let the engine read back its own stale bootstrap
   // suggestion forever, so a user grinding 50kg under a 29.5kg prescription kept
-  // being shown 29.5kg session after session (issue #382). This restores the
+  // being shown 29.5kg session after session (follow-up to #381). This restores the
   // pre-ADR-0006 behavior the ADR unified away by accident (see ADR ctx §2).
   //   - snapshot path (override window closed): last session's logged weight.
   //   - template path (bootstrap OR override window open): template wins, so a

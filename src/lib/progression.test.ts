@@ -570,7 +570,7 @@ describe("buildPrescription", () => {
   // axis that intentionally diverges from ADR 0006's "read prescribed_*" rule:
   // there is no "incomplete weight" signal to preserve, so the engine must
   // follow what the user actually lifted. Reading prescribedWeight here made the
-  // engine read back its own stale bootstrap forever (issue #382). The override
+  // engine read back its own stale bootstrap forever (follow-up to #381). The override
   // window still lets a deliberate Builder deload win (separate test below).
   it("snapshot path: currentWeight comes from the logged weight, not prescribedWeight", () => {
     const exercise = makeExercise({
