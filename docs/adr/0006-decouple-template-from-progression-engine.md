@@ -4,6 +4,12 @@
 - **Date:** 2026-05-27
 - **Decided in:** Grilling session for [#373 — Engine retroactively reframes 'nailed it' as 'missed reps' after a REPS_UP bump](https://github.com/PierreTsia/workout-app/issues/373)
 
+## Correction (2026-06-07, issue #382)
+
+Point 6 below ("apply to all four volume axes in one PR") over-reached on the **weight** axis. Snapshotting `prescribed_weight` and reading it back as `currentWeight` was correct for reps/sets/duration — where it preserves the `HOLD_INCOMPLETE` signal ("attempted 11, managed 8") — but wrong for weight, which has no "incomplete" notion: the user lifts exactly the load they lift. The unified rule made the engine read back its own stale bootstrap suggestion forever, so a user grinding 50kg under a 29.5kg prescription kept being shown 29.5kg every session (and the inverse: a 57.4kg prescription shown while lifting 29kg).
+
+**Fix:** `buildPrescription` now derives `currentWeight` from the last session's **logged** weight (`weight_logged`) on the snapshot path, falling back to template on bootstrap or an open override window. This restores the pre-#373 weight behavior noted in Context §2 below. Reps/sets/duration are unchanged. No data migration needed — the fix simply stops reading the (still-persisted) `prescribed_weight` column for the weight axis. See `src/lib/progression.ts`.
+
 ## Context
 
 > File references below describe the *pre-fix* code state. They intentionally

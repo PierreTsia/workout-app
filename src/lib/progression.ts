@@ -170,19 +170,23 @@ export function buildPrescription(
     }
   }
 
-  // Weight axis under the new Prescription Snapshot semantics (ADR 0006):
-  //   - snapshot path: prescribedWeight is the engine's last recorded target;
-  //     fall back to the logged weight only if the snapshot column is NULL
-  //     (legacy / partial-failure rows).
-  //   - template path (bootstrap OR override window): template wins so user
-  //     deloads via the Builder actually land.
-  //   - A 0 weight in either snapshot or logged weight is treated as "no
-  //     load recorded" → fall back to template (bodyweight / unset case).
+  // Weight axis tracks REALITY (the load actually lifted), not the engine's
+  // session-start prescription. This is the one axis where ADR 0006's unifying
+  // "read prescribed_*" rule was wrong: unlike reps/sets/duration — where the
+  // snapshot preserves the HOLD_INCOMPLETE signal ("attempted 11, managed 8") —
+  // there is no "incomplete weight". The user lifted exactly what they lifted.
+  // Reading prescribed_weight let the engine read back its own stale bootstrap
+  // suggestion forever, so a user grinding 50kg under a 29.5kg prescription kept
+  // being shown 29.5kg session after session (issue #382). This restores the
+  // pre-ADR-0006 behavior the ADR unified away by accident (see ADR ctx §2).
+  //   - snapshot path (override window closed): last session's logged weight.
+  //   - template path (bootstrap OR override window open): template wins, so a
+  //     deliberate Builder deload still lands.
+  //   - A 0 logged weight means "no load recorded" → fall back to template
+  //     (bodyweight / unset case).
   const templateWeight = Number(exercise.weight) || 0
-  const snapshotWeight = useSnapshot
-    ? (lastPerformance[0].prescribedWeight ?? lastPerformance[0].weight)
-    : null
-  const currentWeight = snapshotWeight && snapshotWeight > 0 ? snapshotWeight : templateWeight
+  const loggedWeight = useSnapshot ? lastPerformance[0].weight : null
+  const currentWeight = loggedWeight && loggedWeight > 0 ? loggedWeight : templateWeight
 
   const snapshotSets = useSnapshot ? lastPerformance[0].prescribedSets : null
   const currentSets = snapshotSets ?? exercise.sets
