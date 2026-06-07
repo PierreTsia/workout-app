@@ -566,11 +566,13 @@ describe("buildPrescription", () => {
     expect(prescription.volume.current).toBe(30) // snapshot wins
   })
 
-  // Weight axis: same Prescription Snapshot semantics. The override window
-  // must let manual Builder edits to weight win (deload / return-from-injury).
-  // Today's code ignores both prescribedWeight and the override window — it
-  // always prefers lastPerformance[0].weight. See ADR 0006.
-  it("snapshot path: currentWeight comes from prescribedWeight, not from logged weight", () => {
+  // Weight axis tracks REALITY, NOT the prescribed snapshot. This is the one
+  // axis that intentionally diverges from ADR 0006's "read prescribed_*" rule:
+  // there is no "incomplete weight" signal to preserve, so the engine must
+  // follow what the user actually lifted. Reading prescribedWeight here made the
+  // engine read back its own stale bootstrap forever (follow-up to #381). The override
+  // window still lets a deliberate Builder deload win (separate test below).
+  it("snapshot path: currentWeight comes from the logged weight, not prescribedWeight", () => {
     const exercise = makeExercise({
       reps: "10",
       weight: "60", // drifted post-bump
@@ -578,8 +580,8 @@ describe("buildPrescription", () => {
       template_updated_at: "2026-01-01T00:00:00Z",
     })
 
-    // Last session: prescribed 50, user actually loaded 55 (typo / impromptu bump).
-    // Snapshot must win — engine's currentWeight = 50, not 55.
+    // Last session: engine prescribed 50, user actually loaded 55 (impromptu
+    // bump — the prescription was too light). Reality must win: currentWeight = 55.
     const lastPerformance: SetPerformance[] = [
       {
         reps: 10,
@@ -614,7 +616,7 @@ describe("buildPrescription", () => {
       lastSessionFinishedAt: "2026-05-01T00:00:00Z",
     })!
 
-    expect(prescription.currentWeight).toBe(50) // snapshot wins
+    expect(prescription.currentWeight).toBe(55) // reality (logged) wins
   })
 
   it("override window: currentWeight reads template when user edited weight post-session (deload)", () => {
