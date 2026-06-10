@@ -123,15 +123,33 @@ export function SetsTable({
   // Without this, if the user logs set 1 before useProgressionSuggestion
   // resolves and set 2 after, the two rows carry different prescribed_*
   // values — violating the "stable across the session" invariant the engine
-  // relies on. Re-keyed by sessionId so a new session captures fresh.
+  // relies on.
+  //
+  // #N: keyed by exercise, not just session. A single SetsTable instance is
+  // reused as the user navigates between exercises (WorkoutPage renders one
+  // un-keyed <ExerciseDetail>, swapping the `exercise` prop), so this ref
+  // survives exercise changes. Keying the lock by sessionId alone froze the
+  // FIRST logged exercise's prescription and stamped it onto every other
+  // exercise's set_logs — corrupting the engine's snapshot (e.g. a calf raise
+  // inheriting a leg-press's 4 reps / 158.2 kg / 3 sets). The per-exercise Map
+  // keeps each exercise's snapshot frozen for the whole session, even when the
+  // user navigates away and back, while a new session resets the lot.
   const lockedPrescriptionRef = useRef<{
     sessionId: string
-    value: typeof sessionPrescription
+    byExercise: Map<string, typeof sessionPrescription>
   } | null>(null)
   const readLockedPrescription = (): typeof sessionPrescription => {
     const locked = lockedPrescriptionRef.current
-    if (locked && locked.sessionId === sessionId) return locked.value
-    lockedPrescriptionRef.current = { sessionId, value: sessionPrescription }
+    if (!locked || locked.sessionId !== sessionId) {
+      lockedPrescriptionRef.current = {
+        sessionId,
+        byExercise: new Map([[exercise.id, sessionPrescription]]),
+      }
+      return sessionPrescription
+    }
+    const existing = locked.byExercise.get(exercise.id)
+    if (existing) return existing
+    locked.byExercise.set(exercise.id, sessionPrescription)
     return sessionPrescription
   }
 
