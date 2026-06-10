@@ -282,6 +282,92 @@ describe("SetsTable", () => {
     )
   })
 
+  // Regression: the single SetsTable instance is reused as the user navigates
+  // between exercises (WorkoutPage swaps the `exercise` prop on one un-keyed
+  // <ExerciseDetail>). The prescription lock used to key on sessionId alone, so
+  // the FIRST logged exercise's prescription leaked onto every subsequent
+  // exercise's set_logs (a calf raise inheriting a leg-press's 158.2 kg / 4
+  // reps / 3 sets), poisoning the engine's snapshot. The lock must be
+  // per-exercise.
+  it("does not leak the first exercise's prescription onto the next exercise", async () => {
+    const user = userEvent.setup()
+    const exerciseA = EXERCISE
+    const exerciseB: WorkoutExercise = {
+      ...EXERCISE,
+      id: "workout-ex-2",
+      exercise_id: "library-ex-2",
+      name_snapshot: "Standing Calf Raise",
+      reps: "8",
+      weight: "20",
+      sets: 4,
+    }
+    const suggestionA: ProgressionSuggestion = {
+      rule: "REPS_UP",
+      reps: 4,
+      weight: 158.2,
+      sets: 3,
+      reasonKey: "progression.repsUp",
+      delta: "+1 rep",
+      volumeType: "reps",
+    }
+    const sessionWithBothExercises: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [{ kind: "reps", reps: "4", weight: "158.2", done: false }],
+        "workout-ex-2": [{ kind: "reps", reps: "10", weight: "10", done: false }],
+      },
+    }
+    const { store, rerender } = renderWithProviders(
+      <SetsTable
+        exercise={exerciseA}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={suggestionA}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, sessionWithBothExercises)
+    })
+
+    // Log exercise A → captures A's prescription under A's id.
+    const checkboxesA = screen.getAllByRole("checkbox")
+    await user.click(checkboxesA[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        exerciseId: "library-ex-1",
+        prescribedReps: 4,
+        prescribedWeight: 158.2,
+        prescribedSets: 3,
+      }),
+    )
+
+    // Same instance, navigate to exercise B (no suggestion → B's template).
+    rerender(
+      <SetsTable
+        exercise={exerciseB}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+      />,
+    )
+
+    const checkboxesB = screen.getAllByRole("checkbox")
+    await user.click(checkboxesB[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    // B must carry ITS OWN prescription, not A's leaked 4 / 158.2 / 3.
+    expect(enqueueSetLogMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        exerciseId: "library-ex-2",
+        prescribedReps: 8,
+        prescribedWeight: 20,
+        prescribedSets: 4,
+      }),
+    )
+  })
+
   it("falls back to template values for sessionPrescription when no suggestion (bootstrap)", async () => {
     const user = userEvent.setup()
     const { store } = renderWithProviders(
