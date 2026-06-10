@@ -125,7 +125,7 @@ export function SetsTable({
   // values — violating the "stable across the session" invariant the engine
   // relies on.
   //
-  // #N: keyed by exercise, not just session. A single SetsTable instance is
+  // #389: keyed by exercise, not just session. A single SetsTable instance is
   // reused as the user navigates between exercises (WorkoutPage renders one
   // un-keyed <ExerciseDetail>, swapping the `exercise` prop), so this ref
   // survives exercise changes. Keying the lock by sessionId alone froze the
