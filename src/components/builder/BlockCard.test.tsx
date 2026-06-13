@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { screen } from "@testing-library/react"
+import { DndContext } from "@dnd-kit/core"
+import { SortableContext } from "@dnd-kit/sortable"
 import { renderWithProviders } from "@/test/utils"
 import { BlockCard } from "@/components/builder/BlockCard"
 import type { ExerciseBlockWithExercises } from "@/types/database"
@@ -46,7 +48,14 @@ function makeBlock(
 
 describe("BlockCard", () => {
   it("shows the round count and each exercise name", () => {
-    renderWithProviders(<BlockCard block={makeBlock()} />)
+    const block = makeBlock()
+    renderWithProviders(
+      <DndContext>
+        <SortableContext items={[block.id]}>
+          <BlockCard block={block} />
+        </SortableContext>
+      </DndContext>,
+    )
 
     expect(screen.getByText(/3 rounds/i)).toBeInTheDocument()
     expect(screen.getByText("Burpee")).toBeInTheDocument()

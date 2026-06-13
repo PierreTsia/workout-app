@@ -59,3 +59,34 @@ export function useCreateBlock() {
     },
   })
 }
+
+/**
+ * Persists new `sort_order` values for blocks after a unified day reorder
+ * (#351, T140). Mirrors `useReorderExercises` for the block half.
+ */
+export function useReorderBlocks() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      blocks,
+    }: {
+      dayId: string
+      blocks: { id: string; sort_order: number }[]
+    }) => {
+      const results = await Promise.all(
+        blocks.map((b) =>
+          supabase
+            .from("exercise_blocks")
+            .update({ sort_order: b.sort_order })
+            .eq("id", b.id),
+        ),
+      )
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
+    },
+    onSuccess: (_data, { dayId }) => {
+      qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+    },
+  })
+}

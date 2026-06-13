@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { buildDayItems } from "@/lib/dayItems"
+import { buildDayItems, reorderDayItems } from "@/lib/dayItems"
 import type {
   WorkoutExerciseWithExercise,
   ExerciseBlockWithExercises,
@@ -100,5 +100,35 @@ describe("buildDayItems", () => {
       "Burpee",
       "Push-up",
     ])
+  })
+})
+
+describe("reorderDayItems", () => {
+  it("reindexes solos and blocks across the unified sequence when a block moves", () => {
+    // sequence: solo s-a (0), block b-1 (1), solo s-b (2)
+    const items = buildDayItems(
+      [
+        makeSolo({ id: "s-a", exercise_id: "ex-a", sort_order: 0 }),
+        makeSolo({ id: "s-b", exercise_id: "ex-b", sort_order: 2 }),
+      ],
+      [makeBlock({ id: "b-1", sort_order: 1 })],
+    )
+
+    // drag the block (b-1) to the front (onto s-a)
+    const { solos, blocks } = reorderDayItems(items, "b-1", "s-a")
+
+    expect(blocks).toEqual([{ id: "b-1", sort_order: 0 }])
+    expect(solos).toEqual([
+      { id: "s-a", sort_order: 1 },
+      { id: "s-b", sort_order: 2 },
+    ])
+  })
+
+  it("returns empty updates when ids are not found", () => {
+    const items = buildDayItems([makeSolo({ id: "s-a" })], [])
+    expect(reorderDayItems(items, "nope", "s-a")).toEqual({
+      solos: [],
+      blocks: [],
+    })
   })
 })

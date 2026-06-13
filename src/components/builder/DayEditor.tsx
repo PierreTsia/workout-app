@@ -11,19 +11,19 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable"
 import { Layers, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
 import { useDayItems } from "@/hooks/useDayItems"
-import { useCreateBlock } from "@/hooks/useBlockMutations"
+import { useCreateBlock, useReorderBlocks } from "@/hooks/useBlockMutations"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import {
   useUpdateDay,
   useDeleteExercise,
   useReorderExercises,
 } from "@/hooks/useBuilderMutations"
+import { dayItemId, reorderDayItems } from "@/lib/dayItems"
 import type { Exercise, WorkoutExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -59,6 +59,7 @@ export function DayEditor({
   const updateDay = useUpdateDay(programId)
   const deleteExercise = useDeleteExercise()
   const reorderExercises = useReorderExercises()
+  const reorderBlocks = useReorderBlocks()
   const createBlock = useCreateBlock()
 
   const day = days?.find((d) => d.id === dayId)
@@ -105,31 +106,31 @@ export function DayEditor({
     }),
   )
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id || !exercises) return
+    if (!over || active.id === over.id) return
 
-    const oldIndex = exercises.findIndex((e) => e.id === active.id)
-    const newIndex = exercises.findIndex((e) => e.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-
-    // Reorder solos within their own sort_order slots so interleaved blocks
-    // keep their position (full unified reorder is T140).
-    const soloSlots = exercises
-      .map((e) => e.sort_order)
-      .sort((a, b) => a - b)
-    const reordered = arrayMove(exercises, oldIndex, newIndex).map(
-      (ex, idx) => ({ id: ex.id, sort_order: soloSlots[idx] }),
+    const { solos, blocks } = reorderDayItems(
+      dayItems,
+      String(active.id),
+      String(over.id),
     )
+    if (solos.length === 0 && blocks.length === 0) return
 
     onMutationStateChange("saving")
-    reorderExercises.mutate(
-      { dayId, exercises: reordered },
-      {
-        onSuccess: () => onMutationStateChange("saved"),
-        onError: () => onMutationStateChange("error"),
-      },
-    )
+    try {
+      await Promise.all([
+        solos.length > 0
+          ? reorderExercises.mutateAsync({ dayId, exercises: solos })
+          : Promise.resolve(),
+        blocks.length > 0
+          ? reorderBlocks.mutateAsync({ dayId, blocks })
+          : Promise.resolve(),
+      ])
+      onMutationStateChange("saved")
+    } catch {
+      onMutationStateChange("error")
+    }
   }
 
   function confirmDeleteExercise() {
@@ -187,7 +188,7 @@ export function DayEditor({
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={soloItems.map((e) => e.id)}
+          items={dayItems.map(dayItemId)}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-2">
