@@ -23,6 +23,12 @@ import type { WorkoutDay } from "@/types/database"
 export type SetLogPayloadReps = {
   sessionId: string
   exerciseId: string
+  /**
+   * Set when this log belongs to an Exercise Block cell (#351). Disambiguates
+   * the same catalog exercise appearing in multiple slots; feeds the
+   * `log_slot = COALESCE(block_exercise_id, exercise_id)` dedupe key.
+   */
+  blockExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   repsLogged: string
@@ -47,6 +53,8 @@ export type SetLogPayloadReps = {
 export type SetLogPayloadDuration = {
   sessionId: string
   exerciseId: string
+  /** See {@link SetLogPayloadReps.blockExerciseId}. */
+  blockExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   weightLogged: number
@@ -277,7 +285,10 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   }
 
   const meta = resolveSessionMeta(userId, payload.sessionId)
-  const composite = `${meta.realId}|${payload.exerciseId}|${payload.setNumber}`
+  // Mirror the DB's log_slot: block cells dedupe by block_exercise_id, solos
+  // by catalog exercise_id. Same exercise in two block slots stays distinct.
+  const slot = payload.blockExerciseId ?? payload.exerciseId
+  const composite = `${meta.realId}|${slot}|${payload.setNumber}`
 
   const queue = getQueue(userId)
   const fp = fingerprint(composite)
@@ -615,6 +626,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
     const base = {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
+      block_exercise_id: p.blockExerciseId ?? null,
       exercise_name_snapshot: p.exerciseNameSnapshot,
       set_number: p.setNumber,
       weight_logged: p.weightLogged,
@@ -644,7 +656,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
     const { error } = await supabase
       .from("set_logs")
       .upsert(row, {
-        onConflict: "session_id,exercise_id,set_number",
+        onConflict: "session_id,log_slot,set_number",
       })
 
     if (error) {

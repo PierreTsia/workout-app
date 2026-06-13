@@ -31,6 +31,7 @@ import {
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
+import { useExerciseBlocks } from "@/hooks/useExerciseBlocks"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import {
   useAddExerciseToDay,
@@ -76,6 +77,8 @@ import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsTo
 import { useCycleProgress } from "@/hooks/useCycle"
 import { useAutoCloseStuckCycle } from "@/hooks/useAutoCloseStuckCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
+import { SessionBlocksSection } from "@/components/workout/SessionBlocksSection"
+import { BlockRunner } from "@/components/workout/BlockRunner"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
 import { PreSessionExerciseList } from "@/components/workout/PreSessionExerciseList"
@@ -286,6 +289,9 @@ export function WorkoutPage() {
 
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
+
+  const { data: dayBlocks = [] } = useExerciseBlocks(session.currentDayId)
+  const [runningBlockId, setRunningBlockId] = useState<string | null>(null)
 
   const baseExercises = useMemo(
     () => allExercisesForDay ?? [],
@@ -854,6 +860,7 @@ export function WorkoutPage() {
     })
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
+    setRunningBlockId(null)
     setFinished(true)
   }
 
@@ -941,6 +948,23 @@ export function WorkoutPage() {
             </Link>
           </Button>
         )}
+      </div>
+    )
+  }
+
+  const runningBlock =
+    session.isActive && runningBlockId
+      ? dayBlocks.find((b) => b.id === runningBlockId) ?? null
+      : null
+
+  if (runningBlock) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <BlockRunner
+          block={runningBlock}
+          localSessionId={sessionId}
+          onExit={() => setRunningBlockId(null)}
+        />
       </div>
     )
   }
@@ -1050,6 +1074,19 @@ export function WorkoutPage() {
                 </div>
               ) : null}
               <div className="flex-1 overflow-y-auto py-2">
+                {!isViewingLockedDay && (
+                  <SessionBlocksSection
+                    blocks={dayBlocks}
+                    disabled={session.pausedAt != null}
+                    onRun={(blockId) => {
+                      if (session.pausedAt != null) {
+                        openPauseBlocked()
+                        return
+                      }
+                      setRunningBlockId(blockId)
+                    }}
+                  />
+                )}
                 {currentExercise && (
                   <ExerciseDetail
                     exercise={currentExercise}

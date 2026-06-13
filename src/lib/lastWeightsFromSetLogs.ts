@@ -27,6 +27,8 @@ export async function fetchLastWeightsForExerciseIds(
     .from("set_logs")
     .select("exercise_id, weight_logged, logged_at")
     .in("exercise_id", sortedIds)
+    // Block work is out of the progression engine (ADR 0007) — never prefill from it.
+    .is("block_exercise_id", null)
     .order("logged_at", { ascending: false })
     .limit(sortedIds.length * 50)
 

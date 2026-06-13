@@ -185,6 +185,8 @@ export interface SetLog {
   id: string
   session_id: string
   exercise_id: string
+  /** Non-null when this log belongs to an Exercise Block cell (#351, ADR 0007). */
+  block_exercise_id: string | null
   exercise_name_snapshot: string
   set_number: number
   reps_logged: string | null

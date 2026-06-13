@@ -45,4 +45,20 @@ describe("fetchLastWeightsForExerciseIds", () => {
   it("returns {} when ids empty without hitting the network layer", async () => {
     expect(await fetchLastWeightsForExerciseIds([])).toEqual({})
   })
+
+  it("excludes block set logs from the prefill query (ADR 0007)", async () => {
+    const chain: Record<string, ReturnType<typeof vi.fn>> = {}
+    for (const m of ["select", "in", "is", "order"]) {
+      chain[m] = vi.fn(() => chain)
+    }
+    chain.limit = vi.fn(() => Promise.resolve({ data: [], error: null }))
+    const { supabase } = await import("@/lib/supabase")
+    vi.mocked(supabase.from).mockReturnValue(
+      chain as unknown as ReturnType<typeof supabase.from>,
+    )
+
+    await fetchLastWeightsForExerciseIds(["ex-1"])
+
+    expect(chain.is).toHaveBeenCalledWith("block_exercise_id", null)
+  })
 })
