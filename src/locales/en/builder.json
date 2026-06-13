@@ -29,6 +29,7 @@
   "removeExerciseDescription": "\"{{name}}\" will be removed from this day.",
   "remove": "Remove",
   "saved": "Saved",
+  "saving": "Saving…",
   "syncFailed": "Syncing failed",
   "offlineTitle": "Internet required for editing",
   "offlineDescription": "The Workout Builder needs a connection to save changes. Please reconnect and try again.",
@@ -76,5 +77,15 @@
   "blockTransition": "{{seconds}}s transition",
   "createBlock": "Create block",
   "createBlockCta_one": "Create block ({{count}} exercise)",
-  "createBlockCta_other": "Create block ({{count}} exercises)"
+  "createBlockCta_other": "Create block ({{count}} exercises)",
+  "editBlock": "Edit block",
+  "blockLabel": "Label",
+  "rounds": "Rounds",
+  "restBetweenRounds": "Rest (sec)",
+  "transitionBetweenExercises": "Transition (sec)",
+  "roundShort": "R{{n}}",
+  "perRoundReps": "Reps",
+  "perRoundDuration": "Duration (s)",
+  "removeBlockTitle": "Remove block?",
+  "removeBlockDescription": "\"{{name}}\" and its per-round prescriptions will be removed from this day."
 }

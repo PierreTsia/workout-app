@@ -1,15 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Layers, Timer } from "lucide-react"
+import { GripVertical, Layers, Pencil, Timer, Trash2 } from "lucide-react"
 import type { ExerciseBlockWithExercises } from "@/types/database"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface BlockCardProps {
   block: ExerciseBlockWithExercises
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
-export function BlockCard({ block }: BlockCardProps) {
+export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
   const { t } = useTranslation("builder")
   const {
     attributes,
@@ -39,10 +42,36 @@ export function BlockCard({ block }: BlockCardProps) {
 
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <span>{block.label ?? t("blockDefaultLabel")}</span>
-            <span className="text-xs text-muted-foreground">
+            <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">
+              {block.label ?? t("blockDefaultLabel")}
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground">
               {t("blockRounds", { count: block.rounds })}
+            </span>
+            <span className="ml-auto flex shrink-0 items-center">
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={onEdit}
+                  aria-label={t("editBlock")}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={onDelete}
+                  aria-label={t("remove")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </span>
           </div>
 

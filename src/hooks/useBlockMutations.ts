@@ -3,7 +3,8 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import { buildBlockInsertRows } from "@/lib/blockPersistence"
-import type { ExerciseListItem } from "@/types/database"
+import { resizePerRound } from "@/lib/perRound"
+import type { PerRoundCell, ExerciseListItem } from "@/types/database"
 
 interface CreateBlockInput {
   dayId: string
@@ -52,6 +53,116 @@ export function useCreateBlock() {
       if (exError) throw exError
 
       return { blockId: created.id }
+    },
+    onSuccess: (_data, { dayId }) => {
+      qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+      qc.invalidateQueries({ queryKey: ["workout-days"] })
+    },
+  })
+}
+
+interface UpdateBlockMetaInput {
+  blockId: string
+  dayId: string
+  label?: string | null
+  rounds?: number
+  rest_seconds?: number
+  transition_seconds?: number
+  /** Current per_round of each block exercise; required when `rounds` changes so they can be resized in lockstep. */
+  exercises?: { id: string; per_round: PerRoundCell[] }[]
+}
+
+/**
+ * Updates an Exercise Block's scalar settings (#351, T139). When `rounds`
+ * changes, every block exercise's `per_round` is resized in the same write so
+ * the `per_round.length === rounds` invariant holds.
+ */
+export function useUpdateBlockMeta() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      blockId,
+      label,
+      rounds,
+      rest_seconds,
+      transition_seconds,
+      exercises,
+    }: UpdateBlockMetaInput) => {
+      const blockPatch = {
+        ...(label !== undefined && { label }),
+        ...(rounds !== undefined && { rounds }),
+        ...(rest_seconds !== undefined && { rest_seconds }),
+        ...(transition_seconds !== undefined && { transition_seconds }),
+      }
+      if (Object.keys(blockPatch).length > 0) {
+        const { error } = await supabase
+          .from("exercise_blocks")
+          .update(blockPatch)
+          .eq("id", blockId)
+        if (error) throw error
+      }
+
+      if (rounds !== undefined && exercises) {
+        const results = await Promise.all(
+          exercises.map((ex) =>
+            supabase
+              .from("block_exercises")
+              .update({ per_round: resizePerRound(ex.per_round, rounds) })
+              .eq("id", ex.id),
+          ),
+        )
+        const failed = results.find((r) => r.error)
+        if (failed?.error) throw failed.error
+      }
+    },
+    onSuccess: (_data, { dayId }) => {
+      qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+    },
+  })
+}
+
+/** Persists a single block exercise's per-round prescription (#351, T139). */
+export function useUpdatePerRound() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      blockExerciseId,
+      perRound,
+    }: {
+      blockExerciseId: string
+      dayId: string
+      perRound: PerRoundCell[]
+    }) => {
+      const { error } = await supabase
+        .from("block_exercises")
+        .update({ per_round: perRound })
+        .eq("id", blockExerciseId)
+      if (error) throw error
+    },
+    onSuccess: (_data, { dayId }) => {
+      qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+    },
+  })
+}
+
+/** Deletes a block (cascades to its block_exercises) (#351). */
+export function useDeleteBlock() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      blockId,
+    }: {
+      blockId: string
+      dayId: string
+    }) => {
+      const { error } = await supabase
+        .from("exercise_blocks")
+        .delete()
+        .eq("id", blockId)
+      if (error) throw error
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
