@@ -123,6 +123,7 @@ The product-level promise that during a held isometric (plank, hollow hold, etc.
 
 **Exercise Block**:
 A group of exercises trained **round-by-round** (supersets, trisets, circuits) — the unit of work is the **Round**, not the individual exercise. Introduced by #351 as the target-vision (Freeletics-style) model, deliberately rich from day one: per-round prescriptions, a block-level rest between rounds, and a **Transition** between exercises within a round. A block lives inside a **workout day** alongside solo `workout_exercises` (see **Unified Day Sequence**). **V1 decision (ADR 0007):** structure ships rich, but block exercises are **excluded from the progression engine** — frozen prescription, hand-edited in the **Builder**, no **Progression Suggestion** / **Prescription Snapshot** / **Progression Rule**. Concrete table shape (rows vs JSONB, where the shared `sort_order` lives) is owned by the #351 Tech Plan.
+**Naming (ADR 0007 §Decision.5):** "Exercise Block" / "block" is the **internal** domain term — tables (`exercise_blocks`, `block_exercises`), types, hooks, and i18n **keys** (`blockRunner.*`, `createBlock`). It must **never** appear in UI copy. Every user-facing string (i18n **values**, labels, dialog titles, history cards) says **"Circuit"** (FR & EN). Code speaks "block"; humans speak "circuit".
 → ADR `file:docs/adr/0007-exercise-blocks-rich-structure-no-progression.md`
 
 **Round**:

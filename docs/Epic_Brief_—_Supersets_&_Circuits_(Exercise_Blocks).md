@@ -58,6 +58,9 @@ Permettre à un utilisateur de regrouper plusieurs exercices en un **Exercise Bl
 21. As a user offline, I want block creation/editing and in-session logging to follow the same offline behavior as today's flat exercises, so that the feature isn't a regression.
 22. As a user, I want grouping/ungrouping to be blocked during an active session (builder-only), so that I don't corrupt a running workout. (Adjusting a *value* mid-session is still allowed — see story 16.)
 
+**Pre-session preview** _(added during build — gap not in the original ticket cut, see T141 note)_
+23. As a user about to train, I want the pre-session day overview to **account for circuits** — the day card's muscle map + exercise/set counts include block exercises, the pre-session list shows each circuit (read-only) interleaved with solos by `sort_order`, and a day made purely of circuits is startable — so that the screen before "Start" tells the truth about my day.
+
 ### Success measures
 | Story # | Measure |
 |---|---|
@@ -76,6 +79,7 @@ Permettre à un utilisateur de regrouper plusieurs exercices en un **Exercise Bl
 - Session : **Round Screen** dédié, **Transition** timer, rest inter-rounds, logging des actuals par cellule, édition de valeur via `ExerciseEditScopeDialog`.
 - Historique : carte groupée légère.
 - Blocs exposés franco dans le builder (pas de gate "advanced mode").
+- **Pré-séance (ajout en cours de build, story 23) :** carte du jour (muscle map + compteurs) et liste pré-séance prennent en compte les circuits ; `canStartPreSession` autorise un jour 100 % circuits.
 
 **Out of scope (v1):**
 - **Progression** sur les blocs (frozen prescription — ADR 0007).

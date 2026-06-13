@@ -66,6 +66,16 @@ Coupled product decisions locked in the same session:
    Workout) do **not** produce blocks in v1; grouping/ungrouping during an active
    session is blocked (Builder-only); blocks are exposed directly in the Builder
    with **no** "advanced mode" gate.
+5. **Naming — "Block" is internal, "Circuit" is user-facing.** The domain/code
+   term is **Exercise Block** (tables `exercise_blocks` / `block_exercises`,
+   types `ExerciseBlock*`, hooks `useExerciseBlocks`, i18n **keys** like
+   `blockRunner.*` / `createBlock`). It is **technical** and must **never** leak
+   into UI copy. Every user-facing string — i18n **values**, button labels,
+   dialog titles, history cards — says **"Circuit"** (FR & EN; `circuit`).
+   Rationale: "block" reads as engineering jargon to a lifter, whereas "circuit"
+   is an established gym word that also covers supersets/trisets. This keeps the
+   ubiquitous language honest (code speaks "block", humans speak "circuit") while
+   avoiding a churny rename of the schema.
 
 ## Consequences
 

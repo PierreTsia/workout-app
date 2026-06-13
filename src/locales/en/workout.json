@@ -203,9 +203,9 @@
   "blockRunner.log": "Log",
   "blockRunner.loggedBadge": "Logged",
   "blockRunner.continue": "Next",
-  "blockRunner.cancelBlock": "Cancel block",
-  "blockRunner.cancelTitle": "Cancel this block?",
-  "blockRunner.cancelBody": "Every logged round for this block will be permanently deleted and you'll go back to the session. This can't be undone.",
+  "blockRunner.cancelBlock": "Cancel",
+  "blockRunner.cancelTitle": "Cancel?",
+  "blockRunner.cancelBody": "Every logged round will be permanently deleted and you'll go back to the session. This can't be undone.",
   "blockRunner.cancelConfirm": "Delete & exit",
   "blockRunner.cancelKeep": "Keep going",
   "blockRunner.back": "Back",
@@ -220,7 +220,7 @@
   "blockRunner.circuitsTitle": "Circuits",
   "blockRunner.completed": "Completed",
   "blockRunner.redo": "Restart",
-  "blockRunner.doneTitle": "Block complete",
+  "blockRunner.doneTitle": "Circuit complete",
   "blockRunner.doneBody": "Nice work — every round logged.",
   "blockRunner.exit": "Back to session"
 }

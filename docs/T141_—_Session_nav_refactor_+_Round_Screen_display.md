@@ -55,3 +55,15 @@ T138, T139.
 
 - Epic Brief : stories 11, 15 ; Success criteria (non-régression solo)
 - Tech Plan : § Component Architecture (`BlockRunner`, `RoundView`, session state), § Critical Constraints (`session.exerciseIndex`)
+
+## Delivered beyond original scope (build notes)
+
+Implementation diverged/extended from the planned cut; recorded here so docs stay truthful:
+
+- **Naming — "Circuit" not "Block" in UI.** All user-facing copy says *Circuit* (FR & EN); "block" stays internal (code, i18n keys). Codified in ADR 0007 §Decision.5 + `CONTEXT.md`.
+- **Session block as a first-class carousel item** (`BlockSessionCard` + `buildSessionItems`), not just a strip chip — a block occupies one slot in Prev/Next, with a Start that launches the full-screen runner.
+- **`BlockRunner` polish:** countdown ring for duration holds (clockwise, 12-o'clock start, idle/active states), three-state duration button (Start → Skip → Log, no auto-advance), optimistic "logged" badge on back-nav, screen wake-lock, prominent round/exercise progress bars, and a **cancel-circuit** confirm dialog that clears the circuit's queued/persisted `set_logs` (`discardBlockSetLogs`).
+- **Pre-session preview handles circuits (Epic story 23, no dedicated ticket):**
+  - `PreSessionExerciseList` renders circuits read-only, interleaved with solos by `sort_order` (`BlockSessionCard` gains an optional `onStart` + `className`).
+  - `WorkoutDayCard` muscle map + "X exercice / ~Y séries" chips fold in block exercises (`useAggregatedMuscles(exercises, blocks)`, each block exercise weighted by `rounds`).
+  - `canStartPreSession(exercises, blocks)` makes a circuits-only day startable while keeping the "every solo needs ≥1 set" guard.

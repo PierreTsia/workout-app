@@ -11,22 +11,26 @@ import type {
 
 interface BlockSessionCardProps {
   block: ExerciseBlockWithExercises
-  onStart: () => void
+  /** Omit for a read-only summary (e.g. pre-session): the Start button is hidden. */
+  onStart?: () => void
   disabled?: boolean
   /** Block already fully logged this session — show a done state + Restart. */
   completed?: boolean
+  className?: string
 }
 
 /**
  * The inline slot for a block within the session sequence (#351): a summary +
- * Start that launches the full-screen {@link BlockRunner}. A block behaves like
- * any other exercise slot in Prev/Next navigation.
+ * (optional) Start that launches the full-screen {@link BlockRunner}. A block
+ * behaves like any other exercise slot in Prev/Next navigation. Without
+ * `onStart` it renders as a read-only summary (pre-session list).
  */
 export function BlockSessionCard({
   block,
   onStart,
   disabled,
   completed,
+  className,
 }: BlockSessionCardProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
@@ -63,8 +67,9 @@ export function BlockSessionCard({
   return (
     <div
       className={cn(
-        "mx-4 flex flex-col gap-4 rounded-2xl border bg-card p-5 transition-colors",
+        "flex flex-col gap-4 rounded-2xl border bg-card p-5 transition-colors",
         completed ? "border-green-500/50" : "border-border/60",
+        className,
       )}
     >
       <div className="flex items-center gap-2">
@@ -108,20 +113,22 @@ export function BlockSessionCard({
         ))}
       </ul>
 
-      <Button
-        size="lg"
-        variant={completed ? "outline" : "default"}
-        className="w-full gap-2"
-        disabled={disabled}
-        onClick={onStart}
-      >
-        {completed ? (
-          <RotateCcw className="h-5 w-5" />
-        ) : (
-          <Play className="h-5 w-5" />
-        )}
-        {completed ? t("blockRunner.redo") : t("blockRunner.start")}
-      </Button>
+      {onStart && (
+        <Button
+          size="lg"
+          variant={completed ? "outline" : "default"}
+          className="w-full gap-2"
+          disabled={disabled}
+          onClick={onStart}
+        >
+          {completed ? (
+            <RotateCcw className="h-5 w-5" />
+          ) : (
+            <Play className="h-5 w-5" />
+          )}
+          {completed ? t("blockRunner.redo") : t("blockRunner.start")}
+        </Button>
+      )}
     </div>
   )
 }

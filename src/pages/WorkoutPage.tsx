@@ -1109,6 +1109,7 @@ export function WorkoutPage() {
                 {currentBlock ? (
                   <BlockSessionCard
                     block={currentBlock}
+                    className="mx-4"
                     completed={completedBlockIds.has(currentBlock.id)}
                     disabled={isViewingLockedDay || session.pausedAt != null}
                     onStart={() => {
@@ -1183,6 +1184,7 @@ export function WorkoutPage() {
               <div className="px-4">
                 <PreSessionExerciseList
                   exercises={exercises}
+                  blocks={dayBlocks}
                   exercisePool={exercisePool}
                   poolLoading={exercisePoolLoading}
                   onSwapExerciseChosen={(row, picked) => {
@@ -1203,7 +1205,7 @@ export function WorkoutPage() {
 
           {!isDayDoneInCycle && (
             <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
-              {exercises.length > 0 && !canStartPreSession(exercises) ? (
+              {exercises.length > 0 && !canStartPreSession(exercises, dayBlocks) ? (
                 <p className="text-center text-xs text-muted-foreground">
                   {t("preSession.startBlocked")}
                 </p>
@@ -1211,7 +1213,7 @@ export function WorkoutPage() {
               <Button
                 className="w-full gap-2"
                 size="lg"
-                disabled={!canStartPreSession(exercises)}
+                disabled={!canStartPreSession(exercises, dayBlocks)}
                 onClick={() => startSession()}
               >
                 <Play className="h-5 w-5" />

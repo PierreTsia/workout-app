@@ -203,9 +203,9 @@
   "blockRunner.log": "Valider",
   "blockRunner.loggedBadge": "Validé",
   "blockRunner.continue": "Suivant",
-  "blockRunner.cancelBlock": "Annuler le bloc",
-  "blockRunner.cancelTitle": "Annuler ce bloc ?",
-  "blockRunner.cancelBody": "Tous les tours validés de ce bloc seront supprimés définitivement et tu reviendras à la séance. Cette action est irréversible.",
+  "blockRunner.cancelBlock": "Annuler",
+  "blockRunner.cancelTitle": "Annuler ?",
+  "blockRunner.cancelBody": "Tous les tours déjà validés seront supprimés définitivement et tu reviendras à la séance. Cette action est irréversible.",
   "blockRunner.cancelConfirm": "Supprimer et quitter",
   "blockRunner.cancelKeep": "Continuer",
   "blockRunner.back": "Retour",
@@ -220,7 +220,7 @@
   "blockRunner.circuitsTitle": "Circuits",
   "blockRunner.completed": "Terminé",
   "blockRunner.redo": "Recommencer",
-  "blockRunner.doneTitle": "Bloc terminé",
+  "blockRunner.doneTitle": "Circuit terminé",
   "blockRunner.doneBody": "Bien joué — tous les tours sont enregistrés.",
   "blockRunner.exit": "Retour à la séance"
 }

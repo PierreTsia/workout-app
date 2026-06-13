@@ -201,13 +201,13 @@ describe("BlockRunner", () => {
     act(() => {
       vi.advanceTimersByTime(29_000)
     })
-    expect(screen.queryByText("Block complete")).not.toBeInTheDocument()
+    expect(screen.queryByText("Circuit complete")).not.toBeInTheDocument()
     const validate = screen.getByRole("button", { name: /Log/i })
 
     act(() => {
       fireEvent.click(validate)
     })
-    expect(screen.getByText("Block complete")).toBeInTheDocument()
+    expect(screen.getByText("Circuit complete")).toBeInTheDocument()
   })
 
   it("keeps the screen awake while the block is running", async () => {
@@ -255,8 +255,8 @@ describe("BlockRunner", () => {
       />,
     )
 
-    await user.click(screen.getByRole("button", { name: /Cancel block/i }))
-    expect(screen.getByText("Cancel this block?")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: /^Cancel$/i }))
+    expect(screen.getByText("Cancel?")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: /Delete & exit/i }))
     await waitFor(() => expect(onCancel).toHaveBeenCalledOnce())
@@ -273,7 +273,7 @@ describe("BlockRunner", () => {
       />,
     )
 
-    await user.click(screen.getByRole("button", { name: /Cancel block/i }))
+    await user.click(screen.getByRole("button", { name: /^Cancel$/i }))
     await user.click(screen.getByRole("button", { name: /Keep going/i }))
 
     expect(onCancel).not.toHaveBeenCalled()
@@ -294,7 +294,7 @@ describe("BlockRunner", () => {
     expect(onComplete).not.toHaveBeenCalled()
     await user.click(screen.getByRole("button", { name: /Log/i }))
 
-    expect(screen.getByText("Block complete")).toBeInTheDocument()
+    expect(screen.getByText("Circuit complete")).toBeInTheDocument()
     expect(onComplete).toHaveBeenCalledOnce()
   })
 
@@ -311,7 +311,7 @@ describe("BlockRunner", () => {
 
     await user.click(screen.getByRole("button", { name: /Log/i }))
 
-    expect(screen.getByText("Block complete")).toBeInTheDocument()
+    expect(screen.getByText("Circuit complete")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Back to session/i }))
     expect(onExit).toHaveBeenCalledTimes(1)
   })

@@ -75,10 +75,10 @@
   "blockRounds_one": "{{count}} round",
   "blockRounds_other": "{{count}} rounds",
   "blockTransition": "{{seconds}}s transition",
-  "createBlock": "Create block",
-  "createBlockCta_one": "Create block ({{count}} exercise)",
-  "createBlockCta_other": "Create block ({{count}} exercises)",
-  "editBlock": "Edit block",
+  "createBlock": "Create circuit",
+  "createBlockCta_one": "Create circuit ({{count}} exercise)",
+  "createBlockCta_other": "Create circuit ({{count}} exercises)",
+  "editBlock": "Edit circuit",
   "blockLabel": "Label",
   "rounds": "Rounds",
   "restBetweenRounds": "Rest (sec)",
@@ -86,6 +86,6 @@
   "roundShort": "R{{n}}",
   "perRoundReps": "Reps",
   "perRoundDuration": "Duration (s)",
-  "removeBlockTitle": "Remove block?",
+  "removeBlockTitle": "Remove circuit?",
   "removeBlockDescription": "\"{{name}}\" and its per-round prescriptions will be removed from this day."
 }

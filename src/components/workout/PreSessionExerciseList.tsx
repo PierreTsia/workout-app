@@ -3,11 +3,19 @@ import { AlertCircle, Plus } from "lucide-react"
 import type { PostgrestError } from "@supabase/supabase-js"
 import { Button } from "@/components/ui/button"
 import { ExerciseEditRowControls } from "@/components/workout/ExerciseEditRowControls"
+import { BlockSessionCard } from "@/components/workout/BlockSessionCard"
+import { buildSessionItems } from "@/lib/sessionItems"
 import type { ProgressionSuggestion } from "@/lib/progression"
-import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseBlockWithExercises,
+  ExerciseListItem,
+  WorkoutExercise,
+} from "@/types/database"
 
 export interface PreSessionExerciseListProps {
   exercises: WorkoutExercise[]
+  /** Blocks for the day — rendered read-only, interleaved with solos by sort_order (#351). */
+  blocks?: ExerciseBlockWithExercises[]
   /** Slim pool from `useExerciseLibrary` — rich fields (instructions/youtube) are fetched on demand in inspect sheets. */
   exercisePool: ExerciseListItem[]
   poolLoading: boolean
@@ -31,6 +39,7 @@ export interface PreSessionExerciseListProps {
 
 export function PreSessionExerciseList({
   exercises,
+  blocks = [],
   exercisePool,
   poolLoading,
   onSwapExerciseChosen,
@@ -45,6 +54,7 @@ export function PreSessionExerciseList({
   const { t } = useTranslation("workout")
 
   const currentExerciseIds = exercises.map((e) => e.exercise_id)
+  const items = buildSessionItems(exercises, blocks)
 
   return (
     <div className="flex flex-col gap-2">
@@ -58,21 +68,25 @@ export function PreSessionExerciseList({
         </div>
       ) : null}
 
-      {exercises.map((ex) => (
-        <ExerciseEditRowControls
-          key={ex.id}
-          exercise={ex}
-          exercisePool={exercisePool}
-          poolLoading={poolLoading}
-          currentExerciseIds={currentExerciseIds}
-          onSwapExerciseChosen={onSwapExerciseChosen}
-          onDeleteRequested={onDeleteRequested}
-          onSwapBrowseLibrary={onSwapBrowseLibrary}
-          onInspectDetails={onInspectExercise}
-          suggestion={suggestionsByRowId?.get(ex.id)}
-          isLoadingSuggestion={suggestionsLoading}
-        />
-      ))}
+      {items.map((item) =>
+        item.kind === "block" ? (
+          <BlockSessionCard key={`block-${item.block.id}`} block={item.block} />
+        ) : (
+          <ExerciseEditRowControls
+            key={item.exercise.id}
+            exercise={item.exercise}
+            exercisePool={exercisePool}
+            poolLoading={poolLoading}
+            currentExerciseIds={currentExerciseIds}
+            onSwapExerciseChosen={onSwapExerciseChosen}
+            onDeleteRequested={onDeleteRequested}
+            onSwapBrowseLibrary={onSwapBrowseLibrary}
+            onInspectDetails={onInspectExercise}
+            suggestion={suggestionsByRowId?.get(item.exercise.id)}
+            isLoadingSuggestion={suggestionsLoading}
+          />
+        ),
+      )}
 
       <Button
         type="button"

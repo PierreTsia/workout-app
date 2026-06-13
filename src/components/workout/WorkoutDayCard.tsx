@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { CheckCircle2, Dumbbell, Layers, Timer } from "lucide-react"
 import type { WorkoutDay } from "@/types/database"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
+import { useExerciseBlocks } from "@/hooks/useExerciseBlocks"
 import { useAggregatedMuscles } from "@/hooks/useAggregatedMuscles"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { BodyMap } from "@/components/body-map/BodyMap"
@@ -28,12 +29,22 @@ export function WorkoutDayCard({
 }: WorkoutDayCardProps) {
   const { t, i18n } = useTranslation("workout")
   const { data: exercises } = useWorkoutExercises(shouldFetch ? day.id : null)
-  const heatmapData = useAggregatedMuscles(exercises ?? [])
+  const { data: blocks = [] } = useExerciseBlocks(shouldFetch ? day.id : null)
+  const heatmapData = useAggregatedMuscles(exercises ?? [], blocks)
   const { data: lastSession } = useLastSessionForDay(shouldFetch ? day.id : null)
 
+  const blockExerciseCount = useMemo(
+    () => blocks.reduce((sum, b) => sum + b.exercises.length, 0),
+    [blocks],
+  )
+
+  const totalExerciseCount = (exercises?.length ?? 0) + blockExerciseCount
+
   const estimatedTotalSets = useMemo(
-    () => exercises?.reduce((sum, ex) => sum + ex.sets, 0) ?? 0,
-    [exercises],
+    () =>
+      (exercises?.reduce((sum, ex) => sum + ex.sets, 0) ?? 0) +
+      blocks.reduce((sum, b) => sum + b.rounds * b.exercises.length, 0),
+    [exercises, blocks],
   )
 
   const lastSessionDateLabel = lastSession
@@ -75,7 +86,7 @@ export function WorkoutDayCard({
 
       {/* Body map (centered hero) — min-h reserves space so the fetch → map swap doesn't trigger CLS */}
       <div className="flex min-h-[280px] items-center justify-center">
-        {exercises && exercises.length > 0 ? (
+        {exercises && totalExerciseCount > 0 ? (
           <BodyMap data={heatmapData} />
         ) : exercises ? null : (
           <div className="flex gap-3 py-6">
@@ -96,7 +107,7 @@ export function WorkoutDayCard({
             )}
           >
             <Dumbbell className="h-3 w-3" />
-            {t("exerciseCount", { count: exercises.length })}
+            {t("exerciseCount", { count: totalExerciseCount })}
           </Badge>
         )}
         {isCycleDone && lastSession ? (
