@@ -69,5 +69,12 @@
   "maxWeightReached": "Weight maxed",
   "durationRangeMin": "Min hold (sec)",
   "durationRangeMax": "Max hold (sec)",
-  "durationIncrement": "Hold step (sec)"
+  "durationIncrement": "Hold step (sec)",
+  "blockDefaultLabel": "Circuit",
+  "blockRounds_one": "{{count}} round",
+  "blockRounds_other": "{{count}} rounds",
+  "blockTransition": "{{seconds}}s transition",
+  "createBlock": "Create block",
+  "createBlockCta_one": "Create block ({{count}} exercise)",
+  "createBlockCta_other": "Create block ({{count}} exercises)"
 }

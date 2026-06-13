@@ -82,6 +82,58 @@ export interface WorkoutExerciseWithExercise extends WorkoutExercise {
   exercise: Exercise | null
 }
 
+/** One round's prescription for a single block exercise. `amount` = reps or duration seconds (per the exercise's measurement_type). */
+export interface PerRoundCell {
+  amount: number
+  weight: number
+}
+
+/** A superset/circuit: exercises trained round-by-round. See ADR 0007 (#351). */
+export interface ExerciseBlock {
+  id: string
+  workout_day_id: string
+  label: string | null
+  /** Number of rounds (shared across all exercises of the block). */
+  rounds: number
+  /** Rest between rounds (seconds). */
+  rest_seconds: number
+  /** Transition between exercises within a round (seconds). */
+  transition_seconds: number
+  /** Shared ordering namespace with workout_exercises within a day. */
+  sort_order: number
+  created_at: string
+}
+
+export interface BlockExercise {
+  id: string
+  block_id: string
+  exercise_id: string
+  name_snapshot: string
+  muscle_snapshot: string
+  emoji_snapshot: string
+  /** Order within the block/round. */
+  position: number
+  /** Per-round prescription, length === block.rounds. */
+  per_round: PerRoundCell[]
+}
+
+export interface BlockExerciseWithExercise extends BlockExercise {
+  exercise: Exercise | null
+}
+
+export interface ExerciseBlockWithExercises extends ExerciseBlock {
+  exercises: BlockExerciseWithExercise[]
+}
+
+/**
+ * A position in a workout day's ordered sequence: either a solo exercise or a
+ * block. Both carry `sort_order` from the same per-day namespace (Unified Day
+ * Sequence, #351).
+ */
+export type DayItem =
+  | { kind: "solo"; sort_order: number; exercise: WorkoutExerciseWithExercise }
+  | { kind: "block"; sort_order: number; block: ExerciseBlockWithExercises }
+
 /**
  * Slim projection used by catalog-style fetches (`useExerciseLibrary`) where
  * rich fields like `instructions`/`youtube_url` are deferred to per-id hooks.

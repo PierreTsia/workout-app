@@ -41,6 +41,8 @@ interface ExerciseLibraryPickerProps {
   /** Exercises already in this day (pre-checked; uncheck to remove) */
   existingExercises?: ExistingDayExercise[]
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  /** When provided, the picker creates a block from the selected exercises instead of adding solos. */
+  onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
 }
 
 export function ExerciseLibraryPicker({
@@ -50,6 +52,7 @@ export function ExerciseLibraryPicker({
   existingExerciseCount,
   existingExercises = [],
   onMutationStateChange,
+  onCreateBlock,
 }: ExerciseLibraryPickerProps) {
   const { t } = useTranslation("builder")
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -140,6 +143,8 @@ export function ExerciseLibraryPicker({
     ? [...existingSet].sort().join(",")
     : "closed"
 
+  const pickerTitle = onCreateBlock ? t("createBlock") : t("addExercise")
+
   const pickerBody = (
     <Command
       className="flex min-h-0 flex-1 flex-col"
@@ -213,6 +218,7 @@ export function ExerciseLibraryPicker({
               onClose={() => handleOpenChange(false)}
               addExercises={addExercises}
               deleteExercise={deleteExercise}
+              onCreateBlock={onCreateBlock}
             />
             {hasNextPage && (
               <div className="flex justify-center border-t py-3">
@@ -247,7 +253,7 @@ export function ExerciseLibraryPicker({
           className="flex max-h-[80vh] max-w-2xl flex-col gap-0 p-0"
         >
           <DialogHeader className="shrink-0 px-4 pt-4 pb-2">
-            <DialogTitle>{t("addExercise")}</DialogTitle>
+            <DialogTitle>{pickerTitle}</DialogTitle>
           </DialogHeader>
           {pickerBody}
         </DialogContent>
@@ -259,7 +265,7 @@ export function ExerciseLibraryPicker({
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerContent className="flex max-h-[75vh] flex-col gap-0 p-0 sm:max-h-[80vh]">
         <DrawerHeader className="shrink-0 px-4 pt-2 pb-0">
-          <DrawerTitle>{t("addExercise")}</DrawerTitle>
+          <DrawerTitle>{pickerTitle}</DrawerTitle>
         </DrawerHeader>
         {pickerBody}
       </DrawerContent>

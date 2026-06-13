@@ -69,5 +69,12 @@
   "maxWeightReached": "Poids max atteint",
   "durationRangeMin": "Maintien min (sec)",
   "durationRangeMax": "Maintien max (sec)",
-  "durationIncrement": "Palier maintien (sec)"
+  "durationIncrement": "Palier maintien (sec)",
+  "blockDefaultLabel": "Circuit",
+  "blockRounds_one": "{{count}} tour",
+  "blockRounds_other": "{{count}} tours",
+  "blockTransition": "{{seconds}}s de transition",
+  "createBlock": "Créer un bloc",
+  "createBlockCta_one": "Créer le bloc ({{count}} exercice)",
+  "createBlockCta_other": "Créer le bloc ({{count}} exercices)"
 }
