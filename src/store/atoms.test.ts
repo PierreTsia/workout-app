@@ -3,6 +3,7 @@ import { createStore } from "jotai"
 import {
   sessionAtom,
   completedExerciseIdsAtom,
+  completedBlockIdsAtom,
   prFlagsAtom,
   sessionBestPerformanceAtom,
 } from "./atoms"
@@ -117,6 +118,35 @@ describe("completedExerciseIdsAtom", () => {
     expect(completed.has("exercise-1")).toBe(true)
     expect(completed.has("exercise-2")).toBe(true)
     expect(completed.has("exercise-3")).toBe(false)
+  })
+})
+
+describe("completedBlockIdsAtom", () => {
+  it("is empty by default", () => {
+    const store = createStore()
+    expect(store.get(completedBlockIdsAtom).size).toBe(0)
+  })
+
+  it("reflects the session's completedBlockIds", () => {
+    const store = createStore()
+    store.set(sessionAtom, {
+      currentDayId: "day-1",
+      activeDayId: "day-1",
+      exerciseIndex: 0,
+      setsData: {},
+      startedAt: Date.now(),
+      isActive: true,
+      totalSetsDone: 0,
+      pausedAt: null,
+      accumulatedPause: 0,
+      cycleId: null,
+      completedBlockIds: ["blk-1", "blk-2"],
+    })
+
+    const completed = store.get(completedBlockIdsAtom)
+    expect(completed.has("blk-1")).toBe(true)
+    expect(completed.has("blk-2")).toBe(true)
+    expect(completed.has("blk-3")).toBe(false)
   })
 })
 

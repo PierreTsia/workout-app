@@ -24,25 +24,34 @@ function Bar({
   tone: Tone
 }) {
   const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0
+  const accent = tone === "round" ? "text-primary" : "text-amber-400"
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide">
-        <span className={tone === "round" ? "text-primary" : "text-amber-400"}>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between">
+        <span
+          className={cn(
+            "text-xs font-bold uppercase tracking-wider",
+            accent,
+          )}
+        >
           {label}
         </span>
         <span
           data-testid={`block-${tone}-count`}
-          className="tabular-nums text-muted-foreground"
+          className={cn("text-sm font-bold tabular-nums", accent)}
         >
-          {current}/{total}
+          {current}
+          <span className="text-muted-foreground">/{total}</span>
         </span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-3 w-full overflow-hidden rounded-full bg-muted/70">
         <div
           data-testid={`block-${tone}-fill`}
           className={cn(
             "h-full rounded-full transition-all duration-300 ease-out",
-            tone === "round" ? "bg-primary" : "bg-amber-400",
+            tone === "round"
+              ? "bg-primary shadow-[0_0_10px] shadow-primary/40"
+              : "bg-amber-400 shadow-[0_0_10px] shadow-amber-400/40",
           )}
           style={{ width: `${pct}%` }}
         />
@@ -63,7 +72,7 @@ export function BlockProgressBars({
 }: BlockProgressBarsProps) {
   const { t } = useTranslation("workout")
   return (
-    <div className="flex w-full max-w-xs flex-col gap-3">
+    <div className="flex w-full max-w-sm flex-col gap-3">
       <Bar
         label={t("blockRunner.roundLabel")}
         current={roundCurrent}

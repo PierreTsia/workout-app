@@ -387,6 +387,46 @@ export function discardSessionQueue(realSessionId: string): void {
 }
 
 /**
+ * Cancel a single in-progress block: drop its still-queued set_logs and
+ * best-effort delete any already-persisted rows for the session × block
+ * exercises (#351). Queue surgery always succeeds; the remote delete is a no-op
+ * when offline (the queued items are gone, so nothing re-syncs). Returns once
+ * the local queue is clean — callers don't need to await the remote delete.
+ */
+export async function discardBlockSetLogs(
+  realSessionId: string,
+  blockExerciseIds: string[],
+): Promise<void> {
+  const userId = getUserId()
+  if (!userId || blockExerciseIds.length === 0) return
+
+  const idSet = new Set(blockExerciseIds)
+  const queue = getQueue(userId)
+  const surviving = queue.filter((item) => {
+    if (item.type !== "set_log" || item.realSessionId !== realSessionId) {
+      return true
+    }
+    const beId = (item.payload as SetLogPayload).blockExerciseId
+    return beId == null || !idSet.has(beId)
+  })
+  if (surviving.length !== queue.length) {
+    setQueue(userId, surviving)
+    updatePendingCount(userId)
+  }
+
+  try {
+    await supabase
+      .from("set_logs")
+      .delete()
+      .eq("session_id", realSessionId)
+      .in("block_exercise_id", blockExerciseIds)
+  } catch {
+    // Offline / failure: queued rows are already removed; anything persisted
+    // reconciles on a later manual cancel when back online.
+  }
+}
+
+/**
  * Mark a `realSessionId` as cancelled so any future drain skips it.
  * Survives reload — required to handle "cancel offline → reopen → drain".
  */

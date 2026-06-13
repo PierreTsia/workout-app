@@ -1,13 +1,22 @@
 import { useAtomValue } from "jotai"
 import { forwardRef, useEffect, useRef } from "react"
-import { Check } from "lucide-react"
-import { prFlagsAtom, completedExerciseIdsAtom } from "@/store/atoms"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import { Check, Layers } from "lucide-react"
+import {
+  prFlagsAtom,
+  completedExerciseIdsAtom,
+  completedBlockIdsAtom,
+} from "@/store/atoms"
+import type {
+  Exercise,
+  ExerciseBlockWithExercises,
+  WorkoutExercise,
+} from "@/types/database"
+import type { SessionItem } from "@/lib/sessionItems"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { cn } from "@/lib/utils"
 
 interface ExerciseStripProps {
-  exercises: WorkoutExercise[]
+  items: SessionItem[]
   /** Batched library rows for strip thumbnails (avoids N `/exercises` calls). */
   libraryById: ReadonlyMap<string, Exercise>
   activeIndex: number
@@ -15,13 +24,14 @@ interface ExerciseStripProps {
 }
 
 export function ExerciseStrip({
-  exercises,
+  items,
   libraryById,
   activeIndex,
   onSelectIndex,
 }: ExerciseStripProps) {
   const prFlags = useAtomValue(prFlagsAtom)
   const completedIds = useAtomValue(completedExerciseIdsAtom)
+  const completedBlockIds = useAtomValue(completedBlockIdsAtom)
   const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLButtonElement>(null)
 
@@ -38,18 +48,29 @@ export function ExerciseStrip({
       ref={scrollRef}
       className="flex items-center gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
     >
-      {exercises.map((ex, idx) => (
-        <StripItem
-          key={ex.id}
-          exercise={ex}
-          libraryExercise={libraryById.get(ex.exercise_id)}
-          isActive={idx === activeIndex}
-          hasPr={!!prFlags[ex.exercise_id]}
-          isCompleted={completedIds.has(ex.id)}
-          ref={idx === activeIndex ? activeRef : undefined}
-          onSelect={() => onSelectIndex(idx)}
-        />
-      ))}
+      {items.map((item, idx) =>
+        item.kind === "solo" ? (
+          <StripItem
+            key={item.exercise.id}
+            exercise={item.exercise}
+            libraryExercise={libraryById.get(item.exercise.exercise_id)}
+            isActive={idx === activeIndex}
+            hasPr={!!prFlags[item.exercise.exercise_id]}
+            isCompleted={completedIds.has(item.exercise.id)}
+            ref={idx === activeIndex ? activeRef : undefined}
+            onSelect={() => onSelectIndex(idx)}
+          />
+        ) : (
+          <BlockStripItem
+            key={item.block.id}
+            block={item.block}
+            isActive={idx === activeIndex}
+            isCompleted={completedBlockIds.has(item.block.id)}
+            ref={idx === activeIndex ? activeRef : undefined}
+            onSelect={() => onSelectIndex(idx)}
+          />
+        ),
+      )}
     </div>
   )
 }
@@ -95,6 +116,47 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
         />
         <span className="w-full truncate px-1.5 py-1.5 text-center text-[0.65rem] font-medium leading-tight">
           {exercise.name_snapshot}
+        </span>
+      </button>
+    )
+  },
+)
+
+interface BlockStripItemProps {
+  block: ExerciseBlockWithExercises
+  isActive: boolean
+  isCompleted: boolean
+  onSelect: () => void
+}
+
+const BlockStripItem = forwardRef<HTMLButtonElement, BlockStripItemProps>(
+  function BlockStripItem({ block, isActive, isCompleted, onSelect }, ref) {
+    return (
+      <button
+        ref={ref}
+        onClick={onSelect}
+        data-testid="strip-block-item"
+        className={cn(
+          "relative flex shrink-0 flex-col overflow-hidden rounded-xl border bg-card shadow-xs transition-all duration-300 ease-out",
+          isActive
+            ? "w-34 scale-110 ring-2 ring-primary shadow-lg z-10"
+            : "w-20 opacity-60",
+          isCompleted && "border-green-500/50",
+        )}
+      >
+        {isCompleted && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40">
+            <Check className="h-8 w-8 text-green-400 drop-shadow-lg" strokeWidth={3} />
+          </div>
+        )}
+        <span className="absolute left-1 top-1 z-10 rounded bg-primary/15 px-1 py-0.5 text-[0.6rem] font-bold text-primary">
+          ×{block.rounds}
+        </span>
+        <div className="flex aspect-4/3 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-primary/5">
+          <Layers className="h-6 w-6 text-primary" />
+        </div>
+        <span className="w-full truncate px-1.5 py-1.5 text-center text-[0.65rem] font-medium leading-tight">
+          {block.label}
         </span>
       </button>
     )

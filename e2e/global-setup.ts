@@ -162,6 +162,44 @@ async function globalSetup() {
     await admin.from("workout_exercises").insert(weRows)
   }
 
+  // Seed an Exercise Block (circuit) on Vendredi so the block-session E2E has
+  // a block slot in the unified sequence (#351). Use reps exercises + zero
+  // rest/transition so the runner shows "Log" and advances instantly.
+  const { data: repsExercises } = await admin
+    .from("exercises")
+    .select("id, name, muscle_group, emoji, measurement_type")
+    .or("measurement_type.eq.reps,measurement_type.is.null")
+    .limit(2)
+  if (repsExercises && repsExercises.length >= 2) {
+    const { data: block, error: blockErr } = await admin
+      .from("exercise_blocks")
+      .insert({
+        workout_day_id: days![2].id,
+        label: "E2E Circuit",
+        rounds: 2,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        sort_order: 1,
+      })
+      .select("id")
+      .single()
+    if (blockErr) throw new Error(`Failed to seed block: ${blockErr.message}`)
+    await admin.from("block_exercises").insert(
+      repsExercises.map((ex, position) => ({
+        block_id: block.id,
+        exercise_id: ex.id,
+        name_snapshot: ex.name,
+        muscle_snapshot: ex.muscle_group ?? "",
+        emoji_snapshot: ex.emoji ?? "🏋️",
+        position,
+        per_round: [
+          { amount: 10, weight: 0 },
+          { amount: 10, weight: 0 },
+        ],
+      })),
+    )
+  }
+
   fs.mkdirSync(AUTH_DIR, { recursive: true })
   fs.writeFileSync(
     path.join(AUTH_DIR, "user.json"),

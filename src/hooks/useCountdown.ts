@@ -29,7 +29,11 @@ export function useCountdown(onComplete: () => void) {
   }, [endsAt])
 
   const start = useCallback((seconds: number) => {
-    setEndsAt(Date.now() + seconds * 1000)
+    // Pin `now` in the same update so the first render shows the exact starting
+    // value instead of a stale-clock frame (the subtle blink at anim start, #351).
+    const t = Date.now()
+    setNow(t)
+    setEndsAt(t + seconds * 1000)
   }, [])
   const cancel = useCallback(() => setEndsAt(null), [])
 

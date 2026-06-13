@@ -17,6 +17,11 @@ import {
 
 interface SessionNavProps {
   exercises: WorkoutExercise[]
+  /**
+   * Total slots in the unified sequence (solos + blocks). Bounds Prev/Next.
+   * Defaults to `exercises.length` when the day has no blocks.
+   */
+  itemCount?: number
   onFinish: () => void
   /** When the workout timer is paused, forward/next/finish attempts call this instead. */
   onBlockedByPause?: () => void
@@ -24,6 +29,7 @@ interface SessionNavProps {
 
 export function SessionNav({
   exercises,
+  itemCount,
   onFinish,
   onBlockedByPause,
 }: SessionNavProps) {
@@ -31,8 +37,9 @@ export function SessionNav({
   const [session, setSession] = useAtom(sessionAtom)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  const total = itemCount ?? exercises.length
   const isFirst = session.exerciseIndex === 0
-  const isLast = session.exerciseIndex >= exercises.length - 1
+  const isLast = session.exerciseIndex >= total - 1
 
   function daySets() {
     return exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
