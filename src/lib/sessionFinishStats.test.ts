@@ -6,30 +6,35 @@ import {
 } from "@/lib/sessionFinishStats"
 import type { SetLog, WorkoutExercise } from "@/types/database"
 
-const solo = (id: string): WorkoutExercise =>
-  ({
-    id,
-    exercise_id: `ex-${id}`,
-    workout_day_id: "day-1",
-    name_snapshot: "Push",
-    muscle_snapshot: "chest",
-    emoji_snapshot: "💪",
-    sets: 2,
-    reps: 10,
-    weight: 0,
-    rest_seconds: 60,
-    sort_order: 0,
-    max_weight_reached: false,
-    created_at: "2026-01-01",
-  }) as WorkoutExercise
+const solo = (overrides: Partial<WorkoutExercise> = {}): WorkoutExercise => ({
+  id: "x",
+  workout_day_id: "day-1",
+  exercise_id: "e",
+  name_snapshot: "Push",
+  muscle_snapshot: "chest",
+  emoji_snapshot: "💪",
+  sets: 2,
+  reps: "10",
+  weight: "0",
+  rest_seconds: 60,
+  sort_order: 0,
+  rep_range_min: 8,
+  rep_range_max: 12,
+  set_range_min: 2,
+  set_range_max: 5,
+  weight_increment: null,
+  max_weight_reached: false,
+  template_updated_at: "2020-01-01T00:00:00Z",
+  ...overrides,
+})
 
 describe("sessionFinishStats", () => {
   it("counts solo sets from setsData", () => {
     expect(
-      countSoloSetsDone([solo("a")], {
+      countSoloSetsDone([solo({ id: "a" })], {
         a: [
-          { done: true, reps: "10", weight: "0" },
-          { done: false, reps: "10", weight: "0" },
+          { kind: "reps", done: true, reps: "10", weight: "0" },
+          { kind: "reps", done: false, reps: "10", weight: "0" },
         ],
       }),
     ).toBe(1)
@@ -73,7 +78,7 @@ describe("sessionFinishStats", () => {
 
   it("counts session slots as solos plus blocks", () => {
     expect(
-      countSessionSlots([solo("a")], [
+      countSessionSlots([solo({ id: "a" })], [
         {
           id: "blk-1",
           workout_day_id: "day-1",
