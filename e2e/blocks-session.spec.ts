@@ -56,8 +56,11 @@ test.describe("Block session — circuit in the sequence", () => {
     await expect(blockChip).toBeVisible({ timeout: 15_000 })
     await blockChip.click()
 
-    // Inline block card → launch the runner.
-    await expect(page.getByText("E2E Circuit")).toBeVisible()
+    // Inline block card → launch the runner. Scope to the heading: the label
+    // also renders in the carousel chip, so a bare getByText is ambiguous.
+    await expect(
+      page.getByRole("heading", { name: "E2E Circuit" }),
+    ).toBeVisible()
     await page.getByRole("button", { name: "Start" }).click()
 
     // Runner is up: round progress reads 1/2.
@@ -72,13 +75,15 @@ test.describe("Block session — circuit in the sequence", () => {
       await logButton.click()
     }
 
-    await expect(page.getByText(/block complete/i)).toBeVisible({
+    await expect(page.getByText(/circuit complete/i)).toBeVisible({
       timeout: 5_000,
     })
 
     // Exit back to the session — the block card now reads as completed.
-    await page.getByRole("button", { name: "Done" }).click()
-    await expect(page.getByText("E2E Circuit")).toBeVisible({ timeout: 5_000 })
+    await page.getByRole("button", { name: /back to session/i }).click()
+    await expect(
+      page.getByRole("heading", { name: "E2E Circuit" }),
+    ).toBeVisible({ timeout: 5_000 })
     await expect(page.getByText(/completed/i)).toBeVisible({ timeout: 5_000 })
     await expect(
       page.getByRole("button", { name: /restart/i }),

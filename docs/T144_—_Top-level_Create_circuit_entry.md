@@ -1,5 +1,25 @@
 # T144 — Top-level "Create circuit" entry
 
+> **STATUS: POSTPONED (2026-06-14).** Not mature enough to implement — needs a
+> dedicated `grill-with-docs` design session before any code. The ticket's core
+> assumption ("route directly to `BlockEditor`") **does not hold against the
+> current architecture**: `BlockEditor` is a Dialog/Drawer **modal** mounted
+> inside `DayEditor`, which is coupled to `programId` (`useWorkoutDays(programId)`,
+> `useUpdateDay(programId)`). There is **no route or editing surface for an
+> ad-hoc day** (`program_id: null`); the Quick Workout pattern only *creates +
+> runs* a day, it never *edits* one afterwards.
+>
+> The trivial half (`useCreateAdhocBlock` creating a `program_id: null` day + an
+> empty/pre-filled block) is ready to build; what's unresolved is the **editing
+> surface + entry placement + ad-hoc day lifecycle**. Tracked in
+> [GitHub issue #393](https://github.com/PierreTsia/workout-app/issues/393).
+> Resume only after the grill-me locks the approach.
+>
+> Open design forks for the grill-me:
+> - **Editing surface:** reuse existing modals (picker → BlockEditor modal → land on home pre-session) vs. a dedicated `/circuit/:dayId` page vs. generalizing `DayEditor` to edit non-program days.
+> - **Entry placement:** SideDrawer (under Quick Workout) vs. + Library/QuickWorkoutTab vs. on the home screen.
+> - **Lifecycle:** cleanup of abandoned empty ad-hoc days, default naming, whether ad-hoc circuits surface in Library/history, and whether this should unify with the Quick Workout flow.
+
 ## Goal
 
 Offrir un point d'entrée de premier niveau pour créer un circuit ad-hoc (hors program builder), via un jour `program_id: null`, et router directement vers l'éditeur de bloc. Couvre la story 19 (entrée top-level / découvrabilité) et le verrou « day-scoped + entrée top-level ».

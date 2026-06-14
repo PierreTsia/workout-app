@@ -11,6 +11,7 @@ const makeLog = (
 ): SetLog => ({
   id: "log-1",
   session_id: "sess-1",
+  block_exercise_id: null,
   estimated_1rm: null,
   was_pr: false,
   logged_at: "2026-03-20T10:00:00Z",
