@@ -11,6 +11,10 @@ import type {
 const enqueueSetLog = vi.fn()
 const scheduleImmediateDrain = vi.fn()
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: (...args: unknown[]) => enqueueSetLog(...args),
   scheduleImmediateDrain: () => scheduleImmediateDrain(),

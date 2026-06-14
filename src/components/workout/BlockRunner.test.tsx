@@ -19,6 +19,10 @@ vi.mock("@/lib/syncService", () => ({
   discardBlockSetLogs: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: vi.fn() },
+}))
+
 vi.mock("@/hooks/useSessionSetLogs", () => ({
   useSessionSetLogs: vi.fn(() => ({ data: [] as SetLog[] })),
 }))
