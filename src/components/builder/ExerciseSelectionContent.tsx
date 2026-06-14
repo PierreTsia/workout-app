@@ -42,8 +42,7 @@ export interface ExerciseSelectionContentProps {
   onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
 }
 
-/** Selection state + list + apply. Keyed by parent so it remounts with fresh initial selection (no setState-in-effect). */
-export function ExerciseSelectionContent({
+export function useExerciseSelection({
   initialSelectedIds,
   existingExercises,
   existingSet,
@@ -63,16 +62,31 @@ export function ExerciseSelectionContent({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(isBlockMode ? [] : initialSelectedIds),
   )
+  /** Block mode keeps full Exercise rows so filters/search cannot drop selections. */
+  const [selectedById, setSelectedById] = useState<Map<string, Exercise>>(
+    () => new Map(),
+  )
   const [isCreatingBlock, setIsCreatingBlock] = useState(false)
 
-  const toggleSelected = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+  const toggleSelected = useCallback(
+    (ex: Exercise) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(ex.id)) next.delete(ex.id)
+        else next.add(ex.id)
+        return next
+      })
+      if (isBlockMode) {
+        setSelectedById((prev) => {
+          const next = new Map(prev)
+          if (next.has(ex.id)) next.delete(ex.id)
+          else next.set(ex.id, ex)
+          return next
+        })
+      }
+    },
+    [isBlockMode],
+  )
 
   const toAdd = useMemo(() => {
     if (!filtered) return []
@@ -88,8 +102,11 @@ export function ExerciseSelectionContent({
   )
 
   const selectedExercises = useMemo(
-    () => (filtered ?? []).filter((ex) => selectedIds.has(ex.id)),
-    [filtered, selectedIds],
+    () =>
+      isBlockMode
+        ? [...selectedById.values()]
+        : (filtered ?? []).filter((ex) => selectedIds.has(ex.id)),
+    [isBlockMode, selectedById, filtered, selectedIds],
   )
 
   const hasChanges = toAdd.length > 0 || toRemove.length > 0
@@ -136,6 +153,31 @@ export function ExerciseSelectionContent({
   const isApplying =
     addExercises.isPending || deleteExercise.isPending
 
+  return {
+    t,
+    isBlockMode,
+    selectedIds,
+    toggleSelected,
+    grouped,
+    canCreateBlock,
+    hasChanges,
+    isCreatingBlock,
+    isApplying,
+    selectedExercises,
+    handleCreateBlock,
+    handleApply,
+  }
+}
+
+export type ExerciseSelectionState = ReturnType<typeof useExerciseSelection>
+
+export function ExerciseSelectionList({
+  state,
+}: {
+  state: ExerciseSelectionState
+}) {
+  const { t, selectedIds, toggleSelected, grouped } = state
+
   return (
     <>
       <CommandEmpty>{t("noExercisesFound")}</CommandEmpty>
@@ -152,7 +194,7 @@ export function ExerciseSelectionContent({
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Checkbox
                     checked={selectedIds.has(ex.id)}
-                    onCheckedChange={() => toggleSelected(ex.id)}
+                    onCheckedChange={() => toggleSelected(ex)}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                     aria-label={t("add")}
@@ -190,35 +232,70 @@ export function ExerciseSelectionContent({
             ))}
           </CommandGroup>
         ))}
-      {isBlockMode
-        ? canCreateBlock && (
-            <div className="shrink-0 border-t p-3">
-              <Button
-                className="w-full"
-                onClick={handleCreateBlock}
-                disabled={isCreatingBlock}
-              >
-                {isCreatingBlock ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {t("createBlockCta", { count: selectedExercises.length })}
-              </Button>
-            </div>
-          )
-        : hasChanges && (
-            <div className="shrink-0 border-t p-3">
-              <Button
-                className="w-full"
-                onClick={handleApply}
-                disabled={isApplying}
-              >
-                {isApplying ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {t("applyChanges")}
-              </Button>
-            </div>
-          )}
+    </>
+  )
+}
+
+/** Pinned below the scrollable list — always visible even when filters shrink the viewport. */
+export function ExerciseSelectionActions({
+  state,
+}: {
+  state: ExerciseSelectionState
+}) {
+  const {
+    t,
+    isBlockMode,
+    canCreateBlock,
+    hasChanges,
+    isCreatingBlock,
+    isApplying,
+    selectedExercises,
+    handleCreateBlock,
+    handleApply,
+  } = state
+
+  if (isBlockMode) {
+    if (!canCreateBlock) return null
+    return (
+      <div className="shrink-0 border-t bg-popover p-3">
+        <Button
+          className="w-full"
+          onClick={handleCreateBlock}
+          disabled={isCreatingBlock}
+        >
+          {isCreatingBlock ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
+          {t("createBlockCta", { count: selectedExercises.length })}
+        </Button>
+      </div>
+    )
+  }
+
+  if (!hasChanges) return null
+  return (
+    <div className="shrink-0 border-t bg-popover p-3">
+      <Button
+        className="w-full"
+        onClick={handleApply}
+        disabled={isApplying}
+      >
+        {isApplying ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : null}
+        {t("applyChanges")}
+      </Button>
+    </div>
+  )
+}
+
+/** Selection state + list + apply. Keyed by parent so it remounts with fresh initial selection (no setState-in-effect). */
+export function ExerciseSelectionContent(props: ExerciseSelectionContentProps) {
+  const state = useExerciseSelection(props)
+  return (
+    <>
+      <ExerciseSelectionList state={state} />
+      <ExerciseSelectionActions state={state} />
     </>
   )
 }

@@ -10,7 +10,11 @@ import {
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import type { Exercise } from "@/types/database"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
-import { ExerciseSelectionContent } from "@/components/builder/ExerciseSelectionContent"
+import {
+  ExerciseSelectionList,
+  ExerciseSelectionActions,
+  useExerciseSelection,
+} from "@/components/builder/ExerciseSelectionContent"
 import type { ExistingDayExercise } from "@/components/builder/ExerciseSelectionContent"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -30,6 +34,63 @@ import { Command, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 
 const SEARCH_DEBOUNCE_MS = 300
+
+interface PickerSelectionPanelProps {
+  selectionKey: string
+  initialSelectedIds: string[]
+  existingExercises: ExistingDayExercise[]
+  existingSet: Set<string>
+  filtered: Exercise[] | undefined
+  grouped: Record<string, Exercise[]>
+  dayId: string
+  existingExerciseCount: number
+  onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  onClose: () => void
+  addExercises: ReturnType<typeof useAddExercisesToDay>
+  deleteExercise: ReturnType<typeof useDeleteExercise>
+  onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  onLoadMore: () => void
+}
+
+function PickerSelectionPanel({
+  selectionKey: _selectionKey,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+  ...selectionProps
+}: PickerSelectionPanelProps) {
+  const { t } = useTranslation("builder")
+  const selection = useExerciseSelection(selectionProps)
+
+  return (
+    <>
+      <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
+        <ExerciseSelectionList state={selection} />
+        {hasNextPage && (
+          <div className="flex justify-center border-t py-3">
+            <Button
+              variant="link"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={onLoadMore}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              {t("loadMore")}
+            </Button>
+          </div>
+        )}
+      </CommandList>
+      <ExerciseSelectionActions state={selection} />
+    </>
+  )
+}
 
 export type { ExistingDayExercise }
 
@@ -198,49 +259,33 @@ export function ExerciseLibraryPicker({
         </div>
       </div>
 
-      <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
-        {isLoading ? (
+      {isLoading ? (
+        <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (
-          <>
-            <ExerciseSelectionContent
-              key={selectionKey}
-              initialSelectedIds={existingExercises.map((e) => e.exercise_id)}
-              existingExercises={existingExercises}
-              existingSet={existingSet}
-              filtered={paginatedData}
-              grouped={grouped}
-              dayId={dayId}
-              existingExerciseCount={existingExerciseCount}
-              onMutationStateChange={onMutationStateChange}
-              onClose={() => handleOpenChange(false)}
-              addExercises={addExercises}
-              deleteExercise={deleteExercise}
-              onCreateBlock={onCreateBlock}
-            />
-            {hasNextPage && (
-              <div className="flex justify-center border-t py-3">
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                >
-                  {isFetchingNextPage ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  {t("loadMore")}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </CommandList>
+        </CommandList>
+      ) : (
+        <PickerSelectionPanel
+          key={selectionKey}
+          selectionKey={selectionKey}
+          initialSelectedIds={existingExercises.map((e) => e.exercise_id)}
+          existingExercises={existingExercises}
+          existingSet={existingSet}
+          filtered={paginatedData}
+          grouped={grouped}
+          dayId={dayId}
+          existingExerciseCount={existingExerciseCount}
+          onMutationStateChange={onMutationStateChange}
+          onClose={() => handleOpenChange(false)}
+          addExercises={addExercises}
+          deleteExercise={deleteExercise}
+          onCreateBlock={onCreateBlock}
+          hasNextPage={!!hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={() => fetchNextPage()}
+        />
+      )}
     </Command>
   )
 

@@ -397,4 +397,26 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByRole("button", { name: "Apply changes" }))
     expect(mockDeleteExerciseMutateAsync).toHaveBeenCalledWith({ id: "we-1", dayId: "day-1" })
   })
+
+  it("keeps create circuit CTA visible after filtering in block mode", async () => {
+    const onCreateBlock = vi.fn().mockResolvedValue(undefined)
+    renderPicker({ onCreateBlock })
+    const user = userEvent.setup()
+
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
+
+    expect(
+      screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText("Filters"))
+    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+
+    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
+    ).toBeInTheDocument()
+  })
 })
