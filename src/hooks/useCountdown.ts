@@ -9,7 +9,9 @@ const TICK_MS = 250
  */
 export function useCountdown(onComplete: () => void) {
   const onCompleteRef = useRef(onComplete)
-  onCompleteRef.current = onComplete
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  })
 
   const [endsAt, setEndsAt] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
