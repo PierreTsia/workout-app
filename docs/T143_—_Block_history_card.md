@@ -43,3 +43,18 @@ T142.
 
 - Epic Brief : story 18
 - Tech Plan : § Component Architecture (`BlockHistoryCard`), § Data Model (`ON DELETE SET NULL`)
+
+## Delivered (build notes)
+
+- **Read:** `useSessionSetLogs` already returns `block_exercise_id`. Added `useSessionBlockMeta(blockExerciseIds)` (`src/hooks/`) which resolves each `block_exercise_id` → parent block (label, `sort_order`) + exercise (`position`, `emoji_snapshot`) via `block_exercises ⨝ exercise_blocks`.
+- **Grouping (pure, tested):** `src/lib/sessionHistoryGrouping.ts` — `groupSessionHistory(logs, metaById)` returns ordered `SessionHistoryItem[]` (circuits first by day `sort_order`, then solos). Block cells grouped by `block_id`, split into rounds (`set_number`), ordered within a round by `position`. Solo-only sessions are byte-for-byte unchanged.
+- **UI:** `src/components/history/BlockHistoryCard.tsx` — label + round count + per-round actuals (amount + weight) per exercise. Wired into `SessionRow`/`SessionSetLogs`; a `loadingSets` guard avoids a solo→circuit flash while meta resolves.
+- **FK correction (data-integrity bug found in build):** migration `20260613140000` attached `set_logs.block_exercise_id` with **`ON DELETE CASCADE`**, which would *delete past-session logs* when a circuit is removed from the template — silently destroying history. New migration `20260613150000_set_logs_block_exercise_on_delete_set_null.sql` switches it to **`ON DELETE SET NULL`** (matches Tech Plan § Data Model). This makes the **orphan → solo fallback** in `groupSessionHistory` actually reachable (logs survive with `block_exercise_id = NULL`, snapshots intact).
+- **Tests:** `src/lib/sessionHistoryGrouping.test.ts` — meta map build, solo grouping, round-major circuit grouping ordered by position, orphan fallback, circuits-before-solos ordering.
+
+## Acceptance Criteria — status
+
+- [x] Une session contenant un bloc affiche une `BlockHistoryCard` groupée (pas N lignes solos).
+- [x] La carte montre les actuals par round (pyramide visible en historique).
+- [x] Un `set_log` à `block_exercise_id` nul s'affiche en solo sans crash (+ FK passée en `SET NULL` pour que ce cas existe vraiment).
+- [x] Tests vitest : regroupement des set_logs par bloc, rendu de la carte (util couvert ; carte = présentation pure).

@@ -4,30 +4,28 @@ import { useTranslation } from "react-i18next"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { useSessionBlockMeta } from "@/hooks/useSessionBlockMeta"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
 import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
 import { formatSessionRowDuration } from "@/lib/sessionRowDuration"
+import { groupSessionHistory } from "@/lib/sessionHistoryGrouping"
+import { BlockHistoryCard } from "@/components/history/BlockHistoryCard"
 import type { Session, SetLog } from "@/types/database"
-
-function groupByExercise(logs: SetLog[]) {
-  return logs.reduce<{ name: string; sets: SetLog[] }[]>((groups, log) => {
-    const last = groups.at(-1)
-    if (last && last.name === log.exercise_name_snapshot) {
-      last.sets.push(log)
-    } else {
-      groups.push({ name: log.exercise_name_snapshot, sets: [log] })
-    }
-    return groups
-  }, [])
-}
 
 function SessionSetLogs({ sessionId }: { sessionId: string }) {
   const { t } = useTranslation("history")
   const { formatWeight } = useWeightUnit()
   const { data: logs, isLoading } = useSessionSetLogs(sessionId)
 
-  if (isLoading) {
+  const blockExerciseIds = (logs ?? [])
+    .map((l) => l.block_exercise_id)
+    .filter((id): id is string => id != null)
+  const { data: blockMeta } = useSessionBlockMeta(blockExerciseIds)
+  // Avoid a solo→circuit flash: wait for meta when the session has block logs.
+  const metaPending = blockExerciseIds.length > 0 && blockMeta == null
+
+  if (isLoading || metaPending) {
     return <p className="py-2 text-xs text-muted-foreground">{t("loadingSets")}</p>
   }
 
@@ -35,36 +33,40 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
     return <p className="py-2 text-xs text-muted-foreground">{t("noSetsRecorded")}</p>
   }
 
-  const groups = groupByExercise(logs)
+  const items = groupSessionHistory(logs, blockMeta ?? new Map())
 
   return (
     <div className="flex flex-col gap-3 pb-2 pt-1">
-      {groups.map((group) => (
-        <div key={group.name}>
-          <p className="mb-1 text-xs font-semibold text-foreground">{group.name}</p>
-          <div className="grid grid-cols-[2rem_1fr_1fr_1fr_auto] gap-x-2 gap-y-0.5 text-xs">
-            <span className="text-muted-foreground">#</span>
-            <span className="text-muted-foreground">{t("workout:reps", { defaultValue: "Reps" })}</span>
-            <span className="text-muted-foreground">{t("weightUnit")}</span>
-            <span className="text-muted-foreground">{t("oneRm")}</span>
-            <span />
-            {group.sets.map((s) => {
-              const e1rm =
-                s.duration_seconds != null
-                  ? 0
-                  : s.estimated_1rm != null
-                    ? Number(s.estimated_1rm)
-                    : computeEpley1RM(
-                        Number(s.weight_logged),
-                        parseInt(s.reps_logged ?? "0", 10),
-                      )
-              return (
-                <SetRow key={s.id} set={s} e1rm={e1rm} formatWeight={formatWeight} prLabel={t("pr")} />
-              )
-            })}
+      {items.map((item) =>
+        item.kind === "block" ? (
+          <BlockHistoryCard key={item.key} group={item} formatWeight={formatWeight} />
+        ) : (
+          <div key={item.key}>
+            <p className="mb-1 text-xs font-semibold text-foreground">{item.name}</p>
+            <div className="grid grid-cols-[2rem_1fr_1fr_1fr_auto] gap-x-2 gap-y-0.5 text-xs">
+              <span className="text-muted-foreground">#</span>
+              <span className="text-muted-foreground">{t("workout:reps", { defaultValue: "Reps" })}</span>
+              <span className="text-muted-foreground">{t("weightUnit")}</span>
+              <span className="text-muted-foreground">{t("oneRm")}</span>
+              <span />
+              {item.sets.map((s) => {
+                const e1rm =
+                  s.duration_seconds != null
+                    ? 0
+                    : s.estimated_1rm != null
+                      ? Number(s.estimated_1rm)
+                      : computeEpley1RM(
+                          Number(s.weight_logged),
+                          parseInt(s.reps_logged ?? "0", 10),
+                        )
+                return (
+                  <SetRow key={s.id} set={s} e1rm={e1rm} formatWeight={formatWeight} prLabel={t("pr")} />
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ),
+      )}
     </div>
   )
 }

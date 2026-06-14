@@ -45,6 +45,12 @@
   "statSets": "Sets",
   "statPrs": "PRs",
   "sets": "sets",
+  "circuit": {
+    "fallbackLabel": "Circuit",
+    "rounds_one": "{{count}} round",
+    "rounds_other": "{{count}} rounds",
+    "round": "Round {{n}}"
+  },
   "balance": {
     "tab": "Balance",
     "bodyMapIntensityHint": "Muscle color strength reflects relative volume in this period (within your own split).",
