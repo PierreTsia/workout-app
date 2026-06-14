@@ -40,7 +40,6 @@ interface PickerSelectionPanelProps {
   initialSelectedIds: string[]
   existingExercises: ExistingDayExercise[]
   existingSet: Set<string>
-  filtered: Exercise[] | undefined
   grouped: Record<string, Exercise[]>
   dayId: string
   existingExerciseCount: number
@@ -49,6 +48,7 @@ interface PickerSelectionPanelProps {
   addExercises: ReturnType<typeof useAddExercisesToDay>
   deleteExercise: ReturnType<typeof useDeleteExercise>
   onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
+  isLoading: boolean
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
@@ -56,6 +56,7 @@ interface PickerSelectionPanelProps {
 
 function PickerSelectionPanel({
   selectionKey: _selectionKey,
+  isLoading,
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
@@ -67,24 +68,32 @@ function PickerSelectionPanel({
   return (
     <>
       <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
-        <ExerciseSelectionList state={selection} />
-        {hasNextPage && (
-          <div className="flex justify-center border-t py-3">
-            <Button
-              variant="link"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={onLoadMore}
-              disabled={isFetchingNextPage}
-            >
-              {isFetchingNextPage ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              {t("loadMore")}
-            </Button>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : (
+          <>
+            <ExerciseSelectionList state={selection} />
+            {hasNextPage && (
+              <div className="flex justify-center border-t py-3">
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={onLoadMore}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {t("loadMore")}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </CommandList>
       <ExerciseSelectionActions state={selection} />
@@ -259,33 +268,25 @@ export function ExerciseLibraryPicker({
         </div>
       </div>
 
-      {isLoading ? (
-        <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          </div>
-        </CommandList>
-      ) : (
-        <PickerSelectionPanel
-          key={selectionKey}
-          selectionKey={selectionKey}
-          initialSelectedIds={existingExercises.map((e) => e.exercise_id)}
-          existingExercises={existingExercises}
-          existingSet={existingSet}
-          filtered={paginatedData}
-          grouped={grouped}
-          dayId={dayId}
-          existingExerciseCount={existingExerciseCount}
-          onMutationStateChange={onMutationStateChange}
-          onClose={() => handleOpenChange(false)}
-          addExercises={addExercises}
-          deleteExercise={deleteExercise}
-          onCreateBlock={onCreateBlock}
-          hasNextPage={!!hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          onLoadMore={() => fetchNextPage()}
-        />
-      )}
+      <PickerSelectionPanel
+        key={selectionKey}
+        selectionKey={selectionKey}
+        initialSelectedIds={existingExercises.map((e) => e.exercise_id)}
+        existingExercises={existingExercises}
+        existingSet={existingSet}
+        grouped={grouped}
+        dayId={dayId}
+        existingExerciseCount={existingExerciseCount}
+        onMutationStateChange={onMutationStateChange}
+        onClose={() => handleOpenChange(false)}
+        addExercises={addExercises}
+        deleteExercise={deleteExercise}
+        onCreateBlock={onCreateBlock}
+        isLoading={isLoading}
+        hasNextPage={!!hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={() => fetchNextPage()}
+      />
     </Command>
   )
 

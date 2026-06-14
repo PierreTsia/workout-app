@@ -398,6 +398,76 @@ describe("ExerciseLibraryPicker", () => {
     expect(mockDeleteExerciseMutateAsync).toHaveBeenCalledWith({ id: "we-1", dayId: "day-1" })
   })
 
+  it("keeps Apply changes visible after filtering hides a selected exercise", async () => {
+    renderPicker()
+    const user = userEvent.setup()
+
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0]) // Développé couché (Pectoraux)
+    await user.click(checkboxes[1]) // Élévations latérales (Épaules)
+
+    expect(
+      screen.getByRole("button", { name: "Apply changes" }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText("Filters"))
+    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+
+    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Apply changes" }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
+    expect(vars.exercises).toHaveLength(2)
+  })
+
+  it("keeps selections when a new search triggers a loading state", async () => {
+    // A new search term is a fresh query key with no cache → isLoading flips
+    // true. The picker must not unmount its selection subtree on that flash.
+    mockUseExerciseLibraryPaginated.mockImplementation(
+      (params: {
+        search?: string
+        muscleGroup?: string | null
+        equipment?: string[]
+        difficulty?: string[]
+      }) =>
+        params.search
+          ? {
+              data: [] as Exercise[],
+              isLoading: true,
+              isFetchingNextPage: false,
+              hasNextPage: false,
+              fetchNextPage: mockFetchNextPage,
+            }
+          : paginatedReturn(params),
+    )
+
+    const onCreateBlock = vi.fn().mockResolvedValue(undefined)
+    renderPicker({ onCreateBlock })
+    const user = userEvent.setup()
+
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
+
+    expect(
+      screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
+    ).toBeInTheDocument()
+
+    await user.type(
+      screen.getByLabelText("Search exercises..."),
+      "tract",
+    )
+
+    await screen.findByRole(
+      "button",
+      { name: /create circuit \(2 exercises\)/i },
+      { timeout: 2000 },
+    )
+  })
+
   it("keeps create circuit CTA visible after filtering in block mode", async () => {
     const onCreateBlock = vi.fn().mockResolvedValue(undefined)
     renderPicker({ onCreateBlock })

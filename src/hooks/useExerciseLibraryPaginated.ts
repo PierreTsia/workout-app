@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import type { Exercise } from "@/types/database"
 
@@ -39,6 +39,9 @@ export function useExerciseLibraryPaginated({
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === PAGE_SIZE ? allPages.length : undefined,
     enabled,
+    // Keep the previous results on screen while a new search/filter loads so the
+    // picker subtree (and its selection state) is never unmounted by a loading flash.
+    placeholderData: keepPreviousData,
   })
 
   const data = query.data?.pages.flat() ?? []

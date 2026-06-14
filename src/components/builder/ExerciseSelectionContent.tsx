@@ -30,7 +30,6 @@ export interface ExerciseSelectionContentProps {
   initialSelectedIds: string[]
   existingExercises: ExistingDayExercise[]
   existingSet: Set<string>
-  filtered: Exercise[] | undefined
   grouped: Record<string, Exercise[]> | undefined
   dayId: string
   existingExerciseCount: number
@@ -46,7 +45,6 @@ export function useExerciseSelection({
   initialSelectedIds,
   existingExercises,
   existingSet,
-  filtered,
   grouped,
   dayId,
   existingExerciseCount,
@@ -62,38 +60,38 @@ export function useExerciseSelection({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(isBlockMode ? [] : initialSelectedIds),
   )
-  /** Block mode keeps full Exercise rows so filters/search cannot drop selections. */
+  /**
+   * Keeps full Exercise rows for every exercise the user toggles ON, so a
+   * filter/search that hides a selected row never drops it from the pending
+   * additions (block CTA *and* "Apply changes" both depend on this).
+   */
   const [selectedById, setSelectedById] = useState<Map<string, Exercise>>(
     () => new Map(),
   )
   const [isCreatingBlock, setIsCreatingBlock] = useState(false)
 
-  const toggleSelected = useCallback(
-    (ex: Exercise) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev)
-        if (next.has(ex.id)) next.delete(ex.id)
-        else next.add(ex.id)
-        return next
-      })
-      if (isBlockMode) {
-        setSelectedById((prev) => {
-          const next = new Map(prev)
-          if (next.has(ex.id)) next.delete(ex.id)
-          else next.set(ex.id, ex)
-          return next
-        })
-      }
-    },
-    [isBlockMode],
-  )
+  const toggleSelected = useCallback((ex: Exercise) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(ex.id)) next.delete(ex.id)
+      else next.add(ex.id)
+      return next
+    })
+    setSelectedById((prev) => {
+      const next = new Map(prev)
+      if (next.has(ex.id)) next.delete(ex.id)
+      else next.set(ex.id, ex)
+      return next
+    })
+  }, [])
 
-  const toAdd = useMemo(() => {
-    if (!filtered) return []
-    return filtered.filter(
-      (ex) => selectedIds.has(ex.id) && !existingSet.has(ex.id),
-    )
-  }, [filtered, selectedIds, existingSet])
+  const toAdd = useMemo(
+    () =>
+      [...selectedById.values()].filter(
+        (ex) => selectedIds.has(ex.id) && !existingSet.has(ex.id),
+      ),
+    [selectedById, selectedIds, existingSet],
+  )
 
   const toRemove = useMemo(
     () =>
@@ -103,10 +101,8 @@ export function useExerciseSelection({
 
   const selectedExercises = useMemo(
     () =>
-      isBlockMode
-        ? [...selectedById.values()]
-        : (filtered ?? []).filter((ex) => selectedIds.has(ex.id)),
-    [isBlockMode, selectedById, filtered, selectedIds],
+      [...selectedById.values()].filter((ex) => selectedIds.has(ex.id)),
+    [selectedById, selectedIds],
   )
 
   const hasChanges = toAdd.length > 0 || toRemove.length > 0
