@@ -3,11 +3,23 @@ import { act, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { sessionAtom, prFlagsAtom } from "@/store/atoms"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type {
+  Exercise,
+  ExerciseBlockWithExercises,
+  WorkoutExercise,
+} from "@/types/database"
+import type { SessionItem } from "@/lib/sessionItems"
 import { ExerciseStrip } from "./ExerciseStrip"
 
 /** Strip tests only assert labels/overlays; thumbnails use snapshots without library rows. */
 const emptyLibraryById: ReadonlyMap<string, Exercise> = new Map()
+
+const soloItems = (exercises: WorkoutExercise[]): SessionItem[] =>
+  exercises.map((exercise) => ({
+    kind: "solo",
+    sort_order: exercise.sort_order,
+    exercise,
+  }))
 
 const EXERCISES: WorkoutExercise[] = [
   {
@@ -76,7 +88,7 @@ describe("ExerciseStrip", () => {
   it("renders all exercise names", () => {
     renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
@@ -91,7 +103,7 @@ describe("ExerciseStrip", () => {
   it("shows PR badge when exercise has PR flag", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
@@ -108,7 +120,7 @@ describe("ExerciseStrip", () => {
   it("shows checkmark overlay when exercise is completed", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={1}
         onSelectIndex={() => {}}
@@ -143,7 +155,7 @@ describe("ExerciseStrip", () => {
   it("does not show checkmark when exercise has incomplete sets", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={() => {}}
@@ -178,7 +190,7 @@ describe("ExerciseStrip", () => {
   it("shows multiple checkmarks for multiple completed exercises", () => {
     const { store } = renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={2}
         onSelectIndex={() => {}}
@@ -215,12 +227,95 @@ describe("ExerciseStrip", () => {
     expect(checkIcons).toHaveLength(2)
   })
 
+  it("renders a block item inline and reports its index on click", async () => {
+    const user = userEvent.setup()
+    const onSelectIndex = vi.fn()
+    const blockItem: ExerciseBlockWithExercises = {
+      id: "blk-1",
+      workout_day_id: "day-1",
+      label: "Finisher circuit",
+      rounds: 4,
+      rest_seconds: 60,
+      transition_seconds: 0,
+      sort_order: 1,
+      created_at: "2020-01-01",
+      exercises: [],
+    }
+    const items: SessionItem[] = [
+      { kind: "solo", sort_order: 0, exercise: EXERCISES[0] },
+      { kind: "block", sort_order: 1, block: blockItem },
+      { kind: "solo", sort_order: 2, exercise: EXERCISES[1] },
+    ]
+    renderWithProviders(
+      <ExerciseStrip
+        items={items}
+        libraryById={emptyLibraryById}
+        activeIndex={0}
+        onSelectIndex={onSelectIndex}
+      />,
+    )
+
+    expect(screen.getByText("Finisher circuit")).toBeInTheDocument()
+    expect(screen.getByTestId("strip-block-item")).toBeInTheDocument()
+
+    await user.click(screen.getByText("Finisher circuit"))
+    expect(onSelectIndex).toHaveBeenCalledWith(1)
+  })
+
+  it("shows a checkmark on a completed block item", () => {
+    const blockItem: ExerciseBlockWithExercises = {
+      id: "blk-1",
+      workout_day_id: "day-1",
+      label: "Done circuit",
+      rounds: 2,
+      rest_seconds: 0,
+      transition_seconds: 0,
+      sort_order: 1,
+      created_at: "2020-01-01",
+      exercises: [],
+    }
+    const items: SessionItem[] = [
+      { kind: "solo", sort_order: 0, exercise: EXERCISES[0] },
+      { kind: "block", sort_order: 1, block: blockItem },
+    ]
+    const { store } = renderWithProviders(
+      <ExerciseStrip
+        items={items}
+        libraryById={emptyLibraryById}
+        activeIndex={0}
+        onSelectIndex={() => {}}
+      />,
+    )
+
+    expect(
+      document.querySelector('[class*="lucide-check"]'),
+    ).not.toBeInTheDocument()
+
+    act(() => {
+      store.set(sessionAtom, {
+        currentDayId: "day-1",
+        activeDayId: "day-1",
+        exerciseIndex: 0,
+        setsData: {},
+        startedAt: Date.now(),
+        isActive: true,
+        totalSetsDone: 0,
+        pausedAt: null,
+        accumulatedPause: 0,
+        cycleId: null,
+        completedBlockIds: ["blk-1"],
+      })
+    })
+
+    expect(document.querySelector('[class*="lucide-check"]')).toBeInTheDocument()
+  })
+
   it("calls onSelectIndex when clicking an exercise", async () => {
     const user = userEvent.setup()
     const onSelectIndex = vi.fn()
     renderWithProviders(
       <ExerciseStrip
-        exercises={EXERCISES}
+        items={soloItems(EXERCISES)}
         libraryById={emptyLibraryById}
         activeIndex={0}
         onSelectIndex={onSelectIndex}

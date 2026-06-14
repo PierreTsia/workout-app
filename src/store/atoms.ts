@@ -15,6 +15,8 @@ export interface SessionState {
   pausedAt: number | null
   accumulatedPause: number
   cycleId: string | null
+  /** Ids of Exercise Blocks fully completed this session (#351). Optional for back-compat. */
+  completedBlockIds?: string[]
 }
 
 export const defaultSessionState: SessionState = {
@@ -28,6 +30,7 @@ export const defaultSessionState: SessionState = {
   pausedAt: null,
   accumulatedPause: 0,
   cycleId: null,
+  completedBlockIds: [],
 }
 
 export const authAtom = atom<User | null>(null)
@@ -58,6 +61,11 @@ export const completedExerciseIdsAtom = atom((get) => {
   }
   return completed
 })
+
+/** Block ids fully completed this session — mirrors {@link completedExerciseIdsAtom} for circuits (#351). */
+export const completedBlockIdsAtom = atom(
+  (get) => new Set(get(sessionAtom).completedBlockIds ?? []),
+)
 
 export interface RestState {
   startedAt: number

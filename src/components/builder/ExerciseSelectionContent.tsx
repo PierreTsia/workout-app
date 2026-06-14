@@ -38,6 +38,8 @@ export interface ExerciseSelectionContentProps {
   onClose: () => void
   addExercises: ReturnType<typeof useAddExercisesToDay>
   deleteExercise: ReturnType<typeof useDeleteExercise>
+  /** When provided, the picker switches to block-creation mode: selecting >=2 exercises and confirming creates a block instead of adding solos. */
+  onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
 }
 
 /** Selection state + list + apply. Keyed by parent so it remounts with fresh initial selection (no setState-in-effect). */
@@ -53,12 +55,15 @@ export function ExerciseSelectionContent({
   onClose,
   addExercises,
   deleteExercise,
+  onCreateBlock,
 }: ExerciseSelectionContentProps) {
   const { t } = useTranslation("builder")
+  const isBlockMode = !!onCreateBlock
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(initialSelectedIds),
+    () => new Set(isBlockMode ? [] : initialSelectedIds),
   )
+  const [isCreatingBlock, setIsCreatingBlock] = useState(false)
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -82,7 +87,28 @@ export function ExerciseSelectionContent({
     [existingExercises, selectedIds],
   )
 
+  const selectedExercises = useMemo(
+    () => (filtered ?? []).filter((ex) => selectedIds.has(ex.id)),
+    [filtered, selectedIds],
+  )
+
   const hasChanges = toAdd.length > 0 || toRemove.length > 0
+  const canCreateBlock = selectedExercises.length >= 2
+
+  async function handleCreateBlock() {
+    if (!onCreateBlock || !canCreateBlock) return
+    onMutationStateChange("saving")
+    setIsCreatingBlock(true)
+    try {
+      await onCreateBlock(selectedExercises)
+      onMutationStateChange("saved")
+      onClose()
+    } catch {
+      onMutationStateChange("error")
+    } finally {
+      setIsCreatingBlock(false)
+    }
+  }
 
   async function handleApply() {
     if (!hasChanges) return
@@ -164,20 +190,35 @@ export function ExerciseSelectionContent({
             ))}
           </CommandGroup>
         ))}
-      {hasChanges && (
-        <div className="shrink-0 border-t p-3">
-          <Button
-            className="w-full"
-            onClick={handleApply}
-            disabled={isApplying}
-          >
-            {isApplying ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            {t("applyChanges")}
-          </Button>
-        </div>
-      )}
+      {isBlockMode
+        ? canCreateBlock && (
+            <div className="shrink-0 border-t p-3">
+              <Button
+                className="w-full"
+                onClick={handleCreateBlock}
+                disabled={isCreatingBlock}
+              >
+                {isCreatingBlock ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {t("createBlockCta", { count: selectedExercises.length })}
+              </Button>
+            </div>
+          )
+        : hasChanges && (
+            <div className="shrink-0 border-t p-3">
+              <Button
+                className="w-full"
+                onClick={handleApply}
+                disabled={isApplying}
+              >
+                {isApplying ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {t("applyChanges")}
+              </Button>
+            </div>
+          )}
     </>
   )
 }

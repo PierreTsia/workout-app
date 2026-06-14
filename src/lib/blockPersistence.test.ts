@@ -1,0 +1,75 @@
+import { describe, it, expect } from "vitest"
+import { buildBlockInsertRows } from "@/lib/blockPersistence"
+import type { ExerciseListItem } from "@/types/database"
+
+function makeLibExercise(
+  overrides: Partial<ExerciseListItem> = {},
+): ExerciseListItem {
+  return {
+    id: "ex-1",
+    name: "Burpee",
+    name_en: "Burpee",
+    emoji: "🔥",
+    muscle_group: "full",
+    equipment: "bodyweight",
+    image_url: null,
+    difficulty_level: "intermediate",
+    is_system: true,
+    measurement_type: "reps",
+    default_duration_seconds: null,
+    secondary_muscles: null,
+    ...overrides,
+  }
+}
+
+describe("buildBlockInsertRows", () => {
+  it("builds per_round of length rounds with catalog-derived defaults", () => {
+    const reps = makeLibExercise({ id: "reps-ex", measurement_type: "reps" })
+    const hold = makeLibExercise({
+      id: "hold-ex",
+      measurement_type: "duration",
+      default_duration_seconds: 45,
+    })
+
+    const { blockExercises } = buildBlockInsertRows({
+      dayId: "day-1",
+      libraryExercises: [reps, hold],
+      existingMaxSortOrder: -1,
+      rounds: 3,
+    })
+
+    const repsRows = blockExercises[0].per_round
+    const holdRows = blockExercises[1].per_round
+    expect(repsRows).toHaveLength(3)
+    expect(holdRows).toHaveLength(3)
+    expect(repsRows.every((c) => c.amount === 10 && c.weight === 0)).toBe(true)
+    expect(holdRows.every((c) => c.amount === 45 && c.weight === 0)).toBe(true)
+  })
+
+  it("places the block after existing items and sequences exercises with catalog snapshots", () => {
+    const a = makeLibExercise({
+      id: "ex-a",
+      name: "Lunge",
+      muscle_group: "legs",
+      emoji: "🦵",
+    })
+    const b = makeLibExercise({ id: "ex-b", name: "Push-up", emoji: undefined })
+
+    const { block, blockExercises } = buildBlockInsertRows({
+      dayId: "day-1",
+      libraryExercises: [a, b],
+      existingMaxSortOrder: 4,
+    })
+
+    expect(block.sort_order).toBe(5)
+    expect(block.workout_day_id).toBe("day-1")
+    expect(blockExercises.map((e) => e.position)).toEqual([0, 1])
+    expect(blockExercises[0]).toMatchObject({
+      exercise_id: "ex-a",
+      name_snapshot: "Lunge",
+      muscle_snapshot: "legs",
+      emoji_snapshot: "🦵",
+    })
+    expect(blockExercises[1].emoji_snapshot).toBe("🏋️")
+  })
+})

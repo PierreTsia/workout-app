@@ -115,6 +115,19 @@ describe("SessionNav", () => {
     expect(onFinish).toHaveBeenCalledOnce()
   })
 
+  it("treats the last solo as non-final when blocks extend the sequence (itemCount)", () => {
+    const { store } = renderWithProviders(
+      <SessionNav exercises={EXERCISES} itemCount={4} onFinish={vi.fn()} />,
+    )
+    act(() => {
+      store.set(sessionAtom, { ...BASE_SESSION, exerciseIndex: 2 })
+    })
+
+    // index 2 of 4 slots → not last anymore, so "finish early" is offered.
+    expect(screen.getByText("Finish workout early")).toBeInTheDocument()
+    expect(screen.getByText("Next")).toBeInTheDocument()
+  })
+
   it("navigates to next exercise when clicking Next", async () => {
     const user = userEvent.setup()
     const { store } = renderWithProviders(

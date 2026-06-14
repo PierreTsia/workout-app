@@ -45,6 +45,12 @@
   "statSets": "Séries",
   "statPrs": "PRs",
   "sets": "séries",
+  "circuit": {
+    "fallbackLabel": "Circuit",
+    "rounds_one": "{{count}} tour",
+    "rounds_other": "{{count}} tours",
+    "round": "Tour {{n}}"
+  },
   "balance": {
     "tab": "Équilibre",
     "bodyMapIntensityHint": "L’intensité de la couleur indique le volume relatif sur la période (par rapport à tes autres muscles).",

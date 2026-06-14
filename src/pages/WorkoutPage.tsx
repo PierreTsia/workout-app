@@ -28,9 +28,11 @@ import {
   authAtom,
   quickSheetOpenAtom,
   restAtom,
+  completedBlockIdsAtom,
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
+import { useExerciseBlocks } from "@/hooks/useExerciseBlocks"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import {
   useAddExerciseToDay,
@@ -41,7 +43,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSessionFinish, peekSessionRealId, queuedSetLogPayloadsForSession, scheduleImmediateDrain } from "@/lib/syncService"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
@@ -68,6 +70,14 @@ import {
 } from "@/lib/sessionExercisePatchStorage"
 import { resetSessionAtoms } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
+import { buildSessionItems } from "@/lib/sessionItems"
+import {
+  countBlockSetsDone,
+  countBlocksCompleted,
+  countSessionSlots,
+  countSoloExercisesCompleted,
+  countSoloSetsDone,
+} from "@/lib/sessionFinishStats"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
@@ -76,6 +86,8 @@ import { usePruneSessionSetsToExerciseList } from "@/hooks/usePruneSessionSetsTo
 import { useCycleProgress } from "@/hooks/useCycle"
 import { useAutoCloseStuckCycle } from "@/hooks/useAutoCloseStuckCycle"
 import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
+import { BlockSessionCard } from "@/components/workout/BlockSessionCard"
+import { BlockRunner } from "@/components/workout/BlockRunner"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
 import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
 import { PreSessionExerciseList } from "@/components/workout/PreSessionExerciseList"
@@ -109,6 +121,7 @@ import {
 } from "@/types/preSessionOverrides"
 import type {
   ExerciseListItem,
+  SetLog,
   WorkoutDay,
   WorkoutExercise,
 } from "@/types/database"
@@ -287,6 +300,10 @@ export function WorkoutPage() {
   const { data: allExercisesForDay, isLoading: exercisesLoading } =
     useWorkoutExercises(session.currentDayId)
 
+  const { data: dayBlocks = [] } = useExerciseBlocks(session.currentDayId)
+  const [runningBlockId, setRunningBlockId] = useState<string | null>(null)
+  const completedBlockIds = useAtomValue(completedBlockIdsAtom)
+
   const baseExercises = useMemo(
     () => allExercisesForDay ?? [],
     [allExercisesForDay],
@@ -295,6 +312,13 @@ export function WorkoutPage() {
   const exercises = useMemo(
     () => mergeWorkoutExercises(baseExercises, preSessionPatch),
     [baseExercises, preSessionPatch],
+  )
+
+  // Unified session sequence: solos + blocks interleaved by sort_order. A block
+  // is one navigable slot, exactly like an exercise (#351).
+  const items = useMemo(
+    () => buildSessionItems(exercises, dayBlocks),
+    [exercises, dayBlocks],
   )
 
   const swapLibraryRow = useMemo(
@@ -632,19 +656,22 @@ export function WorkoutPage() {
     lockedDayView.dayId === session.currentDayId ? lockedDayView.index : 0
 
   const displayIndex = isViewingLockedDay
-    ? Math.min(lockedDayIndex, Math.max(0, exercises.length - 1))
+    ? Math.min(lockedDayIndex, Math.max(0, items.length - 1))
     : session.exerciseIndex
 
-  const currentExercise = exercises[displayIndex] ?? null
+  const currentItem = items[displayIndex] ?? null
+  const currentExercise =
+    currentItem?.kind === "solo" ? currentItem.exercise : null
+  const currentBlock = currentItem?.kind === "block" ? currentItem.block : null
 
   useEffect(() => {
     if (!session.isActive) return
-    if (exercises.length === 0) return
+    if (items.length === 0) return
     setSession((prev) => {
-      if (prev.exerciseIndex < exercises.length) return prev
-      return { ...prev, exerciseIndex: Math.max(0, exercises.length - 1) }
+      if (prev.exerciseIndex < items.length) return prev
+      return { ...prev, exerciseIndex: Math.max(0, items.length - 1) }
     })
-  }, [session.isActive, exercises.length, setSession])
+  }, [session.isActive, items.length, setSession])
 
   const sessionId = useMemo(() => {
     if (session.isActive && session.startedAt) {
@@ -731,21 +758,19 @@ export function WorkoutPage() {
 
 
   const daySetsDone = useMemo(() => {
-    return exercises.flatMap((ex) => session.setsData[ex.id] ?? []).filter(
-      (s) => s.done,
-    ).length
-  }, [exercises, session.setsData])
+    const solo = countSoloSetsDone(exercises, session.setsData)
+    const block = dayBlocks
+      .filter((b) => completedBlockIds.has(b.id))
+      .reduce((sum, b) => sum + b.rounds * b.exercises.length, 0)
+    return solo + block
+  }, [exercises, session.setsData, dayBlocks, completedBlockIds])
 
   const exercisesCompleted = useMemo(() => {
-    let count = 0
-    for (const ex of exercises) {
-      const sets = session.setsData[ex.id] ?? []
-      if (sets.length > 0 && sets.every((s) => s.done)) {
-        count++
-      }
-    }
-    return count
-  }, [exercises, session.setsData])
+    return (
+      countSoloExercisesCompleted(exercises, session.setsData) +
+      countBlocksCompleted(completedBlockIds)
+    )
+  }, [exercises, session.setsData, completedBlockIds])
 
   const prExercises = useMemo(() => {
     return exercises
@@ -760,6 +785,20 @@ export function WorkoutPage() {
   function handleFinish() {
     const daySets = exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
     const hasSkipped = daySets.some((s) => !s.done)
+
+    const realId =
+      user != null ? peekSessionRealId(user.id, sessionId) : null
+    const persistedLogs =
+      realId != null
+        ? (queryClient.getQueryData<SetLog[]>(["session-set-logs", realId]) ??
+          [])
+        : []
+    const totalSetsDone =
+      countSoloSetsDone(exercises, session.setsData) +
+      countBlockSetsDone(persistedLogs, queuedSetLogPayloadsForSession(sessionId))
+    const slotsCompleted =
+      countSoloExercisesCompleted(exercises, session.setsData) +
+      countBlocksCompleted(completedBlockIds)
 
     const finishedAt = Date.now()
     const activeDurationMs = Math.max(
@@ -818,7 +857,7 @@ export function WorkoutPage() {
       startedAt: session.startedAt ?? Date.now(),
       finishedAt,
       activeDurationMs,
-      totalSetsDone: daySetsDone,
+      totalSetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
       closeCycleOnComplete,
@@ -846,14 +885,15 @@ export function WorkoutPage() {
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
     setFinishedStats({
-      exercisesCompleted,
-      setsDone: daySetsDone,
-      totalExercises: exercises.length,
+      exercisesCompleted: slotsCompleted,
+      setsDone: totalSetsDone,
+      totalExercises: countSessionSlots(exercises, dayBlocks),
       prExercises,
       durationMs: activeDurationMs,
     })
     setSession((prev) => ({ ...prev, isActive: false, activeDayId: null }))
     setRest(null)
+    setRunningBlockId(null)
     setFinished(true)
   }
 
@@ -902,6 +942,7 @@ export function WorkoutPage() {
       pausedAt: null,
       accumulatedPause: 0,
       cycleId,
+      completedBlockIds: [],
     }))
   }
 
@@ -945,6 +986,41 @@ export function WorkoutPage() {
     )
   }
 
+  const runningBlock =
+    session.isActive && runningBlockId
+      ? dayBlocks.find((b) => b.id === runningBlockId) ?? null
+      : null
+
+  if (runningBlock) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <BlockRunner
+          block={runningBlock}
+          localSessionId={sessionId}
+          paused={session.pausedAt != null}
+          onExit={() => setRunningBlockId(null)}
+          onCancel={() => {
+            setSession((prev) => ({
+              ...prev,
+              completedBlockIds: (prev.completedBlockIds ?? []).filter(
+                (id) => id !== runningBlock.id,
+              ),
+            }))
+            setRunningBlockId(null)
+          }}
+          onComplete={() =>
+            setSession((prev) => ({
+              ...prev,
+              completedBlockIds: Array.from(
+                new Set([...(prev.completedBlockIds ?? []), runningBlock.id]),
+              ),
+            }))
+          }
+        />
+      </div>
+    )
+  }
+
   if (finished) {
     return (
       <SessionSummary
@@ -983,7 +1059,7 @@ export function WorkoutPage() {
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : exercises.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
               <p className="text-muted-foreground">{t("noExercises")}</p>
               {activeProgramId && (
@@ -1007,7 +1083,7 @@ export function WorkoutPage() {
                 </div>
               )}
               <ExerciseStrip
-                exercises={exercises}
+                items={items}
                 libraryById={stripLibraryById}
                 activeIndex={displayIndex}
                 onSelectIndex={
@@ -1050,7 +1126,21 @@ export function WorkoutPage() {
                 </div>
               ) : null}
               <div className="flex-1 overflow-y-auto py-2">
-                {currentExercise && (
+                {currentBlock ? (
+                  <BlockSessionCard
+                    block={currentBlock}
+                    className="mx-4"
+                    completed={completedBlockIds.has(currentBlock.id)}
+                    disabled={isViewingLockedDay || session.pausedAt != null}
+                    onStart={() => {
+                      if (session.pausedAt != null) {
+                        openPauseBlocked()
+                        return
+                      }
+                      setRunningBlockId(currentBlock.id)
+                    }}
+                  />
+                ) : currentExercise ? (
                   <ExerciseDetail
                     exercise={currentExercise}
                     sessionId={sessionId}
@@ -1060,11 +1150,12 @@ export function WorkoutPage() {
                     onBlockedByPause={openPauseBlocked}
                     editSession={exerciseDetailEditSession}
                   />
-                )}
+                ) : null}
               </div>
               {!isViewingLockedDay ? (
                 <SessionNav
                   exercises={exercises}
+                  itemCount={items.length}
                   onFinish={handleFinish}
                   onBlockedByPause={openPauseBlocked}
                 />
@@ -1113,6 +1204,7 @@ export function WorkoutPage() {
               <div className="px-4">
                 <PreSessionExerciseList
                   exercises={exercises}
+                  blocks={dayBlocks}
                   exercisePool={exercisePool}
                   poolLoading={exercisePoolLoading}
                   onSwapExerciseChosen={(row, picked) => {
@@ -1133,7 +1225,7 @@ export function WorkoutPage() {
 
           {!isDayDoneInCycle && (
             <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
-              {exercises.length > 0 && !canStartPreSession(exercises) ? (
+              {exercises.length > 0 && !canStartPreSession(exercises, dayBlocks) ? (
                 <p className="text-center text-xs text-muted-foreground">
                   {t("preSession.startBlocked")}
                 </p>
@@ -1141,7 +1233,7 @@ export function WorkoutPage() {
               <Button
                 className="w-full gap-2"
                 size="lg"
-                disabled={!canStartPreSession(exercises)}
+                disabled={!canStartPreSession(exercises, dayBlocks)}
                 onClick={() => startSession()}
               >
                 <Play className="h-5 w-5" />

@@ -237,4 +237,103 @@ test.describe("Builder — CRUD", () => {
       pickerDialog.getByRole("button", { name: /filters|filtres/i }),
     ).toBeVisible()
   })
+
+  test("create a circuit (block) from the picker on a fresh day", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000)
+
+    await page.goto("/")
+
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    async function dismissNotif() {
+      try {
+        await expect(notifDialog).toBeVisible({ timeout: 5_000 })
+        await notifDialog.getByRole("button", { name: /not now/i }).click()
+        await expect(notifDialog).not.toBeVisible()
+      } catch {
+        /* dialog didn't appear */
+      }
+    }
+    await dismissNotif()
+
+    await expect(
+      page
+        .locator("h3")
+        .filter({ hasText: /Lundi|Mercredi|Vendredi/ })
+        .first(),
+    ).toBeVisible({ timeout: 60_000 })
+
+    const programId = await getActiveProgramId()
+    await page.goto(`/builder/${programId}`)
+    await dismissNotif()
+
+    // --- Create a fresh day so the circuit assertion is isolated ---
+    const dayLabels = page.locator("div.flex-1 > p.font-semibold")
+    await expect(page.getByRole("button", { name: /new day/i })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(dayLabels.first()).toBeVisible({ timeout: 15_000 })
+    const initialCount = await dayLabels.count()
+
+    await page.getByRole("button", { name: /new day/i }).click()
+    await expect(dayLabels).toHaveCount(initialCount + 1, { timeout: 10_000 })
+    const newDayLabel = dayLabels.nth(initialCount)
+    const dayLabelText = await newDayLabel.textContent()
+    await newDayLabel.click()
+
+    // --- Open the circuit picker (block mode) ---
+    const createCircuitButton = page.getByRole("button", {
+      name: /create circuit/i,
+    })
+    await expect(createCircuitButton).toBeVisible({ timeout: 10_000 })
+    await createCircuitButton.click()
+
+    const pickerDialog = page.getByRole("dialog")
+    await expect(pickerDialog).toBeVisible({ timeout: 5_000 })
+
+    const items = pickerDialog.locator("[cmdk-item]")
+    await expect(items.first()).toBeVisible({ timeout: 10_000 })
+
+    // --- Pick two exercises (block needs >= 2) ---
+    const firstName = await items.nth(0).locator("span.truncate").textContent()
+    const secondName = await items.nth(1).locator("span.truncate").textContent()
+    await items.nth(0).getByRole("checkbox").click()
+    await items.nth(1).getByRole("checkbox").click()
+
+    // --- The block-mode CTA carries the count in parentheses; the day-editor
+    //     trigger does not — so this regex unambiguously targets the CTA. ---
+    const createBlockCta = pickerDialog.getByRole("button", {
+      name: /create circuit \(/i,
+    })
+    await expect(createBlockCta).toBeVisible({ timeout: 5_000 })
+    await createBlockCta.click()
+
+    await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
+
+    // --- The circuit renders as a BlockCard: edit affordance + both exercises ---
+    await expect(
+      page.getByRole("button", { name: /edit circuit/i }),
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(firstName!).first()).toBeVisible()
+    await expect(page.getByText(secondName!).first()).toBeVisible()
+
+    // --- Cleanup: delete the throwaway day ---
+    const backButton = page.locator("button:has(.lucide-arrow-left)")
+    await backButton.click()
+    const dayCard = page
+      .locator("[class*='cursor-pointer']")
+      .filter({ hasText: dayLabelText! })
+    await expect(dayCard).toBeVisible({ timeout: 5_000 })
+    await dayCard
+      .locator("button")
+      .filter({ has: page.locator("svg.lucide-trash-2") })
+      .click()
+    const dayDeleteDialog = page.getByRole("dialog")
+    await expect(dayDeleteDialog).toBeVisible()
+    await dayDeleteDialog.getByRole("button", { name: /delete/i }).click()
+    await expect(dayCard).not.toBeVisible({ timeout: 5_000 })
+  })
 })

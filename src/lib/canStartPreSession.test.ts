@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { canStartPreSession } from "@/lib/canStartPreSession"
-import type { WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseBlockWithExercises,
+  WorkoutExercise,
+} from "@/types/database"
+
+const block = (): ExerciseBlockWithExercises => ({
+  id: "blk-1",
+  workout_day_id: "d",
+  label: "Circuit",
+  rounds: 2,
+  rest_seconds: 60,
+  transition_seconds: 0,
+  sort_order: 0,
+  created_at: "2020-01-01",
+  exercises: [],
+})
 
 const minimal = (overrides: Partial<WorkoutExercise>): WorkoutExercise => ({
   id: "x",
@@ -45,5 +60,13 @@ describe("canStartPreSession", () => {
         minimal({ id: "2", sets: 3 }),
       ]),
     ).toBe(true)
+  })
+
+  it("true for a blocks-only day (no solo exercises)", () => {
+    expect(canStartPreSession([], [block()])).toBe(true)
+  })
+
+  it("still false when a solo is invalid, even with blocks present", () => {
+    expect(canStartPreSession([minimal({ sets: 0 })], [block()])).toBe(false)
   })
 })

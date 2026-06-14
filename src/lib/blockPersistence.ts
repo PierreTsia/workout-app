@@ -1,0 +1,80 @@
+import type { ExerciseListItem, PerRoundCell } from "@/types/database"
+
+export const DEFAULT_BLOCK_ROUNDS = 3
+export const DEFAULT_BLOCK_REPS = 10
+export const DEFAULT_BLOCK_DURATION_SECONDS = 30
+export const DEFAULT_BLOCK_REST_SECONDS = 90
+export const DEFAULT_BLOCK_TRANSITION_SECONDS = 0
+
+/** Row for `exercise_blocks` insert (no id; assigned by the DB). */
+export interface ExerciseBlockInsertRow {
+  workout_day_id: string
+  label: string | null
+  rounds: number
+  rest_seconds: number
+  transition_seconds: number
+  sort_order: number
+}
+
+/** Row for `block_exercises` insert (no id/block_id; block_id filled after the block insert returns). */
+export interface BlockExerciseInsertRow {
+  exercise_id: string
+  name_snapshot: string
+  muscle_snapshot: string
+  emoji_snapshot: string
+  position: number
+  per_round: PerRoundCell[]
+}
+
+interface BuildBlockInsertRowsArgs {
+  dayId: string
+  libraryExercises: ExerciseListItem[]
+  /** Highest existing sort_order in the day across solos and blocks; -1 if empty. */
+  existingMaxSortOrder: number
+  rounds?: number
+  label?: string | null
+}
+
+function defaultPerRound(
+  exercise: ExerciseListItem,
+  rounds: number,
+): PerRoundCell[] {
+  const amount =
+    exercise.measurement_type === "duration"
+      ? exercise.default_duration_seconds ?? DEFAULT_BLOCK_DURATION_SECONDS
+      : DEFAULT_BLOCK_REPS
+  return Array.from({ length: rounds }, () => ({ amount, weight: 0 }))
+}
+
+export function buildBlockInsertRows({
+  dayId,
+  libraryExercises,
+  existingMaxSortOrder,
+  rounds = DEFAULT_BLOCK_ROUNDS,
+  label = null,
+}: BuildBlockInsertRowsArgs): {
+  block: ExerciseBlockInsertRow
+  blockExercises: BlockExerciseInsertRow[]
+} {
+  const block: ExerciseBlockInsertRow = {
+    workout_day_id: dayId,
+    label,
+    rounds,
+    rest_seconds: DEFAULT_BLOCK_REST_SECONDS,
+    transition_seconds: DEFAULT_BLOCK_TRANSITION_SECONDS,
+    sort_order: existingMaxSortOrder + 1,
+  }
+
+  const blockExercises: BlockExerciseInsertRow[] = libraryExercises.map(
+    (exercise, position) => ({
+      exercise_id: exercise.id,
+      name_snapshot: exercise.name,
+      muscle_snapshot: exercise.muscle_group,
+      emoji_snapshot: exercise.emoji ?? "🏋️",
+      position,
+      per_round: defaultPerRound(exercise, rounds),
+    }),
+  )
+
+  return { block, blockExercises }
+}

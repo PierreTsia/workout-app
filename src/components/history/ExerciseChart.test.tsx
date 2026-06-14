@@ -54,6 +54,7 @@ function makeLog(overrides: Partial<SetLog> = {}): SetLog {
     id: `log-${logIdCounter}`,
     session_id: "session-1",
     exercise_id: "ex-1",
+    block_exercise_id: null,
     exercise_name_snapshot: "Bench Press",
     set_number: 1,
     reps_logged: "8",

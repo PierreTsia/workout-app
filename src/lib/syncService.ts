@@ -23,6 +23,12 @@ import type { WorkoutDay } from "@/types/database"
 export type SetLogPayloadReps = {
   sessionId: string
   exerciseId: string
+  /**
+   * Set when this log belongs to an Exercise Block cell (#351). Disambiguates
+   * the same catalog exercise appearing in multiple slots; feeds the
+   * `log_slot = COALESCE(block_exercise_id, exercise_id)` dedupe key.
+   */
+  blockExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   repsLogged: string
@@ -47,6 +53,8 @@ export type SetLogPayloadReps = {
 export type SetLogPayloadDuration = {
   sessionId: string
   exerciseId: string
+  /** See {@link SetLogPayloadReps.blockExerciseId}. */
+  blockExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   weightLogged: number
@@ -260,6 +268,18 @@ export function peekSessionRealId(
   return getSessionMeta(userId)[localSessionId]?.realId ?? null
 }
 
+/** Set-log payloads still in the offline queue for a local session id. */
+export function queuedSetLogPayloadsForSession(
+  localSessionId: string,
+): SetLogPayload[] {
+  const userId = getUserId()
+  if (!userId) return []
+  return getQueue(userId)
+    .filter((item) => item.type === "set_log")
+    .filter((item) => item.payload.sessionId === localSessionId)
+    .map((item) => item.payload as SetLogPayload)
+}
+
 // ---------------------------------------------------------------------------
 // Enqueue
 // ---------------------------------------------------------------------------
@@ -277,7 +297,10 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   }
 
   const meta = resolveSessionMeta(userId, payload.sessionId)
-  const composite = `${meta.realId}|${payload.exerciseId}|${payload.setNumber}`
+  // Mirror the DB's log_slot: block cells dedupe by block_exercise_id, solos
+  // by catalog exercise_id. Same exercise in two block slots stays distinct.
+  const slot = payload.blockExerciseId ?? payload.exerciseId
+  const composite = `${meta.realId}|${slot}|${payload.setNumber}`
 
   const queue = getQueue(userId)
   const fp = fingerprint(composite)
@@ -372,6 +395,46 @@ export function discardSessionQueue(realSessionId: string): void {
     const next = { ...allMeta }
     for (const k of localKeys) delete next[k]
     setSessionMeta(userId, next)
+  }
+}
+
+/**
+ * Cancel a single in-progress block: drop its still-queued set_logs and
+ * best-effort delete any already-persisted rows for the session × block
+ * exercises (#351). Queue surgery always succeeds; the remote delete is a no-op
+ * when offline (the queued items are gone, so nothing re-syncs). Returns once
+ * the local queue is clean — callers don't need to await the remote delete.
+ */
+export async function discardBlockSetLogs(
+  realSessionId: string,
+  blockExerciseIds: string[],
+): Promise<void> {
+  const userId = getUserId()
+  if (!userId || blockExerciseIds.length === 0) return
+
+  const idSet = new Set(blockExerciseIds)
+  const queue = getQueue(userId)
+  const surviving = queue.filter((item) => {
+    if (item.type !== "set_log" || item.realSessionId !== realSessionId) {
+      return true
+    }
+    const beId = (item.payload as SetLogPayload).blockExerciseId
+    return beId == null || !idSet.has(beId)
+  })
+  if (surviving.length !== queue.length) {
+    setQueue(userId, surviving)
+    updatePendingCount(userId)
+  }
+
+  try {
+    await supabase
+      .from("set_logs")
+      .delete()
+      .eq("session_id", realSessionId)
+      .in("block_exercise_id", blockExerciseIds)
+  } catch {
+    // Offline / failure: queued rows are already removed; anything persisted
+    // reconciles on a later manual cancel when back online.
   }
 }
 
@@ -615,6 +678,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
     const base = {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
+      block_exercise_id: p.blockExerciseId ?? null,
       exercise_name_snapshot: p.exerciseNameSnapshot,
       set_number: p.setNumber,
       weight_logged: p.weightLogged,
@@ -644,7 +708,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
     const { error } = await supabase
       .from("set_logs")
       .upsert(row, {
-        onConflict: "session_id,exercise_id,set_number",
+        onConflict: "session_id,log_slot,set_number",
       })
 
     if (error) {

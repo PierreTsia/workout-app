@@ -273,6 +273,35 @@ describe("SyncService", () => {
       expect(queue[0].payload.rir).toBe(1)
     })
 
+    it("dedupes block set logs by block_exercise_id, not catalog exercise_id", () => {
+      // Same catalog exercise appears twice in a circuit (e.g. push-ups in two
+      // slots). They share exercise_id but must NOT collapse into one log.
+      enqueueSetLog(
+        makeSetLogPayload({ exerciseId: "ex-1", blockExerciseId: "be-A", setNumber: 1 }),
+      )
+      enqueueSetLog(
+        makeSetLogPayload({ exerciseId: "ex-1", blockExerciseId: "be-B", setNumber: 1 }),
+      )
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(2)
+      expect(queue[0].dedupeComposite).toContain("be-A")
+      expect(queue[1].dedupeComposite).toContain("be-B")
+    })
+
+    it("replaces a block set log when the same block cell is re-logged", () => {
+      enqueueSetLog(
+        makeSetLogPayload({ blockExerciseId: "be-A", setNumber: 1, loggedAt: 1000 }),
+      )
+      enqueueSetLog(
+        makeSetLogPayload({ blockExerciseId: "be-A", setNumber: 1, loggedAt: 5000 }),
+      )
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].payload.loggedAt).toBe(5000)
+    })
+
     it("updates queueSyncMetaAtom pendingCount after enqueue", () => {
       enqueueSetLog(makeSetLogPayload())
 
@@ -395,18 +424,19 @@ describe("SyncService", () => {
       expect(failCall).toBeDefined()
     })
 
-    it("upserts set_log with onConflict on the unique constraint", async () => {
+    it("upserts set_log with onConflict on the log_slot unique index", async () => {
       enqueueSetLog(makeSetLogPayload())
 
       await drainQueue(USER_ID)
 
       expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
       const [row, opts] = setLogsChain.upsert.mock.calls[0]
-      expect(opts).toEqual({ onConflict: "session_id,exercise_id,set_number" })
+      expect(opts).toEqual({ onConflict: "session_id,log_slot,set_number" })
       expect(row).toEqual(expect.objectContaining({
         session_id: DETERMINISTIC_UUID,
         exercise_id: "ex-1",
         set_number: 1,
+        block_exercise_id: null,
       }))
     })
 
@@ -526,6 +556,17 @@ describe("SyncService", () => {
 
       expect(statusCalls[0]).toBe("syncing")
       expect(statusCalls[1]).toBe("synced")
+    })
+
+    it("writes block_exercise_id to the set_logs upsert for block sets", async () => {
+      enqueueSetLog(makeSetLogPayload({ blockExerciseId: "be-A" }))
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({ block_exercise_id: "be-A" }),
+      )
     })
 
     it("passes rir value through to the set_logs upsert", async () => {

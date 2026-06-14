@@ -119,6 +119,30 @@ The product-level promise that during a held isometric (plank, hollow hold, etc.
 
 ---
 
+## Supersets & blocks (planned — #351)
+
+**Exercise Block**:
+A group of exercises trained **round-by-round** (supersets, trisets, circuits) — the unit of work is the **Round**, not the individual exercise. Introduced by #351 as the target-vision (Freeletics-style) model, deliberately rich from day one: per-round prescriptions, a block-level rest between rounds, and a **Transition** between exercises within a round. A block lives inside a **workout day** alongside solo `workout_exercises` (see **Unified Day Sequence**). **V1 decision (ADR 0007):** structure ships rich, but block exercises are **excluded from the progression engine** — frozen prescription, hand-edited in the **Builder**, no **Progression Suggestion** / **Prescription Snapshot** / **Progression Rule**. Concrete table shape (rows vs JSONB, where the shared `sort_order` lives) is owned by the #351 Tech Plan.
+**Naming (ADR 0007 §Decision.5):** "Exercise Block" / "block" is the **internal** domain term — tables (`exercise_blocks`, `block_exercises`), types, hooks, and i18n **keys** (`blockRunner.*`, `createBlock`). It must **never** appear in UI copy. Every user-facing string (i18n **values**, labels, dialog titles, history cards) says **"Circuit"** (FR & EN). Code speaks "block"; humans speak "circuit".
+→ ADR `file:docs/adr/0007-exercise-blocks-rich-structure-no-progression.md`
+
+**Round**:
+One pass through every exercise of an **Exercise Block** (A → B → C). The block's **unit of work**: an N-round block means doing A, B, C in sequence N times. The block-level rest is armed **between rounds** (after the last exercise of a round), never between A→B→C inside a round — that gap is the **Transition**. Distinct from a `set` on a flat `workout_exercise`, though a block round produces one `set_logs` row per exercise for history. Resolves issue #351 open-question 0: "1 round = pass through the exercises once", **not** "1 rep = pass through the exercises once" (the latter — dumbbell complex / tight EMOM — is a separate, out-of-scope primitive).
+
+**Transition** (`transition_seconds`):
+The block-level pause **between exercises inside a single Round** (e.g. 20s between burpees and lunges in a station circuit). `0` for a pure superset; 15-30s for a circuit with equipment changes. Distinct from the block's `rest_seconds`, which applies **between rounds**. Block-level scalar in v1 (not per-round, not per-exercise).
+
+**Per-round Prescription**:
+The prescription for a single (exercise × round) cell of an **Exercise Block**: shape `{ amount, weight }` where `amount` is reps or a duration. This is what enables pyramidal blocks (20 → 15 → 10) and charged pyramids (rising weight per round). **V1 decision:** reps/duration **and** weight vary per round; `rest_seconds` (between rounds) and **Transition** stay block-level scalars. The **Builder** edits these in a grid (rows = exercises, columns = rounds); a default "fill round 1, auto-propagate" UX is owned by the Tech Plan.
+
+**Unified Day Sequence**:
+The #351 model where a **workout day** is an ordered list of *items*, each item being **either** a solo `workout_exercise` **or** an **Exercise Block** — freely interleaved and reordered together (e.g. heavy Squat solo → finisher Circuit block → Curl solo). Chosen over "separate blocks section" (rigid UX) and "everything is a block" (big-bang rewrite of builder/session/history/MCP/engine). Implies a `sort_order` shared across solos and blocks within a day.
+
+**Round Screen**:
+The dedicated in-session UI for traversing an **Exercise Block**: it renders the **current Round's** exercises stacked with **that round's** numbers, arms a **Transition** timer between exercises and the block's rest between rounds, then advances to the next round with its own **Per-round Prescription**. Chosen over reusing the auto-advancing single-exercise strip (`file:src/pages/WorkoutPage.tsx` → `ExerciseStrip` → `ExerciseDetail`), which has no natural place for per-round numbers under the pyramidal model.
+
+---
+
 ## Progression engine
 
 **Progression Rule**:
