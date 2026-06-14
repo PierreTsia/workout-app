@@ -268,6 +268,18 @@ export function peekSessionRealId(
   return getSessionMeta(userId)[localSessionId]?.realId ?? null
 }
 
+/** Set-log payloads still in the offline queue for a local session id. */
+export function queuedSetLogPayloadsForSession(
+  localSessionId: string,
+): SetLogPayload[] {
+  const userId = getUserId()
+  if (!userId) return []
+  return getQueue(userId)
+    .filter((item) => item.type === "set_log")
+    .filter((item) => item.payload.sessionId === localSessionId)
+    .map((item) => item.payload as SetLogPayload)
+}
+
 // ---------------------------------------------------------------------------
 // Enqueue
 // ---------------------------------------------------------------------------

@@ -23,7 +23,10 @@ export function useExerciseBlocks(dayId: string | null) {
 
       if (error) throw error
 
-      return (data ?? []) as ExerciseBlockWithExercises[]
+      return (data ?? []).map((block) => ({
+        ...block,
+        exercises: [...block.exercises].sort((a, b) => a.position - b.position),
+      })) as ExerciseBlockWithExercises[]
     },
     enabled: !!dayId,
   })

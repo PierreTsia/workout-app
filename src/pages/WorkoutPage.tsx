@@ -43,7 +43,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSessionFinish, peekSessionRealId, queuedSetLogPayloadsForSession, scheduleImmediateDrain } from "@/lib/syncService"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
@@ -71,6 +71,13 @@ import {
 import { resetSessionAtoms } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { buildSessionItems } from "@/lib/sessionItems"
+import {
+  countBlockSetsDone,
+  countBlocksCompleted,
+  countSessionSlots,
+  countSoloExercisesCompleted,
+  countSoloSetsDone,
+} from "@/lib/sessionFinishStats"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
@@ -114,6 +121,7 @@ import {
 } from "@/types/preSessionOverrides"
 import type {
   ExerciseListItem,
+  SetLog,
   WorkoutDay,
   WorkoutExercise,
 } from "@/types/database"
@@ -750,21 +758,19 @@ export function WorkoutPage() {
 
 
   const daySetsDone = useMemo(() => {
-    return exercises.flatMap((ex) => session.setsData[ex.id] ?? []).filter(
-      (s) => s.done,
-    ).length
-  }, [exercises, session.setsData])
+    const solo = countSoloSetsDone(exercises, session.setsData)
+    const block = dayBlocks
+      .filter((b) => completedBlockIds.has(b.id))
+      .reduce((sum, b) => sum + b.rounds * b.exercises.length, 0)
+    return solo + block
+  }, [exercises, session.setsData, dayBlocks, completedBlockIds])
 
   const exercisesCompleted = useMemo(() => {
-    let count = 0
-    for (const ex of exercises) {
-      const sets = session.setsData[ex.id] ?? []
-      if (sets.length > 0 && sets.every((s) => s.done)) {
-        count++
-      }
-    }
-    return count
-  }, [exercises, session.setsData])
+    return (
+      countSoloExercisesCompleted(exercises, session.setsData) +
+      countBlocksCompleted(completedBlockIds)
+    )
+  }, [exercises, session.setsData, completedBlockIds])
 
   const prExercises = useMemo(() => {
     return exercises
@@ -779,6 +785,20 @@ export function WorkoutPage() {
   function handleFinish() {
     const daySets = exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
     const hasSkipped = daySets.some((s) => !s.done)
+
+    const realId =
+      user != null ? peekSessionRealId(user.id, sessionId) : null
+    const persistedLogs =
+      realId != null
+        ? (queryClient.getQueryData<SetLog[]>(["session-set-logs", realId]) ??
+          [])
+        : []
+    const totalSetsDone =
+      countSoloSetsDone(exercises, session.setsData) +
+      countBlockSetsDone(persistedLogs, queuedSetLogPayloadsForSession(sessionId))
+    const slotsCompleted =
+      countSoloExercisesCompleted(exercises, session.setsData) +
+      countBlocksCompleted(completedBlockIds)
 
     const finishedAt = Date.now()
     const activeDurationMs = Math.max(
@@ -837,7 +857,7 @@ export function WorkoutPage() {
       startedAt: session.startedAt ?? Date.now(),
       finishedAt,
       activeDurationMs,
-      totalSetsDone: daySetsDone,
+      totalSetsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
       closeCycleOnComplete,
@@ -865,9 +885,9 @@ export function WorkoutPage() {
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
     setFinishedStats({
-      exercisesCompleted,
-      setsDone: daySetsDone,
-      totalExercises: exercises.length,
+      exercisesCompleted: slotsCompleted,
+      setsDone: totalSetsDone,
+      totalExercises: countSessionSlots(exercises, dayBlocks),
       prExercises,
       durationMs: activeDurationMs,
     })

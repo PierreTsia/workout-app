@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
   closestCenter,
@@ -14,14 +14,13 @@ import {
 } from "@dnd-kit/sortable"
 import { Layers, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
+import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useDayItems } from "@/hooks/useDayItems"
 import {
   useCreateBlock,
   useReorderBlocks,
   useDeleteBlock,
 } from "@/hooks/useBlockMutations"
-import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import {
   useUpdateDay,
   useDeleteExercise,
@@ -59,8 +58,7 @@ export function DayEditor({
 }: DayEditorProps) {
   const { t } = useTranslation("builder")
   const { data: days } = useWorkoutDays(programId)
-  const { data: exercises, isLoading } = useWorkoutExercises(dayId)
-  const { items: dayItems } = useDayItems(dayId)
+  const { items: dayItems, isLoading } = useDayItems(dayId)
   const updateDay = useUpdateDay(programId)
   const deleteExercise = useDeleteExercise()
   const reorderExercises = useReorderExercises()
@@ -189,6 +187,12 @@ export function DayEditor({
     )
   }
 
+  const soloItems = useMemo(
+    () => dayItems.flatMap((i) => (i.kind === "solo" ? [i.exercise] : [])),
+    [dayItems],
+  )
+  const blocks = dayItems.flatMap((i) => (i.kind === "block" ? [i.block] : []))
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -197,8 +201,6 @@ export function DayEditor({
     )
   }
 
-  const soloItems = exercises ?? []
-  const blocks = dayItems.flatMap((i) => (i.kind === "block" ? [i.block] : []))
   const editBlock = blocks.find((b) => b.id === editBlockId) ?? null
   const deleteBlockTarget = blocks.find((b) => b.id === deleteBlockId) ?? null
 

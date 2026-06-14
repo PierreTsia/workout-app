@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai"
 import { forwardRef, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { Check, Layers } from "lucide-react"
 import {
   prFlagsAtom,
@@ -131,6 +132,9 @@ interface BlockStripItemProps {
 
 const BlockStripItem = forwardRef<HTMLButtonElement, BlockStripItemProps>(
   function BlockStripItem({ block, isActive, isCompleted, onSelect }, ref) {
+    const { t } = useTranslation("workout")
+    const label = block.label ?? t("blockRunner.defaultLabel")
+
     return (
       <button
         ref={ref}
@@ -156,7 +160,7 @@ const BlockStripItem = forwardRef<HTMLButtonElement, BlockStripItemProps>(
           <Layers className="h-6 w-6 text-primary" />
         </div>
         <span className="w-full truncate px-1.5 py-1.5 text-center text-[0.65rem] font-medium leading-tight">
-          {block.label}
+          {label}
         </span>
       </button>
     )
