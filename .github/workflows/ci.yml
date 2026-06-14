@@ -106,15 +106,25 @@ jobs:
 
       - name: Build, install browsers, start Supabase in parallel
         run: |
+          set -e
           npx vite build &
+          pid_build=$!
           npx playwright install --with-deps chromium &
+          pid_pw=$!
           supabase start &
-          wait
+          pid_sb=$!
+
+          failed=0
+          wait $pid_build || failed=1
+          wait $pid_pw || failed=1
+          wait $pid_sb || failed=1
+          exit $failed
         env:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-      - run: supabase db reset
+      - name: Reset database (migrations + seed)
+        run: supabase db reset
 
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
