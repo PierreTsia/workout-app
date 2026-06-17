@@ -17,7 +17,7 @@ if (typeof globalThis.localStorage === "undefined") {
     }
     getItem(key: string): string | null {
       return Object.prototype.hasOwnProperty.call(this, key)
-        ? (this as Record<string, string>)[key]
+        ? (this as unknown as Record<string, string>)[key]
         : null
     }
     key(index: number): string | null {
@@ -27,7 +27,7 @@ if (typeof globalThis.localStorage === "undefined") {
       delete (this as Record<string, unknown>)[key]
     }
     setItem(key: string, value: string): void {
-      ;(this as Record<string, string>)[key] = String(value)
+      ;(this as unknown as Record<string, string>)[key] = String(value)
     }
   }
   const memory = new MemoryStorage() as unknown as Storage
