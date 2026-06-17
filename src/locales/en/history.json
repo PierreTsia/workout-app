@@ -49,7 +49,19 @@
     "fallbackLabel": "Circuit",
     "rounds_one": "{{count}} round",
     "rounds_other": "{{count}} rounds",
-    "round": "Round {{n}}"
+    "round": "Round {{n}}",
+    "completionTime": "Completed in {{time}}",
+    "vsPrevious": "vs last",
+    "pb": "PB",
+    "shapeChanged": "Prescription changed",
+    "sheetTitle": "Circuit times",
+    "trendHint": "Repeat this circuit with the same prescription to see your time trend.",
+    "noCompletedRuns": "No completed runs yet.",
+    "incompleteRun": "Incomplete",
+    "loading": "Loading times…",
+    "offline": "Connect to the internet to see your circuit times.",
+    "loadError": "Couldn't load circuit times.",
+    "retry": "Retry"
   },
   "balance": {
     "tab": "Balance",

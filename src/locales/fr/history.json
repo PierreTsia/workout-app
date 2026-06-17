@@ -49,7 +49,19 @@
     "fallbackLabel": "Circuit",
     "rounds_one": "{{count}} tour",
     "rounds_other": "{{count}} tours",
-    "round": "Tour {{n}}"
+    "round": "Tour {{n}}",
+    "completionTime": "Bouclé en {{time}}",
+    "vsPrevious": "vs dernière",
+    "pb": "Record",
+    "shapeChanged": "Prescription modifiée",
+    "sheetTitle": "Temps du circuit",
+    "trendHint": "Refais ce circuit avec la même prescription pour voir l’évolution de ton temps.",
+    "noCompletedRuns": "Aucune exécution complète pour l’instant.",
+    "incompleteRun": "Incomplet",
+    "loading": "Chargement des temps…",
+    "offline": "Connecte-toi à internet pour voir les temps de ton circuit.",
+    "loadError": "Impossible de charger les temps du circuit.",
+    "retry": "Réessayer"
   },
   "balance": {
     "tab": "Équilibre",

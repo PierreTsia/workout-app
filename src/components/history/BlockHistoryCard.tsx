@@ -1,24 +1,55 @@
 import { useTranslation } from "react-i18next"
-import { Layers } from "lucide-react"
+import { Layers, Timer } from "lucide-react"
 import { formatSecondsMMSS } from "@/lib/formatters"
+import {
+  isRunComplete,
+  runCompletionSeconds,
+  type BlockRunCellRow,
+} from "@/lib/blockCompletionHistory"
 import type { BlockHistoryGroup } from "@/lib/sessionHistoryGrouping"
+
+/** Flatten a history group's cells into the row shape the completion-time lib expects. */
+function groupCells(group: BlockHistoryGroup): BlockRunCellRow[] {
+  return group.rounds.flatMap((round) =>
+    round.cells.map((cell) => ({
+      session_id: cell.log.session_id,
+      block_exercise_id: cell.blockExerciseId,
+      set_number: cell.log.set_number,
+      reps_logged: cell.log.reps_logged,
+      duration_seconds: cell.log.duration_seconds,
+      weight_logged: Number(cell.log.weight_logged),
+      logged_at: cell.log.logged_at,
+    })),
+  )
+}
 
 /**
  * A completed circuit (Exercise Block) in session history: one grouped card with
- * the circuit label, its round count, and per-round actuals for each exercise —
- * instead of flattening the block into disconnected solo lines (#351, T143).
+ * the circuit label, its round count, per-round actuals, and — for a complete
+ * run — its derived completion time (#396). Tapping the card opens the circuit's
+ * history sheet via `onOpen`.
  */
 export function BlockHistoryCard({
   group,
   formatWeight,
+  onOpen,
 }: {
   group: BlockHistoryGroup
   formatWeight: (kg: number) => string
+  onOpen?: (group: BlockHistoryGroup) => void
 }) {
   const { t } = useTranslation("history")
+  const cells = groupCells(group)
+  const completionTime = isRunComplete(cells)
+    ? formatSecondsMMSS(runCompletionSeconds(cells))
+    : null
 
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 p-2.5">
+    <button
+      type="button"
+      onClick={() => onOpen?.(group)}
+      className="w-full rounded-lg border border-border/60 bg-muted/20 p-2.5 text-left transition-colors hover:bg-muted/40"
+    >
       <div className="mb-2 flex items-center gap-1.5">
         <Layers className="h-3.5 w-3.5 text-primary" aria-hidden />
         <p className="text-xs font-semibold text-foreground">
@@ -27,6 +58,14 @@ export function BlockHistoryCard({
         <span className="text-[10px] text-muted-foreground">
           · {t("circuit.rounds", { count: group.rounds.length })}
         </span>
+        {completionTime != null && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-primary">
+            <Timer className="h-3 w-3" aria-hidden />
+            <span className="tabular-nums">
+              {t("circuit.completionTime", { time: completionTime })}
+            </span>
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -57,6 +96,6 @@ export function BlockHistoryCard({
           </div>
         ))}
       </div>
-    </div>
+    </button>
   )
 }

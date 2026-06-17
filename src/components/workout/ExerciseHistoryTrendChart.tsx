@@ -11,9 +11,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
+type TrendVariant = "e1rm" | "duration" | "reps" | "completionTime"
+
 interface ExerciseHistoryTrendChartProps {
-  variant?: "e1rm" | "duration" | "reps"
-  /** Best est. 1RM per session (display units), longest hold in seconds, or best reps — oldest → newest. */
+  variant?: TrendVariant
+  /** Best est. 1RM per session (display units), longest hold / completion time in seconds, or best reps — oldest → newest. */
   valuesDisplay: number[]
   /** One label per point (e.g. relative dates), oldest → newest. */
   xLabels: string[]
@@ -54,6 +56,38 @@ function fmtDurationAxis(seconds: number): string {
   return formatSecondsMMSS(s)
 }
 
+/** i18n key set per chart variant — keeps the render free of nested ternaries. */
+const COPY_BY_VARIANT = {
+  e1rm: {
+    caption: "historySheet.chartCaption",
+    aria: "historySheet.chartAria",
+    infoLabel: "historySheet.epleyInfoLabel",
+    infoTitle: "historySheet.epleyInfoTitle",
+    infoBody: "historySheet.epleyInfoBody",
+  },
+  duration: {
+    caption: "historySheet.chartCaptionDuration",
+    aria: "historySheet.chartAriaDuration",
+    infoLabel: "historySheet.durationInfoLabel",
+    infoTitle: "historySheet.durationInfoTitle",
+    infoBody: "historySheet.durationInfoBody",
+  },
+  reps: {
+    caption: "historySheet.chartCaptionReps",
+    aria: "historySheet.chartAriaReps",
+    infoLabel: "historySheet.repsInfoLabel",
+    infoTitle: "historySheet.repsInfoTitle",
+    infoBody: "historySheet.repsInfoBody",
+  },
+  completionTime: {
+    caption: "historySheet.chartCaptionTime",
+    aria: "historySheet.chartAriaTime",
+    infoLabel: "historySheet.timeInfoLabel",
+    infoTitle: "historySheet.timeInfoTitle",
+    infoBody: "historySheet.timeInfoBody",
+  },
+} as const satisfies Record<TrendVariant, Record<string, string>>
+
 /**
  * Small line chart with Y scale (max / mid / min), light grid, and X labels per session.
  * Flat series uses a padded Y domain so the line is not edge-stuck and values stay readable.
@@ -67,8 +101,9 @@ export function ExerciseHistoryTrendChart({
 }: ExerciseHistoryTrendChartProps) {
   const { t, i18n } = useTranslation("workout")
   const locale = i18n.language
-  const isDuration = variant === "duration"
+  const usesTimeAxis = variant === "duration" || variant === "completionTime"
   const isReps = variant === "reps"
+  const copy = COPY_BY_VARIANT[variant]
 
   if (valuesDisplay.length < 2 || xLabels.length !== valuesDisplay.length) {
     return null
@@ -104,7 +139,7 @@ export function ExerciseHistoryTrendChart({
     Math.abs(yMid - yMin) > span * 0.02
 
   const fmtY = (v: number) =>
-    isDuration
+    usesTimeAxis
       ? fmtDurationAxis(v)
       : isReps
         ? `${Math.round(v)}`
@@ -117,21 +152,11 @@ export function ExerciseHistoryTrendChart({
     <Card
       className={cn("w-full border-border/80 shadow-none", className)}
       role="region"
-      aria-label={
-        isDuration
-          ? t("historySheet.chartAriaDuration", { min: ariaMin, max: ariaMax })
-          : isReps
-            ? t("historySheet.chartAriaReps", { min: ariaMin, max: ariaMax })
-            : t("historySheet.chartAria", { min: ariaMin, max: ariaMax })
-      }
+      aria-label={t(copy.aria, { min: ariaMin, max: ariaMax })}
     >
       <CardHeader className="flex flex-row flex-wrap items-center justify-center gap-1.5 p-3 pb-2">
         <CardTitle className="text-center text-xs font-normal leading-snug text-muted-foreground">
-          {isDuration
-            ? t("historySheet.chartCaptionDuration")
-            : isReps
-              ? t("historySheet.chartCaptionReps")
-              : t("historySheet.chartCaption", { unit })}
+          {t(copy.caption, { unit })}
         </CardTitle>
         <Popover>
           <PopoverTrigger asChild>
@@ -139,13 +164,7 @@ export function ExerciseHistoryTrendChart({
               variant="ghost"
               size="icon"
               className="h-5 w-5 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-              aria-label={
-                isDuration
-                  ? t("historySheet.durationInfoLabel")
-                  : isReps
-                    ? t("historySheet.repsInfoLabel")
-                    : t("historySheet.epleyInfoLabel")
-              }
+              aria-label={t(copy.infoLabel)}
             >
               <Info className="h-3.5 w-3.5" aria-hidden />
             </Button>
@@ -156,18 +175,10 @@ export function ExerciseHistoryTrendChart({
             className="max-w-[min(100vw-2rem,20rem)] flex flex-col gap-2 text-sm"
           >
             <p className="font-medium leading-tight text-foreground">
-              {isDuration
-                ? t("historySheet.durationInfoTitle")
-                : isReps
-                  ? t("historySheet.repsInfoTitle")
-                  : t("historySheet.epleyInfoTitle")}
+              {t(copy.infoTitle)}
             </p>
             <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
-              {isDuration
-                ? t("historySheet.durationInfoBody")
-                : isReps
-                  ? t("historySheet.repsInfoBody")
-                  : t("historySheet.epleyInfoBody")}
+              {t(copy.infoBody)}
             </p>
           </PopoverContent>
         </Popover>
