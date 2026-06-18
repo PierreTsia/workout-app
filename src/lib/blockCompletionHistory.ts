@@ -81,7 +81,9 @@ function runDate(cells: BlockRunCellRow[]): string {
  */
 export function computeBlockRuns(rows: BlockRunCellRow[]): BlockRun[] {
   const bySession = rows.reduce<Map<string, BlockRunCellRow[]>>((acc, row) => {
-    acc.set(row.session_id, [...(acc.get(row.session_id) ?? []), row])
+    const bucket = acc.get(row.session_id)
+    if (bucket) bucket.push(row)
+    else acc.set(row.session_id, [row])
     return acc
   }, new Map())
 
