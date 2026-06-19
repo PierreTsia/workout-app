@@ -9,14 +9,16 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
 import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
 import { formatSessionRowDuration } from "@/lib/sessionRowDuration"
-import { groupSessionHistory } from "@/lib/sessionHistoryGrouping"
+import { groupSessionHistory, type BlockHistoryGroup } from "@/lib/sessionHistoryGrouping"
 import { BlockHistoryCard } from "@/components/history/BlockHistoryCard"
+import { BlockHistorySheet } from "@/components/history/BlockHistorySheet"
 import type { Session, SetLog } from "@/types/database"
 
 function SessionSetLogs({ sessionId }: { sessionId: string }) {
   const { t } = useTranslation("history")
   const { formatWeight } = useWeightUnit()
   const { data: logs, isLoading } = useSessionSetLogs(sessionId)
+  const [openCircuit, setOpenCircuit] = useState<BlockHistoryGroup | null>(null)
 
   const blockExerciseIds = (logs ?? [])
     .map((l) => l.block_exercise_id)
@@ -39,7 +41,12 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
     <div className="flex flex-col gap-3 pb-2 pt-1">
       {items.map((item) =>
         item.kind === "block" ? (
-          <BlockHistoryCard key={item.key} group={item} formatWeight={formatWeight} />
+          <BlockHistoryCard
+            key={item.key}
+            group={item}
+            formatWeight={formatWeight}
+            onOpen={setOpenCircuit}
+          />
         ) : (
           <div key={item.key}>
             <p className="mb-1 text-xs font-semibold text-foreground">{item.name}</p>
@@ -67,6 +74,14 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
           </div>
         ),
       )}
+      <BlockHistorySheet
+        open={openCircuit != null}
+        onOpenChange={(o) => {
+          if (!o) setOpenCircuit(null)
+        }}
+        blockId={openCircuit?.key ?? ""}
+        label={openCircuit?.label ?? null}
+      />
     </div>
   )
 }
