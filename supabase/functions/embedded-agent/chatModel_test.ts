@@ -1,6 +1,13 @@
-import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import {
+  assert,
+  assertEquals,
+  assertInstanceOf,
+  assertRejects,
+  assertStringIncludes,
+} from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   callChatGemini,
+  ChatModelError,
   MAX_CHAT_MODEL_ATTEMPTS,
   RETRYABLE_CHAT_MODEL_STATUSES,
 } from "./chatModel.ts"
@@ -194,6 +201,57 @@ Deno.test("callChatGemini — abort during backoff sleep terminates the retry lo
   )
 
   assertEquals(recorder.calls, 1)
+})
+
+// #295 — the thrown error must carry a typed `kind` + `upstreamStatus` so
+// the handler can name the real cause downstream. These pin the mapping
+// (503 → provider_unavailable, 4xx → client_error, empty body →
+// empty_response) without re-testing the retry mechanics above.
+Deno.test("callChatGemini — exhausted 503 throws ChatModelError(provider_unavailable, 503)", async () => {
+  const { fetchImpl } = makeFetch([
+    makeGeminiErrorResponse(503),
+    makeGeminiErrorResponse(503),
+    makeGeminiErrorResponse(503),
+  ])
+
+  const err = await assertRejects(
+    () => callChatGemini(makeInput(), { fetchImpl, sleepImpl: noopSleep }),
+  )
+
+  assertInstanceOf(err, ChatModelError)
+  assertEquals(err.kind, "provider_unavailable")
+  assertEquals(err.upstreamStatus, 503)
+  assertStringIncludes(err.message, "Gemini API error 503")
+})
+
+Deno.test("callChatGemini — 400 throws ChatModelError(client_error, 400)", async () => {
+  const { fetchImpl } = makeFetch([makeGeminiErrorResponse(400, "bad request")])
+
+  const err = await assertRejects(
+    () => callChatGemini(makeInput(), { fetchImpl, sleepImpl: noopSleep }),
+  )
+
+  assertInstanceOf(err, ChatModelError)
+  assertEquals(err.kind, "client_error")
+  assertEquals(err.upstreamStatus, 400)
+})
+
+Deno.test("callChatGemini — 2xx with no usable text throws ChatModelError(empty_response)", async () => {
+  // 200 OK but `candidates` is empty → parseSuccess throws → we classify it
+  // as empty_response (Gemini answered garbage, distinct from being down).
+  const emptyOk = new Response(JSON.stringify({ candidates: [] }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })
+  const { fetchImpl } = makeFetch([emptyOk])
+
+  const err = await assertRejects(
+    () => callChatGemini(makeInput(), { fetchImpl, sleepImpl: noopSleep }),
+  )
+
+  assertInstanceOf(err, ChatModelError)
+  assertEquals(err.kind, "empty_response")
+  assert(err.upstreamStatus === 200)
 })
 
 Deno.test("callChatGemini — 429 is NOT retried (quota class, not capacity)", async () => {

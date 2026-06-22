@@ -5,6 +5,7 @@ import {
   type ChatModelOutput,
   type LogEvent,
 } from "./handler.ts"
+import { ChatModelError } from "./chatModel.ts"
 import type { Thread, ThreadLocale, ThreadPurpose } from "./threadStore.ts"
 import type { UserContextProfile } from "./prompt/index.ts"
 import type { DraftArgs, DraftResult, LastPreview } from "./draft.ts"
@@ -814,12 +815,70 @@ Deno.test("POST /message logs the billable call AND returns 502 even when the mo
   assertEquals(calls.appendMessage[0].role, "user")
 
   assertEquals(calls.logEvents.length, 1)
-  // Canonical taxonomy (T122 inventory): the log uses `provider_failure`
-  // even though the wire contract still says `model_failure` — the web
-  // client's error parser depends on the wire string and isn't in scope
-  // for this ticket.
-  assertEquals(calls.logEvents[0].error_kind, "provider_failure")
+  // #295 — a plain (unclassified) throw lands in the `provider_error`
+  // bucket. The wire `error` stays `model_failure` for back-compat with the
+  // web client's parser; `failure_kind` is the additive refinement.
+  assertEquals(calls.logEvents[0].error_kind, "provider_error")
   assertEquals(calls.logEvents[0].route, "/message")
+  assertEquals(body.failure_kind, "provider_error")
+})
+
+// #295 — when the chat model throws a typed `ChatModelError` (the prod
+// path for a Gemini 503), the handler must surface the real cause both in
+// the structured log (`error_kind`) and on the wire (`failure_kind` +
+// `upstream_status`) so Sentry/triage never has to dig through Edge logs.
+Deno.test("POST /message classifies a Gemini 503 as provider_unavailable end to end", async () => {
+  const active = makeThread({ id: "t-1", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: () => {
+      throw new ChatModelError(
+        "provider_unavailable",
+        "Gemini API error 503: high demand",
+        503,
+      )
+    },
+  })
+
+  const res = await handleEmbeddedAgent(
+    sendRequest({ content: "hi", locale: "en" }),
+    deps,
+  )
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.error, "model_failure")
+  assertEquals(body.failure_kind, "provider_unavailable")
+  assertEquals(body.upstream_status, 503)
+
+  assertEquals(calls.logEvents.length, 1)
+  assertEquals(calls.logEvents[0].error_kind, "provider_unavailable")
+  assertEquals(calls.logEvents[0].route, "/message")
+})
+
+// #295 — an AbortError (the shared 15s budget firing) is the one non-
+// `ChatModelError` shape the classifier special-cases: it must read as a
+// `timeout`, never the catch-all `provider_error`.
+Deno.test("POST /message classifies an AbortError as timeout", async () => {
+  const active = makeThread({ id: "t-1", status: "open" })
+  const { deps, calls } = makeDeps({
+    getActiveThread: async () => active,
+    chatModel: () => {
+      throw Object.assign(new Error("aborted"), { name: "AbortError" })
+    },
+  })
+
+  const res = await handleEmbeddedAgent(
+    sendRequest({ content: "hi", locale: "en" }),
+    deps,
+  )
+
+  assertEquals(res.status, 502)
+  const body = await res.json() as Record<string, unknown>
+  assertEquals(body.failure_kind, "timeout")
+  // No upstream HTTP status on a client-side abort.
+  assertEquals(body.upstream_status, undefined)
+  assertEquals(calls.logEvents[0].error_kind, "timeout")
 })
 
 // #358 — When the chat model exposes its retry budget via `input.onRetry`,

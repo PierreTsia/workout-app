@@ -55,12 +55,24 @@ export function captureEmbeddedAgentError(
   error: EmbeddedAgentError,
 ): void {
   if (FRIENDLY_KINDS.has(error.kind)) return
-  const message = error.kind === "unknown" ? error.message : `embedded-agent ${route} ${error.kind}`
+  // #295 — for model failures, fold the server-classified `failure_kind`
+  // (provider_unavailable / timeout / …) into BOTH the tags AND the
+  // exception message. Appending it to the message means Sentry groups a
+  // transient Gemini 503 into its own issue, separate from a hard
+  // client_error — so a capacity blip can be muted without burying real
+  // bugs. Falls back to the old generic message when the server didn't
+  // classify (legacy 502 / non-chat model_failure).
+  const failureKind = error.kind === "model_failure" ? error.failure_kind : undefined
+  const upstreamStatus = error.kind === "model_failure" ? error.upstream_status : undefined
+  const base = error.kind === "unknown" ? error.message : `embedded-agent ${route} ${error.kind}`
+  const message = failureKind ? `${base} ${failureKind}` : base
   Sentry.captureException(new Error(message), {
     tags: {
       feature: "embedded-agent",
       route,
       error_kind: error.kind,
+      ...(failureKind ? { failure_kind: failureKind } : {}),
+      ...(upstreamStatus !== undefined ? { upstream_status: upstreamStatus } : {}),
     },
   })
 }

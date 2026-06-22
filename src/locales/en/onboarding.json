@@ -85,6 +85,8 @@
     "quotaBody": "You've reached the conversation limit for this hour. Take a short break and come back to keep building.",
     "errorTitle": "Something went wrong",
     "errorBody": "We couldn't reach the assistant. Try again in a moment.",
+    "busyTitle": "The assistant is in high demand",
+    "busyBody": "Our AI is briefly overloaded — this usually clears in a few seconds. Try sending your message again.",
     "retryCta": "Try again",
     "threadErrorTitle": "We couldn't load your conversation",
     "threadErrorBody": "Something failed on our side. Try again — your draft is safe.",

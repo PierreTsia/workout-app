@@ -242,7 +242,16 @@ export function EmbeddedAgentChatStep({
     sendError?.kind === "quota" &&
     sendError.which !== "draft" &&
     sendError.which !== "program"
-  const isFatalError = sendError !== null && sendError.kind !== "quota"
+  // #295 — a Gemini 503 ("high demand") or a 15s timeout is transient and
+  // not the user's fault: surface a softer "give it a second" banner with a
+  // retry, instead of the generic "something went wrong" that reads like a
+  // dead end mid-onboarding. Everything else fatal keeps the hard banner.
+  const isTransientModelError =
+    sendError?.kind === "model_failure" &&
+    (sendError.failure_kind === "provider_unavailable" ||
+      sendError.failure_kind === "timeout")
+  const isFatalError =
+    sendError !== null && sendError.kind !== "quota" && !isTransientModelError
   const composeDisabled = sendMessage.isPending || isTurnQuotaError
 
   return (
@@ -296,6 +305,17 @@ export function EmbeddedAgentChatStep({
             <QuotaBanner
               title={t("embeddedAgent.quotaTitle")}
               body={t("embeddedAgent.quotaBody")}
+            />
+          ) : null}
+
+          {isTransientModelError ? (
+            <ErrorBanner
+              title={t("embeddedAgent.busyTitle")}
+              body={t("embeddedAgent.busyBody")}
+              retryLabel={t("embeddedAgent.retryCta")}
+              onRetry={() => {
+                sendMessage.reset()
+              }}
             />
           ) : null}
 

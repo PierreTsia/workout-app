@@ -299,6 +299,38 @@ describe("useGenerateDraft", () => {
 
     expect(caught).toMatchObject({ kind: "model_failure" })
   })
+
+  // #295 — when the server classified the upstream failure, the parser must
+  // surface `failure_kind` + `upstream_status` so the chat surface can
+  // branch UX (transient vs hard) and Sentry can tag the real cause.
+  it("maps a 502 model_failure with a classified Gemini 503 into failure_kind + upstream_status", async () => {
+    const err = Object.assign(new Error("502"), {
+      context: new Response(
+        JSON.stringify({
+          error: "model_failure",
+          failure_kind: "provider_unavailable",
+          upstream_status: 503,
+        }),
+        { status: 502 },
+      ),
+    })
+    invokeMock.mockResolvedValueOnce({ data: null, error: err })
+
+    const { result } = renderHookWithProviders(() => useSendMessage("onboarding"))
+
+    let caught: unknown = null
+    try {
+      await result.current.mutateAsync({ content: "hi", locale: "en" })
+    } catch (e) {
+      caught = e
+    }
+
+    expect(caught).toMatchObject({
+      kind: "model_failure",
+      failure_kind: "provider_unavailable",
+      upstream_status: 503,
+    })
+  })
 })
 
 describe("useRejectPreview", () => {

@@ -78,6 +78,8 @@
     "quotaBody": "Vous avez atteint la limite de conversation pour cette heure. Faites une courte pause et revenez pour continuer.",
     "errorTitle": "Une erreur est survenue",
     "errorBody": "Impossible de joindre l'assistant. Réessayez dans un instant.",
+    "busyTitle": "L'assistant est très sollicité",
+    "busyBody": "Notre IA est momentanément surchargée — ça se résout en général en quelques secondes. Renvoyez votre message.",
     "retryCta": "Réessayer",
     "threadErrorTitle": "Impossible de charger votre conversation",
     "threadErrorBody": "Quelque chose a échoué de notre côté. Réessayez — votre draft est en sécurité.",
