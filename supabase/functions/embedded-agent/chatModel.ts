@@ -49,11 +49,12 @@ export class ChatModelError extends Error {
 }
 
 // Map a non-2xx Gemini status onto a failure kind. 503 is the observed
-// prod case (UNAVAILABLE / high demand); the other retryable 5xx share the
-// "provider_error" bucket; everything else (4xx, incl. 429) is on us.
+// prod case (UNAVAILABLE / high demand); every OTHER 5xx is an upstream
+// problem too — retryable or not (501/505/…) — so it stays `provider_error`,
+// never `client_error`. Only sub-500 (4xx, incl. 429) is on us.
 function httpStatusToFailureKind(status: number): ChatModelFailureKind {
   if (status === 503) return "provider_unavailable"
-  if (RETRYABLE_CHAT_MODEL_STATUSES.has(status)) return "provider_error"
+  if (status >= 500) return "provider_error"
   return "client_error"
 }
 

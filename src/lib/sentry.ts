@@ -72,7 +72,9 @@ export function captureEmbeddedAgentError(
       route,
       error_kind: error.kind,
       ...(failureKind ? { failure_kind: failureKind } : {}),
-      ...(upstreamStatus !== undefined ? { upstream_status: upstreamStatus } : {}),
+      // Sentry tags are conventionally string-valued; stringify so the tag
+      // is reliable for search/grouping regardless of SDK coercion.
+      ...(upstreamStatus !== undefined ? { upstream_status: String(upstreamStatus) } : {}),
     },
   })
 }

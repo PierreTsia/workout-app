@@ -236,6 +236,21 @@ Deno.test("callChatGemini — 400 throws ChatModelError(client_error, 400)", asy
   assertEquals(err.upstreamStatus, 400)
 })
 
+// #318 PR review (Copilot) — a NON-retryable 5xx (501/505/…) is still an
+// upstream problem, so it must classify as provider_error, never the
+// client_error bucket reserved for 4xx. Guards `httpStatusToFailureKind`.
+Deno.test("callChatGemini — non-retryable 5xx (501) throws ChatModelError(provider_error, 501)", async () => {
+  const { fetchImpl } = makeFetch([makeGeminiErrorResponse(501, "not implemented")])
+
+  const err = await assertRejects(
+    () => callChatGemini(makeInput(), { fetchImpl, sleepImpl: noopSleep }),
+  )
+
+  assertInstanceOf(err, ChatModelError)
+  assertEquals(err.kind, "provider_error")
+  assertEquals(err.upstreamStatus, 501)
+})
+
 Deno.test("callChatGemini — 2xx with no usable text throws ChatModelError(empty_response)", async () => {
   // 200 OK but `candidates` is empty → parseSuccess throws → we classify it
   // as empty_response (Gemini answered garbage, distinct from being down).
