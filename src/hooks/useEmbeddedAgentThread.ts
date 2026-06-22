@@ -125,6 +125,26 @@ export type EmbeddedAgentError =
   | { kind: "commit_failed"; mcp_kind?: string }
   | { kind: "unknown"; message: string }
 
+// Runtime guard for the wire `failure_kind`. Narrows an unknown body field
+// to the typed union, returning `undefined` when absent OR unrecognised —
+// the latter matters for forward-compat: a future server kind this client
+// build doesn't know about degrades to a plain `model_failure` instead of
+// leaking a bogus tag into Sentry.
+const CHAT_MODEL_FAILURE_KINDS = new Set<ChatModelFailureKind>([
+  "provider_unavailable",
+  "provider_error",
+  "client_error",
+  "timeout",
+  "empty_response",
+])
+
+function parseFailureKind(value: unknown): ChatModelFailureKind | undefined {
+  return typeof value === "string" &&
+    CHAT_MODEL_FAILURE_KINDS.has(value as ChatModelFailureKind)
+    ? (value as ChatModelFailureKind)
+    : undefined
+}
+
 // T131 (#343) — cache key includes `purpose` so onboarding and
 // additional_program threads have independent React Query entries; mutations
 // invalidate only their own purpose.
