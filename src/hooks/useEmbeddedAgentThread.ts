@@ -97,6 +97,19 @@ export interface CommitPreviewResponse {
   motivation: string | null
 }
 
+// #295 — mirrors `ChatModelFailureKind` in
+// `supabase/functions/embedded-agent/chatModel.ts`. Same copy-paste tax as
+// the route taxonomy above (TS imports across the Vite/Deno boundary aren't
+// worth the build complexity). Lets the chat surface branch the UX on a
+// transient `provider_unavailable` (Gemini busy → "try again") vs. a hard
+// failure, and lets Sentry tag the real cause.
+export type ChatModelFailureKind =
+  | "provider_unavailable"
+  | "provider_error"
+  | "client_error"
+  | "timeout"
+  | "empty_response"
+
 export type EmbeddedAgentError =
   // The chat surface needs to distinguish between hourly turn quota
   // (`useSendMessage`), the daily draft quota and the cross-source
@@ -104,9 +117,33 @@ export type EmbeddedAgentError =
   // the right copy without re-decoding the wire error.
   | { kind: "quota"; which?: "turn" | "draft" | "program"; limit?: number; used?: number }
   | { kind: "no_active_thread" }
-  | { kind: "model_failure" }
+  // #295 — `failure_kind` / `upstream_status` are best-effort: present when
+  // the server classified the upstream failure, absent on legacy 502s or a
+  // generic `model_failure` from /draft|/commit. UI + Sentry treat them as
+  // optional refinements, never as required.
+  | { kind: "model_failure"; failure_kind?: ChatModelFailureKind; upstream_status?: number }
   | { kind: "commit_failed"; mcp_kind?: string }
   | { kind: "unknown"; message: string }
+
+// Runtime guard for the wire `failure_kind`. Narrows an unknown body field
+// to the typed union, returning `undefined` when absent OR unrecognised —
+// the latter matters for forward-compat: a future server kind this client
+// build doesn't know about degrades to a plain `model_failure` instead of
+// leaking a bogus tag into Sentry.
+const CHAT_MODEL_FAILURE_KINDS = new Set<ChatModelFailureKind>([
+  "provider_unavailable",
+  "provider_error",
+  "client_error",
+  "timeout",
+  "empty_response",
+])
+
+function parseFailureKind(value: unknown): ChatModelFailureKind | undefined {
+  return typeof value === "string" &&
+    CHAT_MODEL_FAILURE_KINDS.has(value as ChatModelFailureKind)
+    ? (value as ChatModelFailureKind)
+    : undefined
+}
 
 // T131 (#343) — cache key includes `purpose` so onboarding and
 // additional_program threads have independent React Query entries; mutations
@@ -183,7 +220,14 @@ async function toEmbeddedAgentError(error: InvokeError): Promise<EmbeddedAgentEr
     code === "draft_failed" ||
     code === "mcp_failed"
   ) {
-    return { kind: "model_failure" }
+    const failureKind = parseFailureKind(body?.failure_kind)
+    const upstreamStatus =
+      typeof body?.upstream_status === "number" ? body.upstream_status : undefined
+    return {
+      kind: "model_failure",
+      ...(failureKind ? { failure_kind: failureKind } : {}),
+      ...(upstreamStatus !== undefined ? { upstream_status: upstreamStatus } : {}),
+    }
   }
   return { kind: "unknown", message: error.message ?? code ?? "Unknown error" }
 }

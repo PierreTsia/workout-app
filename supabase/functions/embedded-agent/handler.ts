@@ -29,6 +29,7 @@ import {
 } from "./lib/bundle.ts"
 import type { CallMcpToolResult } from "../_shared/mcpClient.ts"
 import type { LogEvent } from "./log.ts"
+import { ChatModelError, type ChatModelFailureKind } from "./chatModel.ts"
 
 export type { LogEvent } from "./log.ts"
 
@@ -51,6 +52,27 @@ export interface ChatModelInput {
 
 export interface ChatModelOutput {
   content: string
+}
+
+/**
+ * Map whatever the chat model threw onto the canonical failure taxonomy
+ * (#295 observability). `ChatModelError` already carries the kind +
+ * upstream status; a bare `AbortError` means the shared 15s budget fired
+ * (timeout); anything else is an unclassified upstream error. This is the
+ * single place that decides the `error_kind` we log AND the `failure_kind`
+ * we hand back on the wire, so the two can never drift.
+ */
+export function classifyChatFailure(
+  err: unknown,
+): { kind: ChatModelFailureKind; upstreamStatus?: number } {
+  if (err instanceof ChatModelError) {
+    return { kind: err.kind, upstreamStatus: err.upstreamStatus }
+  }
+  // DOMException (sleep abort) and the AbortError shape (fetch abort) are not
+  // reliably `instanceof Error` across runtimes — match on the name instead.
+  const name = (err as { name?: unknown } | null)?.name
+  if (name === "AbortError") return { kind: "timeout" }
+  return { kind: "provider_error" }
 }
 
 export interface DraftStepInput {
@@ -670,18 +692,35 @@ async function handleSend(
     })
   } catch (err) {
     await deps.logBillableCall(userId, "embedded_chat")
+    // #295 — classify the failure so the log `error_kind` (and the wire
+    // `failure_kind` below) name the real cause (provider_unavailable /
+    // timeout / …) instead of the old blind `provider_failure` umbrella.
+    const failure = classifyChatFailure(err)
     deps.log({
       level: "error",
       feature: "embedded-agent",
       route: "/message",
       purpose,
-      error_kind: "provider_failure",
+      error_kind: failure.kind,
       request_id: requestId,
       user_id: userId,
       thread_id: active.id,
       message: err instanceof Error ? err.message : String(err),
     })
-    return Response.json({ error: "model_failure" }, { status: 502 })
+    // Wire contract: `error` stays `model_failure` (the web client's parser
+    // keys on it). `failure_kind` + `upstream_status` are additive so the
+    // PWA can tag Sentry with the real cause and branch the UX (transient
+    // "try again" vs. a hard error) without a follow-up log dig.
+    return Response.json(
+      {
+        error: "model_failure",
+        failure_kind: failure.kind,
+        ...(failure.upstreamStatus !== undefined
+          ? { upstream_status: failure.upstreamStatus }
+          : {}),
+      },
+      { status: 502 },
+    )
   }
 
   await deps.logBillableCall(userId, "embedded_chat")

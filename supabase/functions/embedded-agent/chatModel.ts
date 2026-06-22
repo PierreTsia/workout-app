@@ -12,6 +12,52 @@
 
 import type { ChatModelInput, ChatModelOutput } from "./handler.ts"
 
+// Failure taxonomy for a chat turn. The Sentry issue for #295 only ever
+// said "model_failure" — a blind umbrella that forced an 8-query BigQuery
+// safari to find out the underlying cause was a Gemini 503. These kinds
+// give the handler something specific to log AND to push into the wire
+// error so the web client can tag Sentry with the real cause:
+//   - provider_unavailable: Gemini 503 UNAVAILABLE ("high demand") — their
+//     capacity, transient, retried, and the user should just try again.
+//   - provider_error:       other upstream 5xx (500/502/504) — also retried.
+//   - client_error:         non-retryable 4xx (bad key / payload) — OUR bug.
+//   - timeout:              the shared 15s AbortController budget ran out.
+//   - empty_response:       2xx but no usable text (thinking-only / empty).
+export type ChatModelFailureKind =
+  | "provider_unavailable"
+  | "provider_error"
+  | "client_error"
+  | "timeout"
+  | "empty_response"
+
+/**
+ * Typed chat-model failure. Carries the discriminating `kind` and, when the
+ * failure was an upstream HTTP response, the raw `upstreamStatus`. The
+ * `message` stays human-readable (and identical to the pre-#295 strings) so
+ * existing log-grep and test assertions keep working.
+ */
+export class ChatModelError extends Error {
+  readonly kind: ChatModelFailureKind
+  readonly upstreamStatus?: number
+
+  constructor(kind: ChatModelFailureKind, message: string, upstreamStatus?: number) {
+    super(message)
+    this.name = "ChatModelError"
+    this.kind = kind
+    this.upstreamStatus = upstreamStatus
+  }
+}
+
+// Map a non-2xx Gemini status onto a failure kind. 503 is the observed
+// prod case (UNAVAILABLE / high demand); every OTHER 5xx is an upstream
+// problem too — retryable or not (501/505/…) — so it stays `provider_error`,
+// never `client_error`. Only sub-500 (4xx, incl. 429) is on us.
+function httpStatusToFailureKind(status: number): ChatModelFailureKind {
+  if (status === 503) return "provider_unavailable"
+  if (status >= 500) return "provider_error"
+  return "client_error"
+}
+
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 const TIMEOUT_MS = 15_000
@@ -100,13 +146,30 @@ export async function callChatGemini(
         body,
       })
 
-      if (res.ok) return parseSuccess(await res.json())
+      if (res.ok) {
+        try {
+          return parseSuccess(await res.json())
+        } catch (parseErr) {
+          // 2xx but unusable (empty / thinking-only / Gemini-embedded
+          // error). Distinct kind so triage doesn't confuse "Gemini was
+          // down" with "Gemini answered garbage".
+          throw new ChatModelError(
+            "empty_response",
+            parseErr instanceof Error ? parseErr.message : String(parseErr),
+            res.status,
+          )
+        }
+      }
 
       const errorBody = await res.text()
       const isRetryable = RETRYABLE_CHAT_MODEL_STATUSES.has(res.status)
       const isLastAttempt = attempt === MAX_CHAT_MODEL_ATTEMPTS
       if (!isRetryable || isLastAttempt) {
-        throw new Error(`Gemini API error ${res.status}: ${errorBody}`)
+        throw new ChatModelError(
+          httpStatusToFailureKind(res.status),
+          `Gemini API error ${res.status}: ${errorBody}`,
+          res.status,
+        )
       }
 
       input.onRetry?.({ attempt, upstreamStatus: res.status })
@@ -122,7 +185,7 @@ export async function callChatGemini(
     // Unreachable: the loop either returns on a 2xx or throws on an
     // exhausted/non-retryable failure. Kept as a defensive net so the
     // function always has a terminal statement.
-    throw new Error("Gemini retry loop exited without resolving")
+    throw new ChatModelError("provider_error", "Gemini retry loop exited without resolving")
   } finally {
     clearTimeout(timeout)
   }

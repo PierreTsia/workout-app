@@ -530,6 +530,84 @@ describe("EmbeddedAgentChatStep", () => {
     ).toBe(false)
   })
 
+  // #318 — the incident scenario: a transient Gemini 503 ("high demand")
+  // must surface the soft "give it a second, resend" banner, NOT the
+  // dead-end "something went wrong" — otherwise a new user bounces
+  // mid-onboarding (exactly what happened to the abandoned signup).
+  it("renders the soft busy banner (not the fatal one) when /message fails with failure_kind=provider_unavailable", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "busy0001-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("502"), {
+          context: new Response(
+            JSON.stringify({
+              error: "model_failure",
+              failure_kind: "provider_unavailable",
+              upstream_status: 503,
+            }),
+            { status: 502 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
+    await screen.findByText(/Thread busy0001/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "boom")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    // Soft banner is shown…
+    await screen.findByText(/in high demand/i)
+    // …and the generic dead-end banner is NOT.
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument()
+  })
+
+  // #318 — guard the other half: an UNclassified model_failure (legacy 502
+  // with no failure_kind, e.g. an older server build) keeps the hard
+  // banner. Without this the transient/fatal split could silently swallow
+  // every model_failure into the soft path.
+  it("keeps the fatal banner (not the busy one) for a model_failure with no failure_kind", async () => {
+    invokeMock
+      .mockResolvedValueOnce({
+        data: { thread_id: "busy0002-0000-0000-0000-000000000000", status: "open", resumed: false, messages: [] },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: Object.assign(new Error("502"), {
+          context: new Response(
+            JSON.stringify({ error: "model_failure" }),
+            { status: 502 },
+          ),
+        }),
+      })
+
+    renderWithProviders(<EmbeddedAgentChatStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onBack={() => {}}
+      />)
+    await screen.findByText(/Thread busy0002/)
+
+    const user = userEvent.setup()
+    await user.type(screen.getByPlaceholderText(/write a message/i), "boom")
+    await user.click(screen.getByRole("button", { name: /^send$/i }))
+
+    await screen.findByText(/something went wrong/i)
+    expect(screen.queryByText(/in high demand/i)).not.toBeInTheDocument()
+  })
+
   it("renders the friendly cap card on a 429 quota response", async () => {
     invokeMock
       .mockResolvedValueOnce({
