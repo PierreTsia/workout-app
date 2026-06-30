@@ -135,7 +135,7 @@ export function OnboardingPage() {
   // #348 — auth-expired branch: tell the user, sign them out, send them
   // back to /login. Reused by every onboarding handler so the UX is the
   // same whether Supabase rejects on the questionnaire upsert or later
-  // on the generate-program edge function.
+  // on program creation.
   async function handleAuthExpired() {
     toast.error(t("errorAuthExpired"))
     await supabase.auth.signOut()

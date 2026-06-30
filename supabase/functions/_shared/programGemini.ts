@@ -1,7 +1,7 @@
 // Gemini HTTP call for program drafting — split from `_shared/programDraft.ts`
 // to keep that module pure-TS so it stays vitest-importable from `src/test/`.
-// This file references `Deno.env.get` and is exclusively reached from Deno
-// runtime entrypoints (`generate-program/index.ts`, `embedded-agent/index.ts`).
+// This file references `Deno.env.get` and is exclusively reached from the
+// `embedded-agent/index.ts` Deno runtime entrypoint (the program draft step).
 
 import type { GenerateProgramResponse } from "./programDraft.ts"
 

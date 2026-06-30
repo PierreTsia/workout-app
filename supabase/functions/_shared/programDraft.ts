@@ -1,8 +1,7 @@
-// Shared program draft logic — extracted from `generate-program/` so that both
-// the legacy `generate-program` Edge function AND the `embedded-agent` Edge
-// function (via `runProgramDraftStep`) can call into it without cross-Edge
-// imports. Once `generate-program/` is deleted (post #342 + #343), this module
-// remains as the single home for program-drafting plumbing.
+// Shared program draft logic — the single home for program-drafting plumbing,
+// called by the `embedded-agent` Edge function via `runProgramDraftStep`.
+// Originally extracted from the `generate-program/` function (now deleted) to
+// avoid cross-Edge imports.
 //
 // This module is intentionally pure TS — no `Deno.*` globals — so it can be
 // imported from vitest specs in `src/test/`. The Gemini HTTP call lives in the

@@ -228,8 +228,6 @@ With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits
 
 | Function | Purpose |
 |---|---|
-| `generate-program` | AI program generation via Gemini |
-| `generate-workout` | Quick workout generation via Gemini |
 | `mcp` | MCP server (JSON-RPC 2.0, 6 tools + 1 resource; accepts both OAuth/session JWTs and Personal Access Tokens) |
 | `create-pat` | Mints a new Personal Access Token (browser-session JWT only — anti-escalation) |
 | `send-transactional-email` | Welcome and lifecycle emails via Resend |
@@ -284,8 +282,6 @@ supabase/
 ├── functions/
 │   ├── mcp/           # MCP server (JSON-RPC handler, tools, resources, formatters, PAT auth)
 │   ├── create-pat/    # Mints Personal Access Tokens (session-JWT only)
-│   ├── generate-program/
-│   ├── generate-workout/
 │   ├── send-transactional-email/
 │   ├── email-unsubscribe/
 │   └── delete-account/
