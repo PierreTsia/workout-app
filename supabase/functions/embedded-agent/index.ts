@@ -27,6 +27,10 @@ import {
   type QuotaSupabaseLike,
 } from "./quota.ts"
 import { callChatGemini } from "./chatModel.ts"
+import { callChatGroq } from "./groqChat.ts"
+import { withFallback } from "../_shared/withFallback.ts"
+import { makeFallbackLogger } from "../_shared/providerFallbackLog.ts"
+import { GEMINI, GROQ, isGroqConfigured } from "../_shared/aiProviders.ts"
 import type { UserContextProfile } from "./prompt/index.ts"
 import {
   runProgramDraftStep,
@@ -41,6 +45,7 @@ import {
   fetchRecentHistory,
 } from "../_shared/programCatalog.ts"
 import { callGeminiProgram } from "../_shared/programGemini.ts"
+import { callGroqProgram } from "../_shared/programGroq.ts"
 import { checkQuota, decodeJwt } from "../_shared/aiQuota.ts"
 import { callMcpTool, resolveMcpUrl } from "../_shared/mcpClient.ts"
 import { handleEmbeddedAgent } from "./handler.ts"
@@ -102,11 +107,21 @@ Deno.serve(async (req) => {
   const tokenPart = authHeader.replace("Bearer ", "")
   const userEmail = decodeJwt(tokenPart)?.email?.toLowerCase() ?? null
 
+  // #405 — AI Provider Fallback. Gemini stays the Primary; on an availability
+  // failure (503/upstream-5xx/timeout) `withFallback` retries once on Groq.
+  // Same opts for both seams: which provider answered is server-log-only.
+  const fallbackOpts = {
+    from: GEMINI.name,
+    to: GROQ.name,
+    isSecondaryConfigured: isGroqConfigured,
+    log: makeFallbackLogger("embedded-agent"),
+  }
+
   const draftDeps: DraftDeps = {
     fetchCatalog: (equipmentValues) => fetchCatalog(serviceClient, equipmentValues),
     fetchProfile: (userId) => fetchProgramProfile(serviceClient, userId),
     fetchRecentHistory: (userId) => fetchRecentHistory(serviceClient, userId),
-    callModel: callGeminiProgram,
+    callModel: withFallback(callGeminiProgram, callGroqProgram, fallbackOpts),
   }
 
   const res = await handleEmbeddedAgent(req, {
@@ -137,7 +152,7 @@ Deno.serve(async (req) => {
     enforceDraftQuota: (userId) => enforceDraftQuota(quotaDb, userId),
     enforceProgramQuota: (userId) => checkQuota(serviceClient, userId, userEmail, "program"),
     logBillableCall: (userId, source) => logBillableCall(quotaDb, userId, source),
-    chatModel: callChatGemini,
+    chatModel: withFallback(callChatGemini, callChatGroq, fallbackOpts),
     loadProfile: (userId) => loadProfile(userClient, userId),
     runDraftStep: (input): Promise<DraftResult> =>
       runProgramDraftStep(

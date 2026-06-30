@@ -10,6 +10,10 @@ import {
   fetchRecentHistory,
 } from "../_shared/programCatalog.ts"
 import { callGemini } from "./gemini.ts"
+import { callGroqWorkout } from "./groq.ts"
+import { withFallback } from "../_shared/withFallback.ts"
+import { makeFallbackLogger } from "../_shared/providerFallbackLog.ts"
+import { GEMINI, GROQ, isGroqConfigured } from "../_shared/aiProviders.ts"
 import { handleGenerateQuickWorkout } from "./handler.ts"
 import { emitLog } from "./log.ts"
 
@@ -33,7 +37,13 @@ Deno.serve((req) => {
     fetchCatalog: (eq, mg) => fetchCatalog(serviceClient, eq, mg),
     fetchProfile: (userId) => fetchProfile(serviceClient, userId),
     fetchRecentHistory: (userId) => fetchRecentHistory(serviceClient, userId),
-    callGemini,
+    // #405 — AI Provider Fallback: Gemini Primary, Groq on availability failure.
+    callGemini: withFallback(callGemini, callGroqWorkout, {
+      from: GEMINI.name,
+      to: GROQ.name,
+      isSecondaryConfigured: isGroqConfigured,
+      log: makeFallbackLogger("generate-quick-workout"),
+    }),
     async logBillableCall(userId) {
       const { error } = await serviceClient
         .from("ai_generation_log")
