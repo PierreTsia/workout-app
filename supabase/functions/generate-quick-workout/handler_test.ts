@@ -7,6 +7,7 @@
 // pass `overrides` to inject failures or assertable return values.
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import { ProviderError } from "../_shared/providerError.ts"
 import {
   handleGenerateQuickWorkout,
   type GenerateQuickWorkoutDeps,
@@ -257,6 +258,22 @@ Deno.test("log_everything: logBillableCall runs even when callGemini throws (non
     "model failure MUST still credit the quick_workout quota (log_everything)",
   )
   assertEquals(calls.logBillableCall[0].userId, "user-1")
+})
+
+Deno.test("#405 — a Fallback Provider timeout (ProviderError kind) maps to 504, not 502", async () => {
+  // Groq wraps an aborted call as ProviderError("timeout") whose message has
+  // no "abort", so the string heuristic alone would misfile it as a generic
+  // model_failure (502). The handler must read the typed kind → 504.
+  const { deps } = makeDeps({
+    callGemini: async () => {
+      throw new ProviderError("timeout", "Groq call exceeded its time budget")
+    },
+  })
+
+  const res = await handleGenerateQuickWorkout(makeRequest(VALID_BODY), deps)
+
+  assertEquals(res.status, 504)
+  assertEquals(((await res.json()) as { error: string }).error, "timeout")
 })
 
 Deno.test("structured log emitted on provider failure with the canonical envelope", async () => {
