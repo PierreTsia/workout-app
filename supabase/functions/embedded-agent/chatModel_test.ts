@@ -77,8 +77,9 @@ function noopSleep(): Promise<void> {
 // ---------- tests ----------
 
 Deno.test("callChatGemini — invariants are sane", () => {
-  // Guard the test contract: AC fixes 3 attempts max, retry on 500/502/503/504.
-  assertEquals(MAX_CHAT_MODEL_ATTEMPTS, 3)
+  // #405 — 2 attempts (one in-place retry) before the Fallback Provider takes
+  // over; retry on 500/502/503/504.
+  assertEquals(MAX_CHAT_MODEL_ATTEMPTS, 2)
   assertEquals(
     [...RETRYABLE_CHAT_MODEL_STATUSES].sort((a, b) => a - b),
     [500, 502, 503, 504],
@@ -102,9 +103,8 @@ Deno.test("callChatGemini — 503 then 200 succeeds and reports one retry", asyn
   assertEquals(retries[0], { attempt: 1, upstreamStatus: 503 })
 })
 
-Deno.test("callChatGemini — three 503s exhaust the retry budget and throw", async () => {
+Deno.test("callChatGemini — two 503s exhaust the retry budget and throw", async () => {
   const recorder = makeFetch([
-    makeGeminiErrorResponse(503),
     makeGeminiErrorResponse(503),
     makeGeminiErrorResponse(503),
   ])
@@ -120,12 +120,13 @@ Deno.test("callChatGemini — three 503s exhaust the retry budget and throw", as
     "Gemini API error 503",
   )
 
-  assertEquals(recorder.calls, 3)
-  // onRetry only fires when we are GOING to retry — last attempt's failure
+  // #405 — 2 attempts: one initial + one in-place retry, then we give up so
+  // the Fallback Provider can take over instead of hammering Gemini.
+  assertEquals(recorder.calls, 2)
+  // onRetry only fires when we are GOING to retry — the last attempt's failure
   // does not signal a retry.
-  assertEquals(retries.length, 2)
+  assertEquals(retries.length, 1)
   assertEquals(retries[0], { attempt: 1, upstreamStatus: 503 })
-  assertEquals(retries[1], { attempt: 2, upstreamStatus: 503 })
 })
 
 Deno.test("callChatGemini — 400 is NOT retried", async () => {

@@ -1,6 +1,6 @@
 // Program draft step for the Embedded Agent (T119).
 //
-// Wraps the existing `generate-program` plumbing (catalog fetch +
+// Wraps the shared program-draft plumbing (catalog fetch +
 // `buildProgramPrompt` + `callGeminiProgram` + `validateProgram`) and
 // extends the prompt with the chat transcript so the model has both the
 // deterministic onboarding profile *and* the qualitative gaps the user

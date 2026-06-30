@@ -1,3 +1,5 @@
+import { httpStatusToFailureKind, ProviderError } from "../_shared/providerError.ts"
+
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
@@ -50,26 +52,34 @@ function parseResponse(raw: string): GenerateWorkoutGeminiResponse {
     }
   } catch (e) {
     console.error("Gemini raw output (first 500 chars):", text.slice(0, 500))
-    throw new Error(
+    // 2xx but unusable JSON. `empty_response` is NOT a fallback kind (ADR 0009).
+    throw new ProviderError(
+      "empty_response",
       `${e instanceof Error ? e.message : "JSON parse error"} | raw: ${text.slice(0, 200)}`,
-      { cause: e },
     )
   }
 }
 
+export interface CallGeminiOptions {
+  // Test seam — defaults to the real `globalThis.fetch`. Prod never passes it.
+  fetchImpl?: typeof fetch
+}
+
 export async function callGemini(
   prompt: string,
+  opts: CallGeminiOptions = {},
 ): Promise<GenerateWorkoutGeminiResponse> {
   const apiKey = Deno.env.get("GEMINI_API_KEY")
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set")
+    throw new ProviderError("client_error", "GEMINI_API_KEY is not set")
   }
 
+  const fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
-    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    const res = await fetchImpl(`${GEMINI_URL}?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
@@ -89,23 +99,27 @@ export async function callGemini(
 
     if (!res.ok) {
       const body = await res.text()
-      throw new Error(`Gemini API error ${res.status}: ${body}`)
+      throw new ProviderError(
+        httpStatusToFailureKind(res.status),
+        `Gemini API error ${res.status}: ${body}`,
+        res.status,
+      )
     }
 
     const data: GeminiResponse = await res.json()
 
     if (data.error) {
-      throw new Error(`Gemini error: ${data.error.message}`)
+      throw new ProviderError("empty_response", `Gemini error: ${data.error.message}`)
     }
 
     const parts = data.candidates?.[0]?.content?.parts
     if (!parts?.length) {
-      throw new Error("Gemini returned empty response")
+      throw new ProviderError("empty_response", "Gemini returned empty response")
     }
 
     const outputPart = parts.findLast((p) => !p.thought && p.text)
     if (!outputPart?.text) {
-      throw new Error("Gemini returned no output text (only thinking)")
+      throw new ProviderError("empty_response", "Gemini returned no output text (only thinking)")
     }
 
     return parseResponse(outputPart.text)

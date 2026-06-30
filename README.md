@@ -228,21 +228,22 @@ With `VITE_SUPABASE_URL` pointing at localhost, `supabase.functions.invoke` hits
 
 | Function | Purpose |
 |---|---|
-| `generate-program` | AI program generation via Gemini |
-| `generate-workout` | Quick workout generation via Gemini |
+| `embedded-agent` | Conversational onboarding/program agent (chat turns + program draft via Gemini, Groq fallback) |
+| `generate-quick-workout` | One-shot quick workout generation via Gemini (Groq fallback) |
 | `mcp` | MCP server (JSON-RPC 2.0, 6 tools + 1 resource; accepts both OAuth/session JWTs and Personal Access Tokens) |
 | `create-pat` | Mints a new Personal Access Token (browser-session JWT only — anti-escalation) |
 | `send-transactional-email` | Welcome and lifecycle emails via Resend |
 | `email-unsubscribe` | Email preference management |
 | `delete-account` | Account deletion with data cleanup |
 
-The Gemini key must be available to the Edge runtime:
+The AI keys must be available to the Edge runtime:
 
 1. Copy `supabase/functions/.env.example` → `supabase/functions/.env`
 2. Set `GEMINI_API_KEY=` to a key from [Google AI Studio](https://aistudio.google.com/apikey)
-3. Restart: `npm run supabase:stop` then `npm run supabase:start`
+3. _Optional but recommended:_ set `GROQ_API_KEY=` to a key from the [Groq Console](https://console.groq.com/keys) (no-card free tier). This enables the **AI Provider Fallback** (#405): when Gemini is unavailable (503), in-app AI calls retry once on Groq before erroring. Absent = fallback disabled cleanly; the app stays fully functional on Gemini alone.
+4. Restart: `npm run supabase:stop` then `npm run supabase:start`
 
-For **hosted** Supabase, set secrets via `supabase secrets set GEMINI_API_KEY=...` or the dashboard.
+For **hosted** Supabase, set secrets via `supabase secrets set GEMINI_API_KEY=...` (and `GROQ_API_KEY=...`) or the dashboard.
 
 ### History seed data
 
@@ -282,10 +283,11 @@ src/
 
 supabase/
 ├── functions/
+│   ├── _shared/       # Cross-function libs: AI provider fallback (withFallback, providerError, groqClient), catalog, quota
+│   ├── embedded-agent/        # Conversational onboarding/program agent (chat + program draft)
+│   ├── generate-quick-workout/ # One-shot quick workout generation
 │   ├── mcp/           # MCP server (JSON-RPC handler, tools, resources, formatters, PAT auth)
 │   ├── create-pat/    # Mints Personal Access Tokens (session-JWT only)
-│   ├── generate-program/
-│   ├── generate-workout/
 │   ├── send-transactional-email/
 │   ├── email-unsubscribe/
 │   └── delete-account/

@@ -23,6 +23,7 @@ import {
   getTargetExerciseCount,
 } from "./prompt.ts"
 import { validateAndRepair } from "./validate.ts"
+import { ProviderError } from "../_shared/providerError.ts"
 import type {
   CatalogExercise,
   UserProfile,
@@ -219,7 +220,13 @@ export async function handleGenerateQuickWorkout(
       user_id: userId,
       message: err instanceof Error ? err.message : String(err),
     })
-    const isTimeout = err instanceof Error && err.message.includes("abort")
+    // A Gemini abort propagates as a raw AbortError (message contains
+    // "abort"); a Groq abort is wrapped as `ProviderError(kind: "timeout")`
+    // (#405) whose message has no "abort". Check the typed kind first so a
+    // fallback-provider timeout still maps to 504, not a generic 502.
+    const isTimeout =
+      (err instanceof ProviderError && err.kind === "timeout") ||
+      (err instanceof Error && err.message.includes("abort"))
     return jsonResponse(
       { error: isTimeout ? "timeout" : "model_failure" },
       isTimeout ? 504 : 502,
