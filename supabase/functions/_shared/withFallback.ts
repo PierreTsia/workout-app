@@ -47,10 +47,22 @@ export function withFallback<I, O>(
   secondary: (input: I) => Promise<O>,
   opts: FallbackOpts,
 ): (input: I) => Promise<O> {
+  // Logging is best-effort: a throwing sink (custom logger, JSON
+  // serialization, IO) must never turn a successful primary/secondary
+  // response into an error, nor mask the real provider error on the failure
+  // path. Swallow anything the sink throws.
+  const safeLog = (event: FallbackLog): void => {
+    try {
+      opts.log?.(event)
+    } catch {
+      // intentionally ignored — observability must not affect resolution
+    }
+  }
+
   return async (input: I): Promise<O> => {
     try {
       const result = await primary(input)
-      opts.log?.({ type: "resolved", provider: opts.from, viaFallback: false })
+      safeLog({ type: "resolved", provider: opts.from, viaFallback: false })
       return result
     } catch (primaryErr) {
       const { kind, upstreamStatus } = classifyProviderError(primaryErr)
@@ -58,11 +70,11 @@ export function withFallback<I, O>(
 
       const secondaryConfigured = opts.isSecondaryConfigured?.() ?? true
       if (!secondaryConfigured) {
-        opts.log?.({ type: "fallback_unavailable", fromKind: kind, from: opts.from })
+        safeLog({ type: "fallback_unavailable", fromKind: kind, from: opts.from })
         throw primaryErr
       }
 
-      opts.log?.({
+      safeLog({
         type: "fallback",
         fromKind: kind,
         upstreamStatus,
@@ -70,7 +82,7 @@ export function withFallback<I, O>(
         to: opts.to,
       })
       const result = await secondary(input)
-      opts.log?.({ type: "resolved", provider: opts.to, viaFallback: true })
+      safeLog({ type: "resolved", provider: opts.to, viaFallback: true })
       return result
     }
   }

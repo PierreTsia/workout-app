@@ -111,6 +111,28 @@ Deno.test("withFallback: both providers down → secondary's error surfaces, aft
   ])
 })
 
+Deno.test("withFallback: a throwing log sink never breaks resolution (best-effort logging)", async () => {
+  const throwingLog = () => {
+    throw new Error("sink blew up")
+  }
+
+  // Primary-success path: the resolved log throws, the result must still come back.
+  const onPrimary = withFallback(
+    (input: string) => Promise.resolve(`primary:${input}`),
+    (input: string) => Promise.resolve(`secondary:${input}`),
+    { from: "gemini", to: "groq", log: throwingLog },
+  )
+  assertEquals(await onPrimary("hi"), "primary:hi")
+
+  // Fallback path: both the fallback log and the resolved log throw.
+  const onFallback = withFallback(
+    () => Promise.reject(new ProviderError("provider_unavailable", "down", 503)),
+    (input: string) => Promise.resolve(`secondary:${input}`),
+    { from: "gemini", to: "groq", log: throwingLog },
+  )
+  assertEquals(await onFallback("hi"), "secondary:hi")
+})
+
 Deno.test("withFallback: successful fallback logs fallback then resolved(viaFallback)", async () => {
   const spy = makeLogSpy()
   const wrapped = withFallback(
