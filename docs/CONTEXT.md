@@ -40,6 +40,20 @@ A third-party host for the LLM (e.g. Claude Desktop, Cursor) that connects to th
 
 ---
 
+## AI providers
+
+**AI Provider Fallback**:
+The policy that every in-app AI call (the **Embedded Agent** chat, the **Program draft step** / `generate-program`, and **Quick Workout AI (v1)** / `generate-quick-workout`) is served by a **Primary Provider** and, on an **availability failure only**, retried once on a **Fallback Provider** before the user sees an error. **Purpose:** survive **Primary Provider** outages (the recurring Gemini `503` "high demand" we hit in prod — see #405), **not** to pick a "better" model — that is a separate quality concern. **Invariants:** **(1) Availability-only** — falls back on provider-unavailable / upstream-5xx / timeout; **never** on a 4xx config error (our bug, must surface) nor on a 2xx-but-empty response. **(2) Branding** — which provider answered is **infrastructure**: it may appear in server logs / **Sentry** but **never** in the wire response or UI (consistent with **Embedded Agent onboarding product (v1)** rule 1). **(3) Quota** — a fallback-served call counts as exactly **one** in-app AI usage in the same **fairness / quota family**, provider-agnostic; the billable log fires once per logical action regardless of how many providers were tried. **(4) Structured-output parity** — for the two JSON flows, the **Fallback Provider** must return the same shape as the **Primary Provider**; the existing provider-agnostic validators (`validateProgram`, `validateAndRepair`) stay as the safety net. Concrete trigger ordering, time budgets, and provider/model selection are owned by the #405 Tech Plan / ADR, not this glossary.
+
+**Primary Provider**:
+The default model provider for in-app AI calls — **Gemini** (`gemini-2.5-flash`) in v1. Tried first on every call; on an availability failure the **AI Provider Fallback** policy routes to the **Fallback Provider**.
+→ `file:supabase/functions/embedded-agent/chatModel.ts`, `file:supabase/functions/_shared/programGemini.ts`, `file:supabase/functions/generate-quick-workout/gemini.ts`
+
+**Fallback Provider**:
+The secondary provider engaged by **AI Provider Fallback** when the **Primary Provider** is unavailable — **Groq** (OpenAI-compatible, no-card free tier, decorrelated from Google's infrastructure) in v1. Decorrelation — not a higher per-provider SLA — is the point: it is rare for both to be down at the same instant. A future second fallback (OpenRouter, Cerebras…) is out of v1 scope.
+
+---
+
 ## Programs & agent flows
 
 **Onboarding form**:
