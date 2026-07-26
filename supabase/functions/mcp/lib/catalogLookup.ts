@@ -10,7 +10,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 
 const CATALOG_COLUMNS =
-  "id, name, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
+  "id, name, name_en, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
 
 function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {
   const mt = row.measurement_type
@@ -21,9 +21,15 @@ function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForP
     const n = Number(rawDur)
     default_duration_seconds = Number.isFinite(n) ? n : null
   }
+  const nameEnRaw = row.name_en
+  const name_en =
+    nameEnRaw != null && String(nameEnRaw).trim() !== ""
+      ? String(nameEnRaw).trim()
+      : null
   return {
     id: String(row.id),
     name: String(row.name),
+    name_en,
     muscle_group: String(row.muscle_group),
     emoji: row.emoji != null ? String(row.emoji) : null,
     equipment: String(row.equipment),

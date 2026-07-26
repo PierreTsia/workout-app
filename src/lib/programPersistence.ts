@@ -93,10 +93,14 @@ function buildWorkoutExerciseInsertRow(
     isDuration && ge.targetDurationSeconds !== undefined && ge.targetDurationSeconds !== null
   const effectiveDurationSec = useExplicitDuration ? ge.targetDurationSeconds! : defaultSec
 
+  // Prefer English catalog name when present (parity with MCP; see upstream #415).
+  const nameEn = ge.exercise.name_en?.trim()
+  const nameSnapshot = nameEn && nameEn.length > 0 ? nameEn : ge.exercise.name
+
   return {
     workout_day_id: workoutDayId,
     exercise_id: ge.exercise.id,
-    name_snapshot: ge.exercise.name,
+    name_snapshot: nameSnapshot,
     muscle_snapshot: ge.exercise.muscle_group,
     emoji_snapshot: ge.exercise.emoji ?? "🏋️",
     sets: ge.sets,

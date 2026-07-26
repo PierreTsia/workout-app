@@ -49,11 +49,22 @@ export function parseRepsBounds(reps: string): { min: number; max: number } {
 export interface CatalogExerciseForProgram {
   id: string
   name: string
+  /** English catalog name when present — preferred for name_snapshot (see #415). */
+  name_en?: string | null
   muscle_group: string
   emoji: string | null
   equipment: string
   measurement_type?: "reps" | "duration" | null
   default_duration_seconds?: number | null
+}
+
+/** Prefer English catalog name for program/session UI when available. */
+export function snapshotExerciseName(exercise: {
+  name: string
+  name_en?: string | null
+}): string {
+  const en = exercise.name_en?.trim()
+  return en && en.length > 0 ? en : exercise.name
 }
 
 export interface GeneratedExerciseForProgram {
@@ -157,7 +168,7 @@ function buildWorkoutExerciseInsertRow(
   return {
     workout_day_id: workoutDayId,
     exercise_id: ge.exercise.id,
-    name_snapshot: ge.exercise.name,
+    name_snapshot: snapshotExerciseName(ge.exercise),
     muscle_snapshot: ge.exercise.muscle_group,
     emoji_snapshot: ge.exercise.emoji ?? "🏋️",
     sets: ge.sets,
