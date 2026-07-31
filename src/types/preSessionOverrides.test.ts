@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithLabel } from "@/types/database"
 import {
   clonePreSessionPatch,
   deserializePreSessionPatch,
@@ -7,11 +7,12 @@ import {
   serializePreSessionPatch,
 } from "@/types/preSessionOverrides"
 
-function fakeRow(id: string): WorkoutExercise {
+function fakeRow(id: string): WorkoutExerciseWithLabel {
   return {
     id,
     workout_day_id: "d",
     exercise_id: "e",
+    exercise: null,
     name_snapshot: "X",
     muscle_snapshot: "m",
     emoji_snapshot: "🏋️",
@@ -73,5 +74,40 @@ describe("serializePreSessionPatch / deserializePreSessionPatch", () => {
     expect(back.swappedRows.get("r1")?.id).toBe("r1")
     expect(back.addedRows).toHaveLength(1)
     expect(back.addedRows[0]?.id).toBe("add")
+  })
+
+  it("keeps the catalog embed on both swapped and added rows", () => {
+    const p = emptyPreSessionPatch()
+    const embed = {
+      id: "lib-1",
+      name: "Développé couché",
+      name_en: "Bench Press",
+      muscle_group: "Pectoraux",
+      equipment: "barbell",
+      emoji: "💪",
+    }
+    p.swappedRows.set("r1", { ...fakeRow("r1"), exercise: embed })
+    p.addedRows.push({ ...fakeRow("add"), exercise: embed })
+
+    const back = deserializePreSessionPatch(serializePreSessionPatch(p))
+
+    expect(back.swappedRows.get("r1")?.exercise).toEqual(embed)
+    expect(back.addedRows[0]?.exercise).toEqual(embed)
+  })
+
+  it("normalises a patch persisted before rows carried an embed", () => {
+    // A patch written by an older build has no `exercise` key at all; leaving it
+    // undefined would contradict the type every consumer relies on.
+    const { exercise: _dropped, ...legacyRow } = fakeRow("legacy")
+    const legacy = {
+      deletedIds: [],
+      swappedRows: [["r1", legacyRow]],
+      addedRows: [legacyRow],
+    } as unknown as ReturnType<typeof serializePreSessionPatch>
+
+    const back = deserializePreSessionPatch(legacy)
+
+    expect(back.addedRows[0]).toHaveProperty("exercise", null)
+    expect(back.swappedRows.get("r1")).toHaveProperty("exercise", null)
   })
 })

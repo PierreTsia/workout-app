@@ -123,7 +123,7 @@ import type {
   ExerciseListItem,
   SetLog,
   WorkoutDay,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 import { useExerciseById } from "@/hooks/useExerciseById"
 
@@ -140,12 +140,12 @@ function isSyntheticRow(patch: PreSessionExercisePatch, rowId: string): boolean 
 
 function applySessionSwap(
   prev: PreSessionExercisePatch,
-  row: WorkoutExercise,
+  row: WorkoutExerciseWithLabel,
   picked: ExerciseListItem,
   weightStr: string,
 ): PreSessionExercisePatch {
   const next = clonePreSessionPatch(prev)
-  const newRow: WorkoutExercise = {
+  const newRow: WorkoutExerciseWithLabel = {
     ...row,
     exercise_id: picked.id,
     name_snapshot: picked.name,
@@ -153,6 +153,9 @@ function applySessionSwap(
     emoji_snapshot: picked.emoji,
     weight: weightStr,
     target_duration_seconds: null,
+    // The picker row carries the label fields, so a swapped exercise keeps its
+    // localized name instead of degrading to the snapshot it just wrote.
+    exercise: picked,
   }
   const addedIdx = next.addedRows.findIndex((r) => r.id === row.id)
   if (addedIdx >= 0) {
@@ -165,7 +168,7 @@ function applySessionSwap(
 
 function applySessionDelete(
   prev: PreSessionExercisePatch,
-  row: WorkoutExercise,
+  row: WorkoutExerciseWithLabel,
 ): PreSessionExercisePatch {
   const next = clonePreSessionPatch(prev)
   const addedIdx = next.addedRows.findIndex((r) => r.id === row.id)
@@ -180,7 +183,7 @@ function applySessionDelete(
 
 function applySessionAdd(
   prev: PreSessionExercisePatch,
-  row: WorkoutExercise,
+  row: WorkoutExerciseWithLabel,
 ): PreSessionExercisePatch {
   const next = clonePreSessionPatch(prev)
   next.addedRows.push(row)
@@ -188,8 +191,8 @@ function applySessionAdd(
 }
 
 type PendingScopeAction =
-  | { kind: "swap"; row: WorkoutExercise; picked: ExerciseListItem }
-  | { kind: "delete"; row: WorkoutExercise }
+  | { kind: "swap"; row: WorkoutExerciseWithLabel; picked: ExerciseListItem }
+  | { kind: "delete"; row: WorkoutExerciseWithLabel }
   | { kind: "add"; picked: ExerciseListItem }
 
 type SessionFinishedStats = {
@@ -266,7 +269,7 @@ export function WorkoutPage() {
   )
   const [deleteLoggedWarnOpen, setDeleteLoggedWarnOpen] = useState(false)
   const [deleteLoggedWarnRow, setDeleteLoggedWarnRow] =
-    useState<WorkoutExercise | null>(null)
+    useState<WorkoutExerciseWithLabel | null>(null)
   /** Bump on each blocked action so reopen works after dismiss; `open` is derived vs pause + dismiss generation. */
   const pauseBlockNonceRef = useRef(0)
   const [pauseBlockNonce, setPauseBlockNonce] = useState(0)
@@ -547,7 +550,7 @@ export function WorkoutPage() {
               ? -1
               : Math.max(...baseExercises.map((e) => e.sort_order))
           if (scope === "session") {
-            const newRow: WorkoutExercise = {
+            const newRow: WorkoutExerciseWithLabel = {
               id: crypto.randomUUID(),
               workout_day_id: dayId,
               exercise_id: picked.id,
@@ -569,6 +572,8 @@ export function WorkoutPage() {
               // Fresh client-side patch row — no template edit history yet.
               // Server-side INSERT will stamp the real value via DEFAULT now().
               template_updated_at: new Date().toISOString(),
+              // Keeps the localized name on a row added mid-session (see swap).
+              exercise: picked,
             }
             setPreSessionPatch((p) => applySessionAdd(p, newRow))
           } else {
@@ -612,7 +617,7 @@ export function WorkoutPage() {
   const activeSessionDayLabel =
     days?.find((d) => d.id === activeSessionDayId)?.label ?? ""
 
-  const openExerciseDeleteFlow = useCallback((row: WorkoutExercise) => {
+  const openExerciseDeleteFlow = useCallback((row: WorkoutExerciseWithLabel) => {
     const logged = session.isActive && (session.setsData[row.id]?.some((s) => s.done) ?? false)
     if (logged) {
       setDeleteLoggedWarnRow(row)
@@ -629,12 +634,12 @@ export function WorkoutPage() {
       exercisePool,
       poolLoading: exercisePoolLoading,
       allExercises: exercises,
-      onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => {
+      onSwapExerciseChosen: (row: WorkoutExerciseWithLabel, picked: ExerciseListItem) => {
         setPendingScope({ kind: "swap", row, picked })
         setScopeDialogOpen(true)
       },
       onDeleteRequested: openExerciseDeleteFlow,
-      onSwapBrowseLibrary: (row: WorkoutExercise) => {
+      onSwapBrowseLibrary: (row: WorkoutExerciseWithLabel) => {
         setSwapLibraryRowId(row.id)
       },
     }

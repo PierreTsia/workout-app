@@ -15,16 +15,23 @@ import { ProgressionPill } from "@/components/workout/ProgressionPill"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { formatDurationShort } from "@/lib/formatters"
 import type { ProgressionSuggestion } from "@/lib/progression"
-import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseListItem,
+  WorkoutExerciseWithLabel,
+} from "@/types/database"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 
 export interface ExerciseEditRowControlsProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithLabel
   exercisePool: ExerciseListItem[]
   poolLoading: boolean
   currentExerciseIds: string[]
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
-  onDeleteRequested: (row: WorkoutExercise) => void
-  onSwapBrowseLibrary: (row: WorkoutExercise) => void
+  onSwapExerciseChosen: (
+    row: WorkoutExerciseWithLabel,
+    picked: ExerciseListItem,
+  ) => void
+  onDeleteRequested: (row: WorkoutExerciseWithLabel) => void
+  onSwapBrowseLibrary: (row: WorkoutExerciseWithLabel) => void
   onInspectDetails: (exerciseId: string) => void
   /** Pre-session list: opens library sheet. In-session detail uses unified menu instead. */
   showDetailsMenuItem?: boolean
@@ -53,6 +60,7 @@ export function ExerciseEditRowControls({
 }: ExerciseEditRowControlsProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
 
   const showSkeleton = isLoadingSuggestion && suggestion === undefined
@@ -120,7 +128,7 @@ export function ExerciseEditRowControls({
         <span className="text-2xl leading-none">{ex.emoji_snapshot}</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">
-            {ex.name_snapshot}
+            {exerciseName(ex)}
           </p>
           {showSkeleton ? (
             <Skeleton

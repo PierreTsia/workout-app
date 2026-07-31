@@ -6,7 +6,7 @@ import { sessionAtom, prFlagsAtom } from "@/store/atoms"
 import type {
   Exercise,
   ExerciseBlockWithExercises,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 import type { SessionItem } from "@/lib/sessionItems"
 import { ExerciseStrip } from "./ExerciseStrip"
@@ -14,18 +14,19 @@ import { ExerciseStrip } from "./ExerciseStrip"
 /** Strip tests only assert labels/overlays; thumbnails use snapshots without library rows. */
 const emptyLibraryById: ReadonlyMap<string, Exercise> = new Map()
 
-const soloItems = (exercises: WorkoutExercise[]): SessionItem[] =>
+const soloItems = (exercises: WorkoutExerciseWithLabel[]): SessionItem[] =>
   exercises.map((exercise) => ({
     kind: "solo",
     sort_order: exercise.sort_order,
     exercise,
   }))
 
-const EXERCISES: WorkoutExercise[] = [
+const EXERCISES: WorkoutExerciseWithLabel[] = [
   {
     id: "ex-1",
     workout_day_id: "day-1",
     exercise_id: "lib-1",
+    exercise: null,
     name_snapshot: "Bench Press",
     muscle_snapshot: "chest",
     emoji_snapshot: "🏋️",
@@ -46,6 +47,7 @@ const EXERCISES: WorkoutExercise[] = [
     id: "ex-2",
     workout_day_id: "day-1",
     exercise_id: "lib-2",
+    exercise: null,
     name_snapshot: "Squat",
     muscle_snapshot: "legs",
     emoji_snapshot: "🦵",
@@ -66,6 +68,7 @@ const EXERCISES: WorkoutExercise[] = [
     id: "ex-3",
     workout_day_id: "day-1",
     exercise_id: "lib-3",
+    exercise: null,
     name_snapshot: "Deadlift",
     muscle_snapshot: "back",
     emoji_snapshot: "💪",
@@ -83,6 +86,54 @@ const EXERCISES: WorkoutExercise[] = [
     template_updated_at: "2020-01-01T00:00:00Z",
   },
 ]
+
+describe("ExerciseStrip — locale", () => {
+  const localized = (): WorkoutExerciseWithLabel => ({
+    ...EXERCISES[0],
+    name_snapshot: "Développé couché",
+    exercise: {
+      id: "lib-1",
+      name: "Développé couché",
+      name_en: "Bench Press",
+      muscle_group: "Pectoraux",
+      equipment: "barbell",
+      emoji: "💪",
+    },
+  })
+
+  const renderStrip = (
+    exercise: WorkoutExerciseWithLabel,
+    locale: "en" | "fr",
+  ) =>
+    renderWithProviders(
+      <ExerciseStrip
+        items={soloItems([exercise])}
+        libraryById={emptyLibraryById}
+        activeIndex={0}
+        onSelectIndex={() => {}}
+      />,
+      { locale },
+    )
+
+  it("labels the active slot in English for an English reader", () => {
+    renderStrip(localized(), "en")
+
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+  })
+
+  it("keeps the French label for a French reader", () => {
+    renderStrip(localized(), "fr")
+
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+  })
+
+  it("falls back to the snapshot when the row carries no catalog embed", () => {
+    renderStrip({ ...EXERCISES[0], name_snapshot: "Rowing barre" }, "en")
+
+    expect(screen.getByText("Rowing barre")).toBeInTheDocument()
+  })
+})
 
 describe("ExerciseStrip", () => {
   it("renders all exercise names", () => {

@@ -3,6 +3,7 @@ import { CheckCircle2, Dumbbell, Layers, Play, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { compactNumberSequence } from "@/lib/blockPrescription"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { cn } from "@/lib/utils"
 import type {
   BlockExerciseWithExercise,
@@ -34,6 +35,7 @@ export function BlockSessionCard({
 }: BlockSessionCardProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
 
   const renderPrescription = (be: BlockExerciseWithExercise) => {
     const isDuration = be.exercise?.measurement_type === "duration"
@@ -107,7 +109,7 @@ export function BlockSessionCard({
             className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 text-sm"
           >
             <span className="text-lg">{be.emoji_snapshot}</span>
-            <span className="truncate font-medium">{be.name_snapshot}</span>
+            <span className="truncate font-medium">{exerciseName(be)}</span>
             {renderPrescription(be)}
           </li>
         ))}

@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import type { PreSessionExercisePatch } from "@/types/preSessionOverrides"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithLabel } from "@/types/database"
 
 function row(
-  partial: Partial<WorkoutExercise> & Pick<WorkoutExercise, "id" | "sort_order">,
-): WorkoutExercise {
+  partial: Partial<WorkoutExerciseWithLabel> & Pick<WorkoutExerciseWithLabel, "id" | "sort_order">,
+): WorkoutExerciseWithLabel {
   return {
     workout_day_id: "d1",
     exercise_id: "e1",
+    exercise: null,
     name_snapshot: "A",
     muscle_snapshot: "m",
     emoji_snapshot: "🏋️",
@@ -57,6 +58,7 @@ describe("mergeWorkoutExercises", () => {
       id: "1",
       sort_order: 0,
       exercise_id: "e2",
+      exercise: null,
       name_snapshot: "New",
     })
     const patch: PreSessionExercisePatch = {

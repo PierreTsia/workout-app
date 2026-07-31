@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest"
 import { buildSessionItems, sessionItemId } from "@/lib/sessionItems"
 import type {
   ExerciseBlockWithExercises,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 
-function solo(id: string, sortOrder: number): WorkoutExercise {
+function solo(id: string, sortOrder: number): WorkoutExerciseWithLabel {
   return {
     id,
     workout_day_id: "day-1",
     exercise_id: `lib-${id}`,
+    exercise: null,
     name_snapshot: id,
     muscle_snapshot: "chest",
     emoji_snapshot: "💪",

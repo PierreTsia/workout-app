@@ -6,6 +6,7 @@ import type {
   PerRoundCell,
 } from "@/types/database"
 import { useUpdatePerRound } from "@/hooks/useBlockMutations"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { Input } from "@/components/ui/input"
@@ -58,6 +59,7 @@ function PerRoundExerciseRow({
 }: PerRoundExerciseRowProps) {
   const { t } = useTranslation("builder")
   const { unit, toDisplay, toKg } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const updatePerRound = useUpdatePerRound()
 
   const isDuration = blockExercise.exercise?.measurement_type === "duration"
@@ -114,7 +116,7 @@ function PerRoundExerciseRow({
           className="h-7 w-7 shrink-0"
         />
         <p className="truncate text-sm font-medium">
-          {blockExercise.name_snapshot}
+          {exerciseName(blockExercise)}
         </p>
       </div>
 

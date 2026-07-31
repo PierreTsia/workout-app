@@ -31,7 +31,29 @@ async function getActiveProgramId(): Promise<string> {
   return data!.id
 }
 
+/** Days seeded by global-setup. Anything else on the program is test debris. */
+const SEEDED_DAY_LABELS = ["Lundi", "Mercredi", "Vendredi"]
+
 test.describe("Builder — CRUD", () => {
+  // These tests delete the days they create, but only on the happy path. A
+  // failure in between leaks a fourth day onto the shared program, which then
+  // breaks cycle-abandon's "1/3 workouts done" count — one broken assertion
+  // reported as two unrelated failures. Sweep the debris instead.
+  // Best-effort: a session pinned to a leaked day would block the delete, and a
+  // cleanup hook must never be the thing that turns a green run red.
+  test.afterAll(async () => {
+    try {
+      const labelList = SEEDED_DAY_LABELS.map((l) => `"${l}"`).join(",")
+      await admin
+        .from("workout_days")
+        .delete()
+        .eq("program_id", await getActiveProgramId())
+        .not("label", "in", `(${labelList})`)
+    } catch {
+      /* leave it to the next run's setup */
+    }
+  })
+
   test("create day, add exercise, edit sets/reps, delete exercise, delete day", async ({
     page,
   }) => {
@@ -106,17 +128,20 @@ test.describe("Builder — CRUD", () => {
     const libraryItemCount = await allItems.count()
 
     // --- Verify search filters the list ---
+    // The suite runs in English, so search with an English term: the query must
+    // hit `name_en` server-side and the row must render the same English label.
     const searchInput = pickerDialog.getByRole("searchbox")
-    await searchInput.fill("Développé")
+    await searchInput.fill("Bench")
     const filteredItems = pickerDialog.locator("[cmdk-item]")
     await expect(async () => {
       const count = await filteredItems.count()
       expect(count).toBeGreaterThan(0)
       expect(count).toBeLessThan(libraryItemCount)
     }).toPass({ timeout: 10_000 })
-    await expect(
-      filteredItems.first().locator("span.truncate"),
-    ).toContainText("Développé", { timeout: 3_000 })
+    await expect(filteredItems.first().locator("span.truncate")).toContainText(
+      /bench/i,
+      { timeout: 3_000 },
+    )
     await searchInput.fill("")
     await expect(allItems).toHaveCount(libraryItemCount, { timeout: 10_000 })
 

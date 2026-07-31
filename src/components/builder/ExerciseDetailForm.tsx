@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown } from "lucide-react"
-import type { WorkoutExercise } from "@/types/database"
+import type {
+  WorkoutExercise,
+  WorkoutExerciseWithExercise,
+} from "@/types/database"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import type { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { Input } from "@/components/ui/input"
@@ -16,7 +20,7 @@ import { DEFAULT_DURATION_FALLBACK_SEC } from "@/lib/sessionSetRow"
 type LibraryExercise = ReturnType<typeof useExerciseFromLibrary>["data"]
 
 interface ExerciseDetailFormProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithExercise
   libExercise: LibraryExercise
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
@@ -79,6 +83,7 @@ export function ExerciseDetailForm({
 }: ExerciseDetailFormProps) {
   const { t } = useTranslation("builder")
   const { unit, toDisplay, toKg } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const updateExercise = useUpdateExercise()
 
   const [form, setForm] = useState<FormState>(() =>
@@ -155,7 +160,9 @@ export function ExerciseDetailForm({
         <div className="flex items-center gap-3 min-w-0">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-12 w-12 shrink-0" />
           <div className="min-w-0">
-            <h2 className="text-lg font-bold truncate">{exercise.name_snapshot}</h2>
+            <h2 className="text-lg font-bold truncate">
+              {exerciseName(exercise)}
+            </h2>
             <p className="text-sm text-muted-foreground">
               {exercise.muscle_snapshot}
             </p>

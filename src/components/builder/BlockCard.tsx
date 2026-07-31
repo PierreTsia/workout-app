@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Layers, Pencil, Timer, Trash2 } from "lucide-react"
 import type { ExerciseBlockWithExercises } from "@/types/database"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -14,6 +15,7 @@ interface BlockCardProps {
 
 export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
   const { t } = useTranslation("builder")
+  const { exerciseName } = useCatalogLabels()
   const {
     attributes,
     listeners,
@@ -82,7 +84,7 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
                 className="flex items-center gap-2 text-sm text-muted-foreground"
               >
                 <span>{be.emoji_snapshot}</span>
-                <span>{be.name_snapshot}</span>
+                <span>{exerciseName(be)}</span>
               </li>
             ))}
           </ul>

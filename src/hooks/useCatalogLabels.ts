@@ -21,6 +21,16 @@ export function useCatalogLabels() {
       exerciseName: (source: CatalogNameSource) =>
         resolveExerciseName(source, language),
 
+      /**
+       * The same rule for a bare catalog row — picker and library lists read the
+       * catalog directly, so there is no snapshot to fall back to. Keeping it
+       * here rather than at the call sites is what stops a picker from showing a
+       * French name next to the English one it just produced.
+       */
+      catalogName: (
+        row: { name?: string | null; name_en?: string | null } | null,
+      ) => resolveExerciseName({ exercise: row }, language),
+
       /** Falls back to the raw value: snapshots hold pre-taxonomy muscle names. */
       muscleLabel: (value: string | null | undefined) => {
         const key = muscleLabelKey(value)

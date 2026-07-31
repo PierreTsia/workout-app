@@ -9,19 +9,22 @@ import type { ProgressionSuggestion } from "@/lib/progression"
 import type {
   ExerciseBlockWithExercises,
   ExerciseListItem,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 
 export interface PreSessionExerciseListProps {
-  exercises: WorkoutExercise[]
+  exercises: WorkoutExerciseWithLabel[]
   /** Blocks for the day — rendered read-only, interleaved with solos by sort_order (#351). */
   blocks?: ExerciseBlockWithExercises[]
   /** Slim pool from `useExerciseLibrary` — rich fields (instructions/youtube) are fetched on demand in inspect sheets. */
   exercisePool: ExerciseListItem[]
   poolLoading: boolean
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
-  onDeleteRequested: (row: WorkoutExercise) => void
-  onSwapBrowseLibrary: (row: WorkoutExercise) => void
+  onSwapExerciseChosen: (
+    row: WorkoutExerciseWithLabel,
+    picked: ExerciseListItem,
+  ) => void
+  onDeleteRequested: (row: WorkoutExerciseWithLabel) => void
+  onSwapBrowseLibrary: (row: WorkoutExerciseWithLabel) => void
   onRequestAddExerciseSheet: () => void
   onInspectExercise: (exerciseId: string) => void
   /**

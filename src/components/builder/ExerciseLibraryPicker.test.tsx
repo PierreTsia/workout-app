@@ -166,7 +166,11 @@ vi.mock("@/components/exercise/ExerciseThumbnail", () => ({
   ExerciseThumbnail: () => <div data-testid="thumbnail" />,
 }))
 
-function renderPicker(overrides = {}) {
+/**
+ * Renders in English like the rest of this file's assertions, so the expected
+ * exercise labels are the `name_en` values — the picker localizes them (T149).
+ */
+function renderPicker(overrides = {}, locale: "en" | "fr" = "en") {
   return renderWithProviders(
     <ExerciseLibraryPicker
       open={true}
@@ -176,6 +180,7 @@ function renderPicker(overrides = {}) {
       onMutationStateChange={vi.fn()}
       {...overrides}
     />,
+    { locale },
   )
 }
 
@@ -191,12 +196,30 @@ describe("ExerciseLibraryPicker", () => {
     )
   })
 
+  // The picker feeds the rows the day and session localize. If it stayed on the
+  // canonical `name`, an English reader would pick "Développé couché" and watch
+  // "Bench Press" appear in its place — one screen, two languages.
+  it("lists the English catalog names for an English reader", () => {
+    renderPicker({}, "en")
+
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.getByText("Lateral Raises")).toBeInTheDocument()
+    expect(screen.queryByText("Développé couché")).not.toBeInTheDocument()
+  })
+
+  it("lists the canonical names for a French reader", () => {
+    renderPicker({}, "fr")
+
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+  })
+
   it("renders all exercises grouped by muscle", () => {
     renderPicker()
-    expect(screen.getByText("Développé couché")).toBeInTheDocument()
-    expect(screen.getByText("Élévations latérales")).toBeInTheDocument()
-    expect(screen.getByText("Presse à cuisse")).toBeInTheDocument()
-    expect(screen.getByText("Curls biceps inclinés")).toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.getByText("Lateral Raises")).toBeInTheDocument()
+    expect(screen.getByText("Leg Press")).toBeInTheDocument()
+    expect(screen.getByText("Dumbbell Incline Curl")).toBeInTheDocument()
   })
 
   it("shows filter icon", () => {
@@ -220,9 +243,9 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Machine" }))
 
-    expect(screen.getByText("Presse à cuisse")).toBeInTheDocument()
-    expect(screen.queryByText("Développé couché")).not.toBeInTheDocument()
-    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(screen.getByText("Leg Press")).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
   })
 
   it("filters by muscle group when a pill is selected", async () => {
@@ -232,9 +255,9 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Pectoraux" }))
 
-    expect(screen.getByText("Développé couché")).toBeInTheDocument()
-    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
-    expect(screen.queryByText("Presse à cuisse")).not.toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
+    expect(screen.queryByText("Leg Press")).not.toBeInTheDocument()
   })
 
   it("filters by difficulty when a pill is selected", async () => {
@@ -244,10 +267,10 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Beginner" }))
 
-    expect(screen.getByText("Développé couché")).toBeInTheDocument()
-    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
-    expect(screen.queryByText("Presse à cuisse")).not.toBeInTheDocument()
-    expect(screen.queryByText("Curls biceps inclinés")).not.toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
+    expect(screen.queryByText("Leg Press")).not.toBeInTheDocument()
+    expect(screen.queryByText("Dumbbell Incline Curl")).not.toBeInTheDocument()
   })
 
   it("includes difficulty in active filter count", async () => {
@@ -297,8 +320,8 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByRole("button", { name: "Pectoraux" }))
     await user.click(screen.getByRole("button", { name: "Dumbbell" }))
 
-    expect(screen.getByText("Écarté haltères")).toBeInTheDocument()
-    expect(screen.queryByText("Développé couché")).not.toBeInTheDocument()
+    expect(screen.getByText("Dumbbell Fly")).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
   })
 
   it("shows loading state", () => {
@@ -355,7 +378,7 @@ describe("ExerciseLibraryPicker", () => {
   it("does not add exercise when row text is clicked", async () => {
     renderPicker()
     const user = userEvent.setup()
-    await user.click(screen.getByText("Développé couché"))
+    await user.click(screen.getByText("Bench Press"))
     expect(mockAddExercisesMutateAsync).not.toHaveBeenCalled()
   })
 
@@ -413,7 +436,7 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Pectoraux" }))
 
-    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: "Apply changes" }),
     ).toBeInTheDocument()
@@ -484,7 +507,7 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Pectoraux" }))
 
-    expect(screen.queryByText("Élévations latérales")).not.toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
     ).toBeInTheDocument()

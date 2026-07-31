@@ -19,4 +19,20 @@ This is **not a project bug**. workbox-build uses `worker_threads` via terser, a
 
 - Always run `npm run build` with `required_permissions: ["all"]`.
 - **Do NOT** check out `main` to verify — the error is identical on every branch.
-- For lightweight type-checking, prefer `npx tsc --noEmit` (works in the sandbox).
+- For type-checking without the bundler, run `npx tsc -b` (what CI's `type-check`
+  job runs) or `npx tsc -p tsconfig.app.json --noEmit`. Both work in the sandbox.
+
+## Never use `npx tsc --noEmit`
+
+It **always passes and verifies nothing.** The root `tsconfig.json` is a
+solution file — `"files": []` plus project references — so the command loads zero
+files and exits 0 on a codebase that cannot compile. It is worse than no check,
+because it reads like a green one.
+
+```bash
+# ❌ silently vacuous — reports success with a type error in src/
+npx tsc --noEmit
+
+# ✅ actually loads src/ and the test files
+npx tsc -p tsconfig.app.json --noEmit
+```

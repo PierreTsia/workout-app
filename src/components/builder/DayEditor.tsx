@@ -15,6 +15,7 @@ import {
 import { Layers, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useDayItems } from "@/hooks/useDayItems"
 import {
   useCreateBlock,
@@ -27,7 +28,7 @@ import {
   useReorderExercises,
 } from "@/hooks/useBuilderMutations"
 import { dayItemId, reorderDayItems } from "@/lib/dayItems"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExerciseWithExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -57,6 +58,7 @@ export function DayEditor({
   onMutationStateChange,
 }: DayEditorProps) {
   const { t } = useTranslation("builder")
+  const { exerciseName } = useCatalogLabels()
   const { data: days } = useWorkoutDays(programId)
   const { items: dayItems, isLoading } = useDayItems(dayId)
   const updateDay = useUpdateDay(programId)
@@ -74,7 +76,8 @@ export function DayEditor({
   const [blockPickerOpen, setBlockPickerOpen] = useState(false)
   const [editBlockId, setEditBlockId] = useState<string | null>(null)
   const [deleteBlockId, setDeleteBlockId] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<WorkoutExercise | null>(null)
+  const [deleteTarget, setDeleteTarget] =
+    useState<WorkoutExerciseWithExercise | null>(null)
 
   if (dayId !== trackedDayId) {
     setTrackedDayId(dayId)
@@ -341,7 +344,7 @@ export function DayEditor({
             <DialogTitle>{t("removeExerciseTitle")}</DialogTitle>
             <DialogDescription>
               {t("removeExerciseDescription", {
-                name: deleteTarget?.name_snapshot,
+                name: deleteTarget ? exerciseName(deleteTarget) : "",
               })}
             </DialogDescription>
           </DialogHeader>

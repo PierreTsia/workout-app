@@ -32,6 +32,42 @@ const block: ExerciseBlockWithExercises = {
   exercises: [be("A", "Push-ups"), be("B", "Squats")],
 }
 
+describe("BlockSessionCard — locale", () => {
+  const localizedBlock: ExerciseBlockWithExercises = {
+    ...block,
+    exercises: [
+      {
+        ...be("A", "Développé couché"),
+        exercise: {
+          id: "ex-A",
+          name: "Développé couché",
+          name_en: "Bench Press",
+          muscle_group: "Pectoraux",
+          equipment: "barbell",
+          emoji: "💪",
+        } as BlockExerciseWithExercise["exercise"],
+      },
+    ],
+  }
+
+  it("names the block's exercises in English for an English reader", () => {
+    renderWithProviders(<BlockSessionCard block={localizedBlock} />, {
+      locale: "en",
+    })
+
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+  })
+
+  it("keeps the French names for a French reader", () => {
+    renderWithProviders(<BlockSessionCard block={localizedBlock} />, {
+      locale: "fr",
+    })
+
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+  })
+})
+
 describe("BlockSessionCard", () => {
   it("shows the block label, exercise list and starts on click", async () => {
     const user = userEvent.setup()

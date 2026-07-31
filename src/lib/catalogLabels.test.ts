@@ -69,7 +69,7 @@ describe("resolveExerciseName", () => {
   })
 
   it("returns an empty string rather than throwing when nothing resolves", () => {
-    expect(resolveExerciseName({}, "en")).toBe("")
+    expect(resolveExerciseName({ exercise: null }, "en")).toBe("")
   })
 
   it("trims the value it returns", () => {
