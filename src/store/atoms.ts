@@ -1,6 +1,10 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
-import { detectLocale, type PersistedLocale } from "@/lib/persistedLocale"
+import {
+  detectLocale,
+  readPersistedLocale,
+  type PersistedLocale,
+} from "@/lib/persistedLocale"
 import type { User } from "@/types/auth"
 import type { SessionSetRow } from "@/lib/sessionSetRow"
 import type { UnlockedAchievement } from "@/types/achievements"
@@ -131,10 +135,48 @@ export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
  * onto i18n, a fresh device with an English browser switched itself to French
  * as soon as the shell mounted.
  */
+/**
+ * Two encodings have always coexisted under `localStorage["locale"]`: jotai
+ * writes `'"fr"'`, while older versions and DevTools wrote a bare `fr`. Jotai's
+ * default JSON storage reads the bare form as corrupt and falls back to its
+ * initial value, which would drop a preference a user really had set.
+ *
+ * Decoding through `readPersistedLocale` — the same reader i18n boot uses —
+ * means the atom and i18next cannot disagree about a stored choice, whichever
+ * of them happens to be imported first.
+ */
+const localeStorage = {
+  getItem: (_key: string, initialValue: PersistedLocale): PersistedLocale =>
+    (typeof window === "undefined"
+      ? null
+      : readPersistedLocale(window.localStorage)) ?? initialValue,
+
+  setItem: (key: string, value: PersistedLocale): void =>
+    window.localStorage.setItem(key, JSON.stringify(value)),
+
+  removeItem: (key: string): void => window.localStorage.removeItem(key),
+
+  // Keeps the language in step across tabs, which the default storage did too.
+  subscribe: (
+    key: string,
+    callback: (value: PersistedLocale) => void,
+    initialValue: PersistedLocale,
+  ) => {
+    if (typeof window === "undefined") return undefined
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== key) return
+      callback(readPersistedLocale(window.localStorage) ?? initialValue)
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  },
+}
+
 export const localeAtom = atomWithStorage<PersistedLocale>(
   "locale",
   detectLocale(typeof navigator === "undefined" ? null : navigator.language),
-  undefined,
+  localeStorage,
   // `getOnInit`, like `sessionAtom`: this value decides the language of the
   // first paint, so it has to be the stored choice from the very first read
   // rather than a default that a later mount corrects.

@@ -265,4 +265,36 @@ describe("localeAtom default", () => {
 
     expect(createStore().get(localeAtom)).toBe("fr")
   })
+
+  // A bare "fr" predates jotai's JSON encoding but is a preference the user
+  // really expressed; jotai's default storage would read it as corrupt and use
+  // the detected default instead, silently flipping them to English.
+  it("honours a legacy raw value written by an older version", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "en-US" })
+    localStorage.setItem("locale", "fr")
+    const { localeAtom } = await import("./atoms")
+
+    expect(createStore().get(localeAtom)).toBe("fr")
+  })
+
+  it("upgrades the encoding as soon as the value is written", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "en-US" })
+    localStorage.setItem("locale", "fr")
+    const { localeAtom } = await import("./atoms")
+
+    createStore().set(localeAtom, "fr")
+
+    expect(localStorage.getItem("locale")).toBe('"fr"')
+  })
+
+  it("ignores an unsupported stored value and detects instead", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "fr-FR" })
+    localStorage.setItem("locale", '"es"')
+    const { localeAtom } = await import("./atoms")
+
+    expect(createStore().get(localeAtom)).toBe("fr")
+  })
 })
