@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import source from "./sessionSummary.ts?raw"
 import { summarizeSessionLogs, templateToPreviewItems } from "./sessionSummary"
 import { resolveExerciseName } from "./catalogLabels"
+import { importsOf } from "@/test/imports"
 import type {
   ExerciseLabelFields,
   SetLogWithExercise,
@@ -72,7 +73,7 @@ describe("purity", () => {
   // by a component that resolves the label. An i18next import here would bake
   // the name back in.
   it.each(["react", "i18next"])("does not import %s", (module) => {
-    expect(source).not.toMatch(new RegExp(`from\\s+["']${module}`))
+    expect(importsOf(source, module)).toEqual([])
   })
 })
 
