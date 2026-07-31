@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from "vitest"
 import { waitFor, act } from "@testing-library/react"
-import { renderHookWithProviders } from "@/test/utils"
+import { renderHookWithProviders, type TestLocale } from "@/test/utils"
 import { authAtom } from "@/store/atoms"
 import { useExerciseHistory } from "./useExerciseHistory"
 
@@ -26,8 +26,8 @@ function mockLogs(rows: { exercise_id: string; exercise_name_snapshot: string }[
   selectFn.mockResolvedValue({ data: rows, error: null })
 }
 
-function render() {
-  const rendered = renderHookWithProviders(() => useExerciseHistory())
+function render(locale: TestLocale = "en") {
+  const rendered = renderHookWithProviders(() => useExerciseHistory(), { locale })
   act(() => {
     rendered.store.set(authAtom, { id: "user-1" } as never)
   })
@@ -65,22 +65,65 @@ describe("useExerciseHistory", () => {
     expect(fetchExercisesByIds.mock.calls[0][1]).not.toContain("*")
   })
 
-  it("attaches the catalog row so T150 can localize the label", async () => {
-    mockLogs([{ exercise_id: "a", exercise_name_snapshot: "Développé couché" }])
+  it.each([
+    ["en", "Bench Press"],
+    ["fr", "Développé couché"],
+  ] as const)("labels the option in %s", async (locale, expected) => {
+    mockLogs([{ exercise_id: "a", exercise_name_snapshot: "Frozen" }])
     fetchExercisesByIds.mockResolvedValue([
       catalogRow("a", "Développé couché", "Bench Press"),
     ])
 
-    const { result } = render()
+    const { result } = render(locale)
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data).toEqual([
       {
         id: "a",
-        name: "Développé couché",
+        name: expected,
         exercise: catalogRow("a", "Développé couché", "Bench Press"),
       },
     ])
+  })
+
+  it("sorts on the resolved label, not on the snapshot", async () => {
+    mockLogs([
+      { exercise_id: "a", exercise_name_snapshot: "Abdos" },
+      { exercise_id: "z", exercise_name_snapshot: "Zurcher" },
+    ])
+    // English labels invert the French alphabetical order, so sorting on the
+    // snapshot would hand an English reader a list that isn't alphabetical.
+    fetchExercisesByIds.mockResolvedValue([
+      catalogRow("a", "Abdos", "Zebra Crunch"),
+      catalogRow("z", "Zurcher", "Air Squat"),
+    ])
+
+    const { result } = render("en")
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data?.map((o) => o.name)).toEqual([
+      "Air Squat",
+      "Zebra Crunch",
+    ])
+  })
+
+  it("re-labels from cache when the language changes, without refetching", async () => {
+    mockLogs([{ exercise_id: "a", exercise_name_snapshot: "Frozen" }])
+    fetchExercisesByIds.mockResolvedValue([
+      catalogRow("a", "Développé couché", "Bench Press"),
+    ])
+
+    const { result, i18nInstance } = render("en")
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.[0].name).toBe("Bench Press")
+
+    await act(async () => {
+      await i18nInstance.changeLanguage("fr")
+    })
+
+    expect(result.current.data?.[0].name).toBe("Développé couché")
+    expect(selectFn).toHaveBeenCalledTimes(1)
+    expect(fetchExercisesByIds).toHaveBeenCalledTimes(1)
   })
 
   it("keeps the option with a null embed when the catalog omits the id", async () => {
