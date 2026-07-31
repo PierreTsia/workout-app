@@ -120,6 +120,27 @@ describe("groupSessionHistory", () => {
     expect(items.map((i) => i.key)).toEqual(["zzz", "aaa"])
   })
 
+  it("stays chronological when the caller hands over unsorted logs", () => {
+    const logs = [
+      log({ exercise_id: "row", logged_at: at(5) }),
+      log({ exercise_id: "bench", logged_at: at(9), set_number: 2 }),
+      log({
+        exercise_id: "bench",
+        logged_at: at(1),
+        set_number: 1,
+        exercise_name_snapshot: "Earliest",
+      }),
+    ]
+    const [bench, row] = groupSessionHistory(logs, new Map()) as SoloHistoryGroup[]
+
+    // Bench was trained first even though its earliest log arrives last.
+    expect([bench.key, row.key]).toEqual(["bench", "row"])
+    expect(bench.sets.map((s) => s.set_number)).toEqual([1, 2])
+    // The group describes itself with its earliest log, not with whichever one
+    // the caller happened to put first.
+    expect(bench.exercise_name_snapshot).toBe("Earliest")
+  })
+
   it("exposes the catalog row and the snapshot so the label resolves at render", () => {
     const embed = {
       id: "bench",

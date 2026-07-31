@@ -1,5 +1,10 @@
+import { groupBy } from "@/lib/utils"
 import type { CatalogNameSource } from "@/lib/catalogLabels"
 import type { ExerciseLabelFields, SetLogWithExercise } from "@/types/database"
+
+/** `set_number` breaks ties: bulk-inserted logs can share a `logged_at`. */
+const byLoggedThenSetNumber = (a: SetLogWithExercise, b: SetLogWithExercise) =>
+  Date.parse(a.logged_at) - Date.parse(b.logged_at) || a.set_number - b.set_number
 
 /**
  * Block metadata needed to render a circuit's history card, resolved per
@@ -94,10 +99,11 @@ export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
  *   `metaById`. Orphaned block logs (template deleted → `ON DELETE SET NULL`,
  *   or meta not yet loaded) fall back to a flat solo group — snapshots on the
  *   row keep them coherent.
- * - Solo groups are keyed on `exercise_id` and ordered by their first log, so a
- *   revisited exercise stays one group and the session reads chronologically.
+ * - Solo groups are keyed on `exercise_id` and ordered by their earliest log, so
+ *   a revisited exercise stays one group and the session reads chronologically.
  *   Grouping on the name would split a renamed exercise in two, and would split
- *   every revisited one now that logs arrive in logging order.
+ *   every revisited one now that logs arrive in logging order. The output does
+ *   not depend on the order `logs` arrives in.
  * - Block cells are grouped by their parent `block_id`, split into rounds
  *   (`set_number`), and ordered within a round by the exercise's `position`.
  * - Circuits render first (by their day `sort_order`), then solos — a solo-only
@@ -114,25 +120,23 @@ export function groupSessionHistory(
 
   const soloLogs = logs.filter((log) => !isBlockLog(log))
   const soloGroups: SoloHistoryGroup[] = [
-    ...new Set(soloLogs.map((log) => log.exercise_id)),
+    ...groupBy(soloLogs, (log) => log.exercise_id),
   ]
-    .map((exerciseId) => {
-      const sets = soloLogs.filter((log) => log.exercise_id === exerciseId)
-      const [first] = sets
-      return {
-        kind: "solo" as const,
-        key: exerciseId,
-        exercise: first.exercise,
-        exercise_name_snapshot: first.exercise_name_snapshot,
-        sets,
-      }
+    // Sorted, not merely grouped: the result must not depend on the order the
+    // caller hands over, so every group derives its position *and* its identity
+    // from its earliest log rather than from whichever one arrived first.
+    .map(([exerciseId, logsForExercise]) => {
+      const sets = [...logsForExercise].sort(byLoggedThenSetNumber)
+      return { exerciseId, sets, first: sets[0] }
     })
-    // Explicit rather than relying on the caller's order: the query sorts on
-    // `logged_at`, but the contract shouldn't be a second place to break.
-    .sort(
-      (a, b) =>
-        Date.parse(a.sets[0].logged_at) - Date.parse(b.sets[0].logged_at),
-    )
+    .sort((a, b) => byLoggedThenSetNumber(a.first, b.first))
+    .map(({ exerciseId, sets, first }) => ({
+      kind: "solo" as const,
+      key: exerciseId,
+      exercise: first.exercise,
+      exercise_name_snapshot: first.exercise_name_snapshot,
+      sets,
+    }))
 
   const blockLogs = logs.filter(isBlockLog)
   const byBlockId = blockLogs.reduce<Map<string, SetLogWithExercise[]>>((acc, log) => {
