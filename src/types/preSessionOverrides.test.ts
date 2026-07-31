@@ -76,7 +76,7 @@ describe("serializePreSessionPatch / deserializePreSessionPatch", () => {
     expect(back.addedRows[0]?.id).toBe("add")
   })
 
-  it("keeps the catalog embed carried by a swapped row", () => {
+  it("keeps the catalog embed on both swapped and added rows", () => {
     const p = emptyPreSessionPatch()
     const embed = {
       id: "lib-1",
@@ -86,10 +86,12 @@ describe("serializePreSessionPatch / deserializePreSessionPatch", () => {
       equipment: "barbell",
       emoji: "💪",
     }
+    p.swappedRows.set("r1", { ...fakeRow("r1"), exercise: embed })
     p.addedRows.push({ ...fakeRow("add"), exercise: embed })
 
     const back = deserializePreSessionPatch(serializePreSessionPatch(p))
 
+    expect(back.swappedRows.get("r1")?.exercise).toEqual(embed)
     expect(back.addedRows[0]?.exercise).toEqual(embed)
   })
 

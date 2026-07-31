@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Info } from "lucide-react"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { useExerciseById } from "@/hooks/useExerciseById"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { cn } from "@/lib/utils"
 import type { ExerciseListItem } from "@/types/database"
 
@@ -22,6 +23,7 @@ export function ExerciseSwapPicker({
   onClose,
 }: ExerciseSwapPickerProps) {
   const { t } = useTranslation("generator")
+  const { catalogName } = useCatalogLabels()
   const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(null)
   // Rich fields (instructions/youtube) deferred until the user opens the info
   // sheet. Hits the per-id cache seeded by `useWorkoutExercises` when the
@@ -66,7 +68,7 @@ export function ExerciseSwapPicker({
                 )}
               >
                 <span>{exercise.emoji}</span>
-                <span className="truncate">{exercise.name}</span>
+                <span className="truncate">{catalogName(exercise)}</span>
               </button>
               <button
                 type="button"

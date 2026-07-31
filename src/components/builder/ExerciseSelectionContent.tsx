@@ -6,6 +6,7 @@ import {
   useDeleteExercise,
 } from "@/hooks/useBuilderMutations"
 import type { Exercise } from "@/types/database"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseInfoDialog } from "@/components/exercise/ExerciseInfoDialog"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
@@ -173,6 +174,7 @@ export function ExerciseSelectionList({
   state: ExerciseSelectionState
 }) {
   const { t, selectedIds, toggleSelected, grouped } = state
+  const { catalogName } = useCatalogLabels()
 
   return (
     <>
@@ -201,7 +203,7 @@ export function ExerciseSelectionList({
                     emoji={ex.emoji}
                     className="h-8 w-8 shrink-0 rounded-md"
                   />
-                  <span className="truncate">{ex.name}</span>
+                  <span className="truncate">{catalogName(ex)}</span>
                   {ex.difficulty_level && (
                     <Badge
                       className={cn(
