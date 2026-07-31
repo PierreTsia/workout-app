@@ -84,6 +84,17 @@ describe("SavedWorkoutsSection", () => {
     expect(screen.getAllByText("Chest")).toHaveLength(1)
   })
 
+  // Without an embed there is nothing canonical to collapse on, and a legacy
+  // English snapshot renders identically to the French one it duplicates.
+  it("collapses rows with no embed whose snapshots render the same label", () => {
+    render([
+      row({ id: "we-1", muscle_snapshot: "Chest" }),
+      row({ id: "we-2", muscle_snapshot: "Pectoraux" }),
+    ])
+
+    expect(screen.getAllByText("Chest")).toHaveLength(1)
+  })
+
   it("falls back to the snapshot when the catalog row is missing", () => {
     render([row({ id: "we-1", muscle_snapshot: "Deltoïdes post." })])
 

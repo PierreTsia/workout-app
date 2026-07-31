@@ -101,12 +101,14 @@ function SavedWorkoutCard({
   const { t } = useTranslation("library")
   const { muscleLabel } = useCatalogLabels()
 
-  // Deduplicate on the canonical value, not on the snapshot: two rows for the
-  // same muscle can hold different frozen spellings and would show up twice.
+  // Deduplicated on the rendered label rather than on the stored value: this
+  // list only answers "which muscles does this workout hit", and two rows can
+  // reach the same label from different spellings — a frozen "Chest" and a
+  // canonical "Pectoraux" both read "Chest" for an English reader.
   const muscles = [
     ...new Set(
-      workout.workout_exercises.map(
-        (e) => e.exercise?.muscle_group ?? e.muscle_snapshot,
+      workout.workout_exercises.map((e) =>
+        muscleLabel(e.exercise?.muscle_group ?? e.muscle_snapshot),
       ),
     ),
   ]
@@ -139,7 +141,7 @@ function SavedWorkoutCard({
         <div className="flex flex-wrap gap-1">
           {muscles.map((m) => (
             <Badge key={m} variant="secondary" className="text-[10px]">
-              {muscleLabel(m)}
+              {m}
             </Badge>
           ))}
         </div>

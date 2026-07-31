@@ -28,14 +28,6 @@ import { getColumns } from "./columns"
 import { DataTableToolbar } from "./DataTableToolbar"
 import { DataTablePagination } from "./DataTablePagination"
 
-const globalFilterFn: FilterFn<Exercise> = (row, _columnId, filterValue: string) => {
-  const term = normalizeForSearch(filterValue)
-  const name = normalizeForSearch(row.original.name)
-  const nameEn = normalizeForSearch(row.original.name_en ?? "")
-  const muscle = normalizeForSearch(row.original.muscle_group)
-  return name.includes(term) || nameEn.includes(term) || muscle.includes(term)
-}
-
 interface DataTableProps {
   data: Exercise[]
 }
@@ -48,11 +40,30 @@ export function DataTable({ data }: DataTableProps) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [reviewFilter, setReviewFilter] = useState("all")
 
-  // Sorting and the search index stay on the canonical values behind the
-  // `accessorKey`s, so only the rendered cells follow the reader's locale.
+  // Sorting stays on the canonical values behind the `accessorKey`s; only the
+  // rendered cells follow the reader's locale.
   const columns = useMemo(
     () => getColumns(t, { muscleLabel, equipmentLabel }),
     [t, muscleLabel, equipmentLabel],
+  )
+
+  /**
+   * Searches both spellings on purpose: the visible label, because typing what
+   * is on screen has to work, and the stored value, because an admin who has
+   * been typing "Pectoraux" for a year shouldn't have to stop.
+   */
+  const globalFilterFn = useMemo<FilterFn<Exercise>>(
+    () => (row, _columnId, filterValue: string) => {
+      const term = normalizeForSearch(filterValue)
+      return [
+        row.original.name,
+        row.original.name_en ?? "",
+        row.original.muscle_group,
+        muscleLabel(row.original.muscle_group),
+        equipmentLabel(row.original.equipment),
+      ].some((field) => normalizeForSearch(field).includes(term))
+    },
+    [muscleLabel, equipmentLabel],
   )
 
   const reviewedCount = useMemo(
