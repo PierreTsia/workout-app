@@ -29,33 +29,82 @@ import type { UseQueryResult } from "@tanstack/react-query"
 import enAchievements from "@/locales/en/achievements.json"
 import enApiTokens from "@/locales/en/api-tokens.json"
 
-export function createTestI18n() {
+// Keep this list ordered identically to the `en` imports above: the two
+// drifting apart is this file's obvious failure mode.
+import frCommon from "@/locales/fr/common.json"
+import frAuth from "@/locales/fr/auth.json"
+import frWorkout from "@/locales/fr/workout.json"
+import frHistory from "@/locales/fr/history.json"
+import frBuilder from "@/locales/fr/builder.json"
+import frSettings from "@/locales/fr/settings.json"
+import frAbout from "@/locales/fr/about.json"
+import frExercise from "@/locales/fr/exercise.json"
+import frFeedback from "@/locales/fr/feedback.json"
+import frError from "@/locales/fr/error.json"
+import frOnboarding from "@/locales/fr/onboarding.json"
+import frLibrary from "@/locales/fr/library.json"
+import frGenerator from "@/locales/fr/generator.json"
+import frCreateProgram from "@/locales/fr/create-program.json"
+import frAccount from "@/locales/fr/account.json"
+import frPrivacy from "@/locales/fr/privacy.json"
+import frAdmin from "@/locales/fr/admin.json"
+import frAchievements from "@/locales/fr/achievements.json"
+import frApiTokens from "@/locales/fr/api-tokens.json"
+
+export type TestLocale = "en" | "fr"
+
+const testResources = {
+  en: {
+    common: enCommon,
+    auth: enAuth,
+    workout: enWorkout,
+    history: enHistory,
+    builder: enBuilder,
+    settings: enSettings,
+    about: enAbout,
+    exercise: enExercise,
+    feedback: enFeedback,
+    error: enError,
+    onboarding: enOnboarding,
+    library: enLibrary,
+    generator: enGenerator,
+    "create-program": enCreateProgram,
+    account: enAccount,
+    privacy: enPrivacy,
+    admin: enAdmin,
+    achievements: enAchievements,
+    "api-tokens": enApiTokens,
+  },
+  fr: {
+    common: frCommon,
+    auth: frAuth,
+    workout: frWorkout,
+    history: frHistory,
+    builder: frBuilder,
+    settings: frSettings,
+    about: frAbout,
+    exercise: frExercise,
+    feedback: frFeedback,
+    error: frError,
+    onboarding: frOnboarding,
+    library: frLibrary,
+    generator: frGenerator,
+    "create-program": frCreateProgram,
+    account: frAccount,
+    privacy: frPrivacy,
+    admin: frAdmin,
+    achievements: frAchievements,
+    "api-tokens": frApiTokens,
+  },
+}
+
+export function createTestI18n({ lng = "en" }: { lng?: TestLocale } = {}) {
   const instance = i18n.createInstance()
   instance.use(initReactI18next).init({
-    lng: "en",
-    resources: {
-      en: {
-        common: enCommon,
-        auth: enAuth,
-        workout: enWorkout,
-        history: enHistory,
-        builder: enBuilder,
-        settings: enSettings,
-        about: enAbout,
-        exercise: enExercise,
-        feedback: enFeedback,
-        error: enError,
-        onboarding: enOnboarding,
-        library: enLibrary,
-        generator: enGenerator,
-        "create-program": enCreateProgram,
-        account: enAccount,
-        privacy: enPrivacy,
-        admin: enAdmin,
-        achievements: enAchievements,
-        "api-tokens": enApiTokens,
-      },
-    },
+    lng,
+    resources: testResources,
+    fallbackLng: "en",
+    supportedLngs: ["en", "fr"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
   })
@@ -64,13 +113,14 @@ export function createTestI18n() {
 
 interface ProviderOptions extends Omit<RenderOptions, "wrapper"> {
   initialEntries?: string[]
+  locale?: TestLocale
 }
 
 export function renderWithProviders(
   ui: ReactElement,
   options: ProviderOptions = {},
 ) {
-  const { initialEntries = ["/"], ...renderOptions } = options
+  const { initialEntries = ["/"], locale, ...renderOptions } = options
 
   const store = createStore()
   const queryClient = new QueryClient({
@@ -79,7 +129,7 @@ export function renderWithProviders(
       mutations: { retry: false },
     },
   })
-  const i18nInstance = createTestI18n()
+  const i18nInstance = createTestI18n({ lng: locale })
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -106,13 +156,14 @@ export function renderWithProviders(
 interface HookProviderOptions<TProps>
   extends Omit<RenderHookOptions<TProps>, "wrapper"> {
   initialEntries?: string[]
+  locale?: TestLocale
 }
 
 export function renderHookWithProviders<TResult, TProps = undefined>(
   hook: TProps extends undefined ? () => TResult : (props: TProps) => TResult,
   options: HookProviderOptions<TProps> = {} as HookProviderOptions<TProps>,
 ) {
-  const { initialEntries = ["/"], ...hookOptions } = options
+  const { initialEntries = ["/"], locale, ...hookOptions } = options
 
   const store = createStore()
   const queryClient = new QueryClient({
@@ -121,7 +172,7 @@ export function renderHookWithProviders<TResult, TProps = undefined>(
       mutations: { retry: false },
     },
   })
-  const i18nInstance = createTestI18n()
+  const i18nInstance = createTestI18n({ lng: locale })
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
