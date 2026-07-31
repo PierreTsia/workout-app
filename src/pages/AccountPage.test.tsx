@@ -40,6 +40,7 @@ const mockProfile: UserProfile = {
   session_duration_minutes: 60,
   active_title_tier_id: null,
   timezone: "Europe/Paris",
+  locale: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 }

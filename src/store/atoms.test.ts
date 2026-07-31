@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest"
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest"
 import { createStore } from "jotai"
 import {
   sessionAtom,
@@ -224,5 +224,77 @@ describe("session PR atoms persist across reloads (regression #291)", () => {
     store.set(prFlagsAtom, {})
 
     expect(localStorage.getItem("prFlags")).toBe(JSON.stringify({}))
+  })
+})
+
+describe("localeAtom default", () => {
+  async function localeFor(language: string) {
+    localStorage.clear()
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language })
+    const { localeAtom } = await import("./atoms")
+    return createStore().get(localeAtom)
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  // The atom used to default to "fr" whenever storage was empty, and the
+  // SideDrawer effect pushes that value onto i18n — so a fresh device with an
+  // English browser switched itself to French the moment the shell mounted,
+  // which is the very complaint that opened this epic (#415).
+  it("follows an English browser on a device that has stored nothing", async () => {
+    await expect(localeFor("en-US")).resolves.toBe("en")
+  })
+
+  it("follows a French browser just the same", async () => {
+    await expect(localeFor("fr-FR")).resolves.toBe("fr")
+  })
+
+  it("lands on English for a language the app does not speak", async () => {
+    await expect(localeFor("de-DE")).resolves.toBe("en")
+  })
+
+  it("still lets a stored choice win over the browser", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "en-US" })
+    localStorage.setItem("locale", '"fr"')
+    const { localeAtom } = await import("./atoms")
+
+    expect(createStore().get(localeAtom)).toBe("fr")
+  })
+
+  // A bare "fr" predates jotai's JSON encoding but is a preference the user
+  // really expressed; jotai's default storage would read it as corrupt and use
+  // the detected default instead, silently flipping them to English.
+  it("honours a legacy raw value written by an older version", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "en-US" })
+    localStorage.setItem("locale", "fr")
+    const { localeAtom } = await import("./atoms")
+
+    expect(createStore().get(localeAtom)).toBe("fr")
+  })
+
+  it("upgrades the encoding as soon as the value is written", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "en-US" })
+    localStorage.setItem("locale", "fr")
+    const { localeAtom } = await import("./atoms")
+
+    createStore().set(localeAtom, "fr")
+
+    expect(localStorage.getItem("locale")).toBe('"fr"')
+  })
+
+  it("ignores an unsupported stored value and detects instead", async () => {
+    vi.resetModules()
+    vi.stubGlobal("navigator", { language: "fr-FR" })
+    localStorage.setItem("locale", '"es"')
+    const { localeAtom } = await import("./atoms")
+
+    expect(createStore().get(localeAtom)).toBe("fr")
   })
 })

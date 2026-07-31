@@ -37,6 +37,7 @@ const baseProfile: UserProfile = {
   session_duration_minutes: 60,
   active_title_tier_id: null,
   timezone: null,
+  locale: null,
   created_at: "",
   updated_at: "",
 }

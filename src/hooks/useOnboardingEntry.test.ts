@@ -39,6 +39,7 @@ const PROFILE: UserProfile = {
   session_duration_minutes: 45,
   active_title_tier_id: null,
   timezone: "Europe/Paris",
+  locale: null,
   created_at: "2026-05-08T10:00:00Z",
   updated_at: "2026-05-08T10:00:00Z",
 }

@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
+import { useTranslation } from "react-i18next"
 import { supabase } from "@/lib/supabase"
+import { normalizeLocale } from "@/lib/persistedLocale"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { AuthExpiredError, DisplayNameTakenError } from "@/hooks/profileErrors"
@@ -22,6 +24,7 @@ const LBS_TO_KG = 0.453592
 export function useCreateUserProfile() {
   const user = useAtomValue(authAtom)
   const weightUnit = useAtomValue(weightUnitAtom)
+  const { i18n } = useTranslation()
 
   return useMutation({
     mutationFn: async (input: ProfileInput) => {
@@ -35,6 +38,12 @@ export function useCreateUserProfile() {
       const emailDefault = user.email?.trim() || null
 
       const timezone = getResolvedIANATimeZone()
+
+      // Captured like `timezone`: whatever language they just read the
+      // onboarding in is the best guess we will ever have. Normalized because
+      // `i18n.language` can be "en-US" and the column's CHECK only accepts a
+      // base subtag — an unnormalized write would fail the whole upsert.
+      const locale = normalizeLocale(i18n.language)
 
       const { data, error } = await supabase
         .from("user_profiles")
@@ -51,6 +60,7 @@ export function useCreateUserProfile() {
             training_days_per_week: input.training_days_per_week,
             session_duration_minutes: input.session_duration_minutes,
             timezone,
+            locale,
           },
           { onConflict: "user_id" },
         )
