@@ -164,6 +164,18 @@ A **named, reusable, catalog-level circuit** (Freeletics-style "Zeus") — disti
 
 ---
 
+## Exercises & catalog
+
+**Catalog Snapshot**:
+The frozen copy of an exercise's catalog display fields taken at write time — `name_snapshot`, `muscle_snapshot`, `emoji_snapshot` on `workout_exercises`, and `exercise_name_snapshot` on `set_logs`. Exists so a program or a past session survives a catalog rename or deletion; deliberately **not** the display source. Per ADR 0010 the UI resolves labels from the joined `exercises` row (`name_en` then `name`, by **Display Locale**) and falls back to the **Catalog Snapshot** only when the catalog row is unavailable. Written by **six** paths (AI/quick-workout persistence, MCP persistence, three **Builder** mutations, template onboarding, pre-session edits, block persistence) — none of which is locale-aware, which is precisely why display-time resolution won over write-time. Distinct from **Prescription Snapshot**, which freezes engine intent on `set_logs.prescribed_*` and *is* authoritative for its consumer.
+→ `file:src/lib/exerciseSelects.ts`, ADR `file:docs/adr/0010-localize-catalog-at-display-time.md`
+
+**Display Locale**:
+The language used to render user-facing content (`en` | `fr`). **Resolution rule:** `localStorage["locale"]` **always wins for rendering** — read synchronously at boot (`file:src/lib/persistedLocale.ts`, then the override in `file:src/lib/i18n.ts`) so the path stays network-free and flash-free — while `user_profiles.locale` only **seeds** a device that has no local value (new device, cleared storage, private browsing). Two devices may therefore disagree indefinitely; accepted deliberately, since language can legitimately be per-device (shared or work machine). Note the app's two defaults currently contradict each other: `localeAtom` starts at `"fr"` while `i18n.fallbackLng` is `"en"`. Distinct from the **per-request** `locale` that **Embedded Agent** chat / draft Edge calls carry (see **Program draft step**), and from `embedded_agent_threads.locale`, which is thread metadata frozen at open.
+→ `file:src/store/atoms.ts`, `file:src/lib/persistedLocale.ts`
+
+---
+
 ## Progression engine
 
 **Progression Rule**:
