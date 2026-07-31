@@ -51,8 +51,6 @@ import frAdmin from "@/locales/fr/admin.json"
 import frAchievements from "@/locales/fr/achievements.json"
 import frApiTokens from "@/locales/fr/api-tokens.json"
 
-export type TestLocale = "en" | "fr"
-
 const testResources = {
   en: {
     common: enCommon,
@@ -98,13 +96,15 @@ const testResources = {
   },
 }
 
+export type TestLocale = keyof typeof testResources
+
 export function createTestI18n({ lng = "en" }: { lng?: TestLocale } = {}) {
   const instance = i18n.createInstance()
   instance.use(initReactI18next).init({
     lng,
     resources: testResources,
     fallbackLng: "en",
-    supportedLngs: ["en", "fr"],
+    supportedLngs: Object.keys(testResources),
     defaultNS: "common",
     interpolation: { escapeValue: false },
   })
