@@ -43,7 +43,7 @@ Rendre le **contenu du catalogue** (noms d'exercices, groupes musculaires, équi
 5. As a user with **programs created before this shipped**, I want their names and muscles to display in my language **without re-saving anything**, so that the fix is retroactive.
 6. As a user browsing **past sessions**, I want logged exercise names in my language, and I accept that history now groups by **exercise identity** rather than by snapshotted name — which also fixes a latent bug where a catalog rename split one exercise into two cards.
 7. As a user of an exercise whose **`name_en` is null or blank**, I want the French name shown rather than a blank, so that the fallback is invisible.
-8. As a user whose **catalog row has been deleted**, I want the **Catalog Snapshot** used as last resort, so that history never loses its label.
+8. As a user whose **catalog row is unavailable** (absent from the query payload — deletion is impossible while rows reference it), I want the **Catalog Snapshot** used as last resort, so that history never loses its label.
 9. As a user **running a session offline**, I want localized labels with no network, so that localization costs me nothing in the gym basement.
 10. As a user who **switches language mid-session**, I want labels to update without a reload and **without losing logged sets or the active timer**, so that the switch is safe at any moment.
 11. As a user signing in on a **new device**, I want my account's language applied instead of a guess from `navigator`, so that I don't land on a French UI I never chose.
@@ -73,7 +73,7 @@ Rendre le **contenu du catalogue** (noms d'exercices, groupes musculaires, équi
 - **Colonne de locale** sur `user_profiles` (à côté de `timezone`), écrite à l'onboarding et à chaque changement. Précédence figée par **Display Locale** : `localStorage` gagne toujours au rendu, le profil ne fait qu'amorcer un appareil sans valeur locale. Le boot reste synchrone.
 - **Helper de résolution unique, côté web**, appliquant `name_en → name → Catalog Snapshot`, consommé par toutes les surfaces d'affichage.
 - **Noms d'exercices** localisés sur les surfaces programme, séance, bibliothèque et historique.
-- **Groupes musculaires** localisés partout, en généralisant `balance.muscles`. **La représentation stockée est une décision ouverte du Tech Plan** : conserver le FR canonique et ne traduire qu'à l'affichage (zéro migration) ou migrer vers des slugs anglais. Contrainte dure dans les deux cas : `file:src/lib/muscleMapping.ts` et `file:src/lib/trainingBalance.ts` sont indexés sur les chaînes françaises.
+- **Groupes musculaires** localisés partout, en généralisant `balance.muscles`. **Décision tranchée par le Tech Plan** : la représentation stockée reste le **français canonique**, la traduction se fait à l'affichage, zéro migration. La bascule vers des slugs anglais est une dette réelle mais dont le coût est back-end (RPC `get_volume_by_muscle_group`, `TAXONOMY_TO_SLUGS`, alias MCP, scripts d'import, fixtures) et sans rapport avec l'objectif de cet epic — elle est tracée en issue séparée. Contrainte dure dans les deux cas : `file:src/lib/muscleMapping.ts` et `file:src/lib/trainingBalance.ts` sont indexés sur les chaînes françaises.
 - **Équipement** : appliquer les clés `equipment.*` existantes aux surfaces qui affichent encore le slug brut.
 - **Historique** : `groupSessionHistory` regroupe et trie sur `exercise_id` ; les requêtes d'historique gagnent l'embed catalogue nécessaire à la résolution.
 - **Test d'exhaustivité** sur `MUSCLE_TAXONOMY` dans les deux locales.
