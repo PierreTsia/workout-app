@@ -237,7 +237,13 @@ test.describe("Onboarding", () => {
   test("guard redirects onboarded user away from /onboarding", async ({ page }) => {
     test.setTimeout(30_000)
 
-    // Global setup seeds a program, so the guard should redirect
+    // Seed our own profile + program. The three tests above each call
+    // `clearUserData`, so global setup's seed is long gone by now and this
+    // used to pass only on whatever the previous test happened to leave
+    // behind. #420: profile + program is also the exact pair that used to
+    // lose the entry race and strand the user on the wizard.
+    await seedProgram(getTestUserId())
+
     await page.goto("/")
     await dismissNotificationDialog(page)
 

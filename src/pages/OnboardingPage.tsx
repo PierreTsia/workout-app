@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAtomValue } from "jotai"
 import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
-import { hasProgramAtom, hasProgramLoadingAtom } from "@/store/atoms"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
-import { useOnboardingResume } from "@/hooks/useOnboardingResume"
+import { useOnboardingEntry } from "@/hooks/useOnboardingEntry"
 import {
   AuthExpiredError,
   DisplayNameTakenError,
@@ -70,8 +68,6 @@ type AnalyticsStepName = keyof typeof ANALYTICS_STEP_INDEX
 
 export function OnboardingPage() {
   const { t, i18n } = useTranslation("onboarding")
-  const hasProgram = useAtomValue(hasProgramAtom)
-  const hasProgramLoading = useAtomValue(hasProgramLoadingAtom)
   const navigate = useNavigate()
 
   const [step, setStep] = useState<WizardStep>("welcome")
@@ -88,8 +84,7 @@ export function OnboardingPage() {
   const generateProgram = useGenerateProgram()
   const trackEvent = useTrackEvent()
   const trackedStart = useRef(false)
-  const resume = useOnboardingResume()
-  const resumeAppliedRef = useRef(false)
+  const entry = useOnboardingEntry()
 
   useEffect(() => {
     if (!trackedStart.current) {
@@ -98,30 +93,20 @@ export function OnboardingPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Resume from server-persisted state on first load: skip welcome +
-  // questionnaire when the user already has a profile, and jump straight
-  // back into the embedded chat / preview when a thread is still active.
-  // Guarded by a ref so user-driven `setStep` calls later in the session
-  // don't get clobbered by a stale resume decision.
+  // `useOnboardingEntry` latches one decision once both the program and resume
+  // probes have settled, so each effect below fires exactly once and neither
+  // needs a re-entry guard. User-driven `setStep` calls later in the session
+  // can no longer be clobbered by a late-arriving probe.
   useEffect(() => {
-    if (resumeAppliedRef.current) return
-    if (resume.isLoading) return
-    resumeAppliedRef.current = true
-    if (resume.profile) setProfileData(resume.profile)
-    if (resume.initialStep !== "welcome") setStep(resume.initialStep)
-  }, [resume])
+    if (entry.status !== "redirect") return
+    navigate("/", { replace: true })
+  }, [entry, navigate])
 
-  // Do not redirect on every `hasProgram` render: blank/skip flows set hasProgram before
-  // `navigate("/builder/...")` runs after `await mutateAsync`, and `<Navigate to="/" />`
-  // would win and strand users on home. Only bounce users who already have a program
-  // but landed on early wizard steps (bookmark, refresh, duplicate tab).
   useEffect(() => {
-    if (hasProgramLoading) return
-    if (!hasProgram) return
-    if (step === "welcome" || step === "questionnaire") {
-      navigate("/", { replace: true })
-    }
-  }, [hasProgram, hasProgramLoading, step, navigate])
+    if (entry.status !== "resume") return
+    if (entry.profile) setProfileData(entry.profile)
+    if (entry.step !== "welcome") setStep(entry.step)
+  }, [entry])
 
   function trackStepCompleted(name: AnalyticsStepName, extra?: Record<string, unknown>) {
     trackEvent.mutate({
@@ -285,11 +270,11 @@ export function OnboardingPage() {
     )
   }
 
-  // Hold the wizard back until the resume probe resolves. Without this we
+  // Hold the wizard back until the entry decision is taken. Without this we
   // flash "welcome" for a frame before snapping to the resumed step, which
   // is jarring on a fast network and causes the analytics step counter to
   // double-fire.
-  if (resume.isLoading) {
+  if (entry.status === "pending") {
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
