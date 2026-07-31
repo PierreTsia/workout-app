@@ -48,6 +48,15 @@ describe("createTestI18n", () => {
     expect(i18n.options.fallbackLng).toContain("en")
   })
 
+  it("declares exactly the locales it ships resources for", () => {
+    // i18next appends its own "cimode" pseudo-locale to supportedLngs.
+    const declared = (createTestI18n().options.supportedLngs || [])
+      .filter((lng) => lng !== "cimode")
+      .sort()
+
+    expect(declared).toEqual(Object.keys(namespacesOnDisk).sort())
+  })
+
   it.each(Object.keys(namespacesOnDisk))(
     "loads every %s namespace that exists on disk",
     (locale) => {
@@ -58,12 +67,6 @@ describe("createTestI18n", () => {
       expect(loaded).toEqual([...namespacesOnDisk[locale]].sort())
     },
   )
-
-  it("covers the same namespaces in both locales", () => {
-    expect([...namespacesOnDisk.fr].sort()).toEqual(
-      [...namespacesOnDisk.en].sort(),
-    )
-  })
 })
 
 describe("renderWithProviders locale option", () => {
