@@ -1,8 +1,43 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { readPersistedLocale } from "./persistedLocale"
+import {
+  detectLocale,
+  normalizeLocale,
+  readPersistedLocale,
+} from "./persistedLocale"
 
 afterEach(() => {
   localStorage.clear()
+})
+
+describe("normalizeLocale", () => {
+  // `user_profiles.locale` has a CHECK on ('en','fr'): writing the raw
+  // `i18n.language` would be rejected for every browser that reports a region.
+  it.each(["en-US", "en-GB", "EN"])("strips the region from %s", (tag) => {
+    expect(normalizeLocale(tag)).toBe("en")
+  })
+
+  it("keeps a bare supported tag", () => {
+    expect(normalizeLocale("fr")).toBe("fr")
+  })
+
+  it.each(["es", "de-DE", "", null, undefined])(
+    "returns null for %s",
+    (tag) => {
+      expect(normalizeLocale(tag)).toBeNull()
+    },
+  )
+})
+
+describe("detectLocale", () => {
+  it("follows the browser when it speaks a supported language", () => {
+    expect(detectLocale("fr-CA")).toBe("fr")
+  })
+
+  // Matches `fallbackLng` in i18n.ts. The previous default was French, which
+  // contradicted it.
+  it("falls back to English, not French, for an unsupported language", () => {
+    expect(detectLocale("de-DE")).toBe("en")
+  })
 })
 
 describe("readPersistedLocale", () => {

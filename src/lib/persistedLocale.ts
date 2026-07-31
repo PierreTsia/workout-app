@@ -14,6 +14,31 @@ const SUPPORTED = new Set(["en", "fr"])
 
 export type PersistedLocale = "en" | "fr"
 
+/**
+ * Maps a BCP-47 language tag onto a supported locale, or `null`.
+ *
+ * Needed wherever a tag meets a narrower type: `i18n.language` carries a region
+ * ("en-US") when it comes from the browser detector, and `user_profiles.locale`
+ * has a CHECK constraint that only accepts the base subtag.
+ */
+export function normalizeLocale(
+  language: string | null | undefined,
+): PersistedLocale | null {
+  const base = language?.toLowerCase().split("-")[0]
+  return base && SUPPORTED.has(base) ? (base as PersistedLocale) : null
+}
+
+/**
+ * The **Display Locale** to use before any stored or profile preference is
+ * known: the browser's language when supported, English otherwise — the same
+ * order i18next's detector applies, so the two can't disagree.
+ */
+export function detectLocale(
+  language: string | null | undefined,
+): PersistedLocale {
+  return normalizeLocale(language) ?? "en"
+}
+
 export function readPersistedLocale(storage: Storage): PersistedLocale | null {
   let raw: string | null
   try {

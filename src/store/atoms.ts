@@ -1,5 +1,6 @@
 import { atom } from "jotai"
 import { atomWithStorage } from "jotai/utils"
+import { detectLocale, type PersistedLocale } from "@/lib/persistedLocale"
 import type { User } from "@/types/auth"
 import type { SessionSetRow } from "@/lib/sessionSetRow"
 import type { UnlockedAchievement } from "@/types/achievements"
@@ -119,7 +120,26 @@ export const installPromptStateAtom = atomWithStorage<{ dismissed: boolean }>(
   { dismissed: false },
 )
 
-export const localeAtom = atomWithStorage<"en" | "fr">("locale", "fr")
+/**
+ * **Display Locale**, in precedence order: this stored value (an explicit
+ * choice, and the only one that survives a reload synchronously), then
+ * `user_profiles.locale` (which seeds a device that has never stored one), then
+ * the browser, then English.
+ *
+ * The default is *detected* rather than hardcoded on purpose. It used to be
+ * "fr" while `fallbackLng` was "en", and since `SideDrawer` pushes this atom
+ * onto i18n, a fresh device with an English browser switched itself to French
+ * as soon as the shell mounted.
+ */
+export const localeAtom = atomWithStorage<PersistedLocale>(
+  "locale",
+  detectLocale(typeof navigator === "undefined" ? null : navigator.language),
+  undefined,
+  // `getOnInit`, like `sessionAtom`: this value decides the language of the
+  // first paint, so it has to be the stored choice from the very first read
+  // rather than a default that a later mount corrects.
+  { getOnInit: true },
+)
 
 export const weightUnitAtom = atomWithStorage<"kg" | "lbs">("weightUnit", "kg")
 

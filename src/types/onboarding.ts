@@ -1,3 +1,4 @@
+import type { PersistedLocale } from "@/lib/persistedLocale"
 import type { Exercise } from "./database"
 
 export type UserGoal = "strength" | "hypertrophy" | "endurance" | "general_fitness"
@@ -21,6 +22,8 @@ export interface UserProfile {
   session_duration_minutes: number
   active_title_tier_id: string | null
   timezone: string | null
+  /** `null` = never chose a language. `localStorage` still wins at render. */
+  locale: PersistedLocale | null
   created_at: string
   updated_at: string
 }

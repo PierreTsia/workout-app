@@ -14,9 +14,14 @@ import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { renderWithProviders, mockQueryResult } from "@/test/utils"
 import { SideDrawer } from "./SideDrawer"
 
-const { mockSignOut } = vi.hoisted(() => ({
-  mockSignOut: vi.fn().mockResolvedValue({}),
-}))
+const { mockSignOut, mockEq, mockUpdate } = vi.hoisted(() => {
+  const mockEq = vi.fn().mockResolvedValue({ error: null })
+  return {
+    mockSignOut: vi.fn().mockResolvedValue({}),
+    mockEq,
+    mockUpdate: vi.fn(() => ({ eq: mockEq })),
+  }
+})
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
@@ -25,6 +30,7 @@ vi.mock("@/lib/supabase", () => ({
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       onAuthStateChange: vi.fn(),
     },
+    from: vi.fn(() => ({ update: mockUpdate })),
   },
   clearUserState: vi.fn(),
 }))
@@ -195,6 +201,7 @@ describe("SideDrawer achievements", () => {
         session_duration_minutes: 60,
         active_title_tier_id: "tier-42",
         timezone: "Europe/Paris",
+        locale: null,
         created_at: "2026-01-01",
         updated_at: "2026-01-01",
       }),
@@ -233,5 +240,43 @@ describe("SideDrawer achievements", () => {
     renderDrawer()
     const dialog = await screen.findByRole("dialog")
     expect(within(dialog).queryByText("Iron Warrior")).not.toBeInTheDocument()
+  })
+})
+
+describe("SideDrawer language switch", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockEq.mockResolvedValue({ error: null })
+    localStorage.clear()
+  })
+
+  it("switches the UI and syncs the choice to the profile", async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await user.click(screen.getByRole("button", { name: "FR" }))
+
+    // localStorage is what the next boot reads, so it has to win locally...
+    await waitFor(() => {
+      expect(localStorage.getItem("locale")).toBe('"fr"')
+    })
+    // ...and the profile only carries the choice to the user's other devices.
+    expect(mockUpdate).toHaveBeenCalledWith({ locale: "fr" })
+    expect(mockEq).toHaveBeenCalledWith("user_id", "user-1")
+  })
+
+  // The switch has already taken effect locally when the write goes out, so a
+  // failure has nothing to tell the user.
+  it("keeps the UI switched when the profile write fails", async () => {
+    mockEq.mockRejectedValue(new Error("offline"))
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await user.click(screen.getByRole("button", { name: "FR" }))
+
+    await waitFor(() => {
+      expect(localStorage.getItem("locale")).toBe('"fr"')
+    })
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@ import { useSetAtom } from "jotai"
 import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { drawerOpenAtom } from "@/store/atoms"
+import { useHydrateLocaleFromProfile } from "@/hooks/useProfileLocale"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
 import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
@@ -15,6 +16,9 @@ import { AchievementUnlockOverlay } from "@/components/achievements/AchievementU
 export function AppShell() {
   const { t } = useTranslation()
   const setDrawerOpen = useSetAtom(drawerOpenAtom)
+  // Runs where auth is already resolved, which is the earliest the profile's
+  // language is readable at all.
+  useHydrateLocaleFromProfile()
   const { pathname } = useLocation()
   const hideSessionChrome = pathname.startsWith("/cycle-summary")
 

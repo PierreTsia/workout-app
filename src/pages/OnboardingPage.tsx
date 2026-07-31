@@ -4,6 +4,7 @@ import { Dumbbell, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
+import { normalizeLocale } from "@/lib/persistedLocale"
 import { useCreateUserProfile } from "@/hooks/useCreateUserProfile"
 import { useGenerateProgram } from "@/hooks/useGenerateProgram"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
@@ -166,6 +167,7 @@ export function OnboardingPage() {
       session_duration_minutes: data.session_duration_minutes,
       active_title_tier_id: null,
       timezone: getResolvedIANATimeZone(),
+      locale: normalizeLocale(i18n.language),
       created_at: "",
       updated_at: "",
     }

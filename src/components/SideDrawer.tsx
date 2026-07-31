@@ -48,6 +48,7 @@ import { supabase } from "@/lib/supabase"
 import { publicSite } from "@/lib/publicSite"
 import { useInstallPrompt } from "@/hooks/useInstallPrompt"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { usePersistProfileLocale } from "@/hooks/useProfileLocale"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { resolveAvatarUrl, resolveDisplayName } from "@/lib/userDisplay"
 import { rankColorText, resolveActiveTitle } from "@/lib/achievementUtils"
@@ -95,6 +96,7 @@ export function SideDrawer() {
   const { t, i18n } = useTranslation(["common", "settings", "account", "admin", "library", "achievements"])
   const [open, setOpen] = useAtom(drawerOpenAtom)
   const [locale, setLocale] = useAtom(localeAtom)
+  const persistProfileLocale = usePersistProfileLocale()
   const [weightUnit, setWeightUnit] = useAtom(weightUnitAtom)
   const user = useAtomValue(authAtom)
   const { data: profile } = useUserProfile()
@@ -138,6 +140,9 @@ export function SideDrawer() {
   function handleLocaleChange(v: "en" | "fr") {
     setLocale(v)
     i18n.changeLanguage(v)
+    // After the local switch, never before: the profile write is a best-effort
+    // sync for the user's other devices and must not gate the UI.
+    void persistProfileLocale(v)
   }
 
   const profileDisplayName = user
