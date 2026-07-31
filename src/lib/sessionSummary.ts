@@ -1,6 +1,11 @@
 import { formatDurationShort, formatSecondsMMSS } from "@/lib/formatters"
 import { groupBy } from "@/lib/utils"
-import type { SetLog, WorkoutExercise } from "@/types/database"
+import type { CatalogNameSource } from "@/lib/catalogLabels"
+import type {
+  SetLog,
+  SetLogWithExercise,
+  WorkoutExerciseWithLabel,
+} from "@/types/database"
 
 function setLogDisplayValue(log: SetLog): string {
   if (log.duration_seconds != null) {
@@ -43,10 +48,14 @@ function repsRangeLabel(
   return unique.join("–")
 }
 
-export interface ExercisePreviewItem {
+/**
+ * Carries the name *source* rather than a name: the recap is rendered in the
+ * reader's language (ADR 0010), which these builders have no business knowing.
+ * `ExerciseListPreview` resolves it via `useCatalogLabels`.
+ */
+export interface ExercisePreviewItem extends CatalogNameSource {
   id: string
   emoji: string
-  name: string
   sets: number
   reps: string
   maxWeight: number
@@ -58,8 +67,8 @@ export interface ExercisePreviewItem {
  * Exercises that appear in logs but not in the template are appended at the end.
  */
 export function summarizeSessionLogs(
-  logs: SetLog[],
-  templateExercises: WorkoutExercise[],
+  logs: SetLogWithExercise[],
+  templateExercises: WorkoutExerciseWithLabel[],
 ): ExercisePreviewItem[] {
   const logsByExercise = groupBy(logs, (log) => log.exercise_id)
 
@@ -67,7 +76,8 @@ export function summarizeSessionLogs(
     [...logsByExercise].map(([exerciseId, exerciseLogs]) => [
       exerciseId,
       {
-        name: exerciseLogs[0].exercise_name_snapshot,
+        exercise: exerciseLogs[0].exercise,
+        exercise_name_snapshot: exerciseLogs[0].exercise_name_snapshot,
         reps: exerciseLogs.map(setLogDisplayValue),
         maxWeight: Math.max(...exerciseLogs.map((l) => l.weight_logged)),
         hasDuration: exerciseLogs.some((l) => l.duration_seconds != null),
@@ -75,18 +85,19 @@ export function summarizeSessionLogs(
     ]),
   )
 
-  const emojiByExerciseId = new Map<string, string>()
-  const orderByExerciseId = new Map<string, number>()
-  for (const ex of templateExercises) {
-    emojiByExerciseId.set(ex.exercise_id, ex.emoji_snapshot)
-    orderByExerciseId.set(ex.exercise_id, ex.sort_order)
-  }
+  const emojiByExerciseId = new Map(
+    templateExercises.map((ex) => [ex.exercise_id, ex.emoji_snapshot]),
+  )
+  const orderByExerciseId = new Map(
+    templateExercises.map((ex) => [ex.exercise_id, ex.sort_order]),
+  )
 
   const items: ExercisePreviewItem[] = [...grouped].map(
     ([exerciseId, entry]) => ({
       id: exerciseId,
       emoji: emojiByExerciseId.get(exerciseId) ?? "🏋️",
-      name: entry.name,
+      exercise: entry.exercise,
+      exercise_name_snapshot: entry.exercise_name_snapshot,
       sets: entry.reps.length,
       reps: repsRangeLabel(
         entry.reps,
@@ -107,7 +118,7 @@ export function summarizeSessionLogs(
 
 /** Converts template exercises into the same preview shape. */
 export function templateToPreviewItems(
-  exercises: WorkoutExercise[],
+  exercises: WorkoutExerciseWithLabel[],
 ): ExercisePreviewItem[] {
   return exercises.map((ex) => {
     const duration = ex.target_duration_seconds
@@ -115,7 +126,8 @@ export function templateToPreviewItems(
     return {
       id: ex.id,
       emoji: ex.emoji_snapshot,
-      name: ex.name_snapshot,
+      exercise: ex.exercise,
+      name_snapshot: ex.name_snapshot,
       sets: ex.sets,
       reps: hasDuration ? formatDurationShort(duration) : ex.reps,
       maxWeight: Number(ex.weight),

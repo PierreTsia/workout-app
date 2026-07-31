@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 
 import source from "./catalogLabels.ts?raw"
+import { importsOf } from "@/test/imports"
 import {
   equipmentLabelKey,
   isEnglish,
@@ -22,9 +23,7 @@ describe("purity", () => {
   it.each(["react", "i18next", "@/lib/supabase"])(
     "does not import %s",
     (module) => {
-      expect(source).not.toMatch(
-        new RegExp(`from\\s+["']${module.replace("/", "\\/")}`),
-      )
+      expect(importsOf(source, module)).toEqual([])
     },
   )
 })
