@@ -1,0 +1,29 @@
+{
+  "muscles": {
+    "Pectoraux": "Pectoraux",
+    "Dos": "Dos",
+    "Épaules": "Épaules",
+    "Biceps": "Biceps",
+    "Triceps": "Triceps",
+    "Quadriceps": "Quadriceps",
+    "Ischios": "Ischios",
+    "Fessiers": "Fessiers",
+    "Adducteurs": "Adducteurs",
+    "Mollets": "Mollets",
+    "Abdos": "Abdos",
+    "Trapèzes": "Trapèzes",
+    "Lombaires": "Lombaires"
+  },
+  "equipment": {
+    "barbell": "Barre",
+    "dumbbell": "Haltères",
+    "machine": "Machine",
+    "cable": "Poulie",
+    "bodyweight": "Poids du corps",
+    "kettlebell": "Kettlebell",
+    "bench": "Banc",
+    "ez_bar": "Barre EZ",
+    "band": "Élastique",
+    "other": "Autre"
+  }
+}

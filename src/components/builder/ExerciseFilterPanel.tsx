@@ -28,6 +28,7 @@ export function ExerciseFilterPanel({
   onDifficultyChange,
 }: ExerciseFilterPanelProps) {
   const { t } = useTranslation("builder")
+  const { t: tCatalog } = useTranslation("catalog")
 
   const sortedDifficultyLevels = useMemo(
     () =>
@@ -92,7 +93,7 @@ export function ExerciseFilterPanel({
                 : "border-border bg-background text-muted-foreground hover:bg-accent",
             )}
           >
-            {t(`equipment.${eq}`, eq)}
+            {tCatalog(`equipment.${eq}`)}
           </button>
         ))}
       </div>

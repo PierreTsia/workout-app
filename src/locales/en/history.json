@@ -93,21 +93,6 @@
     "colMuscle": "Muscle",
     "colSets": "Sets (weighted)",
     "colVolume": "Volume (kg)",
-    "colShare": "Share",
-    "muscles": {
-      "Pectoraux": "Chest",
-      "Dos": "Back",
-      "Épaules": "Shoulders",
-      "Biceps": "Biceps",
-      "Triceps": "Triceps",
-      "Quadriceps": "Quads",
-      "Ischios": "Hamstrings",
-      "Fessiers": "Glutes",
-      "Adducteurs": "Adductors",
-      "Mollets": "Calves",
-      "Abdos": "Abs",
-      "Trapèzes": "Traps",
-      "Lombaires": "Lower back"
-    }
+    "colShare": "Share"
   }
 }

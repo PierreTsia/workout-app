@@ -93,21 +93,6 @@
     "colMuscle": "Muscle",
     "colSets": "Séries (pondérées)",
     "colVolume": "Volume (kg)",
-    "colShare": "Part",
-    "muscles": {
-      "Pectoraux": "Pectoraux",
-      "Dos": "Dos",
-      "Épaules": "Épaules",
-      "Biceps": "Biceps",
-      "Triceps": "Triceps",
-      "Quadriceps": "Quadriceps",
-      "Ischios": "Ischios",
-      "Fessiers": "Fessiers",
-      "Adducteurs": "Adducteurs",
-      "Mollets": "Mollets",
-      "Abdos": "Abdos",
-      "Trapèzes": "Trapèzes",
-      "Lombaires": "Lombaires"
-    }
+    "colShare": "Part"
   }
 }

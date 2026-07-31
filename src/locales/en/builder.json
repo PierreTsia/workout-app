@@ -42,18 +42,6 @@
     "intermediate": "Intermediate",
     "advanced": "Advanced"
   },
-  "equipment": {
-    "barbell": "Barbell",
-    "dumbbell": "Dumbbell",
-    "machine": "Machine",
-    "cable": "Cable",
-    "bodyweight": "Bodyweight",
-    "kettlebell": "Kettlebell",
-    "bench": "Bench",
-    "ez_bar": "EZ Bar",
-    "band": "Band",
-    "other": "Other"
-  },
 
   "activateProgram": "Activate",
   "renameProgram": "Rename",

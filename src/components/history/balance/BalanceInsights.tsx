@@ -9,8 +9,8 @@ import {
 import type { VolumeByMuscleRow } from "@/lib/volumeByMuscleGroup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-function muscleLabel(t: TFunction<"history">, m: MuscleTaxonomy) {
-  return t(`balance.muscles.${m}`, { defaultValue: m })
+function muscleLabel(t: TFunction<"catalog">, m: MuscleTaxonomy) {
+  return t(`muscles.${m}`)
 }
 
 interface BalanceInsightsProps {
@@ -25,6 +25,7 @@ export function BalanceInsights({
   muscles,
 }: BalanceInsightsProps) {
   const { t } = useTranslation("history")
+  const { t: tCatalog } = useTranslation("catalog")
 
   const untrainedFocus = new Set(
     pairInsights
@@ -48,19 +49,19 @@ export function BalanceInsights({
           <p key={insight.pairName} className="border-l-2 border-primary/40 pl-3">
             {insight.kind === "untrained"
               ? t("balance.insightUntrained", {
-                  weak: muscleLabel(t, insight.focusMuscle),
-                  strong: muscleLabel(t, insight.otherMuscle),
+                  weak: muscleLabel(tCatalog, insight.focusMuscle),
+                  strong: muscleLabel(tCatalog, insight.otherMuscle),
                 })
               : t("balance.insightSkewed", {
-                  strong: muscleLabel(t, insight.focusMuscle),
-                  weak: muscleLabel(t, insight.otherMuscle),
+                  strong: muscleLabel(tCatalog, insight.focusMuscle),
+                  weak: muscleLabel(tCatalog, insight.otherMuscle),
                 })}
           </p>
         ))}
 
         {extraZeros.map((m) => (
           <p key={m} className="border-l-2 border-muted-foreground/30 pl-3">
-            {t("balance.zeroVolume", { muscle: muscleLabel(t, m) })}
+            {t("balance.zeroVolume", { muscle: muscleLabel(tCatalog, m) })}
           </p>
         ))}
       </CardContent>

@@ -42,18 +42,6 @@
     "intermediate": "Intermédiaire",
     "advanced": "Avancé"
   },
-  "equipment": {
-    "barbell": "Barre",
-    "dumbbell": "Haltères",
-    "machine": "Machine",
-    "cable": "Poulie",
-    "bodyweight": "Poids du corps",
-    "kettlebell": "Kettlebell",
-    "bench": "Banc",
-    "ez_bar": "Barre EZ",
-    "band": "Élastique",
-    "other": "Autre"
-  },
 
   "activateProgram": "Activer",
   "renameProgram": "Renommer",
