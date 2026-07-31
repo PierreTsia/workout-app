@@ -22,7 +22,11 @@ import { useLastSession } from "@/hooks/useLastSession"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { useProgressionSuggestion } from "@/hooks/useProgressionSuggestion"
-import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseListItem,
+  WorkoutExerciseWithLabel,
+} from "@/types/database"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
@@ -36,14 +40,17 @@ import { ProgressionPill } from "@/components/workout/ProgressionPill"
 export interface ExerciseDetailEditSessionProps {
   exercisePool: ExerciseListItem[]
   poolLoading: boolean
-  allExercises: WorkoutExercise[]
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
-  onDeleteRequested: (row: WorkoutExercise) => void
-  onSwapBrowseLibrary: (row: WorkoutExercise) => void
+  allExercises: WorkoutExerciseWithLabel[]
+  onSwapExerciseChosen: (
+    row: WorkoutExerciseWithLabel,
+    picked: ExerciseListItem,
+  ) => void
+  onDeleteRequested: (row: WorkoutExerciseWithLabel) => void
+  onSwapBrowseLibrary: (row: WorkoutExerciseWithLabel) => void
 }
 
 interface ExerciseDetailProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithLabel
   sessionId: string
   sessionStartedAt?: number | null
   isReadOnly: boolean
@@ -66,6 +73,7 @@ export function ExerciseDetail({
   const { t } = useTranslation("workout")
   const { t: tFeedback } = useTranslation("feedback")
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const { data: lastSession } = useLastSession(exercise.exercise_id, sessionStartedAt)
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
@@ -87,7 +95,7 @@ export function ExerciseDetail({
         <div className="flex flex-wrap items-center gap-2">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-10 w-10" />
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <h2 className="text-xl font-bold">{exercise.name_snapshot}</h2>
+            <h2 className="text-xl font-bold">{exerciseName(exercise)}</h2>
             <Badge variant="default" className="w-fit shrink-0 text-xs font-normal">
               {exercise.muscle_snapshot}
             </Badge>
@@ -207,7 +215,7 @@ export function ExerciseDetail({
         open={historyOpen}
         onOpenChange={setHistoryOpen}
         exerciseId={exercise.exercise_id}
-        exerciseName={exercise.name_snapshot}
+        exerciseName={exerciseName(exercise)}
         muscleLabel={exercise.muscle_snapshot}
         bodyMapMuscleGroup={libExercise?.muscle_group ?? exercise.muscle_snapshot}
         emojiSnapshot={exercise.emoji_snapshot}

@@ -92,6 +92,20 @@ export interface WorkoutExerciseWithExercise extends WorkoutExercise {
   exercise: Exercise | null
 }
 
+/**
+ * A `workout_exercises` row that can resolve a localized label — either straight
+ * from the day query (which embeds the full catalog row) or synthesised
+ * in-session when the user swaps or adds an exercise from the picker.
+ *
+ * Narrower than `WorkoutExerciseWithExercise` on purpose: an `ExerciseListItem`
+ * from the slim pool satisfies the label fields without being a full `Exercise`,
+ * so a swapped row keeps its localized name instead of falling back to the
+ * snapshot.
+ */
+export type WorkoutExerciseWithLabel = WorkoutExercise & {
+  exercise: ExerciseLabelFields | null
+}
+
 /** One round's prescription for a single block exercise. `amount` = reps or duration seconds (per the exercise's measurement_type). */
 export interface PerRoundCell {
   amount: number

@@ -10,9 +10,10 @@ import {
 import type {
   Exercise,
   ExerciseBlockWithExercises,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 import type { SessionItem } from "@/lib/sessionItems"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { cn } from "@/lib/utils"
 
@@ -77,7 +78,7 @@ export function ExerciseStrip({
 }
 
 interface StripItemProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithLabel
   libraryExercise: Exercise | undefined
   isActive: boolean
   hasPr: boolean
@@ -90,6 +91,8 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
     { exercise, libraryExercise, isActive, hasPr, isCompleted, onSelect },
     ref,
   ) {
+    const { exerciseName } = useCatalogLabels()
+
     return (
       <button
         ref={ref}
@@ -116,7 +119,7 @@ const StripItem = forwardRef<HTMLButtonElement, StripItemProps>(
           className="aspect-4/3 w-full rounded-none"
         />
         <span className="w-full truncate px-1.5 py-1.5 text-center text-[0.65rem] font-medium leading-tight">
-          {exercise.name_snapshot}
+          {exerciseName(exercise)}
         </span>
       </button>
     )

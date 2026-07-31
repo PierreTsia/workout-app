@@ -1,15 +1,16 @@
 import type {
   ExerciseBlockWithExercises,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 
 /**
- * One slot in the active-session sequence (#351). Unlike the builder's
- * {@link DayItem}, the solo variant carries a plain `WorkoutExercise` (no
- * `exercise` embed) because the session works off the merged pre-session list.
+ * One slot in the active-session sequence (#351). The solo variant carries only
+ * the label fields of the catalog row, not the full embed the builder's
+ * {@link DayItem} holds: the session works off the merged pre-session list,
+ * where a swapped row is synthesised from the slim picker pool.
  */
 export type SessionItem =
-  | { kind: "solo"; sort_order: number; exercise: WorkoutExercise }
+  | { kind: "solo"; sort_order: number; exercise: WorkoutExerciseWithLabel }
   | { kind: "block"; sort_order: number; block: ExerciseBlockWithExercises }
 
 /**
@@ -18,7 +19,7 @@ export type SessionItem =
  * before blocks on equal `sort_order` for a stable order.
  */
 export function buildSessionItems(
-  exercises: WorkoutExercise[],
+  exercises: WorkoutExerciseWithLabel[],
   blocks: ExerciseBlockWithExercises[],
 ): SessionItem[] {
   const soloItems: SessionItem[] = exercises.map((exercise) => ({

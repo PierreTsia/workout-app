@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithExercise } from "@/types/database"
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn() },
@@ -15,8 +15,11 @@ vi.mock("@/hooks/useBuilderMutations", () => ({
 
 import { ExerciseDetailForm } from "./ExerciseDetailForm"
 
-function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise {
+function makeExercise(
+  overrides: Partial<WorkoutExerciseWithExercise> = {},
+): WorkoutExerciseWithExercise {
   return {
+    exercise: null,
     id: "ex-1",
     workout_day_id: "day-1",
     exercise_id: "lib-1",

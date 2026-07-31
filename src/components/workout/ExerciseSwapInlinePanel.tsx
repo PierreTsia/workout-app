@@ -2,14 +2,20 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseSwapPicker } from "@/components/generator/ExerciseSwapPicker"
-import type { ExerciseListItem, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseListItem,
+  WorkoutExerciseWithLabel,
+} from "@/types/database"
 
 export interface ExerciseSwapInlinePanelProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithLabel
   exercisePool: ExerciseListItem[]
   currentExerciseIds: string[]
-  onSwapExerciseChosen: (row: WorkoutExercise, picked: ExerciseListItem) => void
-  onSwapBrowseLibrary: (row: WorkoutExercise) => void
+  onSwapExerciseChosen: (
+    row: WorkoutExerciseWithLabel,
+    picked: ExerciseListItem,
+  ) => void
+  onSwapBrowseLibrary: (row: WorkoutExerciseWithLabel) => void
   onDismiss: () => void
   /** Extra class on outer wrapper (e.g. pre-session list indent). */
   className?: string

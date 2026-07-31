@@ -1,10 +1,10 @@
 import type { PreSessionExercisePatch } from "@/types/preSessionOverrides"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithLabel } from "@/types/database"
 
 export function mergeWorkoutExercises(
-  base: WorkoutExercise[],
+  base: WorkoutExerciseWithLabel[],
   patch: PreSessionExercisePatch,
-): WorkoutExercise[] {
+): WorkoutExerciseWithLabel[] {
   return [
     ...base
       .filter((row) => !patch.deletedIds.has(row.id))

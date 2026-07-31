@@ -26,6 +26,7 @@ import { useBlockSession } from "@/hooks/useBlockSession"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
 import { useExerciseById } from "@/hooks/useExerciseById"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { playFinishBeeps } from "@/lib/audio"
 import { BlockProgressBars } from "@/components/workout/BlockProgressBars"
 import { CountdownRing } from "@/components/workout/CountdownRing"
@@ -57,6 +58,7 @@ export function BlockRunner({
 }: BlockRunnerProps) {
   const { t } = useTranslation("workout")
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const {
     state,
     remainingSeconds,
@@ -191,8 +193,10 @@ export function BlockRunner({
       state.phase === "transition" ? block.transition_seconds : block.rest_seconds
     const nextLabel =
       state.phase === "transition"
-        ? t("blockRunner.next", { name: nextExercise?.name_snapshot ?? "" })
-        : t("blockRunner.nextRound", { name: nextExercise?.name_snapshot ?? "" })
+        ? t("blockRunner.next", { name: nextExercise ? exerciseName(nextExercise) : "" })
+        : t("blockRunner.nextRound", {
+            name: nextExercise ? exerciseName(nextExercise) : "",
+          })
 
     return (
       <div
@@ -257,7 +261,7 @@ export function BlockRunner({
           <div className="flex flex-col items-center gap-1.5">
             <div className="text-4xl">{blockExercise?.emoji_snapshot}</div>
             <h2 className="text-2xl font-bold leading-tight">
-              {blockExercise?.name_snapshot}
+              {blockExercise ? exerciseName(blockExercise) : null}
             </h2>
             <div className="flex items-center gap-2">
               {blockExercise && (

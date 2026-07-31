@@ -9,11 +9,16 @@ import { EQUIPMENT_TAXONOMY } from "@/lib/catalogTaxonomy"
 import { MUSCLE_TAXONOMY } from "@/lib/trainingBalance"
 
 /**
- * Loose on purpose: serves an embedded `workout_exercises` row (`name_snapshot`)
- * and an enriched `set_log` (`exercise_name_snapshot`) without a wrapper.
+ * Loose on which snapshot column it finds — an embedded `workout_exercises` row
+ * (`name_snapshot`) and an enriched `set_log` (`exercise_name_snapshot`) both fit
+ * without a wrapper.
+ *
+ * `exercise` is required, though nullable: a row that never carried the embed
+ * would resolve to its snapshot and quietly serve French names to English
+ * readers. Requiring the key turns that into a compile error at the call site.
  */
 export interface CatalogNameSource {
-  exercise?: { name?: string | null; name_en?: string | null } | null
+  exercise: { name?: string | null; name_en?: string | null } | null
   name_snapshot?: string | null
   exercise_name_snapshot?: string | null
 }

@@ -1,16 +1,17 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { emptyPreSessionPatch } from "@/types/preSessionOverrides"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithLabel } from "@/types/database"
 import {
   clearSessionExercisePatchStorage,
   loadSessionExercisePatch,
   saveSessionExercisePatch,
 } from "./sessionExercisePatchStorage"
 
-const row = (id: string): WorkoutExercise => ({
+const row = (id: string): WorkoutExerciseWithLabel => ({
   id,
   workout_day_id: "d",
   exercise_id: "e",
+  exercise: null,
   name_snapshot: "N",
   muscle_snapshot: "M",
   emoji_snapshot: "🏋️",

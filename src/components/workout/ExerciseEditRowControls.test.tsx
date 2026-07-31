@@ -4,7 +4,7 @@ import { renderWithProviders } from "@/test/utils"
 import { ExerciseEditRowControls } from "./ExerciseEditRowControls"
 import type {
   ExerciseListItem,
-  WorkoutExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 import type { ProgressionSuggestion } from "@/lib/progression"
 
@@ -17,12 +17,13 @@ vi.mock("@/lib/supabase", () => ({
 }))
 
 function makeExercise(
-  overrides: Partial<WorkoutExercise> = {},
-): WorkoutExercise {
+  overrides: Partial<WorkoutExerciseWithLabel> = {},
+): WorkoutExerciseWithLabel {
   return {
     id: "we-1",
     workout_day_id: "day-1",
     exercise_id: "ex-1",
+    exercise: null,
     name_snapshot: "Bench Press",
     muscle_snapshot: "chest",
     emoji_snapshot: "🏋️",

@@ -3,8 +3,9 @@ import { CSS } from "@dnd-kit/utilities"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { GripVertical, Pencil, Timer, Trash2 } from "lucide-react"
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithExercise } from "@/types/database"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { formatDurationShort } from "@/lib/formatters"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,7 @@ import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 
 interface ExerciseRowProps {
-  exercise: WorkoutExercise
+  exercise: WorkoutExerciseWithExercise
   onTap: () => void
   onDelete: () => void
 }
@@ -20,6 +21,7 @@ interface ExerciseRowProps {
 export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
   const { t } = useTranslation("builder")
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const {
     attributes,
@@ -63,7 +65,7 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
       <div className="flex-1 cursor-pointer" onClick={onTap}>
         <div className="flex items-center gap-2">
           <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-7 w-7" />
-          <span className="text-sm font-medium">{exercise.name_snapshot}</span>
+          <span className="text-sm font-medium">{exerciseName(exercise)}</span>
         </div>
         <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
           <span>

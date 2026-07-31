@@ -1,4 +1,4 @@
-import type { WorkoutExercise } from "@/types/database"
+import type { WorkoutExerciseWithLabel } from "@/types/database"
 
 /**
  * Ephemeral list edits (session-only swaps/adds/deletes). Cleared on day change (when not
@@ -7,8 +7,8 @@ import type { WorkoutExercise } from "@/types/database"
  */
 export interface PreSessionExercisePatch {
   deletedIds: Set<string>
-  swappedRows: Map<string, WorkoutExercise>
-  addedRows: WorkoutExercise[]
+  swappedRows: Map<string, WorkoutExerciseWithLabel>
+  addedRows: WorkoutExerciseWithLabel[]
 }
 
 export function emptyPreSessionPatch(): PreSessionExercisePatch {
@@ -32,9 +32,18 @@ export function clonePreSessionPatch(
 /** JSON-safe shape for persisting a patch (e.g. localStorage). */
 export interface SerializedPreSessionExercisePatch {
   deletedIds: string[]
-  swappedRows: [string, WorkoutExercise][]
-  addedRows: WorkoutExercise[]
+  swappedRows: [string, WorkoutExerciseWithLabel][]
+  addedRows: WorkoutExerciseWithLabel[]
 }
+
+/**
+ * A patch persisted before rows carried their catalog embed has no `exercise`
+ * key. Normalise on read so the runtime shape matches the type instead of
+ * leaving an `undefined` to be absorbed downstream.
+ */
+const withEmbed = (
+  row: WorkoutExerciseWithLabel,
+): WorkoutExerciseWithLabel => ({ ...row, exercise: row.exercise ?? null })
 
 export function serializePreSessionPatch(
   p: PreSessionExercisePatch,
@@ -51,7 +60,9 @@ export function deserializePreSessionPatch(
 ): PreSessionExercisePatch {
   return {
     deletedIds: new Set(s.deletedIds),
-    swappedRows: new Map(s.swappedRows),
-    addedRows: [...s.addedRows],
+    swappedRows: new Map(
+      s.swappedRows.map(([id, row]) => [id, withEmbed(row)] as const),
+    ),
+    addedRows: s.addedRows.map(withEmbed),
   }
 }

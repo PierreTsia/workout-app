@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import type { Exercise, WorkoutExercise } from "@/types/database"
+import type { Exercise, WorkoutExerciseWithLabel } from "@/types/database"
 
 // Stub the hook to avoid pulling `@/lib/supabase` (which needs real env vars)
 // via the ExerciseSwapPicker → inspection-sheet import chain.
@@ -33,10 +33,11 @@ function fakeExercise(overrides: Partial<Exercise> & { id: string }): Exercise {
   }
 }
 
-const ROW: WorkoutExercise = {
+const ROW: WorkoutExerciseWithLabel = {
   id: "row-1",
   workout_day_id: "day-1",
   exercise_id: "bench",
+  exercise: null,
   name_snapshot: "Bench",
   muscle_snapshot: "Pectoraux",
   emoji_snapshot: "🏋️",
