@@ -36,3 +36,23 @@ npx tsc --noEmit
 # ✅ actually loads src/ and the test files
 npx tsc -p tsconfig.app.json --noEmit
 ```
+
+## Run vitest with the Supabase env stripped
+
+CI has no `.env`, so `src/lib/supabase.ts` throws `supabaseUrl is required.`
+**at import time** there. Locally `.env.local` supplies one, which hides the
+failure: a component test that forgets `vi.mock("@/lib/supabase")` passes on your
+machine and dies in CI before a single test runs.
+
+Reproduce CI by emptying the two variables:
+
+```bash
+VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vitest run
+```
+
+Any test whose component tree reaches the client — directly or transitively —
+needs the stub the other ~50 test files use:
+
+```ts
+vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
+```

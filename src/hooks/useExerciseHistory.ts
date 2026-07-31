@@ -1,16 +1,27 @@
+import { useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
+import { useTranslation } from "react-i18next"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
+import { resolveExerciseName } from "@/lib/catalogLabels"
 import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
 import { fetchExercisesByIds } from "@/lib/fetchExercisesByIds"
 import type { ExerciseLabelFields } from "@/types/database"
 
+/** What the query caches: locale-independent, so switching language never refetches. */
+interface ExerciseHistoryRow {
+  id: string
+  exercise: ExerciseLabelFields | null
+  exercise_name_snapshot: string
+}
+
 export interface ExerciseOption {
   id: string
   /**
-   * Snapshot name, kept as the display value here. T150 resolves the localized
-   * label from `exercise` and sorts on it.
+   * The label as it appears on screen, already resolved for the reader's locale.
+   * Consumers filter and sort on this, which is what stops a search for "Bench"
+   * from missing the row that reads "Bench Press".
    */
   name: string
   /** Catalog row for the localized label; null when it isn't readable. */
@@ -29,8 +40,25 @@ export interface ExerciseOption {
  */
 export function useExerciseHistory() {
   const user = useAtomValue(authAtom)
+  const { i18n } = useTranslation()
+  const { language } = i18n
 
-  return useQuery<ExerciseOption[]>({
+  // Labels and alphabetical order both depend on the locale, so they belong in
+  // `select` rather than in `queryFn`: changing language re-derives the list
+  // from cache instead of hitting the network again.
+  const toOptions = useCallback(
+    (rows: ExerciseHistoryRow[]): ExerciseOption[] =>
+      rows
+        .map((row) => ({
+          id: row.id,
+          name: resolveExerciseName(row, language),
+          exercise: row.exercise,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, language)),
+    [language],
+  )
+
+  return useQuery<ExerciseHistoryRow[], Error, ExerciseOption[]>({
     queryKey: ["exercise-history"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,14 +84,13 @@ export function useExerciseHistory() {
       )
       const catalogById = new Map(catalog.map((row) => [row.id, row] as const))
 
-      return ids
-        .map((id) => ({
-          id,
-          name: snapshotById.get(id) ?? "",
-          exercise: catalogById.get(id) ?? null,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
+      return ids.map((id) => ({
+        id,
+        exercise: catalogById.get(id) ?? null,
+        exercise_name_snapshot: snapshotById.get(id) ?? "",
+      }))
     },
+    select: toOptions,
     enabled: !!user,
   })
 }

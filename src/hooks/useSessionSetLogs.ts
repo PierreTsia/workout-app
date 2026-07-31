@@ -11,7 +11,10 @@ export function useSessionSetLogs(sessionId: string | null) {
         .from("set_logs")
         .select(`*, exercise:exercises(${LABEL_EXERCISE_SELECT})`)
         .eq("session_id", sessionId!)
-        .order("exercise_name_snapshot")
+        // Chronological, not alphabetical: the snapshot is a frozen French name,
+        // so ordering on it made the session read differently per locale — and
+        // it can't order a list whose labels are resolved at render (T150).
+        .order("logged_at")
         .order("set_number")
 
       if (error) throw error

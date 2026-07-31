@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { useSessionBlockMeta } from "@/hooks/useSessionBlockMeta"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
 import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
@@ -16,6 +17,7 @@ import type { Session, SetLog } from "@/types/database"
 
 function SessionSetLogs({ sessionId }: { sessionId: string }) {
   const { t } = useTranslation("history")
+  const { exerciseName } = useCatalogLabels()
   const { formatWeight } = useWeightUnit()
   const { data: logs, isLoading } = useSessionSetLogs(sessionId)
   const [openCircuit, setOpenCircuit] = useState<BlockHistoryGroup | null>(null)
@@ -49,7 +51,9 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
           />
         ) : (
           <div key={item.key}>
-            <p className="mb-1 text-xs font-semibold text-foreground">{item.name}</p>
+            <p className="mb-1 text-xs font-semibold text-foreground">
+              {exerciseName(item)}
+            </p>
             <div className="grid grid-cols-[2rem_1fr_1fr_1fr_auto] gap-x-2 gap-y-0.5 text-xs">
               <span className="text-muted-foreground">#</span>
               <span className="text-muted-foreground">{t("workout:reps", { defaultValue: "Reps" })}</span>

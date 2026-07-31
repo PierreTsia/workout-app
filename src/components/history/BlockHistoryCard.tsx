@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Layers, Timer } from "lucide-react"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import {
   isRunComplete,
@@ -39,6 +40,7 @@ export function BlockHistoryCard({
   onOpen?: (group: BlockHistoryGroup) => void
 }) {
   const { t } = useTranslation("history")
+  const { exerciseName } = useCatalogLabels()
   const cells = groupCells(group)
   const completionTime = isRunComplete(cells)
     ? formatSecondsMMSS(runCompletionSeconds(cells))
@@ -81,7 +83,7 @@ export function BlockHistoryCard({
                   className="flex items-center gap-2 text-xs"
                 >
                   <span aria-hidden>{cell.emoji}</span>
-                  <span className="flex-1 truncate">{cell.name}</span>
+                  <span className="flex-1 truncate">{exerciseName(cell)}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {cell.log.duration_seconds != null
                       ? formatSecondsMMSS(cell.log.duration_seconds)
