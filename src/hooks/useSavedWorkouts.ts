@@ -2,13 +2,18 @@ import { useQuery } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
-import type { WorkoutDay, WorkoutExercise } from "@/types/database"
+import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
+import type {
+  ExerciseLabelFields,
+  WorkoutDay,
+  WorkoutExercise,
+} from "@/types/database"
 
 export interface SavedWorkout extends WorkoutDay {
-  workout_exercises: Pick<
+  workout_exercises: (Pick<
     WorkoutExercise,
     "id" | "name_snapshot" | "emoji_snapshot" | "sets" | "reps" | "muscle_snapshot"
-  >[]
+  > & { exercise: ExerciseLabelFields | null })[]
 }
 
 export function useSavedWorkouts() {
@@ -20,7 +25,7 @@ export function useSavedWorkouts() {
       const { data, error } = await supabase
         .from("workout_days")
         .select(
-          "*, workout_exercises(id, name_snapshot, emoji_snapshot, sets, reps, muscle_snapshot)",
+          `*, workout_exercises(id, name_snapshot, emoji_snapshot, sets, reps, muscle_snapshot, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
         )
         .not("saved_at", "is", null)
         .is("program_id", null)

@@ -4,7 +4,14 @@ import type { Exercise } from "@/types/database"
 /** PostgREST URL limits — keep chunks conservative. */
 export const FETCH_EXERCISES_BY_IDS_CHUNK_SIZE = 100
 
-export async function fetchExercisesByIds(ids: string[]): Promise<Exercise[]> {
+/**
+ * Chunked catalog lookup by id. `select` narrows the projection for callers that
+ * only need a label rather than the whole row — see `LABEL_EXERCISE_SELECT`.
+ */
+export async function fetchExercisesByIds<T = Exercise>(
+  ids: string[],
+  select: string = "*",
+): Promise<T[]> {
   const unique = [...new Set(ids.filter(Boolean))]
   if (unique.length === 0) return []
 
@@ -22,12 +29,12 @@ export async function fetchExercisesByIds(ids: string[]): Promise<Exercise[]> {
     chunks.map(async (chunk) => {
       const { data, error } = await supabase
         .from("exercises")
-        .select("*")
+        .select(select)
         .in("id", chunk)
       if (error) throw error
       return data ?? []
     }),
   )
 
-  return rows.flat() as Exercise[]
+  return rows.flat() as T[]
 }

@@ -35,3 +35,15 @@ export const SLIM_EXERCISE_SELECT =
  */
 export const FULL_EXERCISE_SELECT =
   "id, name, name_en, emoji, muscle_group, equipment, image_url, difficulty_level, is_system, measurement_type, default_duration_seconds, secondary_muscles, instructions, youtube_url, source, reviewed_at, reviewed_by, created_at"
+
+/**
+ * Smallest projection that can render a localized label (ADR 0010): the name
+ * pair plus the two taxonomy values `useCatalogLabels` translates.
+ *
+ * For embeds on rows that only need a *label*, not the exercise itself — set
+ * logs, saved-workout lists, program detail. These are long lists, so the cost
+ * of every extra column is paid per row; prefer this over FULL unless the
+ * consumer genuinely reads instructions, media or admin metadata.
+ */
+export const LABEL_EXERCISE_SELECT =
+  "id, name, name_en, muscle_group, equipment, emoji"
