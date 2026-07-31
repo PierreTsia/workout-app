@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft, Pencil } from "lucide-react"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
@@ -24,6 +25,7 @@ export function ExerciseLibraryExercisePage() {
   const { t } = useTranslation("library")
   const { t: tBuilder } = useTranslation("builder")
   const { t: tWorkout } = useTranslation("workout")
+  const { catalogName, muscleLabel, equipmentLabel } = useCatalogLabels()
   const { exerciseId } = useParams<{ exerciseId: string }>()
   const [addOpen, setAddOpen] = useState(false)
 
@@ -73,7 +75,9 @@ export function ExerciseLibraryExercisePage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight">{exercise.name}</h1>
+          <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight">
+            {catalogName(exercise)}
+          </h1>
         </div>
 
         <div
@@ -109,10 +113,10 @@ export function ExerciseLibraryExercisePage() {
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Badge variant="default" className="text-xs font-normal">
-              {exercise.muscle_group}
+              {muscleLabel(exercise.muscle_group)}
             </Badge>
             <Badge variant="secondary" className="text-xs font-normal">
-              {exercise.equipment}
+              {equipmentLabel(exercise.equipment)}
             </Badge>
             {exercise.difficulty_level && (
               <Badge

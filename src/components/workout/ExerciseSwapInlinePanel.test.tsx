@@ -99,6 +99,34 @@ describe("ExerciseSwapInlinePanel", () => {
     expect(onSwapBrowseLibrary).toHaveBeenCalledWith(ROW)
   })
 
+  // The pool is filtered on `muscle_group`, so a row frozen with a spelling the
+  // taxonomy never had would offer zero candidates if the snapshot were used.
+  it("finds same-muscle candidates for a row whose snapshot predates the taxonomy", () => {
+    renderWithProviders(
+      <ExerciseSwapInlinePanel
+        exercise={{
+          ...ROW,
+          muscle_snapshot: "Chest",
+          exercise: {
+            id: "bench",
+            name: "Développé couché",
+            name_en: "Bench Press",
+            muscle_group: "Pectoraux",
+            equipment: "barbell",
+            emoji: "🏋️",
+          },
+        }}
+        exercisePool={POOL}
+        currentExerciseIds={["bench"]}
+        onSwapExerciseChosen={vi.fn()}
+        onSwapBrowseLibrary={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: /pec fly/i })).toBeInTheDocument()
+  })
+
   it("calls onSwapExerciseChosen and onDismiss when a same-muscle candidate is picked", async () => {
     const user = userEvent.setup()
     const onSwapExerciseChosen = vi.fn()

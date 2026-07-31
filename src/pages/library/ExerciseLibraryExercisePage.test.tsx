@@ -46,12 +46,12 @@ vi.mock("@/components/library/AddExerciseToDaySheet", () => ({
   AddExerciseToDaySheet: () => <div data-testid="add-sheet-mock" />,
 }))
 
-function renderAt(path: string) {
+function renderAt(path: string, locale: "en" | "fr" = "en") {
   return renderWithProviders(
     <Routes>
       <Route path="/library/exercises/:exerciseId" element={<ExerciseLibraryExercisePage />} />
     </Routes>,
-    { initialEntries: [path] },
+    { initialEntries: [path], locale },
   )
 }
 
@@ -84,7 +84,7 @@ describe("ExerciseLibraryExercisePage", () => {
 
   it("renders exercise detail and add CTA", async () => {
     mockUseExerciseFromLibrary.mockReturnValue({
-      data: stubExercise({ name: "Bench Press" }),
+      data: stubExercise({ name: "Développé couché", name_en: "Bench Press" }),
       isLoading: false,
     })
     const user = userEvent.setup()
@@ -95,6 +95,40 @@ describe("ExerciseLibraryExercisePage", () => {
 
     await user.click(screen.getByRole("button", { name: /add to session/i }))
     expect(screen.getByTestId("add-sheet-mock")).toBeInTheDocument()
+  })
+
+  it.each([
+    ["en", "Bench Press", "Chest", "Barbell"],
+    ["fr", "Développé couché", "Pectoraux", "Barre"],
+  ] as const)(
+    "labels the exercise, its muscle and its equipment in %s",
+    (locale, name, muscle, equipment) => {
+      mockUseExerciseFromLibrary.mockReturnValue({
+        data: stubExercise({
+          name: "Développé couché",
+          name_en: "Bench Press",
+          muscle_group: "Pectoraux",
+          equipment: "barbell",
+        }),
+        isLoading: false,
+      })
+      renderAt(`/library/exercises/${VALID_ID}`, locale)
+
+      expect(screen.getByRole("heading", { name })).toBeInTheDocument()
+      expect(screen.getByText(muscle)).toBeInTheDocument()
+      expect(screen.getByText(equipment)).toBeInTheDocument()
+    },
+  )
+
+  it("renders a muscle value that predates the taxonomy as-is", () => {
+    mockUseExerciseFromLibrary.mockReturnValue({
+      // No `muscles.*` key will ever match this one.
+      data: stubExercise({ muscle_group: "Deltoïdes post." }),
+      isLoading: false,
+    })
+    renderAt(`/library/exercises/${VALID_ID}`)
+
+    expect(screen.getByText("Deltoïdes post.")).toBeInTheDocument()
   })
 
   it("renders feedback trigger for content issues", () => {

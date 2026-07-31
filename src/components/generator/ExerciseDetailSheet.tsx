@@ -7,6 +7,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { InstructionSection } from "@/components/exercise/InstructionSection"
 import { getYouTubeEmbedUrl } from "@/lib/youtube"
@@ -25,6 +26,7 @@ export function ExerciseDetailSheet({
   onOpenChange,
 }: ExerciseDetailSheetProps) {
   const { t } = useTranslation("exercise")
+  const { catalogName, muscleLabel, equipmentLabel } = useCatalogLabels()
 
   if (!exercise) return null
 
@@ -41,15 +43,15 @@ export function ExerciseDetailSheet({
           />
           <SheetTitle className="flex items-center gap-2">
             <span className="text-xl">{exercise.emoji}</span>
-            {exercise.name}
+            {catalogName(exercise)}
           </SheetTitle>
           <SheetDescription className="flex items-center gap-2">
             <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-              {exercise.muscle_group}
+              {muscleLabel(exercise.muscle_group)}
             </span>
             {exercise.equipment && (
               <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                {exercise.equipment}
+                {equipmentLabel(exercise.equipment)}
               </span>
             )}
           </SheetDescription>
@@ -101,7 +103,7 @@ export function ExerciseDetailSheet({
               >
                 <iframe
                   src={embedUrl}
-                  title={exercise.name}
+                  title={catalogName(exercise)}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="absolute inset-0 h-full w-full"

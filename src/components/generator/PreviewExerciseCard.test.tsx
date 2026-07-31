@@ -65,7 +65,7 @@ describe("PreviewExerciseCard", () => {
   it("renders exercise name, muscle group, and sets×reps", () => {
     setup()
     expect(screen.getByText("Bench Press")).toBeInTheDocument()
-    expect(screen.getByText("Pectoraux")).toBeInTheDocument()
+    expect(screen.getByText("Chest")).toBeInTheDocument()
     expect(screen.getByText("3 × 10")).toBeInTheDocument()
   })
 

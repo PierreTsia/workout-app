@@ -21,7 +21,7 @@ interface ExerciseRowProps {
 export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
   const { t } = useTranslation("builder")
   const { formatWeight } = useWeightUnit()
-  const { exerciseName } = useCatalogLabels()
+  const { exerciseName, muscleLabel } = useCatalogLabels()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const {
     attributes,
@@ -69,7 +69,8 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
         </div>
         <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
           <span>
-            {exercise.muscle_snapshot} &middot; {summary}
+            {muscleLabel(libExercise?.muscle_group ?? exercise.muscle_snapshot)}{" "}
+            &middot; {summary}
           </span>
           <span className="inline-flex items-center gap-0.5">
             &middot; <Timer className="h-3 w-3" />

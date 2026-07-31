@@ -1,7 +1,7 @@
-import type { TFunction } from "i18next"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown } from "lucide-react"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { formatCompactNumber } from "@/lib/formatters"
 import type { VolumeByMuscleRow } from "@/lib/volumeByMuscleGroup"
 import {
@@ -20,10 +20,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-function muscleLabel(t: TFunction<"catalog">, key: string) {
-  return t(`muscles.${key}`)
-}
-
 interface MuscleBreakdownTableProps {
   muscles: readonly VolumeByMuscleRow[]
   className?: string
@@ -34,7 +30,7 @@ export function MuscleBreakdownTable({
   className,
 }: MuscleBreakdownTableProps) {
   const { t, i18n } = useTranslation("history")
-  const { t: tCatalog } = useTranslation("catalog")
+  const { muscleLabel } = useCatalogLabels()
   const [open, setOpen] = useState(false)
 
   const totalSets = useMemo(
@@ -105,7 +101,7 @@ export function MuscleBreakdownTable({
             {rows.map((m) => (
               <TableRow key={m.muscle_group}>
                 <TableCell className="font-medium">
-                  {muscleLabel(tCatalog, m.muscle_group)}
+                  {muscleLabel(m.muscle_group)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmtSets.format(m.total_sets)}

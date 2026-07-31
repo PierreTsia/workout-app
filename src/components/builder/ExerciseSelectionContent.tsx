@@ -174,18 +174,20 @@ export function ExerciseSelectionList({
   state: ExerciseSelectionState
 }) {
   const { t, selectedIds, toggleSelected, grouped } = state
-  const { catalogName } = useCatalogLabels()
+  const { catalogName, muscleLabel } = useCatalogLabels()
 
   return (
     <>
       <CommandEmpty>{t("noExercisesFound")}</CommandEmpty>
       {grouped &&
         Object.entries(grouped).map(([muscle, exList]) => (
-          <CommandGroup key={muscle} heading={muscle}>
+          <CommandGroup key={muscle} heading={muscleLabel(muscle)}>
             {exList.map((ex) => (
               <CommandItem
                 key={ex.id}
-                value={`${ex.name} ${ex.name_en ?? ""} ${ex.muscle_group}`}
+                // Both spellings of both fields, so searching matches what the
+                // reader sees *and* what a French user has always typed.
+                value={`${ex.name} ${ex.name_en ?? ""} ${ex.muscle_group} ${muscleLabel(ex.muscle_group)}`}
                 onSelect={() => {}}
                 className="flex items-center justify-between gap-2"
               >

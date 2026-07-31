@@ -56,11 +56,11 @@ describe("ExerciseAddPicker", () => {
     expect(screen.getByText("Barbell Row")).toBeInTheDocument()
   })
 
-  it("groups exercises by muscle group", () => {
+  it("groups exercises by muscle group, under translated headings", () => {
     setup()
-    expect(screen.getByText("Pectoraux")).toBeInTheDocument()
+    expect(screen.getByText("Chest")).toBeInTheDocument()
     expect(screen.getByText("Biceps")).toBeInTheDocument()
-    expect(screen.getByText("Dos")).toBeInTheDocument()
+    expect(screen.getByText("Back")).toBeInTheDocument()
   })
 
   it("filters exercises by search term", async () => {

@@ -83,7 +83,7 @@ export function ExerciseDetailForm({
 }: ExerciseDetailFormProps) {
   const { t } = useTranslation("builder")
   const { unit, toDisplay, toKg } = useWeightUnit()
-  const { exerciseName } = useCatalogLabels()
+  const { exerciseName, muscleLabel } = useCatalogLabels()
   const updateExercise = useUpdateExercise()
 
   const [form, setForm] = useState<FormState>(() =>
@@ -164,7 +164,7 @@ export function ExerciseDetailForm({
               {exerciseName(exercise)}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {exercise.muscle_snapshot}
+              {muscleLabel(libExercise?.muscle_group ?? exercise.muscle_snapshot)}
             </p>
           </div>
         </div>

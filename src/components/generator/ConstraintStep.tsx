@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { publicSite } from "@/lib/publicSite"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import {
   AI_FOCUS_AREAS_MAX_LENGTH,
   isFocusAreasTooLong,
@@ -39,6 +40,7 @@ export function ConstraintStep({
   isLoading,
 }: ConstraintStepProps) {
   const { t } = useTranslation("generator")
+  const { muscleLabel } = useCatalogLabels()
   const { data: filterOptions } = useExerciseFilterOptions()
   const muscleGroups = filterOptions?.muscle_groups ?? []
 
@@ -155,7 +157,7 @@ export function ConstraintStep({
                 !isFullBody && constraints.muscleGroups.includes(mg),
               )}
             >
-              {mg}
+              {muscleLabel(mg)}
             </button>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { X, ArrowLeftRight, CircleHelp } from "lucide-react"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { Button } from "@/components/ui/button"
 import type { GeneratedExercise } from "@/types/generator"
 
@@ -23,6 +24,7 @@ export function PreviewExerciseCard({
   onUpdateReps,
 }: PreviewExerciseCardProps) {
   const { t } = useTranslation("generator")
+  const { catalogName, muscleLabel } = useCatalogLabels()
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
@@ -41,13 +43,13 @@ export function PreviewExerciseCard({
           onClick={() => onInfo(index)}
         >
           <span className="truncate text-sm font-medium">
-            {item.exercise.name}
+            {catalogName(item.exercise)}
           </span>
           <CircleHelp className="h-4 w-4 shrink-0 text-primary" />
         </button>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded bg-muted px-1.5 py-0.5">
-            {item.exercise.muscle_group}
+            {muscleLabel(item.exercise.muscle_group)}
           </span>
           <span>{item.isCompound ? t("compound") : t("isolation")}</span>
         </div>

@@ -7,6 +7,7 @@ import { Bookmark, Play, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { sessionAtom, isQuickWorkoutAtom } from "@/store/atoms"
 import {
   useSavedWorkouts,
@@ -98,9 +99,18 @@ function SavedWorkoutCard({
   isPending: boolean
 }) {
   const { t } = useTranslation("library")
+  const { muscleLabel } = useCatalogLabels()
 
+  // Deduplicated on the rendered label rather than on the stored value: this
+  // list only answers "which muscles does this workout hit", and two rows can
+  // reach the same label from different spellings — a frozen "Chest" and a
+  // canonical "Pectoraux" both read "Chest" for an English reader.
   const muscles = [
-    ...new Set(workout.workout_exercises.map((e) => e.muscle_snapshot)),
+    ...new Set(
+      workout.workout_exercises.map((e) =>
+        muscleLabel(e.exercise?.muscle_group ?? e.muscle_snapshot),
+      ),
+    ),
   ]
 
   return (
