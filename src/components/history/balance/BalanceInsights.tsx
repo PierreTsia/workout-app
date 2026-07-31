@@ -1,17 +1,12 @@
-import type { TFunction } from "i18next"
 import { useTranslation } from "react-i18next"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import {
   type BalanceBand,
-  type MuscleTaxonomy,
   type PairInsight,
   zeroVolumeMuscles,
 } from "@/lib/trainingBalance"
 import type { VolumeByMuscleRow } from "@/lib/volumeByMuscleGroup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-function muscleLabel(t: TFunction<"catalog">, m: MuscleTaxonomy) {
-  return t(`muscles.${m}`)
-}
 
 interface BalanceInsightsProps {
   band: BalanceBand
@@ -25,7 +20,7 @@ export function BalanceInsights({
   muscles,
 }: BalanceInsightsProps) {
   const { t } = useTranslation("history")
-  const { t: tCatalog } = useTranslation("catalog")
+  const { muscleLabel } = useCatalogLabels()
 
   const untrainedFocus = new Set(
     pairInsights
@@ -49,19 +44,19 @@ export function BalanceInsights({
           <p key={insight.pairName} className="border-l-2 border-primary/40 pl-3">
             {insight.kind === "untrained"
               ? t("balance.insightUntrained", {
-                  weak: muscleLabel(tCatalog, insight.focusMuscle),
-                  strong: muscleLabel(tCatalog, insight.otherMuscle),
+                  weak: muscleLabel(insight.focusMuscle),
+                  strong: muscleLabel(insight.otherMuscle),
                 })
               : t("balance.insightSkewed", {
-                  strong: muscleLabel(tCatalog, insight.focusMuscle),
-                  weak: muscleLabel(tCatalog, insight.otherMuscle),
+                  strong: muscleLabel(insight.focusMuscle),
+                  weak: muscleLabel(insight.otherMuscle),
                 })}
           </p>
         ))}
 
         {extraZeros.map((m) => (
           <p key={m} className="border-l-2 border-muted-foreground/30 pl-3">
-            {t("balance.zeroVolume", { muscle: muscleLabel(tCatalog, m) })}
+            {t("balance.zeroVolume", { muscle: muscleLabel(m) })}
           </p>
         ))}
       </CardContent>

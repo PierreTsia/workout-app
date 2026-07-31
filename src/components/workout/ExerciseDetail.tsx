@@ -73,7 +73,7 @@ export function ExerciseDetail({
   const { t } = useTranslation("workout")
   const { t: tFeedback } = useTranslation("feedback")
   const { formatWeight } = useWeightUnit()
-  const { exerciseName } = useCatalogLabels()
+  const { exerciseName, muscleLabel } = useCatalogLabels()
   const { data: lastSession } = useLastSession(exercise.exercise_id, sessionStartedAt)
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
@@ -97,7 +97,7 @@ export function ExerciseDetail({
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
             <h2 className="text-xl font-bold">{exerciseName(exercise)}</h2>
             <Badge variant="default" className="w-fit shrink-0 text-xs font-normal">
-              {exercise.muscle_snapshot}
+              {muscleLabel(libExercise?.muscle_group ?? exercise.muscle_snapshot)}
             </Badge>
           </div>
           <DropdownMenu>
@@ -216,7 +216,9 @@ export function ExerciseDetail({
         onOpenChange={setHistoryOpen}
         exerciseId={exercise.exercise_id}
         exerciseName={exerciseName(exercise)}
-        muscleLabel={exercise.muscle_snapshot}
+        muscleLabel={muscleLabel(
+          libExercise?.muscle_group ?? exercise.muscle_snapshot,
+        )}
         bodyMapMuscleGroup={libExercise?.muscle_group ?? exercise.muscle_snapshot}
         emojiSnapshot={exercise.emoji_snapshot}
         imageUrl={libExercise?.image_url}

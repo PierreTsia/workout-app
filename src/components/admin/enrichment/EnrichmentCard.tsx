@@ -6,6 +6,7 @@ import { Copy, Check, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ImageDropZone } from "@/components/admin/enrichment/ImageDropZone"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { uploadExerciseImage } from "@/lib/imageUpload"
 import { buildImagePrompt } from "@/lib/imagePrompt"
 import { supabase } from "@/lib/supabase"
@@ -19,6 +20,7 @@ interface EnrichmentCardProps {
 export function EnrichmentCard({ exercise }: EnrichmentCardProps) {
   const queryClient = useQueryClient()
   const user = useAtomValue(authAtom)
+  const { muscleLabel, equipmentLabel } = useCatalogLabels()
   const [copied, setCopied] = useState(false)
 
   const mutation = useMutation({
@@ -65,7 +67,8 @@ export function EnrichmentCard({ exercise }: EnrichmentCardProps) {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-semibold leading-tight">{exercise.name}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {exercise.muscle_group} · {exercise.equipment}
+            {muscleLabel(exercise.muscle_group)} ·{" "}
+            {equipmentLabel(exercise.equipment)}
           </p>
         </div>
       </div>

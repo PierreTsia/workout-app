@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Info, Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -37,6 +38,7 @@ export function SwapExerciseSheet({
 }: SwapExerciseSheetProps) {
   const { t } = useTranslation("workout")
   const { t: tBuilder } = useTranslation("builder")
+  const { catalogName, muscleLabel } = useCatalogLabels()
 
   const [searchInput, setSearchInput] = useState("")
   const [searchDebounced, setSearchDebounced] = useState("")
@@ -177,7 +179,7 @@ export function SwapExerciseSheet({
               {[...grouped.entries()].map(([group, exercises]) => (
                 <div key={group}>
                   <span className="sticky top-0 z-10 block bg-background px-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {group}
+                    {muscleLabel(group)}
                   </span>
                   {exercises.map((exercise) => (
                     <div key={exercise.id} className="flex items-center gap-1">
@@ -194,7 +196,9 @@ export function SwapExerciseSheet({
                           emoji={exercise.emoji}
                           className="h-7 w-7 rounded"
                         />
-                        <span className="truncate">{exercise.name}</span>
+                        <span className="truncate">
+                          {catalogName(exercise)}
+                        </span>
                       </button>
                       <button
                         type="button"

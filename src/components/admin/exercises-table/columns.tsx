@@ -5,7 +5,19 @@ import type { Exercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
-export function getColumns(t: (key: string) => string): ColumnDef<Exercise>[] {
+/**
+ * Passed in rather than read from `useCatalogLabels` here: this is a plain
+ * factory, not a component, so the hook has to stay at the table level.
+ */
+interface CatalogLabels {
+  muscleLabel: (value: string | null | undefined) => string
+  equipmentLabel: (slug: string | null | undefined) => string
+}
+
+export function getColumns(
+  t: (key: string) => string,
+  { muscleLabel, equipmentLabel }: CatalogLabels,
+): ColumnDef<Exercise>[] {
   return [
     {
       accessorKey: "name",
@@ -42,7 +54,7 @@ export function getColumns(t: (key: string) => string): ColumnDef<Exercise>[] {
       ),
       cell: ({ row }) => (
         <Badge variant="secondary" className="text-xs">
-          {row.original.muscle_group}
+          {muscleLabel(row.original.muscle_group)}
         </Badge>
       ),
     },
@@ -61,7 +73,7 @@ export function getColumns(t: (key: string) => string): ColumnDef<Exercise>[] {
       ),
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {row.original.equipment || "—"}
+          {equipmentLabel(row.original.equipment) || "—"}
         </span>
       ),
     },

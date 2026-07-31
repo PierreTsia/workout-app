@@ -7,6 +7,7 @@ import { Bookmark, Play, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { sessionAtom, isQuickWorkoutAtom } from "@/store/atoms"
 import {
   useSavedWorkouts,
@@ -98,9 +99,16 @@ function SavedWorkoutCard({
   isPending: boolean
 }) {
   const { t } = useTranslation("library")
+  const { muscleLabel } = useCatalogLabels()
 
+  // Deduplicate on the canonical value, not on the snapshot: two rows for the
+  // same muscle can hold different frozen spellings and would show up twice.
   const muscles = [
-    ...new Set(workout.workout_exercises.map((e) => e.muscle_snapshot)),
+    ...new Set(
+      workout.workout_exercises.map(
+        (e) => e.exercise?.muscle_group ?? e.muscle_snapshot,
+      ),
+    ),
   ]
 
   return (
@@ -131,7 +139,7 @@ function SavedWorkoutCard({
         <div className="flex flex-wrap gap-1">
           {muscles.map((m) => (
             <Badge key={m} variant="secondary" className="text-[10px]">
-              {m}
+              {muscleLabel(m)}
             </Badge>
           ))}
         </div>

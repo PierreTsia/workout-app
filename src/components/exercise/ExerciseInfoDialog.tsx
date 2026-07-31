@@ -2,6 +2,7 @@ import { Activity, AlertTriangle, Info, Pencil, Settings2, Wind } from "lucide-r
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import type { Exercise } from "@/types/database"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 import { ExerciseThumbnail } from "./ExerciseThumbnail"
 import {
@@ -21,6 +22,7 @@ interface ExerciseInfoDialogProps {
 
 export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
   const { t } = useTranslation("exercise")
+  const { catalogName } = useCatalogLabels()
 
   const hasInstructions =
     exercise.instructions &&
@@ -50,7 +52,7 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ExerciseThumbnail imageUrl={exercise.image_url} emoji={exercise.emoji} className="h-8 w-8" />
-            {exercise.name}
+            {catalogName(exercise)}
             <AdminOnly>
               <Link
                 to={`/admin/exercises/${exercise.id}`}

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import type { Exercise } from "@/types/database"
 import { normalizeForSearch } from "@/lib/search"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { getColumns } from "./columns"
 import { DataTableToolbar } from "./DataTableToolbar"
 import { DataTablePagination } from "./DataTablePagination"
@@ -41,12 +42,18 @@ interface DataTableProps {
 
 export function DataTable({ data }: DataTableProps) {
   const { t } = useTranslation("admin")
+  const { muscleLabel, equipmentLabel } = useCatalogLabels()
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [reviewFilter, setReviewFilter] = useState("all")
 
-  const columns = useMemo(() => getColumns(t), [t])
+  // Sorting and the search index stay on the canonical values behind the
+  // `accessorKey`s, so only the rendered cells follow the reader's locale.
+  const columns = useMemo(
+    () => getColumns(t, { muscleLabel, equipmentLabel }),
+    [t, muscleLabel, equipmentLabel],
+  )
 
   const reviewedCount = useMemo(
     () => data.filter((e) => e.reviewed_at).length,

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Search } from "lucide-react"
 import { cn, groupBy } from "@/lib/utils"
 import { normalizeForSearch } from "@/lib/search"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { Input } from "@/components/ui/input"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import type { ExerciseListItem } from "@/types/database"
@@ -21,6 +22,7 @@ export function ExerciseAddPicker({
   onClose,
 }: ExerciseAddPickerProps) {
   const { t } = useTranslation("generator")
+  const { catalogName, muscleLabel } = useCatalogLabels()
   const [search, setSearch] = useState("")
 
   const candidates = useMemo(() => {
@@ -73,7 +75,7 @@ export function ExerciseAddPicker({
           {[...grouped.entries()].map(([group, exercises]) => (
             <div key={group}>
               <span className="sticky top-0 block bg-card px-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {group}
+                {muscleLabel(group)}
               </span>
               {exercises.map((exercise) => (
                 <button
@@ -89,7 +91,7 @@ export function ExerciseAddPicker({
                     emoji={exercise.emoji}
                     className="h-7 w-7 rounded"
                   />
-                  <span className="truncate">{exercise.name}</span>
+                  <span className="truncate">{catalogName(exercise)}</span>
                 </button>
               ))}
             </div>

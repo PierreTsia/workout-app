@@ -4,10 +4,11 @@ import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ExerciseFilterPanel } from "./ExerciseFilterPanel"
 
+/** Canonical values, as the filter options RPC returns them. */
 const MUSCLE_GROUPS = ["Abdos", "Biceps", "Dos", "Pectoraux"]
 const EQUIPMENT = ["barbell", "bodyweight", "dumbbell", "machine"]
 
-function renderPanel(overrides = {}) {
+function renderPanel(overrides = {}, locale: "en" | "fr" = "en") {
   const defaultProps = {
     muscleGroups: MUSCLE_GROUPS,
     equipmentTypes: EQUIPMENT,
@@ -20,15 +21,24 @@ function renderPanel(overrides = {}) {
     onDifficultyChange: vi.fn(),
     ...overrides,
   }
-  const result = renderWithProviders(<ExerciseFilterPanel {...defaultProps} />)
+  const result = renderWithProviders(<ExerciseFilterPanel {...defaultProps} />, {
+    locale,
+  })
   return { ...result, ...defaultProps }
 }
 
 describe("ExerciseFilterPanel", () => {
-  it("renders muscle group pills", () => {
+  it("renders muscle group pills with translated labels", () => {
     renderPanel()
-    for (const group of MUSCLE_GROUPS) {
-      expect(screen.getByRole("button", { name: group })).toBeInTheDocument()
+    for (const label of ["Abs", "Biceps", "Back", "Chest"]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
+    }
+  })
+
+  it("labels muscle pills in French for a French reader", () => {
+    renderPanel({}, "fr")
+    for (const label of MUSCLE_GROUPS) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
     }
   })
 
@@ -40,11 +50,13 @@ describe("ExerciseFilterPanel", () => {
     expect(screen.getByRole("button", { name: "Bodyweight" })).toBeInTheDocument()
   })
 
-  it("calls onMuscleGroupChange when a muscle group is clicked", async () => {
+  // The point of the ticket: the label is translated, the value sent back to
+  // the query never is.
+  it("filters on the canonical value behind a translated pill", async () => {
     const { onMuscleGroupChange } = renderPanel()
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
     expect(onMuscleGroupChange).toHaveBeenCalledWith("Pectoraux")
   })
 
@@ -54,7 +66,7 @@ describe("ExerciseFilterPanel", () => {
     })
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
     expect(onMuscleGroupChange).toHaveBeenCalledWith(null)
   })
 
@@ -88,8 +100,15 @@ describe("ExerciseFilterPanel", () => {
 
   it("applies active style to selected muscle group", () => {
     renderPanel({ selectedMuscleGroup: "Dos" })
-    const btn = screen.getByRole("button", { name: "Dos" })
+    const btn = screen.getByRole("button", { name: "Back" })
     expect(btn.className).toContain("bg-primary")
+  })
+
+  it("renders a muscle value outside the taxonomy as-is", () => {
+    renderPanel({ muscleGroups: ["Ischios / Bas du dos"] })
+    expect(
+      screen.getByRole("button", { name: "Ischios / Bas du dos" }),
+    ).toBeInTheDocument()
   })
 
   it("applies active style to selected equipment", () => {

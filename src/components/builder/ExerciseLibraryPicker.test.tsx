@@ -233,7 +233,7 @@ describe("ExerciseLibraryPicker", () => {
 
     await user.click(screen.getByLabelText("Filters"))
     expect(screen.getByRole("button", { name: "Barbell" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Pectoraux" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Chest" })).toBeInTheDocument()
   })
 
   it("filters by equipment when a pill is selected", async () => {
@@ -253,7 +253,7 @@ describe("ExerciseLibraryPicker", () => {
     const user = userEvent.setup()
 
     await user.click(screen.getByLabelText("Filters"))
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
 
     expect(screen.getByText("Bench Press")).toBeInTheDocument()
     expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
@@ -317,7 +317,7 @@ describe("ExerciseLibraryPicker", () => {
     const user = userEvent.setup()
 
     await user.click(screen.getByLabelText("Filters"))
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
     await user.click(screen.getByRole("button", { name: "Dumbbell" }))
 
     expect(screen.getByText("Dumbbell Fly")).toBeInTheDocument()
@@ -434,7 +434,7 @@ describe("ExerciseLibraryPicker", () => {
     ).toBeInTheDocument()
 
     await user.click(screen.getByLabelText("Filters"))
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
 
     expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
     expect(
@@ -505,7 +505,7 @@ describe("ExerciseLibraryPicker", () => {
     ).toBeInTheDocument()
 
     await user.click(screen.getByLabelText("Filters"))
-    await user.click(screen.getByRole("button", { name: "Pectoraux" }))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
 
     expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
     expect(

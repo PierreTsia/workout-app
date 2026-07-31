@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { ArrowLeft, Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import type { Exercise } from "@/types/database"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -19,6 +20,7 @@ const SEARCH_DEBOUNCE_MS = 300
 export function ExerciseLibraryPage() {
   const { t } = useTranslation("library")
   const { t: tBuilder } = useTranslation("builder")
+  const { catalogName, muscleLabel, equipmentLabel } = useCatalogLabels()
   const navigate = useNavigate()
 
   const [searchInput, setSearchInput] = useState("")
@@ -157,7 +159,8 @@ export function ExerciseLibraryPage() {
               <CommandEmpty>{tBuilder("noExercisesFound")}</CommandEmpty>
               {grouped &&
                 Object.entries(grouped).map(([muscle, exList]) => (
-                  <CommandGroup key={muscle} heading={muscle}>
+                  // Keyed and grouped on the canonical value, headed by its label.
+                  <CommandGroup key={muscle} heading={muscleLabel(muscle)}>
                     {exList.map((ex) => (
                       <CommandItem
                         key={ex.id}
@@ -171,10 +174,12 @@ export function ExerciseLibraryPage() {
                           className="mr-3 h-16 w-16 shrink-0 rounded-lg"
                         />
                         <div className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className="truncate font-medium">{ex.name}</span>
+                          <span className="truncate font-medium">
+                            {catalogName(ex)}
+                          </span>
                           <div className="flex flex-wrap items-center gap-1.5">
                             <Badge variant="secondary" className="w-fit text-xs font-normal">
-                              {ex.equipment}
+                              {equipmentLabel(ex.equipment)}
                             </Badge>
                             {ex.difficulty_level && (
                               <Badge

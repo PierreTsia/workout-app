@@ -10,6 +10,7 @@ import { ExerciseEditForm } from "@/components/admin/exercise-form/ExerciseEditF
 import { ExerciseReviewToolbar } from "@/components/admin/review/ExerciseReviewToolbar"
 import { fromFormValues } from "@/components/admin/exercise-form/transforms"
 import { useAdminUpdateExercise } from "@/hooks/useAdminUpdateExercise"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import {
   useExercisesForReview,
   useReviewTotalCount,
@@ -19,6 +20,7 @@ import type { ExerciseFormValues } from "@/components/admin/exercise-form/schema
 
 export function AdminReviewPage() {
   const { t } = useTranslation("admin")
+  const { muscleLabel, equipmentLabel } = useCatalogLabels()
   const queryClient = useQueryClient()
   const { data: exercises, isLoading } = useExercisesForReview()
   const { data: totalCount } = useReviewTotalCount()
@@ -112,7 +114,8 @@ export function AdminReviewPage() {
                     {exercise!.name}
                   </h2>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {exercise!.muscle_group} · {exercise!.equipment}
+                    {muscleLabel(exercise!.muscle_group)} ·{" "}
+                    {equipmentLabel(exercise!.equipment)}
                   </p>
                 </div>
               </div>

@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { cn } from "@/lib/utils"
 
 const DIFFICULTY_ORDER = ["beginner", "intermediate", "advanced"] as const
@@ -28,7 +29,9 @@ export function ExerciseFilterPanel({
   onDifficultyChange,
 }: ExerciseFilterPanelProps) {
   const { t } = useTranslation("builder")
-  const { t: tCatalog } = useTranslation("catalog")
+  // Labels only: every pill keeps the canonical value as its key and as what it
+  // sends back to the filter.
+  const { muscleLabel, equipmentLabel } = useCatalogLabels()
 
   const sortedDifficultyLevels = useMemo(
     () =>
@@ -74,7 +77,7 @@ export function ExerciseFilterPanel({
                 : "border-border bg-background text-muted-foreground hover:bg-accent",
             )}
           >
-            {group}
+            {muscleLabel(group)}
           </button>
         ))}
       </div>
@@ -93,7 +96,7 @@ export function ExerciseFilterPanel({
                 : "border-border bg-background text-muted-foreground hover:bg-accent",
             )}
           >
-            {tCatalog(`equipment.${eq}`)}
+            {equipmentLabel(eq)}
           </button>
         ))}
       </div>

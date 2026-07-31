@@ -48,7 +48,10 @@ export function ExerciseSwapInlinePanel({
           <ExerciseSwapPicker
             pool={exercisePool}
             currentExerciseIds={currentExerciseIds}
-            muscleGroup={ex.muscle_snapshot}
+            // The pool is filtered on the canonical `muscle_group`, so feeding it
+            // a snapshot silently empties the list for any row frozen with a
+            // pre-taxonomy (or English) spelling.
+            muscleGroup={ex.exercise?.muscle_group ?? ex.muscle_snapshot}
             onSelect={(picked) => {
               onSwapExerciseChosen(ex, picked)
               onDismiss()

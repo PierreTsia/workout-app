@@ -55,10 +55,10 @@ describe("ConstraintStep", () => {
     expect(screen.getByText("Full Gym")).toBeInTheDocument()
   })
 
-  it("renders muscle group pills from hook data", () => {
+  it("renders muscle group pills from hook data, translated", () => {
     setup()
-    expect(screen.getByText("Pectoraux")).toBeInTheDocument()
-    expect(screen.getByText("Dos")).toBeInTheDocument()
+    expect(screen.getByText("Chest")).toBeInTheDocument()
+    expect(screen.getByText("Back")).toBeInTheDocument()
     expect(screen.getByText("Biceps")).toBeInTheDocument()
   })
 
@@ -91,10 +91,11 @@ describe("ConstraintStep", () => {
     )
   })
 
+  // Clicked by its English label, constrained by its canonical value.
   it("selects a specific muscle group and deselects full-body", async () => {
     const user = userEvent.setup()
     const { onChange } = setup({ muscleGroups: ["full-body"] })
-    await user.click(screen.getByText("Pectoraux"))
+    await user.click(screen.getByText("Chest"))
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ muscleGroups: ["Pectoraux"] }),
     )
@@ -103,7 +104,7 @@ describe("ConstraintStep", () => {
   it("falls back to full-body when last muscle group is deselected", async () => {
     const user = userEvent.setup()
     const { onChange } = setup({ muscleGroups: ["Pectoraux"] })
-    await user.click(screen.getByText("Pectoraux"))
+    await user.click(screen.getByText("Chest"))
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ muscleGroups: ["full-body"] }),
     )
