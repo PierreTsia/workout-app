@@ -28,6 +28,16 @@ export interface Exercise {
   default_duration_seconds?: number | null
 }
 
+/**
+ * Shape returned by `LABEL_EXERCISE_SELECT` — the columns needed to render a
+ * localized label, nothing more. Embeds are nullable: the catalog row can be
+ * filtered by RLS or simply absent from the payload.
+ */
+export type ExerciseLabelFields = Pick<
+  Exercise,
+  "id" | "name" | "name_en" | "muscle_group" | "equipment" | "emoji"
+>
+
 export interface WorkoutDay {
   id: string
   user_id: string
@@ -179,6 +189,11 @@ export interface Cycle {
   user_id: string
   started_at: string
   finished_at: string | null
+}
+
+/** `set_logs` row carrying the joined catalog label fields (T148). */
+export interface SetLogWithExercise extends SetLog {
+  exercise: ExerciseLabelFields | null
 }
 
 export interface SetLog {

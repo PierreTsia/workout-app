@@ -10,11 +10,20 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
+import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
 import { DayCard } from "@/components/library/DayCard"
 import type { Program } from "@/types/onboarding"
-import type { WorkoutDay, WorkoutExercise } from "@/types/database"
+import type {
+  ExerciseLabelFields,
+  WorkoutDay,
+  WorkoutExercise,
+} from "@/types/database"
 
-type DayWithExercises = WorkoutDay & { workout_exercises: WorkoutExercise[] }
+type DayWithExercises = WorkoutDay & {
+  workout_exercises: (WorkoutExercise & {
+    exercise: ExerciseLabelFields | null
+  })[]
+}
 
 interface ProgramDetailSheetProps {
   program: Program | null
@@ -32,7 +41,9 @@ export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: Prog
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_days")
-        .select("*, workout_exercises(*)")
+        .select(
+          `*, workout_exercises(*, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
+        )
         .eq("program_id", program!.id)
         .order("sort_order")
 
