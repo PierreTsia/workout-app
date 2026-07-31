@@ -9,6 +9,10 @@ import type {
 } from "@/types/database"
 import { SessionRow } from "./SessionRow"
 
+// The circuit sheet pulls in the real client transitively, which throws on
+// import when the env has no Supabase URL — as CI's does.
+vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
+
 const useSessionSetLogs = vi.hoisted(() => vi.fn())
 vi.mock("@/hooks/useSessionSetLogs", () => ({ useSessionSetLogs }))
 
