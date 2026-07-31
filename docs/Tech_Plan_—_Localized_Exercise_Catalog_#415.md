@@ -69,11 +69,11 @@ Nullable et sans défaut **volontairement** : `NULL` signifie « cet utilisateur
 classDiagram
     class UserProfile {
         +string user_id
-        +string|null locale
-        +string|null timezone
+        +string locale_nullable
+        +string timezone_nullable
     }
     class CatalogLabelInput {
-        +string|null name_en
+        +string name_en_nullable
         +string name
         +string muscle_group
         +string equipment
@@ -84,7 +84,7 @@ classDiagram
         +string equipment
     }
     class DisplayLocale {
-        +en|fr value
+        +string value_en_or_fr
     }
     CatalogLabelInput --> ResolvedLabels : resolveExerciseName()
     DisplayLocale --> ResolvedLabels : t(catalog:muscles.*)
