@@ -1,4 +1,5 @@
 import type { ExercisePreviewItem } from "@/lib/sessionSummary"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 
 interface ExerciseListPreviewProps {
@@ -7,6 +8,7 @@ interface ExerciseListPreviewProps {
 
 export function ExerciseListPreview({ items }: ExerciseListPreviewProps) {
   const { formatWeight } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
 
   if (items.length === 0) return null
 
@@ -20,7 +22,7 @@ export function ExerciseListPreview({ items }: ExerciseListPreviewProps) {
           <span className="text-2xl leading-none">{item.emoji}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">
-              {item.name}
+              {exerciseName(item)}
             </p>
             <p className="text-xs text-muted-foreground">
               {item.sets} × {item.reps}
