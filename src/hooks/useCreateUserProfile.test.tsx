@@ -29,20 +29,23 @@ beforeEach(() => {
   single.mockResolvedValue({ data: {}, error: null })
 })
 
-async function createProfileIn(locale: "en" | "fr") {
-  const { result, store } = renderHookWithProviders(
-    () => useCreateUserProfile(),
-    { locale },
-  )
+async function createProfileIn(locale?: "en" | "fr") {
+  const harness = renderHookWithProviders(() => useCreateUserProfile(), {
+    locale,
+  })
   act(() => {
-    store.set(authAtom, { id: "user-1", email: "a@b.c" } as never)
+    harness.store.set(authAtom, { id: "user-1", email: "a@b.c" } as never)
   })
 
+  return harness
+}
+
+async function submitQuestionnaire(
+  harness: Awaited<ReturnType<typeof createProfileIn>>,
+) {
   await act(async () => {
-    await result.current.mutateAsync(INPUT)
+    await harness.result.current.mutateAsync(INPUT)
   })
-
-  return vi.mocked(upsert).mock.calls[0][0] as Record<string, unknown>
 }
 
 describe("useCreateUserProfile", () => {
@@ -51,27 +54,28 @@ describe("useCreateUserProfile", () => {
   it.each(["en", "fr"] as const)(
     "seeds the profile with the onboarding language (%s)",
     async (locale) => {
-      expect(await createProfileIn(locale)).toMatchObject({ locale })
+      await submitQuestionnaire(await createProfileIn(locale))
+
+      expect(upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ locale }),
+        expect.anything(),
+      )
     },
   )
 
   // The column's CHECK only accepts a base subtag, so an unnormalized
   // "en-US" would fail the whole upsert — the profile, not just the language.
   it("normalizes a regional tag before writing it", async () => {
-    const { result, store, i18nInstance } = renderHookWithProviders(() =>
-      useCreateUserProfile(),
+    const harness = await createProfileIn()
+    await act(async () => {
+      await harness.i18nInstance.changeLanguage("en-US")
+    })
+
+    await submitQuestionnaire(harness)
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "en" }),
+      expect.anything(),
     )
-    await act(async () => {
-      await i18nInstance.changeLanguage("en-US")
-    })
-    act(() => {
-      store.set(authAtom, { id: "user-1", email: "a@b.c" } as never)
-    })
-
-    await act(async () => {
-      await result.current.mutateAsync(INPUT)
-    })
-
-    expect(vi.mocked(upsert).mock.calls[0][0]).toMatchObject({ locale: "en" })
   })
 })
