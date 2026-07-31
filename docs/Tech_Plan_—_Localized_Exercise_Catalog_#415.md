@@ -15,7 +15,7 @@ Deux chantiers non-évidents portent le vrai risque : **quatre requêtes** n'ont
 | Moment de résolution | **Affichage**, jamais l'écriture | ADR 0010 — le serveur ignore la locale du lecteur au moment d'écrire un snapshot |
 | Forme du helper | Lib pure `file:src/lib/catalogLabels.ts` + hook `useCatalogLabels()` | Mirror de `blockCompletionHistory` / #396 ; cœur testable hors rendu, ergonomie au call site |
 | Chaîne de fallback (nom) | `name_en` (si EN et non vide) → `name` → `name_snapshot` | Le snapshot redevient un filet, pas une source |
-| Représentation `muscle_group` | **FR canonique inchangé**, traduction à l'affichage | Migration slugs = RPC `get_volume_by_muscle_group`, `TAXONOMY_TO_SLUGS`, `MAJOR_MUSCLE_GROUPS`, alias MCP, scripts d'import, SQL achievements, 20+ fixtures, plus tous les `muscle_snapshot`. Dette tracée en issue séparée |
+| Représentation `muscle_group` | **FR canonique inchangé**, traduction à l'affichage | Migration slugs = RPC `get_volume_by_muscle_group`, `TAXONOMY_TO_SLUGS`, `MAJOR_MUSCLE_GROUPS`, alias MCP, scripts d'import, SQL achievements, 20+ fixtures, plus tous les `muscle_snapshot`. Dette tracée en [#423](https://github.com/PierreTsia/workout-app/issues/423) |
 | Namespace i18n | **Nouveau `catalog.json`** portant `muscles.*` (13) et `equipment.*` (10) | `history:balance.muscles` est history-scoped par accident ; `common` est du chrome, pas de la taxonomie métier |
 | Fallback de traduction | **Supprimer `defaultValue: key`** au profit d'un test d'exhaustivité | Le fallback silencieux rend une localisation incomplète invisible à un relecteur francophone |
 | Ordre de l'historique | Grouper les solos par `exercise_id`, les ordonner par **premier `logged_at`** | L'ordre réel de la séance, indépendant de la langue ; remplace `ORDER BY exercise_name_snapshot`. Les blocs gardent leur tri par `sortOrder` et la composition « circuits d'abord » de T143 |
@@ -207,7 +207,7 @@ graph TD
 
 ---
 
-## Migration Path (slugs anglais, plus tard)
+## Migration Path (slugs anglais, plus tard — [#423](https://github.com/PierreTsia/workout-app/issues/423))
 
 Si la dette est un jour payée, `catalogLabels.ts` absorbe le changement sans réécriture des surfaces : `muscleLabelKey` passe de « clé = valeur FR » à « clé = slug », et la table `catalog:muscles` change de clés. Le vrai coût reste ailleurs — migration de `exercises.muscle_group` et de tous les `muscle_snapshot`, réécriture de `TAXONOMY_TO_SLUGS`, des listes SQL de la RPC `get_volume_by_muscle_group`, des alias MCP, des scripts d'import et des fixtures. C'est précisément parce que le helper isole les surfaces que cette migration devient un chantier back-end pur.
 

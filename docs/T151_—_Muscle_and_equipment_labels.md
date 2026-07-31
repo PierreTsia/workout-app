@@ -42,7 +42,7 @@ T146, T147, T148 (pour les surfaces sans embed).
 
 ## Out of Scope
 
-- Migrer `muscle_group` vers des slugs anglais — **dette assumée et tracée en issue séparée**. Le coût réel est back-end (RPC `get_volume_by_muscle_group`, `TAXONOMY_TO_SLUGS`, alias MCP, scripts d'import, fixtures) et sans rapport avec l'affichage.
+- Migrer `muscle_group` vers des slugs anglais — **dette assumée, tracée en [#423](https://github.com/PierreTsia/workout-app/issues/423)**. Le coût réel est back-end (RPC `get_volume_by_muscle_group`, `TAXONOMY_TO_SLUGS`, alias MCP, scripts d'import, fixtures) et sans rapport avec l'affichage.
 - Traduire `secondary_muscles` si sa forme diffère de `muscle_group` — à constater en build, à sortir en ticket si c'est le cas.
 
 ## Acceptance Criteria
