@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-function muscleLabel(t: TFunction<"history">, key: string) {
-  return t(`balance.muscles.${key}`, { defaultValue: key })
+function muscleLabel(t: TFunction<"catalog">, key: string) {
+  return t(`muscles.${key}`)
 }
 
 interface MuscleBreakdownTableProps {
@@ -34,6 +34,7 @@ export function MuscleBreakdownTable({
   className,
 }: MuscleBreakdownTableProps) {
   const { t, i18n } = useTranslation("history")
+  const { t: tCatalog } = useTranslation("catalog")
   const [open, setOpen] = useState(false)
 
   const totalSets = useMemo(
@@ -104,7 +105,7 @@ export function MuscleBreakdownTable({
             {rows.map((m) => (
               <TableRow key={m.muscle_group}>
                 <TableCell className="font-medium">
-                  {muscleLabel(t, m.muscle_group)}
+                  {muscleLabel(tCatalog, m.muscle_group)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmtSets.format(m.total_sets)}
