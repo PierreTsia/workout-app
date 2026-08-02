@@ -154,6 +154,7 @@ RETURNS TABLE (
   logged_sets bigint
 )
 LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT
     e.id, e.name, e.name_en,
@@ -167,10 +168,19 @@ AS $$
   WHERE e.instructions_en IS NOT NULL
     AND e.instructions_en_reviewed_at IS NULL
   ORDER BY
-    (e.instructions_en_status = 'flagged') DESC,
+    -- NULLS LAST : la comparaison vaut NULL pour une ligne portant de l'anglais
+    -- sans statut, et DESC place les NULL en tête. Mesuré sans lui : cette ligne
+    -- malformée sortait en position 1, au-dessus d'un vrai signalement.
+    (e.instructions_en_status = 'flagged') DESC NULLS LAST,
     COALESCE(sl.cnt, 0) DESC,
     e.name ASC;
 $$;
+
+-- Le linter Supabase signale déjà six fonctions à `search_path` mutable et sept
+-- appelables par `anon`. Une fonction neuve sur une surface admin n'a aucune
+-- raison d'hériter de ce passif.
+REVOKE ALL ON FUNCTION get_translations_for_review() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_translations_for_review() TO authenticated, service_role;
 ```
 
 Huit colonnes au lieu de dix-neuf : la file ne rend ni emoji ni difficulté, et l'ajout d'une future colonne à `exercises` ne la fera pas pourrir.
@@ -224,7 +234,7 @@ graph TD
 | `src/lib/instructionQuality.test.ts` | Dont deux régressions nommées : « pupitre Larry Scott » et « Lower back to 90° » ne doivent plus se déclencher |
 | `src/lib/instructionPrompt.ts` | `buildPrompt()`, `parseInstructions()`, `PROMPT_VERSION` |
 | `scripts/translate-instructions.ts` | CLI : `--dry-run` (défaut), `--apply`, `--unlogged`, `--top N`, `--ids`, `--force`. Gemini traduit, Groq contre-relit, service role écrit |
-| `src/pages/admin/AdminTranslationsPage.tsx` | Route `/admin/translations` : file, progression, carte courante |
+| `src/pages/AdminTranslationsPage.tsx` | Route `/admin/translations` : file, progression, carte courante. À plat avec les cinq pages admin existantes : un dossier `admin/` d'un seul fichier éclaterait les pages admin sur deux emplacements |
 | `src/components/admin/translations/TranslationReviewCard.tsx` | Comparaison FR/EN alignée à la phrase, objections accrochées, approuver / éditer / rendre au français |
 | `src/components/admin/translations/ReviewAssistDialog.tsx` | Copie la demande d'arbitrage, colle le JSON corrigé, valide la forme, montre le diff avant écriture |
 | `src/hooks/useTranslationReviewQueue.ts` | Appelle le RPC |
