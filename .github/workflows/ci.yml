@@ -12,7 +12,7 @@ jobs:
   # (so docs-only commits don't redeploy the SPA, and SPA-only commits don't
   # redeploy docs.gymlogic.me).
   changes:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       web: ${{ steps.filter.outputs.web }}
       spa: ${{ steps.filter.outputs.spa }}
@@ -33,7 +33,7 @@ jobs:
               - 'infra/cloudflare/**'
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,7 +44,7 @@ jobs:
       - run: npm run lint
 
   type-check:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,7 +55,7 @@ jobs:
       - run: tsc -b
 
   unit:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -71,7 +71,7 @@ jobs:
   # ship the same fixtures. Without this job, drift between the two runtimes
   # would only surface in a Supabase deploy, not in CI.
   deno-unit:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: denoland/setup-deno@v2
@@ -89,7 +89,7 @@ jobs:
       - run: deno test --node-modules-dir=auto "supabase/functions/**/*_test.ts" --allow-env
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -141,7 +141,7 @@ jobs:
   web-type-check:
     needs: [changes]
     if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -157,7 +157,7 @@ jobs:
   preview-deploy-web:
     needs: [changes]
     if: needs.changes.outputs.web == 'true' && github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
       pull-requests: write
@@ -210,7 +210,7 @@ jobs:
   deploy-web:
     needs: [changes]
     if: needs.changes.outputs.web == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
@@ -230,7 +230,7 @@ jobs:
   worker-unit:
     needs: [changes]
     if: needs.changes.outputs.worker == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -250,7 +250,7 @@ jobs:
   subproject-checks-passed:
     needs: [changes, preview-deploy-web, web-type-check, worker-unit]
     if: always() && github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Verify subproject checks
         run: |
@@ -270,7 +270,7 @@ jobs:
 
   gate:
     needs: [lint, type-check, unit, deno-unit, e2e]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - run: echo "All checks passed"
 
@@ -280,7 +280,7 @@ jobs:
   deploy:
     needs: [gate, changes]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.spa == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
