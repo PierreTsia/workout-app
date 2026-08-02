@@ -71,6 +71,11 @@ const AdminReviewPage = lazyWithRecover(() =>
     default: m.AdminReviewPage,
   })),
 )
+const AdminTranslationsPage = lazyWithRecover(() =>
+  import("@/pages/AdminTranslationsPage").then((m) => ({
+    default: m.AdminTranslationsPage,
+  })),
+)
 const CycleSummaryPage = lazyWithRecover(() =>
   import("@/pages/CycleSummaryPage").then((m) => ({
     default: m.CycleSummaryPage,
@@ -209,6 +214,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/admin/review",
                     element: <AdminReviewPage />,
+                  },
+                  {
+                    path: "/admin/translations",
+                    element: <AdminTranslationsPage />,
                   },
                   {
                     path: "/admin/enrichment",

@@ -21,6 +21,9 @@ export function AdminHomePage() {
           <Link to="/admin/review">{t("review.navLabel")}</Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/translations">{t("translations.navLabel")}</Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
           <Link to="/admin/enrichment">{t("enrichment.navLabel")}</Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
