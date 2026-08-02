@@ -1,5 +1,6 @@
 {
   "howToPerform": "How to perform",
+  "instructionsFor": "Instructions: {{name}}",
   "setup": "Setup",
   "movement": "Movement",
   "breathing": "Breathing",

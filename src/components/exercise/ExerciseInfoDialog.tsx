@@ -34,6 +34,7 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
       <DialogTrigger asChild>
         <button
           type="button"
+          aria-label={t("instructionsFor", { name: catalogName(exercise) })}
           className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}

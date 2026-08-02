@@ -41,8 +41,13 @@ const BILINGUAL: Exercise = {
   instructions_en_status: "clean",
 }
 
-const openDialog = () =>
-  fireEvent.click(screen.getByRole("button", { name: "" }))
+/**
+ * Queried by accessible name on purpose: the trigger is icon-only, so naming it
+ * is what makes it reachable at all — and asking for the localized name here
+ * also fails if the label's key is missing from a locale.
+ */
+const openDialog = (accessibleName: string) =>
+  fireEvent.click(screen.getByRole("button", { name: accessibleName }))
 
 describe("ExerciseInfoDialog", () => {
   it("renders nothing when the row has neither instructions nor a video", () => {
@@ -57,7 +62,7 @@ describe("ExerciseInfoDialog", () => {
     renderWithProviders(<ExerciseInfoDialog exercise={BILINGUAL} />, {
       locale: "en",
     })
-    openDialog()
+    openDialog("Instructions: Bench Press")
 
     expect(screen.getByText("Lie back on the bench")).toBeInTheDocument()
     expect(screen.queryByText("Allonge-toi sur le banc")).not.toBeInTheDocument()
@@ -67,7 +72,7 @@ describe("ExerciseInfoDialog", () => {
     renderWithProviders(<ExerciseInfoDialog exercise={BILINGUAL} />, {
       locale: "fr",
     })
-    openDialog()
+    openDialog("Consignes : Développé couché")
 
     expect(screen.getByText("Allonge-toi sur le banc")).toBeInTheDocument()
     expect(screen.queryByText("Lie back on the bench")).not.toBeInTheDocument()
