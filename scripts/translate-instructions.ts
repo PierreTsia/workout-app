@@ -159,9 +159,19 @@ const fetchCandidates = async (): Promise<ExerciseRow[]> => {
   return (data ?? []) as ExerciseRow[]
 }
 
-/** Logged sets per exercise, the metric the waves are ordered on. */
+/**
+ * Logged sets per exercise, the metric the waves are ordered on.
+ *
+ * Each page is folded into the tally as it arrives and then dropped, so the
+ * footprint is one entry per distinct exercise — a few hundred — rather than
+ * one string per logged set, which is a table that only ever grows.
+ */
 const fetchLoggedSets = async (): Promise<Map<string, number>> => {
-  const page = async (from: number, acc: string[]): Promise<string[]> => {
+  const counts = new Map<string, number>()
+
+  // The cursor is the loop's own state: "keep paging until a short page" is the
+  // early-exit that no `.map` or `.reduce` over a known list can express.
+  for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("set_logs")
       .select("exercise_id")
@@ -169,14 +179,10 @@ const fetchLoggedSets = async (): Promise<Map<string, number>> => {
     if (error) throw new Error(`counting set_logs: ${error.message}`)
 
     const ids = (data ?? []).map((row) => row.exercise_id as string)
-    const total = [...acc, ...ids]
-    return ids.length < PAGE_SIZE ? total : page(from + PAGE_SIZE, total)
-  }
+    ids.reduce((tally, id) => tally.set(id, (tally.get(id) ?? 0) + 1), counts)
 
-  return (await page(0, [])).reduce(
-    (counts, id) => counts.set(id, (counts.get(id) ?? 0) + 1),
-    new Map<string, number>(),
-  )
+    if (ids.length < PAGE_SIZE) return counts
+  }
 }
 
 const applyWave = async (rows: readonly ExerciseRow[]): Promise<ExerciseRow[]> => {
