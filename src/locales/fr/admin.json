@@ -28,6 +28,14 @@
     "englishHeading": "Anglais",
     "missingSentence": "aucune phrase à cette position",
     "gateFlags": "Contrôles automatiques :",
+    "approve": "Approuver",
+    "edit": "Éditer",
+    "cancelEdit": "Annuler l'édition",
+    "editSection": "Corriger l'anglais de {{section}} — une phrase par ligne",
+    "revert": "Rendre au français",
+    "skip": "Passer",
+    "cardLabel": "Relecture de {{name}} — A pour approuver, E pour éditer, R pour rendre au français, flèche droite pour passer",
+    "cardLabelEditing": "Édition de l'anglais de {{name}} — Échap pour abandonner la correction",
     "orphanObjections_one": "{{count}} objection vise une phrase inexistante et n'est pas affichée ci-dessous.",
     "orphanObjections_other": "{{count}} objections visent des phrases inexistantes et ne sont pas affichées ci-dessous.",
     "loggedSets_one": "{{count}} série loguée",
@@ -47,6 +55,12 @@
     "audit": {
       "line": "Traduit par {{model}} le {{date}} · contre-relu par {{checker}} · prompt v{{version}}",
       "checkerUnavailable": "aucun contre-relecteur"
+    },
+    "toast": {
+      "approved": "{{name}} approuvé en anglais",
+      "flagged": "{{name}} rendu au français",
+      "error": "Décision non enregistrée — l'exercice reste dans la file",
+      "refused": "Décision refusée — votre compte n'a peut-être plus accès à la revue"
     }
   },
   "review": {

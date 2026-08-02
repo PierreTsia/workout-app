@@ -1,14 +1,27 @@
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Check, Pencil, SkipForward, Undo2 } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  TranslationWriteRefusedError,
+  useApproveTranslation,
+  type TranslationVerdict,
+} from "@/hooks/useApproveTranslation"
 import { formatDate } from "@/lib/formatters"
 import {
   buildReviewSections,
+  fromInstructionDraft,
   orphanObjections,
+  toInstructionDraft,
+  type InstructionDraft,
   type ReviewLine,
   type ReviewObjection,
 } from "@/lib/translationReview"
 import type { InstructionSection } from "@/lib/instructionQuality"
+import type { ExerciseInstructions } from "@/types/database"
 import type { TranslationReviewRow } from "@/hooks/useTranslationReviewQueue"
 
 const SECTION_KEYS: Record<InstructionSection, string> = {
@@ -26,6 +39,8 @@ const STATUS_VARIANT: Record<string, "secondary" | "destructive" | "default"> = 
 
 interface TranslationReviewCardProps {
   row: TranslationReviewRow
+  /** Move to the next row without recording a verdict. */
+  onSkip: () => void
 }
 
 function ObjectionBadge({ objection }: { objection: ReviewObjection }) {
@@ -40,6 +55,32 @@ function ObjectionBadge({ objection }: { objection: ReviewObjection }) {
         {objection.note ? <> — {objection.note}</> : null}
       </span>
     </Badge>
+  )
+}
+
+/**
+ * Whether the event came from somewhere the reviewer is composing text. Checked
+ * on the event target rather than on the editing flag: the flag says a textarea
+ * exists, this says the keystroke landed in one.
+ */
+const isTypingTarget = (target: EventTarget): boolean =>
+  target instanceof HTMLTextAreaElement ||
+  target instanceof HTMLInputElement ||
+  (target instanceof HTMLElement && target.isContentEditable)
+
+/**
+ * The key hint on a button. `aria-hidden` because the shortcut is already
+ * spelled out on the card's own label, and a screen reader announcing
+ * "Approve A" reads as a typo.
+ */
+function Shortcut({ children }: { children: string }) {
+  return (
+    <kbd
+      aria-hidden
+      className="rounded border border-current/30 px-1 text-[10px] font-semibold opacity-70"
+    >
+      {children}
+    </kbd>
   )
 }
 
@@ -72,8 +113,154 @@ function SentencePair({
   )
 }
 
-export function TranslationReviewCard({ row }: TranslationReviewCardProps) {
+export function TranslationReviewCard({
+  row,
+  onSkip,
+}: TranslationReviewCardProps) {
   const { t, i18n } = useTranslation("admin")
+  const decide = useApproveTranslation()
+  const cardRef = useRef<HTMLElement>(null)
+  const firstEditorRef = useRef<HTMLTextAreaElement>(null)
+  // `null` means "not editing". Holding the draft and the mode in one value
+  // makes the impossible state — editing with no draft — unrepresentable.
+  const [draft, setDraft] = useState<InstructionDraft | null>(null)
+  /**
+   * Whether this card has already spoken.
+   *
+   * `decide.isPending` falls back to false the moment the write resolves, but
+   * the decided row stays on screen until the queue refetch lands — a window in
+   * which the reviewer can contradict the verdict they just gave, and the
+   * second write wins. So the gate is not "a write is in flight" but "a verdict
+   * has been issued", which holds until the row leaves. The page keys this
+   * component on the row id, so the next row arrives as a fresh instance with
+   * the gate open; the only way back to false on this row is a write the
+   * database rejected, which leaves it genuinely undecided.
+   */
+  const [verdictIssued, setVerdictIssued] = useState(false)
+
+  const isEditing = draft !== null
+
+  // The shortcuts are local `onKeyDown` handlers, so they only fire while focus
+  // is inside the card — and taking focus on mount is what makes the keyboard
+  // path work on arrival instead of after a click. The page remounts this
+  // component per row, so each new row re-arms it.
+  //
+  // Edit mode hands that focus to the editor, because a reviewer who presses
+  // `E` and starts typing expects the letters to land in the text and not on
+  // the verdict buttons. Leaving edit mode has to hand it back: without that,
+  // focus falls to the body and the card goes quietly deaf.
+  //
+  // Keyed on the boolean rather than on `draft`, which changes on every
+  // keystroke and would drag the cursor back to the first section.
+  useEffect(() => {
+    if (isEditing) firstEditorRef.current?.focus()
+    else cardRef.current?.focus()
+  }, [isEditing])
+
+  /**
+   * Every decision reports the same way, and the toast names the exercise: the
+   * queue has already moved on by the time it appears, so "saved" alone would
+   * be ambiguous about which row it saved.
+   */
+  const record = (
+    status: TranslationVerdict,
+    instructionsEn?: ExerciseInstructions,
+  ) => {
+    if (verdictIssued) return
+    setVerdictIssued(true)
+
+    decide.mutate(
+      {
+        exerciseId: row.id,
+        status,
+        ...(instructionsEn ? { instructionsEn } : {}),
+      },
+      {
+        onSuccess: () =>
+          toast.success(
+            t(`translations.toast.${status}`, { name: row.name }),
+          ),
+        onError: (error) => {
+          // Nothing was written, so the row is still undecided and the reviewer
+          // has to be able to try again from the card in front of them.
+          setVerdictIssued(false)
+          toast.error(
+            t(
+              error instanceof TranslationWriteRefusedError
+                ? "translations.toast.refused"
+                : "translations.toast.error",
+            ),
+          )
+        },
+      },
+    )
+  }
+
+  const approve = () =>
+    record("approved", draft ? fromInstructionDraft(draft) : undefined)
+
+  const revert = () => record("flagged")
+
+  /**
+   * Skip never touches the mutation — it moves the page index — so it is the
+   * one action the write gates by accident, not by design. Left ungated, a skip
+   * issued after a verdict advances the index by one and the refetch then drops
+   * the decided row and shifts the rest up by one more, so the row in between is
+   * gone without ever having been shown. Same condition as the verdicts: this
+   * card has spoken, it gets no further say in where the queue goes.
+   */
+  const skip = () => {
+    if (verdictIssued) return
+    onSkip()
+  }
+
+  /**
+   * Cancelling discards the draft, and `Escape` below is the same door: the
+   * button says "cancel edit", so the two ways out cannot mean different things.
+   * The corrected English survives one way only — by being approved.
+   */
+  const cancelEditing = () => setDraft(null)
+
+  const startEditing = () => {
+    if (verdictIssued) return
+    setDraft(toInstructionDraft(row.instructions_en))
+  }
+
+  /**
+   * `A` / `E` / `R` / `→`, normalized so a held shift still triggers them while
+   * named keys keep their casing. No global shortcut hook exists in this repo
+   * and this card does not invent one.
+   */
+  const shortcuts: Record<string, () => void> = {
+    a: approve,
+    e: startEditing,
+    r: revert,
+    ArrowRight: skip,
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent) {
+    // Edit mode silences the whole set, and deliberately not by relying on
+    // focus: a reviewer can click the card background and a browser can restore
+    // focus anywhere, and then typing the word "bar" approves the translation
+    // on their behalf. `Escape` is the one key still answered, so there is
+    // always a way out that does not require the mouse.
+    if (isEditing) {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      cancelEditing()
+      return
+    }
+
+    // Belt and braces for any future control inside the card that takes typed
+    // input outside edit mode.
+    if (isTypingTarget(event.target)) return
+
+    const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
+    const action = shortcuts[key]
+    if (!action) return
+    event.preventDefault()
+    action()
+  }
 
   const audit = row.instructions_en_audit
   const objections = audit?.objections ?? []
@@ -87,7 +274,16 @@ export function TranslationReviewCard({ row }: TranslationReviewCardProps) {
   const missingLabel = t("translations.missingSentence")
 
   return (
-    <article className="flex flex-col gap-5 rounded-xl border border-border/80 bg-card p-5">
+    <article
+      ref={cardRef}
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      aria-label={t(
+        isEditing ? "translations.cardLabelEditing" : "translations.cardLabel",
+        { name: row.name },
+      )}
+      className="flex flex-col gap-5 rounded-xl border border-border/80 bg-card p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-lg font-semibold leading-tight">{row.name}</h2>
@@ -145,7 +341,7 @@ export function TranslationReviewCard({ row }: TranslationReviewCardProps) {
         </section>
       ) : null}
 
-      {sections.map(({ section, lines }) => (
+      {sections.map(({ section, lines }, index) => (
         <section key={section} className="flex flex-col gap-1">
           <h3 className="text-sm font-semibold">{t(SECTION_KEYS[section])}</h3>
           <div className="grid gap-2 text-xs uppercase tracking-wide text-muted-foreground sm:grid-cols-2 sm:gap-4">
@@ -161,8 +357,70 @@ export function TranslationReviewCard({ row }: TranslationReviewCardProps) {
               />
             ))}
           </ul>
+          {draft ? (
+            <Textarea
+              ref={index === 0 ? firstEditorRef : undefined}
+              value={draft[section]}
+              aria-label={t("translations.editSection", {
+                section: t(SECTION_KEYS[section]),
+              })}
+              onChange={(event) =>
+                setDraft((current) =>
+                  current ? { ...current, [section]: event.target.value } : current,
+                )
+              }
+              rows={Math.max(lines.length, 2)}
+              className="mt-1 font-mono text-xs"
+            />
+          ) : null}
         </section>
       ))}
+
+      <footer className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          className="gap-2"
+          disabled={verdictIssued}
+          onClick={approve}
+        >
+          <Check className="h-4 w-4" />
+          {t("translations.approve")}
+          <Shortcut>A</Shortcut>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          disabled={verdictIssued}
+          onClick={isEditing ? cancelEditing : startEditing}
+        >
+          <Pencil className="h-4 w-4" />
+          {t(isEditing ? "translations.cancelEdit" : "translations.edit")}
+          <Shortcut>E</Shortcut>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          disabled={verdictIssued}
+          onClick={revert}
+        >
+          <Undo2 className="h-4 w-4" />
+          {t("translations.revert")}
+          <Shortcut>R</Shortcut>
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="gap-2 text-muted-foreground"
+          disabled={verdictIssued}
+          onClick={skip}
+        >
+          <SkipForward className="h-4 w-4" />
+          {t("translations.skip")}
+          <Shortcut>→</Shortcut>
+        </Button>
+      </footer>
     </article>
   )
 }

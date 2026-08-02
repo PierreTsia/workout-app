@@ -1,12 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { screen } from "@testing-library/react"
+import { act, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders, mockQueryResult } from "@/test/utils"
 import { AdminTranslationsPage } from "@/pages/AdminTranslationsPage"
 import { useTranslationReviewQueue } from "@/hooks/useTranslationReviewQueue"
 import type { TranslationReviewRow } from "@/hooks/useTranslationReviewQueue"
 
-vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }))
+// A decision the test holds open, so the window between issuing a verdict and
+// the queue rebuilding can be inspected rather than raced.
+let settleWrite: (() => void) | null = null
+const select = vi.fn(
+  () =>
+    new Promise<{ data: { id: string }[]; error: null }>((resolve) => {
+      settleWrite = () => resolve({ data: [{ id: "flagged-never-logged" }], error: null })
+    }),
+)
+const update = vi.fn(() => ({ eq: () => ({ select }) }))
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: { from: () => ({ update: () => update() }), rpc: vi.fn() },
+}))
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock("@/hooks/useTranslationReviewQueue", () => ({
   useTranslationReviewQueue: vi.fn(),
   TRANSLATION_REVIEW_QUEUE_KEY: "translations-for-review",
@@ -52,6 +66,8 @@ const queueInRpcOrder: TranslationReviewRow[] = [
 const mockedQueue = vi.mocked(useTranslationReviewQueue)
 
 beforeEach(() => {
+  vi.clearAllMocks()
+  settleWrite = null
   mockedQueue.mockReturnValue(
     mockQueryResult(queueInRpcOrder) as ReturnType<
       typeof useTranslationReviewQueue
@@ -84,6 +100,45 @@ describe("AdminTranslationsPage", () => {
     await user.click(screen.getByRole("button", { name: /next/i }))
     expect(
       screen.getByRole("heading", { name: "Band pull-apart" }),
+    ).toBeInTheDocument()
+  })
+
+  // The card owns the shortcut, the page owns the position. Neither test can
+  // see the seam on its own, so this one drives the real pair.
+  it("moves on when the reviewer skips from the keyboard", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<AdminTranslationsPage />)
+
+    await user.keyboard("{ArrowRight}")
+
+    expect(
+      screen.getByRole("heading", { name: "Bench press" }),
+    ).toBeInTheDocument()
+  })
+
+  // The phantom skip, at the seam where it actually bites. Skip never goes
+  // through the mutation, so nothing about the write gates it: approve Cat-cow,
+  // press `→` before the write lands, and the index sits on 1 when the refetch
+  // drops the decided row and shifts the rest up by one. Bench press is then
+  // never shown, and the reviewer has no way to know it went past.
+  it("does not let a skip ride on top of a decision still in flight", async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderWithProviders(<AdminTranslationsPage />)
+
+    await user.keyboard("a")
+    await user.keyboard("{ArrowRight}")
+
+    // What the refetch delivers once the write lands: the decided row is gone.
+    mockedQueue.mockReturnValue(
+      mockQueryResult(queueInRpcOrder.slice(1)) as ReturnType<
+        typeof useTranslationReviewQueue
+      >,
+    )
+    await act(async () => settleWrite?.())
+    rerender(<AdminTranslationsPage />)
+
+    expect(
+      screen.getByRole("heading", { name: "Bench press" }),
     ).toBeInTheDocument()
   })
 

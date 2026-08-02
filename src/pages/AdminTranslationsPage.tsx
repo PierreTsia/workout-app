@@ -13,8 +13,9 @@ export function AdminTranslationsPage() {
   const [index, setIndex] = useState(0)
 
   const total = queue?.length ?? 0
-  // Clamped rather than reset: the queue is read-only in this ticket, so the
-  // only way the index can outrun it is a refetch shrinking the list.
+  // Clamped rather than reset, and deliberately not advanced after a decision:
+  // the decided row leaves the queue on the next fetch, so the same index lands
+  // on the row that followed it. Only the last row of the queue needs the clamp.
   const position = Math.min(index, Math.max(total - 1, 0))
   const row = total > 0 ? queue![position] : null
 
@@ -61,7 +62,11 @@ export function AdminTranslationsPage() {
             </Badge>
           </div>
 
-          <TranslationReviewCard key={row.id} row={row} />
+          <TranslationReviewCard
+            key={row.id}
+            row={row}
+            onSkip={() => setIndex(position + 1)}
+          />
 
           <div className="flex items-center justify-between gap-2">
             <Button

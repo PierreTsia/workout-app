@@ -28,6 +28,14 @@
     "englishHeading": "English",
     "missingSentence": "no sentence at this position",
     "gateFlags": "Automatic checks:",
+    "approve": "Approve",
+    "edit": "Edit",
+    "cancelEdit": "Cancel edit",
+    "editSection": "Edit the English for {{section}} — one sentence per line",
+    "revert": "Revert to French",
+    "skip": "Skip",
+    "cardLabel": "Reviewing {{name}} — press A to approve, E to edit, R to revert to French, arrow right to skip",
+    "cardLabelEditing": "Editing the English for {{name}} — press Escape to discard the correction",
     "orphanObjections_one": "{{count}} objection points at a sentence that does not exist and is not shown below.",
     "orphanObjections_other": "{{count}} objections point at sentences that do not exist and are not shown below.",
     "loggedSets_one": "{{count}} logged set",
@@ -47,6 +55,12 @@
     "audit": {
       "line": "Translated by {{model}} on {{date}} · cross-checked by {{checker}} · prompt v{{version}}",
       "checkerUnavailable": "no cross-checker"
+    },
+    "toast": {
+      "approved": "{{name}} approved in English",
+      "flagged": "{{name}} reverted to French",
+      "error": "Decision not saved — the exercise stays in the queue",
+      "refused": "Decision refused — your account may no longer have review access"
     }
   },
   "review": {
