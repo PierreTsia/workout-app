@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest"
 import source from "./instructionQuality.ts?raw"
 import { importsOf } from "@/test/imports"
 import {
+  buildLabelPattern,
   checkTranslation,
   gateFlags,
   moodOf,
@@ -137,6 +138,30 @@ describe("Unicode word boundaries", () => {
     const translated = block({ movement: ["Move élastiquement through the rep"] })
 
     expect(checkTranslation(bandKickback, translated).frenchLeftovers).toBe(false)
+  })
+})
+
+describe("buildLabelPattern", () => {
+  // Muscle and equipment labels are content, edited in a JSON file by whoever
+  // adds a muscle group. An unescaped "." would match any character and an
+  // unescaped "(" would throw while the module loads, taking the whole app
+  // down at import time rather than failing a test.
+  it("matches a label with regex metacharacters literally", () => {
+    const pattern = new RegExp(buildLabelPattern(["Deltoids post."]), "u")
+
+    expect(pattern.test("Deltoids post.")).toBe(true)
+    expect(pattern.test("Deltoids posts")).toBe(false)
+  })
+
+  it("does not throw on a label with an unbalanced bracket", () => {
+    expect(() => new RegExp(buildLabelPattern(["Chest (upper"]), "u")).not.toThrow()
+  })
+
+  it("keeps the labels as separate alternatives", () => {
+    const pattern = new RegExp(buildLabelPattern(["Lower back", "EZ Bar"]), "u")
+
+    expect(pattern.test("EZ Bar")).toBe(true)
+    expect(pattern.test("Lower back")).toBe(true)
   })
 })
 

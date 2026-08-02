@@ -61,6 +61,20 @@ const EQUIPMENT_EVIDENCE: ReadonlyArray<readonly [en: string, fr: readonly strin
 ]
 
 /**
+ * An alternation over labels taken literally.
+ *
+ * The labels are data: they live in the catalog JSON under `src/locales` and
+ * change with content work, not with code review. A label like "Deltoids
+ * (rear)" or "Abs (lower)" would silently widen the pattern or throw at module
+ * load, so nothing is left to chance about what a label means inside a regex.
+ * Exported for the test that
+ * proves it, since the labels themselves reach this module through a static
+ * import with no seam to inject through.
+ */
+export const buildLabelPattern = (labels: readonly string[]): string =>
+  labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")
+
+/**
  * Title Case bleed: a canonical badge label ("Lower back", "EZ Bar") copied
  * into the middle of a sentence. Applied to one sentence at a time, so the
  * `(?<!^)` guard actually protects a sentence opener — over the whole block
@@ -69,13 +83,13 @@ const EQUIPMENT_EVIDENCE: ReadonlyArray<readonly [en: string, fr: readonly strin
  * verb.
  */
 const CASING_BLEED = new RegExp(
-  `(?<!^)(?<![.!?—:]\\s)(?<![\\p{L}\\p{N}])(${[
-    ...Object.values(MUSCLE_LABELS),
-    ...Object.values(EQUIPMENT_LABELS),
-    "Pulley",
-  ]
-    .filter((label) => label !== "Other")
-    .join("|")})(?![\\p{L}\\p{N}])`,
+  `(?<!^)(?<![.!?—:]\\s)(?<![\\p{L}\\p{N}])(${buildLabelPattern(
+    [
+      ...Object.values(MUSCLE_LABELS),
+      ...Object.values(EQUIPMENT_LABELS),
+      "Pulley",
+    ].filter((label) => label !== "Other"),
+  )})(?![\\p{L}\\p{N}])`,
   "u",
 )
 
