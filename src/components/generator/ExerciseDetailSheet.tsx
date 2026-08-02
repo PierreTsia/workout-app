@@ -26,11 +26,12 @@ export function ExerciseDetailSheet({
   onOpenChange,
 }: ExerciseDetailSheetProps) {
   const { t } = useTranslation("exercise")
-  const { catalogName, muscleLabel, equipmentLabel } = useCatalogLabels()
+  const { catalogName, exerciseInstructions, muscleLabel, equipmentLabel } =
+    useCatalogLabels()
 
   if (!exercise) return null
 
-  const ins = exercise.instructions
+  const instructions = exerciseInstructions(exercise)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -64,27 +65,27 @@ export function ExerciseDetailSheet({
         />
 
         <div className="mt-4 flex flex-col gap-4">
-          {ins && (
+          {instructions && (
             <>
               <InstructionSection
                 icon={Settings2}
                 title={t("setup")}
-                items={ins.setup}
+                items={instructions.setup}
               />
               <InstructionSection
                 icon={Activity}
                 title={t("movement")}
-                items={ins.movement}
+                items={instructions.movement}
               />
               <InstructionSection
                 icon={Wind}
                 title={t("breathing")}
-                items={ins.breathing}
+                items={instructions.breathing}
               />
               <InstructionSection
                 icon={AlertTriangle}
                 title={t("commonMistakes")}
-                items={ins.common_mistakes}
+                items={instructions.common_mistakes}
               />
             </>
           )}

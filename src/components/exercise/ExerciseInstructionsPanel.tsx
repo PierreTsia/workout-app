@@ -6,6 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { InstructionSection } from "./InstructionSection"
 import { YouTubeLink } from "./YouTubeLink"
@@ -21,19 +22,14 @@ export function ExerciseInstructionsPanel({
   defaultExpanded = false,
 }: ExerciseInstructionsPanelProps) {
   const { t } = useTranslation("exercise")
+  const { exerciseInstructions } = useCatalogLabels()
   const { data: exercise, isLoading } = useExerciseFromLibrary(exerciseId)
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   if (isLoading) return null
 
-  const hasInstructions =
-    exercise?.instructions &&
-    (exercise.instructions.setup.length > 0 ||
-      exercise.instructions.movement.length > 0 ||
-      exercise.instructions.breathing.length > 0 ||
-      exercise.instructions.common_mistakes.length > 0)
-
-  const hasContent = hasInstructions || exercise?.youtube_url
+  const instructions = exerciseInstructions(exercise)
+  const hasContent = instructions || exercise?.youtube_url
 
   if (!hasContent) return null
 
@@ -48,27 +44,27 @@ export function ExerciseInstructionsPanel({
       </CollapsibleTrigger>
 
       <CollapsibleContent className="flex flex-col gap-4 px-3 pb-2 pt-1">
-        {exercise?.instructions && (
+        {instructions && (
           <>
             <InstructionSection
               icon={Settings2}
               title={t("setup")}
-              items={exercise.instructions.setup}
+              items={instructions.setup}
             />
             <InstructionSection
               icon={Activity}
               title={t("movement")}
-              items={exercise.instructions.movement}
+              items={instructions.movement}
             />
             <InstructionSection
               icon={Wind}
               title={t("breathing")}
-              items={exercise.instructions.breathing}
+              items={instructions.breathing}
             />
             <InstructionSection
               icon={AlertTriangle}
               title={t("commonMistakes")}
-              items={exercise.instructions.common_mistakes}
+              items={instructions.common_mistakes}
             />
           </>
         )}

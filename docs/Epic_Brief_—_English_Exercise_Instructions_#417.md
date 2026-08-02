@@ -81,7 +81,7 @@ Rendre le **corps des consignes d'exercice** lisible en anglais, alors que le pa
 4. Backfill effectif sur **tout le catalogue**, en vagues : longue traîne d'abord, puis les 60 premiers par usage relus à la main.
 
 **Out of scope:**
-- **MCP** (`get_exercise_details` et consorts) : l'issue le mentionne, mais la locale côté MCP est le chantier de [#422](https://github.com/PierreTsia/workout-app/issues/422) v1.5, conditionné à une mesure de production. Aucune raison de le rouvrir ici.
+- **MCP.** `file:supabase/functions/mcp/tools/getExerciseDetails.ts` rend `ex.instructions` sous des en-têtes anglais **en dur** — exactement le même défaut de panneau à moitié traduit que l'app, sur la surface où les anglophones arrivent réellement. Il reste pourtant hors périmètre, pour deux raisons de fond : le serveur MCP **ne connaît pas la locale du lecteur** (l'auth résout le token et ne lit jamais le profil), et renvoyer les deux langues doublerait une réponse d'outil de 806 caractères par exercice — ce qui est gratuit pour un nom, pas pour un bloc de consignes. Le sujet appartient donc au chantier de locale MCP de [#422](https://github.com/PierreTsia/workout-app/issues/422) v1.5, conditionné à la mesure de T154. Le noter ici évite qu'on le redécouvre comme un oubli.
 - Retraduction ou correction du **français** existant, même quand la contre-relecture révèle que la source est fautive : signalé, pas corrigé.
 - Noms et descriptions de **templates de programme** ([#58](https://github.com/PierreTsia/workout-app/issues/58)) — même forme de problème, epic distinct.
 - Toute mémoire de traduction, framework générique d'i18n de contenu, ou éditeur bilingue.

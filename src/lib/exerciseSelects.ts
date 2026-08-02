@@ -32,9 +32,15 @@ export const SLIM_EXERCISE_SELECT =
  *
  * Mirrors the full `Exercise` type so the returned shape stays safe to cache
  * under `["exercise", id]` for both session and admin consumers.
+ *
+ * `instructions_en` and its status ride along because the same cache entry
+ * feeds `ExerciseInstructionsPanel` with no refetch: a row missing the status
+ * resolves to French, so a truncated projection would show French in a session
+ * and English in the library. `instructions_en_audit` stays out — the review
+ * screen fetches it through its own RPC.
  */
 export const FULL_EXERCISE_SELECT =
-  "id, name, name_en, emoji, muscle_group, equipment, image_url, difficulty_level, is_system, measurement_type, default_duration_seconds, secondary_muscles, instructions, youtube_url, source, reviewed_at, reviewed_by, created_at"
+  "id, name, name_en, emoji, muscle_group, equipment, image_url, difficulty_level, is_system, measurement_type, default_duration_seconds, secondary_muscles, instructions, instructions_en, instructions_en_status, youtube_url, source, reviewed_at, reviewed_by, created_at"
 
 /**
  * Smallest projection that can render a localized label (ADR 0010): the name

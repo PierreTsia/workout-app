@@ -54,4 +54,28 @@ describe("exercise selects", () => {
       expect.arrayContaining(["muscle_group", "equipment"]),
     )
   })
+
+  // `useWorkoutExercises` warms the `["exercise", id]` cache from FULL and
+  // `ExerciseInstructionsPanel` reads it without refetching. Drop either column
+  // here and the panel opened from a session resolves French while the same
+  // page opened from the library resolves English.
+  it("carries the columns the instruction resolver reads", () => {
+    expect(columns(FULL_EXERCISE_SELECT)).toEqual(
+      expect.arrayContaining(["instructions", "instructions_en", "instructions_en_status"]),
+    )
+  })
+
+  // The audit is for the review screen only, and it travels by its own RPC.
+  it("leaves the translation audit out of every projection", () => {
+    Object.values(SELECTS).forEach((select) => {
+      expect(columns(select)).not.toContain("instructions_en_audit")
+    })
+  })
+
+  it.each([SLIM_EXERCISE_SELECT, LABEL_EXERCISE_SELECT])(
+    "keeps instructions out of the light projections (%s)",
+    (select) => {
+      expect(columns(select).filter((c) => c.startsWith("instructions"))).toEqual([])
+    },
+  )
 })

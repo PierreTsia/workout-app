@@ -37,6 +37,23 @@ npx tsc --noEmit
 npx tsc -p tsconfig.app.json --noEmit
 ```
 
+## `tsconfig.app.json` does not cover `scripts/`
+
+Same trap, narrower. `tsconfig.app.json` is `include: ["src"]` and
+`tsconfig.node.json` is `include: ["vite.config.ts"]`, so **nothing under
+`scripts/` is type-checked by any project in the solution.** A broken script
+gets a green `tsc -b`.
+
+Type-check a script standalone, with the `tsconfig.node.json` flags spelled out:
+
+```bash
+npx tsc --noEmit --ignoreConfig --strict --target es2023 --lib es2023 \
+  --module esnext --moduleResolution bundler --resolveJsonModule \
+  --verbatimModuleSyntax --moduleDetection force --erasableSyntaxOnly \
+  --noUnusedLocals --noUnusedParameters --types node --skipLibCheck \
+  scripts/<file>.ts
+```
+
 ## Run vitest with the Supabase env stripped
 
 CI has no `.env`, so `src/lib/supabase.ts` throws `supabaseUrl is required.`
