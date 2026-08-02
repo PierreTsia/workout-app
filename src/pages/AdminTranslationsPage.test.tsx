@@ -87,6 +87,19 @@ describe("AdminTranslationsPage", () => {
     ).toBeInTheDocument()
   })
 
+  // The card owns the shortcut, the page owns the position. Neither test can
+  // see the seam on its own, so this one drives the real pair.
+  it("moves on when the reviewer skips from the keyboard", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<AdminTranslationsPage />)
+
+    await user.keyboard("{ArrowRight}")
+
+    expect(
+      screen.getByRole("heading", { name: "Bench press" }),
+    ).toBeInTheDocument()
+  })
+
   it("goes back the way it came", async () => {
     const user = userEvent.setup()
     renderWithProviders(<AdminTranslationsPage />)

@@ -3,7 +3,9 @@ import { describe, it, expect } from "vitest"
 import source from "./translationReview.ts?raw"
 import {
   buildReviewSections,
+  fromInstructionDraft,
   orphanObjections,
+  toInstructionDraft,
   type ReviewObjection,
 } from "@/lib/translationReview"
 import { importsOf } from "@/test/imports"
@@ -148,5 +150,58 @@ describe("orphanObjections", () => {
     const sections = buildReviewSections(french, english, [stray])
 
     expect(orphanObjections(sections, [stray])).toEqual([stray])
+  })
+})
+
+describe("the editable draft", () => {
+  it("round-trips a translation nobody touched", () => {
+    expect(fromInstructionDraft(toInstructionDraft(english))).toEqual(english)
+  })
+
+  it("puts one sentence per line", () => {
+    expect(toInstructionDraft(english).setup).toBe(
+      "Lie on your back.\nSet your hands hip-width apart.",
+    )
+  })
+
+  // The likeliest edit of all is a stray return at the end of a textarea, and
+  // an empty sentence would render as a bullet with nothing in it.
+  it("drops blank lines and surrounding whitespace", () => {
+    const edited = fromInstructionDraft({
+      ...toInstructionDraft(english),
+      setup: "  Lie on your back.  \n\n   \nSet your hands shoulder-width apart.\n",
+    })
+
+    expect(edited.setup).toEqual([
+      "Lie on your back.",
+      "Set your hands shoulder-width apart.",
+    ])
+  })
+
+  // A partial object would fail the resolver's section-parity check, so the row
+  // would read `approved` and still render French — the one outcome nobody
+  // could debug from the screen.
+  it("keeps all four sections even when one is emptied", () => {
+    const gutted = fromInstructionDraft({
+      ...toInstructionDraft(english),
+      breathing: "",
+    })
+
+    expect(Object.keys(gutted).sort()).toEqual([
+      "breathing",
+      "common_mistakes",
+      "movement",
+      "setup",
+    ])
+    expect(gutted.breathing).toEqual([])
+  })
+
+  it("offers four empty blocks for a row with no translation at all", () => {
+    expect(toInstructionDraft(null)).toEqual({
+      setup: "",
+      movement: "",
+      breathing: "",
+      common_mistakes: "",
+    })
   })
 })

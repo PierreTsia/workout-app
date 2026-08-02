@@ -90,6 +90,56 @@ export function buildReviewSections(
  * "there is an objection you are not being shown" instead of swallowing it,
  * which is the failure a reviewer could never detect on their own.
  */
+/** One editable text block per section, sentences separated by newlines. */
+export type InstructionDraft = Record<InstructionSection, string>
+
+/**
+ * The English as plain text, one sentence per line.
+ *
+ * A line *is* a sentence here — that is the whole editing contract, and the
+ * reason it is a transform in this module rather than a `join` buried in the
+ * textarea's `value`: the round trip has to be lossless for the sentences a
+ * reviewer did not touch, which is a claim worth testing on its own.
+ */
+export function toInstructionDraft(
+  english: ExerciseInstructions | null | undefined,
+): InstructionDraft {
+  return Object.fromEntries(
+    INSTRUCTION_SECTIONS.map((section) => [
+      section,
+      (english?.[section] ?? []).join("\n"),
+    ]),
+  ) as InstructionDraft
+}
+
+const sentencesIn = (block: string): string[] =>
+  block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+
+/**
+ * The inverse. Blank lines are dropped rather than written as empty sentences:
+ * a stray return at the end of a textarea is the most likely edit of all, and
+ * an empty string would render as a bullet with nothing in it.
+ *
+ * Written out section by section rather than mapped, so that all four keys are
+ * present by construction. A partial object would fail the resolver's
+ * section-parity check and the row would render French while reading
+ * `approved` — and adding a fifth section would break this line rather than
+ * quietly produce one.
+ */
+export function fromInstructionDraft(
+  draft: InstructionDraft,
+): ExerciseInstructions {
+  return {
+    setup: sentencesIn(draft.setup),
+    movement: sentencesIn(draft.movement),
+    breathing: sentencesIn(draft.breathing),
+    common_mistakes: sentencesIn(draft.common_mistakes),
+  }
+}
+
 export function orphanObjections(
   sections: readonly ReviewSection[],
   objections: readonly ReviewObjection[] = [],
