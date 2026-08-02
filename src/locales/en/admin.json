@@ -35,6 +35,7 @@
     "revert": "Revert to French",
     "skip": "Skip",
     "cardLabel": "Reviewing {{name}} — press A to approve, E to edit, R to revert to French, arrow right to skip",
+    "cardLabelEditing": "Editing the English for {{name}} — press Escape to discard the correction",
     "orphanObjections_one": "{{count}} objection points at a sentence that does not exist and is not shown below.",
     "orphanObjections_other": "{{count}} objections point at sentences that do not exist and are not shown below.",
     "loggedSets_one": "{{count}} logged set",
@@ -58,7 +59,8 @@
     "toast": {
       "approved": "{{name}} approved in English",
       "flagged": "{{name}} reverted to French",
-      "error": "Decision not saved — the exercise stays in the queue"
+      "error": "Decision not saved — the exercise stays in the queue",
+      "refused": "Decision refused — your account may no longer have review access"
     }
   },
   "review": {

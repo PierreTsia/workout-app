@@ -35,6 +35,7 @@
     "revert": "Rendre au français",
     "skip": "Passer",
     "cardLabel": "Relecture de {{name}} — A pour approuver, E pour éditer, R pour rendre au français, flèche droite pour passer",
+    "cardLabelEditing": "Édition de l'anglais de {{name}} — Échap pour abandonner la correction",
     "orphanObjections_one": "{{count}} objection vise une phrase inexistante et n'est pas affichée ci-dessous.",
     "orphanObjections_other": "{{count}} objections visent des phrases inexistantes et ne sont pas affichées ci-dessous.",
     "loggedSets_one": "{{count}} série loguée",
@@ -58,7 +59,8 @@
     "toast": {
       "approved": "{{name}} approuvé en anglais",
       "flagged": "{{name}} rendu au français",
-      "error": "Décision non enregistrée — l'exercice reste dans la file"
+      "error": "Décision non enregistrée — l'exercice reste dans la file",
+      "refused": "Décision refusée — votre compte n'a peut-être plus accès à la revue"
     }
   },
   "review": {

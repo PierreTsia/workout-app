@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  TranslationWriteRefusedError,
   useApproveTranslation,
   type TranslationVerdict,
 } from "@/hooks/useApproveTranslation"
@@ -119,17 +120,42 @@ export function TranslationReviewCard({
   const { t, i18n } = useTranslation("admin")
   const decide = useApproveTranslation()
   const cardRef = useRef<HTMLElement>(null)
+  const firstEditorRef = useRef<HTMLTextAreaElement>(null)
   // `null` means "not editing". Holding the draft and the mode in one value
   // makes the impossible state — editing with no draft — unrepresentable.
   const [draft, setDraft] = useState<InstructionDraft | null>(null)
+  /**
+   * Whether this card has already spoken.
+   *
+   * `decide.isPending` falls back to false the moment the write resolves, but
+   * the decided row stays on screen until the queue refetch lands — a window in
+   * which the reviewer can contradict the verdict they just gave, and the
+   * second write wins. So the gate is not "a write is in flight" but "a verdict
+   * has been issued", which holds until the row leaves. The page keys this
+   * component on the row id, so the next row arrives as a fresh instance with
+   * the gate open; the only way back to false on this row is a write the
+   * database rejected, which leaves it genuinely undecided.
+   */
+  const [verdictIssued, setVerdictIssued] = useState(false)
+
+  const isEditing = draft !== null
 
   // The shortcuts are local `onKeyDown` handlers, so they only fire while focus
   // is inside the card — and taking focus on mount is what makes the keyboard
   // path work on arrival instead of after a click. The page remounts this
   // component per row, so each new row re-arms it.
+  //
+  // Edit mode hands that focus to the editor, because a reviewer who presses
+  // `E` and starts typing expects the letters to land in the text and not on
+  // the verdict buttons. Leaving edit mode has to hand it back: without that,
+  // focus falls to the body and the card goes quietly deaf.
+  //
+  // Keyed on the boolean rather than on `draft`, which changes on every
+  // keystroke and would drag the cursor back to the first section.
   useEffect(() => {
-    cardRef.current?.focus()
-  }, [])
+    if (isEditing) firstEditorRef.current?.focus()
+    else cardRef.current?.focus()
+  }, [isEditing])
 
   /**
    * Every decision reports the same way, and the toast names the exercise: the
@@ -140,10 +166,8 @@ export function TranslationReviewCard({
     status: TranslationVerdict,
     instructionsEn?: ExerciseInstructions,
   ) => {
-    // A held key repeats. The queue only rebuilds once the write lands, so
-    // without this the reviewer decides the same row twice — and the second
-    // verdict could be one they meant for the row they expected to see next.
-    if (decide.isPending) return
+    if (verdictIssued) return
+    setVerdictIssued(true)
 
     decide.mutate(
       {
@@ -156,7 +180,18 @@ export function TranslationReviewCard({
           toast.success(
             t(`translations.toast.${status}`, { name: row.name }),
           ),
-        onError: () => toast.error(t("translations.toast.error")),
+        onError: (error) => {
+          // Nothing was written, so the row is still undecided and the reviewer
+          // has to be able to try again from the card in front of them.
+          setVerdictIssued(false)
+          toast.error(
+            t(
+              error instanceof TranslationWriteRefusedError
+                ? "translations.toast.refused"
+                : "translations.toast.error",
+            ),
+          )
+        },
       },
     )
   }
@@ -166,10 +201,30 @@ export function TranslationReviewCard({
 
   const revert = () => record("flagged")
 
-  const toggleEditing = () =>
-    setDraft((current) =>
-      current ? null : toInstructionDraft(row.instructions_en),
-    )
+  /**
+   * Skip never touches the mutation — it moves the page index — so it is the
+   * one action the write gates by accident, not by design. Left ungated, a skip
+   * issued after a verdict advances the index by one and the refetch then drops
+   * the decided row and shifts the rest up by one more, so the row in between is
+   * gone without ever having been shown. Same condition as the verdicts: this
+   * card has spoken, it gets no further say in where the queue goes.
+   */
+  const skip = () => {
+    if (verdictIssued) return
+    onSkip()
+  }
+
+  /**
+   * Cancelling discards the draft, and `Escape` below is the same door: the
+   * button says "cancel edit", so the two ways out cannot mean different things.
+   * The corrected English survives one way only — by being approved.
+   */
+  const cancelEditing = () => setDraft(null)
+
+  const startEditing = () => {
+    if (verdictIssued) return
+    setDraft(toInstructionDraft(row.instructions_en))
+  }
 
   /**
    * `A` / `E` / `R` / `→`, normalized so a held shift still triggers them while
@@ -178,14 +233,26 @@ export function TranslationReviewCard({
    */
   const shortcuts: Record<string, () => void> = {
     a: approve,
-    e: toggleEditing,
+    e: startEditing,
     r: revert,
-    ArrowRight: onSkip,
+    ArrowRight: skip,
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
-    // A letter typed into a textarea is a correction, not a verdict. Without
-    // this the first word of any edit would approve the row and move on.
+    // Edit mode silences the whole set, and deliberately not by relying on
+    // focus: a reviewer can click the card background and a browser can restore
+    // focus anywhere, and then typing the word "bar" approves the translation
+    // on their behalf. `Escape` is the one key still answered, so there is
+    // always a way out that does not require the mouse.
+    if (isEditing) {
+      if (event.key !== "Escape") return
+      event.preventDefault()
+      cancelEditing()
+      return
+    }
+
+    // Belt and braces for any future control inside the card that takes typed
+    // input outside edit mode.
     if (isTypingTarget(event.target)) return
 
     const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
@@ -211,7 +278,10 @@ export function TranslationReviewCard({
       ref={cardRef}
       tabIndex={-1}
       onKeyDown={handleKeyDown}
-      aria-label={t("translations.cardLabel", { name: row.name })}
+      aria-label={t(
+        isEditing ? "translations.cardLabelEditing" : "translations.cardLabel",
+        { name: row.name },
+      )}
       className="flex flex-col gap-5 rounded-xl border border-border/80 bg-card p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -271,7 +341,7 @@ export function TranslationReviewCard({
         </section>
       ) : null}
 
-      {sections.map(({ section, lines }) => (
+      {sections.map(({ section, lines }, index) => (
         <section key={section} className="flex flex-col gap-1">
           <h3 className="text-sm font-semibold">{t(SECTION_KEYS[section])}</h3>
           <div className="grid gap-2 text-xs uppercase tracking-wide text-muted-foreground sm:grid-cols-2 sm:gap-4">
@@ -289,6 +359,7 @@ export function TranslationReviewCard({
           </ul>
           {draft ? (
             <Textarea
+              ref={index === 0 ? firstEditorRef : undefined}
               value={draft[section]}
               aria-label={t("translations.editSection", {
                 section: t(SECTION_KEYS[section]),
@@ -309,7 +380,7 @@ export function TranslationReviewCard({
         <Button
           size="sm"
           className="gap-2"
-          disabled={decide.isPending}
+          disabled={verdictIssued}
           onClick={approve}
         >
           <Check className="h-4 w-4" />
@@ -320,17 +391,18 @@ export function TranslationReviewCard({
           size="sm"
           variant="outline"
           className="gap-2"
-          onClick={toggleEditing}
+          disabled={verdictIssued}
+          onClick={isEditing ? cancelEditing : startEditing}
         >
           <Pencil className="h-4 w-4" />
-          {t(draft ? "translations.cancelEdit" : "translations.edit")}
+          {t(isEditing ? "translations.cancelEdit" : "translations.edit")}
           <Shortcut>E</Shortcut>
         </Button>
         <Button
           size="sm"
           variant="outline"
           className="gap-2"
-          disabled={decide.isPending}
+          disabled={verdictIssued}
           onClick={revert}
         >
           <Undo2 className="h-4 w-4" />
@@ -341,7 +413,8 @@ export function TranslationReviewCard({
           size="sm"
           variant="ghost"
           className="gap-2 text-muted-foreground"
-          onClick={onSkip}
+          disabled={verdictIssued}
+          onClick={skip}
         >
           <SkipForward className="h-4 w-4" />
           {t("translations.skip")}

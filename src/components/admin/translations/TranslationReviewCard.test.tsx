@@ -7,10 +7,12 @@ import type { TranslationReviewRow } from "@/hooks/useTranslationReviewQueue"
 
 type Payload = Record<string, unknown>
 
-const single = vi.fn()
-const eq = vi.fn<
-  (column: string, id: string) => { select: () => { single: typeof single } }
->(() => ({ select: () => ({ single }) }))
+type Response = { data: { id: string }[] | null; error: Error | null }
+
+const select = vi.fn<(columns: string) => Promise<Response>>()
+const eq = vi.fn<(column: string, id: string) => { select: typeof select }>(
+  () => ({ select }),
+)
 const update = vi.fn<(payload: Payload) => { eq: typeof eq }>(() => ({ eq }))
 const toastSuccess = vi.fn()
 const toastError = vi.fn()
@@ -30,7 +32,7 @@ const lastPayload = (): Payload => update.mock.calls.at(-1)?.[0] ?? {}
 
 beforeEach(() => {
   vi.clearAllMocks()
-  single.mockResolvedValue({ data: { id: "row-1" }, error: null })
+  select.mockResolvedValue({ data: [{ id: "row-1" }], error: null })
 })
 
 const row: TranslationReviewRow = {
@@ -341,7 +343,7 @@ describe("TranslationReviewCard decisions", () => {
   // The failure path the reviewer must be able to trust: nothing was recorded,
   // so the row has to still be there — and they have to be told.
   it("reports a failed write and keeps the row on screen", async () => {
-    single.mockResolvedValue({ data: null, error: new Error("rls denied") })
+    select.mockResolvedValue({ data: null, error: new Error("rls denied") })
     const user = userEvent.setup()
     renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
 
@@ -354,11 +356,91 @@ describe("TranslationReviewCard decisions", () => {
     ).toBeInTheDocument()
   })
 
+  // Half of Bugbot's high finding: `E` opened the editor but left focus on the
+  // card, so the first thing typed went to the shortcut handler.
+  it("puts the cursor in the first section when edit mode opens", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("e")
+
+    expect(screen.getAllByRole("textbox")[0]).toHaveFocus()
+  })
+
+  // The other half, and the reason focus management alone will not do: a
+  // reviewer can click the card background, or the browser can restore focus
+  // somewhere unhelpful. With the handler live, typing the word "bar" approves
+  // the translation on their behalf — an action attributed to a human who did
+  // not take it.
+  it("stops handling shortcuts while edit mode is open, wherever focus lands", async () => {
+    const user = userEvent.setup()
+    const onSkip = vi.fn()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={onSkip} />)
+
+    await user.keyboard("e")
+    await user.click(screen.getByRole("article"))
+    await user.keyboard("bar{ArrowRight}")
+
+    expect(update).not.toHaveBeenCalled()
+    expect(onSkip).not.toHaveBeenCalled()
+    expect(screen.getAllByRole("textbox")).toHaveLength(4)
+  })
+
+  // Escape is the only key the handler still answers in edit mode, and it means
+  // what the button next to it says: cancel. The draft goes, and the shortcuts
+  // come back — which they cannot do unless focus comes back to the card too.
+  it("discards the correction and re-arms the shortcuts on Escape", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("e")
+    await user.type(screen.getAllByRole("textbox")[0], " Rewritten.")
+    await user.keyboard("{Escape}")
+
+    expect(screen.queryAllByRole("textbox")).toHaveLength(0)
+
+    await user.keyboard("a")
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1))
+    expect(Object.keys(lastPayload())).not.toContain("instructions_en")
+  })
+
+  // The card announces its shortcuts in its accessible name, so silencing them
+  // in edit mode without saying so would leave a screen reader reading out keys
+  // that no longer do anything.
+  it("announces the only shortcut that still works while editing", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("e")
+
+    expect(
+      screen.getByRole("article", { name: /escape/i }),
+    ).toBeInTheDocument()
+  })
+
+  // A refused write and a dropped connection are not the same problem for the
+  // reviewer: retrying fixes one and never fixes the other, so the toast has to
+  // tell them apart.
+  it("names a refused write rather than blaming the connection", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("a")
+
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(
+        expect.stringContaining("refused"),
+      ),
+    )
+  })
+
   // A held key repeats, and the queue only rebuilds once the first write lands.
   // Without a guard the second press writes the row a second time, and a third
   // could land on a row the reviewer can no longer see.
   it("ignores a second decision while the first is still in flight", async () => {
-    single.mockReturnValue(new Promise(() => {}))
+    select.mockReturnValue(new Promise(() => {}))
     const user = userEvent.setup()
     renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
 
@@ -366,6 +448,59 @@ describe("TranslationReviewCard decisions", () => {
     await user.keyboard("r")
 
     expect(update).toHaveBeenCalledTimes(1)
+  })
+
+  // `isPending` goes false the moment the write resolves, but the decided row
+  // stays on screen until the queue refetch lands. In that window approve and
+  // revert are live again and the second verdict wins — one reviewer
+  // contradicting themselves inside a single row.
+  it("refuses a contradictory second verdict after the first one lands", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("a")
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled())
+    await user.keyboard("r")
+
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole("button", { name: /revert/i })).toBeDisabled()
+    // Editing is gated on the same condition rather than left live: a correction
+    // that can no longer be submitted is an invitation to waste typing.
+    expect(screen.getByRole("button", { name: /edit/i })).toBeDisabled()
+    await user.keyboard("e")
+    expect(screen.queryAllByRole("textbox")).toHaveLength(0)
+  })
+
+  // The row is still in the queue after a refused write, so the card the
+  // reviewer is looking at is the one they have to retry from.
+  it("lets the reviewer try again after a write the database refused", async () => {
+    select.mockResolvedValueOnce({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("a")
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+    await user.keyboard("a")
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+  })
+
+  // Skip never goes through the mutation — it moves the page index locally — so
+  // it is not gated by accident like approve and revert were. `a` then `→`
+  // before the queue rebuilds advances one row, and the refetch then drops the
+  // decided row and shifts everything up by one more: a row nobody ever looked
+  // at is gone from the session, which is the worst thing a review queue can do.
+  it("refuses to skip once a verdict has been issued", async () => {
+    select.mockReturnValue(new Promise(() => {}))
+    const user = userEvent.setup()
+    const onSkip = vi.fn()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={onSkip} />)
+
+    await user.keyboard("a")
+    await user.keyboard("{ArrowRight}")
+
+    expect(onSkip).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: /skip/i })).toBeDisabled()
   })
 
   it("skips from the button too", async () => {

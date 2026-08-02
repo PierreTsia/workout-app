@@ -3,12 +3,16 @@ import { act } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
 import { EXERCISES_BATCH_QUERY_KEY } from "@/hooks/useExerciseBatch"
 import { TRANSLATION_REVIEW_QUEUE_KEY } from "@/hooks/useTranslationReviewQueue"
-import { useApproveTranslation } from "./useApproveTranslation"
+import {
+  TranslationWriteRefusedError,
+  useApproveTranslation,
+} from "./useApproveTranslation"
 
 type Payload = Record<string, unknown>
 
-const single = vi.fn()
-const select = vi.fn(() => ({ single }))
+type Response = { data: { id: string }[] | null; error: Error | null }
+
+const select = vi.fn<(columns: string) => Promise<Response>>()
 const eq = vi.fn<(column: string, id: string) => { select: typeof select }>(
   () => ({ select }),
 )
@@ -26,10 +30,44 @@ const lastPayload = (): Payload => update.mock.calls.at(-1)?.[0] ?? {}
 
 beforeEach(() => {
   vi.clearAllMocks()
-  single.mockResolvedValue({ data: { id: "ex-1" }, error: null })
+  select.mockResolvedValue({ data: [{ id: "ex-1" }], error: null })
 })
 
 describe("useApproveTranslation", () => {
+  // Copilot's finding: the row comes back only to be discarded, and it carries
+  // both instructions blobs.
+  it("asks the database for an id rather than the row it just wrote", async () => {
+    const { result } = renderHookWithProviders(() => useApproveTranslation())
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        exerciseId: "ex-1",
+        status: "approved",
+      })
+    })
+
+    expect(select).toHaveBeenCalledWith("id")
+  })
+
+  // The defect underneath it. An UPDATE that RLS refuses is not an error over
+  // PostgREST — it is a successful request that matched no rows. A hook that
+  // ignores its result therefore reports success, fires the green toast, and
+  // leaves the row in the queue with nobody able to tell a refused write from
+  // a slow one.
+  it("treats a response carrying no row as a refused write", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const { result } = renderHookWithProviders(() => useApproveTranslation())
+
+    await expect(
+      act(async () => {
+        await result.current.mutateAsync({
+          exerciseId: "ex-1",
+          status: "approved",
+        })
+      }),
+    ).rejects.toBeInstanceOf(TranslationWriteRefusedError)
+  })
+
   it("stamps the translation verdict and its own review timestamp", async () => {
     const { result } = renderHookWithProviders(() => useApproveTranslation())
 
@@ -148,7 +186,7 @@ describe("useApproveTranslation", () => {
   })
 
   it("leaves every cache alone when the write fails", async () => {
-    single.mockResolvedValue({ data: null, error: new Error("rls denied") })
+    select.mockResolvedValue({ data: null, error: new Error("rls denied") })
     const { result, queryClient } = renderHookWithProviders(() =>
       useApproveTranslation(),
     )

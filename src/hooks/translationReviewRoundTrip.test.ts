@@ -5,7 +5,10 @@ import {
   useTranslationReviewQueue,
   type TranslationReviewRow,
 } from "@/hooks/useTranslationReviewQueue"
-import { useApproveTranslation } from "@/hooks/useApproveTranslation"
+import {
+  TranslationWriteRefusedError,
+  useApproveTranslation,
+} from "@/hooks/useApproveTranslation"
 import { useExercisesForReview } from "@/hooks/useExercisesForReview"
 
 /**
@@ -88,23 +91,21 @@ vi.mock("@/lib/supabase", () => {
       from: () => ({
         update: (payload: Row) => ({
           eq: (_column: string, id: string) => ({
-            select: () => ({
-              single: async () => {
-                // No row, no write — `.single()` is an error in PostgREST when
-                // the filter matches nothing, and the queue tests below depend
-                // on a genuinely rejected write rather than a silent no-op.
-                if (!(db.rows as Row[]).some((row) => row.id === id)) {
-                  return { data: null, error: new Error("no row matched") }
-                }
-                db.rows = (db.rows as Row[]).map((row) =>
-                  row.id === id ? { ...row, ...payload } : row,
-                )
-                return {
-                  data: (db.rows as Row[]).find((row) => row.id === id) ?? null,
-                  error: null,
-                }
-              },
-            }),
+            // PostgREST answers an UPDATE that matched nothing with an empty
+            // array and no error — the shape an RLS refusal arrives in, and the
+            // reason the mutation counts its rows instead of trusting `error`.
+            // Modelling that faithfully is what makes the rejected-write test
+            // below a test of the mutation rather than a test of this fake.
+            select: async () => {
+              const matched = (db.rows as Row[]).filter((row) => row.id === id)
+              db.rows = (db.rows as Row[]).map((row) =>
+                row.id === id ? { ...row, ...payload } : row,
+              )
+              return {
+                data: matched.map((row) => ({ id: row.id })),
+                error: null,
+              }
+            },
           }),
         }),
       }),
@@ -221,7 +222,10 @@ describe("a reviewed translation and the T158 queue", () => {
     ])
   })
 
-  it("leaves the whole queue standing when the write is rejected", async () => {
+  // The refusal RLS actually produces: a successful request that changed
+  // nothing. The mutation has to read that as a failure, or the reviewer gets a
+  // green toast over a queue that never moved.
+  it("leaves the whole queue standing when the write is refused", async () => {
     const { result } = setup()
     await waitFor(() => expect(result.current.queue.isSuccess).toBe(true))
 
@@ -232,7 +236,7 @@ describe("a reviewed translation and the T158 queue", () => {
           status: "approved",
         })
       }),
-    ).rejects.toThrow("no row matched")
+    ).rejects.toBeInstanceOf(TranslationWriteRefusedError)
 
     const refetched = await act(() => result.current.queue.refetch())
 

@@ -2,7 +2,24 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { EXERCISES_BATCH_QUERY_KEY } from "@/hooks/useExerciseBatch"
 import { TRANSLATION_REVIEW_QUEUE_KEY } from "@/hooks/useTranslationReviewQueue"
 import { supabase } from "@/lib/supabase"
-import type { Exercise, ExerciseInstructions } from "@/types/database"
+import type { ExerciseInstructions } from "@/types/database"
+
+/**
+ * The write reached the database and changed nothing.
+ *
+ * RLS refusing an UPDATE is not an error over PostgREST: the request succeeds
+ * and matches zero rows. Without this the mutation resolves, the card shows the
+ * green toast, and the row sits in the queue with the reviewer unable to tell a
+ * refused write from a slow one. Typed rather than a bare `Error` so the card
+ * can say the database refused it instead of blaming the network — the same
+ * reason `useCreatePAT` names its failures.
+ */
+export class TranslationWriteRefusedError extends Error {
+  constructor() {
+    super("translation write refused: the update matched no row")
+    this.name = "TranslationWriteRefusedError"
+  }
+}
 
 /**
  * The two verdicts a reviewer can hand down. `clean` is absent on purpose: it is
@@ -52,14 +69,16 @@ export function useApproveTranslation() {
         ...(instructionsEn ? { instructions_en: instructionsEn } : {}),
       }
 
+      // `select("id")` and not `select()`: the response is only ever counted,
+      // and the full row carries both instruction blobs. The precedent is
+      // `scripts/translate-instructions.ts`, which asks for the same one column.
       const { data, error } = await supabase
         .from("exercises")
         .update(payload)
         .eq("id", exerciseId)
-        .select()
-        .single()
+        .select("id")
       if (error) throw error
-      return data as Exercise
+      if (data?.length !== 1) throw new TranslationWriteRefusedError()
     },
     // The queue key plus the four caches useAdminUpdateExercise invalidates: the
     // same catalog row is cached by id, by batch, by admin list and by library
