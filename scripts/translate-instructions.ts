@@ -175,6 +175,11 @@ const fetchLoggedSets = async (): Promise<Map<string, number>> => {
     const { data, error } = await supabase
       .from("set_logs")
       .select("exercise_id")
+      // Offset paging over an unordered select is not paging. Postgres owes no
+      // row order without ORDER BY, so page 2 can repeat a row from page 1 and
+      // omit another — and these counts are what order the waves. `id` is
+      // unique, so the order it imposes is total.
+      .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(`counting set_logs: ${error.message}`)
 
@@ -190,6 +195,11 @@ const applyWave = async (rows: readonly ExerciseRow[]): Promise<ExerciseRow[]> =
 
   const logged = await fetchLoggedSets()
   const countOf = (row: ExerciseRow) => logged.get(row.id) ?? 0
+
+  // The tally decides the wave, so it is worth being able to see it: a paging
+  // bug shows up here as a total that does not match `select count(*)`.
+  const total = [...logged.values()].reduce((sum, count) => sum + count, 0)
+  console.log(`counted ${total} logged sets across ${logged.size} exercises`)
 
   return wave.kind === "unlogged"
     ? rows.filter((row) => countOf(row) === 0)
