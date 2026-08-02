@@ -87,10 +87,14 @@ const SECTIONS = [
  * empty a section the French fills. That guard is only worth anything if it
  * agrees with the resolver's own idea of "filled" — a second definition over
  * there could accept a block this one then renders as French.
+ *
+ * Narrow on the way out as well as in: a parity check that can be asked about
+ * any string will answer `false` to a misspelt or renamed one, and `false`
+ * there reads as "that section is empty".
  */
 export const filledInstructionSections = (
   block: ExerciseInstructions | null | undefined,
-): ReadonlySet<string> =>
+): ReadonlySet<keyof ExerciseInstructions> =>
   new Set(
     SECTIONS.filter((section) =>
       (block?.[section] ?? []).some((step) => clean(step)),

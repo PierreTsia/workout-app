@@ -124,24 +124,56 @@ ${JSON.stringify(subject.instructions, null, 2)}`
 }
 
 /**
- * The JSON object buried in a model answer, or `undefined` when there is none.
- * Models wrap their block in prose or in a fence often enough that refusing
- * would throw away good translations.
- *
- * Exported because the review screen has to tell "that is not JSON" from "that
- * is JSON of the wrong shape" to say anything useful to the reviewer, and a
- * second extraction over there would be a second opinion on what counts as an
- * answer at all.
+ * Boxed, so that a model answering `null` is distinguishable from a model
+ * answering something no parser can read. The review screen turns exactly that
+ * distinction into two different sentences for the reviewer.
  */
-export function extractJsonObject(raw: string | null | undefined): unknown {
-  if (typeof raw !== "string") return undefined
-  const match = raw.match(/\{[\s\S]*\}/)
-  if (!match) return undefined
+interface JsonValue {
+  value: unknown
+}
+
+const parsedOrNothing = (text: string): JsonValue | undefined => {
   try {
-    return JSON.parse(match[0])
+    return { value: JSON.parse(text) }
   } catch {
     return undefined
   }
+}
+
+/**
+ * The structure inside a prose or fenced answer, greedily — first delimiter to
+ * last.
+ *
+ * A brace anywhere means the answer is an object answer, however broken, and
+ * the array *inside* a malformed object is not a second candidate: reading
+ * `["Lie back"]` out of `{"setup": ["Lie back"],}` would report a paste with a
+ * trailing comma as having parsed, and send the reviewer looking for the wrong
+ * mistake.
+ */
+const structureIn = (raw: string): string | undefined =>
+  raw.match(raw.includes("{") ? /\{[\s\S]*\}/ : /\[[\s\S]*\]/)?.[0]
+
+/**
+ * The JSON value buried in a model answer, or `undefined` when nothing in it
+ * parses. Models wrap their block in prose or in a fence often enough that
+ * refusing would throw away good translations, so the whole text is tried
+ * first and then the structures inside it.
+ *
+ * Deliberately says nothing about *shape* — an array, a number and a bare
+ * string are all values it finds. Exported because the review screen has to
+ * tell "I could not parse this" from "I parsed it and it is not an instruction
+ * block" to say anything useful, and a second extractor over there would be a
+ * second opinion on what counts as an answer at all.
+ */
+export function extractJsonValue(
+  raw: string | null | undefined,
+): JsonValue | undefined {
+  if (typeof raw !== "string") return undefined
+
+  return [raw.trim(), structureIn(raw)]
+    .flatMap((text) => text ?? [])
+    .map(parsedOrNothing)
+    .find((found) => found !== undefined)
 }
 
 const isStringArray = (value: unknown): value is string[] =>
@@ -169,7 +201,8 @@ const sentencesAt = (
 export function parseInstructions(
   raw: string | null | undefined,
 ): ExerciseInstructions | null {
-  const parsed = extractJsonObject(raw)
+  const found = extractJsonValue(raw)
+  const parsed = found?.value
   if (typeof parsed !== "object" || parsed === null) return null
 
   const sections = new Map<string, unknown>(Object.entries(parsed))

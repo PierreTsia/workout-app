@@ -178,13 +178,35 @@ describe("readCorrection", () => {
   // whole block", the other means "the assistant answered something that is not
   // an instruction block". Telling them apart is the difference between a
   // message they can act on and one they can only stare at.
+  //
+  // The trailing comma is the awkward one: `["Lie back"]` inside it is perfectly
+  // good JSON on its own, and an extractor that goes looking for any parseable
+  // structure finds it and reports a syntax error as a shape problem.
   it.each([
     ["a trailing comma", '{"setup": ["Lie back"],}'],
     ["smart quotes around the keys", '{\u201Csetup\u201D: [\u201CLie back\u201D]}'],
     ["a truncated answer", '{"setup": ["Lie back", "Set your'],
     ["no JSON at all", "Yes, the translation looks fine to me."],
+    ["an unterminated array", '["Lie back on the bench.", "Set your'],
   ])("refuses %s as unreadable", (_case, raw) => {
     expect(readCorrection(raw, FRENCH)).toEqual({ ok: false, problem: "unreadable" })
+  })
+
+  // The line between the two refusals is `JSON.parse`, and nothing else. A
+  // reviewer told "that is not valid JSON" about something that demonstrably
+  // is goes looking for a syntax error that does not exist; every one of these
+  // parsed fine and simply is not an instruction block, which is a different
+  // sentence and a different next move.
+  it.each([
+    ["a bare array of sentences", '["Lie back on the bench.", "Press upward."]'],
+    ["an array of blocks", '[{"setup": [], "movement": []}]'],
+    ["a fenced array", '```json\n["Lie back on the bench."]\n```'],
+    ["a bare string", '"The translation looks fine to me."'],
+    ["a number", "42"],
+    ["a boolean", "true"],
+    ["a literal null", "null"],
+  ])("refuses %s as the wrong shape, not as unreadable", (_case, raw) => {
+    expect(readCorrection(raw, FRENCH)).toEqual({ ok: false, problem: "shape" })
   })
 
   // Well-formed JSON saying the wrong thing is the dangerous half: it looks

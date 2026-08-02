@@ -4,6 +4,7 @@ import source from "./catalogLabels.ts?raw"
 import { importsOf } from "@/test/imports"
 import {
   equipmentLabelKey,
+  filledInstructionSections,
   isEnglish,
   muscleLabelKey,
   resolveExerciseInstructions,
@@ -105,6 +106,30 @@ describe("resolveExerciseName", () => {
 
   it("treats a region-tagged English locale as English", () => {
     expect(resolveExerciseName(row(), "en-US")).toBe("Bench Press")
+  })
+})
+
+describe("filledInstructionSections", () => {
+  it("answers with the sections holding a non-blank step", () => {
+    const filled = filledInstructionSections({ ...ENGLISH, breathing: ["  "] })
+
+    expect([...filled]).toEqual(["setup", "movement", "common_mistakes"])
+  })
+
+  /**
+   * The set exists to be asked "does the English fill what the French fills",
+   * and both sides of that question are section keys. Widened to `string` it
+   * would answer `false` to a typo or a renamed key with a straight face, and
+   * the parity check reads a `false` as "the correction empties this section" —
+   * the exported callers get a compile error instead.
+   *
+   * This assertion is a type-level one: it fails `tsc -b`, not the runner.
+   */
+  it("cannot be asked about a string that is not a section", () => {
+    const filled = filledInstructionSections(ENGLISH)
+
+    // @ts-expect-error — "notes" is not a section of an instruction block.
+    expect(filled.has("notes")).toBe(false)
   })
 })
 

@@ -106,6 +106,26 @@ const row: TranslationReviewRow = {
 const lineContaining = (text: string): HTMLElement =>
   screen.getByText(text).closest("li")!
 
+/** The corrected block an arbiter hands back: one sentence rewritten. */
+const CORRECTED = {
+  setup: ["Lie back on the bench.", "Set your hands shoulder-width apart."],
+  movement: ["Press the bar upward."],
+  breathing: ["Exhale as you press."],
+  common_mistakes: ["Arched lower back."],
+}
+
+/** The whole round trip, from opening the dialog to confirming the diff. */
+const adjudicate = async (
+  user: ReturnType<typeof userEvent.setup>,
+  block: unknown,
+) => {
+  await user.click(screen.getByRole("button", { name: /review assist/i }))
+  await user.click(screen.getByRole("textbox", { name: /corrected json/i }))
+  await user.paste(JSON.stringify(block))
+  await user.click(screen.getByRole("button", { name: /check the correction/i }))
+  await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+}
+
 describe("TranslationReviewCard", () => {
   it("shows both names, the status and the reading exposure", () => {
     renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
@@ -581,29 +601,93 @@ describe("TranslationReviewCard decisions", () => {
     const user = userEvent.setup()
     renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
 
-    await user.click(screen.getByRole("button", { name: /review assist/i }))
-    await user.click(screen.getByRole("textbox", { name: /corrected json/i }))
-    await user.paste(
-      JSON.stringify({
-        setup: ["Lie back on the bench.", "Set your hands shoulder-width apart."],
-        movement: ["Press the bar upward."],
-        breathing: ["Exhale as you press."],
-        common_mistakes: ["Arched lower back."],
-      }),
-    )
-    await user.click(screen.getByRole("button", { name: /check the correction/i }))
-    await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+    await adjudicate(user, CORRECTED)
 
-    await waitFor(() =>
-      expect(lastPayload().instructions_en).toEqual({
-        setup: ["Lie back on the bench.", "Set your hands shoulder-width apart."],
-        movement: ["Press the bar upward."],
-        breathing: ["Exhale as you press."],
-        common_mistakes: ["Arched lower back."],
-      }),
-    )
+    await waitFor(() => expect(lastPayload().instructions_en).toEqual(CORRECTED))
     expect(lastPayload()).toMatchObject({ instructions_en_status: "approved" })
     expect(update).toHaveBeenCalledTimes(1)
+    // Written, so there is nothing left to adjudicate and the diff goes away.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  })
+
+  /**
+   * The failure path, which is the only way to reach it and therefore the way
+   * it would have reached production.
+   *
+   * A correction that fails to write used to leave the reviewer in front of a
+   * closed dialog with the gate reopened, one keystroke from approving the
+   * machine English they had just adjudicated *against* — marked reviewed by a
+   * human who reviewed something else. So the write and the diff share a
+   * lifetime: nothing is dismissed until something is written, and while the
+   * diff is up the card answers no keys at all.
+   */
+  it("keeps the diff on screen when the write fails, and answers no retry key", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    await user.keyboard("a")
+
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(
+      within(screen.getByRole("dialog")).getByRole("list", {
+        name: /what would change/i,
+      }),
+    ).toHaveTextContent("Set your hands shoulder-width apart.")
+  })
+
+  // And the retry writes the correction, not a bare approval: the reviewer
+  // clicks the same button under the same diff, so the second attempt cannot
+  // mean something different from the first.
+  it("resubmits the adjudicated block when the reviewer retries", async () => {
+    select.mockResolvedValueOnce({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+    expect(lastPayload().instructions_en).toEqual(CORRECTED)
+    expect(lastPayload()).toMatchObject({ instructions_en_status: "approved" })
+  })
+
+  /**
+   * Two proposals cannot coexist. A reviewer who was midway through a manual
+   * edit and then adjudicated has said which one they mean, and the abandoned
+   * draft must not be able to win a later approval — a stale draft written
+   * under `approved` is the same defect as the machine English, in a costume.
+   */
+  it("drops a manual draft the correction supersedes", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("e")
+    await user.type(
+      screen.getByRole("textbox", { name: /edit the english for setup/i }),
+      "Draft nobody adjudicated.",
+    )
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    // Dismissing the diff abandons the correction with it, so the card is back
+    // to proposing nothing — and approving writes the row as it stands.
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    // Clicked rather than typed: the keyboard is already deaf while the editors
+    // are open, so the button is the only way the stale draft could reach the
+    // column, and therefore the only place worth asserting.
+    await user.click(screen.getByRole("button", { name: /^approve/i }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+    expect(lastPayload().instructions_en).toBeUndefined()
+    expect(screen.queryByRole("textbox", { name: /edit the english/i })).toBeNull()
   })
 
   // The T159 defect wearing a different hat. Radix portals the dialog out of
@@ -668,19 +752,16 @@ describe("TranslationReviewCard decisions", () => {
     const user = userEvent.setup()
     renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
 
-    await user.click(screen.getByRole("button", { name: /review assist/i }))
-    await user.click(screen.getByRole("textbox", { name: /corrected json/i }))
-    await user.paste(JSON.stringify(row.instructions_en))
-    await user.click(screen.getByRole("button", { name: /check the correction/i }))
-    await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+    await adjudicate(user, row.instructions_en)
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith(expect.stringContaining("refused")),
     )
     expect(toastSuccess).not.toHaveBeenCalled()
-    expect(
-      screen.getByRole("heading", { name: "Développé couché" }),
-    ).toBeInTheDocument()
+    // Queried by text, not by role: the open modal marks the card `aria-hidden`
+    // for everyone outside it, which is correct and is not the claim here — the
+    // claim is that the row did not go anywhere.
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
   })
 
   it("skips from the button too", async () => {

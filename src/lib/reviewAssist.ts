@@ -7,7 +7,7 @@
  */
 import {
   HOUSE_RULES,
-  extractJsonObject,
+  extractJsonValue,
   parseInstructions,
 } from "@/lib/instructionPrompt"
 import { filledInstructionSections } from "@/lib/catalogLabels"
@@ -172,8 +172,11 @@ const sectionsFilledBy = (
  *
  * The well-formedness verdict is `parseInstructions`' and nothing else's — the
  * same function the backfill script trusts, so "well formed" means the same
- * thing at both ends of the pipeline. `extractJsonObject` is consulted only
- * once that verdict is already "no", and only to choose the wording.
+ * thing at both ends of the pipeline. `extractJsonValue` is consulted only once
+ * that verdict is already "no", and only to choose the wording: anything a
+ * parser accepts is a `shape` refusal, however far from an instruction block it
+ * lands. Telling a reviewer their array is "not valid JSON" sends them hunting
+ * for a syntax error that is not there.
  *
  * Well formed is not sufficient, though. `resolveExerciseInstructions` renders
  * the English only when every section the French fills is filled in English
@@ -190,7 +193,7 @@ export function readCorrection(
   if (!parsed) {
     return {
       ok: false,
-      problem: extractJsonObject(raw) === undefined ? "unreadable" : "shape",
+      problem: extractJsonValue(raw) === undefined ? "unreadable" : "shape",
     }
   }
 

@@ -133,11 +133,21 @@ export function TranslationReviewCard({
   const [verdictIssued, setVerdictIssued] = useState(false)
   /**
    * Whether the assist dialog is up. Held here rather than inside the dialog
-   * because the card has to go deaf while it is: Radix portals the dialog out
-   * of this article's DOM subtree, but a React portal still propagates events
-   * through the React tree, so a keystroke in the paste box arrives at the
-   * handler below. That is the "typing bar approves the row" defect again, with
-   * a different textarea.
+   * for two reasons.
+   *
+   * The card has to go deaf while it is: Radix portals the dialog out of this
+   * article's DOM subtree, but a React portal still propagates events through
+   * the React tree, so a keystroke in the paste box arrives at the handler
+   * below. That is the "typing bar approves the row" defect again, with a
+   * different textarea.
+   *
+   * And the dialog closes on a successful write and on the reviewer dismissing
+   * it, never on submitting. An adjudicated correction lives in the dialog and
+   * nowhere else, so closing it on submit would put the reviewer in front of a
+   * card that no longer holds what they approved — one keystroke from approving
+   * the machine English they had just adjudicated against, if the write failed.
+   * The correction and the diff share a lifetime, which is what lets `approve`
+   * mean one thing.
    */
   const [assistOpen, setAssistOpen] = useState(false)
 
@@ -179,10 +189,13 @@ export function TranslationReviewCard({
         ...(instructionsEn ? { instructionsEn } : {}),
       },
       {
-        onSuccess: () =>
-          toast.success(
-            t(`translations.toast.${status}`, { name: row.name }),
-          ),
+        onSuccess: () => {
+          // The diff is dismissed by the write landing and by nothing else, so
+          // an adjudicated correction is never out of sight while it is still
+          // the thing an approval would submit.
+          setAssistOpen(false)
+          toast.success(t(`translations.toast.${status}`, { name: row.name }))
+        },
         onError: (error) => {
           // Nothing was written, so the row is still undecided and the reviewer
           // has to be able to try again from the card in front of them.
@@ -199,6 +212,12 @@ export function TranslationReviewCard({
     )
   }
 
+  /**
+   * Approve submits whatever this card is displaying: the draft when the
+   * editors are open, the stored English otherwise. That is the whole rule, and
+   * it is only true because no other proposed translation is allowed to outlive
+   * the surface showing it — see `applyCorrection` and the dialog's lifetime.
+   */
   const approve = () =>
     record("approved", draft ? fromInstructionDraft(draft) : undefined)
 
@@ -206,12 +225,15 @@ export function TranslationReviewCard({
 
   /**
    * An adjudicated correction is a verdict like any other, so it goes through
-   * `record` — same gate, same toast, same refusal handling. The dialog closes
-   * first but keeps its pasted text, which is what a reviewer needs if the
-   * database refuses the write and they have to try again.
+   * `record` — same gate, same toast, same refusal handling.
+   *
+   * It also supersedes any manual edit in progress. Two proposed translations
+   * cannot both be live: the reviewer who adjudicated has said which one they
+   * mean, and a draft left behind would be what `approve` submitted the next
+   * time it ran, under a status claiming a human had settled on it.
    */
   const applyCorrection = (instructionsEn: ExerciseInstructions) => {
-    setAssistOpen(false)
+    setDraft(null)
     record("approved", instructionsEn)
   }
 
