@@ -399,6 +399,22 @@ interface RowResult {
 
 const QUOTA_STRIKES = 2
 
+/**
+ * The `approved` guard, restated in the UPDATE clause so the database enforces
+ * it. `isTranslationCandidate` reads a snapshot taken at selection time; a row
+ * approved in the review UI while the wave is running would otherwise be
+ * overwritten under the reviewer, and `approved` is the one verdict this
+ * pipeline must never touch.
+ *
+ * `.neq("instructions_en_status", "approved")` is the obvious spelling and is
+ * wrong: the column is NULL on every never-translated row, and `NULL <>
+ * 'approved'` is NULL rather than true in SQL. That filter would match no
+ * untranslated row at all, so the pipeline would write nothing and report every
+ * row as written.
+ */
+const NOT_APPROVED =
+  "instructions_en_status.is.null,instructions_en_status.neq.approved"
+
 const describe = (result: RowResult): string => {
   const objections = (result.objections ?? []).map(
     ({ section, index, verdict, note }) => `${section}.${index} ${verdict}: ${note}`,
@@ -444,8 +460,26 @@ const translateRow = async (row: ExerciseRow): Promise<RowResult> => {
     }
   }
 
-  const { error } = await supabase.from("exercises").update(update).eq("id", row.id)
+  const { data: touched, error } = await supabase
+    .from("exercises")
+    .update(update)
+    .eq("id", row.id)
+    .or(NOT_APPROVED)
+    .select("id")
   if (error) throw new Error(`writing ${row.id}: ${error.message}`)
+
+  // Asking for the affected rows back is what makes the guard legible. Without
+  // it, "approved a second ago" and "written" produce the same silence, and a
+  // script that reports a write it did not perform is worse than one that errors.
+  if ((touched ?? []).length === 0) {
+    return {
+      row,
+      state: "skipped",
+      flags,
+      objections,
+      reason: "approved while the run was in flight; left untouched",
+    }
+  }
 
   return {
     row,
