@@ -78,8 +78,24 @@ AS $$
   );
 $$;
 
-REVOKE ALL ON FUNCTION is_trusted_backend_caller() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION is_trusted_backend_caller() TO authenticated, service_role;
+-- No grantee at all. This is an internal predicate, not an entry point, and a
+-- PR arguing for a smaller reachable surface should not add one.
+--
+-- It stays callable where it is used because every call site is a SECURITY
+-- DEFINER function owned by postgres: during that call the effective user is
+-- the owner, so the EXECUTE check lands on postgres, which holds it implicitly
+-- as owner. The calling role's privileges are never consulted. Verified on a
+-- local harness — with this revoke in place an ordinary `authenticated` user
+-- still reads badge status, volume and cycle stats, still grants achievements,
+-- an admin still gets the review queue, and a direct RPC call to this function
+-- is refused.
+--
+-- If this ever needs a grant to keep working, something has called it from
+-- outside a definer function, and the right fix is to look at that call site
+-- rather than to widen this. Making it SECURITY DEFINER would not be a grant
+-- tweak but a design change: the predicate reads session_user and auth.role()
+-- precisely because it has to observe the caller's real session.
+REVOKE ALL ON FUNCTION is_trusted_backend_caller() FROM PUBLIC, anon, authenticated, service_role;
 
 
 -- ── check_and_grant_achievements ────────────────────────────────────
