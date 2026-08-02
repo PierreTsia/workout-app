@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { AlertTriangle, ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { copyToClipboard } from "@/lib/clipboard"
 import {
   buildErrorReport,
   formatReportAsMarkdown,
@@ -16,33 +17,6 @@ interface ErrorFallbackProps {
   caughtAt?: Date
   resetErrorBoundary?: () => void
   variant?: "page" | "inline"
-}
-
-async function copyToClipboard(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-      return true
-    }
-  } catch {
-    // fall through to legacy path
-  }
-  const ta = document.createElement("textarea")
-  ta.value = text
-  ta.setAttribute("readonly", "")
-  ta.style.position = "fixed"
-  ta.style.opacity = "0"
-  document.body.appendChild(ta)
-  try {
-    ta.select()
-    return document.execCommand("copy")
-  } catch {
-    return false
-  } finally {
-    // Always detach the textarea — even if select()/execCommand throw,
-    // we don't want to leak a hidden node into the DOM.
-    ta.remove()
-  }
 }
 
 export function ErrorFallback({

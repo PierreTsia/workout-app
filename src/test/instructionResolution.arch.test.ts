@@ -33,16 +33,19 @@ const code = (source: string) =>
 
 /**
  * The files that legitimately read the raw blocks. The first two edit or count
- * the *source* content in admin. The third is the translation review card,
- * which is the one screen whose job is to show both sides unresolved: running
- * it through the resolver would render a `flagged` row as French and hide the
- * very translation the reviewer was summoned to arbitrate.
+ * the *source* content in admin. The last two are the translation review
+ * screen, the one place whose job is to show both sides unresolved: running it
+ * through the resolver would render a `flagged` row as French and hide the very
+ * translation the reviewer was summoned to arbitrate. The assist dialog is on
+ * that screen for the same reason — it diffs the stored English against a
+ * proposed correction, and a resolved block would diff the French.
  *
  * Listed rather than pattern-matched so that adding one is a deliberate act.
  */
 const FRENCH_SOURCE_READERS = [
   "src/components/admin/exercise-form/transforms.ts",
   "src/components/admin/exercises-table/columns.tsx",
+  "src/components/admin/translations/ReviewAssistDialog.tsx",
   "src/components/admin/translations/TranslationReviewCard.tsx",
 ]
 

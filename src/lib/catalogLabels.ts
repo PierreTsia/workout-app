@@ -80,8 +80,15 @@ const SECTIONS = [
   "common_mistakes",
 ] as const satisfies readonly (keyof ExerciseInstructions)[]
 
-/** Sections holding at least one step that isn't blank. */
-const filledSections = (
+/**
+ * Sections holding at least one step that isn't blank.
+ *
+ * Exported for the review screen, which refuses a pasted correction that would
+ * empty a section the French fills. That guard is only worth anything if it
+ * agrees with the resolver's own idea of "filled" — a second definition over
+ * there could accept a block this one then renders as French.
+ */
+export const filledInstructionSections = (
   block: ExerciseInstructions | null | undefined,
 ): ReadonlySet<string> =>
   new Set(
@@ -119,15 +126,15 @@ export function resolveExerciseInstructions(
       : null
 
   const french = source.instructions ?? null
-  const frenchSections = filledSections(french)
-  const englishSections = filledSections(candidate)
+  const frenchSections = filledInstructionSections(french)
+  const englishSections = filledInstructionSections(candidate)
   const hasParity = [...frenchSections].every((section) =>
     englishSections.has(section),
   )
 
   const resolved = candidate && hasParity ? candidate : french
 
-  return filledSections(resolved).size > 0 ? resolved : null
+  return filledInstructionSections(resolved).size > 0 ? resolved : null
 }
 
 const MUSCLES: ReadonlySet<string> = new Set(MUSCLE_TAXONOMY)
