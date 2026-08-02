@@ -24,7 +24,8 @@
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
     "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
     "seed:history": "tsx scripts/seed-local-history.ts",
-    "backfill:was-pr": "tsx scripts/backfill-was-pr.ts"
+    "backfill:was-pr": "tsx scripts/backfill-was-pr.ts",
+    "translate-instructions": "tsx --tsconfig tsconfig.app.json scripts/translate-instructions.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

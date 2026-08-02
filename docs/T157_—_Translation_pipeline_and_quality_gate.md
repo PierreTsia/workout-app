@@ -31,7 +31,7 @@ Deux corrections obligatoires, chacune adossée à un test nommé :
 | Faux positif mesuré au spike | Correction |
 |---|---|
 | « pupitre Larry Scott » signalé comme matériel inventé alors que *preacher bench* est la traduction juste | Synonymes de matériel reconnus |
-| « Lower back to 90° » signalé comme muscle non traduit, où *lower* est un verbe | Désambiguïsation par position dans la phrase |
+| « Lower back to 90° » signalé par la **bavure de casse** : *Lower back* est le libellé anglais des lombaires, et le filet analysait le bloc entier concaténé, si bien que toute phrase sauf la première perdait l'exemption d'ouverture de phrase | Bavure de casse évaluée phrase par phrase |
 
 Les frontières de mots utilisent des lookarounds Unicode, **pas `\b`**, qui échoue sur `élastique` et `épaules`.
 
