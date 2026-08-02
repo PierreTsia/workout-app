@@ -144,19 +144,38 @@ const ROW_COLUMNS =
 
 const PAGE_SIZE = 1000
 
+/**
+ * PostgREST truncates a response at `max_rows` — 1000, in
+ * `supabase/config.toml` — and says nothing when it does. The catalog holds 372
+ * rows today, so this is headroom rather than a bug; the point is that the day
+ * it crosses the cap, the rows past it would simply never be translated and no
+ * output would mention them.
+ *
+ * `name` orders the wave, `id` makes that order total: two exercises sharing a
+ * name would otherwise be free to swap places between pages.
+ */
 const fetchCandidates = async (): Promise<ExerciseRow[]> => {
-  const query = supabase
-    .from("exercises")
-    .select(ROW_COLUMNS)
-    .not("instructions", "is", null)
-    .order("name", { ascending: true })
+  const rows: ExerciseRow[] = []
 
-  const { data, error } = await (wave.kind === "ids"
-    ? query.in("id", wave.ids)
-    : query)
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const query = supabase
+      .from("exercises")
+      .select(ROW_COLUMNS)
+      .not("instructions", "is", null)
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
 
-  if (error) throw new Error(`fetching exercises: ${error.message}`)
-  return (data ?? []) as ExerciseRow[]
+    const { data, error } = await (wave.kind === "ids"
+      ? query.in("id", wave.ids)
+      : query)
+    if (error) throw new Error(`fetching exercises: ${error.message}`)
+
+    const page = (data ?? []) as ExerciseRow[]
+    rows.push(...page)
+
+    if (page.length < PAGE_SIZE) return rows
+  }
 }
 
 /**
