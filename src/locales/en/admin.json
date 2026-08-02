@@ -15,6 +15,40 @@
     "allDoneHint": "Nothing left in the queue — nice work.",
     "backToAdmin": "Back to admin"
   },
+  "translations": {
+    "title": "Translation Review",
+    "navLabel": "Translations",
+    "description": "Compare the French source with its English translation, sentence by sentence — flagged rows first.",
+    "allDone": "No translation left to review!",
+    "allDoneHint": "Every translated exercise has been read — nice work.",
+    "backToAdmin": "Back to admin",
+    "previous": "Previous",
+    "next": "Next",
+    "frenchHeading": "French",
+    "englishHeading": "English",
+    "missingSentence": "no sentence at this position",
+    "gateFlags": "Automatic checks:",
+    "orphanObjections_one": "{{count}} objection points at a sentence that does not exist and is not shown below.",
+    "orphanObjections_other": "{{count}} objections point at sentences that do not exist and are not shown below.",
+    "loggedSets_one": "{{count}} logged set",
+    "loggedSets_other": "{{count}} logged sets",
+    "status": {
+      "clean": "Clean",
+      "flagged": "Flagged",
+      "approved": "Approved",
+      "unknown": "No status"
+    },
+    "sections": {
+      "setup": "Setup",
+      "movement": "Movement",
+      "breathing": "Breathing",
+      "commonMistakes": "Common mistakes"
+    },
+    "audit": {
+      "line": "Translated by {{model}} on {{date}} · cross-checked by {{checker}} · prompt v{{version}}",
+      "checkerUnavailable": "no cross-checker"
+    }
+  },
   "review": {
     "title": "Exercise Review",
     "navLabel": "Review",

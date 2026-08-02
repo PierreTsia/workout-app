@@ -15,6 +15,40 @@
     "allDoneHint": "Plus rien dans la file — bien joué.",
     "backToAdmin": "Retour à l'admin"
   },
+  "translations": {
+    "title": "Relecture des traductions",
+    "navLabel": "Traductions",
+    "description": "Comparer la source française et sa traduction anglaise, phrase à phrase — les lignes signalées d'abord.",
+    "allDone": "Plus aucune traduction à relire !",
+    "allDoneHint": "Tous les exercices traduits ont été lus — bien joué.",
+    "backToAdmin": "Retour à l'admin",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "frenchHeading": "Français",
+    "englishHeading": "Anglais",
+    "missingSentence": "aucune phrase à cette position",
+    "gateFlags": "Contrôles automatiques :",
+    "orphanObjections_one": "{{count}} objection vise une phrase inexistante et n'est pas affichée ci-dessous.",
+    "orphanObjections_other": "{{count}} objections visent des phrases inexistantes et ne sont pas affichées ci-dessous.",
+    "loggedSets_one": "{{count}} série loguée",
+    "loggedSets_other": "{{count}} séries loguées",
+    "status": {
+      "clean": "Propre",
+      "flagged": "Signalée",
+      "approved": "Validée",
+      "unknown": "Sans statut"
+    },
+    "sections": {
+      "setup": "Mise en place",
+      "movement": "Mouvement",
+      "breathing": "Respiration",
+      "commonMistakes": "Erreurs fréquentes"
+    },
+    "audit": {
+      "line": "Traduit par {{model}} le {{date}} · contre-relu par {{checker}} · prompt v{{version}}",
+      "checkerUnavailable": "aucun contre-relecteur"
+    }
+  },
   "review": {
     "title": "Revue des exercices",
     "navLabel": "Revue",

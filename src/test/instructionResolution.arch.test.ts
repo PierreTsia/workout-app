@@ -32,13 +32,18 @@ const code = (source: string) =>
   source.replace(/"[^"\n]*"|'[^'\n]*'|`[^`]*`/g, '""')
 
 /**
- * The two files that legitimately read the French block: both edit or count the
- * *source* content in admin, neither renders instructions to a reader. Listed
- * rather than pattern-matched so that adding one is a deliberate act.
+ * The files that legitimately read the raw blocks. The first two edit or count
+ * the *source* content in admin. The third is the translation review card,
+ * which is the one screen whose job is to show both sides unresolved: running
+ * it through the resolver would render a `flagged` row as French and hide the
+ * very translation the reviewer was summoned to arbitrate.
+ *
+ * Listed rather than pattern-matched so that adding one is a deliberate act.
  */
 const FRENCH_SOURCE_READERS = [
   "src/components/admin/exercise-form/transforms.ts",
   "src/components/admin/exercises-table/columns.tsx",
+  "src/components/admin/translations/TranslationReviewCard.tsx",
 ]
 
 describe("instruction reads in components", () => {
