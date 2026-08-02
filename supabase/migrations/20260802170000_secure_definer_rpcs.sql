@@ -32,16 +32,32 @@
 --     service key. This is the case scripts/backfill-was-pr.ts hits when it
 --     re-grants achievements for every user.
 --
---   * auth.role() IS NULL AND session_user <> 'authenticator' — psql, a
---     migration, the SQL Editor. Measured: the SQL Editor reports
---     session_user = postgres with no request.jwt.claims at all.
+--   * auth.role() IS NULL AND session_user = 'postgres' — a direct superuser
+--     connection with no PostgREST request context: the SQL Editor running
+--     scripts/retroactive-badge-grant.sql, psql, supabase db push. Measured:
+--     session_user = postgres, auth.role() NULL, request.jwt.claims unset.
 --
---     The session_user half is what makes this safe. PostgREST connects as
---     `authenticator` and switches role per request with SET LOCAL ROLE, which
---     leaves session_user alone and is invisible to SECURITY DEFINER (that only
---     moves current_user). So any request arriving over the API is refused here
---     even if its claims are missing entirely — we never have to assume that an
---     anonymous request always presents role='anon'.
+--     Named as an allowlist rather than as "any session_user that is not
+--     authenticator". The denylist form fails open by construction: the day
+--     Supabase puts another login role in front of the API — a new pooler, a
+--     gateway, a renamed connection role — every claimless request arriving
+--     through it is silently promoted to trusted backend, and no test would
+--     say so. We would find out the way we found out that REVOKE ... FROM
+--     PUBLIC leaves anon's explicit grant standing. This whole migration is an
+--     argument for failing closed, and this line has to make it too.
+--
+--     Widening the list is therefore a deliberate act — a second entry means a
+--     second keyless caller has been shown to exist. As audited here, none is:
+--     pg_cron is not installed, no function in the database calls any guarded
+--     function, and the service-key client in
+--     supabase/functions/_shared/supabase.ts reaches PostgREST through
+--     `authenticator` carrying role='service_role', i.e. on the branch above.
+--
+--     session_user, not current_user: SECURITY DEFINER moves current_user to
+--     the owner, and PostgREST switches role per request with SET LOCAL ROLE,
+--     which leaves session_user at `authenticator`. So an API request fails
+--     this test even when its claims are missing entirely, and we never have to
+--     assume an anonymous request always presents role='anon'.
 --
 -- COALESCE, not bare comparison: a NULL predicate reads as false to an IF, so
 -- an unwrapped one lets the caller through. That is the exact bug above.
@@ -56,7 +72,7 @@ AS $$
     auth.uid() IS NULL
       AND (
         auth.role() = 'service_role'
-        OR (auth.role() IS NULL AND session_user <> 'authenticator')
+        OR (auth.role() IS NULL AND session_user = 'postgres')
       ),
     false
   );
