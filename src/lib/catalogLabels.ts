@@ -7,6 +7,7 @@
  */
 import { EQUIPMENT_TAXONOMY } from "@/lib/catalogTaxonomy"
 import { MUSCLE_TAXONOMY } from "@/lib/trainingBalance"
+import type { ExerciseInstructions } from "@/types/database"
 
 /**
  * `exercise` is required, though nullable — pass `exercise: null` when there is
@@ -56,6 +57,77 @@ export function resolveExerciseName(
     clean(source.exercise_name_snapshot) ??
     ""
   )
+}
+
+/**
+ * Every column the display rule reads. All optional: a row that came through a
+ * projection without them (SLIM, LABEL) is a legitimate input, and the rule
+ * fails closed on it rather than making the caller pre-fill nulls.
+ */
+export interface CatalogInstructionSource {
+  instructions?: ExerciseInstructions | null
+  instructions_en?: ExerciseInstructions | null
+  instructions_en_status?: string | null
+}
+
+/** Statuses that clear the English block for display. Anything else is French. */
+const DISPLAYABLE_EN_STATUS: ReadonlySet<string> = new Set(["clean", "approved"])
+
+const SECTIONS = [
+  "setup",
+  "movement",
+  "breathing",
+  "common_mistakes",
+] as const satisfies readonly (keyof ExerciseInstructions)[]
+
+/** Sections holding at least one step that isn't blank. */
+const filledSections = (
+  block: ExerciseInstructions | null | undefined,
+): ReadonlySet<string> =>
+  new Set(
+    SECTIONS.filter((section) =>
+      (block?.[section] ?? []).some((step) => clean(step)),
+    ),
+  )
+
+/**
+ * `instructions_en` (English readers, released status, section parity) →
+ * `instructions` → `null`.
+ *
+ * `null` means "nothing to show", so the caller renders nothing rather than
+ * re-deriving that from four array lengths — the check three surfaces used to
+ * duplicate.
+ *
+ * The fallback is **whole-block**: an English translation missing a section the
+ * French fills sends the reader back to French entirely, because a half-English
+ * panel is the defect this replaces. Sentence counts are deliberately not
+ * compared — a translator legitimately merges two sentences into one.
+ *
+ * Every other outcome fails closed to French: an unknown status, a null one, or
+ * a projection that never carried the column. Blank steps count as absent, but
+ * the block itself is returned untouched, so French output is byte-identical to
+ * what the surfaces rendered before this rule existed.
+ */
+export function resolveExerciseInstructions(
+  source: CatalogInstructionSource,
+  locale: string,
+): ExerciseInstructions | null {
+  const candidate =
+    isEnglish(locale) &&
+    DISPLAYABLE_EN_STATUS.has(source.instructions_en_status ?? "")
+      ? source.instructions_en
+      : null
+
+  const french = source.instructions ?? null
+  const frenchSections = filledSections(french)
+  const englishSections = filledSections(candidate)
+  const hasParity = [...frenchSections].every((section) =>
+    englishSections.has(section),
+  )
+
+  const resolved = candidate && hasParity ? candidate : french
+
+  return filledSections(resolved).size > 0 ? resolved : null
 }
 
 const MUSCLES: ReadonlySet<string> = new Set(MUSCLE_TAXONOMY)

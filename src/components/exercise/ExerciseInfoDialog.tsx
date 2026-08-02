@@ -22,16 +22,10 @@ interface ExerciseInfoDialogProps {
 
 export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
   const { t } = useTranslation("exercise")
-  const { catalogName } = useCatalogLabels()
+  const { catalogName, exerciseInstructions } = useCatalogLabels()
 
-  const hasInstructions =
-    exercise.instructions &&
-    (exercise.instructions.setup.length > 0 ||
-      exercise.instructions.movement.length > 0 ||
-      exercise.instructions.breathing.length > 0 ||
-      exercise.instructions.common_mistakes.length > 0)
-
-  const hasContent = hasInstructions || exercise.youtube_url
+  const instructions = exerciseInstructions(exercise)
+  const hasContent = instructions || exercise.youtube_url
 
   if (!hasContent) return null
 
@@ -40,6 +34,7 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
       <DialogTrigger asChild>
         <button
           type="button"
+          aria-label={t("instructionsFor", { name: catalogName(exercise) })}
           className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
@@ -69,27 +64,27 @@ export function ExerciseInfoDialog({ exercise }: ExerciseInfoDialogProps) {
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          {exercise.instructions && (
+          {instructions && (
             <>
               <InstructionSection
                 icon={Settings2}
                 title={t("setup")}
-                items={exercise.instructions.setup}
+                items={instructions.setup}
               />
               <InstructionSection
                 icon={Activity}
                 title={t("movement")}
-                items={exercise.instructions.movement}
+                items={instructions.movement}
               />
               <InstructionSection
                 icon={Wind}
                 title={t("breathing")}
-                items={exercise.instructions.breathing}
+                items={instructions.breathing}
               />
               <InstructionSection
                 icon={AlertTriangle}
                 title={t("commonMistakes")}
-                items={exercise.instructions.common_mistakes}
+                items={instructions.common_mistakes}
               />
             </>
           )}

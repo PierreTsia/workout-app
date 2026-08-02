@@ -1,5 +1,6 @@
 {
   "howToPerform": "Comment exécuter",
+  "instructionsFor": "Consignes : {{name}}",
   "setup": "Mise en place",
   "movement": "Mouvement",
   "breathing": "Respiration",

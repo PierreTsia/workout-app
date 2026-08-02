@@ -5,6 +5,26 @@ export interface ExerciseInstructions {
   common_mistakes: string[]
 }
 
+/**
+ * Trace left by the translation pipeline on `exercises.instructions_en_audit`.
+ *
+ * Nothing reads it at display time — it exists for the review screen, and the
+ * contract lives here because T157 writes it and T158 reads it in parallel.
+ */
+export interface TranslationAudit {
+  model: string
+  prompt_version: number
+  translated_at: string
+  checker_model: string | null
+  gate_flags: string[]
+  objections: {
+    section: keyof ExerciseInstructions
+    index: number
+    verdict: string
+    note: string
+  }[]
+}
+
 export interface Exercise {
   id: string
   name: string
@@ -14,6 +34,12 @@ export interface Exercise {
   created_at: string
   youtube_url: string | null
   instructions: ExerciseInstructions | null
+  /** English translation, same shape. Only shown when the status allows it. */
+  instructions_en?: ExerciseInstructions | null
+  /** `clean` | `flagged` | `approved`; null means never translated. */
+  instructions_en_status?: string | null
+  instructions_en_reviewed_at?: string | null
+  instructions_en_audit?: TranslationAudit | null
   image_url: string | null
   equipment: string
   difficulty_level: "beginner" | "intermediate" | "advanced" | null

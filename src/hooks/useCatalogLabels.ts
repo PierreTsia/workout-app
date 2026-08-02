@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next"
 import {
   equipmentLabelKey,
   muscleLabelKey,
+  resolveExerciseInstructions,
   resolveExerciseName,
+  type CatalogInstructionSource,
   type CatalogNameSource,
 } from "@/lib/catalogLabels"
 
@@ -30,6 +32,13 @@ export function useCatalogLabels() {
       catalogName: (
         row: { name?: string | null; name_en?: string | null } | null,
       ) => resolveExerciseName({ exercise: row }, language),
+
+      /**
+       * `null` when there is nothing to render — the presence check itself,
+       * not just the language choice, so no surface has to re-derive it.
+       */
+      exerciseInstructions: (row: CatalogInstructionSource | null | undefined) =>
+        resolveExerciseInstructions(row ?? {}, language),
 
       /** Falls back to the raw value: snapshots hold pre-taxonomy muscle names. */
       muscleLabel: (value: string | null | undefined) => {

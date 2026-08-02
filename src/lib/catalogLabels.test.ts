@@ -6,13 +6,39 @@ import {
   equipmentLabelKey,
   isEnglish,
   muscleLabelKey,
+  resolveExerciseInstructions,
   resolveExerciseName,
+  type CatalogInstructionSource,
   type CatalogNameSource,
 } from "./catalogLabels"
+import type { ExerciseInstructions } from "@/types/database"
 
 const row = (overrides: Partial<CatalogNameSource> = {}): CatalogNameSource => ({
   exercise: { name: "Développé couché", name_en: "Bench Press" },
   name_snapshot: "Développé couché (snapshot)",
+  ...overrides,
+})
+
+const FRENCH: ExerciseInstructions = {
+  setup: ["Allonge-toi sur le banc"],
+  movement: ["Pousse la barre"],
+  breathing: ["Expire à la poussée"],
+  common_mistakes: ["Coudes trop écartés"],
+}
+
+const ENGLISH: ExerciseInstructions = {
+  setup: ["Lie back on the bench"],
+  movement: ["Press the bar up"],
+  breathing: ["Exhale on the push"],
+  common_mistakes: ["Flared elbows"],
+}
+
+const instructionRow = (
+  overrides: Partial<CatalogInstructionSource> = {},
+): CatalogInstructionSource => ({
+  instructions: FRENCH,
+  instructions_en: ENGLISH,
+  instructions_en_status: "clean",
   ...overrides,
 })
 
@@ -79,6 +105,97 @@ describe("resolveExerciseName", () => {
 
   it("treats a region-tagged English locale as English", () => {
     expect(resolveExerciseName(row(), "en-US")).toBe("Bench Press")
+  })
+})
+
+describe("resolveExerciseInstructions", () => {
+  it("shows the English block to an English reader when the status is clean", () => {
+    expect(resolveExerciseInstructions(instructionRow(), "en")).toBe(ENGLISH)
+  })
+
+  // A half-English panel is the defect the issue reported, so parity is checked
+  // on the whole block: one section short and the reader gets French throughout.
+  it("falls back to French in one block when a section is missing in English", () => {
+    const source = instructionRow({
+      instructions_en: { ...ENGLISH, breathing: [] },
+    })
+
+    expect(resolveExerciseInstructions(source, "en")).toBe(FRENCH)
+  })
+
+  // The `hasInstructions` block the three display surfaces used to duplicate:
+  // "nothing to show" is the resolver's answer, not the caller's guess.
+  it("returns null when every section is empty on both sides", () => {
+    const empty: ExerciseInstructions = {
+      setup: [],
+      movement: [],
+      breathing: ["   "],
+      common_mistakes: [],
+    }
+    const source = instructionRow({
+      instructions: empty,
+      instructions_en: empty,
+    })
+
+    expect(resolveExerciseInstructions(source, "en")).toBeNull()
+    expect(resolveExerciseInstructions(source, "fr")).toBeNull()
+  })
+
+  it("shows the English block once a human approved it", () => {
+    const source = instructionRow({ instructions_en_status: "approved" })
+
+    expect(resolveExerciseInstructions(source, "en")).toBe(ENGLISH)
+  })
+
+  // Fail closed: anything that isn't an explicit go-ahead renders French. An
+  // unknown status is the interesting row — a vocabulary added tomorrow, or a
+  // typo, must not reach an English reader as English.
+  it.each(["flagged", "pending", "CLEAN", "", null, undefined])(
+    "renders French to an English reader when the status is %o",
+    (instructions_en_status) => {
+      const source = instructionRow({ instructions_en_status })
+
+      expect(resolveExerciseInstructions(source, "en")).toBe(FRENCH)
+    },
+  )
+
+  // SLIM and LABEL projections carry no status column at all; the row that
+  // reaches a display surface from one of them must still read French.
+  it("renders French when the status never made it into the projection", () => {
+    const source: CatalogInstructionSource = {
+      instructions: FRENCH,
+      instructions_en: ENGLISH,
+    }
+
+    expect(resolveExerciseInstructions(source, "en")).toBe(FRENCH)
+  })
+
+  it.each(["fr", "fr-FR"])(
+    "never returns the English block to a %s reader, clean status or not",
+    (locale) => {
+      expect(resolveExerciseInstructions(instructionRow(), locale)).toBe(FRENCH)
+    },
+  )
+
+  it.each(["clean", "flagged", "approved", null, undefined])(
+    "renders French identically whatever the status says (%o)",
+    (instructions_en_status) => {
+      const source = instructionRow({
+        instructions_en: null,
+        instructions_en_status,
+      })
+
+      expect(resolveExerciseInstructions(source, "en")).toBe(FRENCH)
+      expect(resolveExerciseInstructions(source, "fr")).toBe(FRENCH)
+    },
+  )
+
+  it("returns null rather than throwing when the row carries no instructions", () => {
+    expect(resolveExerciseInstructions({}, "en")).toBeNull()
+  })
+
+  it("treats a region-tagged English locale as English", () => {
+    expect(resolveExerciseInstructions(instructionRow(), "en-GB")).toBe(ENGLISH)
   })
 })
 

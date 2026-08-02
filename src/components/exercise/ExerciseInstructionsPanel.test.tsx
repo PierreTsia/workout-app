@@ -94,6 +94,68 @@ describe("ExerciseInstructionsPanel", () => {
     expect(screen.getByText("Common mistakes")).toBeInTheDocument()
   })
 
+  const BILINGUAL: Exercise = {
+    ...BASE_EXERCISE,
+    instructions: {
+      setup: ["Allonge-toi sur le banc"],
+      movement: ["Pousse la barre"],
+      breathing: ["Expire à la poussée"],
+      common_mistakes: ["Coudes trop écartés"],
+    },
+    instructions_en: {
+      setup: ["Lie back on the bench"],
+      movement: ["Press the bar up"],
+      breathing: ["Exhale on the push"],
+      common_mistakes: ["Flared elbows"],
+    },
+    instructions_en_status: "clean",
+  }
+
+  it("shows the English steps to an English reader once the status is clean", () => {
+    mockUseExerciseFromLibrary.mockReturnValue({
+      data: BILINGUAL,
+      isLoading: false,
+    })
+
+    renderWithProviders(<ExerciseInstructionsPanel exerciseId="ex-1" />, {
+      locale: "en",
+    })
+    fireEvent.click(screen.getByText("How to perform"))
+
+    expect(screen.getByText("Lie back on the bench")).toBeInTheDocument()
+    expect(screen.queryByText("Allonge-toi sur le banc")).not.toBeInTheDocument()
+  })
+
+  it("shows the French steps to a French reader whatever the status", () => {
+    mockUseExerciseFromLibrary.mockReturnValue({
+      data: BILINGUAL,
+      isLoading: false,
+    })
+
+    renderWithProviders(<ExerciseInstructionsPanel exerciseId="ex-1" />, {
+      locale: "fr",
+    })
+    fireEvent.click(screen.getByText("Comment exécuter"))
+
+    expect(screen.getByText("Allonge-toi sur le banc")).toBeInTheDocument()
+    expect(screen.queryByText("Lie back on the bench")).not.toBeInTheDocument()
+  })
+
+  it("keeps an English reader on French while the translation is flagged", () => {
+    mockUseExerciseFromLibrary.mockReturnValue({
+      data: { ...BILINGUAL, instructions_en_status: "flagged" },
+      isLoading: false,
+    })
+
+    renderWithProviders(<ExerciseInstructionsPanel exerciseId="ex-1" />, {
+      locale: "en",
+    })
+    fireEvent.click(screen.getByText("How to perform"))
+
+    expect(screen.getByText("Allonge-toi sur le banc")).toBeInTheDocument()
+    expect(screen.queryByText("Lie back on the bench")).not.toBeInTheDocument()
+  })
+
   it("renders YouTube link when youtube_url is present", () => {
     mockUseExerciseFromLibrary.mockReturnValue({
       data: {

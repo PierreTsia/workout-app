@@ -40,6 +40,31 @@ describe("useCatalogLabels", () => {
     expect(labels("en").equipmentLabel("smith_machine")).toBe("smith_machine")
   })
 
+  it("resolves the same row to two different instruction blocks across locales", () => {
+    const row = {
+      instructions: {
+        setup: ["Allonge-toi sur le banc"],
+        movement: [],
+        breathing: [],
+        common_mistakes: [],
+      },
+      instructions_en: {
+        setup: ["Lie back on the bench"],
+        movement: [],
+        breathing: [],
+        common_mistakes: [],
+      },
+      instructions_en_status: "clean",
+    }
+
+    expect(labels("en").exerciseInstructions(row)?.setup).toEqual([
+      "Lie back on the bench",
+    ])
+    expect(labels("fr").exerciseInstructions(row)?.setup).toEqual([
+      "Allonge-toi sur le banc",
+    ])
+  })
+
   it("never returns null for a missing value", () => {
     const { muscleLabel, equipmentLabel } = labels("en")
 
