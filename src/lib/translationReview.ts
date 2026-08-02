@@ -18,6 +18,18 @@ import type {
 
 export type ReviewObjection = TranslationAudit["objections"][number]
 
+/**
+ * i18n key per section, in the `admin` namespace. Here rather than in one of
+ * the two components that render section headings, so the review card and the
+ * assist dialog cannot end up naming the same section differently.
+ */
+export const SECTION_LABEL_KEYS: Record<InstructionSection, string> = {
+  setup: "translations.sections.setup",
+  movement: "translations.sections.movement",
+  breathing: "translations.sections.breathing",
+  common_mistakes: "translations.sections.commonMistakes",
+}
+
 export interface ReviewLine {
   /** Position inside the section — what an objection points at. */
   index: number

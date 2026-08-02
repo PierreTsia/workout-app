@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { ReviewAssistDialog } from "@/components/admin/translations/ReviewAssistDialog"
 import {
   TranslationWriteRefusedError,
   useApproveTranslation,
@@ -12,6 +13,7 @@ import {
 } from "@/hooks/useApproveTranslation"
 import { formatDate } from "@/lib/formatters"
 import {
+  SECTION_LABEL_KEYS,
   buildReviewSections,
   fromInstructionDraft,
   orphanObjections,
@@ -20,16 +22,8 @@ import {
   type ReviewLine,
   type ReviewObjection,
 } from "@/lib/translationReview"
-import type { InstructionSection } from "@/lib/instructionQuality"
 import type { ExerciseInstructions } from "@/types/database"
 import type { TranslationReviewRow } from "@/hooks/useTranslationReviewQueue"
-
-const SECTION_KEYS: Record<InstructionSection, string> = {
-  setup: "translations.sections.setup",
-  movement: "translations.sections.movement",
-  breathing: "translations.sections.breathing",
-  common_mistakes: "translations.sections.commonMistakes",
-}
 
 const STATUS_VARIANT: Record<string, "secondary" | "destructive" | "default"> = {
   clean: "secondary",
@@ -137,6 +131,25 @@ export function TranslationReviewCard({
    * database rejected, which leaves it genuinely undecided.
    */
   const [verdictIssued, setVerdictIssued] = useState(false)
+  /**
+   * Whether the assist dialog is up. Held here rather than inside the dialog
+   * for two reasons.
+   *
+   * The card has to go deaf while it is: Radix portals the dialog out of this
+   * article's DOM subtree, but a React portal still propagates events through
+   * the React tree, so a keystroke in the paste box arrives at the handler
+   * below. That is the "typing bar approves the row" defect again, with a
+   * different textarea.
+   *
+   * And the dialog closes on a successful write and on the reviewer dismissing
+   * it, never on submitting. An adjudicated correction lives in the dialog and
+   * nowhere else, so closing it on submit would put the reviewer in front of a
+   * card that no longer holds what they approved — one keystroke from approving
+   * the machine English they had just adjudicated against, if the write failed.
+   * The correction and the diff share a lifetime, which is what lets `approve`
+   * mean one thing.
+   */
+  const [assistOpen, setAssistOpen] = useState(false)
 
   const isEditing = draft !== null
 
@@ -176,10 +189,13 @@ export function TranslationReviewCard({
         ...(instructionsEn ? { instructionsEn } : {}),
       },
       {
-        onSuccess: () =>
-          toast.success(
-            t(`translations.toast.${status}`, { name: row.name }),
-          ),
+        onSuccess: () => {
+          // The diff is dismissed by the write landing and by nothing else, so
+          // an adjudicated correction is never out of sight while it is still
+          // the thing an approval would submit.
+          setAssistOpen(false)
+          toast.success(t(`translations.toast.${status}`, { name: row.name }))
+        },
         onError: (error) => {
           // Nothing was written, so the row is still undecided and the reviewer
           // has to be able to try again from the card in front of them.
@@ -196,10 +212,30 @@ export function TranslationReviewCard({
     )
   }
 
+  /**
+   * Approve submits whatever this card is displaying: the draft when the
+   * editors are open, the stored English otherwise. That is the whole rule, and
+   * it is only true because no other proposed translation is allowed to outlive
+   * the surface showing it — see `applyCorrection` and the dialog's lifetime.
+   */
   const approve = () =>
     record("approved", draft ? fromInstructionDraft(draft) : undefined)
 
   const revert = () => record("flagged")
+
+  /**
+   * An adjudicated correction is a verdict like any other, so it goes through
+   * `record` — same gate, same toast, same refusal handling.
+   *
+   * It also supersedes any manual edit in progress. Two proposed translations
+   * cannot both be live: the reviewer who adjudicated has said which one they
+   * mean, and a draft left behind would be what `approve` submitted the next
+   * time it ran, under a status claiming a human had settled on it.
+   */
+  const applyCorrection = (instructionsEn: ExerciseInstructions) => {
+    setDraft(null)
+    record("approved", instructionsEn)
+  }
 
   /**
    * Skip never touches the mutation — it moves the page index — so it is the
@@ -239,6 +275,11 @@ export function TranslationReviewCard({
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
+    // The assist dialog silences every key including `Escape`, which Radix
+    // already answers by closing the dialog — handling it here as well would
+    // discard a pending edit the reviewer never asked to lose.
+    if (assistOpen) return
+
     // Edit mode silences the whole set, and deliberately not by relying on
     // focus: a reviewer can click the card background and a browser can restore
     // focus anywhere, and then typing the word "bar" approves the translation
@@ -343,7 +384,7 @@ export function TranslationReviewCard({
 
       {sections.map(({ section, lines }, index) => (
         <section key={section} className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold">{t(SECTION_KEYS[section])}</h3>
+          <h3 className="text-sm font-semibold">{t(SECTION_LABEL_KEYS[section])}</h3>
           <div className="grid gap-2 text-xs uppercase tracking-wide text-muted-foreground sm:grid-cols-2 sm:gap-4">
             <span>{t("translations.frenchHeading")}</span>
             <span>{t("translations.englishHeading")}</span>
@@ -362,7 +403,7 @@ export function TranslationReviewCard({
               ref={index === 0 ? firstEditorRef : undefined}
               value={draft[section]}
               aria-label={t("translations.editSection", {
-                section: t(SECTION_KEYS[section]),
+                section: t(SECTION_LABEL_KEYS[section]),
               })}
               onChange={(event) =>
                 setDraft((current) =>
@@ -409,6 +450,13 @@ export function TranslationReviewCard({
           {t("translations.revert")}
           <Shortcut>R</Shortcut>
         </Button>
+        <ReviewAssistDialog
+          subject={row}
+          open={assistOpen}
+          onOpenChange={setAssistOpen}
+          onApply={applyCorrection}
+          disabled={verdictIssued}
+        />
         <Button
           size="sm"
           variant="ghost"

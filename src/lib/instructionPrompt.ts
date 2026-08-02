@@ -36,6 +36,50 @@ export interface Prompt {
 }
 
 /**
+ * The rules that do not depend on which exercise is being translated.
+ *
+ * Extracted from `buildPrompt`'s system message, and quoted verbatim by the
+ * adjudication request the reviewer copies in `src/lib/reviewAssist.ts`. An
+ * arbiter working from paraphrased rules "corrects" faithful sentences — an
+ * imperative under `common_mistakes` reads like better English right up until
+ * you remember it orders the reader to commit the fault — so the two surfaces
+ * share the strings rather than each keeping their own copy.
+ *
+ * Editing any of these edits the translation prompt, and needs a
+ * `PROMPT_VERSION` bump. The clauses naming the exercise, its muscle and its
+ * equipment stay in `buildPrompt`: they are not house rules, they are the
+ * subject.
+ */
+export const HOUSE_RULES = {
+  meaning:
+    "Translate meaning, not words. The result must read like it was written by an English-speaking coach, not translated.",
+  structure:
+    "Preserve the structure EXACTLY: same keys, same number of items in each array, same order. One French sentence maps to one English sentence.",
+  detail:
+    'Preserve EVERY concrete detail: durations, angles, tempos, degrees, parenthetical anatomical notes. "1-2 secondes" stays "1-2 seconds"; "30-45°" stays "30-45°". Dropping a number is a failure.',
+  equipmentGlossary:
+    'The French source deliberately used French equipment words. Map them back: "haltère" → dumbbell, "barre" → barbell, "poulie" → pulley, "câble" → cable, "élastique" → band, "banc" → bench, "barre de traction" → pull-up bar, "barre EZ" → EZ bar.',
+  /** Lower-cased because both callers place it after a clause naming the subject. */
+  equipmentFidelity:
+    "do not introduce equipment the French source does not mention.",
+  incline: '"décliné" means declined and "incliné" means inclined. Never swap them.',
+  anatomy:
+    'Anatomy glossary, apply exactly. These two are distinct and must never be swapped: "épaules" → shoulders; "omoplates" → shoulder blades. Also: "hanches" → hips (note "largeur de hanches" is hip-width, NOT shoulder-width), "ischios" → hamstrings, "lombaires" → lower back, "gainage" → bracing or plank depending on context.',
+  secondPerson:
+    'Address the reader in the second person throughout, consistently: "your back", "your hips", never "the back" or "the hips". Do not switch register between sentences.',
+  commonMistakes:
+    'The "common_mistakes" entries NAME an error; they are not instructions. Each one MUST stay a noun phrase in English, normally a gerund. "Arrondir le dos pendant le tirage" → "Rounding your back during the pull", NEVER "Round your back during the pull". An imperative here tells the reader to commit the mistake, which is the opposite of the intent. This applies to every entry in that array without exception.',
+  casing:
+    "Write equipment and muscle names in normal lowercase sentence case, never Title Case, unless they are proper nouns (Smith machine, EZ bar).",
+  gymTerms:
+    "Keep standard gym terms as they already are in English (squat, curl, pull-up, deadlift, hip thrust, face pull, plank...).",
+  noInvention:
+    'Never introduce a number of reps or sets that the French does not state. Never start a sentence with "Repeat" or "Remember".',
+  fidelity:
+    "Do not add, remove, soften or improve any cue. If the French is wrong, translate it faithfully — correctness is reviewed separately.",
+} as const
+
+/**
  * The translation prompt, unchanged from the spike that measured Gemini 2.5
  * Flash at 29/30 clean rows over a seeded sample of 30. Every rule in it
  * answers a defect that was actually observed, so edits here need their own
@@ -54,19 +98,19 @@ export function buildPrompt(subject: PromptSubject): Prompt {
   const system = `You are an expert strength coach translating exercise coaching cues from French to English. You reply with valid JSON only, no commentary.
 
 Strict rules:
-- Translate meaning, not words. The result must read like it was written by an English-speaking coach, not translated.
-- Preserve the structure EXACTLY: same keys, same number of items in each array, same order. One French sentence maps to one English sentence.
-- Preserve EVERY concrete detail: durations, angles, tempos, degrees, parenthetical anatomical notes. "1-2 secondes" stays "1-2 seconds"; "30-45°" stays "30-45°". Dropping a number is a failure.
-- The French source deliberately used French equipment words. Map them back: "haltère" → dumbbell, "barre" → barbell, "poulie" → pulley, "câble" → cable, "élastique" → band, "banc" → bench, "barre de traction" → pull-up bar, "barre EZ" → EZ bar. This exercise's equipment is "${equipmentLabel}"; do not introduce equipment the French source does not mention.
-- "décliné" means declined and "incliné" means inclined. Never swap them.
-- Anatomy glossary, apply exactly. These two are distinct and must never be swapped: "épaules" → shoulders; "omoplates" → shoulder blades. Also: "hanches" → hips (note "largeur de hanches" is hip-width, NOT shoulder-width), "ischios" → hamstrings, "lombaires" → lower back, "gainage" → bracing or plank depending on context. The target muscle is "${muscleLabel}".
-- Address the reader in the second person throughout, consistently: "your back", "your hips", never "the back" or "the hips". Do not switch register between sentences.
-- The "common_mistakes" entries NAME an error; they are not instructions. Each one MUST stay a noun phrase in English, normally a gerund. "Arrondir le dos pendant le tirage" → "Rounding your back during the pull", NEVER "Round your back during the pull". An imperative here tells the reader to commit the mistake, which is the opposite of the intent. This applies to every entry in that array without exception.
-- Write equipment and muscle names in normal lowercase sentence case, never Title Case, unless they are proper nouns (Smith machine, EZ bar).
+- ${HOUSE_RULES.meaning}
+- ${HOUSE_RULES.structure}
+- ${HOUSE_RULES.detail}
+- ${HOUSE_RULES.equipmentGlossary} This exercise's equipment is "${equipmentLabel}"; ${HOUSE_RULES.equipmentFidelity}
+- ${HOUSE_RULES.incline}
+- ${HOUSE_RULES.anatomy} The target muscle is "${muscleLabel}".
+- ${HOUSE_RULES.secondPerson}
+- ${HOUSE_RULES.commonMistakes}
+- ${HOUSE_RULES.casing}
 - Refer to the exercise as "${subject.name_en ?? subject.name}" if you name it at all.
-- Keep standard gym terms as they already are in English (squat, curl, pull-up, deadlift, hip thrust, face pull, plank...).
-- Never introduce a number of reps or sets that the French does not state. Never start a sentence with "Repeat" or "Remember".
-- Do not add, remove, soften or improve any cue. If the French is wrong, translate it faithfully — correctness is reviewed separately.`
+- ${HOUSE_RULES.gymTerms}
+- ${HOUSE_RULES.noInvention}
+- ${HOUSE_RULES.fidelity}`
 
   const user = `Exercise: ${subject.name}${subject.name_en ? ` (${subject.name_en})` : ""}
 Muscle group: ${subject.muscle_group} (English: ${MUSCLE_LABELS[subject.muscle_group] ?? subject.muscle_group})
@@ -80,29 +124,96 @@ ${JSON.stringify(subject.instructions, null, 2)}`
 }
 
 /**
+ * Boxed, so that a model answering `null` is distinguishable from a model
+ * answering something no parser can read. The review screen turns exactly that
+ * distinction into two different sentences for the reviewer.
+ */
+interface JsonValue {
+  value: unknown
+}
+
+const parsedOrNothing = (text: string): JsonValue | undefined => {
+  try {
+    return { value: JSON.parse(text) }
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The structure inside a prose or fenced answer, greedily — first delimiter to
+ * last.
+ *
+ * A brace anywhere means the answer is an object answer, however broken, and
+ * the array *inside* a malformed object is not a second candidate: reading
+ * `["Lie back"]` out of `{"setup": ["Lie back"],}` would report a paste with a
+ * trailing comma as having parsed, and send the reviewer looking for the wrong
+ * mistake.
+ */
+const structureIn = (raw: string): string | undefined =>
+  raw.match(raw.includes("{") ? /\{[\s\S]*\}/ : /\[[\s\S]*\]/)?.[0]
+
+/**
+ * The JSON value buried in a model answer, or `undefined` when nothing in it
+ * parses. Models wrap their block in prose or in a fence often enough that
+ * refusing would throw away good translations, so the whole text is tried
+ * first and then the structures inside it.
+ *
+ * Deliberately says nothing about *shape* — an array, a number and a bare
+ * string are all values it finds. Exported because the review screen has to
+ * tell "I could not parse this" from "I parsed it and it is not an instruction
+ * block" to say anything useful, and a second extractor over there would be a
+ * second opinion on what counts as an answer at all.
+ */
+export function extractJsonValue(
+  raw: string | null | undefined,
+): JsonValue | undefined {
+  if (typeof raw !== "string") return undefined
+
+  return [raw.trim(), structureIn(raw)]
+    .flatMap((text) => text ?? [])
+    .map(parsedOrNothing)
+    .find((found) => found !== undefined)
+}
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((entry) => typeof entry === "string")
+
+/** One section's sentences, or `null` when that key is absent or not sentences. */
+const sentencesAt = (
+  parsed: ReadonlyMap<string, unknown>,
+  section: InstructionSection,
+): string[] | null => {
+  const value = parsed.get(section)
+  return isStringArray(value) ? value : null
+}
+
+/**
  * Reads a model response into an instruction block, or `null` when it cannot be
- * trusted. Tolerates prose around the JSON — models wrap it in prose or in a
- * fence often enough that refusing would throw away good translations — but not
- * a missing key or a non-string entry: a partial block must never reach the
- * database.
+ * trusted. A missing key, a section that is not an array, or an entry that is
+ * not a string all fail: a partial block must never reach the database.
+ *
+ * The four sections are read out one by one rather than mapped, for the same
+ * reason `fromInstructionDraft` writes them out: the result has all four keys
+ * and no others by construction, so a model that helpfully adds a `notes` field
+ * cannot get it written to the column.
  */
 export function parseInstructions(
   raw: string | null | undefined,
 ): ExerciseInstructions | null {
-  if (typeof raw !== "string") return null
-  const match = raw.match(/\{[\s\S]*\}/)
-  if (!match) return null
-  try {
-    const parsed = JSON.parse(match[0]) as ExerciseInstructions
-    const wellFormed = INSTRUCTION_SECTIONS.every(
-      (section) =>
-        Array.isArray(parsed[section]) &&
-        parsed[section].every((entry) => typeof entry === "string"),
-    )
-    return wellFormed ? parsed : null
-  } catch {
-    return null
-  }
+  const found = extractJsonValue(raw)
+  const parsed = found?.value
+  if (typeof parsed !== "object" || parsed === null) return null
+
+  const sections = new Map<string, unknown>(Object.entries(parsed))
+  const setup = sentencesAt(sections, "setup")
+  const movement = sentencesAt(sections, "movement")
+  const breathing = sentencesAt(sections, "breathing")
+  const commonMistakes = sentencesAt(sections, "common_mistakes")
+
+  return setup && movement && breathing && commonMistakes
+    ? { setup, movement, breathing, common_mistakes: commonMistakes }
+    : null
 }
 
 /** Sentence pairs the cross-checker is asked to rule on, in a stable order. */

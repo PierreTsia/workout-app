@@ -56,6 +56,30 @@
       "line": "Traduit par {{model}} le {{date}} · contre-relu par {{checker}} · prompt v{{version}}",
       "checkerUnavailable": "aucun contre-relecteur"
     },
+    "assist": {
+      "open": "Assistance à l'arbitrage",
+      "title": "Arbitrer avec un agent",
+      "description": "Copiez la demande, soumettez-la à un agent, puis recollez ici le JSON corrigé. Rien n'est écrit tant que vous n'avez pas lu le diff.",
+      "copy": "Copier la demande",
+      "copied": "Demande d'arbitrage copiée dans le presse-papier",
+      "copyFailed": "Presse-papier inaccessible — copiez la demande depuis ce message",
+      "pasteLabel": "JSON corrigé renvoyé par l'agent",
+      "pastePlaceholder": "{ \"setup\": [...], \"movement\": [...], \"breathing\": [...], \"common_mistakes\": [...] }",
+      "check": "Vérifier la correction",
+      "diffLabel": "Ce qui changerait",
+      "apply": "Approuver cette correction",
+      "change": {
+        "changed": "Réécrit :",
+        "added": "Ajouté :",
+        "removed": "Supprimé :"
+      },
+      "problem": {
+        "unreadable": "Ce n'est pas du JSON valide. Copiez toute la réponse de l'agent, accolades comprises, et recollez-la.",
+        "shape": "Ce JSON n'est pas un bloc d'instructions. Il lui faut les quatre clés — setup, movement, breathing, common_mistakes — contenant chacune une liste de phrases. Redemandez à l'agent le bloc et rien d'autre.",
+        "blanked": "Cette correction laisse {{sections}} vide alors que le français y a des phrases. L'exercice s'afficherait en français bien qu'approuvé — redemandez le bloc complet à l'agent.",
+        "empty": "Cette correction ne contient plus aucune phrase."
+      }
+    },
     "toast": {
       "approved": "{{name}} approuvé en anglais",
       "flagged": "{{name}} rendu au français",

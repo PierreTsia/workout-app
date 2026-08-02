@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
@@ -30,9 +30,39 @@ vi.mock("sonner", () => ({
 
 const lastPayload = (): Payload => update.mock.calls.at(-1)?.[0] ?? {}
 
+// jsdom exposes no clipboard, so every test that copies has to say what the
+// browser is offering — and restore it, or the stub decides the outcome of
+// whichever file runs next in the same worker.
+const originalClipboard = Object.getOwnPropertyDescriptor(
+  Navigator.prototype,
+  "clipboard",
+)
+
+const stubClipboard = (value: unknown) =>
+  Object.defineProperty(navigator, "clipboard", { value, configurable: true })
+
 beforeEach(() => {
   vi.clearAllMocks()
   select.mockResolvedValue({ data: [{ id: "row-1" }], error: null })
+})
+
+const originalExecCommand = Object.getOwnPropertyDescriptor(
+  Document.prototype,
+  "execCommand",
+)
+
+const restore = (
+  target: object,
+  property: string,
+  descriptor: PropertyDescriptor | undefined,
+) => {
+  delete (target as Record<string, unknown>)[property]
+  if (descriptor) Object.defineProperty(target, property, descriptor)
+}
+
+afterEach(() => {
+  restore(navigator, "clipboard", originalClipboard)
+  restore(document, "execCommand", originalExecCommand)
 })
 
 const row: TranslationReviewRow = {
@@ -75,6 +105,26 @@ const row: TranslationReviewRow = {
 
 const lineContaining = (text: string): HTMLElement =>
   screen.getByText(text).closest("li")!
+
+/** The corrected block an arbiter hands back: one sentence rewritten. */
+const CORRECTED = {
+  setup: ["Lie back on the bench.", "Set your hands shoulder-width apart."],
+  movement: ["Press the bar upward."],
+  breathing: ["Exhale as you press."],
+  common_mistakes: ["Arched lower back."],
+}
+
+/** The whole round trip, from opening the dialog to confirming the diff. */
+const adjudicate = async (
+  user: ReturnType<typeof userEvent.setup>,
+  block: unknown,
+) => {
+  await user.click(screen.getByRole("button", { name: /review assist/i }))
+  await user.click(screen.getByRole("textbox", { name: /corrected json/i }))
+  await user.paste(JSON.stringify(block))
+  await user.click(screen.getByRole("button", { name: /check the correction/i }))
+  await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+}
 
 describe("TranslationReviewCard", () => {
   it("shows both names, the status and the reading exposure", () => {
@@ -501,6 +551,217 @@ describe("TranslationReviewCard decisions", () => {
 
     expect(onSkip).not.toHaveBeenCalled()
     expect(screen.getByRole("button", { name: /skip/i })).toBeDisabled()
+  })
+
+  it("puts the adjudication request on the clipboard", async () => {
+    const user = userEvent.setup()
+    // After `setup()`, which installs a clipboard stub of its own that would
+    // otherwise swallow the write.
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    stubClipboard({ writeText })
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.click(screen.getByRole("button", { name: /review assist/i }))
+    await user.click(screen.getByRole("button", { name: /copy the request/i }))
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    const request: string = writeText.mock.calls[0][0]
+    expect(request).toContain("Développé couché")
+    expect(request).toContain("Set your hands hip-width apart.")
+    expect(request).toContain("measurement-changed")
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  // An insecure context is where this screen is most likely to be used from a
+  // phone, and a copy button that does nothing there is a dead end. The text
+  // has to end up somewhere the reviewer can still select it.
+  it("hands the request over in a toast when the clipboard is unreachable", async () => {
+    const user = userEvent.setup()
+    stubClipboard(undefined)
+    Object.defineProperty(document, "execCommand", {
+      value: () => false,
+      configurable: true,
+    })
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.click(screen.getByRole("button", { name: /review assist/i }))
+    await user.click(screen.getByRole("button", { name: /copy the request/i }))
+
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+    const [message, options] = toastError.mock.calls[0]
+    expect(message).toMatch(/clipboard/i)
+    expect(options.description).toContain("Set your hands hip-width apart.")
+  })
+
+  // The end of the round trip, through the one write path T159 built: the
+  // payload has to carry all four sections, because a partial block fails the
+  // resolver's parity check and the row would render French while reading
+  // `approved`.
+  it("writes an approved correction through the same mutation as the buttons", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, CORRECTED)
+
+    await waitFor(() => expect(lastPayload().instructions_en).toEqual(CORRECTED))
+    expect(lastPayload()).toMatchObject({ instructions_en_status: "approved" })
+    expect(update).toHaveBeenCalledTimes(1)
+    // Written, so there is nothing left to adjudicate and the diff goes away.
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+  })
+
+  /**
+   * The failure path, which is the only way to reach it and therefore the way
+   * it would have reached production.
+   *
+   * A correction that fails to write used to leave the reviewer in front of a
+   * closed dialog with the gate reopened, one keystroke from approving the
+   * machine English they had just adjudicated *against* — marked reviewed by a
+   * human who reviewed something else. So the write and the diff share a
+   * lifetime: nothing is dismissed until something is written, and while the
+   * diff is up the card answers no keys at all.
+   */
+  it("keeps the diff on screen when the write fails, and answers no retry key", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    await user.keyboard("a")
+
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(
+      within(screen.getByRole("dialog")).getByRole("list", {
+        name: /what would change/i,
+      }),
+    ).toHaveTextContent("Set your hands shoulder-width apart.")
+  })
+
+  // And the retry writes the correction, not a bare approval: the reviewer
+  // clicks the same button under the same diff, so the second attempt cannot
+  // mean something different from the first.
+  it("resubmits the adjudicated block when the reviewer retries", async () => {
+    select.mockResolvedValueOnce({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    await user.click(screen.getByRole("button", { name: /approve this correction/i }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+    expect(lastPayload().instructions_en).toEqual(CORRECTED)
+    expect(lastPayload()).toMatchObject({ instructions_en_status: "approved" })
+  })
+
+  /**
+   * Two proposals cannot coexist. A reviewer who was midway through a manual
+   * edit and then adjudicated has said which one they mean, and the abandoned
+   * draft must not be able to win a later approval — a stale draft written
+   * under `approved` is the same defect as the machine English, in a costume.
+   */
+  it("drops a manual draft the correction supersedes", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("e")
+    await user.type(
+      screen.getByRole("textbox", { name: /edit the english for setup/i }),
+      "Draft nobody adjudicated.",
+    )
+    await adjudicate(user, CORRECTED)
+    await waitFor(() => expect(toastError).toHaveBeenCalled())
+
+    // Dismissing the diff abandons the correction with it, so the card is back
+    // to proposing nothing — and approving writes the row as it stands.
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    // Clicked rather than typed: the keyboard is already deaf while the editors
+    // are open, so the button is the only way the stale draft could reach the
+    // column, and therefore the only place worth asserting.
+    await user.click(screen.getByRole("button", { name: /^approve/i }))
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2))
+    expect(lastPayload().instructions_en).toBeUndefined()
+    expect(screen.queryByRole("textbox", { name: /edit the english/i })).toBeNull()
+  })
+
+  // The T159 defect wearing a different hat. Radix portals the dialog out of
+  // this card's DOM, but a React portal still propagates events up the React
+  // tree, so every keystroke in the dialog reaches the card's handler.
+  //
+  // The keys are pressed with focus wherever the dialog put it — a button, not
+  // a textbox — because that is the hole the existing typing-target check does
+  // not cover: `A` on the copy button would approve the row from inside a
+  // dialog the reviewer opened to read.
+  it("answers no shortcut while the assist dialog is open", async () => {
+    const user = userEvent.setup()
+    const onSkip = vi.fn()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={onSkip} />)
+
+    await user.click(screen.getByRole("button", { name: /review assist/i }))
+    await user.keyboard("ar{ArrowRight}")
+
+    expect(update).not.toHaveBeenCalled()
+    expect(onSkip).not.toHaveBeenCalled()
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+  })
+
+  // And the paste box itself, which is the same claim one layer in: the letters
+  // have to land in the text.
+  it("keeps a shortcut letter typed into the paste box as text", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.click(screen.getByRole("button", { name: /review assist/i }))
+    await user.type(
+      screen.getByRole("textbox", { name: /corrected json/i }),
+      "a rack",
+    )
+
+    expect(update).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole("textbox", { name: /corrected json/i }),
+    ).toHaveValue("a rack")
+  })
+
+  // Opening the dialog to read is not a verdict, but a decided row has nothing
+  // left to adjudicate: it leaves the queue on the next refetch, and the write
+  // behind the dialog is gated anyway. Disabling it is the same argument T159
+  // made for the edit button — a correction that can no longer be submitted is
+  // an invitation to waste typing.
+  it("closes the assist off once a verdict has been issued", async () => {
+    select.mockReturnValue(new Promise(() => {}))
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await user.keyboard("a")
+
+    expect(screen.getByRole("button", { name: /review assist/i })).toBeDisabled()
+  })
+
+  // The refusal handling is inherited rather than reimplemented, and this is
+  // what says so: a second write path added later would pass every other test
+  // in this file and fail this one.
+  it("reports a refused correction as a refusal", async () => {
+    select.mockResolvedValue({ data: [], error: null })
+    const user = userEvent.setup()
+    renderWithProviders(<TranslationReviewCard row={row} onSkip={vi.fn()} />)
+
+    await adjudicate(user, row.instructions_en)
+
+    await waitFor(() =>
+      expect(toastError).toHaveBeenCalledWith(expect.stringContaining("refused")),
+    )
+    expect(toastSuccess).not.toHaveBeenCalled()
+    // Queried by text, not by role: the open modal marks the card `aria-hidden`
+    // for everyone outside it, which is correct and is not the claim here — the
+    // claim is that the row did not go anywhere.
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
   })
 
   it("skips from the button too", async () => {

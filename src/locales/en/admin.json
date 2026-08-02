@@ -56,6 +56,30 @@
       "line": "Translated by {{model}} on {{date}} · cross-checked by {{checker}} · prompt v{{version}}",
       "checkerUnavailable": "no cross-checker"
     },
+    "assist": {
+      "open": "Review assist",
+      "title": "Adjudicate with an assistant",
+      "description": "Copy the request, hand it to an assistant, then paste its corrected JSON back here. Nothing is written until you have read the diff.",
+      "copy": "Copy the request",
+      "copied": "Adjudication request copied to the clipboard",
+      "copyFailed": "Could not reach the clipboard — copy the request from this message",
+      "pasteLabel": "Corrected JSON from the assistant",
+      "pastePlaceholder": "{ \"setup\": [...], \"movement\": [...], \"breathing\": [...], \"common_mistakes\": [...] }",
+      "check": "Check the correction",
+      "diffLabel": "What would change",
+      "apply": "Approve this correction",
+      "change": {
+        "changed": "Rewritten:",
+        "added": "Added:",
+        "removed": "Removed:"
+      },
+      "problem": {
+        "unreadable": "That is not valid JSON. Copy the assistant's whole reply, braces included, and paste it again.",
+        "shape": "That JSON is not an instruction block. It needs the four keys — setup, movement, breathing, common_mistakes — each holding a list of sentences. Ask the assistant to reply with the block and nothing else.",
+        "blanked": "That correction leaves {{sections}} empty while the French has sentences there. The exercise would be shown in French despite being approved — ask the assistant for the complete block.",
+        "empty": "That correction has no sentence left in it."
+      }
+    },
     "toast": {
       "approved": "{{name}} approved in English",
       "flagged": "{{name}} reverted to French",
