@@ -49,8 +49,29 @@ export interface GeneratedExercise {
   targetDurationSeconds?: number
 }
 
+/** Circuit nested in a Quick Workout / AI preview (T170 / ADR 0011). */
+export interface GeneratedCircuitExercise {
+  exercise: ExerciseListItem
+  amount: number
+  weightKg: number
+}
+
+export interface GeneratedCircuit {
+  label?: string
+  rounds: number
+  restSeconds: number
+  transitionSeconds: number
+  exercises: GeneratedCircuitExercise[]
+}
+
+export type GeneratedDayItem =
+  | { kind: "solo"; exercise: GeneratedExercise }
+  | { kind: "circuit"; circuit: GeneratedCircuit }
+
 export interface GeneratedWorkout {
   exercises: GeneratedExercise[]
+  /** Interleaved solos + Circuits when present (QW Circuit path). */
+  dayItems?: GeneratedDayItem[]
   name: string
   hasFallback: boolean
   /** Present when built via AI Generate; cleared after shuffle / Quick Generate. */

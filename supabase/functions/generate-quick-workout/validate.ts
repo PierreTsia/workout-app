@@ -3,15 +3,64 @@ export interface CatalogEntry {
   muscle_group: string
 }
 
+export type QwCircuitExercise =
+  | { exercise_id: string; amount: number; weight_kg: number }
+  | { exercise_id: string; per_round: { amount: number; weight_kg: number }[] }
+
+export interface QwCircuitItem {
+  type: "circuit"
+  label?: string
+  rounds?: number
+  rest_seconds?: number
+  transition_seconds?: number
+  exercises: QwCircuitExercise[]
+}
+
+export type QwDayItem = string | QwCircuitItem
+
 export interface ValidationResult {
+  /** Day sequence: bare UUIDs and Circuits (Circuit = 1 slot). */
+  items: QwDayItem[]
+  /**
+   * Flat catalog IDs for hydration / legacy clients (solos + nested Circuit IDs).
+   * Order is not a day sequence — use `items` for structure.
+   */
   exerciseIds: string[]
   repaired: boolean
   dropped: number
   backfilled: number
 }
 
+function isCircuitItem(raw: unknown): raw is QwCircuitItem {
+  return (
+    typeof raw === "object" &&
+    raw !== null &&
+    (raw as { type?: unknown }).type === "circuit" &&
+    Array.isArray((raw as { exercises?: unknown }).exercises)
+  )
+}
+
+function normalizeInput(llmOutput: string[] | QwDayItem[]): QwDayItem[] {
+  return llmOutput.map((raw) => {
+    if (typeof raw === "string") return raw
+    if (isCircuitItem(raw)) return raw
+    return String(raw)
+  })
+}
+
+function collectIds(items: QwDayItem[]): string[] {
+  return items.flatMap((item) => {
+    if (typeof item === "string") return [item]
+    return item.exercises.map((e) => e.exercise_id)
+  })
+}
+
+/**
+ * Validate / repair QW LLM output. Accepts legacy `string[]` or mixed day-items
+ * (UUID | Circuit). A Circuit counts as one slot toward `targetCount`.
+ */
 export function validateAndRepair(
-  llmOutput: string[],
+  llmOutput: string[] | QwDayItem[],
   catalog: CatalogEntry[],
   targetCount: number,
 ): ValidationResult {
@@ -20,47 +69,76 @@ export function validateAndRepair(
     catalogMap.set(entry.id, entry)
   }
 
-  const validIds: string[] = []
+  const items: QwDayItem[] = []
   const droppedGroups: string[] = []
-  const seen = new Set<string>()
+  const seenSolos = new Set<string>()
+  let dropped = 0
 
-  for (const id of llmOutput) {
-    if (seen.has(id)) continue
-    seen.add(id)
+  for (const raw of normalizeInput(llmOutput)) {
+    if (typeof raw === "string") {
+      const id = raw
+      if (seenSolos.has(id)) {
+        dropped++
+        continue
+      }
+      const entry = catalogMap.get(id)
+      if (!entry) {
+        dropped++
+        droppedGroups.push("unknown")
+        continue
+      }
+      items.push(id)
+      seenSolos.add(id)
+      continue
+    }
 
-    const entry = catalogMap.get(id)
-    if (entry) {
-      validIds.push(id)
-    } else {
-      droppedGroups.push("unknown")
+    const nested = raw.exercises
+      .map((ex) => {
+        if (!ex || typeof ex !== "object" || typeof ex.exercise_id !== "string") {
+          return null
+        }
+        if (!catalogMap.has(ex.exercise_id)) return null
+        return ex
+      })
+      .filter((ex): ex is QwCircuitExercise => ex != null)
+
+    if (nested.length < 2) {
+      dropped++
+      continue
+    }
+
+    items.push({
+      type: "circuit",
+      exercises: nested,
+      ...(raw.label !== undefined ? { label: raw.label } : {}),
+      ...(raw.rounds !== undefined ? { rounds: raw.rounds } : {}),
+      ...(raw.rest_seconds !== undefined ? { rest_seconds: raw.rest_seconds } : {}),
+      ...(raw.transition_seconds !== undefined
+        ? { transition_seconds: raw.transition_seconds }
+        : {}),
+    })
+
+    for (const ex of nested) {
+      seenSolos.add(ex.exercise_id)
     }
   }
 
-  const dropped = llmOutput.length - validIds.length
-
-  if (validIds.length >= targetCount) {
-    return {
-      exerciseIds: validIds.slice(0, targetCount),
-      repaired: dropped > 0,
-      dropped,
-      backfilled: 0,
-    }
-  }
-
-  const usedIds = new Set(validIds)
+  const usedIds = new Set(collectIds(items))
   const unusedByGroup = new Map<string, string[]>()
   for (const entry of catalog) {
     if (usedIds.has(entry.id)) continue
     const list = unusedByGroup.get(entry.muscle_group) ?? []
-    list.push(entry.id)
-    unusedByGroup.set(entry.muscle_group, list)
+    unusedByGroup.set(entry.muscle_group, [...list, entry.id])
   }
 
   let backfilled = 0
-  const slotsNeeded = targetCount - validIds.length
 
-  for (let i = 0; i < slotsNeeded; i++) {
-    const targetGroup = droppedGroups[i] ?? null
+  if (items.length > targetCount) {
+    items.splice(targetCount)
+  }
+
+  while (items.length < targetCount) {
+    const targetGroup = droppedGroups[backfilled] ?? null
     let picked: string | undefined
 
     if (targetGroup && targetGroup !== "unknown") {
@@ -82,17 +160,15 @@ export function validateAndRepair(
       }
     }
 
-    if (picked) {
-      validIds.push(picked)
-      usedIds.add(picked)
-      backfilled++
-    } else {
-      break
-    }
+    if (!picked) break
+    items.push(picked)
+    usedIds.add(picked)
+    backfilled++
   }
 
   return {
-    exerciseIds: validIds,
+    items,
+    exerciseIds: collectIds(items),
     repaired: dropped > 0 || backfilled > 0,
     dropped,
     backfilled,

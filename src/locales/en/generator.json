@@ -11,6 +11,13 @@
   "startWorkout": "Start Workout",
   "starting": "Starting…",
   "exercises": "exercises",
+  "itemsCountWithCircuits": "{{items}} items ({{solos}} solos · {{circuits}} circuits)",
+  "circuit": {
+    "badge": "Circuit",
+    "fallbackLabel": "Circuit",
+    "summary": "{{rounds}} rounds · {{count}} exercises · {{rest}}s rest",
+    "remove": "Remove circuit"
+  },
   "compound": "Compound",
   "isolation": "Isolation",
   "rest": "rest",

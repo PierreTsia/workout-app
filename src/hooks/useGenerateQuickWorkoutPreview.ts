@@ -1,17 +1,4 @@
-// PWA hook for the Quick Workout AI preview phase (T127, #342). Replaces
-// the legacy generic AI workout hook — same external shape, new endpoint
-// (`generate-quick-workout`), and the underlying quota now lives under
-// `source = 'quick_workout'` (T126).
-//
-// Responsibilities:
-//   1. POST constraints to /functions/v1/generate-quick-workout (session JWT)
-//   2. Map status codes to typed error messages the UI can branch on
-//      (`quota_exceeded` / `timeout` / network)
-//   3. Hydrate the returned `exerciseIds` against the local exercise pool
-//      so `PreviewStep` doesn't need a second fetch.
-//
-// The save path is intentionally OUT OF SCOPE — `useCreateQuickWorkout`
-// keeps owning the write side until T128 lands `commit-quick-workout`.
+// PWA hook for the Quick Workout AI preview phase (T127 / T170, #342).
 
 import { useMutation } from "@tanstack/react-query"
 import i18n from "@/lib/i18n"
@@ -23,6 +10,7 @@ import { VOLUME_MAP } from "@/lib/generatorConfig"
 import type { Exercise } from "@/types/database"
 import type {
   GeneratorConstraints,
+  GeneratedDayItem,
   GeneratedWorkout,
   Duration,
 } from "@/types/generator"
@@ -31,11 +19,6 @@ interface AIGenerateContext {
   exercisePool: Exercise[]
 }
 
-/**
- * Returns the locale tag the Edge function expects. Mirrors the resolution
- * `generate-program` uses so prompt language stays consistent across the
- * two AI flows.
- */
 function localeForAI(): "en" | "fr" {
   const lng = (i18n.resolvedLanguage ?? i18n.language ?? "en").toLowerCase()
   return lng.startsWith("fr") ? "fr" : "en"
@@ -61,8 +44,20 @@ export function isQuotaError(err: unknown): boolean {
   return err instanceof Error && err.message.includes("quota_exceeded")
 }
 
+type ServerDayItem =
+  | string
+  | {
+      type: "circuit"
+      label?: string
+      rounds?: number
+      rest_seconds?: number
+      transition_seconds?: number
+      exercises: Array<{ exercise_id: string; amount: number; weight_kg: number }>
+    }
+
 interface ServerResponse {
   exerciseIds: string[]
+  items?: ServerDayItem[]
   rationale?: string
 }
 
@@ -80,12 +75,7 @@ async function callGenerateQuickWorkout(body: Record<string, unknown>): Promise<
 async function hydrateExercises(
   exerciseIds: string[],
   pool: Exercise[],
-): Promise<Exercise[]> {
-  // The AI's `exerciseIds` order is intent (warm-up → compound → accessory,
-  // pull-then-push, etc.). Rebuild the result by iterating that list and
-  // looking each id up in the unified (pool || fetched) map — keeps the
-  // model's sequencing intact even when Postgres returns the fallback
-  // fetch in arbitrary order. PR #347 review C5.
+): Promise<Map<string, Exercise>> {
   const poolMap = new Map(pool.map((e) => [e.id, e] as const))
   const missingIds = exerciseIds.filter((id) => !poolMap.has(id))
 
@@ -99,11 +89,9 @@ async function hydrateExercises(
     return (data ?? []) as Exercise[]
   })()
 
-  const fetchedMap = new Map(fetched.map((ex) => [ex.id, ex] as const))
-
-  return exerciseIds
-    .map((id) => poolMap.get(id) ?? fetchedMap.get(id))
-    .filter((ex): ex is Exercise => ex !== undefined)
+  const map = new Map(poolMap)
+  for (const ex of fetched) map.set(ex.id, ex)
+  return map
 }
 
 function buildWorkoutName(constraints: GeneratorConstraints): string {
@@ -112,6 +100,39 @@ function buildWorkoutName(constraints: GeneratorConstraints): string {
     : constraints.muscleGroups.join(" + ")
   const equipLabel = formatEquipmentLabelForName(constraints.equipmentCategories)
   return `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`
+}
+
+function buildDayItems(
+  items: ServerDayItem[],
+  byId: Map<string, Exercise>,
+  setsPerExercise: number,
+): GeneratedDayItem[] {
+  return items.flatMap((item): GeneratedDayItem[] => {
+    if (typeof item === "string") {
+      const ex = byId.get(item)
+      if (!ex) return []
+      return [{ kind: "solo", exercise: buildExercise(ex, setsPerExercise) }]
+    }
+    if (item.type !== "circuit") return []
+    const nested = item.exercises.flatMap((n) => {
+      const ex = byId.get(n.exercise_id)
+      if (!ex) return []
+      return [{ exercise: ex, amount: n.amount, weightKg: n.weight_kg }]
+    })
+    if (nested.length < 2) return []
+    return [
+      {
+        kind: "circuit",
+        circuit: {
+          ...(item.label ? { label: item.label } : {}),
+          rounds: item.rounds ?? 3,
+          restSeconds: item.rest_seconds ?? 90,
+          transitionSeconds: item.transition_seconds ?? 0,
+          exercises: nested,
+        },
+      },
+    ]
+  })
 }
 
 export function useGenerateQuickWorkoutPreview({ exercisePool }: AIGenerateContext) {
@@ -126,18 +147,32 @@ export function useGenerateQuickWorkoutPreview({ exercisePool }: AIGenerateConte
       }
       if (focusAreas) body.focusAreas = focusAreas
 
-      const { exerciseIds, rationale } = await callGenerateQuickWorkout(body)
-      if (!exerciseIds?.length) throw new Error("AI returned no exercises")
+      const { exerciseIds, items, rationale } = await callGenerateQuickWorkout(body)
+      const daySource =
+        Array.isArray(items) && items.length > 0
+          ? items
+          : (exerciseIds ?? []).map((id) => id)
 
-      const resolved = await hydrateExercises(exerciseIds, exercisePool)
+      if (!daySource.length) throw new Error("AI returned no exercises")
+
+      const allIds = daySource.flatMap((item) =>
+        typeof item === "string" ? [item] : item.exercises.map((e) => e.exercise_id),
+      )
+      const byId = await hydrateExercises(allIds, exercisePool)
       const { setsPerExercise } = VOLUME_MAP[constraints.duration as Duration]
+      const dayItems = buildDayItems(daySource, byId, setsPerExercise)
+      if (dayItems.length === 0) throw new Error("AI returned no exercises")
+
       const rationaleText =
         typeof rationale === "string" && rationale.trim().length > 0
           ? rationale.trim()
           : undefined
 
       return {
-        exercises: resolved.map((ex) => buildExercise(ex, setsPerExercise)),
+        exercises: dayItems
+          .filter((i): i is Extract<GeneratedDayItem, { kind: "solo" }> => i.kind === "solo")
+          .map((i) => i.exercise),
+        dayItems,
         name: buildWorkoutName(constraints),
         hasFallback: false,
         ...(rationaleText ? { rationale: rationaleText } : {}),

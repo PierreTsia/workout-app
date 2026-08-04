@@ -125,17 +125,19 @@ export function buildPrompt(
     "",
     "RULES:",
     "- Return ONLY exercise IDs from the EXERCISE CATALOG below. Never invent IDs.",
-    `- Select exactly ${targetCount} exercises (exerciseIds array length must equal ${targetCount}).`,
+    `- Select exactly ${targetCount} day items in \`exercises\` (a Circuit counts as ONE item toward ${targetCount}).`,
+    "- Prefer bare UUID strings for normal strength work. Emit a Circuit (`type:\"circuit\"`) for conditioning finishers or when the user explicitly asks for a circuit/superset — nested exercises use `{exercise_id, amount, weight_kg}` (never solo sets/reps).",
     "- Respect the user's equipment and muscle group constraints.",
-    "- Order exercises: compound movements (those with secondary_muscles) first, isolation movements last.",
+    "- Order: compounds first, isolations later; place Circuits after the main strength work when used as finishers.",
     "- Avoid exercises the user did in their last 5 sessions (listed below) unless the pool is too small.",
     "- Group synergistic muscles (e.g., chest + triceps, back + biceps) when the focus allows.",
     "- For full-body workouts, distribute exercises evenly across major muscle groups.",
     "",
     "OUTPUT FORMAT:",
-    "Return a JSON object with exactly two keys:",
-    `- exerciseIds: string[] — exactly ${targetCount} IDs from the catalog, in workout order.`,
-    "- rationale: string — 2–5 short sentences explaining your choices and order (equipment fit, muscle balance, compounds before isolations). Follow the LOCALE section below for the language of this field only.",
+    "Return a JSON object with:",
+    `- exercises: array of length ${targetCount} — each entry is either a catalog UUID string OR a Circuit object { type:\"circuit\", label?, rounds?, rest_seconds?, transition_seconds?, exercises:[{exercise_id, amount, weight_kg}] }.`,
+    "- exerciseIds: string[] — optional legacy flat list of solo UUIDs only (omit when using Circuits).",
+    "- rationale: string — 2–5 short sentences explaining your choices and order. Follow the LOCALE section below for the language of this field only.",
     "",
     "LOCALE:",
     ...(constraints.locale === "fr"
@@ -146,7 +148,7 @@ export function buildPrompt(
       : [
           "- The user's app is in English. Write the entire rationale in English.",
         ]),
-    "- exerciseIds are opaque catalog IDs; never translate or alter them.",
+    "- Catalog IDs are opaque; never translate or alter them. Always say Circuit, never \"block\".",
   )
 
   if (profile) {

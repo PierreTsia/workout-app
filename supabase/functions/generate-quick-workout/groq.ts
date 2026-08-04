@@ -1,9 +1,5 @@
 // #405 — Groq quick-workout adapter. Mirror of this function's `callGemini`:
-// same `(prompt) => { exerciseIds, rationale }` signature so `withFallback`
-// composes it at the quick-workout seam. The Gemini `RESPONSE_SCHEMA` is
-// translated into OpenAI-style JSON Schema for Groq's strict
-// `response_format`; the function's existing validation downstream stays the
-// provider-agnostic safety net.
+// same signature so `withFallback` composes it at the quick-workout seam.
 
 import type { GenerateWorkoutGeminiResponse } from "./gemini.ts"
 import { callGroqChat, type CallGroqChatOptions } from "../_shared/groqClient.ts"
@@ -15,9 +11,42 @@ const WORKOUT_JSON_SCHEMA = {
   additionalProperties: false,
   properties: {
     rationale: { type: "string" },
+    exercises: {
+      type: "array",
+      items: {
+        anyOf: [
+          { type: "string" },
+          {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              type: { type: "string", const: "circuit" },
+              label: { type: "string" },
+              rounds: { type: "integer" },
+              rest_seconds: { type: "integer" },
+              transition_seconds: { type: "integer" },
+              exercises: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    exercise_id: { type: "string" },
+                    amount: { type: "number" },
+                    weight_kg: { type: "number" },
+                  },
+                  required: ["exercise_id", "amount", "weight_kg"],
+                },
+              },
+            },
+            required: ["type", "exercises"],
+          },
+        ],
+      },
+    },
     exerciseIds: { type: "array", items: { type: "string" } },
   },
-  required: ["rationale", "exerciseIds"],
+  required: ["rationale"],
 } as const
 
 function parseWorkout(content: string): GenerateWorkoutGeminiResponse {
@@ -28,13 +57,21 @@ function parseWorkout(content: string): GenerateWorkoutGeminiResponse {
     .trim()
   try {
     const parsed = JSON.parse(text) as GenerateWorkoutGeminiResponse
-    if (typeof parsed.rationale !== "string" || !Array.isArray(parsed.exerciseIds)) {
-      throw new Error("missing rationale or exerciseIds array")
+    if (typeof parsed.rationale !== "string") {
+      throw new Error("missing rationale")
     }
-    if (!parsed.exerciseIds.every((v) => typeof v === "string")) {
-      throw new Error("exerciseIds must be strings")
+    const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : undefined
+    const exerciseIds = Array.isArray(parsed.exerciseIds)
+      ? parsed.exerciseIds.filter((v): v is string => typeof v === "string")
+      : []
+    if ((!exercises || exercises.length === 0) && exerciseIds.length === 0) {
+      throw new Error("missing exercises or exerciseIds")
     }
-    return { rationale: parsed.rationale.trim(), exerciseIds: parsed.exerciseIds }
+    return {
+      rationale: parsed.rationale.trim(),
+      exerciseIds,
+      ...(exercises ? { exercises } : {}),
+    }
   } catch (e) {
     throw new ProviderError(
       "empty_response",

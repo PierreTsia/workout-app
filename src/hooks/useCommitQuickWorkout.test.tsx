@@ -80,6 +80,87 @@ describe("useCommitQuickWorkout", () => {
     vi.clearAllMocks()
   })
 
+  it("T170: forwards Circuit day-items as MCP Circuit Items on commit", async () => {
+    invoke.mockResolvedValueOnce({
+      data: { workout_day_id: "day-circuit" },
+      error: null,
+    })
+
+    const circuitWorkout: GeneratedWorkout = {
+      ...SAMPLE_WORKOUT,
+      dayItems: [
+        {
+          kind: "solo",
+          exercise: SAMPLE_WORKOUT.exercises[0],
+        },
+        {
+          kind: "circuit",
+          circuit: {
+            label: "Finisher",
+            rounds: 3,
+            restSeconds: 90,
+            transitionSeconds: 0,
+            exercises: [
+              {
+                exercise: makeExercise("22222222-2222-2222-2222-222222222222", {
+                  name: "Push-up",
+                  equipment: "bodyweight",
+                }),
+                amount: 10,
+                weightKg: 0,
+              },
+              {
+                exercise: makeExercise("33333333-3333-3333-3333-333333333333", {
+                  name: "Row",
+                }),
+                amount: 12,
+                weightKg: 20,
+              },
+            ],
+          },
+        },
+      ],
+    }
+
+    const { result } = renderHookWithProviders(() => useCommitQuickWorkout())
+    await act(async () => {
+      await result.current.mutateAsync({ workout: circuitWorkout })
+    })
+
+    const [, payload] = invoke.mock.calls[0] as [
+      string,
+      { body: { exercises: unknown[] } },
+    ]
+    expect(payload.body.exercises).toEqual([
+      {
+        exercise_id: "11111111-1111-1111-1111-111111111111",
+        sets: 4,
+        reps: "8-10",
+        weight_kg: 0,
+        rest_seconds: 120,
+      },
+      {
+        type: "circuit",
+        label: "Finisher",
+        rounds: 3,
+        rest_seconds: 90,
+        transition_seconds: 0,
+        exercises: [
+          {
+            exercise_id: "22222222-2222-2222-2222-222222222222",
+            amount: 10,
+            weight_kg: 0,
+          },
+          {
+            exercise_id: "33333333-3333-3333-3333-333333333333",
+            amount: 12,
+            weight_kg: 20,
+          },
+        ],
+      },
+    ])
+  })
+
   it("invokes commit-quick-workout with label + MCP-shaped exercises", async () => {
     invoke.mockResolvedValueOnce({
       data: { workout_day_id: "day-1" },

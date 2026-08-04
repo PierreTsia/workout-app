@@ -11,6 +11,13 @@
   "startWorkout": "Démarrer",
   "starting": "Démarrage…",
   "exercises": "exercices",
+  "itemsCountWithCircuits": "{{items}} items ({{solos}} solos · {{circuits}} circuits)",
+  "circuit": {
+    "badge": "Circuit",
+    "fallbackLabel": "Circuit",
+    "summary": "{{rounds}} tours · {{count}} exercices · {{rest}}s de repos",
+    "remove": "Supprimer le circuit"
+  },
   "compound": "Polyarticulaire",
   "isolation": "Isolation",
   "rest": "repos",

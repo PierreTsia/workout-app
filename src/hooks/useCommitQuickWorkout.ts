@@ -4,8 +4,8 @@
 //
 // Lock-ins:
 //   1. Translates the rich `GeneratedWorkout` into the MCP object form
-//      via `workoutToMcpExercises` so the persisted day matches what the
-//      user previewed (no silent reset to "3x10 / 90s rest" defaults).
+//      via `workoutDayItemsToMcpExercises` so solos + Circuits match the
+//      preview (no silent reset to "3x10 / 90s rest" defaults).
 //   2. Maps 502 `{ error: "commit_failed", kind }` to a typed error so
 //      the UI can branch on transport vs tool failure without parsing
 //      `Error.message`.
@@ -15,7 +15,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
-import { workoutToMcpExercises } from "@/lib/quickWorkout"
+import { workoutDayItemsToMcpExercises } from "@/lib/quickWorkout"
 import type { GeneratedWorkout } from "@/types/generator"
 
 interface CommitQuickWorkoutInput {
@@ -78,7 +78,7 @@ export function useCommitQuickWorkout() {
     }: CommitQuickWorkoutInput): Promise<{ workoutDayId: string }> => {
       const body = {
         label: workout.name,
-        exercises: workoutToMcpExercises(workout.exercises),
+        exercises: workoutDayItemsToMcpExercises(workout),
       }
 
       const { data, error } = await supabase.functions.invoke(
