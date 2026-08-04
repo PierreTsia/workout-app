@@ -4,6 +4,7 @@
 // `embedded-agent/index.ts` Deno runtime entrypoint (the program draft step).
 
 import type { GenerateProgramResponse } from "./programDraft.ts"
+import { PROGRAM_RESPONSE_SCHEMA_GEMINI } from "./programDraftSchema.ts"
 import { httpStatusToFailureKind, ProviderError } from "./providerError.ts"
 
 const GEMINI_URL =
@@ -23,28 +24,7 @@ interface GeminiResponse {
   error?: { message: string }
 }
 
-const RESPONSE_SCHEMA = {
-  type: "OBJECT",
-  properties: {
-    rationale: { type: "STRING" },
-    days: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          label: { type: "STRING" },
-          muscle_focus: { type: "STRING" },
-          exercise_ids: {
-            type: "ARRAY",
-            items: { type: "STRING" },
-          },
-        },
-        required: ["label", "muscle_focus", "exercise_ids"],
-      },
-    },
-  },
-  required: ["rationale", "days"],
-}
+const RESPONSE_SCHEMA = PROGRAM_RESPONSE_SCHEMA_GEMINI
 
 function parseGeminiResponse(raw: string): GenerateProgramResponse {
   let text = raw.trim()

@@ -205,4 +205,78 @@ describe("validateProgram", () => {
 
     expect(result.days[0].label).toBe("")
   })
+
+  it("T168: keeps the same exercise_id twice inside one Circuit (complex)", () => {
+    const result = validateProgram(
+      {
+        rationale: "complex",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              "c1",
+              {
+                type: "circuit",
+                label: "Complex",
+                rounds: 3,
+                exercises: [
+                  { exercise_id: "c2", amount: 10, weight_kg: 0 },
+                  { exercise_id: "c2", amount: 8, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 2, max: 5 },
+    )
+
+    const circuit = result.days[0].exercises.find(
+      (i) => typeof i !== "string" && i.type === "circuit",
+    )
+    expect(circuit).toBeDefined()
+    if (typeof circuit === "string" || !circuit) throw new Error("expected circuit")
+    expect(circuit.exercises.map((e) => e.exercise_id)).toEqual(["c2", "c2"])
+    expect(result.days[0].exercises).toHaveLength(2)
+  })
+
+  it("T168: counts a Circuit as one slot toward the day max", () => {
+    const result = validateProgram(
+      {
+        rationale: "slots",
+        days: [
+          {
+            label: "Day 1",
+            muscle_focus: "chest",
+            exercises: [
+              "c1",
+              "c2",
+              "c3",
+              {
+                type: "circuit",
+                rounds: 3,
+                exercises: [
+                  { exercise_id: "a1", amount: 10, weight_kg: 0 },
+                  { exercise_id: "a2", amount: 10, weight_kg: 0 },
+                ],
+              },
+              "b1",
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 2, max: 4 },
+    )
+
+    // 3 solos + 1 Circuit = 4 slots; trailing solo trimmed
+    expect(result.days[0].exercises).toHaveLength(4)
+    expect(
+      result.days[0].exercises.filter((i) => typeof i !== "string").length,
+    ).toBe(1)
+  })
 })

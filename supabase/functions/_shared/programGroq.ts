@@ -6,31 +6,12 @@
 // the provider-agnostic safety net for any residual drift.
 
 import type { GenerateProgramResponse } from "./programDraft.ts"
+import { PROGRAM_JSON_SCHEMA_GROQ } from "./programDraftSchema.ts"
 import { callGroqChat, type CallGroqChatOptions } from "./groqClient.ts"
 import { GROQ } from "./aiProviders.ts"
 import { ProviderError } from "./providerError.ts"
 
-const PROGRAM_JSON_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    rationale: { type: "string" },
-    days: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          label: { type: "string" },
-          muscle_focus: { type: "string" },
-          exercise_ids: { type: "array", items: { type: "string" } },
-        },
-        required: ["label", "muscle_focus", "exercise_ids"],
-      },
-    },
-  },
-  required: ["rationale", "days"],
-} as const
+const PROGRAM_JSON_SCHEMA = PROGRAM_JSON_SCHEMA_GROQ
 
 function parseProgram(content: string): GenerateProgramResponse {
   const text = content

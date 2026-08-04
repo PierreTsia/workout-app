@@ -156,7 +156,16 @@ Deno.test("runProgramDraftStep happy path returns MCP-shaped args, one entry per
   const allExercises = result.args.days.flatMap((d) => d.exercises)
   const catalogIds = new Set(makeCatalog().map((e) => e.id))
   assertEquals(allExercises.length > 0, true)
-  for (const id of allExercises) assertEquals(catalogIds.has(id), true)
+  for (const item of allExercises) {
+    if (typeof item === "string") {
+      assertEquals(catalogIds.has(item), true)
+      continue
+    }
+    assertEquals(item.type, "circuit")
+    for (const nested of item.exercises) {
+      assertEquals(catalogIds.has(nested.exercise_id), true)
+    }
+  }
   // Defensive: no day ever ships with an empty `exercises` array (MCP
   // `create_program` would reject that as a tool_error).
   for (const day of result.args.days) {
@@ -208,6 +217,46 @@ Deno.test("runProgramDraftStep returns error 'model_failure' when the model thro
   assertEquals(result.ok, false)
   if (result.ok) return
   assertEquals(result.error, "model_failure")
+})
+
+Deno.test("T168: runProgramDraftStep maps a validated Circuit into MCP create_program exercises", async () => {
+  const { deps } = makeDeps({
+    callModel: async () =>
+      ({
+        rationale: "finisher day",
+        days: [
+          {
+            label: "Push",
+            muscle_focus: "chest",
+            exercises: [
+              "ex-chest-01",
+              {
+                type: "circuit",
+                label: "Finisher",
+                rounds: 3,
+                exercises: [
+                  { exercise_id: "ex-chest-02", amount: 10, weight_kg: 0 },
+                  { exercise_id: "ex-back-01", amount: 12, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      } as GenerateProgramResponse),
+  })
+
+  const result = await runProgramDraftStep(makeInput(), deps)
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+
+  const items = result.args.days[0].exercises
+  assertEquals(items[0], "ex-chest-01")
+  const circuit = items[1]
+  assertEquals(typeof circuit === "object" && circuit.type === "circuit", true)
+  if (typeof circuit === "string") return
+  assertEquals(circuit.label, "Finisher")
+  assertEquals(circuit.rounds, 3)
+  assertEquals(circuit.exercises.length, 2)
 })
 
 Deno.test("runProgramDraftStep returns error 'empty_program' when the model returns no days at all", async () => {

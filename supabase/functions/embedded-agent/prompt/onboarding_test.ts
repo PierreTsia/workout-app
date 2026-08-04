@@ -1,4 +1,8 @@
-import { assertEquals, assertMatch } from "https://deno.land/std@0.224.0/assert/mod.ts"
+import {
+  assertEquals,
+  assertMatch,
+  assertStringIncludes,
+} from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   buildSystemPrompt,
   buildUserContext,
@@ -40,6 +44,12 @@ Deno.test("buildSystemPrompt teaches the literal READY_FOR_PROGRAM_DRAFT signal 
 Deno.test("buildSystemPrompt forbids re-asking already-collected questionnaire fields", () => {
   const prompt = buildSystemPrompt({ locale: "en", userProfile: makeProfile() })
   assertMatch(prompt, /do not re-?ask|already collected|already known/i)
+})
+
+Deno.test("T168: buildSystemPrompt encodes conservative Circuit rules for first program", () => {
+  const prompt = buildSystemPrompt({ locale: "en", userProfile: makeProfile() })
+  assertStringIncludes(prompt, "be conservative on this first program")
+  assertStringIncludes(prompt, 'Always say "Circuit", never "block"')
 })
 
 Deno.test("buildSystemPrompt never names external providers (Claude / Gemini / GPT / OpenAI / Anthropic)", () => {
