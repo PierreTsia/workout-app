@@ -34,7 +34,7 @@ export function formatBilingualExerciseName(
 
 /**
  * Plain (non-markdown) variant for fields that already sit inside a bold
- * label, e.g. `**Name:** Bench Press (Développé couché)` would double-bold.
+ * label, e.g. `**Name:** Développé couché (Bench Press)` would double-bold.
  */
 export function bilingualExerciseLabel(
   name: string,
