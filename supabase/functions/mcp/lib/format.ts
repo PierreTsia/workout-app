@@ -7,6 +7,7 @@ import {
   type EchoDayExercise,
 } from "./daySequenceRead.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
+import type { SessionHistoryItem } from "./sessionHistoryGrouping.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -164,10 +165,42 @@ interface ProgramInfoForSession {
   name: string
 }
 
+function formatSetMeasure(s: {
+  duration_seconds: number | null
+  reps_logged: string | null
+  weight_logged: number
+  was_pr: boolean
+}): string {
+  const measure = s.duration_seconds ? `${s.duration_seconds}s` : `${s.reps_logged} reps`
+  const pr = s.was_pr ? " 🏆 PR" : ""
+  return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
+}
+
+function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
+  return items.flatMap((item) => {
+    if (item.kind === "solo") {
+      const setDetails = item.sets
+        .map(formatSetMeasure)
+        .join(", ")
+      return [`  - **${item.exercise_name_snapshot}**: ${setDetails}`]
+    }
+    const labelPart = item.label?.trim() ? ` "${item.label.trim()}"` : ""
+    const header = `  - Circuit${labelPart} (${item.exerciseCount} exercises):`
+    const roundLines = item.rounds.map((r) => {
+      const cells = r.cells
+        .map((c) => `${c.exercise_name_snapshot} ${formatSetMeasure(c.log)}`)
+        .join(" · ")
+      return `    Round ${r.round}: ${cells}`
+    })
+    return [header, ...roundLines]
+  })
+}
+
 export function formatSessionSummary(
   session: SessionForFormat,
   sets: SetForFormat[],
   programInfo?: ProgramInfoForSession,
+  historyItems?: SessionHistoryItem[],
 ): string {
   const date = formatDate(session.started_at)
   const duration = formatDuration(session.active_duration_ms)
@@ -176,24 +209,18 @@ export function formatSessionSummary(
     ? ` *(program: ${programInfo.name}, id: ${programInfo.id})*`
     : ""
 
-  const exerciseMap = new Map<string, SetForFormat[]>()
-  for (const s of sets) {
-    const existing = exerciseMap.get(s.exercise_name_snapshot) ?? []
-    existing.push(s)
-    exerciseMap.set(s.exercise_name_snapshot, existing)
-  }
-
-  const exerciseLines = [...exerciseMap.entries()].map(([name, exSets]) => {
-    const setDetails = exSets
-      .sort((a, b) => a.set_number - b.set_number)
-      .map((s) => {
-        const measure = s.duration_seconds ? `${s.duration_seconds}s` : `${s.reps_logged} reps`
-        const pr = s.was_pr ? " 🏆 PR" : ""
-        return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
+  const exerciseLines = historyItems
+    ? formatHistoryItemLines(historyItems)
+    : [...sets.reduce((map, s) => {
+        const existing = map.get(s.exercise_name_snapshot) ?? []
+        return map.set(s.exercise_name_snapshot, [...existing, s])
+      }, new Map<string, SetForFormat[]>()).entries()].map(([name, exSets]) => {
+        const setDetails = [...exSets]
+          .sort((a, b) => a.set_number - b.set_number)
+          .map(formatSetMeasure)
+          .join(", ")
+        return `  - **${name}**: ${setDetails}`
       })
-      .join(", ")
-    return `  - **${name}**: ${setDetails}`
-  })
 
   return [
     `### ${session.workout_label_snapshot} — ${date}${programSuffix}`,

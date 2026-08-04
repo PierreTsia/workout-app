@@ -447,6 +447,74 @@ function makeSession(overrides: Partial<SessionForFormatInput> = {}): SessionFor
   }
 }
 
+describe("formatSessionSummary — T166 Circuit history", () => {
+  it("renders round-major Circuit lines when historyItems are provided", () => {
+    const session = {
+      workout_label_snapshot: "Push",
+      started_at: "2026-06-13T10:00:00.000Z",
+      finished_at: "2026-06-13T11:00:00.000Z",
+      active_duration_ms: 3_600_000,
+      total_sets_done: 4,
+    }
+    const historyItems = [
+      {
+        kind: "block" as const,
+        key: "blk1",
+        label: "Finisher",
+        sortOrder: 0,
+        exerciseCount: 2,
+        rounds: [
+          {
+            round: 1,
+            cells: [
+              {
+                blockExerciseId: "beA",
+                exercise_name_snapshot: "Push-up",
+                emoji: null,
+                log: {
+                  id: "1",
+                  exercise_id: "a",
+                  block_exercise_id: "beA",
+                  exercise_name_snapshot: "Push-up",
+                  set_number: 1,
+                  reps_logged: "10",
+                  duration_seconds: null,
+                  weight_logged: 0,
+                  was_pr: false,
+                  logged_at: "2026-06-13T10:00:00Z",
+                },
+              },
+              {
+                blockExerciseId: "beB",
+                exercise_name_snapshot: "Bench Press",
+                emoji: null,
+                log: {
+                  id: "2",
+                  exercise_id: "b",
+                  block_exercise_id: "beB",
+                  exercise_name_snapshot: "Bench Press",
+                  set_number: 1,
+                  reps_logged: "8",
+                  duration_seconds: null,
+                  weight_logged: 60,
+                  was_pr: false,
+                  logged_at: "2026-06-13T10:01:00Z",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const md = formatSessionSummary(session, [], undefined, historyItems)
+
+    expect(md).toContain('Circuit "Finisher" (2 exercises):')
+    expect(md).toContain("Round 1: Push-up 10 reps × 0 kg · Bench Press 8 reps × 60 kg")
+    expect(md).not.toMatch(/^- \*\*Push-up\*\*:/m)
+  })
+})
+
 describe("formatSessionSummary — programInfo branch", () => {
   it("annotates the header with '*(program: <name>, id: <uuid>)*' when programInfo is provided", () => {
     const session = makeSession({ workout_label_snapshot: "Push Day" })
