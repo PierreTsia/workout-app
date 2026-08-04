@@ -11,18 +11,22 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
-import { DayCard } from "@/components/library/DayCard"
+import { buildDayItems } from "@/lib/dayItems"
+import { DayCard, type DayCardItem } from "@/components/library/DayCard"
 import type { Program } from "@/types/onboarding"
 import type {
+  ExerciseBlockWithExercises,
   ExerciseLabelFields,
   WorkoutDay,
   WorkoutExercise,
+  WorkoutExerciseWithExercise,
 } from "@/types/database"
 
-type DayWithExercises = WorkoutDay & {
+type DayWithSequence = WorkoutDay & {
   workout_exercises: (WorkoutExercise & {
     exercise: ExerciseLabelFields | null
   })[]
+  exercise_blocks: ExerciseBlockWithExercises[] | null
 }
 
 interface ProgramDetailSheetProps {
@@ -32,23 +36,52 @@ interface ProgramDetailSheetProps {
   onEdit?: (programId: string) => void
 }
 
+function toDayCardItems(
+  exercises: WorkoutExerciseWithExercise[],
+  blocks: ExerciseBlockWithExercises[],
+): DayCardItem[] {
+  return buildDayItems(exercises, blocks).map((item): DayCardItem => {
+    if (item.kind === "solo") {
+      const ex = item.exercise
+      return {
+        kind: "solo",
+        id: ex.id,
+        emoji: ex.emoji_snapshot,
+        name: ex.name_snapshot,
+        sets: ex.sets,
+        reps: ex.reps,
+        restSeconds: ex.rest_seconds,
+        sortOrder: item.sort_order,
+      }
+    }
+    return {
+      kind: "circuit",
+      id: item.block.id,
+      label: item.block.label,
+      rounds: item.block.rounds,
+      exerciseCount: item.block.exercises.length,
+      sortOrder: item.sort_order,
+    }
+  })
+}
+
 export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: ProgramDetailSheetProps) {
   const { t } = useTranslation("library")
 
-  const { data: days, isLoading } = useQuery<DayWithExercises[]>({
+  const { data: days, isLoading } = useQuery<DayWithSequence[]>({
     queryKey: ["program-detail", program?.id],
     enabled: !!program && open,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_days")
         .select(
-          `*, workout_exercises(*, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
+          `*, workout_exercises(*, exercise:exercises(${LABEL_EXERCISE_SELECT})), exercise_blocks(*, exercises:block_exercises(*, exercise:exercises(${LABEL_EXERCISE_SELECT})))`,
         )
         .eq("program_id", program!.id)
         .order("sort_order")
 
       if (error) throw error
-      return data as DayWithExercises[]
+      return (data ?? []) as DayWithSequence[]
     },
   })
 
@@ -84,22 +117,26 @@ export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: Prog
           </div>
         ) : (
           <div className="mt-4 grid gap-3">
-            {(days ?? []).map((day) => (
+            {(days ?? []).map((day) => {
+              const blocks = (day.exercise_blocks ?? []).map((block) => ({
+                ...block,
+                exercises: [...(block.exercises ?? [])].sort(
+                  (a, b) => a.position - b.position,
+                ),
+              }))
+              const items = toDayCardItems(
+                day.workout_exercises as WorkoutExerciseWithExercise[],
+                blocks,
+              )
+              return (
                 <DayCard
                   key={day.id}
                   label={`${day.emoji} ${day.label}`}
-                  exerciseCount={day.workout_exercises.length}
-                  exercises={day.workout_exercises.map((ex) => ({
-                    id: ex.id,
-                    emoji: ex.emoji_snapshot,
-                    name: ex.name_snapshot,
-                    sets: ex.sets,
-                    reps: ex.reps,
-                    restSeconds: ex.rest_seconds,
-                    sortOrder: ex.sort_order,
-                  }))}
+                  exerciseCount={items.length}
+                  items={items}
                 />
-              ))}
+              )
+            })}
           </div>
         )}
       </SheetContent>
