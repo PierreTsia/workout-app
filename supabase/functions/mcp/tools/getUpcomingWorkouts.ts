@@ -106,7 +106,9 @@ export const getUpcomingWorkouts: ToolDefinition = {
     // 6. Fetch workout exercises for those days
     const { data: exercises, error: exErr } = await supabase
       .from("workout_exercises")
-      .select("workout_day_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order")
+      .select(
+        "workout_day_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)",
+      )
       .in("workout_day_id", dayIds)
       .order("sort_order", { ascending: true })
 
@@ -114,23 +116,35 @@ export const getUpcomingWorkouts: ToolDefinition = {
       return { content: [{ type: "text", text: `Error fetching exercises: ${exErr.message}` }], isError: true }
     }
 
-    const exByDay = new Map<string, Record<string, unknown>[]>()
-    for (const ex of (exercises ?? []) as Record<string, unknown>[]) {
-      const dayId = ex.workout_day_id as string
-      const existing = exByDay.get(dayId) ?? []
+    type UpcomingExerciseRow = {
+      workout_day_id: string
+      name_snapshot: string
+      sets: number
+      reps: string
+      weight: string
+      rest_seconds: number
+      target_duration_seconds?: number | null
+      exercises: { name: string; name_en: string | null } | null
+    }
+
+    const exByDay = new Map<string, UpcomingExerciseRow[]>()
+    for (const ex of (exercises ?? []) as UpcomingExerciseRow[]) {
+      const existing = exByDay.get(ex.workout_day_id) ?? []
       existing.push(ex)
-      exByDay.set(dayId, existing)
+      exByDay.set(ex.workout_day_id, existing)
     }
 
     const blocks = upcomingDays.map((day, i) => {
-      const dayExercises = (exByDay.get(day.id) ?? []) as Array<{
-        name_snapshot: string
-        sets: number
-        reps: string
-        weight: string
-        rest_seconds: number
-        target_duration_seconds?: number | null
-      }>
+      const dayExercises = (exByDay.get(day.id) ?? []).map((ex) => ({
+        name_snapshot: ex.name_snapshot,
+        name: ex.exercises?.name ?? null,
+        name_en: ex.exercises?.name_en ?? null,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight,
+        rest_seconds: ex.rest_seconds,
+        target_duration_seconds: ex.target_duration_seconds,
+      }))
       const prefix = i === 0 ? "**Next up →** " : ""
       return prefix + formatWorkoutDay(day, dayExercises)
     })

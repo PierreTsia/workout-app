@@ -1,3 +1,4 @@
+import { formatBilingualExerciseName } from "../lib/bilingualName.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 const MUSCLE_GROUP_ALIASES: Record<string, string> = {
@@ -217,8 +218,7 @@ export const searchExercises: ToolDefinition = {
 
     const lines = exercises.map((ex, i) => {
       const parts = [
-        `${i + 1}. **${ex.name}**`,
-        ex.name_en ? `(${ex.name_en})` : null,
+        `${i + 1}. ${formatBilingualExerciseName(ex.name, ex.name_en)}`,
         `— ${ex.muscle_group}`,
         ex.equipment && ex.equipment !== "bodyweight" ? `| ${ex.equipment}` : null,
         ex.difficulty_level ? `| ${ex.difficulty_level}` : null,
