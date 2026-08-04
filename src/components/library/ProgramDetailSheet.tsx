@@ -11,22 +11,25 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
-import { buildDayItems } from "@/lib/dayItems"
 import { DayCard, type DayCardItem } from "@/components/library/DayCard"
 import type { Program } from "@/types/onboarding"
 import type {
-  ExerciseBlockWithExercises,
-  ExerciseLabelFields,
   WorkoutDay,
-  WorkoutExercise,
-  WorkoutExerciseWithExercise,
+  WorkoutExerciseWithLabel,
 } from "@/types/database"
 
+/** Block shape from the LABEL-select embed — only summary fields are used. */
+type BlockSummaryRow = {
+  id: string
+  label: string | null
+  rounds: number
+  sort_order: number
+  exercises: Array<{ id: string; position: number }>
+}
+
 type DayWithSequence = WorkoutDay & {
-  workout_exercises: (WorkoutExercise & {
-    exercise: ExerciseLabelFields | null
-  })[]
-  exercise_blocks: ExerciseBlockWithExercises[] | null
+  workout_exercises: WorkoutExerciseWithLabel[]
+  exercise_blocks: BlockSummaryRow[] | null
 }
 
 interface ProgramDetailSheetProps {
@@ -37,32 +40,28 @@ interface ProgramDetailSheetProps {
 }
 
 function toDayCardItems(
-  exercises: WorkoutExerciseWithExercise[],
-  blocks: ExerciseBlockWithExercises[],
+  exercises: WorkoutExerciseWithLabel[],
+  blocks: BlockSummaryRow[],
 ): DayCardItem[] {
-  return buildDayItems(exercises, blocks).map((item): DayCardItem => {
-    if (item.kind === "solo") {
-      const ex = item.exercise
-      return {
-        kind: "solo",
-        id: ex.id,
-        emoji: ex.emoji_snapshot,
-        name: ex.name_snapshot,
-        sets: ex.sets,
-        reps: ex.reps,
-        restSeconds: ex.rest_seconds,
-        sortOrder: item.sort_order,
-      }
-    }
-    return {
-      kind: "circuit",
-      id: item.block.id,
-      label: item.block.label,
-      rounds: item.block.rounds,
-      exerciseCount: item.block.exercises.length,
-      sortOrder: item.sort_order,
-    }
-  })
+  const solos: DayCardItem[] = exercises.map((ex) => ({
+    kind: "solo",
+    id: ex.id,
+    emoji: ex.emoji_snapshot,
+    name: ex.name_snapshot,
+    sets: ex.sets,
+    reps: ex.reps,
+    restSeconds: ex.rest_seconds,
+    sortOrder: ex.sort_order,
+  }))
+  const circuits: DayCardItem[] = blocks.map((block) => ({
+    kind: "circuit",
+    id: block.id,
+    label: block.label,
+    rounds: block.rounds,
+    exerciseCount: block.exercises.length,
+    sortOrder: block.sort_order,
+  }))
+  return [...solos, ...circuits].sort((a, b) => a.sortOrder - b.sortOrder)
 }
 
 export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: ProgramDetailSheetProps) {
@@ -81,6 +80,8 @@ export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: Prog
         .order("sort_order")
 
       if (error) throw error
+      // Supabase client returns a loosely typed embed payload; DayWithSequence
+      // matches LABEL_EXERCISE_SELECT (WorkoutExerciseWithLabel), not full Exercise.
       return (data ?? []) as DayWithSequence[]
     },
   })
@@ -120,14 +121,11 @@ export function ProgramDetailSheet({ program, open, onOpenChange, onEdit }: Prog
             {(days ?? []).map((day) => {
               const blocks = (day.exercise_blocks ?? []).map((block) => ({
                 ...block,
-                exercises: [...(block.exercises ?? [])].sort(
+                exercises: [...block.exercises].sort(
                   (a, b) => a.position - b.position,
                 ),
               }))
-              const items = toDayCardItems(
-                day.workout_exercises as WorkoutExerciseWithExercise[],
-                blocks,
-              )
+              const items = toDayCardItems(day.workout_exercises, blocks)
               return (
                 <DayCard
                   key={day.id}
