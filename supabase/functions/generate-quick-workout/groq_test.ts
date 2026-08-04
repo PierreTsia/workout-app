@@ -32,15 +32,31 @@ Deno.test("callGroqWorkout: parses a valid workout JSON and trims the rationale"
 })
 
 Deno.test("callGroqWorkout: requests strict json_schema with the workout shape", async () => {
-  let body: { response_format?: { json_schema?: { schema?: { required?: string[] } } } } | undefined
+  let body:
+    | {
+        response_format?: {
+          json_schema?: {
+            schema?: {
+              required?: string[]
+              properties?: { exercises?: unknown; exerciseIds?: unknown }
+            }
+          }
+        }
+      }
+    | undefined
   const fetchImpl = ((_url: string, init: RequestInit) => {
     body = JSON.parse(init.body as string)
-    return Promise.resolve(groqJsonResponse({ rationale: "r", exerciseIds: [] }))
+    // Non-empty exerciseIds — parse rejects empty day-items after T170.
+    return Promise.resolve(groqJsonResponse({ rationale: "r", exerciseIds: ["ex-1"] }))
   }) as unknown as typeof fetch
 
   await callGroqWorkout("prompt", { apiKey: "k", fetchImpl })
 
-  assertEquals(body!.response_format!.json_schema!.schema!.required, ["rationale", "exerciseIds"])
+  const schema = body!.response_format!.json_schema!.schema!
+  // T170: day-items live in `exercises`; `exerciseIds` is optional legacy.
+  assertEquals(schema.required, ["rationale"])
+  assertEquals(typeof schema.properties?.exercises, "object")
+  assertEquals(typeof schema.properties?.exerciseIds, "object")
 })
 
 Deno.test("callGroqWorkout: unparseable content throws ProviderError(empty_response)", async () => {
