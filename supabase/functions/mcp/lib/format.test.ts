@@ -311,6 +311,121 @@ describe("formatProgramDetails", () => {
     expect(md).toContain("**Plank** *(exercise_id: cccccccc-eeee-4eee-8eee-eeeeeeeeeeee)*: 3 × 45s (rest 60s)")
     expect(md).not.toContain("reps")
   })
+
+  it("T165: interleaves Circuit markdown and appends echo-ready JSON fence", () => {
+    const program = makeProgram()
+    const day = makeDay()
+    const idA = "11111111-2222-4333-8444-555555555555"
+    const idB = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+    const solo = makeExercise({
+      exercise_id: idA,
+      name_snapshot: "Bench Press",
+      sets: 4,
+      reps: "8",
+      weight: "80",
+      rest_seconds: 120,
+      sort_order: 0,
+    })
+    const sequence = [
+      {
+        kind: "solo" as const,
+        sort_order: 0,
+        solo: {
+          id: solo.id,
+          exercise_id: solo.exercise_id,
+          name_snapshot: solo.name_snapshot,
+          sets: solo.sets,
+          reps: solo.reps,
+          weight: solo.weight,
+          rest_seconds: solo.rest_seconds,
+          target_duration_seconds: null,
+          sort_order: 0,
+        },
+      },
+      {
+        kind: "circuit" as const,
+        sort_order: 1,
+        block: {
+          id: "block-1",
+          label: "Finisher",
+          rounds: 3,
+          rest_seconds: 90,
+          transition_seconds: 0,
+          sort_order: 1,
+          block_exercises: [
+            {
+              exercise_id: idB,
+              name_snapshot: "Push-up",
+              position: 0,
+              per_round: [
+                { amount: 10, weight: 0 },
+                { amount: 10, weight: 0 },
+                { amount: 10, weight: 0 },
+              ],
+              exercises: { name: "Push-up", name_en: "Push-up" },
+            },
+            {
+              exercise_id: idA,
+              name_snapshot: "Bench Press",
+              position: 1,
+              per_round: [
+                { amount: 8, weight: 60 },
+                { amount: 8, weight: 60 },
+                { amount: 8, weight: 60 },
+              ],
+              exercises: { name: "Bench Press", name_en: "Bench Press" },
+            },
+          ],
+        },
+      },
+    ]
+    const echoDays = [
+      {
+        id: day.id,
+        label: day.label,
+        emoji: day.emoji,
+        exercises: [
+          {
+            exercise_id: idA,
+            sets: 4,
+            reps: "8",
+            weight_kg: 80,
+            rest_seconds: 120,
+          },
+          {
+            type: "circuit" as const,
+            label: "Finisher",
+            rounds: 3,
+            rest_seconds: 90,
+            transition_seconds: 0,
+            exercises: [
+              { exercise_id: idB, amount: 10, weight_kg: 0 },
+              { exercise_id: idA, amount: 8, weight_kg: 60 },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const md = formatProgramDetails(program, [day], new Map(), {
+      sequenceByDay: new Map([[day.id, sequence]]),
+      echoDays,
+    })
+
+    const benchIdx = md.indexOf("Bench Press")
+    const circuitIdx = md.indexOf('Circuit "Finisher"')
+    expect(benchIdx).toBeGreaterThan(-1)
+    expect(circuitIdx).toBeGreaterThan(benchIdx)
+    expect(md).toContain("```json")
+    const fence = md.slice(md.indexOf("```json") + "```json".length)
+    const jsonText = fence.slice(0, fence.indexOf("```")).trim()
+    const parsed = JSON.parse(jsonText) as { days: typeof echoDays }
+    expect(parsed.days[0].exercises[1]).toMatchObject({
+      type: "circuit",
+      label: "Finisher",
+      rounds: 3,
+    })
+  })
 })
 
 interface SessionForFormatInput {
