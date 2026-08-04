@@ -60,7 +60,7 @@ export function DayCard({ label, exerciseCount, muscleFocus, items }: DayCardPro
             <div
               key={item.id}
               className="flex items-center justify-between gap-2 text-sm"
-              data-testid="day-card-circuit"
+              data-testid={`day-card-circuit-${item.id}`}
             >
               <span className="flex min-w-0 items-center gap-1.5 truncate">
                 <Layers className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />

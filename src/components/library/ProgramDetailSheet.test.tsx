@@ -104,7 +104,7 @@ describe("ProgramDetailSheet", () => {
     await waitFor(() => {
       expect(screen.getByText("Force Haut")).toBeInTheDocument()
     })
-    expect(screen.getByTestId("day-card-circuit")).toBeInTheDocument()
+    expect(screen.getByTestId("day-card-circuit-blk-1")).toBeInTheDocument()
     expect(screen.getByText(/2 exercises · 4 rounds/i)).toBeInTheDocument()
     expect(screen.getByText(/Gainage planche/)).toBeInTheDocument()
     // Circuit + solo = 2 items on the day badge

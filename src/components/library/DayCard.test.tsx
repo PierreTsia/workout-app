@@ -111,7 +111,7 @@ describe("DayCard", () => {
     )
 
     expect(screen.getByText("2 exercises")).toBeInTheDocument()
-    expect(screen.getByTestId("day-card-circuit")).toBeInTheDocument()
+    expect(screen.getByTestId("day-card-circuit-block-1")).toBeInTheDocument()
     expect(screen.getByText("Finisher")).toBeInTheDocument()
     expect(screen.getByText(/3 exercises · 5 rounds/i)).toBeInTheDocument()
     expect(screen.getByText(/Gainage planche/)).toBeInTheDocument()
