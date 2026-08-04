@@ -120,7 +120,7 @@ function buildSnapshot(row: RawProgramRow): CurrentProgramSnapshot {
 const PROGRAM_SELECT =
   "id, name, workout_days(id, label, emoji, sort_order, workout_exercises(exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))"
 
-const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert of the Unified Day Sequence: workout_exercises + exercise_blocks).
+const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert of the Unified Day Sequence: solos + Circuits).
 
 Patch shape:
   - Top level: PATCH semantics. Omit a field → leave it unchanged. Pass \`name\` → rename. Pass \`days\` → declarative PUT inside that field (see below).

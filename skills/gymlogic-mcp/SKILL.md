@@ -89,10 +89,10 @@ The catalog has three tools that look superficially similar. Pick by **what you 
 | "I have a list of exercise names — give me their catalog ids" / "build a program from this list" | `resolve_exercises` | Batch (up to 30 names per call). Returns id, equipment, `weight_convention`, `measurement_type`, `default_duration_seconds` per query — enough to call `create_program` directly without `get_exercise_details`. Each query gets a status: `matched` / `ambiguous` / `no_match` / `empty_query`. On `ambiguous`, pick from context or ask the user; on `no_match`, fall back to `search_exercises` with broader filters. |
 | "Tell me more about exercise X / how to do X" | `get_exercise_details` | Requires a UUID (`exercise_id`). Returns form cues / video / common mistakes. Instructions are **English when a reviewed translation exists**, otherwise French. **Not** needed before `create_program` — `resolve_exercises` already returns what `create_program` needs. |
 | "List / browse the user's training programs" | `list_programs` | Returns id, name, is_active, day_count, created_at, has_active_cycle for every non-archived program. Pass `include_archived: true` to see archived ones. Works regardless of cycle state — use to enumerate programs before drilling into one. |
-| "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns the full structure (days + exercises with sets/reps/weights/rest). Exercise lines use `**French name** (English name)` when `name_en` exists — same format as `search_exercises` / `resolve_exercises`. Works on **any** program — active, draft, or archived. **Always run `list_programs` first** to resolve the UUID, or use the `program_id` surfaced by `get_upcoming_workouts` / `get_workout_history`. |
-| "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. **Deactivates other active programs** — for a single ad-hoc session that should NOT replace the user's active program, use `create_workout_day` instead. |
-| "Rename / edit / tweak / swap exercises in a program (without losing history)" | `update_program` | In-place edit by `program_id`. **Preserves all logged sessions** — never recreate via `create_program` for an existing program (that orphans history). PATCH at top-level (`name?`, `days?`); inside `days`, declarative full-list with optional `id` per day (id present → UPDATE, id absent → INSERT, **omitted current day → DELETE**). `dry_run: true` by default. Removing days requires `confirm: true` along with `dry_run: false`. Mid-cycle edits surface a French warning. Atomicity is per-day → on failure, response includes `applied_days` / `failed_at` / `remaining_days` + retry guidance. |
-| "Quick workout for today / one ad-hoc session / extra workout this week" | `create_workout_day` | **Single ad-hoc day** — does NOT replace or deactivate the user's active program (the headline differentiator vs `create_program`). Persists as a standalone `workout_days` row with `program_id: NULL` and the visual identity emoji `⚡`. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Max **20 exercises** per call (narrower than `create_program`'s 40 — Quick Workout is one session, not a plan). Same exercise object form as `create_program` (bare UUIDs for catalog defaults, full object for explicit prescription). |
+| "Show me the structure of program X / review my draft / what's in this program" | `get_program_details` | Requires a UUID (`program_id`). Returns days with **solos + Circuits** interleaved, plus a fenced ` ```json ` payload (`days` patch shape) for echo into `update_program`. Prefer that JSON over paraphrasing the markdown. Exercise lines use `**French name** (English name)` when `name_en` exists. Works on **any** program — active, draft, or archived. **Always run `list_programs` first**, or use the `program_id` from `get_upcoming_workouts` / `get_workout_history`. |
+| "Design / save / replace my program" | `create_program` | Multi-day. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. **Deactivates other active programs** — for a single ad-hoc session that should NOT replace the user's active program, use `create_workout_day` instead. Each day's `exercises[]` may mix bare UUIDs, solo prescriptions, and **Circuits** (`type: "circuit"`). |
+| "Rename / edit / tweak / swap exercises or Circuits in a program (without losing history)" | `update_program` | In-place edit by `program_id`. **Preserves all logged sessions** — never recreate via `create_program` for an existing program (that orphans history). PATCH at top-level (`name?`, `days?`); inside `days`, declarative full-list with optional `id` per day (id present → UPDATE, id absent → INSERT, **omitted current day → DELETE**). A day's `exercises[]` **fully replaces** that day's solos **and** Circuits. `dry_run: true` by default. Removing days requires `confirm: true` along with `dry_run: false`. Mid-cycle edits surface a French warning. Atomicity is per-day → on failure, response includes `applied_days` / `failed_at` / `remaining_days` + retry guidance. |
+| "Quick workout for today / one ad-hoc session / extra workout this week" | `create_workout_day` | **Single ad-hoc day** — does NOT replace or deactivate the user's active program (the headline differentiator vs `create_program`). Persists as a standalone `workout_days` row with `program_id: NULL` and the visual identity emoji `⚡`. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Max **20 day items** per call (a Circuit counts as **one** item). Same `exercises[]` shape as `create_program` (bare UUID, solo object, or Circuit). |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
 
@@ -293,6 +293,48 @@ create_workout_day({
 **Limits**: max 20 exercises per call. Same input shape as `create_program`'s per-day `exercises` array (mix bare UUIDs and prescription objects freely). The server hardcodes `emoji: "⚡"` for visual identity in the app — agents do NOT pass `emoji`.
 
 **When to reach for `create_program` instead**: the user wants a *recurring* split (e.g. *"un programme push/pull/legs"*) — that's a multi-day plan with `program_id`, weekly cadence, and active-cycle semantics. Quick Workout is for one-off sessions only.
+
+### Circuits (`type: "circuit"`)
+
+A **Circuit** is one day item that groups 2–8 nested exercises across rounds (superset, triset, finisher, conditioning complex). Always say **Circuit** in user-facing copy — never "block".
+
+**Wire shape** (hybrid — flat for the common case, `per_round` for pyramids):
+
+```jsonc
+{
+  type: "circuit",
+  label: "Finisher",          // optional
+  rounds: 3,                  // default 3; bounds [1, 10]
+  rest_seconds: 90,           // rest between rounds; default 90
+  transition_seconds: 0,      // rest between exercises inside a round; default 0
+  exercises: [
+    // Flat — same amount/weight every round (server expands to all rounds)
+    { exercise_id: "<uuid-burpee>", amount: 10, weight_kg: 0 },
+    { exercise_id: "<uuid-kb-swing>", amount: 12, weight_kg: 16 },
+    // Pyramid — per-round cells (length MUST equal `rounds`)
+    // { exercise_id: "<uuid-burpee>", per_round: [
+    //   { amount: 20, weight_kg: 0 }, { amount: 15, weight_kg: 0 }, { amount: 10, weight_kg: 0 }
+    // ] }
+  ]
+}
+```
+
+Nested exercises use **`amount` + `weight_kg`** (or `per_round`) — **never** solo fields (`sets`, `reps`, per-exercise `rest_seconds`). Flat + `per_round` together → reject. A Circuit counts as **one** slot toward the day cap (40 on `create_program`, 20 on `create_workout_day`).
+
+**When to propose a Circuit** (External MCP / Additional program — be proactive when it fits):
+
+- User asks for a circuit / superset / triset / finisher / conditioning complex
+- Classic agonist–antagonist pairings run back-to-back
+- Short metabolic finishers after strength work
+- Same exercise twice in one complex (allowed — distinct nested slots)
+
+**Be conservative on first-program onboarding**: prefer Circuits only on explicit ask or an obvious conditioning finisher — don't overload a beginner strength template with supersets.
+
+**Progression**: Circuit nested prescriptions are **frozen** (no auto progression on nested `amount` / `weight_kg`). Mention this once when you introduce a Circuit; don't lecture every turn. Solo exercises next to the Circuit keep normal progression.
+
+**Round-trip / edit rule**: for `update_program`, start from the **` ```json ` fence** in `get_program_details` (patch-shaped `days`), not from the markdown alone — otherwise pyramids / transition can drift. A patched day's `exercises[]` replaces that day's entire Unified Day Sequence (solos + Circuits).
+
+**History / upcoming**: `get_upcoming_workouts` and `get_workout_history` render Circuits (history is round-major). Don't flatten a Circuit into fake solo sets when summarizing.
 
 ### Common write patterns (v0.3.0+ object form)
 

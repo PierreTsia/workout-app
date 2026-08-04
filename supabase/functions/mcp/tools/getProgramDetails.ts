@@ -73,7 +73,7 @@ export const getProgramDetails: ToolDefinition = {
     "Get the full structure of a training program by ID — days, exercises, Circuits, sets, reps, weights, rest. " +
     "Works regardless of cycle state. Use after list_programs, or with the program_id surfaced by " +
     "get_upcoming_workouts / get_workout_history. Returns markdown with inline IDs plus a fenced JSON " +
-    "block (`days` patch shape) for echo into `update_program` (prefer the JSON over markdown alone).",
+    "payload (`days` patch shape) for echo into `update_program` (prefer the JSON over markdown alone).",
   inputSchema: {
     type: "object",
     required: ["program_id"],
