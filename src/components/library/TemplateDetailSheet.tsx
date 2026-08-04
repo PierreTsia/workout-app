@@ -58,7 +58,8 @@ export function TemplateDetailSheet({
                 label={day.day_label}
                 exerciseCount={day.template_exercises.length}
                 muscleFocus={day.muscle_focus}
-                exercises={day.template_exercises.map((te) => ({
+                items={day.template_exercises.map((te) => ({
+                  kind: "solo" as const,
                   id: te.id,
                   emoji: te.exercise?.emoji ?? "🏋️",
                   name: te.exercise?.name ?? "Exercise",

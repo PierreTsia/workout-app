@@ -38,6 +38,10 @@
   "exerciseCount": "{{count}} exercices",
   "setsReps": "{{sets}} × {{reps}}",
   "restSeconds": "{{seconds}}s repos",
+  "circuit": {
+    "fallbackLabel": "Circuit",
+    "summary": "{{count}} exercices · {{rounds}} tours"
+  },
 
   "savingProgram": "Sauvegarde du programme…",
   "startingProgram": "Démarrage du programme…",
