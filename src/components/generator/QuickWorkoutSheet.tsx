@@ -29,9 +29,9 @@ type Step = "constraints" | "ai-generating" | "preview"
  *  - "deterministic" + Start → `useCreateQuickWorkout` (raw insert).
  *    Pre-existing path, kept verbatim because there's no reason to round-
  *    trip a server when the prescription was built client-side.
- *  - Save (draft, either source) → `useCreateQuickWorkout`. The MCP tool
- *    has no `saved_at` semantics today, so drafts stay on the legacy hook
- *    until the data model gets a real draft concept.
+ *  - Save (draft, either source) → `useCreateQuickWorkout` (raw insert with
+ *    `saved_at`). Persists solos + Circuits from `dayItems` when present;
+ *    MCP `create_workout_day` still has no draft/`saved_at` semantics.
  */
 type GenerationSource = "ai" | "deterministic"
 

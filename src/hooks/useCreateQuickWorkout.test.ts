@@ -27,6 +27,7 @@ import { useCreateQuickWorkout } from "./useCreateQuickWorkout"
 // ---------------------------------------------------------------------------
 
 const MOCK_DAY_ID = "mock-day-uuid-1"
+const MOCK_BLOCK_ID = "mock-block-uuid-1"
 
 interface InsertCall {
   table: string
@@ -45,7 +46,12 @@ vi.mock("@/lib/supabase", () => {
             return {
               single: () =>
                 Promise.resolve({
-                  data: table === "workout_days" ? { id: MOCK_DAY_ID } : null,
+                  data:
+                    table === "workout_days"
+                      ? { id: MOCK_DAY_ID }
+                      : table === "exercise_blocks"
+                        ? { id: MOCK_BLOCK_ID }
+                        : null,
                   error: null,
                 }),
             }
@@ -218,6 +224,79 @@ describe("useCreateQuickWorkout — shape parity", () => {
     // Live workout (no saveAsDraft) → saved_at is intentionally NOT set in
     // the payload. The DB column defaults to NULL. Drafts get cycle 3.
     expect(payload.saved_at).toBeUndefined()
+  })
+
+  it("T170 Bugbot: Save with dayItems Circuit inserts exercise_blocks + nested block_exercises", async () => {
+    const workout = makeMixedWorkout()
+    const solo = workout.exercises[0]
+    const nestedA = workout.exercises[1]
+    const nestedB = workout.exercises[2]
+    const withCircuit: GeneratedWorkout = {
+      ...workout,
+      dayItems: [
+        { kind: "solo", exercise: solo },
+        {
+          kind: "circuit",
+          circuit: {
+            label: "Finisher",
+            rounds: 3,
+            restSeconds: 90,
+            transitionSeconds: 0,
+            exercises: [
+              { exercise: nestedA.exercise, amount: 30, weightKg: 0 },
+              { exercise: nestedB.exercise, amount: 12, weightKg: 0 },
+            ],
+          },
+        },
+      ],
+    }
+
+    const { result, store } = setupHook()
+    act(() => {
+      store.set(authAtom, TEST_USER)
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync({ workout: withCircuit, saveAsDraft: true })
+    })
+
+    const soloInsert = insertCalls.find((c) => c.table === "workout_exercises")
+    expect(soloInsert).toBeDefined()
+    const soloRows = soloInsert!.payload as Array<{ sort_order: number; exercise_id: string }>
+    expect(soloRows).toHaveLength(1)
+    expect(soloRows[0]).toMatchObject({
+      exercise_id: solo.exercise.id,
+      sort_order: 0,
+    })
+
+    const blockInsert = insertCalls.find((c) => c.table === "exercise_blocks")
+    expect(blockInsert).toBeDefined()
+    expect(blockInsert!.payload).toMatchObject({
+      workout_day_id: MOCK_DAY_ID,
+      label: "Finisher",
+      rounds: 3,
+      sort_order: 1,
+    })
+
+    const beInsert = insertCalls.find((c) => c.table === "block_exercises")
+    expect(beInsert).toBeDefined()
+    const beRows = beInsert!.payload as Array<{
+      block_id: string
+      exercise_id: string
+      position: number
+    }>
+    expect(beRows).toEqual([
+      expect.objectContaining({
+        block_id: MOCK_BLOCK_ID,
+        exercise_id: nestedA.exercise.id,
+        position: 0,
+      }),
+      expect.objectContaining({
+        block_id: MOCK_BLOCK_ID,
+        exercise_id: nestedB.exercise.id,
+        position: 1,
+      }),
+    ])
   })
 
   it("saveAsDraft: true stamps saved_at with a fresh ISO timestamp", async () => {
