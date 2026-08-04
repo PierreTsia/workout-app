@@ -4,6 +4,10 @@ import { ChevronDown } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  formatDraftExerciseFallback,
+  summarizeDraftExercises,
+} from "@/lib/draftPreviewItems"
 import { dayEmojiForProgramDayIndex } from "@/lib/programPersistence"
 import {
   useCommitPreview,
@@ -128,9 +132,16 @@ export function EmbeddedAgentPreviewStep({
   }
 
   const programDays = preview.args.days.length
-  const programExerciseCount = preview.args.days.reduce(
-    (sum, d) => sum + d.exercises.length,
-    0,
+  const programSummary = preview.args.days.reduce(
+    (acc, d) => {
+      const day = summarizeDraftExercises(d.exercises)
+      return {
+        items: acc.items + day.items,
+        solos: acc.solos + day.solos,
+        circuits: acc.circuits + day.circuits,
+      }
+    },
+    { items: 0, solos: 0, circuits: 0 },
   )
 
   return (
@@ -145,10 +156,17 @@ export function EmbeddedAgentPreviewStep({
           </p>
           <p className="text-sm font-medium">{preview.args.name}</p>
           <p className="text-xs text-muted-foreground">
-            {t("embeddedAgentPreview.programLine", {
-              days: programDays,
-              exercises: programExerciseCount,
-            })}
+            {programSummary.circuits > 0
+              ? t("embeddedAgentPreview.programLineWithCircuits", {
+                  days: programDays,
+                  items: programSummary.items,
+                  solos: programSummary.solos,
+                  circuits: programSummary.circuits,
+                })
+              : t("embeddedAgentPreview.programLine", {
+                  days: programDays,
+                  exercises: programSummary.items,
+                })}
           </p>
         </CardHeader>
 
@@ -222,6 +240,7 @@ function parseLine(line: string): { name: string; tail: string } {
 interface DayDescriptor {
   label: string
   exerciseCount: number
+  circuitCount: number
   // When `lines` is present we render structured rows from MCP echo;
   // otherwise we fall back to the count-only summary (legacy / size-guarded
   // / catalog-starved threads).
@@ -240,18 +259,34 @@ function PreviewBody({
   // guard also catches legacy persisted threads where `rendered` was stored
   // as a single string before T120 reshaped it into RenderedDay[] — those
   // get treated as "no rendered" and gracefully degrade to args-only.
-  const hasRendered = Array.isArray(preview.rendered) && preview.rendered.length > 0
-  const days: DayDescriptor[] = hasRendered
-    ? preview.rendered!.map((d, i) => ({
-        label: cleanDayLabel(d.label),
-        exerciseCount:
-          d.lines.length || preview.args.days[i]?.exercises.length || 0,
-        lines: d.lines,
-      }))
-    : preview.args.days.map((d) => ({
-        label: cleanDayLabel(d.label),
-        exerciseCount: d.exercises.length,
-      }))
+  const renderedDays = Array.isArray(preview.rendered) ? preview.rendered : null
+  const days: DayDescriptor[] = renderedDays && renderedDays.length > 0
+    ? renderedDays.map((d, i) => {
+        const argsDay = preview.args.days[i]
+        const summary = argsDay
+          ? summarizeDraftExercises(argsDay.exercises)
+          : { items: d.lines.length, circuits: 0 }
+        return {
+          label: cleanDayLabel(d.label),
+          // Prefer slot count from args (Circuit = 1); fall back to line count.
+          exerciseCount: summary.items || d.lines.length,
+          circuitCount: summary.circuits,
+          lines: d.lines,
+        }
+      })
+    : preview.args.days.map((d) => {
+        const summary = summarizeDraftExercises(d.exercises)
+        return {
+          label: cleanDayLabel(d.label),
+          exerciseCount: summary.items,
+          circuitCount: summary.circuits,
+          // Solo-only args path keeps the soft hint; Circuits need a readable line.
+          lines:
+            summary.circuits > 0
+              ? d.exercises.map(formatDraftExerciseFallback)
+              : undefined,
+        }
+      })
 
   // Default-expand the first day so the user lands on something concrete.
   // Single-expanded behavior matches the legacy AIProgramPreviewStep.
@@ -295,7 +330,15 @@ function DayCard({ index, day, isExpanded, onToggle, i18nNamespace }: DayCardPro
           <div>
             <div className="text-sm font-medium">{day.label}</div>
             <div className="text-xs text-muted-foreground">
-              {t("embeddedAgentPreview.exercisesCount", { count: day.exerciseCount })}
+              {day.circuitCount > 0
+                ? t("embeddedAgentPreview.itemsCountWithCircuits", {
+                    items: day.exerciseCount,
+                    solos: day.exerciseCount - day.circuitCount,
+                    circuits: day.circuitCount,
+                  })
+                : t("embeddedAgentPreview.exercisesCount", {
+                    count: day.exerciseCount,
+                  })}
             </div>
           </div>
         </div>

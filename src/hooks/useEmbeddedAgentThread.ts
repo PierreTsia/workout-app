@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useStore } from "jotai"
+import type { DraftPreviewExercise } from "@/lib/draftPreviewItems"
 import { supabase } from "@/lib/supabase"
 import { activeProgramIdAtom, hasProgramAtom } from "@/store/atoms"
 
@@ -61,7 +62,7 @@ export type DraftTrigger = "ready_signal" | "turn_cap" | "user_cta"
 
 export interface DraftPreviewArgs {
   name: string
-  days: Array<{ label: string; exercises: string[] }>
+  days: Array<{ label: string; exercises: DraftPreviewExercise[] }>
 }
 
 /**
