@@ -19,11 +19,9 @@
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
-import { applyDayUpdate, parsedExerciseToGeneratedForApply } from "./applyDayUpdate.ts"
-import {
-  buildWorkoutExerciseInsertRowsForDay,
-  type CatalogExerciseForProgram,
-} from "./programPersistence.ts"
+import { applyDayUpdate, collectParsedCatalogIds } from "./applyDayUpdate.ts"
+import { insertDaySequence } from "./daySequence.ts"
+import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 import type {
   DiffDayDelete,
   DiffDayInsert,
@@ -174,17 +172,9 @@ async function executeInsert(
 ): Promise<OpResult> {
   // Pre-flight catalog presence check: never INSERT a workout_day we cannot
   // then back-fill with exercises. Mirrors the safety pattern in applyDayUpdate.
-  if (entry.parsed_exercises.some((p) => p.kind === "circuit")) {
-    return {
-      ok: false,
-      error:
-        "Circuit items in update_program day replace land in T164 — use create_program / create_workout_day until then.",
-    }
-  }
-
-  const missingId = entry.parsed_exercises
-    .flatMap((p) => (p.kind === "circuit" ? [] : [p.exerciseId]))
-    .find((id) => !catalogById.has(id))
+  const missingId = collectParsedCatalogIds(entry.parsed_exercises).find(
+    (id) => !catalogById.has(id),
+  )
   if (missingId) {
     return { ok: false, error: `Catalog miss for exercise_id ${missingId}` }
   }
@@ -207,13 +197,13 @@ async function executeInsert(
     return { ok: false, error: "workout_days insert returned no id" }
   }
 
-  const generated = entry.parsed_exercises.map((p) =>
-    parsedExerciseToGeneratedForApply(p, catalogById),
+  const { error: seqErr } = await insertDaySequence(
+    supabase,
+    newId,
+    entry.parsed_exercises,
+    catalogById,
   )
-  const rows = buildWorkoutExerciseInsertRowsForDay(newId, generated)
-
-  const { error: insertErr } = await supabase.from("workout_exercises").insert(rows)
-  if (insertErr) return { ok: false, error: insertErr.message }
+  if (seqErr) return { ok: false, error: seqErr }
 
   return { ok: true, applied: { id: newId, label: entry.label, ops: ["inserted"] } }
 }

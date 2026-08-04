@@ -120,7 +120,7 @@ function buildSnapshot(row: RawProgramRow): CurrentProgramSnapshot {
 const PROGRAM_SELECT =
   "id, name, workout_days(id, label, emoji, sort_order, workout_exercises(exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))"
 
-const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert at the workout_exercises layer).
+const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert of the Unified Day Sequence: workout_exercises + exercise_blocks).
 
 Patch shape:
   - Top level: PATCH semantics. Omit a field → leave it unchanged. Pass \`name\` → rename. Pass \`days\` → declarative PUT inside that field (see below).
@@ -129,6 +129,7 @@ Patch shape:
 Each item in a day's \`exercises\` array can be EITHER:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest).
   - A full prescription object — required fields {exercise_id, sets, reps, weight_kg, rest_seconds}; \`target_duration_seconds\` for duration exercises (T75).
+  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
 
 Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior days are already persisted; the response includes \`applied_days\`, \`failed_at\`, and \`remaining_days\` plus retry guidance.
 
@@ -200,6 +201,25 @@ export const updateProgram: ToolDefinition = {
                       },
                     },
                     required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
+                  },
+                  {
+                    type: "object",
+                    description:
+                      "Circuit (MCP Circuit Item). Nested exercises use {amount, weight_kg} or per_round — never solo sets/reps. Same shape as `create_program` (ADR 0011).",
+                    properties: {
+                      type: { type: "string", const: "circuit" },
+                      label: { type: "string" },
+                      rounds: { type: "integer", minimum: 1, maximum: 10 },
+                      rest_seconds: { type: "integer", minimum: 0, maximum: 600 },
+                      transition_seconds: { type: "integer", minimum: 0, maximum: 600 },
+                      exercises: {
+                        type: "array",
+                        minItems: 2,
+                        maxItems: 8,
+                        items: { type: "object" },
+                      },
+                    },
+                    required: ["type", "exercises"],
                   },
                 ],
               },

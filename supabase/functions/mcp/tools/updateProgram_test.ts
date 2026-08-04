@@ -111,6 +111,9 @@ interface MockState {
   programs: ProgramRow[]
   days: DayRow[]
   exercises: ExerciseRow[]
+  /** T164 — Circuit wipe/insert surface for daySequence. */
+  blocks: Record<string, unknown>[]
+  blockExercises: Record<string, unknown>[]
   sessions: SessionRow[]
   cycles: CycleRow[]
   catalog: typeof BENCH[]
@@ -358,6 +361,22 @@ class MockBuilder {
       return { data: null, error: null }
     }
 
+    if (t === "exercise_blocks") {
+      const id = `mock-block-${this.mock.state.blocks.length + 1}`
+      const row = { ...(payload as Record<string, unknown>), id }
+      this.mock.state.blocks.push(row)
+      if (this.entry.terminal === "single") {
+        return { data: { id }, error: null }
+      }
+      return { data: null, error: null }
+    }
+
+    if (t === "block_exercises") {
+      const rows = Array.isArray(payload) ? payload : [payload]
+      this.mock.state.blockExercises.push(...(rows as Record<string, unknown>[]))
+      return { data: null, error: null }
+    }
+
     throw new Error(`MockSupabase.insert: unsupported table "${t}"`)
   }
 }
@@ -383,6 +402,10 @@ function stateKeyForTable(table: string): keyof MockState {
       return "days"
     case "workout_exercises":
       return "exercises"
+    case "exercise_blocks":
+      return "blocks"
+    case "block_exercises":
+      return "blockExercises"
     case "sessions":
       return "sessions"
     case "cycles":
@@ -462,6 +485,8 @@ function makeBaseState(): MockState {
         sort_order: 1,
       },
     ],
+    blocks: [],
+    blockExercises: [],
     exercises: [
       {
         id: "seed-ex-1",
@@ -850,6 +875,174 @@ Deno.test("update_program rejects is_active in the patch with a pointer to set_a
 // Both run with the default dry_run, so no writes are exercised — the bug fires
 // in validation, before any persistence happens.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// T164 — Circuit day replace (Unified Day Sequence wipe + insert)
+// ---------------------------------------------------------------------------
+
+Deno.test("T164: dry_run Circuit preview includes Circuit lines and writes nothing", async () => {
+  const mock = new MockSupabase(makeBaseState())
+
+  const reply = await updateProgram.handler(
+    {
+      program_id: ID_PROGRAM,
+      days: [
+        {
+          id: ID_DAY_PUSH,
+          label: "Push",
+          emoji: "💪",
+          exercises: [
+            ID_BENCH,
+            {
+              type: "circuit",
+              label: "Finisher",
+              rounds: 3,
+              exercises: [
+                { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+                { exercise_id: ID_BENCH, amount: 8, weight_kg: 60 },
+              ],
+            },
+          ],
+        },
+        {
+          id: ID_DAY_PULL,
+          label: "Pull",
+          emoji: "🪝",
+          exercises: [ID_PUSHUP],
+        },
+      ],
+    },
+    mock as never,
+  )
+
+  assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+  const text = reply.content[0].text
+  assertStringIncludes(text, "Circuit")
+  assertStringIncludes(text, "Finisher")
+  assertEquals(writeOps(mock.callLog).length, 0)
+  assertEquals(
+    mock.callLog.filter((c) => c.op === "delete" || c.op === "insert").length,
+    0,
+  )
+})
+
+Deno.test(
+  "T164: apply replaces day sequence — wipes orphan blocks and inserts Circuit",
+  async () => {
+    const state = makeBaseState()
+    state.blocks.push({
+      id: "orphan-block",
+      workout_day_id: ID_DAY_PUSH,
+      label: "Old Circuit",
+      rounds: 2,
+      sort_order: 1,
+    })
+    state.blockExercises.push({
+      id: "orphan-be",
+      block_id: "orphan-block",
+      exercise_id: ID_PUSHUP,
+      sort_order: 0,
+    })
+    const mock = new MockSupabase(state)
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [
+              {
+                type: "circuit",
+                label: "Finisher",
+                rounds: 3,
+                exercises: [
+                  { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+                  { exercise_id: ID_BENCH, amount: 8, weight_kg: 60 },
+                ],
+              },
+            ],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+        dry_run: false,
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+    assertEquals(
+      mock.state.blocks.some((b) => b.id === "orphan-block"),
+      false,
+      "orphan exercise_blocks row must be wiped",
+    )
+    const newBlock = mock.state.blocks.find((b) => b.workout_day_id === ID_DAY_PUSH)
+    assertExists(newBlock)
+    assertEquals(newBlock!.label, "Finisher")
+    assertEquals(newBlock!.rounds, 3)
+
+    const beInsert = mock.callLog.find(
+      (e) => e.op === "insert" && e.table === "block_exercises",
+    )
+    assertExists(beInsert)
+    const beRows = beInsert!.payload as Array<Record<string, unknown>>
+    assertEquals(beRows.length, 2)
+  },
+)
+
+Deno.test(
+  "T164: catalog miss on nested Circuit exercise aborts before DELETE",
+  async () => {
+    const mock = new MockSupabase(makeBaseState())
+    const missingId = "eeeeeeee-1111-4111-8111-eeeeeeeeeeee"
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [
+              {
+                type: "circuit",
+                label: "Broken",
+                exercises: [
+                  { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+                  { exercise_id: missingId, amount: 8, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+        dry_run: false,
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError, true)
+    const deletes = mock.callLog.filter(
+      (c) =>
+        c.op === "delete" &&
+        (c.table === "workout_exercises" || c.table === "exercise_blocks"),
+    )
+    assertEquals(deletes.length, 0, "must not wipe day sequence on catalog miss")
+  },
+)
 
 Deno.test(
   "update_program REJECTS a verbatim echo of a bodyweight day with weight_kg > 0 " +

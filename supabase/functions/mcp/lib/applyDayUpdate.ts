@@ -15,8 +15,8 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { ParsedExercise } from "./createProgramValidation.ts"
+import { insertDaySequence, wipeDaySequence } from "./daySequence.ts"
 import {
-  buildWorkoutExerciseInsertRowsForDay,
   parseRepsBounds,
   type CatalogExerciseForProgram,
   type GeneratedExerciseForProgram,
@@ -53,9 +53,7 @@ export function parsedExerciseToGeneratedForApply(
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): GeneratedExerciseForProgram {
   if (parsed.kind === "circuit") {
-    throw new Error(
-      "Circuit items must be persisted via daySequence (update_program Circuit replace — T164)",
-    )
+    throw new Error("Circuit items must be persisted via daySequence / applyDayUpdate")
   }
 
   const catalogEx = catalogById.get(parsed.exerciseId)
@@ -91,19 +89,9 @@ export function parsedExerciseToGeneratedForApply(
 }
 
 /**
- * Wipe-and-reinsert the `workout_exercises` rows for a single day. Used by
- * the `update_program` apply orchestrator (T80) for every day touched by the
- * patch — both UPDATE-day flows and (indirectly) INSERT-day flows when the
- * orchestrator chooses to reuse this helper.
- *
- * Pre-flight: every `parsed.exerciseId` must be present in `catalogById`. If
- * any miss, returns `{ ok: false }` BEFORE touching the database — we never
- * DELETE rows we cannot then reinsert.
- *
- * RLS scopes both DELETE and INSERT to the caller; `userId` is accepted for
- * interface symmetry with future helpers but is not used here (the
- * `workout_exercises` table has no `user_id` column — RLS joins through
- * `workout_days.user_id`).
+ * Wipe-and-reinsert the Unified Day Sequence for a single day (solos + Circuits).
+ * Pre-flight: every catalog id (incl. nested Circuit exercises) must be present
+ * before any DELETE — we never wipe rows we cannot reinsert.
  */
 export async function applyDayUpdate(
   supabase: SupabaseClient,
@@ -113,31 +101,21 @@ export async function applyDayUpdate(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userId: string,
 ): Promise<{ ok: true; inserted_count: number } | { ok: false; error: string }> {
-  if (parsedExercises.some((p) => p.kind === "circuit")) {
-    return {
-      ok: false,
-      error:
-        "Circuit items in update_program day replace land in T164 — use create_program / create_workout_day until then.",
-    }
-  }
-
   const missingId = collectParsedCatalogIds(parsedExercises).find((id) => !catalogById.has(id))
   if (missingId) {
     return { ok: false, error: `Catalog miss for exercise_id ${missingId}` }
   }
 
-  const generated = parsedExercises.map((p) => parsedExerciseToGeneratedForApply(p, catalogById))
+  const { error: wipeErr } = await wipeDaySequence(supabase, dayId)
+  if (wipeErr) return { ok: false, error: wipeErr }
 
-  const { error: deleteErr } = await supabase
-    .from("workout_exercises")
-    .delete()
-    .eq("workout_day_id", dayId)
+  const { error: insertErr } = await insertDaySequence(
+    supabase,
+    dayId,
+    parsedExercises,
+    catalogById,
+  )
+  if (insertErr) return { ok: false, error: insertErr }
 
-  if (deleteErr) return { ok: false, error: deleteErr.message }
-
-  const rows = buildWorkoutExerciseInsertRowsForDay(dayId, generated)
-  const { error: insertErr } = await supabase.from("workout_exercises").insert(rows)
-  if (insertErr) return { ok: false, error: insertErr.message }
-
-  return { ok: true, inserted_count: rows.length }
+  return { ok: true, inserted_count: parsedExercises.length }
 }
