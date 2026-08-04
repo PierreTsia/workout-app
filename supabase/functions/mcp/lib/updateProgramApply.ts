@@ -174,9 +174,19 @@ async function executeInsert(
 ): Promise<OpResult> {
   // Pre-flight catalog presence check: never INSERT a workout_day we cannot
   // then back-fill with exercises. Mirrors the safety pattern in applyDayUpdate.
-  const missing = entry.parsed_exercises.find((p) => !catalogById.has(p.exerciseId))
-  if (missing) {
-    return { ok: false, error: `Catalog miss for exercise_id ${missing.exerciseId}` }
+  if (entry.parsed_exercises.some((p) => p.kind === "circuit")) {
+    return {
+      ok: false,
+      error:
+        "Circuit items in update_program day replace land in T164 — use create_program / create_workout_day until then.",
+    }
+  }
+
+  const missingId = entry.parsed_exercises
+    .flatMap((p) => (p.kind === "circuit" ? [] : [p.exerciseId]))
+    .find((id) => !catalogById.has(id))
+  if (missingId) {
+    return { ok: false, error: `Catalog miss for exercise_id ${missingId}` }
   }
 
   const { data, error } = await supabase

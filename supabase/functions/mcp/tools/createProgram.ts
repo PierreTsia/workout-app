@@ -1,9 +1,5 @@
 import type { ToolDefinition } from "./registry.ts"
-import {
-  buildWorkoutExerciseInsertRowsForDay,
-  dayEmojiForProgramDayIndex,
-} from "../lib/programPersistence.ts"
-import { formatPrescriptionLine, formatWeightConvention } from "../lib/format.ts"
+import { dayEmojiForProgramDayIndex } from "../lib/programPersistence.ts"
 import {
   detectLegacyExerciseIds,
   LEGACY_MIGRATION_ERROR_MESSAGE,
@@ -11,10 +7,8 @@ import {
   type ParsedExercise,
 } from "../lib/createProgramValidation.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
-import {
-  buildGeneratedExercise,
-  collectCandidateExerciseIds,
-} from "../lib/exerciseConversion.ts"
+import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
+import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
 
 const MAX_DAYS = 14
 const MAX_EXERCISES_PER_DAY = 40
@@ -31,9 +25,10 @@ type ParsedDay = {
 
 const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymLogic account (same persistence as the in-app AI program flow).
 
-Each item in a day's \`exercises\` array can be EITHER:
+Each item in a day's \`exercises\` array can be:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest, auto-derived ranges).
   - A prescription object — explicit \`sets\`, \`reps\`, \`weight_kg\`, \`rest_seconds\`. Freezes the progression ranges around the prescribed values.
+  - A Circuit object — \`{ type: "circuit", label?, rounds?, rest_seconds?, transition_seconds?, exercises: [{ exercise_id, amount, weight_kg } | { exercise_id, per_round }] }\`. Counts as one day item. Nested exercises use native amount/weight_kg (not solo sets/reps). See ADR 0011.
 
 Reps formats:
   - "8"     → linear progression (rep_range frozen at 8/8). Weight bumps when target hit.
@@ -73,7 +68,7 @@ export const createProgram: ToolDefinition = {
             exercises: {
               type: "array",
               description:
-                "Ordered exercises for this day. Each item is a UUID string (legacy defaults) OR an object with required prescription fields.",
+                "Ordered day items: bare UUID, solo prescription object, or Circuit (type:\"circuit\"). A Circuit counts as one slot toward the day cap.",
               items: {
                 oneOf: [
                   {
@@ -121,6 +116,25 @@ export const createProgram: ToolDefinition = {
                       },
                     },
                     required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
+                  },
+                  {
+                    type: "object",
+                    description:
+                      "Circuit (MCP Circuit Item). Nested exercises use {amount, weight_kg} or per_round — never solo sets/reps.",
+                    properties: {
+                      type: { type: "string", const: "circuit" },
+                      label: { type: "string" },
+                      rounds: { type: "integer", minimum: 1, maximum: 10 },
+                      rest_seconds: { type: "integer", minimum: 0, maximum: 600 },
+                      transition_seconds: { type: "integer", minimum: 0, maximum: 600 },
+                      exercises: {
+                        type: "array",
+                        minItems: 2,
+                        maxItems: 8,
+                        items: { type: "object" },
+                      },
+                    },
+                    required: ["type", "exercises"],
                   },
                 ],
               },
@@ -243,44 +257,13 @@ export const createProgram: ToolDefinition = {
     }
     const userId = userData.user.id
 
-    // Phase 4 — build per-day generated rows + dry_run preview lines.
-    // The `rendered` echo derives from the persisted row (source of truth) so
-    // the agent sees exactly what will land in the database — including the
-    // catalog-default target_duration_seconds for bare-string duration entries
-    // and the bodyweight branch's defensive weight=0.
-    const previewDays = parsedDays.map((day, dayIndex) => {
-      const generated = day.exercises.map((parsed) =>
-        buildGeneratedExercise(parsed, byId.get(parsed.exerciseId)!),
-      )
-      const placeholderDayId = `00000000-0000-4000-8000-${String(dayIndex).padStart(12, "0")}`
-      const fullRows = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated)
-      const workout_exercises = fullRows.map((row) => {
-        const { workout_day_id: _, ...rest } = row
-        return rest
-      })
-
-      const rendered = fullRows.map((row, i) => {
-        const ge = generated[i]
-        const convention = formatWeightConvention(ge.exercise.equipment)
-        return formatPrescriptionLine({
-          exerciseName: ge.exercise.name,
-          sets: row.sets,
-          reps: row.reps,
-          weightKg: Number(row.weight),
-          restSeconds: row.rest_seconds,
-          weightConvention: convention,
-          targetDurationSeconds: row.target_duration_seconds ?? undefined,
-        })
-      })
-
-      return {
-        sort_order: dayIndex,
-        label: day.label,
-        emoji: dayEmojiForProgramDayIndex(dayIndex),
-        workout_exercises,
-        rendered,
-      }
-    })
+    // Phase 4 — dry_run preview lines (solos + Circuits via daySequence helpers).
+    const previewDays = parsedDays.map((day, dayIndex) => ({
+      sort_order: dayIndex,
+      label: day.label,
+      emoji: dayEmojiForProgramDayIndex(dayIndex),
+      rendered: buildDayRenderedLines(day.exercises, byId),
+    }))
 
     const previewPayload = {
       dry_run: dryRun,
@@ -354,13 +337,13 @@ export const createProgram: ToolDefinition = {
 
         createdDayIds.push(insertedDay.id)
 
-        const generated = day.exercises.map((parsed) =>
-          buildGeneratedExercise(parsed, byId.get(parsed.exerciseId)!),
+        const { error: seqError } = await insertDaySequence(
+          supabase,
+          insertedDay.id,
+          day.exercises,
+          byId,
         )
-        const rows = buildWorkoutExerciseInsertRowsForDay(insertedDay.id, generated)
-
-        const { error: exError } = await supabase.from("workout_exercises").insert(rows)
-        if (exError) throw exError
+        if (seqError) throw new Error(seqError)
       }
 
       const { error: deactivateError } = await supabase
@@ -398,6 +381,7 @@ export const createProgram: ToolDefinition = {
     } catch (applyError) {
       if (createdDayIds.length > 0) {
         await supabase.from("workout_exercises").delete().in("workout_day_id", createdDayIds)
+        await supabase.from("exercise_blocks").delete().in("workout_day_id", createdDayIds)
         await supabase.from("workout_days").delete().in("id", createdDayIds)
       }
       if (createdProgramId) {

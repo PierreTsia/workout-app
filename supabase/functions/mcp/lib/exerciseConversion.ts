@@ -41,7 +41,18 @@ export function collectCandidateExerciseIds(raw: unknown[]): string[] {
       return isUuid(entry) ? [entry] : []
     }
     if (entry !== null && typeof entry === "object" && !Array.isArray(entry)) {
-      const id = (entry as Record<string, unknown>).exercise_id
+      const obj = entry as Record<string, unknown>
+      // MCP Circuit Item (ADR 0011): nested exercises[].exercise_id
+      if (obj.type === "circuit" && Array.isArray(obj.exercises)) {
+        return obj.exercises.flatMap((nested) => {
+          if (nested === null || typeof nested !== "object" || Array.isArray(nested)) {
+            return []
+          }
+          const id = (nested as Record<string, unknown>).exercise_id
+          return typeof id === "string" && isUuid(id) ? [id] : []
+        })
+      }
+      const id = obj.exercise_id
       return typeof id === "string" && isUuid(id) ? [id] : []
     }
     return []
@@ -89,5 +100,10 @@ export function buildGeneratedExercise(
   parsed: ParsedExercise,
   ex: CatalogExerciseForProgram,
 ): GeneratedExerciseForProgram {
+  if (parsed.kind === "circuit") {
+    throw new Error(
+      "buildGeneratedExercise does not accept Circuit items — use daySequence / blockPersistence",
+    )
+  }
   return parsed.kind === "bare" ? defaultGeneratedExercise(ex) : generatedFromObject(parsed, ex)
 }

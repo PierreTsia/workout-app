@@ -38,10 +38,26 @@ const APPLY_DEFAULT_REST_SECONDS = 90
  * Edge side (no cross-tool import). Throws on catalog miss; callers MUST
  * pre-flight via `catalogById.has(...)`.
  */
+/** All catalog UUIDs referenced by solos or nested Circuit exercises. */
+export function collectParsedCatalogIds(items: ParsedExercise[]): string[] {
+  return items.flatMap((p) => {
+    if (p.kind === "circuit") {
+      return p.exercises.map((e) => e.exerciseId)
+    }
+    return [p.exerciseId]
+  })
+}
+
 export function parsedExerciseToGeneratedForApply(
   parsed: ParsedExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): GeneratedExerciseForProgram {
+  if (parsed.kind === "circuit") {
+    throw new Error(
+      "Circuit items must be persisted via daySequence (update_program Circuit replace — T164)",
+    )
+  }
+
   const catalogEx = catalogById.get(parsed.exerciseId)
   if (!catalogEx) {
     throw new Error(`Catalog miss for exercise_id ${parsed.exerciseId}`)
@@ -97,9 +113,17 @@ export async function applyDayUpdate(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userId: string,
 ): Promise<{ ok: true; inserted_count: number } | { ok: false; error: string }> {
-  const missing = parsedExercises.find((p) => !catalogById.has(p.exerciseId))
-  if (missing) {
-    return { ok: false, error: `Catalog miss for exercise_id ${missing.exerciseId}` }
+  if (parsedExercises.some((p) => p.kind === "circuit")) {
+    return {
+      ok: false,
+      error:
+        "Circuit items in update_program day replace land in T164 — use create_program / create_workout_day until then.",
+    }
+  }
+
+  const missingId = collectParsedCatalogIds(parsedExercises).find((id) => !catalogById.has(id))
+  if (missingId) {
+    return { ok: false, error: `Catalog miss for exercise_id ${missingId}` }
   }
 
   const generated = parsedExercises.map((p) => parsedExerciseToGeneratedForApply(p, catalogById))

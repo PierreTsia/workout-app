@@ -62,6 +62,54 @@ export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
   return `${exerciseName} — ${sets} × ${reps} × ${formatWeight(weightKg)} ${conventionSuffix} — ${restSuffix}`
 }
 
+/**
+ * Adaptive Circuit dry_run lines (ADR 0011): compact when all rounds identical,
+ * round-by-round when any nested exercise uses a heterogeneous per_round.
+ */
+export function formatCircuitPreviewLines(
+  circuit: Extract<ParsedExercise, { kind: "circuit" }>,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): string[] {
+  const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
+  const header = `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
+
+  const needsExpand = circuit.exercises.some((ex) => {
+    if (ex.mode !== "per_round") return false
+    const first = ex.perRound[0]
+    return ex.perRound.some(
+      (c) => c.amount !== first.amount || c.weightKg !== first.weightKg,
+    )
+  })
+
+  const nameOf = (id: string) => catalogById.get(id)?.name ?? id
+
+  if (!needsExpand) {
+    const exoLines = circuit.exercises.map((ex) => {
+      const name = nameOf(ex.exerciseId)
+      if (ex.mode === "flat") {
+        return `  ${name} — ${ex.amount} @ ${formatWeight(ex.weightKg)}`
+      }
+      const cell = ex.perRound[0]
+      return `  ${name} — ${cell.amount} @ ${formatWeight(cell.weightKg)}`
+    })
+    return [header, ...exoLines]
+  }
+
+  const lines = [header]
+  for (let r = 0; r < circuit.rounds; r++) {
+    const parts = circuit.exercises.map((ex) => {
+      const name = nameOf(ex.exerciseId)
+      if (ex.mode === "flat") {
+        return `${name} ${ex.amount}@${formatWeight(ex.weightKg)}`
+      }
+      const cell = ex.perRound[r] ?? ex.perRound[ex.perRound.length - 1]
+      return `${name} ${cell.amount}@${formatWeight(cell.weightKg)}`
+    })
+    lines.push(`  Round ${r + 1}: ${parts.join(" · ")}`)
+  }
+  return lines
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   const date = d.toISOString().slice(0, 10)
@@ -435,6 +483,10 @@ function renderParsedLine(
   parsed: ParsedExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): string {
+  if (parsed.kind === "circuit") {
+    return formatCircuitPreviewLines(parsed, catalogById).join("\n")
+  }
+
   const catalog = catalogById.get(parsed.exerciseId)
   // Defensive fallback: catalog should always be present (handler fetches the union of
   // patch + current ids), but a missing entry must not crash dry_run rendering.
