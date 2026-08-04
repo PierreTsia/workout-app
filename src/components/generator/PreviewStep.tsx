@@ -354,7 +354,6 @@ function InspectedExerciseSheet({
     if (exerciseId && !isPending && exercise === null) {
       onClose()
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect unreachable-exercise async result into parent id state; no safer place to run this.
   }, [exerciseId, isPending, exercise, onClose])
 
   return (

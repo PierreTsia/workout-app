@@ -135,7 +135,7 @@ export function buildPrompt(
     "",
     "OUTPUT FORMAT:",
     "Return a JSON object with:",
-    `- exercises: array of length ${targetCount} — each entry is either a catalog UUID string OR a Circuit object { type:\"circuit\", label?, rounds?, rest_seconds?, transition_seconds?, exercises:[{exercise_id, amount, weight_kg}] }.`,
+    `- exercises: array of length ${targetCount} — each entry is either a catalog UUID string OR a Circuit object { type:"circuit", label?, rounds?, rest_seconds?, transition_seconds?, exercises:[{exercise_id, amount, weight_kg}] }.`,
     "- exerciseIds: string[] — optional legacy flat list of solo UUIDs only (omit when using Circuits).",
     "- rationale: string — 2–5 short sentences explaining your choices and order. Follow the LOCALE section below for the language of this field only.",
     "",

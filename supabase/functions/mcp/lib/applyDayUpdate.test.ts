@@ -66,7 +66,7 @@ function makeMockSupabase(config: MockSupabaseConfig = {}) {
           calls.push({ table, op: "insert", details: { payload } })
           const err = maybeError()
           const chain = {
-            select(_columns: string) {
+            select(_columns: string) { // eslint-disable-line @typescript-eslint/no-unused-vars -- mock API shape
               return {
                 single() {
                   return Promise.resolve({
