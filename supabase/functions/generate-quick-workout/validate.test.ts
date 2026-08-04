@@ -22,6 +22,55 @@ const CATALOG: CatalogEntry[] = makeCatalog([
 ])
 
 describe("validateAndRepair", () => {
+  it("T170: keeps a valid Circuit as one day-item and validates nested catalog IDs", () => {
+    const result = validateAndRepair(
+      [
+        "pec-1",
+        {
+          type: "circuit",
+          label: "Finisher",
+          rounds: 3,
+          exercises: [
+            { exercise_id: "dos-1", amount: 10, weight_kg: 0 },
+            { exercise_id: "bic-1", amount: 12, weight_kg: 0 },
+          ],
+        },
+      ],
+      CATALOG,
+      2,
+    )
+    expect(result.items).toHaveLength(2)
+    expect(result.items[0]).toBe("pec-1")
+    expect(result.items[1]).toMatchObject({
+      type: "circuit",
+      label: "Finisher",
+      rounds: 3,
+    })
+    expect(result.exerciseIds).toEqual(["pec-1", "dos-1", "bic-1"])
+    expect(result.repaired).toBe(false)
+  })
+
+  it("T170: allows the same exercise_id twice inside one Circuit", () => {
+    const result = validateAndRepair(
+      [
+        {
+          type: "circuit",
+          exercises: [
+            { exercise_id: "pec-1", amount: 10, weight_kg: 0 },
+            { exercise_id: "pec-1", amount: 8, weight_kg: 0 },
+          ],
+        },
+      ],
+      CATALOG,
+      1,
+    )
+    expect(result.items).toHaveLength(1)
+    const circuit = result.items[0]
+    expect(typeof circuit).not.toBe("string")
+    if (typeof circuit === "string") return
+    expect(circuit.exercises.map((e) => e.exercise_id)).toEqual(["pec-1", "pec-1"])
+  })
+
   it("returns all valid IDs unchanged when count matches target", () => {
     const result = validateAndRepair(
       ["pec-1", "dos-1", "bic-1", "tri-1", "pec-2"],

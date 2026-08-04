@@ -185,6 +185,52 @@ describe("useGenerateQuickWorkoutPreview", () => {
     ])
   })
 
+  it("T170: hydrates mixed items[] into dayItems with a Circuit", async () => {
+    invoke.mockResolvedValueOnce({
+      data: {
+        exerciseIds: ["ex-bench", "ex-row"],
+        items: [
+          "ex-bench",
+          {
+            type: "circuit",
+            label: "Finisher",
+            rounds: 3,
+            rest_seconds: 90,
+            transition_seconds: 0,
+            exercises: [
+              { exercise_id: "ex-row", amount: 10, weight_kg: 0 },
+              { exercise_id: "ex-bench", amount: 8, weight_kg: 0 },
+            ],
+          },
+        ],
+        rationale: "Close with a Circuit.",
+      },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useGenerateQuickWorkoutPreview({ exercisePool: [POOL_BENCH, POOL_ROW] }),
+    )
+
+    let workout: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      workout = await result.current.mutateAsync(CONSTRAINTS)
+    })
+
+    expect(workout!.dayItems).toHaveLength(2)
+    expect(workout!.dayItems![0]).toMatchObject({ kind: "solo" })
+    expect(workout!.dayItems![1]).toMatchObject({
+      kind: "circuit",
+      circuit: {
+        label: "Finisher",
+        rounds: 3,
+        restSeconds: 90,
+      },
+    })
+    expect(workout!.exercises).toHaveLength(1)
+    expect(workout!.exercises[0].exercise.id).toBe("ex-bench")
+  })
+
   it("maps invoke error with 429 context to quota_exceeded", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: functionsError(429) })
 

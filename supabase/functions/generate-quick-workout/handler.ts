@@ -22,7 +22,7 @@ import {
   getEquipmentValuesForCategories,
   getTargetExerciseCount,
 } from "./prompt.ts"
-import { validateAndRepair } from "./validate.ts"
+import { validateAndRepair, type QwDayItem } from "./validate.ts"
 import { ProviderError } from "../_shared/providerError.ts"
 import type {
   CatalogExercise,
@@ -47,7 +47,13 @@ export interface GenerateQuickWorkoutDeps {
   fetchRecentHistory: (
     userId: string,
   ) => Promise<{ exercises: RecentExercise[]; lastSessionAt: string | null }>
-  callGemini: (prompt: string) => Promise<{ exerciseIds: string[]; rationale: string }>
+  callGemini: (
+    prompt: string,
+  ) => Promise<{
+    exerciseIds: string[]
+    exercises?: QwDayItem[]
+    rationale: string
+  }>
   /** Inserts one `ai_generation_log` row tagged `quick_workout` (log_everything). */
   logBillableCall: (userId: string) => Promise<void>
   log: (event: LogEvent) => void
@@ -207,7 +213,7 @@ export async function handleGenerateQuickWorkout(
     },
   )
 
-  let llmOutput: { exerciseIds: string[]; rationale: string }
+  let llmOutput: { exerciseIds: string[]; exercises?: QwDayItem[]; rationale: string }
   try {
     llmOutput = await callGeminiWithBilling(prompt, deps, { userId, requestId })
   } catch (err) {
@@ -240,9 +246,16 @@ export async function handleGenerateQuickWorkout(
   // story. If we ever need a real retry, route it through
   // `callGeminiWithBilling` so the cap stays in sync.
   const catalogIds = catalog.map((e) => ({ id: e.id, muscle_group: e.muscle_group }))
-  const result = validateAndRepair(llmOutput.exerciseIds, catalogIds, targetCount)
+  // Prefer mixed `exercises` day-items when the model emits Circuits (T170);
+  // fall back to legacy flat `exerciseIds`.
+  const llmItems =
+    Array.isArray(llmOutput.exercises) && llmOutput.exercises.length > 0
+      ? llmOutput.exercises
+      : llmOutput.exerciseIds
+  const result = validateAndRepair(llmItems, catalogIds, targetCount)
 
   return jsonResponse({
+    items: result.items,
     exerciseIds: result.exerciseIds,
     repaired: result.repaired,
     rationale: llmOutput.rationale.trim(),

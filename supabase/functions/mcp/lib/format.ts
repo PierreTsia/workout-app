@@ -1,6 +1,13 @@
 import { formatBilingualExerciseName } from "./bilingualName.ts"
 import type { ParsedExercise } from "./createProgramValidation.ts"
+import {
+  catalogMapFromBlock,
+  dbBlockToParsedCircuit,
+  type DaySequenceReadItem,
+  type EchoDayExercise,
+} from "./daySequenceRead.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
+import type { SessionHistoryItem } from "./sessionHistoryGrouping.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -62,6 +69,54 @@ export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
   return `${exerciseName} — ${sets} × ${reps} × ${formatWeight(weightKg)} ${conventionSuffix} — ${restSuffix}`
 }
 
+/**
+ * Adaptive Circuit dry_run lines (ADR 0011): compact when all rounds identical,
+ * round-by-round when any nested exercise uses a heterogeneous per_round.
+ */
+export function formatCircuitPreviewLines(
+  circuit: Extract<ParsedExercise, { kind: "circuit" }>,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+): string[] {
+  const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
+  const header = `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
+
+  const needsExpand = circuit.exercises.some((ex) => {
+    if (ex.mode !== "per_round") return false
+    const first = ex.perRound[0]
+    return ex.perRound.some(
+      (c) => c.amount !== first.amount || c.weightKg !== first.weightKg,
+    )
+  })
+
+  const nameOf = (id: string) => catalogById.get(id)?.name ?? id
+
+  if (!needsExpand) {
+    const exoLines = circuit.exercises.map((ex) => {
+      const name = nameOf(ex.exerciseId)
+      if (ex.mode === "flat") {
+        return `  ${name} — ${ex.amount} @ ${formatWeight(ex.weightKg)}`
+      }
+      const cell = ex.perRound[0]
+      return `  ${name} — ${cell.amount} @ ${formatWeight(cell.weightKg)}`
+    })
+    return [header, ...exoLines]
+  }
+
+  const lines = [header]
+  for (let r = 0; r < circuit.rounds; r++) {
+    const parts = circuit.exercises.map((ex) => {
+      const name = nameOf(ex.exerciseId)
+      if (ex.mode === "flat") {
+        return `${name} ${ex.amount}@${formatWeight(ex.weightKg)}`
+      }
+      const cell = ex.perRound[r] ?? ex.perRound[ex.perRound.length - 1]
+      return `${name} ${cell.amount}@${formatWeight(cell.weightKg)}`
+    })
+    lines.push(`  Round ${r + 1}: ${parts.join(" · ")}`)
+  }
+  return lines
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   const date = d.toISOString().slice(0, 10)
@@ -110,10 +165,42 @@ interface ProgramInfoForSession {
   name: string
 }
 
+function formatSetMeasure(s: {
+  duration_seconds: number | null
+  reps_logged: string | null
+  weight_logged: number
+  was_pr: boolean
+}): string {
+  const measure = s.duration_seconds ? `${s.duration_seconds}s` : `${s.reps_logged} reps`
+  const pr = s.was_pr ? " 🏆 PR" : ""
+  return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
+}
+
+function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
+  return items.flatMap((item) => {
+    if (item.kind === "solo") {
+      const setDetails = item.sets
+        .map(formatSetMeasure)
+        .join(", ")
+      return [`  - **${item.exercise_name_snapshot}**: ${setDetails}`]
+    }
+    const labelPart = item.label?.trim() ? ` "${item.label.trim()}"` : ""
+    const header = `  - Circuit${labelPart} (${item.exerciseCount} exercises):`
+    const roundLines = item.rounds.map((r) => {
+      const cells = r.cells
+        .map((c) => `${c.exercise_name_snapshot} ${formatSetMeasure(c.log)}`)
+        .join(" · ")
+      return `    Round ${r.round}: ${cells}`
+    })
+    return [header, ...roundLines]
+  })
+}
+
 export function formatSessionSummary(
   session: SessionForFormat,
   sets: SetForFormat[],
   programInfo?: ProgramInfoForSession,
+  historyItems?: SessionHistoryItem[],
 ): string {
   const date = formatDate(session.started_at)
   const duration = formatDuration(session.active_duration_ms)
@@ -122,24 +209,18 @@ export function formatSessionSummary(
     ? ` *(program: ${programInfo.name}, id: ${programInfo.id})*`
     : ""
 
-  const exerciseMap = new Map<string, SetForFormat[]>()
-  for (const s of sets) {
-    const existing = exerciseMap.get(s.exercise_name_snapshot) ?? []
-    existing.push(s)
-    exerciseMap.set(s.exercise_name_snapshot, existing)
-  }
-
-  const exerciseLines = [...exerciseMap.entries()].map(([name, exSets]) => {
-    const setDetails = exSets
-      .sort((a, b) => a.set_number - b.set_number)
-      .map((s) => {
-        const measure = s.duration_seconds ? `${s.duration_seconds}s` : `${s.reps_logged} reps`
-        const pr = s.was_pr ? " 🏆 PR" : ""
-        return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
+  const exerciseLines = historyItems
+    ? formatHistoryItemLines(historyItems)
+    : [...sets.reduce((map, s) => {
+        const existing = map.get(s.exercise_name_snapshot) ?? []
+        return map.set(s.exercise_name_snapshot, [...existing, s])
+      }, new Map<string, SetForFormat[]>()).entries()].map(([name, exSets]) => {
+        const setDetails = [...exSets]
+          .sort((a, b) => a.set_number - b.set_number)
+          .map(formatSetMeasure)
+          .join(", ")
+        return `  - **${name}**: ${setDetails}`
       })
-      .join(", ")
-    return `  - **${name}**: ${setDetails}`
-  })
 
   return [
     `### ${session.workout_label_snapshot} — ${date}${programSuffix}`,
@@ -274,34 +355,117 @@ interface ProgramDetailsExercise {
   target_duration_seconds: number | null
 }
 
+export interface ProgramDetailsEchoDay {
+  id: string
+  label: string
+  emoji?: string
+  exercises: EchoDayExercise[]
+}
+
+function formatSoloDetailsLine(ex: ProgramDetailsExercise): string {
+  const measure = ex.target_duration_seconds
+    ? `${ex.sets} × ${ex.target_duration_seconds}s`
+    : `${ex.sets} × ${ex.reps} reps`
+  const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
+  return `  - ${displayExerciseName(ex)} *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+}
+
+function formatSequenceDetailsLines(items: DaySequenceReadItem[]): string[] {
+  return items.flatMap((item) => {
+    if (item.kind === "solo") {
+      const s = item.solo
+      return [
+        formatSoloDetailsLine({
+          id: s.id ?? s.exercise_id,
+          exercise_id: s.exercise_id,
+          name_snapshot: s.name_snapshot,
+          name: s.name,
+          name_en: s.name_en,
+          sets: s.sets,
+          reps: s.reps,
+          weight: s.weight,
+          rest_seconds: s.rest_seconds,
+          target_duration_seconds: s.target_duration_seconds,
+        }),
+      ]
+    }
+    const parsed = dbBlockToParsedCircuit(item.block)
+    const catalog = catalogMapFromBlock(item.block)
+    return formatCircuitPreviewLines(parsed, catalog).map((line) => `  ${line}`)
+  })
+}
+
+/**
+ * Human markdown for a program. When `echoDays` is provided, appends an
+ * echo-ready ` ```json ` fence (patch-shaped `days` for `update_program`).
+ *
+ * Prefer `sequenceByDay` (Unified Day Sequence) when Circuits are present;
+ * otherwise `exercisesByDay` keeps the legacy solo-only path.
+ */
 export function formatProgramDetails(
   program: ProgramDetailsHeader,
   days: ProgramDetailsDay[],
   exercisesByDay: Map<string, ProgramDetailsExercise[]>,
+  options?: {
+    sequenceByDay?: Map<string, DaySequenceReadItem[]>
+    echoDays?: ProgramDetailsEchoDay[]
+  },
 ): string {
   const archivedSuffix = program.archived_at !== null ? " (archived)" : ""
   const header = `## **${program.name}** *(id: ${program.id})*${archivedSuffix}`
 
   if (days.length === 0) {
-    return [header, "_(empty program — no days defined)_"].join("\n\n")
+    const empty = [header, "_(empty program — no days defined)_"].join("\n\n")
+    return appendEchoFence(empty, options?.echoDays)
   }
 
   const dayBlocks = days.map((day) => {
-    const exercises = exercisesByDay.get(day.id) ?? []
-    const exLines = exercises.map((ex) => {
-      const measure = ex.target_duration_seconds
-        ? `${ex.sets} × ${ex.target_duration_seconds}s`
-        : `${ex.sets} × ${ex.reps} reps`
-      const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
-      return `  - ${displayExerciseName(ex)} *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
-    })
+    const sequence = options?.sequenceByDay?.get(day.id)
+    const exLines = sequence
+      ? formatSequenceDetailsLines(sequence)
+      : (exercisesByDay.get(day.id) ?? []).map(formatSoloDetailsLine)
     return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
   })
 
-  return [header, ...dayBlocks].join("\n\n")
+  const md = [header, ...dayBlocks].join("\n\n")
+  return appendEchoFence(md, options?.echoDays)
 }
 
-export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExForFormat[]): string {
+function appendEchoFence(markdown: string, echoDays?: ProgramDetailsEchoDay[]): string {
+  if (!echoDays) return markdown
+  const payload = { days: echoDays }
+  return `${markdown}\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``
+}
+
+export function formatWorkoutDay(
+  day: WorkoutDayForFormat,
+  exercises: WorkoutExForFormat[],
+  sequence?: DaySequenceReadItem[],
+): string {
+  if (sequence) {
+    const exLines = sequence.flatMap((item) => {
+      if (item.kind === "solo") {
+        const ex = item.solo
+        const measure = ex.target_duration_seconds
+          ? `${ex.sets} × ${ex.target_duration_seconds}s`
+          : `${ex.sets} × ${ex.reps} reps`
+        const weight = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
+        const rest = ex.rest_seconds ? ` (rest ${ex.rest_seconds}s)` : ""
+        return [
+          `  - ${displayExerciseName({
+            name_snapshot: ex.name_snapshot,
+            name: ex.name,
+            name_en: ex.name_en,
+          })}: ${measure}${weight}${rest}`,
+        ]
+      }
+      const parsed = dbBlockToParsedCircuit(item.block)
+      const catalog = catalogMapFromBlock(item.block)
+      return formatCircuitPreviewLines(parsed, catalog).map((line) => `  ${line}`)
+    })
+    return [`### ${day.emoji} ${day.label}`, ...exLines].join("\n")
+  }
+
   const exLines = exercises.map((ex) => {
     const measure = ex.target_duration_seconds
       ? `${ex.sets} × ${ex.target_duration_seconds}s`
@@ -435,6 +599,10 @@ function renderParsedLine(
   parsed: ParsedExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): string {
+  if (parsed.kind === "circuit") {
+    return formatCircuitPreviewLines(parsed, catalogById).join("\n")
+  }
+
   const catalog = catalogById.get(parsed.exerciseId)
   // Defensive fallback: catalog should always be present (handler fetches the union of
   // patch + current ids), but a missing entry must not crash dry_run rendering.

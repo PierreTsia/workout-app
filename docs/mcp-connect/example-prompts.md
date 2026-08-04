@@ -56,3 +56,98 @@ This second variant only works because `get_upcoming_workouts` now returns the a
 > 1. Resolve both program IDs via `list_programs` (or use the active program's `id` from `get_upcoming_workouts` if the user said "compare to what I'm doing now").
 > 2. Call `get_program_details(id)` on each.
 > 3. Show a diff table covering: total days, exercises per day, muscle coverage overlap, weekly volume by muscle group.
+
+---
+
+## "Add a Circuit finisher to my Push day" (FR)
+
+User says: *"Ajoute un circuit finisher 3 tours burpees / KB swing / plank sur mon Push."*
+
+Expected agent behavior:
+
+1. Resolve the program (`list_programs` or active id from `get_upcoming_workouts`) → `get_program_details`.
+2. Prefer the fenced ` ```json ` `days` payload from details (not markdown alone).
+3. `resolve_exercises({ queries: ["burpee", "kettlebell swing", "plank"] })`.
+4. `update_program` dry_run with that day's `exercises[]` ending in a Circuit:
+
+```jsonc
+{
+  type: "circuit",
+  label: "Finisher",
+  rounds: 3,
+  exercises: [
+    { exercise_id: "<burpee-uuid>", amount: 10, weight_kg: 0 },
+    { exercise_id: "<swing-uuid>", amount: 12, weight_kg: 16 },
+    { exercise_id: "<plank-uuid>", amount: 30, weight_kg: 0 }  // duration: amount in seconds
+  ]
+}
+```
+
+5. Show Circuit preview lines to the user → re-call with `dry_run: false` after consent.
+
+Say **Circuit**, never "block". Mention once that Circuit prescriptions are frozen (no auto progression).
+
+---
+
+## "Pyramid Circuit on a Quick Workout" (EN)
+
+User says: *"Give me a quick conditioning session: pyramid circuit 20-15-10 burpees / swing / plank, 3 rounds."*
+
+Expected agent behavior:
+
+1. `resolve_exercises` for the three names.
+2. `create_workout_day` dry_run with a single Circuit using `per_round` (length = rounds):
+
+```jsonc
+create_workout_day({
+  label: "Pyramid Conditioner",
+  exercises: [
+    {
+      type: "circuit",
+      rounds: 3,
+      exercises: [
+        {
+          exercise_id: "<burpee-uuid>",
+          per_round: [
+            { amount: 20, weight_kg: 0 },
+            { amount: 15, weight_kg: 0 },
+            { amount: 10, weight_kg: 0 }
+          ]
+        },
+        {
+          exercise_id: "<swing-uuid>",
+          per_round: [
+            { amount: 20, weight_kg: 16 },
+            { amount: 15, weight_kg: 16 },
+            { amount: 10, weight_kg: 16 }
+          ]
+        },
+        {
+          exercise_id: "<plank-uuid>",
+          per_round: [
+            { amount: 45, weight_kg: 0 },
+            { amount: 30, weight_kg: 0 },
+            { amount: 20, weight_kg: 0 }
+          ]
+        }
+      ]
+    }
+  ],
+  dry_run: true
+})
+```
+
+3. Preview should expand round-by-round → confirm → `dry_run: false`. Active program stays untouched.
+
+---
+
+## "Echo-edit a program that already has Circuits"
+
+User says: *"Bump rest between Circuit rounds on Push to 120s — keep everything else."*
+
+Expected agent behavior:
+
+1. `get_program_details` → copy the JSON fence `days` array.
+2. Find the Circuit item (`type: "circuit"`) on Push; set `rest_seconds: 120`.
+3. `update_program({ program_id, days: <edited days>, dry_run: true })` then apply after consent.
+4. Do **not** rebuild the day from markdown lines — that drifts pyramids / transitions.

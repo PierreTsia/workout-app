@@ -1,27 +1,18 @@
-// PWA → MCP shape adapter for Quick Workout AI commits (T128, #342).
+// PWA → MCP shape adapter for Quick Workout AI commits (T128 / T170).
 //
-// Why this exists: the AI generator produces a rich `GeneratedExercise`
-// shape with sets / reps / rest / weight / duration. The MCP
-// `create_workout_day` tool accepts either bare UUIDs (defaults applied)
-// OR an object form that preserves the prescription. We always pick the
-// object form so the day persisted by /commit-quick-workout matches the
-// preview the user just saw — bare strings would silently rewrite to
-// "3 sets, 10 reps, 90s rest" defaults.
-//
-// Validation rules we mirror locally so we never POST a payload that
-// MCP will reject:
-//   R1: bodyweight → weight_kg MUST be 0 (no weighted-bodyweight in v0.3.0).
-//   R5: duration exercises → target_duration_seconds REQUIRED, reps "0".
-//
-// Falling back to the catalog `default_duration_seconds` (and finally to
-// 30s) keeps duration entries valid even when the AI generator forgets
-// the field — same defensive default the persistence layer applies today.
+// Object-form solos preserve preview prescriptions. Circuits map to MCP
+// Circuit Items (`type: "circuit"`, nested amount/weight_kg).
 
-import type { GeneratedExercise } from "@/types/generator"
+import type {
+  GeneratedCircuit,
+  GeneratedDayItem,
+  GeneratedExercise,
+  GeneratedWorkout,
+} from "@/types/generator"
 
 const FALLBACK_DURATION_SECONDS = 30
 
-export interface McpWorkoutDayExercise {
+export interface McpWorkoutDaySolo {
   exercise_id: string
   sets: number
   reps: string
@@ -30,17 +21,59 @@ export interface McpWorkoutDayExercise {
   target_duration_seconds?: number
 }
 
-export function workoutToMcpExercises(
-  exercises: GeneratedExercise[],
-): McpWorkoutDayExercise[] {
-  return exercises.map(toMcpExercise)
+export interface McpWorkoutDayCircuit {
+  type: "circuit"
+  label?: string
+  rounds: number
+  rest_seconds: number
+  transition_seconds: number
+  exercises: Array<{ exercise_id: string; amount: number; weight_kg: number }>
 }
 
-function toMcpExercise(ge: GeneratedExercise): McpWorkoutDayExercise {
+export type McpWorkoutDayExercise = McpWorkoutDaySolo | McpWorkoutDayCircuit
+
+/** @deprecated Prefer workoutDayItemsToMcpExercises when dayItems exist. */
+export function workoutToMcpExercises(
+  exercises: GeneratedExercise[],
+): McpWorkoutDaySolo[] {
+  return exercises.map(toMcpSolo)
+}
+
+export function workoutDayItemsToMcpExercises(
+  workout: GeneratedWorkout,
+): McpWorkoutDayExercise[] {
+  if (workout.dayItems && workout.dayItems.length > 0) {
+    return workout.dayItems.map(dayItemToMcp)
+  }
+  return workoutToMcpExercises(workout.exercises)
+}
+
+function dayItemToMcp(item: GeneratedDayItem): McpWorkoutDayExercise {
+  if (item.kind === "solo") return toMcpSolo(item.exercise)
+  return toMcpCircuit(item.circuit)
+}
+
+function toMcpCircuit(circuit: GeneratedCircuit): McpWorkoutDayCircuit {
+  return {
+    type: "circuit",
+    ...(circuit.label ? { label: circuit.label } : {}),
+    rounds: circuit.rounds,
+    rest_seconds: circuit.restSeconds,
+    transition_seconds: circuit.transitionSeconds,
+    exercises: circuit.exercises.map((ex) => ({
+      exercise_id: ex.exercise.id,
+      amount: ex.amount,
+      weight_kg:
+        ex.exercise.equipment === "bodyweight" ? 0 : ex.weightKg,
+    })),
+  }
+}
+
+function toMcpSolo(ge: GeneratedExercise): McpWorkoutDaySolo {
   const isBodyweight = ge.exercise.equipment === "bodyweight"
   const isDuration = ge.exercise.measurement_type === "duration"
 
-  const base: McpWorkoutDayExercise = {
+  const base: McpWorkoutDaySolo = {
     exercise_id: ge.exercise.id,
     sets: ge.sets,
     reps: ge.reps,

@@ -59,7 +59,8 @@ export function buildWorkoutExerciseInsertRowsForDay(
   )
 }
 
-function buildWorkoutExerciseInsertRow(
+/** Single solo row at an explicit Unified Day Sequence sort_order. */
+export function buildWorkoutExerciseInsertRow(
   workoutDayId: string,
   ge: GeneratedExercise,
   sortOrder: number,

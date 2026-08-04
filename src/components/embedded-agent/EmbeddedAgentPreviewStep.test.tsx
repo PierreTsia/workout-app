@@ -228,6 +228,68 @@ describe("EmbeddedAgentPreviewStep — happy path rendering", () => {
     expect(screen.getByText(/1 exercises/i)).toBeInTheDocument()
   })
 
+  it("T169: renders Circuit lines and items breakdown when the draft includes a Circuit", async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: {
+        ...PREVIEW_THREAD,
+        last_preview: {
+          args: {
+            name: "Conditioning — 1 day/wk",
+            days: [
+              {
+                label: "Finisher Day",
+                exercises: [
+                  "uuid-1",
+                  {
+                    type: "circuit",
+                    label: "Finisher",
+                    rounds: 3,
+                    exercises: [
+                      { exercise_id: "uuid-2", amount: 10, weight_kg: 0 },
+                      { exercise_id: "uuid-3", amount: 12, weight_kg: 0 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          rendered: [
+            {
+              label: "Finisher Day",
+              lines: [
+                'Circuit "Finisher" — 3 rounds · rest 90s · transition 0s',
+                "  Push-up — 10 @ 0 kg",
+                "  Swing — 12 @ 16 kg",
+              ],
+            },
+          ],
+        },
+      },
+      error: null,
+    })
+
+    renderWithProviders(
+      <EmbeddedAgentPreviewStep
+        locale="en"
+        purpose="onboarding"
+        i18nNamespace="onboarding"
+        onRegenerate={noop}
+        onCommitted={noop}
+        onFallbackTemplate={noop}
+        onFallbackBlank={noop}
+      />,
+    )
+
+    expect(
+      await screen.findByText(/1 days · 2 items \(1 solos · 1 circuits\)/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText(/2 items \(1 solos · 1 circuits\)/i).length,
+    ).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Circuit "Finisher"/i)).toBeInTheDocument()
+    expect(screen.getByText(/3 rounds · rest 90s/i)).toBeInTheDocument()
+  })
+
   it("renders the program-shape line: '2 days · 3 exercises'", async () => {
     invokeMock.mockResolvedValueOnce({ data: PREVIEW_THREAD, error: null })
 

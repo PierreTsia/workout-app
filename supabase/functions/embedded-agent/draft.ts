@@ -62,11 +62,25 @@ export interface DraftInput {
   constraintOverrides?: DraftConstraintOverrides
 }
 
+export type DraftArgsExercise =
+  | string
+  | {
+      type: "circuit"
+      label?: string
+      rounds?: number
+      rest_seconds?: number
+      transition_seconds?: number
+      exercises: Array<
+        | { exercise_id: string; amount: number; weight_kg: number }
+        | { exercise_id: string; per_round: { amount: number; weight_kg: number }[] }
+      >
+    }
+
 export interface DraftArgs {
   // Maps directly to MCP `create_program` arguments (sans `dry_run`,
   // which the /draft route adds when invoking).
   name: string
-  days: Array<{ label: string; exercises: string[] }>
+  days: Array<{ label: string; exercises: DraftArgsExercise[] }>
 }
 
 export type DraftResult =
@@ -150,7 +164,7 @@ export async function runProgramDraftStep(
   // (small equipment categories, repeated muscle_focus exhausting the pool).
   // MCP `create_program` rejects days with `exercises: []` as a tool_error,
   // so we filter here rather than ship a draft we know will fail downstream.
-  const nonEmptyDays = validated.days.filter((d) => d.exercise_ids.length > 0)
+  const nonEmptyDays = validated.days.filter((d) => d.exercises.length > 0)
   if (nonEmptyDays.length === 0) {
     return { ok: false, error: "empty_program" }
   }
@@ -159,10 +173,8 @@ export async function runProgramDraftStep(
     name: programNameFor(constraints, input.locale),
     days: nonEmptyDays.map((d) => ({
       label: d.label,
-      // Bare UUIDs — MCP `create_program` accepts these natively and
-      // applies catalog defaults (3 sets, 10 reps, 0 kg, 90s rest). T120
-      // can surface a "tweak prescriptions" UI on top of these defaults.
-      exercises: d.exercise_ids,
+      // Bare UUIDs (catalog defaults) and MCP Circuit Items (ADR 0011 / T168).
+      exercises: d.exercises,
     })),
   }
   return { ok: true, args }

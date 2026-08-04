@@ -38,6 +38,10 @@ A `glp_…` secret the user generates in-app; presented as a Bearer token to MCP
 A third-party host for the LLM (e.g. Claude Desktop, Cursor) that connects to the GymLogic MCP server over the **MCP Public URL**; the user authenticates via OAuth (or an **MCP Personal Access Token (PAT)** where applicable), not via the PWA session cookie.
 → `file:supabase/functions/mcp/lib/authLogic.ts`
 
+**MCP Circuit Item**:
+Third variant in a day's MCP `exercises[]` array (alongside bare UUID and solo prescription object), discriminated by `type: "circuit"`. Expresses an **Exercise Block** on the wire using user-facing "Circuit" vocabulary: rounds, block-level rest/transition, and nested exercises with native `{ amount, weight_kg }` or optional `per_round`. Mapped to `exercise_blocks` / `block_exercises` at persistence; never exposes the internal "block" term to agents or users. Decided for #452.
+→ `file:supabase/functions/mcp/tools/createProgram.ts`, ADR `file:docs/adr/0011-mcp-circuit-items-in-exercises-array.md`
+
 ---
 
 ## AI providers
@@ -133,10 +137,10 @@ The product-level promise that during a held isometric (plank, hollow hold, etc.
 
 ---
 
-## Supersets & blocks (planned — #351)
+## Supersets & Circuits
 
 **Exercise Block**:
-A group of exercises trained **round-by-round** (supersets, trisets, circuits) — the unit of work is the **Round**, not the individual exercise. Introduced by #351 as the target-vision (Freeletics-style) model, deliberately rich from day one: per-round prescriptions, a block-level rest between rounds, and a **Transition** between exercises within a round. A block lives inside a **workout day** alongside solo `workout_exercises` (see **Unified Day Sequence**). **V1 decision (ADR 0007):** structure ships rich, but block exercises are **excluded from the progression engine** — frozen prescription, hand-edited in the **Builder**, no **Progression Suggestion** / **Prescription Snapshot** / **Progression Rule**. Concrete table shape (rows vs JSONB, where the shared `sort_order` lives) is owned by the #351 Tech Plan.
+A group of exercises trained **round-by-round** (supersets, trisets, circuits) — the unit of work is the **Round**, not the individual exercise. Introduced by #351 as the target-vision (Freeletics-style) model, deliberately rich from day one: per-round prescriptions, a block-level rest between rounds, and a **Transition** between exercises within a round. A block lives inside a **workout day** alongside solo `workout_exercises` (see **Unified Day Sequence**). **V1 decision (ADR 0007):** structure ships rich, but block exercises are **excluded from the progression engine** — frozen prescription, hand-edited in the **Builder**, no **Progression Suggestion** / **Prescription Snapshot** / **Progression Rule**. In-app Builder / Round Screen / history shipped; MCP + AI generation of Circuits is #452 (see **MCP Circuit Item**).
 **Naming (ADR 0007 §Decision.5):** "Exercise Block" / "block" is the **internal** domain term — tables (`exercise_blocks`, `block_exercises`), types, hooks, and i18n **keys** (`blockRunner.*`, `createBlock`). It must **never** appear in UI copy. Every user-facing string (i18n **values**, labels, dialog titles, history cards) says **"Circuit"** (FR & EN). Code speaks "block"; humans speak "circuit".
 → ADR `file:docs/adr/0007-exercise-blocks-rich-structure-no-progression.md`
 

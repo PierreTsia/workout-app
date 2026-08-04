@@ -1,16 +1,14 @@
 import type { ToolDefinition } from "./registry.ts"
-import { buildWorkoutExerciseInsertRowsForDay } from "../lib/programPersistence.ts"
-import { formatPrescriptionLine, formatWeightConvention } from "../lib/format.ts"
 import { validateDayExercises } from "../lib/createProgramValidation.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
-import {
-  buildGeneratedExercise,
-  collectCandidateExerciseIds,
-} from "../lib/exerciseConversion.ts"
+import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
+import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
 
 const TOOL_DESCRIPTION = `Create a single ad-hoc workout day in the user's GymLogic account (Quick Workout flow).
 
 Use this when the user wants ONE workout (today, tomorrow, an extra session) without changing their active multi-day program. Unlike \`create_program\`, this tool does NOT deactivate any existing program — the new day is stored as a standalone \`workout_days\` row with \`program_id: null\`.
+
+\`exercises[]\` accepts bare UUIDs, solo prescription objects, or Circuits (\`type: "circuit"\`) — same shape as \`create_program\` (ADR 0011). A Circuit counts as one item toward the 20-item cap.
 
 Pass \`dry_run: true\` to preview the rendered prescription without writing.`
 
@@ -39,7 +37,7 @@ export const createWorkoutDay: ToolDefinition = {
         minItems: 1,
         maxItems: MAX_EXERCISES_PER_QUICK_WORKOUT,
         description:
-          "Ordered exercises for this ad-hoc day. Each item is a UUID string (legacy defaults) OR an object with required prescription fields. Mirrors `create_program`'s per-day exercises shape.",
+          "Ordered day items: bare UUID, solo prescription, or Circuit (type:\"circuit\"). Mirrors create_program. Circuit = 1 slot toward maxItems.",
         items: {
           oneOf: [
             {
@@ -149,10 +147,6 @@ export const createWorkoutDay: ToolDefinition = {
       }
     }
 
-    const generated = validation.parsed.map((p) =>
-      buildGeneratedExercise(p, byId.get(p.exerciseId)!),
-    )
-
     const { data: userData, error: userErr } = await supabase.auth.getUser()
     if (userErr || !userData?.user) {
       return {
@@ -169,21 +163,7 @@ export const createWorkoutDay: ToolDefinition = {
     const dryRun = (args.dry_run as boolean | undefined) !== false
 
     if (dryRun) {
-      const placeholderDayId = "00000000-0000-4000-8000-000000000000"
-      const fullRows = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, generated)
-      const workout_exercises = fullRows.map(({ workout_day_id: _omit, ...rest }) => rest)
-      const rendered = fullRows.map((row, i) => {
-        const ge = generated[i]
-        return formatPrescriptionLine({
-          exerciseName: ge.exercise.name,
-          sets: row.sets,
-          reps: row.reps,
-          weightKg: Number(row.weight),
-          restSeconds: row.rest_seconds,
-          weightConvention: formatWeightConvention(ge.exercise.equipment),
-          targetDurationSeconds: row.target_duration_seconds ?? undefined,
-        })
-      })
+      const rendered = buildDayRenderedLines(validation.parsed, byId)
 
       return {
         content: [
@@ -197,7 +177,6 @@ export const createWorkoutDay: ToolDefinition = {
                   emoji: QUICK_WORKOUT_EMOJI,
                   sort_order: 0,
                   program_id: null,
-                  workout_exercises,
                   rendered,
                 },
                 note:
@@ -232,21 +211,19 @@ export const createWorkoutDay: ToolDefinition = {
     }
 
     const workoutDayId = (dayInsert as { id: string }).id
-    const exerciseRows = buildWorkoutExerciseInsertRowsForDay(workoutDayId, generated)
-
-    const { error: exErr } = await supabase.from("workout_exercises").insert(exerciseRows)
-    if (exErr) {
-      // Compensating delete: without this the user keeps an empty "Quick
-      // Workout" day cluttering their UI for every transient
-      // `workout_exercises` insert failure. We mirror `create_program`'s
-      // rollback shape (delete dependent rows first, then the parent),
-      // ignoring the cleanup outcome — we still surface the original
-      // exercise-insert error to the agent. See PR #347 review.
+    const { error: seqErr } = await insertDaySequence(
+      supabase,
+      workoutDayId,
+      validation.parsed,
+      byId,
+    )
+    if (seqErr) {
       await supabase.from("workout_exercises").delete().eq("workout_day_id", workoutDayId)
+      await supabase.from("exercise_blocks").delete().eq("workout_day_id", workoutDayId)
       await supabase.from("workout_days").delete().eq("id", workoutDayId)
       return {
         content: [
-          { type: "text", text: `Failed to insert workout exercises: ${exErr.message}` },
+          { type: "text", text: `Failed to insert day sequence: ${seqErr}` },
         ],
         isError: true,
       }
@@ -258,7 +235,7 @@ export const createWorkoutDay: ToolDefinition = {
           type: "text",
           text: JSON.stringify({
             workout_day_id: workoutDayId,
-            exercises_count: exerciseRows.length,
+            exercises_count: validation.parsed.length,
           }),
         },
       ],

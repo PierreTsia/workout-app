@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CoachRationale } from "@/components/create-program/CoachRationale"
 import { PreviewExerciseCard } from "./PreviewExerciseCard"
+import { PreviewCircuitCard } from "./PreviewCircuitCard"
 import { ExerciseSwapPicker } from "./ExerciseSwapPicker"
 import { ExerciseAddPicker } from "./ExerciseAddPicker"
 import { ExerciseDetailSheet } from "./ExerciseDetailSheet"
 import { useExerciseById } from "@/hooks/useExerciseById"
 import type { ExerciseListItem } from "@/types/database"
-import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
+import type {
+  GeneratedDayItem,
+  GeneratedExercise,
+  GeneratedWorkout,
+} from "@/types/generator"
 import {
   COMPOUND_REPS,
   COMPOUND_REST_SECONDS,
@@ -32,6 +37,17 @@ interface PreviewStepProps {
 
 const SHUFFLE_COOLDOWN_MS = 1000
 
+function solosFromDayItems(items: GeneratedDayItem[]): GeneratedExercise[] {
+  return items.flatMap((item) => (item.kind === "solo" ? [item.exercise] : []))
+}
+
+function initialDayItems(workout: GeneratedWorkout): GeneratedDayItem[] {
+  if (workout.dayItems && workout.dayItems.length > 0) {
+    return workout.dayItems
+  }
+  return workout.exercises.map((exercise) => ({ kind: "solo" as const, exercise }))
+}
+
 export function PreviewStep({
   workout,
   exercisePool,
@@ -42,22 +58,28 @@ export function PreviewStep({
   isBusy,
 }: PreviewStepProps) {
   const { t } = useTranslation("generator")
-  const [exercises, setExercises] = useState<GeneratedExercise[]>(
-    workout.exercises,
+  const [dayItems, setDayItems] = useState<GeneratedDayItem[]>(() =>
+    initialDayItems(workout),
   )
   const [name, setName] = useState(workout.name)
   const [swappingIndex, setSwappingIndex] = useState<number | null>(null)
   const [addingExercise, setAddingExercise] = useState(false)
-  // Track inspected exercise by id, not index — list can mutate (remove/shuffle)
-  // between click and render, and an out-of-bounds index would open a sheet
-  // with no dismissable content.
   const [inspectedExerciseId, setInspectedExerciseId] = useState<string | null>(
     null,
   )
   const lastShuffleRef = useRef(0)
 
+  const exercises = useMemo(() => solosFromDayItems(dayItems), [dayItems])
+  const circuitCount = dayItems.filter((i) => i.kind === "circuit").length
+  const itemCount = dayItems.length
+
   const handleRemove = useCallback((index: number) => {
-    setExercises((prev) => prev.filter((_, i) => i !== index))
+    setDayItems((prev) => prev.filter((_, i) => i !== index))
+    setSwappingIndex((prev) => {
+      if (prev === null) return null
+      if (prev === index) return null
+      return prev > index ? prev - 1 : prev
+    })
   }, [])
 
   const handleSwap = useCallback((index: number) => {
@@ -67,18 +89,21 @@ export function PreviewStep({
   const handleSwapSelect = useCallback(
     (exercise: ExerciseListItem) => {
       if (swappingIndex === null) return
-      setExercises((prev) =>
-        prev.map((ge, i) => {
-          if (i !== swappingIndex) return ge
+      setDayItems((prev) =>
+        prev.map((item, i) => {
+          if (i !== swappingIndex || item.kind !== "solo") return item
           const compound = (exercise.secondary_muscles?.length ?? 0) > 0
           return {
-            exercise,
-            sets: ge.sets,
-            reps: compound ? COMPOUND_REPS : ISOLATION_REPS,
-            restSeconds: compound
-              ? COMPOUND_REST_SECONDS
-              : ISOLATION_REST_SECONDS,
-            isCompound: compound,
+            kind: "solo" as const,
+            exercise: {
+              exercise,
+              sets: item.exercise.sets,
+              reps: compound ? COMPOUND_REPS : ISOLATION_REPS,
+              restSeconds: compound
+                ? COMPOUND_REST_SECONDS
+                : ISOLATION_REST_SECONDS,
+              isCompound: compound,
+            },
           }
         }),
       )
@@ -88,14 +113,22 @@ export function PreviewStep({
   )
 
   const handleUpdateSets = useCallback((index: number, sets: number) => {
-    setExercises((prev) =>
-      prev.map((ge, i) => (i === index ? { ...ge, sets } : ge)),
+    setDayItems((prev) =>
+      prev.map((item, i) =>
+        i === index && item.kind === "solo"
+          ? { kind: "solo", exercise: { ...item.exercise, sets } }
+          : item,
+      ),
     )
   }, [])
 
   const handleUpdateReps = useCallback((index: number, reps: string) => {
-    setExercises((prev) =>
-      prev.map((ge, i) => (i === index ? { ...ge, reps } : ge)),
+    setDayItems((prev) =>
+      prev.map((item, i) =>
+        i === index && item.kind === "solo"
+          ? { kind: "solo", exercise: { ...item.exercise, reps } }
+          : item,
+      ),
     )
   }, [])
 
@@ -106,14 +139,16 @@ export function PreviewStep({
     onShuffle()
   }, [onShuffle])
 
-  const handleAddExercise = useCallback(
-    (exercise: ExerciseListItem) => {
-      const compound = (exercise.secondary_muscles?.length ?? 0) > 0
-      setExercises((prev) => {
-        const defaultSets = prev[0]?.sets ?? 3
-        return [
-          ...prev,
-          {
+  const handleAddExercise = useCallback((exercise: ExerciseListItem) => {
+    const compound = (exercise.secondary_muscles?.length ?? 0) > 0
+    setDayItems((prev) => {
+      const defaultSets =
+        prev.find((i) => i.kind === "solo")?.exercise.sets ?? 3
+      return [
+        ...prev,
+        {
+          kind: "solo" as const,
+          exercise: {
             exercise,
             sets: defaultSets,
             reps: compound ? COMPOUND_REPS : ISOLATION_REPS,
@@ -122,21 +157,21 @@ export function PreviewStep({
               : ISOLATION_REST_SECONDS,
             isCompound: compound,
           },
-        ]
-      })
-      setAddingExercise(false)
-    },
-    [],
-  )
+        },
+      ]
+    })
+    setAddingExercise(false)
+  }, [])
 
   const currentWorkout = useMemo(
     (): GeneratedWorkout => ({
       exercises,
+      dayItems,
       name,
       hasFallback: workout.hasFallback,
       ...(workout.rationale ? { rationale: workout.rationale } : {}),
     }),
-    [exercises, name, workout.hasFallback, workout.rationale],
+    [exercises, dayItems, name, workout.hasFallback, workout.rationale],
   )
 
   const handleStart = useCallback(() => {
@@ -147,20 +182,29 @@ export function PreviewStep({
     onSave(currentWorkout)
   }, [currentWorkout, onSave])
 
-  const heatmapData = useMemo(
-    () =>
-      buildBodyMapData(
-        exercises.map((ge) => ({
-          name: ge.exercise.name,
-          muscleGroup: ge.exercise.muscle_group,
-          secondaryMuscles: ge.exercise.secondary_muscles,
-          sets: ge.sets,
-        })),
-      ),
-    [exercises],
-  )
+  const heatmapData = useMemo(() => {
+    const solos = exercises.map((ge) => ({
+      name: ge.exercise.name,
+      muscleGroup: ge.exercise.muscle_group,
+      secondaryMuscles: ge.exercise.secondary_muscles,
+      sets: ge.sets,
+    }))
+    const fromCircuits = dayItems.flatMap((item) => {
+      if (item.kind !== "circuit") return []
+      return item.circuit.exercises.map((nested) => ({
+        name: nested.exercise.name,
+        muscleGroup: nested.exercise.muscle_group,
+        secondaryMuscles: nested.exercise.secondary_muscles,
+        sets: item.circuit.rounds,
+      }))
+    })
+    return buildBodyMapData([...solos, ...fromCircuits])
+  }, [exercises, dayItems])
 
-  const currentExerciseIds = exercises.map((ge) => ge.exercise.id)
+  const currentExerciseIds = dayItems.flatMap((item) => {
+    if (item.kind === "solo") return [item.exercise.exercise.id]
+    return item.circuit.exercises.map((n) => n.exercise.id)
+  })
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -190,7 +234,7 @@ export function PreviewStep({
           className="flex-1"
           size="lg"
           onClick={handleStart}
-          disabled={exercises.length === 0 || isBusy}
+          disabled={itemCount === 0 || isBusy}
         >
           {t("startWorkout")}
         </Button>
@@ -198,7 +242,7 @@ export function PreviewStep({
           variant="outline"
           size="lg"
           onClick={handleSave}
-          disabled={exercises.length === 0 || isBusy}
+          disabled={itemCount === 0 || isBusy}
           className="gap-1.5"
         >
           <Bookmark className="h-4 w-4" />
@@ -208,7 +252,13 @@ export function PreviewStep({
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {exercises.length} {t("exercises")}
+          {circuitCount > 0
+            ? t("itemsCountWithCircuits", {
+                items: itemCount,
+                solos: itemCount - circuitCount,
+                circuits: circuitCount,
+              })
+            : `${itemCount} ${t("exercises")}`}
         </span>
         <Button
           variant="outline"
@@ -224,32 +274,44 @@ export function PreviewStep({
       <SessionHeatmap data={heatmapData} defaultOpen />
 
       <div className="flex flex-col gap-2">
-        {exercises.map((item, index) => (
-          <div key={item.exercise.id}>
-            <PreviewExerciseCard
-              item={item}
+        {dayItems.map((item, index) =>
+          item.kind === "circuit" ? (
+            <PreviewCircuitCard
+              key={`circuit-${index}`}
+              circuit={item.circuit}
               index={index}
               onRemove={handleRemove}
-              onSwap={handleSwap}
-              onInfo={(idx) =>
-                setInspectedExerciseId(exercises[idx]?.exercise.id ?? null)
-              }
-              onUpdateSets={handleUpdateSets}
-              onUpdateReps={handleUpdateReps}
             />
-            {swappingIndex === index && (
-              <div className="mt-1">
-                <ExerciseSwapPicker
-                  pool={exercisePool}
-                  currentExerciseIds={currentExerciseIds}
-                  muscleGroup={item.exercise.muscle_group}
-                  onSelect={handleSwapSelect}
-                  onClose={() => setSwappingIndex(null)}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+          ) : (
+            <div key={item.exercise.exercise.id}>
+              <PreviewExerciseCard
+                item={item.exercise}
+                index={index}
+                onRemove={handleRemove}
+                onSwap={handleSwap}
+                onInfo={(idx) => {
+                  const target = dayItems[idx]
+                  if (target?.kind === "solo") {
+                    setInspectedExerciseId(target.exercise.exercise.id)
+                  }
+                }}
+                onUpdateSets={handleUpdateSets}
+                onUpdateReps={handleUpdateReps}
+              />
+              {swappingIndex === index && (
+                <div className="mt-1">
+                  <ExerciseSwapPicker
+                    pool={exercisePool}
+                    currentExerciseIds={currentExerciseIds}
+                    muscleGroup={item.exercise.exercise.muscle_group}
+                    onSelect={handleSwapSelect}
+                    onClose={() => setSwappingIndex(null)}
+                  />
+                </div>
+              )}
+            </div>
+          ),
+        )}
 
         {addingExercise ? (
           <ExerciseAddPicker
@@ -279,15 +341,6 @@ export function PreviewStep({
   )
 }
 
-/**
- * Thin wrapper that lazily fetches the full Exercise row (instructions,
- * youtube_url, secondary_muscles) only when the user opens the detail sheet.
- * Hits the per-id cache seeded by `useWorkoutExercises` when applicable.
- *
- * Open is derived from id + resolved data to avoid a dangling sheet when the
- * referenced exercise is unreachable (orphan FK, RLS filter). If the query
- * resolves to null, we clear the id so the parent state stays consistent.
- */
 function InspectedExerciseSheet({
   exerciseId,
   onClose,
@@ -301,7 +354,6 @@ function InspectedExerciseSheet({
     if (exerciseId && !isPending && exercise === null) {
       onClose()
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect unreachable-exercise async result into parent id state; no safer place to run this.
   }, [exerciseId, isPending, exercise, onClose])
 
   return (

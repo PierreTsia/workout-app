@@ -13,8 +13,11 @@
 //   7. Order is preserved (sort_order parity).
 
 import { describe, it, expect } from "vitest"
-import { workoutToMcpExercises } from "./quickWorkout"
-import type { GeneratedExercise } from "@/types/generator"
+import {
+  workoutDayItemsToMcpExercises,
+  workoutToMcpExercises,
+} from "./quickWorkout"
+import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
 
 const REPS_EX: GeneratedExercise = {
   exercise: {
@@ -125,5 +128,71 @@ describe("workoutToMcpExercises", () => {
       DURATION_EX.exercise.id,
       BODYWEIGHT_EX.exercise.id,
     ])
+  })
+})
+
+describe("workoutDayItemsToMcpExercises", () => {
+  it("T170: maps a Circuit day-item to MCP Circuit Item shape", () => {
+    const workout: GeneratedWorkout = {
+      name: "AI: Circuit",
+      hasFallback: false,
+      exercises: [REPS_EX],
+      dayItems: [
+        { kind: "solo", exercise: REPS_EX },
+        {
+          kind: "circuit",
+          circuit: {
+            label: "Finisher",
+            rounds: 3,
+            restSeconds: 90,
+            transitionSeconds: 0,
+            exercises: [
+              { exercise: BODYWEIGHT_EX.exercise, amount: 10, weightKg: 0 },
+              { exercise: DURATION_EX.exercise, amount: 30, weightKg: 0 },
+            ],
+          },
+        },
+      ],
+    }
+
+    expect(workoutDayItemsToMcpExercises(workout)).toEqual([
+      {
+        exercise_id: REPS_EX.exercise.id,
+        sets: 4,
+        reps: "8-10",
+        weight_kg: 0,
+        rest_seconds: 120,
+      },
+      {
+        type: "circuit",
+        label: "Finisher",
+        rounds: 3,
+        rest_seconds: 90,
+        transition_seconds: 0,
+        exercises: [
+          {
+            exercise_id: BODYWEIGHT_EX.exercise.id,
+            amount: 10,
+            weight_kg: 0,
+          },
+          {
+            exercise_id: DURATION_EX.exercise.id,
+            amount: 30,
+            weight_kg: 0,
+          },
+        ],
+      },
+    ])
+  })
+
+  it("T170: falls back to solo mapping when dayItems is absent", () => {
+    const workout: GeneratedWorkout = {
+      name: "Solo only",
+      hasFallback: false,
+      exercises: [REPS_EX],
+    }
+    expect(workoutDayItemsToMcpExercises(workout)).toEqual(
+      workoutToMcpExercises([REPS_EX]),
+    )
   })
 })

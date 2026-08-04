@@ -216,6 +216,14 @@ class MockBuilder {
       return { data: null, error: null }
     }
 
+    if (this.entry.op === "insert" && this.table === "exercise_blocks") {
+      return { data: { id: "mock-block-1" }, error: null }
+    }
+
+    if (this.entry.op === "insert" && this.table === "block_exercises") {
+      return { data: null, error: null }
+    }
+
     if (this.entry.op === "delete") {
       // Rollback path: workout_exercises.delete().eq() and
       // workout_days.delete().eq() both resolve to no-op success.
@@ -410,6 +418,79 @@ Deno.test("does not issue any write to the programs table (active program stays 
 // ---------------------------------------------------------------------------
 // Cycle 6 — dry_run: true returns rendered prescription lines without writing.
 // ---------------------------------------------------------------------------
+
+Deno.test("T163: dry_run Circuit preview includes Circuit header and writes nothing", async () => {
+  const mock = makeMock()
+
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Finisher Day",
+      exercises: [
+        {
+          type: "circuit",
+          label: "Finisher",
+          exercises: [
+            { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+            { exercise_id: ID_BENCH, amount: 8, weight_kg: 60 },
+          ],
+        },
+      ],
+      dry_run: true,
+    },
+    mock as unknown as SupabaseClient,
+  )
+
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const text = result.content[0].text
+  assertStringIncludes(text, "Circuit")
+  assertStringIncludes(text, "Finisher")
+  assertStringIncludes(text, "Push-up")
+  const writes = mock.callLog.filter(
+    (e) => e.op === "insert" || e.op === "update" || e.op === "delete",
+  )
+  assertEquals(writes.length, 0)
+})
+
+Deno.test("T163: apply persists exercise_blocks + block_exercises for a Circuit", async () => {
+  const mock = makeMock()
+
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Finisher Day",
+      exercises: [
+        {
+          type: "circuit",
+          label: "Finisher",
+          rounds: 3,
+          exercises: [
+            { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+            { exercise_id: ID_BENCH, amount: 8, weight_kg: 60 },
+          ],
+        },
+      ],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const blockInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "exercise_blocks",
+  )
+  assertExists(blockInsert, "must insert exercise_blocks")
+  const blockPayload = blockInsert.payload as Record<string, unknown>
+  assertEquals(blockPayload.label, "Finisher")
+  assertEquals(blockPayload.rounds, 3)
+  assertEquals(blockPayload.sort_order, 0)
+
+  const beInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "block_exercises",
+  )
+  assertExists(beInsert, "must insert block_exercises")
+  const beRows = beInsert.payload as Array<Record<string, unknown>>
+  assertEquals(beRows.length, 2)
+  assertEquals(beRows[0].block_id, "mock-block-1")
+})
 
 Deno.test("dry_run: true returns rendered prescription lines and writes nothing", async () => {
   const mock = makeMock()

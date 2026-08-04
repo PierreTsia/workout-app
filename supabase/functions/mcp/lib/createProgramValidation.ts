@@ -25,6 +25,24 @@ export const BOUNDS = {
   target_duration_seconds: { min: 5, max: 600 },
 } as const
 
+/** Bounds + defaults for MCP Circuit Items (ADR 0011 / T163). */
+export const CIRCUIT_BOUNDS = {
+  rounds: { min: 1, max: 10, default: 3 },
+  rest_seconds: { min: 0, max: 600, default: 90 },
+  transition_seconds: { min: 0, max: 600, default: 0 },
+  exercises: { min: 2, max: 8 },
+  amount_reps: { min: 1, max: 50 },
+  amount_duration: { min: 5, max: 600 },
+} as const
+
+export type ParsedCircuitExercise =
+  | { mode: "flat"; exerciseId: string; amount: number; weightKg: number }
+  | {
+      mode: "per_round"
+      exerciseId: string
+      perRound: { amount: number; weightKg: number }[]
+    }
+
 export type ParsedExercise =
   | { kind: "bare"; exerciseId: string }
   | {
@@ -36,6 +54,17 @@ export type ParsedExercise =
       restSeconds: number
       targetDurationSeconds: number | null
     }
+  | {
+      kind: "circuit"
+      label: string | null
+      rounds: number
+      restSeconds: number
+      transitionSeconds: number
+      exercises: ParsedCircuitExercise[]
+    }
+
+/** Alias used by day-sequence code; same union as ParsedExercise. */
+export type ParsedDayItem = ParsedExercise
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -78,11 +107,203 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v)
 }
 
+function parseOptionalIntBound(
+  value: unknown,
+  field: string,
+  at: string,
+  bound: { min: number; max: number; default: number },
+): ParseResult<number> {
+  if (value === undefined || value === null) {
+    return { ok: true, value: bound.default }
+  }
+  if (!isFiniteNumber(value) || !Number.isInteger(value) || value < bound.min || value > bound.max) {
+    return {
+      ok: false,
+      error: `${at}.${field} must be an integer in [${bound.min}, ${bound.max}], got ${String(value)}`,
+    }
+  }
+  return { ok: true, value }
+}
+
+function parseCircuitExercise(
+  raw: unknown,
+  atEx: string,
+  rounds: number,
+): ParseResult<ParsedCircuitExercise> {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: `${atEx} must be an object` }
+  }
+  const obj = raw as Record<string, unknown>
+  const exerciseId = obj.exercise_id
+  if (typeof exerciseId !== "string" || !isUuid(exerciseId)) {
+    return { ok: false, error: `${atEx}.exercise_id must be a valid UUID` }
+  }
+
+  const hasPerRound = obj.per_round !== undefined && obj.per_round !== null
+  const hasFlat = obj.amount !== undefined || obj.weight_kg !== undefined
+
+  if (hasPerRound && hasFlat) {
+    return {
+      ok: false,
+      error: `${atEx}: provide either flat {amount, weight_kg} OR per_round, not both`,
+    }
+  }
+
+  if (hasPerRound) {
+    if (!Array.isArray(obj.per_round)) {
+      return { ok: false, error: `${atEx}.per_round must be an array` }
+    }
+    if (obj.per_round.length !== rounds) {
+      return {
+        ok: false,
+        error: `${atEx}.per_round length must equal rounds (${rounds}), got ${obj.per_round.length}`,
+      }
+    }
+    const perRound: { amount: number; weightKg: number }[] = []
+    for (const [i, cell] of obj.per_round.entries()) {
+      if (cell === null || typeof cell !== "object" || Array.isArray(cell)) {
+        return { ok: false, error: `${atEx}.per_round[${i}] must be an object` }
+      }
+      const c = cell as Record<string, unknown>
+      if (
+        !isFiniteNumber(c.amount) ||
+        !Number.isInteger(c.amount) ||
+        c.amount < CIRCUIT_BOUNDS.amount_reps.min ||
+        c.amount > CIRCUIT_BOUNDS.amount_duration.max
+      ) {
+        // Broad gate here; measurement_type narrows in cross-field after catalog.
+        return {
+          ok: false,
+          error: `${atEx}.per_round[${i}].amount must be an integer in [${CIRCUIT_BOUNDS.amount_reps.min}, ${CIRCUIT_BOUNDS.amount_duration.max}], got ${String(c.amount)}`,
+        }
+      }
+      if (
+        !isFiniteNumber(c.weight_kg) ||
+        c.weight_kg < BOUNDS.weight_kg.min ||
+        c.weight_kg > BOUNDS.weight_kg.max
+      ) {
+        return {
+          ok: false,
+          error: `${atEx}.per_round[${i}].weight_kg must be a number in [${BOUNDS.weight_kg.min}, ${BOUNDS.weight_kg.max}], got ${String(c.weight_kg)}`,
+        }
+      }
+      perRound.push({ amount: c.amount, weightKg: c.weight_kg })
+    }
+    return { ok: true, value: { mode: "per_round", exerciseId, perRound } }
+  }
+
+  if (
+    !isFiniteNumber(obj.amount) ||
+    !Number.isInteger(obj.amount) ||
+    obj.amount < CIRCUIT_BOUNDS.amount_reps.min ||
+    obj.amount > CIRCUIT_BOUNDS.amount_duration.max
+  ) {
+    return {
+      ok: false,
+      error: `${atEx}.amount must be an integer in [${CIRCUIT_BOUNDS.amount_reps.min}, ${CIRCUIT_BOUNDS.amount_duration.max}], got ${String(obj.amount)}`,
+    }
+  }
+  if (
+    !isFiniteNumber(obj.weight_kg) ||
+    obj.weight_kg < BOUNDS.weight_kg.min ||
+    obj.weight_kg > BOUNDS.weight_kg.max
+  ) {
+    return {
+      ok: false,
+      error: `${atEx}.weight_kg must be a number in [${BOUNDS.weight_kg.min}, ${BOUNDS.weight_kg.max}], got ${String(obj.weight_kg)}`,
+    }
+  }
+  return {
+    ok: true,
+    value: { mode: "flat", exerciseId, amount: obj.amount, weightKg: obj.weight_kg },
+  }
+}
+
+function parseCircuitInput(
+  obj: Record<string, unknown>,
+  at: string,
+): ParseResult<ParsedExercise> {
+  // Solo-shaped fields on the circuit root (except rest_seconds which is block-level).
+  for (const field of ["sets", "reps", "exercise_id", "target_duration_seconds"] as const) {
+    if (field in obj) {
+      return {
+        ok: false,
+        error: `${at}: Circuit items must not include solo field "${field}" — use type:"circuit" with nested exercises[{amount,weight_kg}] or per_round`,
+      }
+    }
+  }
+  // weight_kg on the circuit root is also forbidden (lives on nested exercises).
+  if ("weight_kg" in obj) {
+    return {
+      ok: false,
+      error: `${at}: Circuit items must not include root "weight_kg" — set weight_kg on each nested exercise`,
+    }
+  }
+
+  const roundsResult = parseOptionalIntBound(obj.rounds, "rounds", at, CIRCUIT_BOUNDS.rounds)
+  if (!roundsResult.ok) return roundsResult
+  const restResult = parseOptionalIntBound(
+    obj.rest_seconds,
+    "rest_seconds",
+    at,
+    CIRCUIT_BOUNDS.rest_seconds,
+  )
+  if (!restResult.ok) return restResult
+  const transitionResult = parseOptionalIntBound(
+    obj.transition_seconds,
+    "transition_seconds",
+    at,
+    CIRCUIT_BOUNDS.transition_seconds,
+  )
+  if (!transitionResult.ok) return transitionResult
+
+  let label: string | null = null
+  if (obj.label !== undefined && obj.label !== null) {
+    if (typeof obj.label !== "string") {
+      return { ok: false, error: `${at}.label must be a string or null` }
+    }
+    label = obj.label
+  }
+
+  if (!Array.isArray(obj.exercises)) {
+    return { ok: false, error: `${at}.exercises must be an array of 2–8 circuit exercises` }
+  }
+  if (
+    obj.exercises.length < CIRCUIT_BOUNDS.exercises.min ||
+    obj.exercises.length > CIRCUIT_BOUNDS.exercises.max
+  ) {
+    return {
+      ok: false,
+      error: `${at}.exercises must have between ${CIRCUIT_BOUNDS.exercises.min} and ${CIRCUIT_BOUNDS.exercises.max} items, got ${obj.exercises.length}`,
+    }
+  }
+
+  const exercises: ParsedCircuitExercise[] = []
+  for (const [i, rawEx] of obj.exercises.entries()) {
+    const parsedEx = parseCircuitExercise(rawEx, `${at}.exercises[${i}]`, roundsResult.value)
+    if (!parsedEx.ok) return parsedEx
+    exercises.push(parsedEx.value)
+  }
+
+  return {
+    ok: true,
+    value: {
+      kind: "circuit",
+      label,
+      rounds: roundsResult.value,
+      restSeconds: restResult.value,
+      transitionSeconds: transitionResult.value,
+      exercises,
+    },
+  }
+}
+
 /**
  * Parse one entry of `exercises[]` into a ParsedExercise. Bare strings must be
  * UUIDs. Object form must have ALL of {exercise_id, sets, reps, weight_kg,
- * rest_seconds} (target_duration_seconds is optional). Bounds and reps regex
- * are enforced here so the handler can fail fast before fetching the catalog.
+ * rest_seconds} (target_duration_seconds is optional). Circuit form uses
+ * `type: "circuit"` (ADR 0011). Bounds are enforced here so the handler can
+ * fail fast before fetching the catalog.
  */
 export function parseExerciseInput(
   raw: unknown,
@@ -101,11 +322,15 @@ export function parseExerciseInput(
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return {
       ok: false,
-      error: `${at} must be a UUID string or a prescription object, got ${typeof raw}`,
+      error: `${at} must be a UUID string, a prescription object, or a Circuit (type:"circuit"), got ${typeof raw}`,
     }
   }
 
   const obj = raw as Record<string, unknown>
+
+  if (obj.type === "circuit") {
+    return parseCircuitInput(obj, at)
+  }
 
   const exerciseId = obj.exercise_id
   if (typeof exerciseId !== "string" || !isUuid(exerciseId)) {
@@ -306,21 +531,91 @@ export function validateDayExercises(
   }
 
   for (const [j, p] of parsed.entries()) {
-    if (p.kind !== "object") continue
-    const ex = catalogById.get(p.exerciseId)
-    if (!ex) {
-      return {
-        ok: false,
-        error: `${locator(dayLabel, j)}.exercise_id "${p.exerciseId}" was not found in the fetched catalog (unknown or inaccessible).`,
+    if (p.kind === "object") {
+      const ex = catalogById.get(p.exerciseId)
+      if (!ex) {
+        return {
+          ok: false,
+          error: `${locator(dayLabel, j)}.exercise_id "${p.exerciseId}" was not found in the fetched catalog (unknown or inaccessible).`,
+        }
       }
+      const cf = validateExerciseCrossFields(p, ex, dayLabel, j)
+      if (!cf.ok) {
+        return { ok: false, error: cf.error }
+      }
+      continue
     }
-    const cf = validateExerciseCrossFields(p, ex, dayLabel, j)
-    if (!cf.ok) {
-      return { ok: false, error: cf.error }
+    if (p.kind === "circuit") {
+      const circuitCf = validateCircuitCrossFields(p, catalogById, dayLabel, j)
+      if (!circuitCf.ok) return circuitCf
     }
   }
 
   return { ok: true, parsed }
+}
+
+/**
+ * Cross-field rules for nested Circuit exercises against the catalog
+ * (bodyweight weight, duration amount bounds). ADR 0011 / T163.
+ */
+export function validateCircuitCrossFields(
+  circuit: Extract<ParsedExercise, { kind: "circuit" }>,
+  catalogById: Map<string, CatalogExerciseForProgram>,
+  dayLabel: string,
+  position: number,
+): ParseResult<true> {
+  const at = locator(dayLabel, position)
+  for (const [i, nested] of circuit.exercises.entries()) {
+    const ex = catalogById.get(nested.exerciseId)
+    if (!ex) {
+      return {
+        ok: false,
+        error: `${at}.exercises[${i}].exercise_id "${nested.exerciseId}" was not found in the fetched catalog (unknown or inaccessible).`,
+      }
+    }
+    const cells =
+      nested.mode === "flat"
+        ? [{ amount: nested.amount, weightKg: nested.weightKg }]
+        : nested.perRound
+    const isDuration = ex.measurement_type === "duration"
+    const isBodyweight = ex.equipment === "bodyweight"
+    for (const [k, cell] of cells.entries()) {
+      const cellAt =
+        nested.mode === "flat" ? `${at}.exercises[${i}]` : `${at}.exercises[${i}].per_round[${k}]`
+      if (isBodyweight && cell.weightKg > 0) {
+        return {
+          ok: false,
+          error: `${cellAt}: bodyweight exercise "${ex.name}" cannot have weight_kg > 0 (got ${cell.weightKg}). Weighted bodyweight is tracked in #281.`,
+        }
+      }
+      if (isDuration) {
+        if (
+          cell.amount < CIRCUIT_BOUNDS.amount_duration.min ||
+          cell.amount > CIRCUIT_BOUNDS.amount_duration.max
+        ) {
+          return {
+            ok: false,
+            error: `${cellAt}.amount for duration exercise "${ex.name}" must be in [${CIRCUIT_BOUNDS.amount_duration.min}, ${CIRCUIT_BOUNDS.amount_duration.max}], got ${cell.amount}`,
+          }
+        }
+        if (cell.weightKg > 0) {
+          return {
+            ok: false,
+            error: `${cellAt}: duration exercise "${ex.name}" cannot have weight_kg > 0 (got ${cell.weightKg}).`,
+          }
+        }
+      } else if (
+        cell.amount < CIRCUIT_BOUNDS.amount_reps.min ||
+        cell.amount > CIRCUIT_BOUNDS.amount_reps.max
+      ) {
+        return {
+          ok: false,
+          error: `${cellAt}.amount for reps exercise "${ex.name}" must be in [${CIRCUIT_BOUNDS.amount_reps.min}, ${CIRCUIT_BOUNDS.amount_reps.max}], got ${cell.amount}`,
+        }
+      }
+    }
+  }
+  return { ok: true, value: true }
 }
 
 /**

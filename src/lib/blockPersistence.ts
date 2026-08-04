@@ -1,4 +1,5 @@
 import type { ExerciseListItem, PerRoundCell } from "@/types/database"
+import type { GeneratedCircuit } from "@/types/generator"
 
 export const DEFAULT_BLOCK_ROUNDS = 3
 export const DEFAULT_BLOCK_REPS = 10
@@ -77,4 +78,43 @@ export function buildBlockInsertRows({
   )
 
   return { block, blockExercises }
+}
+
+/**
+ * Build Circuit insert rows from a Quick Workout / AI preview Circuit
+ * (T170 Bugbot — Save for Later must persist exercise_blocks).
+ */
+export function buildGeneratedCircuitInsertRows(
+  dayId: string,
+  sortOrder: number,
+  circuit: GeneratedCircuit,
+): {
+  block: ExerciseBlockInsertRow
+  blockExercises: BlockExerciseInsertRow[]
+} {
+  const rounds = circuit.rounds
+  return {
+    block: {
+      workout_day_id: dayId,
+      label: circuit.label?.trim() ? circuit.label.trim() : null,
+      rounds,
+      rest_seconds: circuit.restSeconds,
+      transition_seconds: circuit.transitionSeconds,
+      sort_order: sortOrder,
+    },
+    blockExercises: circuit.exercises.map((nested, position) => {
+      const isBodyweight = nested.exercise.equipment === "bodyweight"
+      return {
+        exercise_id: nested.exercise.id,
+        name_snapshot: nested.exercise.name,
+        muscle_snapshot: nested.exercise.muscle_group,
+        emoji_snapshot: nested.exercise.emoji ?? "🏋️",
+        position,
+        per_round: Array.from({ length: rounds }, () => ({
+          amount: nested.amount,
+          weight: isBodyweight ? 0 : nested.weightKg,
+        })),
+      }
+    }),
+  }
 }

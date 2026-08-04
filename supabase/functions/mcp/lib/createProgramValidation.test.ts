@@ -190,15 +190,15 @@ describe("parseExerciseInput — bounds and shape rejections", () => {
   }
 
   it("rejects null", () => {
-    expectError(null, "must be a UUID string or a prescription object")
+    expectError(null, "must be a UUID string, a prescription object, or a Circuit")
   })
 
   it("rejects an array", () => {
-    expectError([VALID_UUID], "must be a UUID string or a prescription object")
+    expectError([VALID_UUID], "must be a UUID string, a prescription object, or a Circuit")
   })
 
   it("rejects a number", () => {
-    expectError(42, "must be a UUID string or a prescription object")
+    expectError(42, "must be a UUID string, a prescription object, or a Circuit")
   })
 
   it("rejects an object missing exercise_id", () => {
@@ -656,5 +656,120 @@ describe("validateDayExercises (T77)", () => {
     if (result.ok) {
       expect(result.parsed).toEqual([{ kind: "bare", exerciseId: ID_PLANK }])
     }
+  })
+})
+
+describe("parseExerciseInput — circuit form (T163 / ADR 0011)", () => {
+  it("accepts a flat MCP Circuit Item with defaults applied for omitted rounds/rest/transition", () => {
+    const input = {
+      type: "circuit",
+      label: "Finisher",
+      exercises: [
+        { exercise_id: VALID_UUID, amount: 10, weight_kg: 0 },
+        { exercise_id: VALID_UUID_2, amount: 12, weight_kg: 16 },
+      ],
+    }
+    const result = parseExerciseInput(input, DAY, 0)
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        kind: "circuit",
+        label: "Finisher",
+        rounds: 3,
+        restSeconds: 90,
+        transitionSeconds: 0,
+        exercises: [
+          { mode: "flat", exerciseId: VALID_UUID, amount: 10, weightKg: 0 },
+          { mode: "flat", exerciseId: VALID_UUID_2, amount: 12, weightKg: 16 },
+        ],
+      },
+    })
+  })
+
+  it("accepts per_round when length matches rounds", () => {
+    const input = {
+      type: "circuit",
+      rounds: 3,
+      exercises: [
+        {
+          exercise_id: VALID_UUID,
+          per_round: [
+            { amount: 20, weight_kg: 0 },
+            { amount: 15, weight_kg: 0 },
+            { amount: 10, weight_kg: 0 },
+          ],
+        },
+        { exercise_id: VALID_UUID_2, amount: 30, weight_kg: 0 },
+      ],
+    }
+    const result = parseExerciseInput(input, DAY, 1)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.value.kind === "circuit") {
+      expect(result.value.exercises[0]).toEqual({
+        mode: "per_round",
+        exerciseId: VALID_UUID,
+        perRound: [
+          { amount: 20, weightKg: 0 },
+          { amount: 15, weightKg: 0 },
+          { amount: 10, weightKg: 0 },
+        ],
+      })
+      expect(result.value.exercises[1].mode).toBe("flat")
+    }
+  })
+
+  it("rejects solo field sets on a Circuit item", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        sets: 3,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 10, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain('solo field "sets"')
+  })
+
+  it("rejects flat amount together with per_round on the same nested exercise", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        rounds: 2,
+        exercises: [
+          {
+            exercise_id: VALID_UUID,
+            amount: 10,
+            weight_kg: 0,
+            per_round: [
+              { amount: 10, weight_kg: 0 },
+              { amount: 8, weight_kg: 0 },
+            ],
+          },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("not both")
+  })
+
+  it("rejects fewer than 2 nested exercises", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        exercises: [{ exercise_id: VALID_UUID, amount: 10, weight_kg: 0 }],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("between 2 and 8")
   })
 })

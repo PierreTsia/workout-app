@@ -144,6 +144,15 @@ Deno.test("buildSystemPrompt never names external providers (Claude / Gemini / G
   }
 })
 
+Deno.test("T168: buildSystemPrompt encodes proactive Circuit heuristics (EN + FR)", () => {
+  const en = buildSystemPrompt({ locale: "en", bundle: makeBundle() })
+  const fr = buildSystemPrompt({ locale: "fr", bundle: makeBundle() })
+  assertStringIncludes(en, "proactively propose Circuits")
+  assertStringIncludes(en, 'Say "Circuit", never "block"')
+  assertStringIncludes(fr, "propose proactivement des Circuits")
+  assertStringIncludes(fr, "jamais « block »")
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // parseReadySignal — the 7-case validator matrix from the acceptance criteria
 // ─────────────────────────────────────────────────────────────────────────────

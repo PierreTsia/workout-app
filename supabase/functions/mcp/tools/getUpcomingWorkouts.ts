@@ -1,4 +1,9 @@
 import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualName.ts"
+import {
+  mergeDaySequence,
+  type DbBlockForRead,
+  type DbSoloForRead,
+} from "../lib/daySequenceRead.ts"
 import { formatWorkoutDay } from "../lib/format.ts"
 import type { ToolDefinition } from "./registry.ts"
 
@@ -10,8 +15,8 @@ export const getUpcomingWorkouts: ToolDefinition = {
     idempotentHint: true,
   },
   description:
-    "See the user's upcoming programmed workouts. Returns the next training days with exercises, " +
-    "target sets, reps, and weights. Requires an active program and cycle.",
+    "See the user's upcoming programmed workouts. Returns the next training days with exercises " +
+    "and Circuits, target sets, reps, and weights. Requires an active program and cycle.",
   inputSchema: {
     type: "object",
     properties: {
@@ -104,23 +109,41 @@ export const getUpcomingWorkouts: ToolDefinition = {
 
     const dayIds = upcomingDays.map((d) => d.id)
 
-    // 6. Fetch workout exercises for those days
-    // `exercises` embed: runtime object (many-to-one); typings often say T[].
+    // 6. Fetch solos + Circuits for those days
     type UpcomingExerciseRow = {
       workout_day_id: string
+      exercise_id: string
       name_snapshot: string
       sets: number
       reps: string
       weight: string
       rest_seconds: number
       target_duration_seconds?: number | null
+      sort_order: number
       exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
+    }
+
+    type UpcomingBlockRow = {
+      id: string
+      workout_day_id: string
+      label: string | null
+      rounds: number
+      rest_seconds: number
+      transition_seconds: number
+      sort_order: number
+      block_exercises: {
+        exercise_id: string
+        name_snapshot: string
+        position: number
+        per_round: { amount: number; weight: number }[]
+        exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
+      }[] | null
     }
 
     const { data: exercises, error: exErr } = await supabase
       .from("workout_exercises")
       .select(
-        "workout_day_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)",
+        "workout_day_id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)",
       )
       .in("workout_day_id", dayIds)
       .order("sort_order", { ascending: true })
@@ -130,17 +153,26 @@ export const getUpcomingWorkouts: ToolDefinition = {
       return { content: [{ type: "text", text: `Error fetching exercises: ${exErr.message}` }], isError: true }
     }
 
-    const exByDay = new Map<string, UpcomingExerciseRow[]>()
-    for (const ex of exercises ?? []) {
-      const existing = exByDay.get(ex.workout_day_id) ?? []
-      existing.push(ex)
-      exByDay.set(ex.workout_day_id, existing)
+    const { data: blocks, error: blockErr } = await supabase
+      .from("exercise_blocks")
+      .select(
+        "id, workout_day_id, label, rounds, rest_seconds, transition_seconds, sort_order, " +
+          "block_exercises(exercise_id, name_snapshot, position, per_round, exercises(name, name_en))",
+      )
+      .in("workout_day_id", dayIds)
+      .order("sort_order", { ascending: true })
+      .returns<UpcomingBlockRow[]>()
+
+    if (blockErr) {
+      return { content: [{ type: "text", text: `Error fetching Circuits: ${blockErr.message}` }], isError: true }
     }
 
-    const blocks = upcomingDays.map((day, i) => {
-      const dayExercises = (exByDay.get(day.id) ?? []).map((ex) => {
-        const catalog = unwrapCatalogNameEmbed(ex.exercises)
-        return {
+    const soloRows = (exercises ?? []).map((ex) => {
+      const catalog = unwrapCatalogNameEmbed(ex.exercises)
+      return {
+        workout_day_id: ex.workout_day_id,
+        solo: {
+          exercise_id: ex.exercise_id,
           name_snapshot: ex.name_snapshot,
           name: catalog?.name ?? null,
           name_en: catalog?.name_en ?? null,
@@ -148,17 +180,49 @@ export const getUpcomingWorkouts: ToolDefinition = {
           reps: ex.reps,
           weight: ex.weight,
           rest_seconds: ex.rest_seconds,
-          target_duration_seconds: ex.target_duration_seconds,
-        }
-      })
+          target_duration_seconds: ex.target_duration_seconds ?? null,
+          sort_order: ex.sort_order,
+        } satisfies DbSoloForRead,
+      }
+    })
+
+    const blockRows = (blocks ?? []).map((block) => ({
+      workout_day_id: block.workout_day_id,
+      block: {
+        id: block.id,
+        label: block.label,
+        rounds: block.rounds,
+        rest_seconds: block.rest_seconds,
+        transition_seconds: block.transition_seconds,
+        sort_order: block.sort_order,
+        block_exercises: (block.block_exercises ?? []).map((be) => {
+          const catalog = unwrapCatalogNameEmbed(be.exercises)
+          return {
+            exercise_id: be.exercise_id,
+            name_snapshot: be.name_snapshot,
+            position: be.position,
+            per_round: be.per_round,
+            exercises: catalog
+              ? { name: catalog.name, name_en: catalog.name_en }
+              : null,
+          }
+        }),
+      } satisfies DbBlockForRead,
+    }))
+
+    const dayBlocks = upcomingDays.map((day, i) => {
+      const sequence = mergeDaySequence(
+        soloRows.filter((r) => r.workout_day_id === day.id).map((r) => r.solo),
+        blockRows.filter((r) => r.workout_day_id === day.id).map((r) => r.block),
+      )
       const prefix = i === 0 ? "**Next up →** " : ""
-      return prefix + formatWorkoutDay(day, dayExercises)
+      return prefix + formatWorkoutDay(day, [], sequence)
     })
 
     return {
       content: [{
         type: "text",
-        text: `## Upcoming Workouts — ${program.name} *(id: ${program.id})*\n\n${blocks.join("\n\n")}`,
+        text: `## Upcoming Workouts — ${program.name} *(id: ${program.id})*\n\n${dayBlocks.join("\n\n")}`,
       }],
     }
   },

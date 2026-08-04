@@ -1,4 +1,10 @@
 import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualName.ts"
+import {
+  daySequenceToEchoExercises,
+  mergeDaySequence,
+  type DbBlockForRead,
+  type DbSoloForRead,
+} from "../lib/daySequenceRead.ts"
 import { formatProgramDetails } from "../lib/format.ts"
 import { isUuid } from "../lib/uuid.ts"
 import type { ToolDefinition } from "./registry.ts"
@@ -16,6 +22,7 @@ interface WorkoutDayRow {
   emoji: string
   sort_order: number
   workout_exercises: WorkoutExerciseRow[] | null
+  exercise_blocks: ExerciseBlockRow[] | null
 }
 
 interface WorkoutExerciseRow {
@@ -31,6 +38,30 @@ interface WorkoutExerciseRow {
   exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
 }
 
+interface BlockExerciseRow {
+  exercise_id: string
+  name_snapshot: string
+  position: number
+  per_round: { amount: number; weight: number }[]
+  exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
+}
+
+interface ExerciseBlockRow {
+  id: string
+  label: string | null
+  rounds: number
+  rest_seconds: number
+  transition_seconds: number
+  sort_order: number
+  block_exercises: BlockExerciseRow[] | null
+}
+
+const PROGRAM_DETAILS_SELECT =
+  "id, name, archived_at, workout_days(id, label, emoji, sort_order, " +
+  "workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)), " +
+  "exercise_blocks(id, label, rounds, rest_seconds, transition_seconds, sort_order, " +
+  "block_exercises(exercise_id, name_snapshot, position, per_round, exercises(name, name_en))))"
+
 export const getProgramDetails: ToolDefinition = {
   name: "get_program_details",
   annotations: {
@@ -39,10 +70,10 @@ export const getProgramDetails: ToolDefinition = {
     idempotentHint: true,
   },
   description:
-    "Get the full structure of a training program by ID — days, exercises, sets, reps, weights, rest. " +
+    "Get the full structure of a training program by ID — days, exercises, Circuits, sets, reps, weights, rest. " +
     "Works regardless of cycle state. Use after list_programs, or with the program_id surfaced by " +
-    "get_upcoming_workouts / get_workout_history. Returns markdown with inline IDs on day and exercise " +
-    "lines for downstream addressability.",
+    "get_upcoming_workouts / get_workout_history. Returns markdown with inline IDs plus a fenced JSON " +
+    "payload (`days` patch shape) for echo into `update_program` (prefer the JSON over markdown alone).",
   inputSchema: {
     type: "object",
     required: ["program_id"],
@@ -73,9 +104,7 @@ export const getProgramDetails: ToolDefinition = {
 
     const { data, error } = await supabase
       .from("programs")
-      .select(
-        "id, name, archived_at, workout_days(id, label, emoji, sort_order, workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)))",
-      )
+      .select(PROGRAM_DETAILS_SELECT)
       .eq("id", programId)
       .maybeSingle()
 
@@ -98,9 +127,9 @@ export const getProgramDetails: ToolDefinition = {
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
 
-    const exercisesByDay = new Map(
+    const sequenceByDay = new Map(
       days.map((day) => {
-        const sortedExercises = (day.workout_exercises ?? [])
+        const solos: DbSoloForRead[] = (day.workout_exercises ?? [])
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((ex) => {
@@ -116,16 +145,67 @@ export const getProgramDetails: ToolDefinition = {
               weight: ex.weight,
               rest_seconds: ex.rest_seconds,
               target_duration_seconds: ex.target_duration_seconds,
+              sort_order: ex.sort_order,
             }
           })
-        return [day.id, sortedExercises]
+
+        const blocks: DbBlockForRead[] = (day.exercise_blocks ?? []).map((block) => ({
+          id: block.id,
+          label: block.label,
+          rounds: block.rounds,
+          rest_seconds: block.rest_seconds,
+          transition_seconds: block.transition_seconds,
+          sort_order: block.sort_order,
+          block_exercises: (block.block_exercises ?? []).map((be) => {
+            const catalog = unwrapCatalogNameEmbed(be.exercises)
+            return {
+              exercise_id: be.exercise_id,
+              name_snapshot: be.name_snapshot,
+              position: be.position,
+              per_round: be.per_round,
+              exercises: catalog
+                ? { name: catalog.name, name_en: catalog.name_en }
+                : null,
+            }
+          }),
+        }))
+
+        return [day.id, mergeDaySequence(solos, blocks)] as const
       }),
     )
+
+    const exercisesByDay = new Map(
+      [...sequenceByDay.entries()].map(([dayId, items]) => [
+        dayId,
+        items
+          .filter((i) => i.kind === "solo")
+          .map((i) => ({
+            id: i.solo.id ?? i.solo.exercise_id,
+            exercise_id: i.solo.exercise_id,
+            name_snapshot: i.solo.name_snapshot,
+            name: i.solo.name,
+            name_en: i.solo.name_en,
+            sets: i.solo.sets,
+            reps: i.solo.reps,
+            weight: i.solo.weight,
+            rest_seconds: i.solo.rest_seconds,
+            target_duration_seconds: i.solo.target_duration_seconds,
+          })),
+      ]),
+    )
+
+    const echoDays = days.map((day) => ({
+      id: day.id,
+      label: day.label,
+      emoji: day.emoji,
+      exercises: daySequenceToEchoExercises(sequenceByDay.get(day.id) ?? []),
+    }))
 
     const text = formatProgramDetails(
       { id: program.id, name: program.name, archived_at: program.archived_at },
       days.map(({ id, label, emoji, sort_order }) => ({ id, label, emoji, sort_order })),
       exercisesByDay,
+      { sequenceByDay, echoDays },
     )
 
     return {

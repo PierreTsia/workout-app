@@ -27,6 +27,7 @@ import type { ToolDefinition } from "./registry.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { validateDayExercises } from "../lib/createProgramValidation.ts"
+import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 import {
   parsePatchShape,
   requireConfirmForDestructive,
@@ -120,7 +121,7 @@ function buildSnapshot(row: RawProgramRow): CurrentProgramSnapshot {
 const PROGRAM_SELECT =
   "id, name, workout_days(id, label, emoji, sort_order, workout_exercises(exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))"
 
-const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert at the workout_exercises layer).
+const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert of the Unified Day Sequence: solos + Circuits).
 
 Patch shape:
   - Top level: PATCH semantics. Omit a field → leave it unchanged. Pass \`name\` → rename. Pass \`days\` → declarative PUT inside that field (see below).
@@ -129,6 +130,7 @@ Patch shape:
 Each item in a day's \`exercises\` array can be EITHER:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest).
   - A full prescription object — required fields {exercise_id, sets, reps, weight_kg, rest_seconds}; \`target_duration_seconds\` for duration exercises (T75).
+  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
 
 Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior days are already persisted; the response includes \`applied_days\`, \`failed_at\`, and \`remaining_days\` plus retry guidance.
 
@@ -201,6 +203,7 @@ export const updateProgram: ToolDefinition = {
                     },
                     required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
                   },
+                  MCP_CIRCUIT_DAY_ITEM_SCHEMA,
                 ],
               },
             },

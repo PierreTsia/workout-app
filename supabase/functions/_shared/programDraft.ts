@@ -52,10 +52,33 @@ export interface ProgramConstraints {
   locale?: string
 }
 
+/** Nested Circuit exercise on the LLM draft wire (maps 1:1 to MCP Circuit Item). */
+export type DraftCircuitExercise =
+  | { exercise_id: string; amount: number; weight_kg: number }
+  | {
+      exercise_id: string
+      per_round: { amount: number; weight_kg: number }[]
+    }
+
+export interface DraftCircuitItem {
+  type: "circuit"
+  label?: string
+  rounds?: number
+  rest_seconds?: number
+  transition_seconds?: number
+  exercises: DraftCircuitExercise[]
+}
+
+/** Day item: bare catalog UUID or a Circuit (T168 / ADR 0011). */
+export type DraftDayItem = string | DraftCircuitItem
+
 export interface ProgramDay {
   label: string
   muscle_focus: string
-  exercise_ids: string[]
+  /** Preferred mixed list (solos + Circuits). */
+  exercises?: DraftDayItem[]
+  /** Legacy flat UUID list — still accepted; normalized to `exercises`. */
+  exercise_ids?: string[]
 }
 
 export interface GenerateProgramResponse {
@@ -71,6 +94,12 @@ export interface CatalogEntry {
 export interface ValidatedDay {
   label: string
   muscle_focus: string
+  /** Cleaned day sequence (solos + Circuits). */
+  exercises: DraftDayItem[]
+  /**
+   * Solo UUIDs only (for back-compat with consumers that still read this).
+   * Does not include nested Circuit exercise_ids.
+   */
   exercise_ids: string[]
   dropped: number
   backfilled: number
@@ -160,8 +189,10 @@ export function buildProgramPrompt(
     `- Design a training split for ${constraints.daysPerWeek} days per week.`,
     `- Each day should have between ${bounds.min} and ${bounds.max} exercises.`,
     "- Return ONLY exercise IDs from the EXERCISE CATALOG below. Never invent IDs.",
-    "- No duplicate exercises across any days.",
-    "- Order exercises within each day: compound movements (those with secondary_muscles) first, isolation last.",
+    "- Each day `exercises` array mixes bare UUID strings (solos) and optional Circuit objects `{ type: \"circuit\", exercises: [{ exercise_id, amount, weight_kg }, ...] }`. A Circuit counts as ONE slot toward the per-day min/max.",
+    "- Nested Circuit exercises use amount + weight_kg (not solo sets/reps). Same exercise_id may appear twice inside one Circuit (complexes); do not duplicate a solo UUID across days.",
+    "- Circuit prescriptions are frozen (no auto progression on nested amount/weight). Prefer Circuits for finishers, supersets, conditioning complexes — not every pairing.",
+    "- Order solos within each day: compound movements (those with secondary_muscles) first, isolation last. Place Circuits after the main strength work when used as finishers.",
     "- Group synergistic muscles on the same day (e.g. chest + triceps, back + biceps).",
     "- Distribute muscle groups across the week so no group is overtrained.",
     "- Provide a brief rationale (1-2 sentences) explaining why this split suits the user.",
@@ -214,6 +245,31 @@ export function buildProgramPrompt(
 // Validation + repair
 // ─────────────────────────────────────────────────────────────────────────────
 
+function normalizeDayItems(day: ProgramDay): DraftDayItem[] {
+  if (Array.isArray(day.exercises) && day.exercises.length > 0) {
+    return day.exercises
+  }
+  return day.exercise_ids ?? []
+}
+
+function releaseItemToPool(
+  item: DraftDayItem,
+  catalogMap: Map<string, CatalogEntry>,
+  unusedByGroup: Map<string, string[]>,
+  globalSeen: Set<string>,
+) {
+  const ids = typeof item === "string"
+    ? [item]
+    : item.exercises.map((e) => e.exercise_id)
+  for (const id of [...new Set(ids)]) {
+    globalSeen.delete(id)
+    const entry = catalogMap.get(id)
+    if (!entry) continue
+    const list = unusedByGroup.get(entry.muscle_group) ?? []
+    unusedByGroup.set(entry.muscle_group, [...list, id])
+  }
+}
+
 export function validateProgram(
   llmOutput: GenerateProgramResponse,
   catalog: CatalogEntry[],
@@ -250,49 +306,96 @@ export function validateProgram(
   }
 
   for (const day of days) {
-    const validIds: string[] = []
+    const items: DraftDayItem[] = []
     let dropped = 0
 
-    for (const id of day.exercise_ids ?? []) {
-      if (globalSeen.has(id)) { dropped++; continue }
+    for (const raw of normalizeDayItems(day)) {
+      if (typeof raw === "string") {
+        const id = raw
+        if (globalSeen.has(id)) {
+          dropped++
+          continue
+        }
+        const entry = catalogMap.get(id)
+        if (!entry) {
+          dropped++
+          continue
+        }
+        items.push(id)
+        globalSeen.add(id)
+        removeFromPool(unusedByGroup, entry.muscle_group, id)
+        continue
+      }
 
-      const entry = catalogMap.get(id)
-      if (!entry) { dropped++; continue }
+      if (!raw || raw.type !== "circuit" || !Array.isArray(raw.exercises)) {
+        dropped++
+        continue
+      }
 
-      validIds.push(id)
-      globalSeen.add(id)
-      removeFromPool(unusedByGroup, entry.muscle_group, id)
+      const nested = raw.exercises
+        .map((ex) => {
+          if (!ex || typeof ex !== "object" || typeof ex.exercise_id !== "string") {
+            return null
+          }
+          if (!catalogMap.has(ex.exercise_id)) return null
+          return ex
+        })
+        .filter((ex): ex is DraftCircuitExercise => ex != null)
+
+      // Same exercise_id twice inside a Circuit is allowed (complexes).
+      if (nested.length < 2) {
+        dropped++
+        continue
+      }
+
+      const circuit: DraftCircuitItem = {
+        type: "circuit",
+        exercises: nested,
+        ...(raw.label !== undefined ? { label: raw.label } : {}),
+        ...(raw.rounds !== undefined ? { rounds: raw.rounds } : {}),
+        ...(raw.rest_seconds !== undefined ? { rest_seconds: raw.rest_seconds } : {}),
+        ...(raw.transition_seconds !== undefined
+          ? { transition_seconds: raw.transition_seconds }
+          : {}),
+      }
+      items.push(circuit)
+
+      // Mark nested IDs as used so they aren't also placed as solos elsewhere,
+      // but do NOT dedupe within this Circuit.
+      for (const ex of nested) {
+        if (globalSeen.has(ex.exercise_id)) continue
+        globalSeen.add(ex.exercise_id)
+        const entry = catalogMap.get(ex.exercise_id)
+        if (entry) removeFromPool(unusedByGroup, entry.muscle_group, ex.exercise_id)
+      }
     }
 
     let backfilled = 0
-    while (validIds.length < exerciseBounds.min) {
+    while (items.length < exerciseBounds.min) {
       const picked = pickFromPool(unusedByGroup, day.muscle_focus, globalSeen)
       if (!picked) break
-      validIds.push(picked)
+      items.push(picked)
       globalSeen.add(picked)
       backfilled++
     }
 
-    if (validIds.length > exerciseBounds.max) {
-      const excess = validIds.splice(exerciseBounds.max)
-      for (const id of excess) {
-        globalSeen.delete(id)
-        const entry = catalogMap.get(id)
-        if (entry) {
-          const list = unusedByGroup.get(entry.muscle_group) ?? []
-          list.push(id)
-          unusedByGroup.set(entry.muscle_group, list)
-        }
+    if (items.length > exerciseBounds.max) {
+      const excess = items.splice(exerciseBounds.max)
+      for (const item of excess) {
+        releaseItemToPool(item, catalogMap, unusedByGroup, globalSeen)
       }
     }
 
     totalDropped += dropped
     totalBackfilled += backfilled
 
+    const soloIds = items.filter((i): i is string => typeof i === "string")
+
     validatedDays.push({
       label: day.label ?? `Day ${validatedDays.length + 1}`,
       muscle_focus: day.muscle_focus ?? "",
-      exercise_ids: validIds,
+      exercises: items,
+      exercise_ids: soloIds,
       dropped,
       backfilled,
     })

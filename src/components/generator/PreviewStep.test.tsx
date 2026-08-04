@@ -46,9 +46,9 @@ function makeGeneratedExercise(
   }
 }
 
-const EX_A = fakeExercise({ id: "a", name: "Exercise A" })
-const EX_B = fakeExercise({ id: "b", name: "Exercise B" })
-const EX_C = fakeExercise({ id: "c", name: "Exercise C" })
+const EX_A = fakeExercise({ id: "a", name: "Exercise A", name_en: "Exercise A" })
+const EX_B = fakeExercise({ id: "b", name: "Exercise B", name_en: "Exercise B" })
+const EX_C = fakeExercise({ id: "c", name: "Exercise C", name_en: "Exercise C" })
 
 const BASE_WORKOUT: GeneratedWorkout = {
   exercises: [
@@ -165,5 +165,75 @@ describe("PreviewStep", () => {
     setup({ exercises: [] })
     const startBtn = screen.getByRole("button", { name: /start workout/i })
     expect(startBtn).toBeDisabled()
+  })
+
+  it("T170: renders a distinct Circuit card and counts Circuit as one item", () => {
+    setup({
+      exercises: [makeGeneratedExercise({ exercise: EX_A })],
+      dayItems: [
+        {
+          kind: "solo",
+          exercise: makeGeneratedExercise({ exercise: EX_A }),
+        },
+        {
+          kind: "circuit",
+          circuit: {
+            label: "Finisher",
+            rounds: 3,
+            restSeconds: 90,
+            transitionSeconds: 0,
+            exercises: [
+              { exercise: EX_B, amount: 10, weightKg: 0 },
+              { exercise: EX_C, amount: 12, weightKg: 0 },
+            ],
+          },
+        },
+      ],
+    })
+
+    expect(screen.getByTestId("preview-circuit-card")).toBeInTheDocument()
+    expect(screen.getByText("Finisher")).toBeInTheDocument()
+    expect(screen.getByText(/2 items \(1 solos · 1 circuits\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/Exercise B/i)).toBeInTheDocument()
+    expect(screen.getByText(/Exercise C/i)).toBeInTheDocument()
+  })
+
+  it("T170: Start forwards dayItems including the Circuit", async () => {
+    const user = userEvent.setup()
+    const { onStart } = setup({
+      exercises: [makeGeneratedExercise({ exercise: EX_A })],
+      dayItems: [
+        {
+          kind: "solo",
+          exercise: makeGeneratedExercise({ exercise: EX_A }),
+        },
+        {
+          kind: "circuit",
+          circuit: {
+            label: "Finisher",
+            rounds: 3,
+            restSeconds: 90,
+            transitionSeconds: 0,
+            exercises: [
+              { exercise: EX_B, amount: 10, weightKg: 0 },
+              { exercise: EX_C, amount: 12, weightKg: 0 },
+            ],
+          },
+        },
+      ],
+    })
+
+    await user.click(screen.getByRole("button", { name: /start workout/i }))
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dayItems: expect.arrayContaining([
+          expect.objectContaining({ kind: "solo" }),
+          expect.objectContaining({
+            kind: "circuit",
+            circuit: expect.objectContaining({ label: "Finisher" }),
+          }),
+        ]),
+      }),
+    )
   })
 })

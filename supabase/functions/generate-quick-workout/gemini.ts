@@ -19,6 +19,7 @@ interface GeminiResponse {
 
 export interface GenerateWorkoutGeminiResponse {
   exerciseIds: string[]
+  exercises?: unknown[]
   rationale: string
 }
 
@@ -26,12 +27,43 @@ const RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
     rationale: { type: "STRING" },
+    exercises: {
+      type: "ARRAY",
+      items: {
+        anyOf: [
+          { type: "STRING" },
+          {
+            type: "OBJECT",
+            properties: {
+              type: { type: "STRING" },
+              label: { type: "STRING" },
+              rounds: { type: "INTEGER" },
+              rest_seconds: { type: "INTEGER" },
+              transition_seconds: { type: "INTEGER" },
+              exercises: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    exercise_id: { type: "STRING" },
+                    amount: { type: "NUMBER" },
+                    weight_kg: { type: "NUMBER" },
+                  },
+                  required: ["exercise_id", "amount", "weight_kg"],
+                },
+              },
+            },
+            required: ["type", "exercises"],
+          },
+        ],
+      },
+    },
     exerciseIds: {
       type: "ARRAY",
       items: { type: "STRING" },
     },
   },
-  required: ["rationale", "exerciseIds"],
+  required: ["rationale"],
 }
 
 function parseResponse(raw: string): GenerateWorkoutGeminiResponse {
@@ -40,15 +72,20 @@ function parseResponse(raw: string): GenerateWorkoutGeminiResponse {
 
   try {
     const parsed = JSON.parse(text) as GenerateWorkoutGeminiResponse
-    if (typeof parsed.rationale !== "string" || !Array.isArray(parsed.exerciseIds)) {
-      throw new Error("Response missing rationale or exerciseIds array")
+    if (typeof parsed.rationale !== "string") {
+      throw new Error("Response missing rationale")
     }
-    if (!parsed.exerciseIds.every((v) => typeof v === "string")) {
-      throw new Error("exerciseIds must be strings")
+    const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : undefined
+    const exerciseIds = Array.isArray(parsed.exerciseIds)
+      ? parsed.exerciseIds.filter((v): v is string => typeof v === "string")
+      : []
+    if ((!exercises || exercises.length === 0) && exerciseIds.length === 0) {
+      throw new Error("Response missing exercises or exerciseIds")
     }
     return {
       rationale: parsed.rationale.trim(),
-      exerciseIds: parsed.exerciseIds,
+      exerciseIds,
+      ...(exercises ? { exercises } : {}),
     }
   } catch (e) {
     console.error("Gemini raw output (first 500 chars):", text.slice(0, 500))

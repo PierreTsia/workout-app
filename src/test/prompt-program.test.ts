@@ -166,4 +166,12 @@ describe("buildProgramPrompt", () => {
     expect(prompt).toContain("EXERCISE CATALOG")
     expect(prompt).toContain('"id":"e1"')
   })
+
+  it("T168: teaches Circuit wire shape, slot counting, and frozen nested prescriptions", () => {
+    const prompt = buildProgramPrompt(catalog, null, [], constraints, false)
+    expect(prompt).toContain('type: "circuit"')
+    expect(prompt).toContain("ONE slot")
+    expect(prompt).toContain("frozen")
+    expect(prompt).not.toMatch(/\bblock\b/i)
+  })
 })
