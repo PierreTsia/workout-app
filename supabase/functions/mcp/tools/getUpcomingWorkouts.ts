@@ -1,5 +1,6 @@
-import type { ToolDefinition } from "./registry.ts"
+import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualName.ts"
 import { formatWorkoutDay } from "../lib/format.ts"
+import type { ToolDefinition } from "./registry.ts"
 
 export const getUpcomingWorkouts: ToolDefinition = {
   name: "get_upcoming_workouts",
@@ -104,18 +105,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
     const dayIds = upcomingDays.map((d) => d.id)
 
     // 6. Fetch workout exercises for those days
-    const { data: exercises, error: exErr } = await supabase
-      .from("workout_exercises")
-      .select(
-        "workout_day_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)",
-      )
-      .in("workout_day_id", dayIds)
-      .order("sort_order", { ascending: true })
-
-    if (exErr) {
-      return { content: [{ type: "text", text: `Error fetching exercises: ${exErr.message}` }], isError: true }
-    }
-
+    // `exercises` embed: runtime object (many-to-one); typings often say T[].
     type UpcomingExerciseRow = {
       workout_day_id: string
       name_snapshot: string
@@ -124,27 +114,43 @@ export const getUpcomingWorkouts: ToolDefinition = {
       weight: string
       rest_seconds: number
       target_duration_seconds?: number | null
-      exercises: { name: string; name_en: string | null } | null
+      exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
+    }
+
+    const { data: exercises, error: exErr } = await supabase
+      .from("workout_exercises")
+      .select(
+        "workout_day_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)",
+      )
+      .in("workout_day_id", dayIds)
+      .order("sort_order", { ascending: true })
+      .returns<UpcomingExerciseRow[]>()
+
+    if (exErr) {
+      return { content: [{ type: "text", text: `Error fetching exercises: ${exErr.message}` }], isError: true }
     }
 
     const exByDay = new Map<string, UpcomingExerciseRow[]>()
-    for (const ex of (exercises ?? []) as UpcomingExerciseRow[]) {
+    for (const ex of exercises ?? []) {
       const existing = exByDay.get(ex.workout_day_id) ?? []
       existing.push(ex)
       exByDay.set(ex.workout_day_id, existing)
     }
 
     const blocks = upcomingDays.map((day, i) => {
-      const dayExercises = (exByDay.get(day.id) ?? []).map((ex) => ({
-        name_snapshot: ex.name_snapshot,
-        name: ex.exercises?.name ?? null,
-        name_en: ex.exercises?.name_en ?? null,
-        sets: ex.sets,
-        reps: ex.reps,
-        weight: ex.weight,
-        rest_seconds: ex.rest_seconds,
-        target_duration_seconds: ex.target_duration_seconds,
-      }))
+      const dayExercises = (exByDay.get(day.id) ?? []).map((ex) => {
+        const catalog = unwrapCatalogNameEmbed(ex.exercises)
+        return {
+          name_snapshot: ex.name_snapshot,
+          name: catalog?.name ?? null,
+          name_en: catalog?.name_en ?? null,
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight,
+          rest_seconds: ex.rest_seconds,
+          target_duration_seconds: ex.target_duration_seconds,
+        }
+      })
       const prefix = i === 0 ? "**Next up →** " : ""
       return prefix + formatWorkoutDay(day, dayExercises)
     })

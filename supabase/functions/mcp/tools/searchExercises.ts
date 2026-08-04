@@ -217,8 +217,10 @@ export const searchExercises: ToolDefinition = {
     const isSingleMatch = exercises.length === 1
 
     const lines = exercises.map((ex, i) => {
+      const name = typeof ex.name === "string" ? ex.name : ""
+      const nameEn = typeof ex.name_en === "string" ? ex.name_en : null
       const parts = [
-        `${i + 1}. ${formatBilingualExerciseName(ex.name, ex.name_en)}`,
+        `${i + 1}. ${formatBilingualExerciseName(name, nameEn)}`,
         `— ${ex.muscle_group}`,
         ex.equipment && ex.equipment !== "bodyweight" ? `| ${ex.equipment}` : null,
         ex.difficulty_level ? `| ${ex.difficulty_level}` : null,

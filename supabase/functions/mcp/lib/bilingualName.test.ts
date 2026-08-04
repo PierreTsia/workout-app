@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   bilingualExerciseLabel,
   formatBilingualExerciseName,
+  unwrapCatalogNameEmbed,
 } from "./bilingualName"
 
 describe("formatBilingualExerciseName", () => {
@@ -24,5 +25,22 @@ describe("bilingualExerciseLabel", () => {
       "Développé couché (Bench Press)",
     )
     expect(bilingualExerciseLabel("Planche", null)).toBe("Planche")
+  })
+})
+
+describe("unwrapCatalogNameEmbed", () => {
+  const row = { name: "Planche", name_en: "Plank" }
+
+  it("passes through a single embed object", () => {
+    expect(unwrapCatalogNameEmbed(row)).toEqual(row)
+  })
+
+  it("takes the first row when the client typed the embed as an array", () => {
+    expect(unwrapCatalogNameEmbed([row])).toEqual(row)
+  })
+
+  it("returns null for missing embeds", () => {
+    expect(unwrapCatalogNameEmbed(null)).toBeNull()
+    expect(unwrapCatalogNameEmbed([])).toBeNull()
   })
 })
