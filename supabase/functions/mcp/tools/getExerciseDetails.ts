@@ -1,12 +1,10 @@
+import { bilingualExerciseLabel } from "../lib/bilingualName.ts"
 import { formatWeightConvention, type WeightConvention } from "../lib/format.ts"
+import {
+  resolveEnglishInstructions,
+  type ExerciseInstructions,
+} from "../lib/resolveInstructions.ts"
 import type { ToolDefinition } from "./registry.ts"
-
-interface Instructions {
-  setup?: string[]
-  movement?: string[]
-  breathing?: string[]
-  common_mistakes?: string[]
-}
 
 const WEIGHT_CONVENTION_HINT: Record<WeightConvention, string> = {
   per_hand: "each hand",
@@ -14,7 +12,7 @@ const WEIGHT_CONVENTION_HINT: Record<WeightConvention, string> = {
   bodyweight: "no external load",
 }
 
-function formatInstructions(raw: Instructions | null): string {
+function formatInstructions(raw: ExerciseInstructions | null): string {
   if (!raw) return "No instructions available."
 
   const sections = [
@@ -28,7 +26,10 @@ function formatInstructions(raw: Instructions | null): string {
 }
 
 function formatExercise(ex: Record<string, unknown>): string {
-  const name = ex.name_en ? `${ex.name} (${ex.name_en})` : ex.name
+  const name = bilingualExerciseLabel(
+    String(ex.name ?? ""),
+    ex.name_en as string | null | undefined,
+  )
   const secondary = (ex.secondary_muscles as string[] | null)?.join(", ")
 
   const equipment = (ex.equipment as string | null | undefined) ?? "other"
@@ -46,7 +47,13 @@ function formatExercise(ex: Record<string, unknown>): string {
       : `**Measurement:** reps`,
   ].filter(Boolean).join("\n")
 
-  const instructions = formatInstructions(ex.instructions as Instructions | null)
+  const instructions = formatInstructions(
+    resolveEnglishInstructions({
+      instructions: ex.instructions as ExerciseInstructions | null,
+      instructions_en: ex.instructions_en as ExerciseInstructions | null,
+      instructions_en_status: ex.instructions_en_status as string | null,
+    }),
+  )
 
   const imageFullUrl = resolveImageUrl(ex.image_url as string | null)
   const links = [
@@ -78,6 +85,7 @@ export const getExerciseDetails: ToolDefinition = {
   description:
     "Get full details for ONE exercise by its UUID. Returns instructions (setup, movement, " +
     "breathing, common mistakes), muscle targets, equipment, difficulty, and media links. " +
+    "Instructions are English when a reviewed translation exists; otherwise French. " +
     "Use this when the user wants to LEARN about a specific exercise (form cues, video, " +
     "common mistakes) — NOT when building a program. " +
     "**To obtain the UUID, prefer `resolve_exercises` (one batch call by name, also bundles " +

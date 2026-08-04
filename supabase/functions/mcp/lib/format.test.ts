@@ -103,6 +103,8 @@ interface ProgramDetailsExercise {
   id: string
   exercise_id: string
   name_snapshot: string
+  name?: string | null
+  name_en?: string | null
   sets: number
   reps: string
   weight: string
@@ -190,6 +192,35 @@ describe("formatProgramDetails", () => {
         "  - **Bench Press** *(exercise_id: cccccccc-3333-4333-8333-333333333333)*: 4 × 8 reps @ 80 kg (rest 120s)\n" +
         "  - **Overhead Press** *(exercise_id: cccccccc-4444-4444-8444-444444444444)*: 3 × 10 reps @ 40 kg (rest 90s)",
     )
+  })
+
+  it("renders bilingual catalog names when name + name_en are present", () => {
+    const program = makeProgram()
+    const day = makeDay()
+    const exercises = [
+      makeExercise({
+        name_snapshot: "Développé couché",
+        name: "Développé couché",
+        name_en: "Bench Press",
+        exercise_id: "cccccccc-3333-4333-8333-333333333333",
+      }),
+    ]
+    const md = formatProgramDetails(program, [day], new Map([[day.id, exercises]]))
+
+    expect(md).toContain(
+      "**Développé couché** (Bench Press) *(exercise_id: cccccccc-3333-4333-8333-333333333333)*",
+    )
+    expect(md).not.toContain("()")
+  })
+
+  it("falls back to name_snapshot alone when the catalog join is missing", () => {
+    const program = makeProgram()
+    const day = makeDay()
+    const exercises = [makeExercise({ name_snapshot: "Frozen Snapshot", name: null, name_en: null })]
+    const md = formatProgramDetails(program, [day], new Map([[day.id, exercises]]))
+
+    expect(md).toContain("**Frozen Snapshot** *(exercise_id:")
+    expect(md).not.toContain("()")
   })
 
   it("renders a multi-day program with different exercise counts per day", () => {

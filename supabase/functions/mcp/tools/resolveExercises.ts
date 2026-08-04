@@ -4,6 +4,7 @@ import {
   type ResolvedQuery,
   type ResolveBatchRow,
 } from "../lib/assembleResolution.ts"
+import { formatBilingualExerciseName } from "../lib/bilingualName.ts"
 import { resolveAmbiguityGap } from "../lib/scoreGap.ts"
 import type { ToolDefinition } from "./registry.ts"
 
@@ -135,7 +136,7 @@ function formatResolvedQuery(r: ResolvedQuery): string {
 }
 
 function formatMatch(m: ResolvedExercise): string {
-  const nameLine = m.name_en ? `**${m.name}** (${m.name_en})` : `**${m.name}**`
+  const nameLine = formatBilingualExerciseName(m.name, m.name_en)
   const meta = [
     m.muscle_group,
     m.equipment,

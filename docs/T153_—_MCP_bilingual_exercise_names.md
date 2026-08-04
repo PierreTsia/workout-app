@@ -41,11 +41,13 @@ Aucune.
 
 ## Acceptance Criteria
 
-- [ ] `get_program_details` et `get_upcoming_workouts` rendent `**name** (name_en)`.
-- [ ] Un exercice sans `name_en` rend le nom seul, sans parenthèse vide.
-- [ ] Le format est identique à celui de `search_exercises` (formateur partagé).
-- [ ] Aucune lecture de profil ajoutée.
-- [ ] Aucun chemin d'écriture modifié.
+- [x] `get_program_details` et `get_upcoming_workouts` rendent `**name** (name_en)`.
+- [x] Un exercice sans `name_en` rend le nom seul, sans parenthèse vide.
+- [x] Le format est identique à celui de `search_exercises` (formateur partagé).
+- [x] Aucune lecture de profil ajoutée.
+- [x] Aucun chemin d'écriture modifié.
+
+Implémenté dans #450 / `file:docs/T162_—_MCP_English_instructions_and_bilingual_names.md`.
 
 ## References
 

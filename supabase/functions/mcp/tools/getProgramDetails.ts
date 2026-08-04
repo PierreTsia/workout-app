@@ -1,6 +1,7 @@
-import type { ToolDefinition } from "./registry.ts"
+import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualName.ts"
 import { formatProgramDetails } from "../lib/format.ts"
 import { isUuid } from "../lib/uuid.ts"
+import type { ToolDefinition } from "./registry.ts"
 
 interface ProgramRow {
   id: string
@@ -27,6 +28,7 @@ interface WorkoutExerciseRow {
   rest_seconds: number
   target_duration_seconds: number | null
   sort_order: number
+  exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
 }
 
 export const getProgramDetails: ToolDefinition = {
@@ -72,7 +74,7 @@ export const getProgramDetails: ToolDefinition = {
     const { data, error } = await supabase
       .from("programs")
       .select(
-        "id, name, archived_at, workout_days(id, label, emoji, sort_order, workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))",
+        "id, name, archived_at, workout_days(id, label, emoji, sort_order, workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)))",
       )
       .eq("id", programId)
       .maybeSingle()
@@ -101,6 +103,21 @@ export const getProgramDetails: ToolDefinition = {
         const sortedExercises = (day.workout_exercises ?? [])
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order)
+          .map((ex) => {
+            const catalog = unwrapCatalogNameEmbed(ex.exercises)
+            return {
+              id: ex.id,
+              exercise_id: ex.exercise_id,
+              name_snapshot: ex.name_snapshot,
+              name: catalog?.name ?? null,
+              name_en: catalog?.name_en ?? null,
+              sets: ex.sets,
+              reps: ex.reps,
+              weight: ex.weight,
+              rest_seconds: ex.rest_seconds,
+              target_duration_seconds: ex.target_duration_seconds,
+            }
+          })
         return [day.id, sortedExercises]
       }),
     )

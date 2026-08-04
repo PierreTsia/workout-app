@@ -1,3 +1,4 @@
+import { formatBilingualExerciseName } from "./bilingualName.ts"
 import type { ParsedExercise } from "./createProgramValidation.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 import type {
@@ -200,11 +201,24 @@ export function formatStatsSummary(
 
 interface WorkoutExForFormat {
   name_snapshot: string
+  /** Catalog French name when the join succeeded; otherwise omit. */
+  name?: string | null
+  name_en?: string | null
   sets: number
   reps: string
   weight: string
   rest_seconds: number
   target_duration_seconds?: number | null
+}
+
+/** Catalog name (FR + EN) when present, else the frozen snapshot alone. */
+function displayExerciseName(ex: {
+  name_snapshot: string
+  name?: string | null
+  name_en?: string | null
+}): string {
+  const french = ex.name?.trim() || ex.name_snapshot
+  return formatBilingualExerciseName(french, ex.name_en)
 }
 
 interface WorkoutDayForFormat {
@@ -251,6 +265,8 @@ interface ProgramDetailsExercise {
   id: string
   exercise_id: string
   name_snapshot: string
+  name?: string | null
+  name_en?: string | null
   sets: number
   reps: string
   weight: string
@@ -277,7 +293,7 @@ export function formatProgramDetails(
         ? `${ex.sets} × ${ex.target_duration_seconds}s`
         : `${ex.sets} × ${ex.reps} reps`
       const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
-      return `  - **${ex.name_snapshot}** *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+      return `  - ${displayExerciseName(ex)} *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
     })
     return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
   })
@@ -292,7 +308,7 @@ export function formatWorkoutDay(day: WorkoutDayForFormat, exercises: WorkoutExF
       : `${ex.sets} × ${ex.reps} reps`
     const weight = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
     const rest = ex.rest_seconds ? ` (rest ${ex.rest_seconds}s)` : ""
-    return `  - **${ex.name_snapshot}**: ${measure}${weight}${rest}`
+    return `  - ${displayExerciseName(ex)}: ${measure}${weight}${rest}`
   })
 
   return [`### ${day.emoji} ${day.label}`, ...exLines].join("\n")
