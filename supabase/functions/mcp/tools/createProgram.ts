@@ -9,6 +9,7 @@ import {
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
+import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
 const MAX_DAYS = 14
 const MAX_EXERCISES_PER_DAY = 40
@@ -117,25 +118,7 @@ export const createProgram: ToolDefinition = {
                     },
                     required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
                   },
-                  {
-                    type: "object",
-                    description:
-                      "Circuit (MCP Circuit Item). Nested exercises use {amount, weight_kg} or per_round — never solo sets/reps.",
-                    properties: {
-                      type: { type: "string", const: "circuit" },
-                      label: { type: "string" },
-                      rounds: { type: "integer", minimum: 1, maximum: 10 },
-                      rest_seconds: { type: "integer", minimum: 0, maximum: 600 },
-                      transition_seconds: { type: "integer", minimum: 0, maximum: 600 },
-                      exercises: {
-                        type: "array",
-                        minItems: 2,
-                        maxItems: 8,
-                        items: { type: "object" },
-                      },
-                    },
-                    required: ["type", "exercises"],
-                  },
+                  MCP_CIRCUIT_DAY_ITEM_SCHEMA,
                 ],
               },
             },
