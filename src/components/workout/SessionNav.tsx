@@ -22,6 +22,11 @@ interface SessionNavProps {
    * Defaults to `exercises.length` when the day has no blocks.
    */
   itemCount?: number
+  /**
+   * Blocks in the day that are not yet in `completedBlockIds`. Finish must
+   * confirm when this is > 0 — block work is invisible to solo `setsData`.
+   */
+  incompleteBlockCount?: number
   onFinish: () => void
   /** When the workout timer is paused, forward/next/finish attempts call this instead. */
   onBlockedByPause?: () => void
@@ -30,6 +35,7 @@ interface SessionNavProps {
 export function SessionNav({
   exercises,
   itemCount,
+  incompleteBlockCount = 0,
   onFinish,
   onBlockedByPause,
 }: SessionNavProps) {
@@ -68,7 +74,12 @@ export function SessionNav({
       return
     }
     const skipped = daySets().filter((s) => !s.done).length
-    if (skipped > 0) {
+    // Items still ahead (e.g. trailing circuit after a solo), or unfinished
+    // blocks skipped via the strip, are not reflected in solo set rows — so
+    // "all sets done" must not silently end the session.
+    const leavingWork =
+      skipped > 0 || !isLast || incompleteBlockCount > 0
+    if (leavingWork) {
       setConfirmOpen(true)
     } else {
       onFinish()
@@ -81,6 +92,10 @@ export function SessionNav({
   }
 
   const skippedCount = daySets().filter((s) => !s.done).length
+  const confirmBody =
+    skippedCount > 0
+      ? t("skippedSets", { count: skippedCount })
+      : t("finishEarlyRemaining")
 
   return (
     <>
@@ -123,9 +138,7 @@ export function SessionNav({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("finishSessionTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("skippedSets", { count: skippedCount })}
-            </DialogDescription>
+            <DialogDescription>{confirmBody}</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>

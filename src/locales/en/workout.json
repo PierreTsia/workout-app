@@ -58,6 +58,7 @@
   "holdOverNotif": "Hold complete!",
   "holdOverBody": "Time to log your set",
   "finishEarly": "Finish workout early",
+  "finishEarlyRemaining": "You still have exercises or circuits left. Finish anyway?",
   "weightPerArm": "{{unit}}/arm",
   "addedWeight": "+{{unit}}",
   "rir.title": "Reps in Reserve",

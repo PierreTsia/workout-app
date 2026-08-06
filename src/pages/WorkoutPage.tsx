@@ -1161,6 +1161,9 @@ export function WorkoutPage() {
                 <SessionNav
                   exercises={exercises}
                   itemCount={items.length}
+                  incompleteBlockCount={
+                    dayBlocks.filter((b) => !completedBlockIds.has(b.id)).length
+                  }
                   onFinish={handleFinish}
                   onBlockedByPause={openPauseBlocked}
                 />
