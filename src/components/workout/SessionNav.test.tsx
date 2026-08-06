@@ -88,6 +88,40 @@ describe("SessionNav", () => {
     await user.click(screen.getByText("Finish workout early"))
 
     expect(screen.getByText("Finish session?")).toBeInTheDocument()
+    // Not last + skipped set → combined copy (items still ahead).
+    expect(
+      screen.getByText(
+        "You have 1 skipped set and still have exercises or circuits left. Finish anyway?",
+      ),
+    ).toBeInTheDocument()
+    expect(onFinish).not.toHaveBeenCalled()
+  })
+
+  it("mentions only skipped sets when finishing on the last item with no circuits left", async () => {
+    const user = userEvent.setup()
+    const onFinish = vi.fn()
+    const { store } = renderWithProviders(
+      <SessionNav exercises={EXERCISES} onFinish={onFinish} />,
+    )
+
+    act(() => {
+      store.set(sessionAtom, {
+        ...BASE_SESSION,
+        exerciseIndex: 2,
+        setsData: {
+          "ex-1": [{ kind: "reps", reps: "10", weight: "60", done: true }],
+          "ex-2": [{ kind: "reps", reps: "10", weight: "60", done: true }],
+          "ex-3": [{ kind: "reps", reps: "10", weight: "60", done: false }],
+        },
+      })
+    })
+
+    await user.click(screen.getByText("Finish"))
+
+    expect(screen.getByText("Finish session?")).toBeInTheDocument()
+    expect(
+      screen.getByText("You have 1 skipped set. Finish anyway?"),
+    ).toBeInTheDocument()
     expect(onFinish).not.toHaveBeenCalled()
   })
 

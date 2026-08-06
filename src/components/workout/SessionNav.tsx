@@ -23,8 +23,8 @@ interface SessionNavProps {
    */
   itemCount?: number
   /**
-   * Blocks in the day that are not yet in `completedBlockIds`. Finish must
-   * confirm when this is > 0 — block work is invisible to solo `setsData`.
+   * Number of incomplete circuits remaining in the workout day. Finish must
+   * confirm when this is > 0 — circuit progress is invisible to solo `setsData`.
    */
   incompleteBlockCount?: number
   onFinish: () => void
@@ -92,10 +92,13 @@ export function SessionNav({
   }
 
   const skippedCount = daySets().filter((s) => !s.done).length
+  const hasRemainingAhead = !isLast || incompleteBlockCount > 0
   const confirmBody =
-    skippedCount > 0
-      ? t("skippedSets", { count: skippedCount })
-      : t("finishEarlyRemaining")
+    skippedCount > 0 && hasRemainingAhead
+      ? t("finishEarlySkippedAndRemaining", { count: skippedCount })
+      : skippedCount > 0
+        ? t("skippedSets", { count: skippedCount })
+        : t("finishEarlyRemaining")
 
   return (
     <>
