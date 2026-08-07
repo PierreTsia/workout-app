@@ -77,6 +77,7 @@ import {
   countSessionSlots,
   countSoloExercisesCompleted,
   countSoloSetsDone,
+  sessionHasSkippedSets,
 } from "@/lib/sessionFinishStats"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
@@ -787,9 +788,18 @@ export function WorkoutPage() {
       }))
   }, [exercises, prFlags])
 
+  // Circuits not yet in completedBlockIds — shared by SessionNav confirm +
+  // sessions.has_skipped_sets on finish (block work never lands in setsData).
+  const incompleteBlockCount = dayBlocks.filter(
+    (b) => !completedBlockIds.has(b.id),
+  ).length
+
   function handleFinish() {
-    const daySets = exercises.flatMap((ex) => session.setsData[ex.id] ?? [])
-    const hasSkipped = daySets.some((s) => !s.done)
+    const hasSkipped = sessionHasSkippedSets(
+      exercises,
+      session.setsData,
+      incompleteBlockCount,
+    )
 
     const realId =
       user != null ? peekSessionRealId(user.id, sessionId) : null
@@ -1161,6 +1171,7 @@ export function WorkoutPage() {
                 <SessionNav
                   exercises={exercises}
                   itemCount={items.length}
+                  incompleteBlockCount={incompleteBlockCount}
                   onFinish={handleFinish}
                   onBlockedByPause={openPauseBlocked}
                 />

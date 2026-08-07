@@ -3,6 +3,7 @@ import {
   countBlockSetsDone,
   countSessionSlots,
   countSoloSetsDone,
+  sessionHasSkippedSets,
 } from "@/lib/sessionFinishStats"
 import type { SetLog, WorkoutExercise } from "@/types/database"
 
@@ -92,5 +93,91 @@ describe("sessionFinishStats", () => {
         },
       ]),
     ).toBe(2)
+  })
+
+  // Repro: circuit → plank → circuit. All solo plank sets done, trailing
+  // Finisher never started → sessions.has_skipped_sets must be true.
+  it("is true when all solo sets are done but a circuit remains incomplete", () => {
+    const plank = solo({ id: "plank" })
+    expect(
+      sessionHasSkippedSets(
+        [plank],
+        {
+          plank: [
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: true,
+              timerStartedAt: null,
+            },
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: true,
+              timerStartedAt: null,
+            },
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: true,
+              timerStartedAt: null,
+            },
+          ],
+        },
+        1,
+      ),
+    ).toBe(true)
+  })
+
+  it("is false when every solo set is done and no circuit is incomplete", () => {
+    const plank = solo({ id: "plank" })
+    expect(
+      sessionHasSkippedSets(
+        [plank],
+        {
+          plank: [
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: true,
+              timerStartedAt: null,
+            },
+          ],
+        },
+        0,
+      ),
+    ).toBe(false)
+  })
+
+  it("is true when a solo set is left undone", () => {
+    const plank = solo({ id: "plank" })
+    expect(
+      sessionHasSkippedSets(
+        [plank],
+        {
+          plank: [
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: true,
+              timerStartedAt: null,
+            },
+            {
+              kind: "duration",
+              targetSeconds: 45,
+              weight: "0",
+              done: false,
+              timerStartedAt: null,
+            },
+          ],
+        },
+        0,
+      ),
+    ).toBe(true)
   })
 })

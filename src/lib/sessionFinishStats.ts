@@ -55,3 +55,19 @@ export function countSessionSlots(
 ): number {
   return exercises.length + blocks.length
 }
+
+/**
+ * True when the finish payload should set `sessions.has_skipped_sets`.
+ * Solo set rows alone are not enough: an unfinished circuit never appears
+ * in `setsData`, so incomplete blocks must count as skipped work too.
+ */
+export function sessionHasSkippedSets(
+  exercises: WorkoutExercise[],
+  setsData: Record<string, SessionSetRow[]>,
+  incompleteBlockCount: number,
+): boolean {
+  const hasIncompleteSoloSets = exercises
+    .flatMap((ex) => setsData[ex.id] ?? [])
+    .some((s) => !s.done)
+  return hasIncompleteSoloSets || incompleteBlockCount > 0
+}
