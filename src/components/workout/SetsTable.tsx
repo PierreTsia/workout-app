@@ -441,6 +441,7 @@ export function SetsTable({
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
+        workoutExerciseId: exercise.id,
         exerciseNameSnapshot: exercise.name_snapshot,
         setNumber: setIdx + 1,
         repsLogged: currentSet.reps,
@@ -614,6 +615,7 @@ export function SetsTable({
         enqueueSetLog({
           sessionId,
           exerciseId: exercise.exercise_id,
+          workoutExerciseId: exercise.id,
           exerciseNameSnapshot: exercise.name_snapshot,
           setNumber: setIdx + 1,
           weightLogged: weightKgForLog,

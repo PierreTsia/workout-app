@@ -242,6 +242,11 @@ export interface SetLog {
   exercise_id: string
   /** Non-null when this log belongs to an Exercise Block cell (#351, ADR 0007). */
   block_exercise_id: string | null
+  /**
+   * Solo **Exercise Slot** (`workout_exercises.id`). Null for block logs,
+   * legacy rows, and orphans after slot delete (#463, ADR 0012).
+   */
+  workout_exercise_id: string | null
   exercise_name_snapshot: string
   set_number: number
   reps_logged: string | null
@@ -253,6 +258,11 @@ export interface SetLog {
   logged_at: string
   rir: number | null
   rest_seconds: number | null
+  /** Prescription Snapshot (ADR 0006). */
+  prescribed_reps: number | null
+  prescribed_weight: number | null
+  prescribed_sets: number | null
+  prescribed_duration_seconds: number | null
 }
 
 export interface CycleStats {

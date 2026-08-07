@@ -26,9 +26,16 @@ export type SetLogPayloadReps = {
   /**
    * Set when this log belongs to an Exercise Block cell (#351). Disambiguates
    * the same catalog exercise appearing in multiple slots; feeds the
-   * `log_slot = COALESCE(block_exercise_id, exercise_id)` dedupe key.
+   * `log_slot = COALESCE(block_exercise_id, workout_exercise_id, exercise_id)`
+   * dedupe key.
    */
   blockExerciseId?: string | null
+  /**
+   * Solo **Exercise Slot** id (`workout_exercises.id`). Required for #463
+   * slot-scoped Last Performance; left unset/null on block logs and legacy
+   * offline queue items. Feeds `log_slot` after `blockExerciseId`.
+   */
+  workoutExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   repsLogged: string
@@ -55,6 +62,8 @@ export type SetLogPayloadDuration = {
   exerciseId: string
   /** See {@link SetLogPayloadReps.blockExerciseId}. */
   blockExerciseId?: string | null
+  /** See {@link SetLogPayloadReps.workoutExerciseId}. */
+  workoutExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   weightLogged: number
@@ -297,9 +306,13 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   }
 
   const meta = resolveSessionMeta(userId, payload.sessionId)
-  // Mirror the DB's log_slot: block cells dedupe by block_exercise_id, solos
-  // by catalog exercise_id. Same exercise in two block slots stays distinct.
-  const slot = payload.blockExerciseId ?? payload.exerciseId
+  // Mirror the DB's log_slot: COALESCE(block_exercise_id, workout_exercise_id,
+  // exercise_id). Block cells and solo Exercise Slots stay distinct when they
+  // share a catalog exercise_id (#351 / #463).
+  const slot =
+    payload.blockExerciseId ??
+    payload.workoutExerciseId ??
+    payload.exerciseId
   const composite = `${meta.realId}|${slot}|${payload.setNumber}`
 
   const queue = getQueue(userId)
@@ -679,6 +692,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
       block_exercise_id: p.blockExerciseId ?? null,
+      workout_exercise_id: p.workoutExerciseId ?? null,
       exercise_name_snapshot: p.exerciseNameSnapshot,
       set_number: p.setNumber,
       weight_logged: p.weightLogged,
