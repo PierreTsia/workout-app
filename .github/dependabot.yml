@@ -5,9 +5,17 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    # typescript-eslint still peers typescript <6.1.0 — keep majors out of the
+    # grouped PR (and ignore TS majors until the peer range moves).
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       development-dependencies:
         dependency-type: "development"
+        update-types:
+          - "patch"
+          - "minor"
       production-dependencies:
         dependency-type: "production"
         update-types:
