@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import type { Exercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import type { ExercisesTableFeatures } from "./features"
 
 /**
  * Passed in rather than read from `useCatalogLabels` here: this is a plain
@@ -17,7 +18,7 @@ interface CatalogLabels {
 export function getColumns(
   t: (key: string) => string,
   { muscleLabel, equipmentLabel }: CatalogLabels,
-): ColumnDef<Exercise>[] {
+): ColumnDef<ExercisesTableFeatures, Exercise>[] {
   return [
     {
       accessorKey: "name",

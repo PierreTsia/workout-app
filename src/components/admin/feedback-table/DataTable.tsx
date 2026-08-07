@@ -2,11 +2,7 @@
 
 import { useState, useMemo, useCallback, Fragment } from "react"
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getExpandedRowModel,
+  useTable,
   flexRender,
   type SortingState,
   type ColumnFiltersState,
@@ -28,12 +24,15 @@ import { authAtom } from "@/store/atoms"
 import { getColumns } from "./columns"
 import { DataTableToolbar } from "./DataTableToolbar"
 import { FeedbackDetailRow } from "./FeedbackDetailRow"
+import {
+  feedbackTableFeatures,
+  type FeedbackTableFeatures,
+} from "./features"
 
-const globalFilterFn: FilterFn<ExerciseContentFeedback> = (
-  row,
-  _columnId,
-  filterValue: string,
-) => {
+const globalFilterFn: FilterFn<
+  FeedbackTableFeatures,
+  ExerciseContentFeedback
+> = (row, _columnId, filterValue: string) => {
   const search = filterValue.toLowerCase()
   const name = (row.original.exercises?.name ?? "").toLowerCase()
   const email = row.original.user_email.toLowerCase()
@@ -68,7 +67,8 @@ export function DataTable({ data }: DataTableProps) {
   }, [])
 
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: feedbackTableFeatures,
     data,
     columns,
     state: {
@@ -83,10 +83,6 @@ export function DataTable({ data }: DataTableProps) {
     onExpandedChange: setExpanded,
     globalFilterFn,
     getRowCanExpand: () => true,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
     meta: {
       adminEmail: user?.email ?? "unknown",
     },
@@ -126,7 +122,7 @@ export function DataTable({ data }: DataTableProps) {
               table.getRowModel().rows.map((row) => (
                 <Fragment key={row.id}>
                   <TableRow>
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getAllCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(
                           cell.column.columnDef.cell,
