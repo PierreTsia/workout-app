@@ -59,9 +59,18 @@ export async function fetchLastWeightsForExerciseIds(
   return latestWeightPerExerciseFromRows(data)
 }
 
+type SlotPerformanceWeightRow = {
+  workout_exercise_id: string | null
+  weight_logged: number | string | null
+  logged_at: string | null
+}
+
 /**
  * Latest logged weight (kg) per **Exercise Slot**, matched on
  * `(workout_exercise_id, exercise_id)`. Existing-slot prefill only (#463).
+ *
+ * Uses `get_last_performance_for_slots` (DISTINCT ON per slot) so a hot slot
+ * cannot crowd out others via a shared PostgREST `.limit`.
  */
 export async function fetchLastWeightsForSlots(
   slots: SlotWeightRef[],
@@ -69,35 +78,34 @@ export async function fetchLastWeightsForSlots(
   if (slots.length === 0) return {}
 
   const workoutExerciseIds = slots.map((s) => s.workoutExerciseId)
-  const exerciseIds = [...new Set(slots.map((s) => s.exerciseId))]
+  const exerciseIds = slots.map((s) => s.exerciseId)
 
-  const { data, error } = await supabase
-    .from("set_logs")
-    .select("workout_exercise_id, exercise_id, weight_logged, logged_at")
-    .in("workout_exercise_id", workoutExerciseIds)
-    .in("exercise_id", exerciseIds)
-    .is("block_exercise_id", null)
-    .not("workout_exercise_id", "is", null)
-    .order("logged_at", { ascending: false })
-    .limit(slots.length * 50)
+  const { data, error } = await supabase.rpc("get_last_performance_for_slots", {
+    p_workout_exercise_ids: workoutExerciseIds,
+    p_exercise_ids: exerciseIds,
+  })
 
   if (error) throw error
   if (!data || data.length === 0) return {}
 
-  // Keep only rows whose (slot, catalog) pair was requested (`.in` is a product).
-  const wanted = new Set(
-    slots.map((s) => `${s.workoutExerciseId}:${s.exerciseId}`),
-  )
-  const matched = data.filter(
-    (row) =>
-      row.workout_exercise_id != null &&
-      wanted.has(`${row.workout_exercise_id}:${row.exercise_id}`),
-  )
+  const rows: SlotPerformanceWeightRow[] = data
+  const newestFirst = [...rows].sort((a, b) => {
+    const aAt = a.logged_at ? Date.parse(a.logged_at) : 0
+    const bAt = b.logged_at ? Date.parse(b.logged_at) : 0
+    return bAt - aAt
+  })
 
   return latestWeightPerSlotFromRows(
-    matched.map((row) => ({
-      workout_exercise_id: row.workout_exercise_id as string,
-      weight_logged: row.weight_logged,
-    })),
+    newestFirst.flatMap((row) => {
+      if (row.workout_exercise_id == null || row.weight_logged == null) {
+        return []
+      }
+      return [
+        {
+          workout_exercise_id: row.workout_exercise_id,
+          weight_logged: row.weight_logged,
+        },
+      ]
+    }),
   )
 }

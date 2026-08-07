@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 
+const rpcMock = vi.fn()
+
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: vi.fn(),
+    rpc: (...args: unknown[]) => rpcMock(...args),
   },
 }))
 
@@ -82,43 +85,60 @@ describe("fetchLastWeightsForSlots", () => {
     expect(await fetchLastWeightsForSlots([])).toEqual({})
   })
 
-  it("queries by workout_exercise_id and excludes block logs", async () => {
-    const chain: Record<string, ReturnType<typeof vi.fn>> = {}
-    for (const m of ["select", "in", "is", "not", "order"]) {
-      chain[m] = vi.fn(() => chain)
-    }
-    chain.limit = vi.fn(() =>
-      Promise.resolve({
-        data: [
-          {
-            workout_exercise_id: "we-heavy",
-            exercise_id: "ex-rowing",
-            weight_logged: 22,
-          },
-          {
-            workout_exercise_id: "we-light",
-            exercise_id: "ex-rowing",
-            weight_logged: 8,
-          },
-        ],
-        error: null,
-      }),
-    )
-    const { supabase } = await import("@/lib/supabase")
-    vi.mocked(supabase.from).mockReturnValue(
-      chain as unknown as ReturnType<typeof supabase.from>,
-    )
+  it("loads weights via get_last_performance_for_slots (no global limit)", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          workout_exercise_id: "we-heavy",
+          exercise_id: "ex-rowing",
+          weight_logged: 22,
+          logged_at: "2026-08-07T12:00:00Z",
+        },
+        {
+          workout_exercise_id: "we-light",
+          exercise_id: "ex-rowing",
+          weight_logged: 8,
+          logged_at: "2026-08-06T12:00:00Z",
+        },
+      ],
+      error: null,
+    })
 
     const result = await fetchLastWeightsForSlots([
       { workoutExerciseId: "we-heavy", exerciseId: "ex-rowing" },
       { workoutExerciseId: "we-light", exerciseId: "ex-rowing" },
     ])
 
-    expect(chain.in).toHaveBeenCalledWith("workout_exercise_id", [
-      "we-heavy",
-      "we-light",
-    ])
-    expect(chain.is).toHaveBeenCalledWith("block_exercise_id", null)
+    expect(rpcMock).toHaveBeenCalledWith("get_last_performance_for_slots", {
+      p_workout_exercise_ids: ["we-heavy", "we-light"],
+      p_exercise_ids: ["ex-rowing", "ex-rowing"],
+    })
     expect(result).toEqual({ "we-heavy": 22, "we-light": 8 })
+  })
+
+  it("picks newest logged_at weight when a slot returns multiple sets", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        {
+          workout_exercise_id: "we-1",
+          exercise_id: "ex-1",
+          weight_logged: 20,
+          logged_at: "2026-08-07T10:00:00Z",
+        },
+        {
+          workout_exercise_id: "we-1",
+          exercise_id: "ex-1",
+          weight_logged: 22,
+          logged_at: "2026-08-07T10:05:00Z",
+        },
+      ],
+      error: null,
+    })
+
+    const result = await fetchLastWeightsForSlots([
+      { workoutExerciseId: "we-1", exerciseId: "ex-1" },
+    ])
+
+    expect(result).toEqual({ "we-1": 22 })
   })
 })
