@@ -21,6 +21,7 @@ export interface UseProgressionSuggestionsForDayResult {
 }
 
 interface LastPerformanceRow {
+  workout_exercise_id: string
   exercise_id: string
   session_id: string
   set_number: number
@@ -39,6 +40,19 @@ interface LastPerformanceRow {
   session_finished_at: string | null
 }
 
+/** Defensive zip check for parallel RPC arrays (#463 / T173). Exported for tests. */
+export function requireParallelSlotArrays(
+  workoutExerciseIds: string[],
+  exerciseIds: string[],
+): void {
+  if (workoutExerciseIds.length !== exerciseIds.length) {
+    throw new Error(
+      `get_last_performance_for_slots: parallel arrays length mismatch ` +
+        `(${workoutExerciseIds.length} vs ${exerciseIds.length})`,
+    )
+  }
+}
+
 function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
   const reps = parseInt(String(row.reps_logged ?? ""), 10)
   return {
@@ -54,18 +68,15 @@ function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
   }
 }
 
-function groupRowsByExerciseId(
+function groupRowsByWorkoutExerciseId(
   rows: LastPerformanceRow[],
 ): Map<string, LastPerformanceRow[]> {
-  // Local push into the bucket array — the bucket is owned by the Map we're
-  // building and never escapes this function before assembly is complete, so
-  // semantically pure. Avoids O(N²) allocations from `[...existing, row]`.
   return rows.reduce<Map<string, LastPerformanceRow[]>>((acc, row) => {
-    const list = acc.get(row.exercise_id)
+    const list = acc.get(row.workout_exercise_id)
     if (list) {
       list.push(row)
     } else {
-      acc.set(row.exercise_id, [row])
+      acc.set(row.workout_exercise_id, [row])
     }
     return acc
   }, new Map())
@@ -82,8 +93,6 @@ function computeSuggestion(
   rows: LastPerformanceRow[],
 ): ProgressionSuggestion | null {
   const lastPerformance = rows.length > 0 ? rows.map(rowToSetPerformance) : null
-  // All rows of the latest session carry the same `session_finished_at` (the
-  // RPC denormalizes it). First row is sufficient.
   const lastSessionFinishedAt = rows[0]?.session_finished_at ?? null
   const prescription = buildPrescription(exercise, lastPerformance, {
     measurementType: inferMeasurementType(rows),
@@ -107,31 +116,31 @@ export function useProgressionSuggestionsForDay(
       "progression-suggestions-for-day",
       dayId,
       exercises
-        .map((e) => e.exercise_id)
+        .map((e) => `${e.id}:${e.exercise_id}`)
         .sort()
         .join(","),
     ],
     queryFn: async () => {
+      const workoutExerciseIds = exercises.map((e) => e.id)
       const exerciseIds = exercises.map((e) => e.exercise_id)
+      requireParallelSlotArrays(workoutExerciseIds, exerciseIds)
+
       const { data, error } = await supabase.rpc(
-        "get_last_performance_for_exercises",
-        { p_exercise_ids: exerciseIds },
+        "get_last_performance_for_slots",
+        {
+          p_workout_exercise_ids: workoutExerciseIds,
+          p_exercise_ids: exerciseIds,
+        },
       )
       if (error) throw error
 
-      const rowsByExercise = groupRowsByExerciseId(
+      const rowsBySlot = groupRowsByWorkoutExerciseId(
         (data ?? []) as LastPerformanceRow[],
       )
 
-      // Keyed by `workout_exercises.id` (the row id) — not `exercise_id` —
-      // so two rows of the same exercise in a day stay independent (e.g. a
-      // user may queue the same movement twice with different prescriptions).
-      // Same `exercise_id` will read the same Last Performance from set_logs;
-      // resolving the deeper "two rows of the same exo, different intent"
-      // conflation is a pre-existing limitation tracked outside this PR.
       return exercises.reduce<Map<string, ProgressionSuggestion | null>>(
         (acc, exercise) => {
-          const rows = rowsByExercise.get(exercise.exercise_id) ?? []
+          const rows = rowsBySlot.get(exercise.id) ?? []
           acc.set(exercise.id, computeSuggestion(exercise, rows))
           return acc
         },

@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { waitFor } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
-import { useProgressionSuggestionsForDay } from "./useProgressionSuggestionsForDay"
+import {
+  requireParallelSlotArrays,
+  useProgressionSuggestionsForDay,
+} from "./useProgressionSuggestionsForDay"
 import type { WorkoutExercise } from "@/types/database"
 
 const rpcMock = vi.fn()
@@ -36,6 +39,42 @@ function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise
   }
 }
 
+function makeRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    workout_exercise_id: "we-1",
+    exercise_id: "ex-1",
+    session_id: "sess-1",
+    set_number: 1,
+    reps_logged: "10",
+    weight_logged: 80,
+    rir: 2,
+    duration_seconds: null,
+    logged_at: "2026-05-26T10:00:00Z",
+    prescribed_reps: null,
+    prescribed_weight: null,
+    prescribed_sets: null,
+    prescribed_duration_seconds: null,
+    session_finished_at: "2026-05-26T10:30:00Z",
+    ...overrides,
+  }
+}
+
+describe("requireParallelSlotArrays", () => {
+  it("throws when parallel arrays differ in length", () => {
+    expect(() =>
+      requireParallelSlotArrays(["we-1", "we-2"], ["ex-1"]),
+    ).toThrow(/length mismatch/)
+  })
+
+  it("does not throw when lengths match", () => {
+    expect(() =>
+      requireParallelSlotArrays(["we-1"], ["ex-1"]),
+    ).not.toThrow()
+  })
+})
+
 describe("useProgressionSuggestionsForDay", () => {
   beforeEach(() => {
     rpcMock.mockReset()
@@ -47,51 +86,27 @@ describe("useProgressionSuggestionsForDay", () => {
   it("snapshot path: drifted exercise.reps does NOT trigger HOLD_INCOMPLETE when RPC returns clean prescribed_reps", async () => {
     rpcMock.mockResolvedValue({
       data: [
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
+        makeRow({
           set_number: 1,
-          reps_logged: "10",
-          weight_logged: 50,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
           prescribed_reps: 10,
           prescribed_weight: 50,
           prescribed_sets: 3,
-          prescribed_duration_seconds: null,
-          session_finished_at: "2026-05-26T10:30:00Z",
-        },
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
+          weight_logged: 50,
+        }),
+        makeRow({
           set_number: 2,
-          reps_logged: "10",
-          weight_logged: 50,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
           prescribed_reps: 10,
           prescribed_weight: 50,
           prescribed_sets: 3,
-          prescribed_duration_seconds: null,
-          session_finished_at: "2026-05-26T10:30:00Z",
-        },
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
+          weight_logged: 50,
+        }),
+        makeRow({
           set_number: 3,
-          reps_logged: "10",
-          weight_logged: 50,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
           prescribed_reps: 10,
           prescribed_weight: 50,
           prescribed_sets: 3,
-          prescribed_duration_seconds: null,
-          session_finished_at: "2026-05-26T10:30:00Z",
-        },
+          weight_logged: 50,
+        }),
       ],
       error: null,
     })
@@ -128,36 +143,9 @@ describe("useProgressionSuggestionsForDay", () => {
   it("computes a Progression Suggestion per exercise with last performance (happy path)", async () => {
     rpcMock.mockResolvedValue({
       data: [
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
-          set_number: 1,
-          reps_logged: "10",
-          weight_logged: 80,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
-          set_number: 2,
-          reps_logged: "10",
-          weight_logged: 80,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
-          set_number: 3,
-          reps_logged: "10",
-          weight_logged: 80,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
+        makeRow({ set_number: 1 }),
+        makeRow({ set_number: 2 }),
+        makeRow({ set_number: 3 }),
       ],
       error: null,
     })
@@ -176,7 +164,8 @@ describe("useProgressionSuggestionsForDay", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-    expect(rpcMock).toHaveBeenCalledWith("get_last_performance_for_exercises", {
+    expect(rpcMock).toHaveBeenCalledWith("get_last_performance_for_slots", {
+      p_workout_exercise_ids: ["we-1"],
       p_exercise_ids: ["ex-1"],
     })
     const suggestion = result.current.data.get("we-1")
@@ -186,39 +175,132 @@ describe("useProgressionSuggestionsForDay", () => {
     expect(suggestion!.weight).toBe(80)
   })
 
+  it("keeps independent Last Performance when two slots share a catalog exercise", async () => {
+    // #463 repro: heavy gym slot vs light HIIT slot, same rowing catalog id.
+    rpcMock.mockResolvedValue({
+      data: [
+        makeRow({
+          workout_exercise_id: "we-heavy",
+          exercise_id: "ex-rowing",
+          weight_logged: 22,
+          prescribed_weight: 22,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 1,
+        }),
+        makeRow({
+          workout_exercise_id: "we-heavy",
+          exercise_id: "ex-rowing",
+          weight_logged: 22,
+          prescribed_weight: 22,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 2,
+        }),
+        makeRow({
+          workout_exercise_id: "we-heavy",
+          exercise_id: "ex-rowing",
+          weight_logged: 22,
+          prescribed_weight: 22,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 3,
+        }),
+        makeRow({
+          workout_exercise_id: "we-light",
+          exercise_id: "ex-rowing",
+          weight_logged: 8,
+          prescribed_weight: 8,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 1,
+          session_id: "sess-light",
+        }),
+        makeRow({
+          workout_exercise_id: "we-light",
+          exercise_id: "ex-rowing",
+          weight_logged: 8,
+          prescribed_weight: 8,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 2,
+          session_id: "sess-light",
+        }),
+        makeRow({
+          workout_exercise_id: "we-light",
+          exercise_id: "ex-rowing",
+          weight_logged: 8,
+          prescribed_weight: 8,
+          prescribed_reps: 10,
+          prescribed_sets: 3,
+          set_number: 3,
+          session_id: "sess-light",
+        }),
+      ],
+      error: null,
+    })
+
+    const heavy = makeExercise({
+      id: "we-heavy",
+      exercise_id: "ex-rowing",
+      weight: "22",
+      reps: "10",
+      sets: 3,
+    })
+    const light = makeExercise({
+      id: "we-light",
+      exercise_id: "ex-rowing",
+      weight: "8",
+      reps: "10",
+      sets: 3,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [heavy, light]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(rpcMock).toHaveBeenCalledWith("get_last_performance_for_slots", {
+      p_workout_exercise_ids: ["we-heavy", "we-light"],
+      p_exercise_ids: ["ex-rowing", "ex-rowing"],
+    })
+
+    const heavySug = result.current.data.get("we-heavy")
+    const lightSug = result.current.data.get("we-light")
+    expect(heavySug).not.toBeNull()
+    expect(lightSug).not.toBeNull()
+    expect(heavySug!.weight).toBe(22)
+    expect(lightSug!.weight).toBe(8)
+  })
+
   it("treats rows with duration_seconds set as a duration exercise", async () => {
     rpcMock.mockResolvedValue({
       data: [
-        {
+        makeRow({
+          workout_exercise_id: "we-plank",
           exercise_id: "ex-plank",
-          session_id: "sess-1",
           set_number: 1,
           reps_logged: "0",
           weight_logged: 0,
-          rir: 2,
           duration_seconds: 30,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
-        {
+        }),
+        makeRow({
+          workout_exercise_id: "we-plank",
           exercise_id: "ex-plank",
-          session_id: "sess-1",
           set_number: 2,
           reps_logged: "0",
           weight_logged: 0,
-          rir: 2,
           duration_seconds: 30,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
-        {
+        }),
+        makeRow({
+          workout_exercise_id: "we-plank",
           exercise_id: "ex-plank",
-          session_id: "sess-1",
           set_number: 3,
           reps_logged: "0",
           weight_logged: 0,
-          rir: 2,
           duration_seconds: 30,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
+        }),
       ],
       error: null,
     })
@@ -250,18 +332,7 @@ describe("useProgressionSuggestionsForDay", () => {
 
   it("yields a null entry for exercises without any last performance row", async () => {
     rpcMock.mockResolvedValue({
-      data: [
-        {
-          exercise_id: "ex-1",
-          session_id: "sess-1",
-          set_number: 1,
-          reps_logged: "10",
-          weight_logged: 80,
-          rir: 2,
-          duration_seconds: null,
-          logged_at: "2026-05-26T10:00:00Z",
-        },
-      ],
+      data: [makeRow({ workout_exercise_id: "we-1", set_number: 1 })],
       error: null,
     })
 
