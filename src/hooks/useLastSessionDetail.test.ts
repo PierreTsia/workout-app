@@ -14,6 +14,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
   } = {
     select: vi.fn(() => chain),
     eq: vi.fn(() => chain),
+    is: vi.fn(() => chain),
     lt: vi.fn(() => chain),
     order: vi.fn(() => chain),
     limit: vi.fn(() => chain),
@@ -69,14 +70,26 @@ describe("useLastSessionDetail", () => {
     setLogsChain = createChain({ data: [] })
   })
 
+  it("disables the query when workoutExerciseId is undefined", () => {
+    const { result } = renderHookWithProviders(() =>
+      useLastSessionDetail(undefined, "ex-1"),
+    )
+    expect(result.current.data).toBeUndefined()
+    expect(result.current.fetchStatus).toBe("idle")
+  })
+
   it("disables the query when exerciseId is undefined", () => {
-    const { result } = renderHookWithProviders(() => useLastSessionDetail(undefined))
+    const { result } = renderHookWithProviders(() =>
+      useLastSessionDetail("we-1", undefined),
+    )
     expect(result.current.data).toBeUndefined()
     expect(result.current.fetchStatus).toBe("idle")
   })
 
   it("disables the query when there is no auth", () => {
-    const { result } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result } = renderHookWithProviders(() =>
+      useLastSessionDetail("we-1", "ex-1"),
+    )
     expect(result.current.data).toBeUndefined()
     expect(result.current.fetchStatus).toBe("idle")
   })
@@ -84,7 +97,9 @@ describe("useLastSessionDetail", () => {
   it("returns null when there are no set_logs", async () => {
     setLogsChain = createChain({ data: [] })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("we-1", "ex-1"),
+    )
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -101,7 +116,7 @@ describe("useLastSessionDetail", () => {
       ],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -148,7 +163,7 @@ describe("useLastSessionDetail", () => {
       ],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -174,7 +189,7 @@ describe("useLastSessionDetail", () => {
       ],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -191,7 +206,7 @@ describe("useLastSessionDetail", () => {
       ],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -209,7 +224,7 @@ describe("useLastSessionDetail", () => {
       ],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -223,7 +238,7 @@ describe("useLastSessionDetail", () => {
       data: [makeLog({ reps_logged: null })],
     })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -238,7 +253,7 @@ describe("useLastSessionDetail", () => {
     const startedAt = new Date("2026-03-27T14:00:00Z").getTime()
 
     const { result, store } = renderHookWithProviders(() =>
-      useLastSessionDetail("ex-1", startedAt),
+      useLastSessionDetail("we-1", "ex-1", startedAt),
     )
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
@@ -254,7 +269,7 @@ describe("useLastSessionDetail", () => {
   it("does not call .lt when sessionStartedAt is omitted", async () => {
     setLogsChain = createChain({ data: [] })
 
-    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("ex-1"))
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
@@ -272,7 +287,7 @@ describe("useLastSessionDetail", () => {
     })
 
     const { result, store } = renderHookWithProviders(() =>
-      useLastSessionDetail("ex-1", null, "duration"),
+      useLastSessionDetail("we-1", "ex-1", null, "duration"),
     )
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
@@ -294,7 +309,7 @@ describe("useLastSessionDetail", () => {
     })
 
     const { result, store } = renderHookWithProviders(() =>
-      useLastSessionDetail("ex-1", null, "duration"),
+      useLastSessionDetail("we-1", "ex-1", null, "duration"),
     )
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
@@ -314,7 +329,7 @@ describe("useLastSessionDetail", () => {
     })
 
     const { result, store } = renderHookWithProviders(() =>
-      useLastSessionDetail("ex-1"),
+      useLastSessionDetail("we-1", "ex-1"),
     )
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
@@ -324,5 +339,24 @@ describe("useLastSessionDetail", () => {
     expect(result.current.data!.sets).toHaveLength(1)
     expect(result.current.data!.sets[0].reps).toBe(10)
     expect(result.current.data!.sets[0].durationSeconds).toBeUndefined()
+  })
+
+  it("filters by workout_exercise_id + exercise_id and excludes block logs", async () => {
+    setLogsChain = createChain({ data: [] })
+
+    const { result, store } = renderHookWithProviders(() =>
+      useLastSessionDetail("we-heavy", "ex-rowing"),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(setLogsChain.eq).toHaveBeenCalledWith(
+      "workout_exercise_id",
+      "we-heavy",
+    )
+    expect(setLogsChain.eq).toHaveBeenCalledWith("exercise_id", "ex-rowing")
+    expect(setLogsChain.is).toHaveBeenCalledWith("block_exercise_id", null)
   })
 })

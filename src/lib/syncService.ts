@@ -522,6 +522,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
 
   const allMeta = getSessionMeta(userId)
   const exerciseIds = new Set<string>()
+  const workoutExerciseIds = new Set<string>()
   const ensuredSessions = new Set<string>()
 
   const sessionGroups = groupBy(queue, (item) => item.realSessionId)
@@ -554,6 +555,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
       if (item.type === "set_log") {
         const p = item.payload as SetLogPayload
         exerciseIds.add(p.exerciseId)
+        if (p.workoutExerciseId) workoutExerciseIds.add(p.workoutExerciseId)
         const ok = await processSetLog(item)
         if (!ok) surviving.push(item)
       } else {
@@ -593,10 +595,17 @@ async function drainQueueOnce(userId: string): Promise<void> {
     store.set(syncStatusAtom, "failed")
   }
 
-  // Cache invalidation for all touched exercises
+  // Cache invalidation for all touched exercises / slots (#463).
+  // last-session-detail is keyed by workout_exercise_id first (T174).
+  for (const weId of workoutExerciseIds) {
+    queryClient.invalidateQueries({ queryKey: ["last-session-detail", weId] })
+  }
+  if (workoutExerciseIds.size === 0 && exerciseIds.size > 0) {
+    // Legacy queue items without workoutExerciseId — broad invalidate.
+    queryClient.invalidateQueries({ queryKey: ["last-session-detail"] })
+  }
   for (const exId of exerciseIds) {
     queryClient.invalidateQueries({ queryKey: ["last-session", exId] })
-    queryClient.invalidateQueries({ queryKey: ["last-session-detail", exId] })
     queryClient.invalidateQueries({ queryKey: ["best-1rm", exId] })
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }

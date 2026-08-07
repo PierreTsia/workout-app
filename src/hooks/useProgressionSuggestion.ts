@@ -15,6 +15,7 @@ export function useProgressionSuggestion(
   catalogExercise?: Exercise | null,
 ): ProgressionSuggestion | null {
   const { data: lastSessionDetail } = useLastSessionDetail(
+    exercise.id,
     exercise.exercise_id,
     sessionStartedAt,
     measurementType,

@@ -539,10 +539,16 @@ describe("SyncService", () => {
     })
 
     it("invalidates caches for sessions, pr-aggregates, and per-exercise keys", async () => {
-      enqueueSetLog(makeSetLogPayload({ exerciseId: "ex-A" }))
+      enqueueSetLog(
+        makeSetLogPayload({
+          exerciseId: "ex-A",
+          workoutExerciseId: "we-A",
+        }),
+      )
       enqueueSetLog(
         makeSetLogPayload({
           exerciseId: "ex-B",
+          workoutExerciseId: "we-B",
           setNumber: 2,
           loggedAt: 3000,
         }),
@@ -560,11 +566,11 @@ describe("SyncService", () => {
       expect(keyMatches).toContainEqual(["training-activity-by-day"])
       expect(keyMatches).toContainEqual(["sessions-date-range"])
       expect(keyMatches).toContainEqual(["last-session", "ex-A"])
-      expect(keyMatches).toContainEqual(["last-session-detail", "ex-A"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "we-A"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-A"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-A"])
       expect(keyMatches).toContainEqual(["last-session", "ex-B"])
-      expect(keyMatches).toContainEqual(["last-session-detail", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "we-B"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-B"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-B"])
     })
