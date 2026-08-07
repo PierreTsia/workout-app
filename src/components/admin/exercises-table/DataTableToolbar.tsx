@@ -3,9 +3,10 @@ import { Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import type { Exercise } from "@/types/database"
+import type { ExercisesTableFeatures } from "./features"
 
 interface DataTableToolbarProps {
-  table: Table<Exercise>
+  table: Table<ExercisesTableFeatures, Exercise>
   globalFilter: string
   onGlobalFilterChange: (value: string) => void
   reviewFilter: string

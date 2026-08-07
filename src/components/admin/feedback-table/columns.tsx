@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { StatusDropdown } from "./StatusDropdown"
+import type { FeedbackTableFeatures } from "./features"
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   pending: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
@@ -21,7 +22,7 @@ function truncate(text: string | null, max: number): string {
 export function getColumns(
   t: (key: string) => string,
   locale: string,
-): ColumnDef<ExerciseContentFeedback>[] {
+): ColumnDef<FeedbackTableFeatures, ExerciseContentFeedback>[] {
   return [
     {
       id: "expand",
@@ -74,7 +75,7 @@ export function getColumns(
           </Link>
         )
       },
-      sortingFn: (a, b) => {
+      sortFn: (a, b) => {
         const nameA = a.original.exercises?.name ?? ""
         const nameB = b.original.exercises?.name ?? ""
         return nameA.localeCompare(nameB)
@@ -178,16 +179,13 @@ export function getColumns(
     {
       id: "actions",
       header: t("feedback.columns.actions"),
-      cell: ({ row, table }) => {
-        const meta = table.options.meta as { adminEmail: string } | undefined
-        return (
-          <StatusDropdown
-            feedbackId={row.original.id}
-            currentStatus={row.original.status}
-            adminEmail={meta?.adminEmail ?? "unknown"}
-          />
-        )
-      },
+      cell: ({ row, table }) => (
+        <StatusDropdown
+          feedbackId={row.original.id}
+          currentStatus={row.original.status}
+          adminEmail={table.options.meta?.adminEmail ?? "unknown"}
+        />
+      ),
     },
   ]
 }

@@ -2,11 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react"
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
+  useTable,
   flexRender,
   type SortingState,
   type ColumnFiltersState,
@@ -27,6 +23,10 @@ import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { getColumns } from "./columns"
 import { DataTableToolbar } from "./DataTableToolbar"
 import { DataTablePagination } from "./DataTablePagination"
+import {
+  exercisesTableFeatures,
+  type ExercisesTableFeatures,
+} from "./features"
 
 interface DataTableProps {
   data: Exercise[]
@@ -52,7 +52,7 @@ export function DataTable({ data }: DataTableProps) {
    * is on screen has to work, and the stored value, because an admin who has
    * been typing "Pectoraux" for a year shouldn't have to stop.
    */
-  const globalFilterFn = useMemo<FilterFn<Exercise>>(
+  const globalFilterFn = useMemo<FilterFn<ExercisesTableFeatures, Exercise>>(
     () => (row, _columnId, filterValue: string) => {
       const term = normalizeForSearch(filterValue)
       return [
@@ -77,7 +77,8 @@ export function DataTable({ data }: DataTableProps) {
   }, [])
 
   // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: exercisesTableFeatures,
     data,
     columns,
     state: {
@@ -89,12 +90,8 @@ export function DataTable({ data }: DataTableProps) {
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     globalFilterFn,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     initialState: {
-      pagination: { pageSize: 50 },
+      pagination: { pageIndex: 0, pageSize: 50 },
     },
   })
 
@@ -132,7 +129,7 @@ export function DataTable({ data }: DataTableProps) {
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
