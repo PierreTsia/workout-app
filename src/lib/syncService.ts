@@ -599,13 +599,15 @@ async function drainQueueOnce(userId: string): Promise<void> {
   // last-session-detail is keyed by workout_exercise_id first (T174).
   for (const weId of workoutExerciseIds) {
     queryClient.invalidateQueries({ queryKey: ["last-session-detail", weId] })
+    queryClient.invalidateQueries({ queryKey: ["last-session", weId] })
   }
   if (workoutExerciseIds.size === 0 && exerciseIds.size > 0) {
     // Legacy queue items without workoutExerciseId — broad invalidate.
     queryClient.invalidateQueries({ queryKey: ["last-session-detail"] })
+    queryClient.invalidateQueries({ queryKey: ["last-session"] })
   }
+  queryClient.invalidateQueries({ queryKey: ["last-weights-slots"] })
   for (const exId of exerciseIds) {
-    queryClient.invalidateQueries({ queryKey: ["last-session", exId] })
     queryClient.invalidateQueries({ queryKey: ["best-1rm", exId] })
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }

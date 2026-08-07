@@ -565,14 +565,15 @@ describe("SyncService", () => {
       expect(keyMatches).toContainEqual(["pr-aggregates"])
       expect(keyMatches).toContainEqual(["training-activity-by-day"])
       expect(keyMatches).toContainEqual(["sessions-date-range"])
-      expect(keyMatches).toContainEqual(["last-session", "ex-A"])
+      expect(keyMatches).toContainEqual(["last-session", "we-A"])
       expect(keyMatches).toContainEqual(["last-session-detail", "we-A"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-A"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-A"])
-      expect(keyMatches).toContainEqual(["last-session", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-session", "we-B"])
       expect(keyMatches).toContainEqual(["last-session-detail", "we-B"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-B"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-weights-slots"])
     })
 
     it("transitions syncStatusAtom through syncing → synced (all drained) or syncing → failed", async () => {

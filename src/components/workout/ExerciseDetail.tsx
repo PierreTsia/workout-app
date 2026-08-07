@@ -74,7 +74,11 @@ export function ExerciseDetail({
   const { t: tFeedback } = useTranslation("feedback")
   const { formatWeight } = useWeightUnit()
   const { exerciseName, muscleLabel } = useCatalogLabels()
-  const { data: lastSession } = useLastSession(exercise.exercise_id, sessionStartedAt)
+  const { data: lastSession } = useLastSession(
+    exercise.id,
+    exercise.exercise_id,
+    sessionStartedAt,
+  )
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)

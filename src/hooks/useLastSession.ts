@@ -10,19 +10,31 @@ export interface LastSessionSummary {
   weight: number
 }
 
+/**
+ * "Last time" summary for the current **Exercise Slot** (#463 / T175).
+ * Match key: `(workout_exercise_id, exercise_id)`; block logs excluded.
+ */
 export function useLastSession(
+  workoutExerciseId: string | undefined,
   exerciseId: string | undefined,
   sessionStartedAt?: number | null,
 ) {
   const user = useAtomValue(authAtom)
 
   return useQuery<LastSessionSummary | null>({
-    queryKey: ["last-session", exerciseId, sessionStartedAt ?? null],
+    queryKey: [
+      "last-session",
+      workoutExerciseId,
+      exerciseId,
+      sessionStartedAt ?? null,
+    ],
     queryFn: async (): Promise<LastSessionSummary | null> => {
       let query = supabase
         .from("set_logs")
         .select("set_number, reps_logged, weight_logged, session_id")
+        .eq("workout_exercise_id", workoutExerciseId!)
         .eq("exercise_id", exerciseId!)
+        .is("block_exercise_id", null)
 
       if (sessionStartedAt) {
         query = query.lt("logged_at", new Date(sessionStartedAt).toISOString())
@@ -57,6 +69,6 @@ export function useLastSession(
         weight: Number(sessionLogs[0].weight_logged),
       } satisfies LastSessionSummary
     },
-    enabled: !!exerciseId && !!user,
+    enabled: !!workoutExerciseId && !!exerciseId && !!user,
   })
 }

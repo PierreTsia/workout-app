@@ -40,7 +40,10 @@ import {
   useSwapExerciseInDay,
 } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
-import { useLastWeights, lastWeightsQueryConfig } from "@/hooks/useLastWeights"
+import {
+  useLastWeightsForSlots,
+  lastWeightsQueryConfig,
+} from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
 import { enqueueSessionFinish, peekSessionRealId, queuedSetLogPayloadsForSession, scheduleImmediateDrain } from "@/lib/syncService"
@@ -355,6 +358,14 @@ export function WorkoutPage() {
     () => exercises.map((ex) => ex.exercise_id),
     [exercises],
   )
+  const slotWeightRefs = useMemo(
+    () =>
+      exercises.map((ex) => ({
+        workoutExerciseId: ex.id,
+        exerciseId: ex.exercise_id,
+      })),
+    [exercises],
+  )
 
   const { data: stripLibraryRows = [] } = useExerciseBatch(exerciseIds)
   const stripLibraryById = useMemo(
@@ -366,7 +377,9 @@ export function WorkoutPage() {
     addExerciseMutation.isPending ||
     deleteExerciseMutation.isPending ||
     swapExerciseMutation.isPending
-  const { data: lastWeights = {} } = useLastWeights(exerciseIds)
+  // Existing-slot prefill is slot-scoped (#463); add/swap still uses
+  // lastWeightsQueryConfig (catalog-global) below.
+  const { data: lastSlotWeights = {} } = useLastWeightsForSlots(slotWeightRefs)
   const activeSessionDayId = session.activeDayId ?? session.currentDayId
   const isDayDoneInCycle = cycleProgress.completedDayIds.includes(session.currentDayId ?? "")
 
@@ -716,7 +729,7 @@ export function WorkoutPage() {
       for (const ex of exercises) {
         const existing = prev.setsData[ex.id]
         const storedWeight = Number(ex.weight)
-        const historyWeight = lastWeights[ex.exercise_id] ?? 0
+        const historyWeight = lastSlotWeights[ex.id] ?? 0
         const effectiveWeightKg =
           storedWeight > 0 ? storedWeight : historyWeight
         const lib = exerciseById.get(ex.exercise_id)
@@ -752,7 +765,7 @@ export function WorkoutPage() {
     exercises,
     setSession,
     toDisplay,
-    lastWeights,
+    lastSlotWeights,
     exerciseById,
   ])
 
