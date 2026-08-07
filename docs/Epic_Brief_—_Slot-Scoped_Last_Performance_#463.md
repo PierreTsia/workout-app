@@ -37,8 +37,8 @@ Quand le même exercice catalogue vit sous deux intentions de charge (salle en s
 6. As a lifter adding or swapping in a catalog exercise with no slot history yet, I want the initial template weight seeded from my last catalog-global load when available, so that a brand-new slot isn’t stuck at 0 when I’ve lifted that movement before. *(Preserve existing seed behavior — not a new feature workstream.)*
 7. As a lifter who edited a slot’s **Template Prescription** since I last trained *that* slot, I want the **Manual Override Window** to ignore unrelated catalog sessions (e.g. HIIT), so that my deload/correction sticks until I train that slot again.
 8. As a lifter logging sets offline then syncing, I want solo `set_logs` to carry `workout_exercise_id` through the queue, so that slot scope survives the offline path. Legacy or incomplete queue payloads without a slot id must **not** fall back to catalog-global **Last Performance** — the engine bootstraps from **Template Prescription** instead.
-9. As a lifter with historical solo logs from before this change, I want unambiguous day/exercise pairs backfilled onto the correct slot, so that my existing gym progression doesn’t reset to template for no reason.
-10. As a lifter whose past day logged the same catalog exercise in two slots, I want those ambiguous legacy rows left unattached (bootstrap), so that the migration never guesses wrong and reintroduces cross-intent pollution.
+9. As a lifter with solo logs from before this change, I want those rows left unattached (`workout_exercise_id` NULL) so the engine bootstraps from **Template Prescription** rather than guessing a slot after deleted dual-intent siblings.
+10. As a lifter whose past day logged the same catalog exercise in two slots (or once had two and deleted one), I want legacy rows never auto-attached to a surviving slot, so that the migration cannot reintroduce cross-intent pollution.
 11. As a lifter training an **Exercise Block** (Circuit), I want block logs to remain outside the progression engine, so that ADR 0007 behavior is unchanged.
 12. As a lifter reviewing exercise history, trends, or PRs, I want those views to stay catalog-global across programs, so that I can still see “how I’m progressing on rowing” as an athlete.
 13. As a lifter who creates a new program (or deletes/recreates a slot) with the same catalog exercises, I want progression to start from that slot’s **Template Prescription**, so that slot identity stays honest (no silent cross-program inheritance).
@@ -53,8 +53,7 @@ Quand le même exercice catalogue vit sous deux intentions de charge (salle en s
 | 1 | Reporter repro: after light home log then gym session, suggested weight for the gym slot stays on the gym anchor (± normal **Progression Rule** step), not the home load |
 | 3–4 | Pre-session suggestion weight equals in-session prefill for the same slot on a dual-program fixture (automated) |
 | 8 | Automated: queued solo payload without `workoutExerciseId` never anchors **Last Performance** via catalog-global fallback |
-| 9 | Automated uniqueness backfill cases + manual spot-check on staging/prod sample for the reporter’s dual-program setup |
-| 10 | Automated: ambiguous same-day duplicate catalog exo → FK left null |
+| 9–10 | Migration leaves pre-deploy solos with null `workout_exercise_id`; first post-deploy session bootstraps from template (spot-check: no guessed attachments) |
 
 ---
 
@@ -64,14 +63,14 @@ Quand le même exercice catalogue vit sous deux intentions de charge (salle en s
 - Authoritative docs already from grilling: **Exercise Slot** in `docs/CONTEXT.md`, ADR `file:docs/adr/0012-slot-scoped-last-performance.md`
 - Schema: `set_logs.workout_exercise_id` nullable FK → `workout_exercises`, `ON DELETE SET NULL`
 - Write path: all solo set-log inserts, including offline queue (`SetLogPayload.workoutExerciseId`)
-- Eager backfill when the day has exactly one slot for that catalog `exercise_id`; ambiguous / orphan → `NULL` → bootstrap
-- Read path: `get_last_performance_for_exercises` + `useLastSessionDetail` + session prefill for **existing** slots (`useLastWeights`, `useLastSession`)
+- **No** eager historical backfill (deleted dual-slot siblings make “unique now” unsafe)
+- Read path: `get_last_performance_for_slots` + `useLastSessionDetail` + session prefill for **existing** slots
 - Match key `(workout_exercise_id, exercise_id)` after Builder/session swap
 - **Manual Override Window** uses the same slot-scoped last session as **Last Performance**
 - Preserve catalog-global weight seed on add/swap (story 6 — no redesign)
-- Fail-safe: no catalog-global **Last Performance** fallback for null FK (legacy queue, orphans, ambiguous residue)
-- Tests for dual-program / dual-slot, swap, ambiguous backfill skip, block exclusion, offline null-FK bootstrap
-- Close the loop on #463 (acceptance criteria, remove `needs-grilling` when done)
+- Fail-safe: no catalog-global **Last Performance** fallback for null FK (legacy, orphans, offline)
+- Tests for dual-program / dual-slot, swap, block exclusion, offline null-FK bootstrap
+- Close the loop on #463 (acceptance criteria; T176 HITL after deploy)
 
 **Out of scope:**
 - Cross-program progression inheritance / “fork program keep history”
@@ -86,7 +85,7 @@ Quand le même exercice catalogue vit sous deux intentions de charge (salle en s
 
 - Dual-intent repro (#463) cannot make a heavy slot’s **Progression Suggestion** / séance prefill adopt the light slot’s last load
 - **Last Performance** and **Manual Override Window** share one slot-scoped definition (CONTEXT + ADR 0012), implemented in RPC and client read paths
-- Ambiguous legacy rows never get a guessed FK; block logs never pull into solo progression via a solo slot FK
+- Pre-migration solos never get a guessed FK; block logs never pull into solo progression via a solo slot FK
 - Null-FK solo logs (legacy, orphan, incomplete offline payload) bootstrap from **Template Prescription** — never via catalog-global last performance
 - Athlete-level history / trends / PRs remain catalog-global
-- Automated coverage for dual-slot, swap, ambiguous backfill, and null-FK bootstrap; plus a manual spot-check of the reporter repro after deploy
+- Automated coverage for dual-slot, swap, and null-FK bootstrap; plus T176 manual spot-check of the reporter repro after deploy

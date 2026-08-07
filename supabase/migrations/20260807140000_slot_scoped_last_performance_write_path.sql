@@ -5,7 +5,9 @@
 -- workout_exercise_id, exercise_id) so two same-catalog solos in one session
 -- no longer collide at upsert.
 --
--- RPC replace (get_last_performance_for_slots) lands in T173 — not here.
+-- No eager historical backfill: post-delete uniqueness on a day is unknowable;
+-- null FK → template bootstrap (Bugbot #464 + CI db reset). Forward writes set
+-- the FK. RPC replace (get_last_performance_for_slots) lands in T173 — not here.
 
 -- 1. Column -----------------------------------------------------------------
 ALTER TABLE set_logs
@@ -16,28 +18,12 @@ CREATE INDEX idx_set_logs_workout_exercise_logged_at
   ON set_logs (workout_exercise_id, exercise_id, logged_at DESC)
   WHERE workout_exercise_id IS NOT NULL;
 
--- 2. Eager unambiguous backfill (solos only) ---------------------------------
--- Attach only when the session's day has exactly one workout_exercises row
--- for that catalog exercise_id. Ambiguous / block / no-day rows stay NULL.
-WITH day_slot_counts AS (
-  SELECT
-    workout_day_id,
-    exercise_id,
-    (array_agg(id ORDER BY sort_order, id))[1] AS sole_we_id
-  FROM workout_exercises
-  GROUP BY workout_day_id, exercise_id
-  HAVING COUNT(*) = 1
-)
-UPDATE set_logs sl
-SET workout_exercise_id = dsc.sole_we_id
-FROM sessions s
-JOIN day_slot_counts dsc
-  ON dsc.workout_day_id = s.workout_day_id
- AND dsc.exercise_id = sl.exercise_id
-WHERE sl.session_id = s.id
-  AND sl.block_exercise_id IS NULL
-  AND sl.workout_exercise_id IS NULL
-  AND s.workout_day_id IS NOT NULL;
+-- 2. No eager historical backfill -------------------------------------------
+-- "Exactly one slot for this catalog exercise on the day *now*" is not proof
+-- the day was unambiguous *when the log was written* — a deleted dual-intent
+-- sibling would stamp the wrong history onto the survivor (Bugbot on #464 /
+-- ADR 0012). Legacy solos stay NULL → engine bootstraps from Template
+-- Prescription. Forward writes set workout_exercise_id from the live slot.
 
 -- 3. Redefine log_slot (generated expr cannot ALTER in place) ---------------
 DROP INDEX IF EXISTS set_logs_session_slot_set_uniq;

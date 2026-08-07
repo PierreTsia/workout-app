@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make every solo `set_log` carry its **Exercise Slot** identity (`workout_exercise_id`), widen `log_slot` so two same-catalog solos in one session don’t collide, and backfill unambiguous legacy rows. Unlocks slot-scoped reads in T173–T175. Addresses Epic stories **2** (write side), **8–11**.
+Make every solo `set_log` carry its **Exercise Slot** identity (`workout_exercise_id`) and widen `log_slot` so two same-catalog solos in one session don’t collide. **No** eager historical backfill — legacy solos stay NULL → template bootstrap. Unlocks slot-scoped reads in T173–T175. Addresses Epic stories **2** (write side), **8–11**.
 
 ## Mode
 
@@ -24,7 +24,7 @@ None.
 
 - Add `set_logs.workout_exercise_id uuid NULL REFERENCES workout_exercises(id) ON DELETE SET NULL`
 - Index `(workout_exercise_id, exercise_id, logged_at DESC)` partial where NOT NULL
-- Eager backfill: day has exactly one slot for that catalog `exercise_id`; solos only (`block_exercise_id IS NULL`)
+- **No** eager historical backfill (deleted dual-intent siblings make “unique now” unsafe — ADR 0012 §3)
 - Recreate generated `log_slot = COALESCE(block_exercise_id, workout_exercise_id, exercise_id)` + unique `(session_id, log_slot, set_number)`
 - **Do not** create/replace the progression RPC here (T173)
 
@@ -55,7 +55,7 @@ None.
 ## Acceptance Criteria
 
 - [ ] Migration applies cleanly; `log_slot` expression includes `workout_exercise_id`
-- [ ] Unambiguous legacy solos are backfilled; ambiguous / block / no-day rows stay NULL
+- [ ] Pre-migration solos keep `workout_exercise_id` NULL (no guessed attachments)
 - [ ] Solo enqueue from `SetsTable` persists `workout_exercise_id = workout_exercises.id`
 - [ ] Two same-catalog solos in one session upsert as distinct rows (no clobber)
 - [ ] Offline payload without `workoutExerciseId` upserts with null FK (no crash)

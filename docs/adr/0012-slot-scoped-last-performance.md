@@ -35,11 +35,13 @@ We will:
    with `ON DELETE SET NULL`. Written on every solo set-log path; left `NULL`
    for **Exercise Block** logs (still out of the engine per ADR 0007).
 
-3. **Backfill eagerly when unambiguous.** Attach legacy solo logs to a slot via
-   `session → workout_day → workout_exercises` only when that day has exactly
-   one slot for the catalog `exercise_id`. Ambiguous (duplicate exo on the day)
-   and orphan rows stay `NULL` and **bootstrap** from **Template Prescription**
-   — no global `exercise_id` fallback (that would reintroduce the bug).
+3. **Do not eager-backfill historical solos onto current slots.** “Exactly one
+   slot for this catalog exercise on the day *now*” is not proof the day was
+   unambiguous *when the log was written* — a deleted heavy/light sibling would
+   stamp the wrong intent onto the survivor (reintroducing #463). Legacy /
+   orphan rows stay `NULL` and **bootstrap** from **Template Prescription** —
+   no global `exercise_id` fallback. Forward writes set `workout_exercise_id`
+   from the live slot.
 
 4. **Scope session prescription / prefill, not athlete analytics.** Engine
    paths (`get_last_performance_for_exercises`, `useLastSessionDetail`),
@@ -63,11 +65,12 @@ We will:
   that prescription (unless the template already carries the right load).
   Quick Workouts never accumulate engine progression across days. Two “last
   weight” notions coexist (slot vs catalog) — mitigated by clear consumer
-  split (session vs analytics).
-- **Follow-ups:** Tech Plan / implementation for #463 (migration, RPC + hook
-  signature changes, `SetLogPayload.workoutExerciseId`, tests). Optional later
-  epics: fork-program-keep-progression; pedagogical UI when bootstrap replaces
-  a would-be cross-intent anchor.
+  split (session vs analytics). **All pre-migration solo logs bootstrap** from
+  **Template Prescription** on first post-deploy session (no historical slot
+  attachment) — the Builder template must carry the correct working weight.
+- **Follow-ups:** Optional later epics: fork-program-keep-progression;
+  pedagogical UI when bootstrap replaces a would-be cross-intent anchor;
+  historical slot reconstruction if we ever retain deleted `workout_exercises`.
 
 ## Alternatives considered
 
@@ -76,6 +79,7 @@ We will:
 | **Scope by Program only** | Same program can still host heavy + light solos of one catalog exo; does not match intent. |
 | **Keep global Last Performance + Manual Override workaround** | Forces the user to edit the Builder before every context switch; not a model. |
 | **Infer slot without a FK** (join day + `exercise_id`) | Ambiguous when the same exo appears twice in a day — already called out in `useProgressionSuggestionsForDay`. |
+| **Eager backfill when day has exactly one slot *now*** | Deleted dual-intent sibling makes “unique now” a lie; stamps wrong history onto the survivor (Bugbot on #464). |
 | **Fallback to global `exercise_id` for null FK rows** | Reintroduces HIIT→gym pollution for any unbackfilled or orphan log. |
 | **Scope trends/history/PRs to the slot too** | Destroys “how am I progressing on rowing as an athlete?” analytics. |
 | **Inherit progression when creating a new program** | Useful later; separate feature from fixing the identity bug. |

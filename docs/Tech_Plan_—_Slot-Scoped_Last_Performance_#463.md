@@ -13,7 +13,7 @@
 | Progression identity | **Exercise Slot** + catalog `exercise_id` | ADR 0012; intent lives on the slot; swap must not inherit old movement logs |
 | Schema | `set_logs.workout_exercise_id uuid NULL REFERENCES workout_exercises(id) ON DELETE SET NULL` | Mirror `block_exercise_id` SET NULL history-safe pattern |
 | Uniqueness / dedupe | Redefine `log_slot = COALESCE(block_exercise_id, workout_exercise_id, exercise_id)` + queue fingerprint same order | Without this, dual same-catalog solos in one session clobber each other at upsert |
-| Backfill | Eager CTE: day has exactly one slot for that `exercise_id`; solos only; else leave NULL | ADR 0006 pattern; no guessed attachments |
+| Backfill | **None** — legacy solos stay NULL → template bootstrap | “Unique slot on the day *now*” mis-attributes after a deleted dual-intent sibling (Bugbot #464); no historical slot tombstones |
 | RPC | **Drop** `get_last_performance_for_exercises`; **create** `get_last_performance_for_slots(p_workout_exercise_ids uuid[], p_exercise_ids uuid[])` | One call site; honest name; parallel arrays + client zip assert equal length |
 | RPC zip mismatch | **Throw in `queryFn`** | Programming error — do not silently bootstrap every slot |
 | In-session reads | `useLastSessionDetail` / `useLastSession` filter both ids; also `.is("block_exercise_id", null)` | Close the gap vs RPC/lastWeights block filter |
@@ -25,11 +25,11 @@
 
 ### Critical Constraints
 
-**Generated `log_slot` recreation.** Postgres cannot ALTER a generated expression in place. Migration must: drop unique index `set_logs_session_slot_set_uniq` → drop column `log_slot` → add column with new `COALESCE(block_exercise_id, workout_exercise_id, exercise_id)` → recreate unique index. Order: add FK column + backfill **before** recreating `log_slot`, so backfilled solos get distinct slots immediately. Accept brief index rebuild cost at GymLogic scale.
+**Generated `log_slot` recreation.** Postgres cannot ALTER a generated expression in place. Migration must: drop unique index `set_logs_session_slot_set_uniq` → drop column `log_slot` → add column with new `COALESCE(block_exercise_id, workout_exercise_id, exercise_id)` → recreate unique index. Accept brief index rebuild cost at GymLogic scale.
 
 **Queue dedupe parity.** `file:src/lib/syncService.ts` fingerprint today: `blockExerciseId ?? exerciseId`. Must become `blockExerciseId ?? workoutExerciseId ?? exerciseId` or two same-catalog solos still clobber each other in `localStorage` before upsert.
 
-**Sessions without `workout_day_id`.** Quick / orphan sessions cannot backfill; new solo writes still set FK from the live `WorkoutExercise.id`. Reads for those slots work going forward.
+**No historical backfill.** Pre-migration solos keep `workout_exercise_id` NULL; first post-deploy session for each slot bootstraps from **Template Prescription**. Forward writes set the FK from the live slot.
 
 **RPC array zip.** Client must throw in `queryFn` if `p_workout_exercise_ids.length !== p_exercise_ids.length`. Document in SQL comment.
 
@@ -76,23 +76,7 @@ CREATE INDEX idx_set_logs_workout_exercise_logged_at
   ON set_logs (workout_exercise_id, exercise_id, logged_at DESC)
   WHERE workout_exercise_id IS NOT NULL;
 
--- 2. Eager unambiguous backfill (solos only)
-WITH day_slot_counts AS (
-  SELECT workout_day_id, exercise_id, (array_agg(id))[1] AS sole_we_id
-  FROM workout_exercises
-  GROUP BY workout_day_id, exercise_id
-  HAVING COUNT(*) = 1
-)
-UPDATE set_logs sl
-SET workout_exercise_id = dsc.sole_we_id
-FROM sessions s
-JOIN day_slot_counts dsc
-  ON dsc.workout_day_id = s.workout_day_id
- AND dsc.exercise_id = sl.exercise_id
-WHERE sl.session_id = s.id
-  AND sl.block_exercise_id IS NULL
-  AND sl.workout_exercise_id IS NULL
-  AND s.workout_day_id IS NOT NULL;
+-- 2. No eager historical backfill (see Key Decisions / ADR 0012 §3)
 
 -- 3. Redefine log_slot (generated expr cannot ALTER in place)
 DROP INDEX IF EXISTS set_logs_session_slot_set_uniq;
@@ -232,7 +216,7 @@ graph TD
 
 | File | Purpose |
 |---|---|
-| `supabase/migrations/{ts}_slot_scoped_last_performance.sql` | FK, backfill, `log_slot`, RPC replace |
+| `supabase/migrations/{ts}_slot_scoped_last_performance.sql` | FK, `log_slot`, RPC replace (no historical backfill) |
 | `file:src/types/database.ts` | `SetLog.workout_exercise_id` (+ missing `prescribed_*`) |
 | `file:src/lib/syncService.ts` | Payload field, upsert column, queue fingerprint |
 | `file:src/components/workout/SetsTable.tsx` | Pass `workoutExerciseId: exercise.id` on both enqueue sites |
@@ -243,7 +227,7 @@ graph TD
 | `file:src/lib/lastWeightsFromSetLogs.ts` | Add `fetchLastWeightsForSlots`; keep catalog fetch |
 | `file:src/hooks/useLastWeights.ts` | Export slot query config / hook alongside catalog |
 | `file:src/pages/WorkoutPage.tsx` | Existing-slot prefill → slot weights; add/swap keep catalog |
-| Matching `*.test.ts` / `*.test.tsx` | Dual-program fixture, swap bootstrap, ambiguous backfill skip, null-FK bootstrap, log_slot collision, RPC zip throw |
+| Matching `*.test.ts` / `*.test.tsx` | Dual-program fixture, swap bootstrap, null-FK bootstrap, log_slot collision, RPC zip throw |
 
 ### Component Responsibilities
 
@@ -276,13 +260,13 @@ graph TD
 | Dual-program repro (light then heavy) | Heavy slot suggestion ignores light logs |
 | Two same-catalog solos one session | Distinct `log_slot`s; both upserts survive |
 | Builder swap on slot | No matching `(we_id, new_ex_id)` → bootstrap template |
-| Ambiguous legacy day | FK null → bootstrap; no global fallback |
+| Pre-migration / ambiguous legacy | FK stays null → template bootstrap; no global fallback |
 | Offline payload sans `workoutExerciseId` | Column null → bootstrap next read |
 | Slot deleted in Builder | SET NULL on old logs; new slot = new identity |
 | Block log | `workout_exercise_id` null; still out of RPC |
 | RPC array length mismatch | `queryFn` throws; error surfaces (not silent empty Map) |
 | Catalog history / PR views | Unchanged queries (still by `exercise_id`) |
-| Backfill misses rebuilt slot | Honest NULL → bootstrap; covered by reporter spot-check |
+| Deleted dual-intent sibling | No eager attach to survivor; Bugbot-safe (legacy NULL) |
 
 ---
 
@@ -290,5 +274,5 @@ graph TD
 
 - **Unit / hook:** dual-program same catalog exo → distinct suggestions; swap → null Last Performance / template bootstrap; null FK → no catalog-global anchor; RPC zip length mismatch throws; queue fingerprint distinguishes two solos.
 - **syncService:** upsert writes `workout_exercise_id`; `onConflict` still `session_id,log_slot,set_number`.
-- **Migration:** document backfill uniqueness rule; optional local supabase smoke with two programs / one shared exo.
-- **Manual:** reporter repro after deploy (story 1 + story 9 spot-check).
+- **Migration:** confirm no historical UPDATE of `workout_exercise_id`; optional local supabase smoke with two programs / one shared exo.
+- **Manual:** reporter repro after deploy (story 1 + stories 9–10 null/bootstrap spot-check).
