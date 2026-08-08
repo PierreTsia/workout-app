@@ -62,18 +62,6 @@ async function seedProgram(userId: string) {
       set_range_min: 2, set_range_max: 5,
     }))
 
-    // Mirror global-setup: add exercise[0] to day 2 for the progression E2E test
-    weRows.push({
-      workout_day_id: insertedDays[1].id,
-      exercise_id: exercises[0].id,
-      name_snapshot: exercises[0].name,
-      muscle_snapshot: exercises[0].muscle_group ?? "",
-      emoji_snapshot: exercises[0].emoji ?? "🏋️",
-      sets: 3, reps: "10", weight: "0", rest_seconds: 90, sort_order: 1,
-      rep_range_min: 8, rep_range_max: 12,
-      set_range_min: 2, set_range_max: 5,
-    })
-
     await admin.from("workout_exercises").insert(weRows)
   }
 }

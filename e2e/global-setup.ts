@@ -140,24 +140,9 @@ async function globalSetup() {
       set_range_max: 5,
     }))
 
-    // Add exercise[0] to day 2 as well so the progression E2E test
-    // can complete day 1, then start day 2 and see the pill (same exercise_id).
-    weRows.push({
-      workout_day_id: days![1].id,
-      exercise_id: exercises[0].id,
-      name_snapshot: exercises[0].name,
-      muscle_snapshot: exercises[0].muscle_group ?? "",
-      emoji_snapshot: exercises[0].emoji ?? "🏋️",
-      sets: 3,
-      reps: "10",
-      weight: "0",
-      rest_seconds: 90,
-      sort_order: 1,
-      rep_range_min: 8,
-      rep_range_max: 12,
-      set_range_min: 2,
-      set_range_max: 5,
-    })
+    // Progression E2E retests the same Lundi Exercise Slot after a cycle
+    // restart (#463 / ADR 0012) — do not seed a second day with the same
+    // catalog exercise_id; that is a different slot and must not share history.
 
     await admin.from("workout_exercises").insert(weRows)
   }
