@@ -158,6 +158,7 @@ describe("SetsTable", () => {
       expect.objectContaining({
         sessionId: "session-1",
         exerciseId: "library-ex-1",
+        workoutExerciseId: "workout-ex-1",
         setNumber: 1,
         rir: 2,
       }),
@@ -1024,6 +1025,7 @@ describe("SetsTable – duration exercises", () => {
       expect.objectContaining({
         sessionId: "session-1",
         exerciseId: "library-ex-dur",
+        workoutExerciseId: "workout-ex-dur",
         setNumber: 1,
         durationSeconds: 3,
       }),

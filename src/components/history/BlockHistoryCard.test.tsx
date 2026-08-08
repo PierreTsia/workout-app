@@ -14,6 +14,7 @@ function makeLog(
     session_id: "sess-1",
     exercise_id: "ex-1",
     block_exercise_id: "be1",
+    workout_exercise_id: null,
     exercise_name_snapshot: "Burpees",
     set_number: 1,
     reps_logged: "10",
@@ -24,6 +25,10 @@ function makeLog(
     logged_at: "2026-06-15T10:00:00.000Z",
     rir: null,
     rest_seconds: null,
+    prescribed_reps: null,
+    prescribed_weight: null,
+    prescribed_sets: null,
+    prescribed_duration_seconds: null,
     exercise: null,
     ...overrides,
   }

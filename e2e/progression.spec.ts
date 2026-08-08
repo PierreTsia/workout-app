@@ -110,39 +110,46 @@ test.describe("Progression — cross-session suggestion", () => {
     // Wait for sync queue to flush (set_logs + session_finish → Supabase)
     await page.waitForTimeout(3_000)
 
-    // --- SESSION 2: navigate to Mercredi (which shares the same exercise) ---
+    // --- SESSION 2: same Exercise Slot (Lundi), new cycle — #463 / ADR 0012 ---
+    // Last Performance is slot-scoped. A Mercredi row with the same catalog
+    // exercise_id is a different slot and must NOT inherit this history.
     const newSessionButton = page.getByRole("button", { name: /new session/i })
     await expect(newSessionButton).toBeVisible()
     await newSessionButton.click()
 
-    // Back on the carousel — wait for it to load
+    // Carousel may land on the next incomplete day; force Lundi.
     await expect(lundiCard).toBeVisible({ timeout: 15_000 })
-
-    // Navigate to the Mercredi day card via dot indicators — by aria-label
-    // so the selector is locale-agnostic and survives CSS refactors.
     const dots = page.getByRole("button", { name: /^(aller à|go to)\s/i })
     await expect(dots).toHaveCount(3, { timeout: 5_000 })
-    await dots.nth(1).click()
-    await page.waitForTimeout(500)
+    await dots.nth(0).click()
+    await expect(lundiCard).toBeVisible({ timeout: 5_000 })
 
-    const mercrediCard = page.locator("h3").filter({ hasText: "Mercredi" })
-    await expect(mercrediCard).toBeVisible({ timeout: 5_000 })
+    // Completed days hide Start — restart the cycle to redo the same slot.
+    await expect(
+      page.getByRole("button", { name: /start workout/i }),
+    ).not.toBeVisible()
+    const restartCta = page.getByRole("button", {
+      name: /restart cycle to do it again/i,
+    })
+    await expect(restartCta).toBeVisible({ timeout: 5_000 })
+    await restartCta.click()
 
-    // Start workout on Mercredi
+    const confirmDialog = page.getByRole("alertdialog", {
+      name: /start a new cycle\?/i,
+    })
+    await expect(confirmDialog).toBeVisible({ timeout: 3_000 })
+    await confirmDialog
+      .getByRole("button", { name: /close and restart/i })
+      .click()
+    await expect(confirmDialog).not.toBeVisible({ timeout: 5_000 })
+
     const startButton2 = page.getByRole("button", { name: /start workout/i })
     await expect(startButton2).toBeVisible({ timeout: 10_000 })
     await startButton2.click()
 
-    // Wait for exercise view
     await expect(
       page.locator(".font-mono.tabular-nums.text-primary"),
     ).toBeVisible({ timeout: 5_000 })
-
-    // Navigate to the shared exercise (exercise[0] from seed — added as second exercise on Mercredi)
-    // The exercise strip shows chips — click the last one (the shared exercise is sort_order: 1)
-    const exerciseChips = page.locator("div.flex.overflow-x-auto > button")
-    await expect(exerciseChips).toHaveCount(2, { timeout: 10_000 })
-    await exerciseChips.last().click()
 
     // --- VERIFY: progression pill should be visible with "Reps up" ---
     const progressionPill = page.getByText(/Reps up/i)
@@ -154,3 +161,4 @@ test.describe("Progression — cross-session suggestion", () => {
     await expect(repsInputs).toHaveValue("11")
   })
 })
+

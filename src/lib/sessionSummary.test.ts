@@ -31,6 +31,7 @@ const makeLog = (
   id: "log-1",
   session_id: "sess-1",
   block_exercise_id: null,
+  workout_exercise_id: null,
   estimated_1rm: null,
   was_pr: false,
   logged_at: "2026-03-20T10:00:00Z",
@@ -38,6 +39,10 @@ const makeLog = (
   rest_seconds: null,
   reps_logged: null,
   duration_seconds: null,
+  prescribed_reps: null,
+  prescribed_weight: null,
+  prescribed_sets: null,
+  prescribed_duration_seconds: null,
   exercise: null,
   ...overrides,
 })

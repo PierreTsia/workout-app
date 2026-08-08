@@ -26,9 +26,16 @@ export type SetLogPayloadReps = {
   /**
    * Set when this log belongs to an Exercise Block cell (#351). Disambiguates
    * the same catalog exercise appearing in multiple slots; feeds the
-   * `log_slot = COALESCE(block_exercise_id, exercise_id)` dedupe key.
+   * `log_slot = COALESCE(block_exercise_id, workout_exercise_id, exercise_id)`
+   * dedupe key.
    */
   blockExerciseId?: string | null
+  /**
+   * Solo **Exercise Slot** id (`workout_exercises.id`). Required for #463
+   * slot-scoped Last Performance; left unset/null on block logs and legacy
+   * offline queue items. Feeds `log_slot` after `blockExerciseId`.
+   */
+  workoutExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   repsLogged: string
@@ -55,6 +62,8 @@ export type SetLogPayloadDuration = {
   exerciseId: string
   /** See {@link SetLogPayloadReps.blockExerciseId}. */
   blockExerciseId?: string | null
+  /** See {@link SetLogPayloadReps.workoutExerciseId}. */
+  workoutExerciseId?: string | null
   exerciseNameSnapshot: string
   setNumber: number
   weightLogged: number
@@ -297,9 +306,13 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   }
 
   const meta = resolveSessionMeta(userId, payload.sessionId)
-  // Mirror the DB's log_slot: block cells dedupe by block_exercise_id, solos
-  // by catalog exercise_id. Same exercise in two block slots stays distinct.
-  const slot = payload.blockExerciseId ?? payload.exerciseId
+  // Mirror the DB's log_slot: COALESCE(block_exercise_id, workout_exercise_id,
+  // exercise_id). Block cells and solo Exercise Slots stay distinct when they
+  // share a catalog exercise_id (#351 / #463).
+  const slot =
+    payload.blockExerciseId ??
+    payload.workoutExerciseId ??
+    payload.exerciseId
   const composite = `${meta.realId}|${slot}|${payload.setNumber}`
 
   const queue = getQueue(userId)
@@ -509,6 +522,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
 
   const allMeta = getSessionMeta(userId)
   const exerciseIds = new Set<string>()
+  const workoutExerciseIds = new Set<string>()
   const ensuredSessions = new Set<string>()
 
   const sessionGroups = groupBy(queue, (item) => item.realSessionId)
@@ -541,6 +555,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
       if (item.type === "set_log") {
         const p = item.payload as SetLogPayload
         exerciseIds.add(p.exerciseId)
+        if (p.workoutExerciseId) workoutExerciseIds.add(p.workoutExerciseId)
         const ok = await processSetLog(item)
         if (!ok) surviving.push(item)
       } else {
@@ -580,10 +595,19 @@ async function drainQueueOnce(userId: string): Promise<void> {
     store.set(syncStatusAtom, "failed")
   }
 
-  // Cache invalidation for all touched exercises
+  // Cache invalidation for all touched exercises / slots (#463).
+  // last-session-detail is keyed by workout_exercise_id first (T174).
+  for (const weId of workoutExerciseIds) {
+    queryClient.invalidateQueries({ queryKey: ["last-session-detail", weId] })
+    queryClient.invalidateQueries({ queryKey: ["last-session", weId] })
+  }
+  if (workoutExerciseIds.size === 0 && exerciseIds.size > 0) {
+    // Legacy queue items without workoutExerciseId — broad invalidate.
+    queryClient.invalidateQueries({ queryKey: ["last-session-detail"] })
+    queryClient.invalidateQueries({ queryKey: ["last-session"] })
+  }
+  queryClient.invalidateQueries({ queryKey: ["last-weights-slots"] })
   for (const exId of exerciseIds) {
-    queryClient.invalidateQueries({ queryKey: ["last-session", exId] })
-    queryClient.invalidateQueries({ queryKey: ["last-session-detail", exId] })
     queryClient.invalidateQueries({ queryKey: ["best-1rm", exId] })
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }
@@ -679,6 +703,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       session_id: item.realSessionId,
       exercise_id: p.exerciseId,
       block_exercise_id: p.blockExerciseId ?? null,
+      workout_exercise_id: p.workoutExerciseId ?? null,
       exercise_name_snapshot: p.exerciseNameSnapshot,
       set_number: p.setNumber,
       weight_logged: p.weightLogged,

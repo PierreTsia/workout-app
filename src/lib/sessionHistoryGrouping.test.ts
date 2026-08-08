@@ -14,6 +14,7 @@ const log = (over: Partial<SetLogWithExercise> = {}): SetLogWithExercise => ({
   session_id: "s1",
   exercise_id: "ex",
   block_exercise_id: null,
+  workout_exercise_id: null,
   exercise_name_snapshot: "Squat",
   set_number: 1,
   reps_logged: "10",
@@ -24,6 +25,10 @@ const log = (over: Partial<SetLogWithExercise> = {}): SetLogWithExercise => ({
   logged_at: "2026-06-13T10:00:00Z",
   rir: null,
   rest_seconds: null,
+  prescribed_reps: null,
+  prescribed_weight: null,
+  prescribed_sets: null,
+  prescribed_duration_seconds: null,
   exercise: null,
   ...over,
 })

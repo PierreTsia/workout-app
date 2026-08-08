@@ -6,7 +6,10 @@ vi.mock("@/lib/supabase", () => ({
   },
 }))
 
-import { lastWeightsQueryConfig } from "./useLastWeights"
+import {
+  lastWeightsForSlotsQueryConfig,
+  lastWeightsQueryConfig,
+} from "./useLastWeights"
 
 describe("lastWeightsQueryConfig", () => {
   it("produces a stable queryKey regardless of input id order", () => {
@@ -18,5 +21,20 @@ describe("lastWeightsQueryConfig", () => {
     const b = lastWeightsQueryConfig(["c", "b", "a"])
     expect(a.queryKey).toEqual(b.queryKey)
     expect(a.queryKey).toEqual(["last-weights", ["a", "b", "c"]])
+  })
+})
+
+describe("lastWeightsForSlotsQueryConfig", () => {
+  it("produces a stable queryKey regardless of slot order", () => {
+    const a = lastWeightsForSlotsQueryConfig([
+      { workoutExerciseId: "we-b", exerciseId: "ex-1" },
+      { workoutExerciseId: "we-a", exerciseId: "ex-2" },
+    ])
+    const b = lastWeightsForSlotsQueryConfig([
+      { workoutExerciseId: "we-a", exerciseId: "ex-2" },
+      { workoutExerciseId: "we-b", exerciseId: "ex-1" },
+    ])
+    expect(a.queryKey).toEqual(b.queryKey)
+    expect(a.queryKey[0]).toBe("last-weights-slots")
   })
 })

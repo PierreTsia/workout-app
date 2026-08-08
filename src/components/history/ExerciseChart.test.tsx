@@ -55,6 +55,7 @@ function makeLog(overrides: Partial<SetLog> = {}): SetLog {
     session_id: "session-1",
     exercise_id: "ex-1",
     block_exercise_id: null,
+    workout_exercise_id: null,
     exercise_name_snapshot: "Bench Press",
     set_number: 1,
     reps_logged: "8",
@@ -65,6 +66,10 @@ function makeLog(overrides: Partial<SetLog> = {}): SetLog {
     logged_at: "2026-05-01T10:00:00Z",
     rir: null,
     rest_seconds: null,
+    prescribed_reps: null,
+    prescribed_weight: null,
+    prescribed_sets: null,
+    prescribed_duration_seconds: null,
     ...overrides,
   }
 }

@@ -7,7 +7,10 @@ import type { SetPerformance } from "@/lib/progression"
 /**
  * The last session's per-set log payload + metadata the engine needs to
  * decide between the **Prescription Snapshot** and **Manual Override Window**
- * read paths. See ADR 0006.
+ * read paths. See ADR 0006 / ADR 0012.
+ *
+ * Scoped to an **Exercise Slot** (`workout_exercise_id` + catalog
+ * `exercise_id`) so dual-intent programs don't cross-contaminate (#463).
  *
  * `lastSessionFinishedAt` is null when the last session is in flight (no
  * `finished_at` yet). The engine treats null as "no closed reference" and
@@ -33,6 +36,7 @@ interface SetLogRow {
 }
 
 export function useLastSessionDetail(
+  workoutExerciseId: string | undefined,
   exerciseId: string | undefined,
   sessionStartedAt?: number | null,
   measurementType?: "reps" | "duration",
@@ -40,7 +44,13 @@ export function useLastSessionDetail(
   const user = useAtomValue(authAtom)
 
   return useQuery<LastSessionDetail | null>({
-    queryKey: ["last-session-detail", exerciseId, sessionStartedAt ?? null, measurementType ?? "reps"],
+    queryKey: [
+      "last-session-detail",
+      workoutExerciseId,
+      exerciseId,
+      sessionStartedAt ?? null,
+      measurementType ?? "reps",
+    ],
     staleTime: 30_000,
     queryFn: async (): Promise<LastSessionDetail | null> => {
       let query = supabase
@@ -51,7 +61,9 @@ export function useLastSessionDetail(
             "prescribed_sets, prescribed_duration_seconds, " +
             "sessions(finished_at)",
         )
+        .eq("workout_exercise_id", workoutExerciseId!)
         .eq("exercise_id", exerciseId!)
+        .is("block_exercise_id", null)
 
       if (sessionStartedAt) {
         query = query.lt("logged_at", new Date(sessionStartedAt).toISOString())
@@ -71,7 +83,9 @@ export function useLastSessionDetail(
       const isDuration = measurementType === "duration"
 
       const sets = sessionLogs
-        .filter((l) => (isDuration ? l.duration_seconds != null : l.duration_seconds == null))
+        .filter((l) =>
+          isDuration ? l.duration_seconds != null : l.duration_seconds == null,
+        )
         .map((row): SetPerformance => {
           if (isDuration) {
             return {
@@ -100,14 +114,10 @@ export function useLastSessionDetail(
           }
         })
 
-      // Embedded resource — Postgres returns sessions.finished_at as nullable;
-      // a session in flight (not yet finished) wouldn't have one. Returning
-      // null lets the engine gate snapshot usage on `lastSessionFinishedAt !=
-      // null` instead of leaning on Invalid Date semantics.
       const lastSessionFinishedAt = rows[0].sessions?.finished_at ?? null
 
       return { sets, lastSessionFinishedAt }
     },
-    enabled: !!exerciseId && !!user,
+    enabled: !!workoutExerciseId && !!exerciseId && !!user,
   })
 }

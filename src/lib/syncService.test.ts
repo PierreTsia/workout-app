@@ -289,6 +289,30 @@ describe("SyncService", () => {
       expect(queue[1].dedupeComposite).toContain("be-B")
     })
 
+    it("dedupes solo set logs by workout_exercise_id when two slots share a catalog exercise", () => {
+      // #463 / ADR 0012: heavy + light rowing solos in one session must not
+      // collapse — fingerprint mirrors log_slot COALESCE(be, we, ex).
+      enqueueSetLog(
+        makeSetLogPayload({
+          exerciseId: "ex-rowing",
+          workoutExerciseId: "slot-heavy",
+          setNumber: 1,
+        }),
+      )
+      enqueueSetLog(
+        makeSetLogPayload({
+          exerciseId: "ex-rowing",
+          workoutExerciseId: "slot-light",
+          setNumber: 1,
+        }),
+      )
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(2)
+      expect(queue[0].dedupeComposite).toContain("slot-heavy")
+      expect(queue[1].dedupeComposite).toContain("slot-light")
+    })
+
     it("replaces a block set log when the same block cell is re-logged", () => {
       enqueueSetLog(
         makeSetLogPayload({ blockExerciseId: "be-A", setNumber: 1, loggedAt: 1000 }),
@@ -515,10 +539,16 @@ describe("SyncService", () => {
     })
 
     it("invalidates caches for sessions, pr-aggregates, and per-exercise keys", async () => {
-      enqueueSetLog(makeSetLogPayload({ exerciseId: "ex-A" }))
+      enqueueSetLog(
+        makeSetLogPayload({
+          exerciseId: "ex-A",
+          workoutExerciseId: "we-A",
+        }),
+      )
       enqueueSetLog(
         makeSetLogPayload({
           exerciseId: "ex-B",
+          workoutExerciseId: "we-B",
           setNumber: 2,
           loggedAt: 3000,
         }),
@@ -535,14 +565,15 @@ describe("SyncService", () => {
       expect(keyMatches).toContainEqual(["pr-aggregates"])
       expect(keyMatches).toContainEqual(["training-activity-by-day"])
       expect(keyMatches).toContainEqual(["sessions-date-range"])
-      expect(keyMatches).toContainEqual(["last-session", "ex-A"])
-      expect(keyMatches).toContainEqual(["last-session-detail", "ex-A"])
+      expect(keyMatches).toContainEqual(["last-session", "we-A"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "we-A"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-A"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-A"])
-      expect(keyMatches).toContainEqual(["last-session", "ex-B"])
-      expect(keyMatches).toContainEqual(["last-session-detail", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-session", "we-B"])
+      expect(keyMatches).toContainEqual(["last-session-detail", "we-B"])
       expect(keyMatches).toContainEqual(["best-1rm", "ex-B"])
       expect(keyMatches).toContainEqual(["exercise-trend", "ex-B"])
+      expect(keyMatches).toContainEqual(["last-weights-slots"])
     })
 
     it("transitions syncStatusAtom through syncing → synced (all drained) or syncing → failed", async () => {
@@ -566,6 +597,33 @@ describe("SyncService", () => {
       const upsertArg = setLogsChain.upsert.mock.calls[0][0]
       expect(upsertArg).toEqual(
         expect.objectContaining({ block_exercise_id: "be-A" }),
+      )
+    })
+
+    it("writes workout_exercise_id to the set_logs upsert for solo slots", async () => {
+      enqueueSetLog(
+        makeSetLogPayload({ workoutExerciseId: "slot-heavy" }),
+      )
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({
+          workout_exercise_id: "slot-heavy",
+          block_exercise_id: null,
+        }),
+      )
+    })
+
+    it("maps missing workoutExerciseId to null for legacy offline payloads", async () => {
+      enqueueSetLog(makeSetLogPayload({ workoutExerciseId: undefined }))
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({ workout_exercise_id: null }),
       )
     })
 
