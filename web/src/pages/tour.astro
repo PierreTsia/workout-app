@@ -1,8 +1,33 @@
 ---
+import { getImage } from 'astro:assets'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import TourHero from '../components/tour/TourHero.astro'
 import TourMobileScenes from '../components/tour/TourMobileScenes.astro'
 import TourDoors from '../components/tour/TourDoors.astro'
+import { TourSplitStage } from '../components/tour/TourSplitStage'
+import { tourScenes } from '@/lib/tourScenes'
+
+const resolvedScenes = await Promise.all(
+  tourScenes.map(async (scene) => {
+    const optimized = await getImage({
+      src: scene.image,
+      width: scene.device === 'desktop' ? 1200 : 600,
+    })
+    return {
+      id: scene.id,
+      slug: scene.slug,
+      title: scene.title,
+      lede: scene.lede,
+      facts: [...scene.facts],
+      device: scene.device,
+      src: optimized.src,
+      width: Number(optimized.attributes.width ?? scene.image.width),
+      height: Number(optimized.attributes.height ?? scene.image.height),
+      alt: scene.alt,
+      focal: scene.focal,
+    }
+  }),
+)
 ---
 
 <BaseLayout
@@ -10,6 +35,7 @@ import TourDoors from '../components/tour/TourDoors.astro'
   description="What GymLogic actually does: program, train, progress — one product for browser or agent."
 >
   <TourHero />
+  <TourSplitStage client:load scenes={resolvedScenes} />
   <TourMobileScenes />
   <TourDoors />
 </BaseLayout>
