@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { tourStageImageStyle } from '@/lib/tourMotion'
+import { tourShotFade } from '@/lib/tourTransitions'
 import { cn } from '@/lib/utils'
 
 export type TourResolvedShot = {
@@ -25,11 +26,6 @@ type TourSceneStageProps = {
   className?: string
   /** Align device to the end of the stage (desktop split) or center (mobile). */
   align?: 'end' | 'center'
-}
-
-const shotTransition = {
-  duration: 0.35,
-  ease: [0.22, 1, 0.36, 1] as const,
 }
 
 export function TourSceneStage({
@@ -75,10 +71,32 @@ export function TourSceneStage({
           <motion.div
             key={`${active.src}-${shotIndex}`}
             className={cn('absolute inset-0 flex', justify)}
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-            transition={shotTransition}
+            initial={
+              prefersReducedMotion
+                ? false
+                : { opacity: 0, filter: 'blur(4px)' }
+            }
+            animate={{
+              opacity: 1,
+              filter: 'blur(0px)',
+              transition: {
+                ...tourShotFade,
+                opacity: { ...tourShotFade, delay: 0.04 },
+                filter: { ...tourShotFade, delay: 0.04 },
+              },
+            }}
+            exit={
+              prefersReducedMotion
+                ? undefined
+                : {
+                    opacity: 0,
+                    filter: 'blur(3px)',
+                    transition: {
+                      duration: 0.22,
+                      ease: tourShotFade.ease,
+                    },
+                  }
+            }
           >
             <button
               type="button"

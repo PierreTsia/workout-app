@@ -9,6 +9,11 @@ import {
   formatTourProgress,
   sceneIndexAfterWheel,
 } from '@/lib/tourScroll'
+import {
+  tourProgressFade,
+  tourRailExpand,
+  tourStageFade,
+} from '@/lib/tourTransitions'
 import { cn } from '@/lib/utils'
 
 export type TourResolvedScene = {
@@ -25,10 +30,8 @@ type TourSplitStageProps = {
   scenes: TourResolvedScene[]
 }
 
-const stageTransition = {
-  duration: 0.4,
-  ease: [0.22, 1, 0.36, 1] as const,
-}
+/** Wheel lock slightly past stage fade so a second flick doesn’t stack. */
+const WHEEL_LOCK_MS = Math.round(tourStageFade.duration * 1000) + 40
 
 export function TourSplitStage({ scenes }: TourSplitStageProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -62,7 +65,7 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
 
       event.preventDefault()
       setActiveIndex(next.index)
-      wheelLockUntilRef.current = now + 480
+      wheelLockUntilRef.current = now + WHEEL_LOCK_MS
     }
 
     section.addEventListener('wheel', onWheel, { passive: false })
@@ -84,9 +87,26 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
           className="flex min-h-0 flex-col justify-start"
           aria-label="Tour chapters"
         >
-          <p className="font-mono text-[0.7rem] font-medium tracking-[0.2em] text-accent uppercase">
-            {formatTourProgress(activeIndex, scenes.length)}
-          </p>
+          <div className="relative h-[1.35em] overflow-hidden font-mono text-sm font-medium tracking-[0.18em] text-accent uppercase md:text-base">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={active.slug}
+                className="absolute inset-0"
+                initial={
+                  prefersReducedMotion ? false : { opacity: 0, y: 6 }
+                }
+                animate={{ opacity: 1, y: 0 }}
+                exit={
+                  prefersReducedMotion
+                    ? undefined
+                    : { opacity: 0, y: -6 }
+                }
+                transition={tourProgressFade}
+              >
+                {formatTourProgress(activeIndex, scenes.length)}
+              </motion.p>
+            </AnimatePresence>
+          </div>
           <ol className="mt-5 flex flex-col gap-0.5">
             {scenes.map((scene, index) => {
               const isActive = index === activeIndex
@@ -96,7 +116,7 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
                     type="button"
                     onClick={() => setActiveIndex(index)}
                     className={cn(
-                      'group w-full rounded-lg border-l-2 px-3 py-2.5 text-left transition-colors duration-200',
+                      'group w-full rounded-r-lg border-l-2 px-3 py-2.5 text-left transition-[color,background-color,border-color] duration-300 ease-out',
                       isActive
                         ? 'border-accent bg-surface text-foreground'
                         : 'border-transparent hover:bg-foreground/[0.03]',
@@ -106,7 +126,7 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
                     <span className="flex items-baseline gap-3">
                       <span
                         className={cn(
-                          'shrink-0 font-mono text-xs tracking-wider tabular-nums',
+                          'shrink-0 font-mono text-xs tracking-wider tabular-nums transition-colors duration-300',
                           isActive
                             ? 'font-medium text-accent'
                             : 'text-muted/70 group-hover:text-muted',
@@ -116,7 +136,7 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
                       </span>
                       <span
                         className={cn(
-                          'text-[0.95rem] leading-snug tracking-tight',
+                          'text-[0.95rem] leading-snug tracking-tight transition-colors duration-300',
                           isActive
                             ? 'font-semibold text-foreground'
                             : 'font-medium text-muted group-hover:text-foreground/85',
@@ -140,7 +160,7 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
                               ? undefined
                               : { opacity: 0, height: 0 }
                           }
-                          transition={stageTransition}
+                          transition={tourRailExpand}
                           className="overflow-hidden"
                         >
                           <p className="mt-2.5 pl-8 text-sm leading-relaxed text-foreground/70">
@@ -182,10 +202,32 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
               <motion.div
                 key={active.slug}
                 className="absolute inset-0 flex items-start justify-end"
-                initial={prefersReducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-                transition={stageTransition}
+                initial={
+                  prefersReducedMotion
+                    ? false
+                    : { opacity: 0, filter: 'blur(6px)' }
+                }
+                animate={{
+                  opacity: 1,
+                  filter: 'blur(0px)',
+                  transition: {
+                    ...tourStageFade,
+                    opacity: { ...tourStageFade, delay: 0.06 },
+                    filter: { ...tourStageFade, delay: 0.06 },
+                  },
+                }}
+                exit={
+                  prefersReducedMotion
+                    ? undefined
+                    : {
+                        opacity: 0,
+                        filter: 'blur(4px)',
+                        transition: {
+                          duration: 0.28,
+                          ease: tourStageFade.ease,
+                        },
+                      }
+                }
               >
                 <TourSceneStage
                   device={active.device}
