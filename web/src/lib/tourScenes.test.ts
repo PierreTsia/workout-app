@@ -12,7 +12,7 @@ describe('Product Tour scene catalog', () => {
       'Start with a program',
       'Train the session',
       'Progress on purpose',
-      'Bring your own agent! 🤖',
+      'Bring your own agent',
       'Know the movement',
       'See yourself over time',
     ])

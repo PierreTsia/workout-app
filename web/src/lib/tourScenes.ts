@@ -125,7 +125,7 @@ export const tourScenes: TourScene[] = [
   {
     id: 4,
     slug: 'bring-your-own-agent',
-    title: 'Bring your own agent! 🤖',
+    title: 'Bring your own agent',
     lede:
       'Your agent reads your training data and can evaluate, create, and update programs — the app stays the system of record.',
     facts: [
