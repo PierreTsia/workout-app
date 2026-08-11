@@ -16,7 +16,7 @@ describe("prime-mover-plan", () => {
   })
 
   it("plans ~14 weeks with progression tags on the newest week", () => {
-    const plan = buildSessionPlan(new Date("2026-08-11T12:00:00.000Z"))
+    const plan = buildSessionPlan()
     // Human jitter skips some sessions — still enough to fill a 100-day heatmap.
     expect(plan.length).toBeGreaterThanOrEqual(SEED_WEEK_COUNT * 2)
     expect(plan.length).toBeLessThan(SEED_WEEK_COUNT * 3 + 1)
@@ -31,7 +31,7 @@ describe("prime-mover-plan", () => {
   })
 
   it("jitters weekday offsets so the heatmap is not three perfect cron stripes", () => {
-    const plan = buildSessionPlan(new Date("2026-08-11T12:00:00.000Z"))
+    const plan = buildSessionPlan()
     const weekdayBuckets = new Set(plan.map((s) => s.daysAgo % 7))
     expect(weekdayBuckets.size).toBeGreaterThanOrEqual(5)
 

@@ -7,7 +7,6 @@
 import "./load-env.js"
 import { chromium } from "@playwright/test"
 import {
-  AUTH_STATE,
   OUT_DIR,
   assertAuthReady,
   assertAuthenticated,

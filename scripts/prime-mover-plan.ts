@@ -359,8 +359,9 @@ function startHourFor(dayKey: DayKey, week: number): number {
   return base + (week % 3 === 0 ? 1 : 0)
 }
 
-export function buildSessionPlan(now = new Date()): PlannedSession[] {
+export function buildSessionPlan(): PlannedSession[] {
   // Anchor “today” as a Push day so homepage opens on a WEIGHT_UP-ready day.
+  // Offsets are relative; the seeder applies absolute timestamps via sessionWindow().
   const weekOffsets = Array.from({ length: SEED_WEEK_COUNT }, (_, i) => i)
 
   return weekOffsets.flatMap((week) => {
