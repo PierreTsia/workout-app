@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   DAY_SLOTS,
   PROGRAM_NAME,
+  SEED_WEEK_COUNT,
   SESSION_PREFIX,
   buildSessionPlan,
   estimated1rm,
@@ -14,9 +15,11 @@ describe("prime-mover-plan", () => {
     expect(SESSION_PREFIX).toBe("Prime Mover")
   })
 
-  it("plans 5 weeks × 3 days with progression tags on the newest week", () => {
+  it("plans ~14 weeks with progression tags on the newest week", () => {
     const plan = buildSessionPlan(new Date("2026-08-11T12:00:00.000Z"))
-    expect(plan).toHaveLength(15)
+    // Human jitter skips some sessions — still enough to fill a 100-day heatmap.
+    expect(plan.length).toBeGreaterThanOrEqual(SEED_WEEK_COUNT * 2)
+    expect(plan.length).toBeLessThan(SEED_WEEK_COUNT * 3 + 1)
 
     const tagged = plan.filter((s) => s.progressionTag)
     expect(tagged).toHaveLength(3)
@@ -25,6 +28,15 @@ describe("prime-mover-plan", () => {
       ["pull", "hold"],
       ["legs", "plateau"],
     ])
+  })
+
+  it("jitters weekday offsets so the heatmap is not three perfect cron stripes", () => {
+    const plan = buildSessionPlan(new Date("2026-08-11T12:00:00.000Z"))
+    const weekdayBuckets = new Set(plan.map((s) => s.daysAgo % 7))
+    expect(weekdayBuckets.size).toBeGreaterThanOrEqual(5)
+
+    const durations = new Set(plan.map((s) => s.durationMin))
+    expect(durations.size).toBeGreaterThanOrEqual(4)
   })
 
   it("stages WEIGHT_UP as top-of-range reps with comfortable RIR on OHP", () => {

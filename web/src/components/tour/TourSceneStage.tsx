@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
 import { DeviceFrame } from './DeviceFrame'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -56,6 +58,26 @@ export function TourSceneStage({
   const openShot = (index: number) => {
     setShotIndex(index)
     setLightboxOpen(true)
+  }
+
+  const stepShot = (delta: number) => {
+    if (shots.length <= 1) return
+    setShotIndex(
+      (current) => (current + delta + shots.length) % shots.length,
+    )
+  }
+
+  const handleLightboxKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (shots.length <= 1) return
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      stepShot(-1)
+      return
+    }
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      stepShot(1)
+    }
   }
 
   return (
@@ -185,7 +207,10 @@ export function TourSceneStage({
       )}
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="flex h-[min(94vh,90rem)] max-h-[min(96vh,90rem)] w-[min(98vw,96rem)] max-w-none flex-col gap-4 overflow-hidden border-border bg-background p-3 sm:p-5">
+        <DialogContent
+          className="flex h-[min(94vh,90rem)] max-h-[min(96vh,90rem)] w-[min(98vw,96rem)] max-w-none flex-col gap-4 overflow-hidden border-border bg-background p-3 sm:p-5"
+          onKeyDown={handleLightboxKeyDown}
+        >
           <DialogTitle className="shrink-0 pr-8 text-base">
             Screenshot {shotIndex + 1} of {shots.length}
           </DialogTitle>
@@ -195,8 +220,22 @@ export function TourSceneStage({
             Height-driven stage: DeviceFrame fills the flex-1 area (h-full +
             aspect) instead of a width-capped island centered in dead space.
             max-w-full keeps narrow viewports from overflowing horizontally.
+            Prev/next chevrons flank the frame when a scene has multiple shots.
           */}
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center gap-1 overflow-hidden sm:gap-3">
+            {shots.length > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute left-0 z-10 h-11 w-11 shrink-0 bg-background/90 sm:static sm:h-12 sm:w-12"
+                aria-label="Previous screenshot"
+                onClick={() => stepShot(-1)}
+              >
+                <ChevronLeft className="size-5" />
+              </Button>
+            )}
+
             <DeviceFrame
               device={device}
               src={active.src}
@@ -215,6 +254,19 @@ export function TourSceneStage({
                 'aspect-auto h-full max-h-none w-full object-cover'
               }
             />
+
+            {shots.length > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute right-0 z-10 h-11 w-11 shrink-0 bg-background/90 sm:static sm:h-12 sm:w-12"
+                aria-label="Next screenshot"
+                onClick={() => stepShot(1)}
+              >
+                <ChevronRight className="size-5" />
+              </Button>
+            )}
           </div>
 
           {shots.length > 1 && (

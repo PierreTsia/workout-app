@@ -285,33 +285,99 @@ function plateauSets(slot: SlotTemplate): SetOutcome[] {
 }
 
 /**
- * ~5 weeks of 3×/week PPL (Mon/Wed/Fri-ish).
- * Newest sessions (daysAgo small) stage progression:
+ * ~14 weeks of PPL for the Activity 100-day heatmap.
+ * Newest week stages progression (Tour pills):
  *   Push → WEIGHT_UP (OHP — Tour lead; less cliché than bench)
  *   Pull → HOLD (pulldown grinding)
  *   Legs → PLATEAU (squat capped)
+ *
+ * Older weeks use a deterministic “human” calendar — skips, Tue/Thu
+ * shifts, weekend make-ups, and uneven durations — so the heatmap
+ * doesn’t read as three perfect cron stripes.
  */
+/** Weeks of PPL history — spans most of the Activity 100-day heatmap. */
+export const SEED_WEEK_COUNT = 14
+
+/** Push slot index for WEIGHT_UP staging (1 = OHP, not bench). */
+const PUSH_WEIGHT_UP_SLOT = 1
+
+/**
+ * Day-of-week offsets within a week (0 = same weekday as “today” / Push anchor).
+ * `null` = skip that session (busy / travel week).
+ */
+type WeekOffsets = Record<DayKey, number | null>
+
+/** Latest week: full classic 3× so progression staging stays intact. */
+const LATEST_WEEK_OFFSETS: WeekOffsets = {
+  push: 0,
+  pull: 2,
+  legs: 4,
+}
+
+/**
+ * Rotating shapes for older weeks. Deterministic — no Math.random —
+ * so seeds stay reproducible across machines.
+ */
+const HUMAN_WEEK_SHAPES: WeekOffsets[] = [
+  { push: 0, pull: 2, legs: 4 }, // classic M/W/F-ish
+  { push: 1, pull: 3, legs: 5 }, // Tue / Thu / Sat
+  { push: 0, pull: 3, legs: 6 }, // Mon / Thu / Sun make-up
+  { push: 0, pull: null, legs: 4 }, // skipped pull (busy)
+  { push: 1, pull: 4, legs: null }, // Tue / Fri, missed legs
+  { push: 0, pull: 2, legs: 5 }, // legs slipped to weekend-ish
+  { push: 1, pull: 2, legs: 6 }, // clustered mid-week + Sun
+  { push: null, pull: 2, legs: 4 }, // missed push
+  { push: 0, pull: 3, legs: 5 }, // Mon / Thu / Sat
+  { push: 2, pull: 4, legs: 6 }, // Wed / Fri / Sun
+]
+
+function offsetsForWeek(week: number): WeekOffsets {
+  if (week === 0) return LATEST_WEEK_OFFSETS
+  return HUMAN_WEEK_SHAPES[(week - 1) % HUMAN_WEEK_SHAPES.length]!
+}
+
+/**
+ * Uneven session lengths → varied heatmap intensity cells.
+ * Bands intentionally cross heatmapLevelFromTrainingMinutes thresholds
+ * (≤35 / ≤52 / ≤82 / >82) so shades aren’t one flat teal.
+ */
+function durationMinFor(dayKey: DayKey, week: number): number {
+  const base: Record<DayKey, number> = {
+    push: 48,
+    pull: 55,
+    legs: 78,
+  }
+  // Deliberate short / normal / long weeks
+  const weekScale = [0.55, 0.85, 1.05, 0.7, 1.2, 0.9, 1.35, 0.65][week % 8]!
+  const dayBias = dayKey === "legs" ? 12 : dayKey === "pull" ? 4 : 0
+  const minutes = Math.round(base[dayKey] * weekScale + dayBias)
+  return Math.min(110, Math.max(18, minutes))
+}
+
+function startHourFor(dayKey: DayKey, week: number): number {
+  const base = dayKey === "pull" ? 18 : dayKey === "legs" ? 16 : 17
+  return base + (week % 3 === 0 ? 1 : 0)
+}
+
 export function buildSessionPlan(now = new Date()): PlannedSession[] {
   // Anchor “today” as a Push day so homepage opens on a WEIGHT_UP-ready day.
-  // Spread weeks backward: each week = push / pull / legs at daysAgo offsets.
-  const weekOffsets = [0, 1, 2, 3, 4] as const // week index, 0 = most recent
-  const dayOffsetsWithinWeek: Record<DayKey, number> = {
-    push: 0,
-    pull: 2,
-    legs: 4,
-  }
-  /** Push slot index for WEIGHT_UP staging (1 = OHP, not bench). */
-  const PUSH_WEIGHT_UP_SLOT = 1
+  const weekOffsets = Array.from({ length: SEED_WEEK_COUNT }, (_, i) => i)
 
   return weekOffsets.flatMap((week) => {
+    const shape = offsetsForWeek(week)
     const dayKeys: DayKey[] = ["push", "pull", "legs"]
-    return dayKeys.map((dayKey) => {
-      const daysAgo = week * 7 + dayOffsetsWithinWeek[dayKey]
+    const isLatest = week === 0
+    const solidWeek = Math.max(0, SEED_WEEK_COUNT - 1 - week)
+
+    return dayKeys.flatMap((dayKey) => {
+      const withinWeek = shape[dayKey]
+      if (withinWeek === null) return []
+
+      const daysAgo = week * 7 + withinWeek
       const slots = DAY_SLOTS[dayKey]
-      const isLatest = week === 0
 
       const outcomes: SetOutcome[][] = slots.map((slot, slotIdx) => {
-        if (!isLatest) return solidSets(slot, weekOffsets.length - 1 - week)
+        if (!isLatest) return solidSets(slot, solidWeek)
 
         if (dayKey === "push" && slotIdx === PUSH_WEIGHT_UP_SLOT) return weightUpSets(slot, 5)
         if (dayKey === "pull" && slotIdx === 0) return holdSets(slot)
@@ -327,15 +393,17 @@ export function buildSessionPlan(now = new Date()): PlannedSession[] {
             ? "hold"
             : "plateau"
 
-      return {
-        daysAgo,
-        dayKey,
-        label: `${SESSION_PREFIX} — ${DAY_LABELS[dayKey].label} W${5 - week}`,
-        startHourUTC: 17 + (dayKey === "pull" ? 1 : 0),
-        durationMin: 55 + slots.length * 3,
-        slots: outcomes,
-        progressionTag,
-      }
+      return [
+        {
+          daysAgo,
+          dayKey,
+          label: `${SESSION_PREFIX} — ${DAY_LABELS[dayKey].label} W${SEED_WEEK_COUNT - week}`,
+          startHourUTC: startHourFor(dayKey, week),
+          durationMin: durationMinFor(dayKey, week),
+          slots: outcomes,
+          progressionTag,
+        } satisfies PlannedSession,
+      ]
     })
   })
 }

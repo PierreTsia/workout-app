@@ -44,7 +44,8 @@ App login UI is **Google-only**. Captures must use Playwright-style **session in
 | 06a | `06a-movement-list.png` | Phone | `/library/exercises` search `press` + Filters + Shoulders | Search + filter chips + results | `50% 22%` |
 | 06b | `06b-movement-detail.png` | Phone | Exercise detail (e.g. Bench Press) | Instructions + body map | `50% 30%` |
 | 06c | `06c-movement-video.png` | Phone | Same detail, video in view | Demo video | `50% 35%` |
-| 07a | `07a-history-heatmap.png` | Phone | `/history` → Activity | Heatmap primary | `50% 40%` |
+| 07a | `07a-history-heatmap.png` | Phone | `/history` → Activity → open **100-day overview** | Uneven intermediate heatmap (not cron stripes) | `50% 48%` |
+| 07a′ | `07a-history-exercise-chart.png` (draft) | Phone | By Exercise → OHP | Per-exercise progress chart | — |
 | 07b | `07b-history-balance.png` | Phone | `/history` → Balance | Strength Balance gauge / body map | `50% 30%` |
 | 07b′ | `07b-history-balance-detail.png` (draft) | Phone | Balance scrolled | Body map + Insights | — |
 | 07c | `07c-history-achievements.png` | Phone | `/achievements` → unlocked tier drawer | Tracks + unlocked step detail (Equip title) | `50% 55%` |
@@ -86,7 +87,7 @@ npm run seed:prime-mover
 # optional: --user-id=<uuid>  --dry-run  --allow-local
 ```
 
-Idempotent: clears `Prime Mover%` sessions + `Echo Strength — 3×` program for that user, upserts profile (EN, display name **Prime Mover**), recreates PPL + ~5 weeks of slot-scoped set logs (RIR + progression staging), grants achievements.
+Idempotent: clears `Prime Mover%` sessions + `Echo Strength — 3×` program for that user, upserts profile (EN, display name **Prime Mover**), recreates PPL + ~14 weeks of slot-scoped set logs (RIR + progression staging on the latest week). Older weeks use a **jittered calendar** (skipped sessions, Tue/Thu shifts, weekend make-ups) and uneven durations so the 100-day heatmap doesn’t look like a cron job.
 
 ### 2. Capture auth (Playwright injection)
 

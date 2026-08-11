@@ -197,8 +197,8 @@ export const tourScenes: TourScene[] = [
     shots: [
       {
         image: s07a,
-        alt: 'Training history heatmap across recent days.',
-        focal: '50% 40%',
+        alt: '100-day training-time heatmap with an uneven intermediate schedule.',
+        focal: '50% 48%',
       },
       {
         image: s07b,

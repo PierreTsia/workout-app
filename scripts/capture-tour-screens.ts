@@ -66,6 +66,25 @@ const SHOTS: Shot[] = [
     path: "/history",
     viewport: "phone",
     goto: "/history",
+    prepare: async (page) => {
+      // Phone defaults the 100-day heatmap collapsible closed — open + frame it.
+      const activity = page.getByRole("tab", { name: /^activity$/i })
+      await activity.waitFor({ state: "visible", timeout: 15_000 })
+      await activity.click()
+      const heatmapTrigger = page.getByRole("button", {
+        name: /100-day overview/i,
+      })
+      await heatmapTrigger.waitFor({ state: "visible", timeout: 15_000 })
+      const expanded = await heatmapTrigger.getAttribute("aria-expanded")
+      if (expanded !== "true") await heatmapTrigger.click()
+      await page
+        .getByText(/less|more/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 15_000 })
+      await heatmapTrigger.scrollIntoViewIfNeeded()
+      await page.mouse.wheel(0, 40)
+      await page.waitForTimeout(600)
+    },
   },
   {
     id: "07b-history-balance",

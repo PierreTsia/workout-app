@@ -34,12 +34,25 @@ const { scenes } = Astro.props
             ))}
           </ul>
         )}
-        <div class="mt-6">
+        {/*
+          Match desktop SplitStage height budget. TourSceneStage fills with
+          absolute children — without an explicit height the phone collapses
+          to ~0 on mobile (the “missing mobile Tour”).
+        */}
+        <div
+          class:list={[
+            'mt-6 w-full',
+            scene.device === 'desktop'
+              ? 'h-[min(16rem,42vh)] sm:h-[min(20rem,48vh)]'
+              : 'h-[min(34rem,70vh)]',
+          ]}
+        >
           <TourSceneStage
             client:visible
             device={scene.device}
             shots={scene.shots}
             align="center"
+            className="h-full w-full"
           />
         </div>
       </article>
