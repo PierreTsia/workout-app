@@ -5,7 +5,7 @@ describe('Product Tour copy', () => {
   it('exposes banked hero copy for the Tour route', () => {
     expect(tourHero.h1).toBe('What GymLogic actually does')
     expect(tourHero.sub).toBe(
-      'Program. Train. Progress. One product — browser or agent.',
+      "Programs, sessions, progression, catalog, history, your own agent — a lot. Open source, built in public, free. It still won't lift the bar for you.",
     )
   })
 

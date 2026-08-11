@@ -27,3 +27,19 @@ export function beatScrollOffset(args: {
   if (sceneCount <= 0) return 0
   return (pinHeight / sceneCount) * index
 }
+
+/** Wheel over the stage: step scenes without a tall page pin. */
+export function sceneIndexAfterWheel(args: {
+  activeIndex: number
+  sceneCount: number
+  deltaY: number
+}): { index: number; consume: boolean } {
+  const { activeIndex, sceneCount, deltaY } = args
+  if (deltaY > 0 && activeIndex < sceneCount - 1) {
+    return { index: activeIndex + 1, consume: true }
+  }
+  if (deltaY < 0 && activeIndex > 0) {
+    return { index: activeIndex - 1, consume: true }
+  }
+  return { index: activeIndex, consume: false }
+}

@@ -9,10 +9,22 @@ import { tourScenes } from '@/lib/tourScenes'
 
 const resolvedScenes = await Promise.all(
   tourScenes.map(async (scene) => {
-    const optimized = await getImage({
-      src: scene.image,
-      width: scene.device === 'desktop' ? 1200 : 600,
-    })
+    const shots = await Promise.all(
+      scene.shots.map(async (shot) => {
+        const optimized = await getImage({
+          src: shot.image,
+          // Laptop BYOA shots are landscape XL — keep enough pixels for the lightbox.
+          width: scene.device === 'desktop' ? 2400 : 600,
+        })
+        return {
+          src: optimized.src,
+          width: Number(optimized.attributes.width ?? shot.image.width),
+          height: Number(optimized.attributes.height ?? shot.image.height),
+          alt: shot.alt,
+          focal: shot.focal,
+        }
+      }),
+    )
     return {
       id: scene.id,
       slug: scene.slug,
@@ -20,11 +32,7 @@ const resolvedScenes = await Promise.all(
       lede: scene.lede,
       facts: [...scene.facts],
       device: scene.device,
-      src: optimized.src,
-      width: Number(optimized.attributes.width ?? scene.image.width),
-      height: Number(optimized.attributes.height ?? scene.image.height),
-      alt: scene.alt,
-      focal: scene.focal,
+      shots,
     }
   }),
 )
@@ -32,10 +40,10 @@ const resolvedScenes = await Promise.all(
 
 <BaseLayout
   title="Product Tour — GymLogic"
-  description="What GymLogic actually does: program, train, progress — one product for browser or agent."
+  description="What GymLogic actually does: programs, sessions, progression, catalog, history, your own agent — a lot. Open source, built in public, free. It still won't lift the bar for you."
 >
   <TourHero />
   <TourSplitStage client:load scenes={resolvedScenes} />
-  <TourMobileScenes />
+  <TourMobileScenes scenes={resolvedScenes} />
   <TourDoors />
 </BaseLayout>

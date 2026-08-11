@@ -3,6 +3,7 @@ import {
   beatScrollOffset,
   formatTourProgress,
   pickActiveBeatIndex,
+  sceneIndexAfterWheel,
 } from './tourScroll'
 
 describe('Tour scroll helpers', () => {
@@ -33,5 +34,17 @@ describe('Tour scroll helpers', () => {
     expect(beatScrollOffset({ pinHeight: 700, sceneCount: 7, index: 3 })).toBe(
       300,
     )
+  })
+
+  it('steps the scene with wheel and releases page scroll at the edges', () => {
+    expect(
+      sceneIndexAfterWheel({ activeIndex: 2, sceneCount: 6, deltaY: 40 }),
+    ).toEqual({ index: 3, consume: true })
+    expect(
+      sceneIndexAfterWheel({ activeIndex: 0, sceneCount: 6, deltaY: -40 }),
+    ).toEqual({ index: 0, consume: false })
+    expect(
+      sceneIndexAfterWheel({ activeIndex: 5, sceneCount: 6, deltaY: 40 }),
+    ).toEqual({ index: 5, consume: false })
   })
 })

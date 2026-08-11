@@ -27,22 +27,27 @@ export function DeviceFrame({
     return (
       <div
         className={cn(
-          'overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/40',
+          'w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg shadow-black/40',
           className,
         )}
       >
         <div className="flex items-center gap-1.5 border-b border-border bg-background/80 px-3 py-2">
-          <span className="size-2 rounded-full bg-muted" aria-hidden />
-          <span className="size-2 rounded-full bg-muted" aria-hidden />
-          <span className="size-2 rounded-full bg-muted" aria-hidden />
-          <span className="ml-2 truncate text-xs text-muted">Agent</span>
+          <span className="size-2.5 rounded-full bg-muted" aria-hidden />
+          <span className="size-2.5 rounded-full bg-muted" aria-hidden />
+          <span className="size-2.5 rounded-full bg-muted" aria-hidden />
+          <span className="ml-3 truncate text-xs text-muted">
+            Laptop · Your agent
+          </span>
         </div>
         <img
           src={src}
           alt={alt}
           width={width}
           height={height}
-          className={cn('block h-auto w-full object-cover object-top', imageClassName)}
+          className={cn(
+            'block aspect-video h-auto w-full object-cover object-top',
+            imageClassName,
+          )}
           style={imageStyle}
           loading="lazy"
           decoding="async"

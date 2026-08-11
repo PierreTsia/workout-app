@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 
-import { DeviceFrame } from './DeviceFrame'
-import { shouldPinTourTheater, tourStageImageStyle } from '@/lib/tourMotion'
 import {
-  beatScrollOffset,
+  TourSceneStage,
+  type TourResolvedShot,
+} from './TourSceneStage'
+import {
   formatTourProgress,
-  pickActiveBeatIndex,
+  sceneIndexAfterWheel,
 } from '@/lib/tourScroll'
 import { cn } from '@/lib/utils'
 
@@ -16,226 +18,186 @@ export type TourResolvedScene = {
   lede: string
   facts: string[]
   device: 'phone' | 'desktop'
-  src: string
-  width: number
-  height: number
-  alt: string
-  focal: string
+  shots: TourResolvedShot[]
 }
 
 type TourSplitStageProps = {
   scenes: TourResolvedScene[]
 }
 
+const stageTransition = {
+  duration: 0.4,
+  ease: [0.22, 1, 0.36, 1] as const,
+}
+
 export function TourSplitStage({ scenes }: TourSplitStageProps) {
-  const pinRef = useRef<HTMLDivElement>(null)
-  const beatRefs = useRef<(HTMLDivElement | null)[]>([])
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const activeIndexRef = useRef(0)
+  const wheelLockUntilRef = useRef(0)
   const [activeIndex, setActiveIndex] = useState(0)
-  const [reducedMotion, setReducedMotion] = useState(false)
+  const prefersReducedMotion = useReducedMotion() ?? false
 
-  const pinTheater = shouldPinTourTheater(reducedMotion)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReducedMotion(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
+  activeIndexRef.current = activeIndex
 
   useEffect(() => {
-    if (!pinTheater) return
+    const section = sectionRef.current
+    if (!section || prefersReducedMotion) return
 
-    const beats = beatRefs.current.filter(
-      (el): el is HTMLDivElement => el !== null,
-    )
-    if (beats.length === 0) return
+    const onWheel = (event: WheelEvent) => {
+      const now = performance.now()
+      if (now < wheelLockUntilRef.current) {
+        event.preventDefault()
+        return
+      }
 
-    const ratios = new Map<number, number>()
+      if (Math.abs(event.deltaY) < 12) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const index = Number(
-            (entry.target as HTMLElement).dataset.beatIndex ?? -1,
-          )
-          if (index < 0) continue
-          ratios.set(index, entry.intersectionRatio)
-        }
+      const next = sceneIndexAfterWheel({
+        activeIndex: activeIndexRef.current,
+        sceneCount: scenes.length,
+        deltaY: event.deltaY,
+      })
 
-        const next = pickActiveBeatIndex(
-          [...ratios.entries()].map(([index, intersectionRatio]) => ({
-            index,
-            intersectionRatio,
-          })),
-        )
-        if (next !== null) setActiveIndex(next)
-      },
-      {
-        root: null,
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-        rootMargin: '-40% 0px -40% 0px',
-      },
-    )
+      if (!next.consume) return
 
-    for (const beat of beats) observer.observe(beat)
-    return () => observer.disconnect()
-  }, [scenes.length, pinTheater])
+      event.preventDefault()
+      setActiveIndex(next.index)
+      wheelLockUntilRef.current = now + 480
+    }
+
+    section.addEventListener('wheel', onWheel, { passive: false })
+    return () => section.removeEventListener('wheel', onWheel)
+  }, [scenes.length, prefersReducedMotion])
 
   const active = scenes[activeIndex] ?? scenes[0]
   if (!active) return null
 
-  const onRailClick = (index: number) => {
-    setActiveIndex(index)
-    if (!pinTheater) return
-
-    const pin = pinRef.current
-    if (!pin) return
-    const pinTop = pin.getBoundingClientRect().top + window.scrollY
-    const offset = beatScrollOffset({
-      pinHeight: pin.offsetHeight,
-      sceneCount: scenes.length,
-      index,
-    })
-    window.scrollTo({ top: pinTop + offset, behavior: 'smooth' })
-  }
-
-  const stage = (
-    <div
-      className={cn(
-        'grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-8 px-4',
-        pinTheater
-          ? 'sticky h-[calc(100vh-var(--header-h,4rem))]'
-          : 'min-h-[calc(100vh-var(--header-h,4rem))]',
-      )}
-      style={pinTheater ? { top: 'var(--header-h, 4rem)' } : undefined}
-    >
-      <aside
-        className="flex min-h-0 flex-col justify-center py-6"
-        aria-label="Tour chapters"
-      >
-        <p className="text-xs font-medium tracking-widest text-muted uppercase">
-          {formatTourProgress(activeIndex, scenes.length)}
-        </p>
-        <ol className="mt-6 space-y-1">
-          {scenes.map((scene, index) => {
-            const isActive = index === activeIndex
-            return (
-              <li key={scene.slug}>
-                <button
-                  type="button"
-                  onClick={() => onRailClick(index)}
-                  className={cn(
-                    'w-full rounded-md border-l-2 px-3 py-2 text-left transition-colors duration-150',
-                    isActive
-                      ? 'border-accent bg-foreground/5 text-foreground'
-                      : 'border-transparent text-muted hover:text-foreground',
-                  )}
-                  aria-current={isActive ? 'true' : undefined}
-                >
-                  <span className="text-xs tracking-widest uppercase">
-                    {String(scene.id).padStart(2, '0')}
-                  </span>
-                  <span className="mt-0.5 block text-sm font-medium">
-                    {scene.title}
-                  </span>
-                  {isActive && (
-                    <>
-                      <span className="mt-1 block text-sm leading-relaxed text-muted">
-                        {scene.lede}
-                      </span>
-                      {scene.facts.length > 0 && (
-                        <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-muted">
-                          {scene.facts.map((fact) => (
-                            <li key={fact}>{fact}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      </aside>
-
-      <div className="relative flex min-h-0 items-center justify-center py-6">
-        {scenes.map((scene, index) => {
-          const motion = tourStageImageStyle({
-            focal: scene.focal,
-            active: index === activeIndex,
-            reducedMotion,
-          })
-          return (
-            <div
-              key={scene.slug}
-              className={cn(
-                'absolute inset-0 flex items-center justify-center',
-                reducedMotion
-                  ? ''
-                  : 'transition-opacity duration-300',
-                index === activeIndex
-                  ? 'z-10 opacity-100'
-                  : 'z-0 opacity-0 pointer-events-none',
-              )}
-              aria-hidden={index !== activeIndex}
-            >
-              <DeviceFrame
-                device={scene.device}
-                src={scene.src}
-                alt={scene.alt}
-                width={scene.width}
-                height={scene.height}
-                className={
-                  scene.device === 'desktop' ? 'w-full max-w-xl' : undefined
-                }
-                imageClassName="will-change-transform"
-                imageStyle={{
-                  transformOrigin: motion.transformOrigin,
-                  animationName: motion.animationName,
-                  animationDuration: '12s',
-                  animationTimingFunction: 'ease-out',
-                  animationFillMode: 'forwards',
-                }}
-              />
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-
   return (
     <div
-      ref={pinRef}
+      ref={sectionRef}
       className="relative hidden md:block"
-      style={
-        pinTheater
-          ? {
-              height: `calc(${scenes.length} * (100vh - var(--header-h, 4rem)))`,
-            }
-          : undefined
-      }
+      aria-roledescription="carousel"
+      aria-label="Product Tour stages"
     >
-      {stage}
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-4 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] md:gap-8 md:py-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-10">
+        <aside
+          className="flex min-h-0 flex-col justify-start"
+          aria-label="Tour chapters"
+        >
+          <p className="font-mono text-[0.7rem] font-medium tracking-[0.2em] text-accent uppercase">
+            {formatTourProgress(activeIndex, scenes.length)}
+          </p>
+          <ol className="mt-5 flex flex-col gap-0.5">
+            {scenes.map((scene, index) => {
+              const isActive = index === activeIndex
+              return (
+                <li key={scene.slug}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    className={cn(
+                      'group w-full rounded-lg border-l-2 px-3 py-2.5 text-left transition-colors duration-200',
+                      isActive
+                        ? 'border-accent bg-surface text-foreground'
+                        : 'border-transparent hover:bg-foreground/[0.03]',
+                    )}
+                    aria-current={isActive ? 'true' : undefined}
+                  >
+                    <span className="flex items-baseline gap-3">
+                      <span
+                        className={cn(
+                          'shrink-0 font-mono text-xs tracking-wider tabular-nums',
+                          isActive
+                            ? 'font-medium text-accent'
+                            : 'text-muted/70 group-hover:text-muted',
+                        )}
+                      >
+                        {String(scene.id).padStart(2, '0')}
+                      </span>
+                      <span
+                        className={cn(
+                          'text-[0.95rem] leading-snug tracking-tight',
+                          isActive
+                            ? 'font-semibold text-foreground'
+                            : 'font-medium text-muted group-hover:text-foreground/85',
+                        )}
+                      >
+                        {scene.title}
+                      </span>
+                    </span>
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {isActive && (
+                        <motion.div
+                          key={`${scene.slug}-copy`}
+                          initial={
+                            prefersReducedMotion
+                              ? false
+                              : { opacity: 0, height: 0 }
+                          }
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={
+                            prefersReducedMotion
+                              ? undefined
+                              : { opacity: 0, height: 0 }
+                          }
+                          transition={stageTransition}
+                          className="overflow-hidden"
+                        >
+                          <p className="mt-2.5 pl-8 text-sm leading-relaxed text-foreground/70">
+                            {scene.lede}
+                          </p>
+                          {scene.facts.length > 0 && (
+                            <ul className="mt-2.5 space-y-1 pl-8 text-sm leading-snug text-muted">
+                              {scene.facts.map((fact) => (
+                                <li
+                                  key={fact}
+                                  className="flex gap-2 before:mt-[0.55em] before:size-1 before:shrink-0 before:rounded-full before:bg-accent/80 before:content-['']"
+                                >
+                                  {fact}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+          <p className="mt-6 text-xs text-muted">
+            Scroll or use the rail to change steps.
+          </p>
+        </aside>
 
-      {pinTheater && (
-        <div className="pointer-events-none absolute inset-0" aria-hidden>
-          {scenes.map((scene, index) => (
-            <div
-              key={scene.slug}
-              ref={(el) => {
-                beatRefs.current[index] = el
-              }}
-              data-beat-index={index}
-              style={
-                { height: `${100 / scenes.length}%` } satisfies CSSProperties
-              }
-            />
-          ))}
+        <div className="flex min-h-0 items-start justify-center md:justify-start md:pl-2">
+          <div
+            className={cn(
+              'relative h-[min(34rem,70vh)] w-full',
+              active.device === 'desktop' ? 'max-w-4xl' : 'max-w-md',
+            )}
+          >
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={active.slug}
+                className="absolute inset-0 flex items-start justify-end"
+                initial={prefersReducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                transition={stageTransition}
+              >
+                <TourSceneStage
+                  device={active.device}
+                  shots={active.shots}
+                  align="center"
+                  className="h-full w-full"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

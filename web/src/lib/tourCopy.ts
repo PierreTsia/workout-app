@@ -4,7 +4,7 @@ export const tourNavLabel = 'Tour' as const
 
 export const tourHero = {
   h1: 'What GymLogic actually does',
-  sub: 'Program. Train. Progress. One product — browser or agent.',
+  sub: "Programs, sessions, progression, catalog, history, your own agent — a lot. Open source, built in public, free. It still won't lift the bar for you.",
 } as const
 
 export const tourDoors = {
