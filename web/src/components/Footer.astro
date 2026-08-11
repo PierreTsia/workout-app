@@ -1,5 +1,6 @@
 ---
 import Logo from './Logo.astro'
+import { tourNavLabel } from '@/lib/tourCopy'
 
 const year = new Date().getFullYear()
 
@@ -27,6 +28,7 @@ const groups = [
   {
     label: 'Docs',
     links: [
+      { href: '/tour', label: tourNavLabel, external: false },
       { href: '/connect/claude', label: 'Claude connector', external: false },
       { href: '/blog', label: 'Blog', external: false },
       { href: '/blog/rss.xml', label: 'RSS feed', external: false },

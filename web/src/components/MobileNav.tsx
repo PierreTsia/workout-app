@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu, Plug2, BookOpen, UserRound } from 'lucide-react'
+import { Menu, Plug2, BookOpen, UserRound, Route } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import {
@@ -10,12 +10,14 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { tourNavLabel } from '@/lib/tourCopy'
 
 interface MobileNavProps {
   currentPath: string
 }
 
 const links: Array<{ href: string; label: string; Icon: LucideIcon }> = [
+  { href: '/tour', label: tourNavLabel, Icon: Route },
   { href: '/connect/claude', label: 'Claude connector', Icon: Plug2 },
   { href: '/blog', label: 'Blog', Icon: BookOpen },
   { href: '/about', label: 'About', Icon: UserRound },
