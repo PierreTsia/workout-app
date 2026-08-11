@@ -1,0 +1,58 @@
+---
+import { getImage } from 'astro:assets'
+import { DeviceFrame } from './DeviceFrame'
+import { tourScenes } from '@/lib/tourScenes'
+
+const resolved = await Promise.all(
+  tourScenes.map(async (scene) => {
+    const optimized = await getImage({
+      src: scene.image,
+      width: scene.device === 'desktop' ? 1200 : 600,
+    })
+    return {
+      ...scene,
+      src: optimized.src,
+      width: optimized.attributes.width ?? scene.image.width,
+      height: optimized.attributes.height ?? scene.image.height,
+    }
+  }),
+)
+---
+
+<section
+  aria-label="Product Tour scenes"
+  class="mx-auto max-w-3xl space-y-16 px-4 py-12 md:hidden"
+>
+  {
+    resolved.map((scene) => (
+      <article
+        id={`tour-${String(scene.id).padStart(2, '0')}`}
+        class="scroll-mt-24"
+      >
+        <p class="text-xs font-medium tracking-widest text-muted uppercase">
+          {String(scene.id).padStart(2, '0')} / 07
+        </p>
+        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+          {scene.title}
+        </h2>
+        <p class="mt-3 text-muted leading-relaxed">{scene.lede}</p>
+        {scene.facts.length > 0 && (
+          <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">
+            {scene.facts.map((fact) => (
+              <li>{fact}</li>
+            ))}
+          </ul>
+        )}
+        <div class="mt-6">
+          <DeviceFrame
+            device={scene.device}
+            src={scene.src}
+            alt={scene.alt}
+            width={Number(scene.width)}
+            height={Number(scene.height)}
+          />
+        </div>
+      </article>
+    ))
+  }
+</section>
