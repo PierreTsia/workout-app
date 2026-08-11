@@ -208,3 +208,15 @@ The condition `workout_exercises.template_updated_at > last_session.finished_at`
 **Last Performance**:
 The `set_logs` rows from the most recent session that logged a given **Exercise Slot** (keyed by `workout_exercise_id` + catalog `exercise_id`), carrying both actuals (`reps_logged`, `weight_logged`, `duration_seconds`) and the **Prescription Snapshot** (`prescribed_*`) captured at log-time. Source of the engine's `volume.current` and `currentWeight` on subsequent sessions, unless the **Manual Override Window** applies. **Exercise Block** logs stay out (`block_exercise_id` set / `workout_exercise_id` null — ADR 0007). Legacy or orphaned rows with null `workout_exercise_id` do not anchor — the engine bootstraps from **Template Prescription**. Athlete-level history, trends, and PRs remain catalog-global; only session prescription / prefill follows the slot (#463). Filtered by `logged_at < sessionStartedAt` when called in-session (so the live session's own logs don't pollute the comparison) or unfiltered pre-session.
 → `file:src/hooks/useLastSessionDetail.ts`, `file:src/hooks/useProgressionSuggestionsForDay.ts`, ADR `file:docs/adr/0012-slot-scoped-last-performance.md`
+
+---
+
+## Marketing site
+
+**Product Tour**:
+The capability journey page on the Astro mini-site at `/tour` (nav label **Tour**). Seven scenes of dry-fun product facts with a desktop **Tour Split Stage** (sticky rail + device stage) and dual doors (**Open the app** → gymlogic.me, **Connect your agent** → `/connect/claude`). Distinct from the agentic/MCP homepage pitch at `/`. EN-only in v1. See Epic Brief `file:docs/Epic_Brief_—_Product_Tour_(tour)_#466.md`, ADR `file:docs/adr/0013-product-tour-separate-from-homepage.md`.
+→ `file:web/src/pages/tour.astro` (target)
+
+**Tour Split Stage**:
+Desktop interaction model for the **Product Tour**: left sticky scene rail (01–07) + right sticky device stage that crossfades / focal-zooms as the active scene changes (scroll or click). Mobile uses a linear stack of the same seven scenes instead. Scene 05 swaps phone chrome for a desktop window (BYOA / External MCP Client). Zig-zag feature rows are explicitly out.
+→ `file:web/src/pages/tour.astro` (target)
