@@ -49,12 +49,6 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
     if (!section || prefersReducedMotion) return
 
     const onWheel = (event: WheelEvent) => {
-      const now = performance.now()
-      if (now < wheelLockUntilRef.current) {
-        event.preventDefault()
-        return
-      }
-
       if (Math.abs(event.deltaY) < 12) return
 
       const next = sceneIndexAfterWheel({
@@ -63,9 +57,13 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
         deltaY: event.deltaY,
       })
 
+      // At edges, let the page scroll — even during the post-step lock.
       if (!next.consume) return
 
       event.preventDefault()
+      const now = performance.now()
+      if (now < wheelLockUntilRef.current) return
+
       setActiveIndex(next.index)
       wheelLockUntilRef.current = now + WHEEL_LOCK_MS
     }
