@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:hosted": "tsx scripts/dev-hosted.ts",
     "build": "tsc -b && vite build",
     "build:analyze": "ANALYZE=true vite build",
     "lint": "eslint .",
@@ -24,6 +25,7 @@
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
     "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
     "seed:history": "tsx scripts/seed-local-history.ts",
+    "seed:prime-mover": "tsx scripts/seed-prime-mover.ts",
     "backfill:was-pr": "tsx scripts/backfill-was-pr.ts",
     "translate-instructions": "tsx --tsconfig tsconfig.app.json scripts/translate-instructions.ts"
   },

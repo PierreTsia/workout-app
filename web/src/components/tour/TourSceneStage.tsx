@@ -115,6 +115,7 @@ export function TourSceneStage({
                 alt={active.alt}
                 width={active.width}
                 height={active.height}
+                objectPosition={active.focal}
                 className={
                   isLaptop
                     ? 'w-full max-w-full self-center transition duration-150 group-hover:ring-2 group-hover:ring-accent/50'
@@ -122,7 +123,7 @@ export function TourSceneStage({
                 }
                 imageClassName={
                   isLaptop
-                    ? 'aspect-video w-full object-cover object-top will-change-transform'
+                    ? 'aspect-video w-full object-cover will-change-transform'
                     : 'will-change-transform'
                 }
                 imageStyle={{
@@ -184,40 +185,34 @@ export function TourSceneStage({
       )}
 
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent
-          className={cn(
-            'flex max-h-[min(96vh,90rem)] w-[min(98vw,96rem)] max-w-none flex-col gap-4 overflow-hidden border-border bg-background p-3 sm:p-5',
-            isLaptop
-              ? 'h-auto min-h-0'
-              : 'h-[min(94vh,90rem)]',
-          )}
-        >
-          <DialogTitle className="pr-8 text-base">
+        <DialogContent className="flex h-[min(94vh,90rem)] max-h-[min(96vh,90rem)] w-[min(98vw,96rem)] max-w-none flex-col gap-4 overflow-hidden border-border bg-background p-3 sm:p-5">
+          <DialogTitle className="shrink-0 pr-8 text-base">
             Screenshot {shotIndex + 1} of {shots.length}
           </DialogTitle>
           <DialogDescription className="sr-only">{active.alt}</DialogDescription>
 
-          <div
-            className={cn(
-              'flex min-h-0 items-center justify-center overflow-hidden',
-              isLaptop ? 'flex-none' : 'flex-1',
-            )}
-          >
+          {/*
+            Height-driven stage: DeviceFrame fills the flex-1 area (h-full +
+            aspect) instead of a width-capped island centered in dead space.
+            max-w-full keeps narrow viewports from overflowing horizontally.
+          */}
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
             <DeviceFrame
               device={device}
               src={active.src}
               alt={active.alt}
               width={active.width}
               height={active.height}
+              objectPosition={active.focal}
               className={
                 isLaptop
-                  ? 'w-full max-w-none'
-                  : 'mx-auto h-full max-h-full w-auto max-w-[min(100%,28rem)]'
+                  ? 'mx-auto h-full max-h-full w-auto max-w-full aspect-video'
+                  : 'mx-auto h-full max-h-full w-auto max-w-full aspect-[9/19.5]'
               }
               imageClassName={
-                isLaptop
-                  ? 'aspect-video max-h-[min(82vh,56rem)] w-full object-contain object-top'
-                  : 'aspect-auto max-h-[min(78vh,52rem)] w-full object-contain object-top'
+                // Outer frame owns aspect + height; image fills the bezel so
+                // short captures cover instead of letterboxing inside the PNG.
+                'aspect-auto h-full max-h-none w-full object-cover'
               }
             />
           </div>

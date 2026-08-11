@@ -183,17 +183,18 @@ graph TD
 
 ## Capture pipeline (manual, in-epic)
 
-| Scene | Device | Shot |
-|---|---|---|
-| 01 | Phone | Program draft preview |
-| 02 | Phone | Sets table mid-set (RIR + last performance visible) |
-| 03 | Phone | Progression suggestion UI |
-| 04 | Phone | Quick Workout preview + rationale |
-| 05 | Desktop | External agent → program in GymLogic |
-| 06 | Phone | Exercise detail instructions + video |
-| 07 | Phone | History heatmap (primary) |
+Source of truth: `file:web/src/lib/tourScenes.ts` — **6 scenes × 3 shots**. Full checklist + restage runbook: `file:docs/T181_—_Prime_Mover_captures_asset_swap.md`.
 
-Account: **Prime Mover**, EN locale, dark mode, kg. Checklist lives with implementation tickets.
+| Scene | Device | Shots (3 each) |
+|---|---|---|
+| 1 Start with a program | Phone | AI draft · build yourself · Quick Workout |
+| 2 Train the session | Phone | Sets table · RIR · last performance |
+| 3 Progress on purpose | Phone | Add weight · hold · plateau |
+| 4 Bring your own agent | Desktop | MCP chat · tools · result in app (`05*` filenames) |
+| 5 Know the movement | Phone | Library · detail+instructions · video (`06*`) |
+| 6 See yourself over time | Phone | Heatmap · Strength Balance · achievements (`07*`) |
+
+Account: **Prime Mover** on **hosted** Supabase (EN / dark / kg). Seed: `npm run seed:prime-mover`. Captures use Playwright session injection (Google-only UI).
 
 ---
 

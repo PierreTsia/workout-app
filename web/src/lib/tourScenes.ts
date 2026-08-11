@@ -1,23 +1,23 @@
 import type { ImageMetadata } from 'astro'
 
-import s01a from '../assets/screenshots/tour/01a-program-draft.jpg'
-import s01b from '../assets/screenshots/tour/01b-program-accept.jpg'
-import s01c from '../assets/screenshots/tour/01c-program-agent.jpg'
+import s01a from '../assets/screenshots/tour/01a-agent-intake.png'
+import s01b from '../assets/screenshots/tour/01b-qw-constraints.png'
+import s01c from '../assets/screenshots/tour/01c-program-agent.png'
 import s02a from '../assets/screenshots/tour/02a-train-sets.png'
-import s02b from '../assets/screenshots/tour/02b-train-rir.jpg'
-import s02c from '../assets/screenshots/tour/02c-train-last.jpg'
-import s03a from '../assets/screenshots/tour/03a-progress-suggest.jpg'
-import s03b from '../assets/screenshots/tour/03b-progress-hold.jpg'
-import s03c from '../assets/screenshots/tour/03c-progress-plateau.jpg'
+import s02b from '../assets/screenshots/tour/02b-train-rir.png'
+import s02c from '../assets/screenshots/tour/02c-train-rest.png'
+import s03a from '../assets/screenshots/tour/03a-progress-suggest.png'
+import s03b from '../assets/screenshots/tour/03b-progress-hold.png'
+import s03c from '../assets/screenshots/tour/03c-progress-plateau.png'
 import s05a from '../assets/screenshots/tour/05a-agent-chat.png'
 import s05b from '../assets/screenshots/tour/05b-agent-tools.png'
 import s05c from '../assets/screenshots/tour/05c-agent-result.png'
-import s06a from '../assets/screenshots/tour/06a-movement-list.jpg'
-import s06b from '../assets/screenshots/tour/06b-movement-detail.jpg'
-import s06c from '../assets/screenshots/tour/06c-movement-video.jpg'
-import s07a from '../assets/screenshots/tour/07a-history-heatmap.jpg'
-import s07b from '../assets/screenshots/tour/07b-history-balance.jpg'
-import s07c from '../assets/screenshots/tour/07c-history-achievements.jpg'
+import s06a from '../assets/screenshots/tour/06a-movement-list.png'
+import s06b from '../assets/screenshots/tour/06b-movement-detail.png'
+import s06c from '../assets/screenshots/tour/06c-movement-video.png'
+import s07a from '../assets/screenshots/tour/07a-history-heatmap.png'
+import s07b from '../assets/screenshots/tour/07b-history-balance.png'
+import s07c from '../assets/screenshots/tour/07c-history-achievements.png'
 
 export type TourSceneDevice = 'phone' | 'desktop'
 
@@ -46,25 +46,27 @@ export const tourScenes: TourScene[] = [
       'AI draft, build it yourself, or a Quick Workout — onboarding that gets you lifting the same day.',
     facts: [
       'AI program generation',
-      'Blank / template you own',
+      'Quick Workout constraints',
       'Quick Workout for one session',
     ],
     device: 'phone',
     shots: [
       {
         image: s01a,
-        alt: 'AI program draft preview ready to accept or reject.',
-        focal: '50% 20%',
+        alt: 'AI agent chat intake gathering program goals before drafting.',
+        focal: '50% 45%',
       },
       {
         image: s01b,
-        alt: 'Building or adjusting a program yourself.',
-        focal: '50% 30%',
+        alt: 'Quick Workout constraints — duration, equipment, focus, and AI preferences.',
+        // Chips + preferences field (Generating / AI Generate at bottom).
+        focal: '50% 42%',
       },
       {
         image: s01c,
-        alt: 'Quick Workout one-off session from constraints.',
-        focal: '50% 40%',
+        alt: 'Quick Workout preview with coach rationale ready to start.',
+        // Cover focal: coach + CTAs + exercise cards (map collapsed in capture).
+        focal: '50% 38%',
       },
     ],
   },
@@ -73,23 +75,25 @@ export const tourScenes: TourScene[] = [
     slug: 'train-the-session',
     title: 'Train the session',
     lede: 'Log the work without a spreadsheet brain.',
-    facts: ['Last performance on the set', 'Rest timer', 'RIR'],
+    facts: ['Last performance on the set', 'RIR', 'Rest timer'],
     device: 'phone',
     shots: [
       {
         image: s02a,
         alt: 'In-session sets table mid-workout.',
-        focal: '50% 35%',
+        focal: '50% 42%',
       },
       {
         image: s02b,
         alt: 'Logging RIR on a working set.',
-        focal: '70% 40%',
+        // Bias toward the RIR sheet in the lower half.
+        focal: '50% 62%',
       },
       {
         image: s02c,
-        alt: 'Last performance shown on the current set.',
-        focal: '50% 45%',
+        alt: 'Between-set rest timer drawer with countdown and Pause / Skip.',
+        // Bias toward the REST ring + controls in the drawer.
+        focal: '50% 58%',
       },
     ],
   },
@@ -104,17 +108,17 @@ export const tourScenes: TourScene[] = [
       {
         image: s03a,
         alt: 'Progression suggestion to add weight.',
-        focal: '70% 40%',
+        focal: '50% 40%',
       },
       {
         image: s03b,
-        alt: 'Hold suggestion when the target is met.',
-        focal: '50% 35%',
+        alt: 'Hold suggestion when RIR says stay put.',
+        focal: '50% 40%',
       },
       {
         image: s03c,
         alt: 'Plateau flag when progress stalls.',
-        focal: '50% 30%',
+        focal: '50% 38%',
       },
     ],
   },
@@ -133,18 +137,18 @@ export const tourScenes: TourScene[] = [
     shots: [
       {
         image: s05a,
-        alt: 'Desktop agent conversation creating a program via MCP.',
-        focal: '50% 50%',
-      },
-      {
-        image: s05b,
-        alt: 'Agent calling GymLogic tools over MCP.',
+        alt: 'Claude desktop reading GymLogic history — April balance viz with volume by muscle and push/pull/legs.',
         focal: '50% 45%',
       },
       {
+        image: s05b,
+        alt: 'Claude permission modal to run Create or replace active program from GymLogic via MCP.',
+        focal: '50% 50%',
+      },
+      {
         image: s05c,
-        alt: 'Program landed in the app from the agent.',
-        focal: '50% 40%',
+        alt: 'Claude preview of the written 3-day program (Jour A / B / C) with design rationale.',
+        focal: '50% 42%',
       },
     ],
   },
@@ -163,8 +167,8 @@ export const tourScenes: TourScene[] = [
     shots: [
       {
         image: s06a,
-        alt: 'Exercise library list with filters.',
-        focal: '50% 20%',
+        alt: 'Exercise library search with filters open on Shoulders.',
+        focal: '50% 22%',
       },
       {
         image: s06b,
@@ -203,8 +207,8 @@ export const tourScenes: TourScene[] = [
       },
       {
         image: s07c,
-        alt: 'Achievements and milestones unlocked.',
-        focal: '50% 25%',
+        alt: 'Achievement tracks with an unlocked step’s detail open.',
+        focal: '50% 55%',
       },
     ],
   },

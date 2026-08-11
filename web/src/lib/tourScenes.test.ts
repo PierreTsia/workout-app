@@ -46,8 +46,8 @@ describe('Product Tour scene catalog', () => {
     const train = tourScenes.find((s) => s.id === 2)
     expect(train?.facts).toEqual([
       'Last performance on the set',
-      'Rest timer',
       'RIR',
+      'Rest timer',
     ])
   })
 
