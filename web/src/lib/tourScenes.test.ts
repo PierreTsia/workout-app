@@ -30,7 +30,7 @@ describe('Product Tour scene catalog', () => {
     const start = tourScenes.find((s) => s.id === 1)
     expect(start?.facts).toEqual([
       'AI program generation',
-      'Blank / template you own',
+      'Quick Workout constraints',
       'Quick Workout for one session',
     ])
   })
@@ -88,12 +88,15 @@ describe('Product Tour scene catalog', () => {
     ])
   })
 
-  it('gives each scene 2–3 shots with distinct image sources per scene', () => {
+  it('gives each scene 2–3 shots with distinct alts and assets per scene', () => {
     for (const scene of tourScenes) {
       expect(scene.shots.length).toBeGreaterThanOrEqual(2)
       expect(scene.shots.length).toBeLessThanOrEqual(3)
-      const srcs = scene.shots.map((shot) => shot.image.src)
-      expect(new Set(srcs).size).toBe(scene.shots.length)
+      const alts = scene.shots.map((shot) => shot.alt)
+      expect(new Set(alts).size).toBe(scene.shots.length)
+      // Vitest may collapse png imports to one mock `src`; compare metadata identity.
+      const images = scene.shots.map((shot) => shot.image)
+      expect(new Set(images).size).toBe(scene.shots.length)
     }
   })
 })

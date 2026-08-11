@@ -40,7 +40,9 @@ export function TourSplitStage({ scenes }: TourSplitStageProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const prefersReducedMotion = useReducedMotion() ?? false
 
-  activeIndexRef.current = activeIndex
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
 
   useEffect(() => {
     const section = sectionRef.current
