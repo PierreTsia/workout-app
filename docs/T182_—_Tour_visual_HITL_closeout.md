@@ -20,10 +20,10 @@ T180, T181.
 
 Verify:
 
-1. Hero + seven scenes + dual doors; Tour in nav
+1. Hero + six scenes + dual doors; Tour in nav
 2. Desktop sticky scroll (or reduced-motion path) reaches all scenes
 3. No zig-zag / repeated mock / sellsy closer
-4. Scene 05 desktop BYOA; scene 06 catalog wedge; scene 07 heatmap-led
+4. Scene 04 desktop BYOA; scene 05 catalog wedge; scene 06 heatmap-led
 5. CTAs correct
 6. Comment + close #466 (or open fix tickets)
 

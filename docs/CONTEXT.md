@@ -214,9 +214,9 @@ The `set_logs` rows from the most recent session that logged a given **Exercise 
 ## Marketing site
 
 **Product Tour**:
-The capability journey page on the Astro mini-site at `/tour` (nav label **Tour**). Seven scenes of dry-fun product facts with a desktop **Tour Split Stage** (sticky rail + device stage) and dual doors (**Open the app** → gymlogic.me, **Connect your agent** → `/connect/claude`). Distinct from the agentic/MCP homepage pitch at `/`. EN-only in v1. See Epic Brief `file:docs/Epic_Brief_—_Product_Tour_(tour)_#466.md`, ADR `file:docs/adr/0013-product-tour-separate-from-homepage.md`.
-→ `file:web/src/pages/tour.astro` (target)
+The capability journey page on the Astro mini-site at `/tour` (nav label **Tour**). Six scenes of dry-fun product facts with a desktop **Tour Split Stage** (sticky rail + device stage) and dual doors (**Open the app** → gymlogic.me, **Connect your agent** → `/connect/claude`). Quick Workout is folded into scene 1. Distinct from the agentic/MCP homepage pitch at `/`. EN-only in v1. See Epic Brief `file:docs/Epic_Brief_—_Product_Tour_(tour)_#466.md`, ADR `file:docs/adr/0013-product-tour-separate-from-homepage.md`.
+→ `file:web/src/pages/tour.astro`
 
 **Tour Split Stage**:
-Desktop interaction model for the **Product Tour**: left sticky scene rail (01–07) + right sticky device stage that crossfades / focal-zooms as the active scene changes (scroll or click). Mobile uses a linear stack of the same seven scenes instead. Scene 05 swaps phone chrome for a desktop window (BYOA / External MCP Client). Zig-zag feature rows are explicitly out.
-→ `file:web/src/pages/tour.astro` (target)
+Desktop interaction model for the **Product Tour**: left sticky scene rail (01–06) + right sticky device stage that crossfades / focal-zooms as the active scene changes (scroll or click). Mobile uses a linear stack of the same six scenes instead. Scene 04 swaps phone chrome for a desktop window (BYOA / External MCP Client). Zig-zag feature rows are explicitly out.
+→ `file:web/src/pages/tour.astro`

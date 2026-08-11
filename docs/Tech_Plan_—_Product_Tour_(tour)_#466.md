@@ -9,14 +9,14 @@
 | Surface | `file:web/src/pages/tour.astro` on docs mini-site | Epic + ADR 0013; static Astro, no PWA |
 | Nav | Add **Tour** to Header, MobileNav, Footer | Discoverability without homepage redesign |
 | Scene source of truth | `file:web/src/lib/tourScenes.ts` | Banked copy/metadata in one typed module |
-| Desktop UX | Sticky pin + `7 × (100vh - header)` beats + IntersectionObserver + click rail | Kick-ass product-film scroll; matches Stitch chrome lock |
-| Mobile UX | Linear Astro stack of the same 7 scenes | Width too tight for sticky split; less JS on phones |
+| Desktop UX | Sticky pin + `6 × (100vh - header)` beats + IntersectionObserver + click rail (shipped: wheel-step island) | Kick-ass product-film scroll; matches Stitch chrome lock |
+| Mobile UX | Linear Astro stack of the same 6 scenes | Width too tight for sticky split; less JS on phones |
 | Interactivity | React island `TourSplitStage` (`client:load`) **desktop only** (`md+`) | Greenfield motion; keep phones on static HTML |
 | Motion | CSS crossfade + Ken Burns `transform-origin` per scene; no Framer/GSAP | Epic: 2–3 intentional motions; zero new deps |
-| Reduced motion | No pin theater; rail click and/or linear access to all 7 | Story 12 |
+| Reduced motion | No pin theater; rail click and/or linear access to all 6 | Story 12 |
 | Images | `astro:assets` under `src/assets/screenshots/tour/` | Existing FeatureImageCard / Screenshot pattern |
 | Placeholders → captures | Distinct placeholder files first; swap when Prime Mover ready | Ship without blocking on photo safari |
-| Captures | Manual checklist (not Playwright CI in v1) | Enough for 7 staged shots |
+| Captures | Manual checklist (not Playwright CI in v1) | Enough for 6 scenes × 3 shots |
 | Dual doors | Buttons only, no closer headline | Epic LGTM |
 | Image → island bridge | Resolve with `getImage()` in `.astro`; pass URLs/dims into React | Avoid awkward `ImageMetadata` through islands |
 | Design law | `file:web/DESIGN.md` / `file:web/src/styles/global.css` | No second skin |
@@ -40,7 +40,7 @@ No database. Content is a static typed catalog consumed by Astro and the desktop
 ```mermaid
 classDiagram
   class TourScene {
-    +id: 1..7
+    +id: 1..6
     +slug: string
     +title: string
     +lede: string
@@ -51,7 +51,7 @@ classDiagram
     +focal: string
   }
   class TourResolvedScene {
-    +id: 1..7
+    +id: 1..6
     +slug: string
     +title: string
     +lede: string
@@ -78,7 +78,7 @@ classDiagram
 - **Banked titles / ledes** live in `tourScenes.ts` exactly as in the Epic Brief (no paraphrase drift).
 - `facts`: short supporting lines under the active lede (scene 02: last performance, rest timer, RIR — max 3).
 - `focal`: CSS `transform-origin` for Ken Burns (e.g. `"70% 40%"`).
-- `device`: `phone` for scenes 1–4, 6–7; `desktop` for scene 5 (BYOA window).
+- `device`: `phone` for scenes 1–3, 5–6; `desktop` for scene 4 (BYOA window).
 - Placeholders are real image files under `src/assets/screenshots/tour/` (distinct per scene). Captures replace the same paths or imports without changing the public component API.
 - `tour.astro` calls `getImage()` (or equivalent) and passes **resolved** `TourResolvedScene[]` into `TourSplitStage` so the island stays serializable.
 
@@ -114,10 +114,10 @@ graph TD
 | `file:web/src/lib/tourScenes.ts` | Banked copy + image imports + focal/device metadata |
 | `file:web/src/components/tour/TourHero.astro` | H1 + sub |
 | `file:web/src/components/tour/TourDoors.astro` | Dual CTAs (no headline) |
-| `file:web/src/components/tour/TourMobileScenes.astro` | Linear 01–07 below `md` |
+| `file:web/src/components/tour/TourMobileScenes.astro` | Linear 01–06 below `md` |
 | `file:web/src/components/tour/TourSplitStage.tsx` | Desktop sticky pin + IO + rail/stage |
 | `file:web/src/components/tour/DeviceFrame.tsx` | Phone vs desktop chrome + image |
-| `file:web/src/assets/screenshots/tour/*` | Seven distinct stills (placeholders → captures) |
+| `file:web/src/assets/screenshots/tour/*` | Six scenes × three stills (placeholders → captures) |
 | Capture checklist | Manual Prime Mover steps (ticket appendix or `docs/` note) |
 
 **Nav-only edits:** `file:web/src/components/Header.astro`, `file:web/src/components/MobileNav.tsx`, `file:web/src/components/Footer.astro`.
@@ -135,23 +135,23 @@ graph TD
 - Banked sub; optional muted “Scroll the tour →” on desktop only
 
 **`TourSplitStage.tsx`**
-- Pin container height ≈ `7 × (100vh - var(--header-h))`
+- Pin container height ≈ `6 × (100vh - var(--header-h))`
 - Sticky panel: `top: var(--header-h)`; CSS grid ~40% rail / ~60% stage
 - Beat sentinels observed via `IntersectionObserver` → `activeIndex`
 - Click rail → programmatic `scrollTo` corresponding beat
 - Stage: stacked scenes with opacity/scale crossfade; active Ken Burns using `focal`
-- Progress cue `NN / 07`
+- Progress cue `NN / 06`
 - `prefers-reduced-motion: reduce` → disable pin/KB; click rail still switches stage (or jump-links into mobile block)
 
 **`TourRail` (inside island)**
-- Lists 01–07; inactive muted; active teal bar + title + lede + up to 3 facts
+- Lists 01–06; inactive muted; active teal bar + title + lede + up to 3 facts
 
 **`TourStage` + `DeviceFrame`**
 - Fixed stage aspect; `phone` vs `desktop` chrome; image `object-cover` with focal zoom class
-- Scene 05 desktop window letterboxed inside the same stage box
+- Scene 04 desktop window letterboxed inside the same stage box
 
 **`TourMobileScenes.astro`**
-- Stacked sections with anchors `#tour-01` … `#tour-07`; DeviceFrame or Astro `Image` per scene; no IO
+- Stacked sections with anchors `#tour-01` … `#tour-06`; DeviceFrame or Astro `Image` per scene; no IO
 
 **`TourDoors.astro`**
 - Primary: Open the app → `https://gymlogic.me`
@@ -160,7 +160,7 @@ graph TD
 
 ### Kick-ass scroll sketch
 
-1. Outer `.tour-pin` with `height: calc(7 * (100vh - var(--header-h)))`.
+1. Outer `.tour-pin` with `height: calc(6 * (100vh - var(--header-h)))`.
 2. Inner `.tour-sticky` `position: sticky; top: var(--header-h); height: calc(100vh - var(--header-h));` grid 40/60.
 3. Beat markers positioned along the pin for IO root margins tuned so one scene is active at a time.
 4. Stage layers transition opacity/transform; active layer runs a subtle Ken Burns keyed to `focal`.
@@ -175,7 +175,7 @@ graph TD
 | Reduced motion | No scroll theater; all scenes reachable via rail click |
 | Missing image import | `astro build` fails — do not ship broken paths |
 | Header overlap | Sticky `top` / pin math use `--header-h` |
-| Scene 05 aspect jump | Stage box fixed aspect; letterbox desktop chrome |
+| Scene 04 aspect jump | Stage box fixed aspect; letterbox desktop chrome |
 | Mid-scroll rail click | Programmatic scroll to beat; avoid fighting smooth-scroll races |
 | Placeholder looks fake | Distinct per-scene crops only; replace with Prime Mover captures before calling the epic “visually done” if demos demand it |
 

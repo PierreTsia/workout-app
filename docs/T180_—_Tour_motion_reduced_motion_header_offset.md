@@ -2,7 +2,7 @@
 
 ## Goal
 
-Finish desktop motion: Ken Burns per-scene focals, shared `--header-h` so sticky clears the header, and a full `prefers-reduced-motion` path where all seven scenes stay reachable without scroll theater. Addresses Epic story 12.
+Finish desktop motion: Ken Burns per-scene focals, shared `--header-h` so sticky clears the header, and a full `prefers-reduced-motion` path where all six scenes stay reachable without scroll theater. Addresses Epic story 12.
 
 ## Mode
 
@@ -29,12 +29,12 @@ T179.
 
 ### Reduced motion
 
-- When reduce is on: no pin theater / no Ken Burns; rail click still switches stage **or** jump to mobile linear anchors — all 7 reachable
+- When reduce is on: no pin theater / no Ken Burns; rail click still switches stage **or** jump to mobile linear anchors — all 6 reachable
 
 ### Tests
 
 - Helper tests for reduced-motion branch selection if extracted
-- Manual checklist: OS reduce-motion on → still reach scene 07
+- Manual checklist: OS reduce-motion on → still reach scene 06
 
 ## Out of Scope
 
@@ -46,7 +46,7 @@ T179.
 
 - [ ] Sticky stage clears header (no overlap) using `--header-h`
 - [ ] Active scene runs subtle Ken Burns from banked `focal` when motion allowed
-- [ ] `prefers-reduced-motion: reduce` disables theater; all 7 scenes still reachable
+- [ ] `prefers-reduced-motion: reduce` disables theater; all 6 scenes still reachable
 - [ ] No empty void regression from T179
 - [ ] `web` build passes
 

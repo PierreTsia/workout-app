@@ -17,7 +17,7 @@ We will:
 1. **Ship the Product Tour at `/tour`** with nav label **Tour**, implemented in the Astro mini-site (`web/`), not in the PWA.
 2. **Leave `/` and `/about` unchanged** aside from adding the Tour nav link.
 3. **Reuse the existing mini-site design tokens** (`file:web/DESIGN.md` / `file:web/src/styles/global.css`) at larger composition — not a second brand.
-4. **Use a desktop Tour Split Stage** (sticky rail 01–07 + device stage) as the v1 interaction model; mobile stays linear. Stitch mocks are design reference only; Astro is source of truth.
+4. **Use a desktop Tour Split Stage** (sticky rail 01–06 + device stage) as the v1 interaction model; mobile stays linear. Stitch mocks are design reference only; Astro is source of truth.
 
 ## Consequences
 
