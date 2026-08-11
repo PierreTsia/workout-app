@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -49,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: tsc -b
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx vitest run --reporter=verbose
@@ -94,7 +94,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
       - run: npm ci
 
@@ -134,10 +134,10 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-  # Astro type-check for the web/ mini-site. Runs on web/** PRs and pushes.
-  # `astro check` validates .astro and .tsx files using TypeScript + Astro's
-  # language server. The root `tsc -b` deliberately does NOT cover web/ (per
-  # A1's tech plan), so this is the only type-safety net for web/ source.
+  # Astro type-check + Vitest for the web/ mini-site. Runs on web/** PRs and
+  # pushes. `astro check` validates .astro/.tsx; `npm test` runs web/vitest
+  # (Tour helpers etc.). Root `tsc -b` / SPA vitest deliberately skip web/
+  # (Astro tsconfig + separate package).
   web-type-check:
     needs: [changes]
     if: needs.changes.outputs.web == 'true'
@@ -146,11 +146,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: cd web && npm ci
       - run: cd web && npx astro check
+      - run: cd web && npm test
 
   # Vercel preview deploy for the web/ Astro mini-site on PRs that touch web/**.
   # Posts a sticky PR comment with the preview URL via actions/github-script.
@@ -168,7 +169,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
       - id: deploy
@@ -218,7 +219,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
       - run: npm i -g vercel@latest
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
@@ -235,7 +236,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
           cache-dependency-path: infra/cloudflare/mcp-proxy/package-lock.json
       - run: cd infra/cloudflare/mcp-proxy && npm ci

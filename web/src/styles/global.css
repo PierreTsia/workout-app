@@ -108,3 +108,17 @@ summary::after {
 details[open] > summary::after {
   transform: rotate(90deg);
 }
+
+/* Product Tour stage Ken Burns — used by TourSplitStage when motion allowed. */
+@keyframes tour-ken-burns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+:root {
+  --header-h: 4rem;
+}

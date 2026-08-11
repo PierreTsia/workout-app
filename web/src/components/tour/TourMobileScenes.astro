@@ -1,0 +1,61 @@
+---
+import { TourSceneStage } from './TourSceneStage'
+import type { TourResolvedScene } from './TourSplitStage'
+
+interface Props {
+  scenes: TourResolvedScene[]
+}
+
+const { scenes } = Astro.props
+---
+
+<section
+  aria-label="Product Tour scenes"
+  class="mx-auto max-w-5xl space-y-16 px-4 py-12 md:hidden"
+>
+  {
+    scenes.map((scene) => (
+      <article
+        id={`tour-${String(scene.id).padStart(2, '0')}`}
+        class="scroll-mt-24"
+      >
+        <p class="text-xs font-medium tracking-widest text-muted uppercase">
+          {String(scene.id).padStart(2, '0')} /{' '}
+          {String(scenes.length).padStart(2, '0')}
+        </p>
+        <h2 class="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+          {scene.title}
+        </h2>
+        <p class="mt-3 text-muted leading-relaxed">{scene.lede}</p>
+        {scene.facts.length > 0 && (
+          <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-muted">
+            {scene.facts.map((fact) => (
+              <li>{fact}</li>
+            ))}
+          </ul>
+        )}
+        {/*
+          Match desktop SplitStage height budget. TourSceneStage fills with
+          absolute children — without an explicit height the phone collapses
+          to ~0 on mobile (the “missing mobile Tour”).
+        */}
+        <div
+          class:list={[
+            'mt-6 w-full',
+            scene.device === 'desktop'
+              ? 'h-[min(16rem,42vh)] sm:h-[min(20rem,48vh)]'
+              : 'h-[min(34rem,70vh)]',
+          ]}
+        >
+          <TourSceneStage
+            client:visible
+            device={scene.device}
+            shots={scene.shots}
+            align="center"
+            className="h-full w-full"
+          />
+        </div>
+      </article>
+    ))
+  }
+</section>

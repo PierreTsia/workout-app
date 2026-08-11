@@ -7,7 +7,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/mdx": "^5.0.4",
@@ -27,6 +28,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",
     "lucide-static": "^1.14.0",
+    "motion": "^13.1.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "reading-time": "^1.5.0",
@@ -38,6 +40,7 @@
     "@astrojs/check": "^0.9.9",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
   }
 }

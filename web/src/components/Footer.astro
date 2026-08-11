@@ -1,5 +1,6 @@
 ---
 import Logo from './Logo.astro'
+import { tourNavLabel } from '@/lib/tourCopy'
 
 const year = new Date().getFullYear()
 
@@ -27,6 +28,7 @@ const groups = [
   {
     label: 'Docs',
     links: [
+      { href: '/tour', label: tourNavLabel, external: false },
       { href: '/connect/claude', label: 'Claude connector', external: false },
       { href: '/blog', label: 'Blog', external: false },
       { href: '/blog/rss.xml', label: 'RSS feed', external: false },
@@ -46,8 +48,8 @@ const groups = [
 ]
 ---
 
-<footer class="border-t border-border mt-24 py-12">
-  <div class="mx-auto max-w-3xl px-4">
+<footer class="border-t border-border mt-12 py-12">
+  <div class="mx-auto max-w-6xl px-4">
     <div
       class="flex flex-col gap-10 md:flex-row md:items-start md:justify-between"
     >

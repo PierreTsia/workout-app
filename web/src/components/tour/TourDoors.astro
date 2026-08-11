@@ -1,0 +1,24 @@
+---
+import { buttonVariants } from '@/components/ui/button'
+import { tourDoors } from '@/lib/tourCopy'
+---
+
+<section
+  aria-label="Get started"
+  class="mx-auto flex max-w-6xl flex-col gap-3 px-4 pt-10 pb-4 sm:flex-row sm:items-center"
+>
+  <a
+    href={tourDoors.primary.href}
+    target="_blank"
+    rel="noopener noreferrer"
+    class={buttonVariants({ variant: 'default', size: 'default' })}
+  >
+    {tourDoors.primary.label} →
+  </a>
+  <a
+    href={tourDoors.secondary.href}
+    class={buttonVariants({ variant: 'outline', size: 'default' })}
+  >
+    {tourDoors.secondary.label}
+  </a>
+</section>

@@ -1,0 +1,49 @@
+---
+import { getImage } from 'astro:assets'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import TourHero from '../components/tour/TourHero.astro'
+import TourMobileScenes from '../components/tour/TourMobileScenes.astro'
+import TourDoors from '../components/tour/TourDoors.astro'
+import { TourSplitStage } from '../components/tour/TourSplitStage'
+import { tourScenes } from '@/lib/tourScenes'
+
+const resolvedScenes = await Promise.all(
+  tourScenes.map(async (scene) => {
+    const shots = await Promise.all(
+      scene.shots.map(async (shot) => {
+        const optimized = await getImage({
+          src: shot.image,
+          // Laptop BYOA shots are landscape XL — keep enough pixels for the lightbox.
+          width: scene.device === 'desktop' ? 2400 : 600,
+        })
+        return {
+          src: optimized.src,
+          width: Number(optimized.attributes.width ?? shot.image.width),
+          height: Number(optimized.attributes.height ?? shot.image.height),
+          alt: shot.alt,
+          focal: shot.focal,
+        }
+      }),
+    )
+    return {
+      id: scene.id,
+      slug: scene.slug,
+      title: scene.title,
+      lede: scene.lede,
+      facts: [...scene.facts],
+      device: scene.device,
+      shots,
+    }
+  }),
+)
+---
+
+<BaseLayout
+  title="Product Tour — GymLogic"
+  description="What GymLogic actually does: programs, sessions, progression, catalog, history, your own agent — a lot. Open source, built in public, free. It still won't lift the bar for you."
+>
+  <TourHero />
+  <TourSplitStage client:load scenes={resolvedScenes} />
+  <TourMobileScenes scenes={resolvedScenes} />
+  <TourDoors />
+</BaseLayout>

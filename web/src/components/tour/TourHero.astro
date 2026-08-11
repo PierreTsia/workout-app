@@ -1,0 +1,24 @@
+---
+import { tourHero } from '@/lib/tourCopy'
+---
+
+<section
+  aria-labelledby="tour-hero-h1"
+  class="mx-auto max-w-6xl px-4 pt-12 pb-6 md:pt-16 md:pb-8"
+>
+  <h1
+    id="tour-hero-h1"
+    class="text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
+  >
+    {tourHero.h1}
+  </h1>
+  <p class="mt-5 max-w-3xl text-lg text-muted leading-relaxed">
+    {tourHero.sub}
+  </p>
+  <p class="mt-3 hidden text-sm text-muted md:block">
+    Use the rail or scroll over the stage →
+  </p>
+  <p class="mt-3 text-sm text-muted md:hidden">
+    Scroll the scenes — tap a shot to expand.
+  </p>
+</section>

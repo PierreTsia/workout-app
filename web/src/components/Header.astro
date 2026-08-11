@@ -2,8 +2,11 @@
 import Logo from './Logo.astro'
 import { buttonVariants } from '@/components/ui/button'
 import { MobileNav } from './MobileNav'
+import { tourNavLabel } from '@/lib/tourCopy'
 
 const linkIcons: Record<string, string> = {
+  '/tour':
+    '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
   '/connect/claude':
     '<path d="M9 2v6"/><path d="M15 2v6"/><path d="M12 17v5"/><path d="M5 8h14"/><path d="M6 11V8h12v3a6 6 0 1 1-12 0Z"/>',
   '/blog':
@@ -13,6 +16,7 @@ const linkIcons: Record<string, string> = {
 }
 
 const links = [
+  { href: '/tour', label: tourNavLabel },
   { href: '/connect/claude', label: 'Claude connector' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
@@ -83,10 +87,18 @@ const isActive = (href: string) =>
 <script>
   const header = document.getElementById('site-header')
   if (header) {
+    const syncHeaderHeight = () => {
+      document.documentElement.style.setProperty(
+        '--header-h',
+        `${header.offsetHeight}px`,
+      )
+    }
     const onScroll = () => {
       header.dataset.scrolled = window.scrollY > 8 ? 'true' : 'false'
     }
+    syncHeaderHeight()
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', syncHeaderHeight, { passive: true })
   }
 </script>
