@@ -2,7 +2,7 @@
  * HITL: progression triad for Tour scene 3 (03a / 03b / 03c).
  *
  * Uses Prime Mover seed staging:
- *   Push → WEIGHT_UP (bench)
+ *   Push → WEIGHT_UP (OHP)
  *   Pull → HOLD (pulldown)
  *   Legs → PLATEAU (squat)
  *
