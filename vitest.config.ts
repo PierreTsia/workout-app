@@ -6,7 +6,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    exclude: ["e2e/**", "**/node_modules/**"],
+    // web/ and infra/ have their own Vitest configs (Astro / Worker).
+    // Pulling them into the SPA suite breaks on Astro's tsconfig extend.
+    exclude: ["e2e/**", "web/**", "infra/**", "**/node_modules/**"],
   },
   resolve: {
     alias: {
