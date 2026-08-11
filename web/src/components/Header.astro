@@ -87,10 +87,18 @@ const isActive = (href: string) =>
 <script>
   const header = document.getElementById('site-header')
   if (header) {
+    const syncHeaderHeight = () => {
+      document.documentElement.style.setProperty(
+        '--header-h',
+        `${header.offsetHeight}px`,
+      )
+    }
     const onScroll = () => {
       header.dataset.scrolled = window.scrollY > 8 ? 'true' : 'false'
     }
+    syncHeaderHeight()
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', syncHeaderHeight, { passive: true })
   }
 </script>

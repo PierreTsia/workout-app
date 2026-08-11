@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 import { cn } from '@/lib/utils'
 
 export type DeviceFrameProps = {
@@ -8,6 +10,7 @@ export type DeviceFrameProps = {
   height: number
   className?: string
   imageClassName?: string
+  imageStyle?: CSSProperties
 }
 
 export function DeviceFrame({
@@ -18,6 +21,7 @@ export function DeviceFrame({
   height,
   className,
   imageClassName,
+  imageStyle,
 }: DeviceFrameProps) {
   if (device === 'desktop') {
     return (
@@ -39,6 +43,7 @@ export function DeviceFrame({
           width={width}
           height={height}
           className={cn('block h-auto w-full object-cover object-top', imageClassName)}
+          style={imageStyle}
           loading="lazy"
           decoding="async"
         />
@@ -63,6 +68,7 @@ export function DeviceFrame({
           'mt-2 block aspect-[9/19.5] h-auto w-full object-cover object-top',
           imageClassName,
         )}
+        style={imageStyle}
         loading="lazy"
         decoding="async"
       />
