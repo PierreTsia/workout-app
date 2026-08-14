@@ -109,7 +109,6 @@ import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -1205,55 +1204,54 @@ export function WorkoutPage() {
       ) : (
         /* ── Pre-session: hero card → exercises → start ── */
         <>
-          <div
-            className={cn(
-              "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto",
-              (!isDayDoneInCycle || canOfferCycleRestart) && "pb-20",
-            )}
-          >
-            {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
-              <CycleProgressHeader
-                completedCount={cycleProgress.completedDayIds.length}
-                totalDays={cycleProgress.totalDays}
-              />
-            )}
-
-            <WorkoutDayCarousel
-              days={days}
-              completedDayIds={cycleProgress.completedDayIds}
-            />
-
-            {/* Exercise list for selected day */}
-            {isDayDoneInCycle && previewItems.length > 0 && (
-              <div className="px-4">
-                <ExerciseListPreview items={previewItems} />
-              </div>
-            )}
-            {!isDayDoneInCycle && (
-              <div className="px-4">
-                <PreSessionExerciseList
-                  exercises={exercises}
-                  blocks={dayBlocks}
-                  exercisePool={exercisePool}
-                  poolLoading={exercisePoolLoading}
-                  onSwapExerciseChosen={(row, picked) => {
-                    setPendingScope({ kind: "swap", row, picked })
-                    setScopeDialogOpen(true)
-                  }}
-                  onDeleteRequested={openExerciseDeleteFlow}
-                  onSwapBrowseLibrary={(row) => setSwapLibraryRowId(row.id)}
-                  onRequestAddExerciseSheet={() => setAddExerciseSheetOpen(true)}
-                  onInspectExercise={(id) => setInspectedExerciseId(id)}
-                  suggestionsByRowId={progressionSuggestionsByRowId}
-                  suggestionsLoading={progressionSuggestionsLoading}
-                  suggestionsError={progressionSuggestionsError}
+          {/* Scroll container is not a flex column: flex-shrink was crushing
+              the carousel below its content box so the exercise list painted
+              over the day-nav dots (e2e: pointer intercept on Add exercise). */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-4">
+              {!cycleProgress.isComplete && cycleProgress.totalDays > 0 && activeCycle && (
+                <CycleProgressHeader
+                  completedCount={cycleProgress.completedDayIds.length}
+                  totalDays={cycleProgress.totalDays}
                 />
-              </div>
-            )}
+              )}
+
+              <WorkoutDayCarousel
+                days={days}
+                completedDayIds={cycleProgress.completedDayIds}
+              />
+
+              {isDayDoneInCycle && previewItems.length > 0 && (
+                <div className="px-4">
+                  <ExerciseListPreview items={previewItems} />
+                </div>
+              )}
+              {!isDayDoneInCycle && (
+                <div className="px-4">
+                  <PreSessionExerciseList
+                    exercises={exercises}
+                    blocks={dayBlocks}
+                    exercisePool={exercisePool}
+                    poolLoading={exercisePoolLoading}
+                    onSwapExerciseChosen={(row, picked) => {
+                      setPendingScope({ kind: "swap", row, picked })
+                      setScopeDialogOpen(true)
+                    }}
+                    onDeleteRequested={openExerciseDeleteFlow}
+                    onSwapBrowseLibrary={(row) => setSwapLibraryRowId(row.id)}
+                    onRequestAddExerciseSheet={() => setAddExerciseSheetOpen(true)}
+                    onInspectExercise={(id) => setInspectedExerciseId(id)}
+                    suggestionsByRowId={progressionSuggestionsByRowId}
+                    suggestionsLoading={progressionSuggestionsLoading}
+                    suggestionsError={progressionSuggestionsError}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {!isDayDoneInCycle && (
-            <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
+            <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 py-3">
               {exercises.length > 0 && !canStartPreSession(exercises, dayBlocks) ? (
                 <p className="text-center text-xs text-muted-foreground">
                   {t("preSession.startBlocked")}
@@ -1272,7 +1270,7 @@ export function WorkoutPage() {
           )}
 
           {canOfferCycleRestart && (
-            <div className="sticky bottom-0 flex flex-col gap-2 border-t bg-background px-4 py-3">
+            <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 py-3">
               <p className="text-center text-xs text-muted-foreground">
                 {t("abandonCycle.dayDoneHint")}
               </p>
