@@ -34,10 +34,12 @@ export function ExerciseStrip({
   const prFlags = useAtomValue(prFlagsAtom)
   const completedIds = useAtomValue(completedExerciseIdsAtom)
   const completedBlockIds = useAtomValue(completedBlockIdsAtom)
-  const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    // `block: "nearest"` is a no-op when the card is already vertically in
+    // view. AppShell is viewport-locked now (#472), so this no longer tucks
+    // the strip under the header the way body-scroll + sticky used to.
     activeRef.current?.scrollIntoView({
       behavior: "smooth",
       inline: "center",
@@ -46,10 +48,7 @@ export function ExerciseStrip({
   }, [activeIndex])
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex items-center gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
-    >
+    <div className="flex shrink-0 items-center gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
       {items.map((item, idx) =>
         item.kind === "solo" ? (
           <StripItem

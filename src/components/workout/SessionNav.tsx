@@ -103,7 +103,7 @@ export function SessionNav({
   return (
     <>
       <div
-        className="sticky bottom-0 border-t border-border bg-background px-4 py-3"
+        className="sticky bottom-0 shrink-0 border-t border-border bg-background px-4 py-3"
       >
         <div className="flex items-center justify-between gap-4">
           <Button
