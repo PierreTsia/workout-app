@@ -24,8 +24,10 @@ export function AppShell() {
 
   return (
     <AchievementRealtimeProvider>
-      <div className="flex min-h-screen flex-col bg-background">
-        <header className="sticky top-0 z-10 flex items-center justify-between bg-background px-4 pb-2 pt-4">
+      {/* Viewport-locked: header is a sibling of <main>, not a sticky overlay.
+          Body-scroll + sticky was cropping the session ExerciseStrip (#472). */}
+      <div className="flex h-dvh flex-col overflow-hidden bg-background">
+        <header className="flex shrink-0 items-center justify-between bg-background px-4 pb-2 pt-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -46,7 +48,7 @@ export function AppShell() {
         <InstallBanner />
         <AchievementUnlockOverlay />
 
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
+        <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto">
           {/* Single Suspense boundary for all lazy routes nested under AppShell.
               Keeps header + side drawer + chips stable while the next chunk
               downloads (`RouteSkeleton` only swaps inside `<main>`). */}

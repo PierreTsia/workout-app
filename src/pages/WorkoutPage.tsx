@@ -1067,7 +1067,7 @@ export function WorkoutPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {session.isActive ? (
         /* ── Active session ── */
         <>
@@ -1131,7 +1131,7 @@ export function WorkoutPage() {
                 }
               />
               {!isViewingLockedDay ? (
-                <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/25 px-4 py-2">
+                <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-muted/25 px-4 py-2">
                   <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {t("session.exercisesToolbar")}
                   </span>
@@ -1153,7 +1153,7 @@ export function WorkoutPage() {
                   </Button>
                 </div>
               ) : null}
-              <div className="flex-1 overflow-y-auto py-2">
+              <div className="min-h-0 flex-1 overflow-y-auto py-2">
                 {currentBlock ? (
                   <BlockSessionCard
                     block={currentBlock}
@@ -1207,7 +1207,7 @@ export function WorkoutPage() {
         <>
           <div
             className={cn(
-              "flex-1 flex flex-col overflow-y-auto gap-4",
+              "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto",
               (!isDayDoneInCycle || canOfferCycleRestart) && "pb-20",
             )}
           >

@@ -38,17 +38,28 @@ export function ExerciseStrip({
   const activeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({
+    const scroller = scrollRef.current
+    const active = activeRef.current
+    if (!scroller || !active) return
+
+    // Horizontal only — scrollIntoView also walks vertical ancestors and
+    // tucked the scaled active card under the session header (#472).
+    const scrollerBox = scroller.getBoundingClientRect()
+    const activeBox = active.getBoundingClientRect()
+    const delta =
+      activeBox.left +
+      activeBox.width / 2 -
+      (scrollerBox.left + scrollerBox.width / 2)
+    scroller.scrollTo?.({
+      left: scroller.scrollLeft + delta,
       behavior: "smooth",
-      inline: "center",
-      block: "nearest",
     })
   }, [activeIndex])
 
   return (
     <div
       ref={scrollRef}
-      className="flex items-center gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
+      className="flex shrink-0 items-center gap-2 overflow-x-auto px-4 py-3 scrollbar-none"
     >
       {items.map((item, idx) =>
         item.kind === "solo" ? (
