@@ -1,0 +1,123 @@
+---
+title: 'Add a rep before you add a plate'
+date: 2026-08-14
+excerpt: Progressive overload is not a weekly appointment with a bigger plate. GymLogic fills leftover reps first, then load, then a set — with RIR as a brake, not a kilo-nudge.
+tags:
+  - hypertrophy
+  - progressive-overload
+  - progression
+draft: false
+---
+
+import Callout from '@/components/mdx/Callout.astro'
+import TechHeavy from '@/components/mdx/TechHeavy.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+import progression from '@/assets/screenshots/progression.jpg'
+
+The session on screen is a wide-grip lat pulldown. Last time: 3 × 11 @ 43 kg. This time the pill already says weight up, +2.5 kg, and the rows are waiting at 10 reps × 45.5 kg. The French copy is blunt: *plafond de reps atteint*. You hit the top of the range, so the load moved and the reps dropped back.
+
+That is progressive overload. It is not "it's Monday."
+
+<Screenshot
+  src={progression}
+  alt="GymLogic session on a wide-grip lat pulldown. Last time 3 × 11 @ 43 kg; a popover titled Poids en hausse explains the rep ceiling was hit and weight is now 45.5 kg for 3 × 10."
+  caption="A real WEIGHT_UP step. Last time 3 × 11 @ 43 kg. The engine hit the rep ceiling, added 2.5 kg, and put the target back at 10. The popover’s last line: already applied, change any value if you want."
+/>
+
+## "Add weight every week"
+
+Most gym advice compresses overload into a calendar. Same sets, same reps, heavier bar. It works while you are new. Then the next plate is too big for the lift, or you add kilos with two reps still sitting there, and the set that used to be hard becomes a different exercise.
+
+The person I am about to quote is Eric Helms: coach at 3D Muscle Journey, co-author of *The Muscle and Strength Pyramids*, and a writer for MASS, a research review for coaches. He is not in this post as a mascot. GymLogic’s first two rungs are the double-progression model he teaches (fill the rep range, then add load). I am using his wording for that idea. The third rung, and the code, are ours.
+
+He puts overload the other way around from the calendar slogan. Overload is something you already produced. The extra rep or the extra kilo is how you notice. If twelve weeks later you are on the same load, same reps, same effort, the work probably was not enough ([Helms with Milo Wolf, 8:02](https://www.youtube.com/watch?v=twOKHMAAR0U&t=482s)).
+
+<Callout type="tip" title="RIR — the number the engine actually needs">
+  **Reps in reserve:** how many more you could have done. 2 means two in the tank. 0 means you hit failure.
+
+  GymLogic asks after every set. That number is how it tells a grind from a cruise. Log it honestly or the suggestion is guessing — it will hold you when you should move, or bump you when you should stay.
+</Callout>
+
+## The unused reps are the progression
+
+A hypertrophy set stays useful if it stays hard. As you get stronger at 8 reps, those 8 drift further from failure unless you do more of them or load the bar. That is the argument in Helms’ 2023 MASS piece: extra reps or extra load keep the set stimulative. Extra *sets* are a different move, and a greedy one. Going from 3 × 10 to 4 × 10 is a much larger jump in work than 3 × 10 to 3 × 11 ([Helms, MASS, 2023](https://massresearchreview.com/2023/05/22/a-progression-framework-for-hypertrophy/)). I cite that article because it is the same order our engine uses, and because it is also why I do not fully trust the third rung.
+
+So the small step is: same weight, one more rep, still inside the range. The plate comes when there is no rep left to take.
+
+He calls that double progression. Fill 8–12, add load, drop back toward 8, climb again. The reason it exists is practical, not mystical: on a lateral raise the next dumbbell is often a joke, so you eat the leftover reps first ([same video, 8:45](https://www.youtube.com/watch?v=twOKHMAAR0U&t=525s)).
+
+## 8, then 12, then the plate, then a set
+
+GymLogic runs that ladder, plus one extra rung.
+
+Say the exercise is 3 × 8 @ 80 kg, range 8–12, increment 2.5 kg. You hit all three sets of 8 with a couple of reps in the tank. Next session the engine wants 9. Then 10, 11, 12. When every set is at 12, it adds 2.5 kg and puts you back at 8. If you have flagged that you cannot add load (stack maxed, plates gone), it adds a set instead and resets reps to 8. If every axis is cooked, it holds and tells you the format is done.
+
+It also holds if you did not finish the prescribed sets, or you finished them but missed the target reps, or your average RIR last time was under 1. Failure is not a promotion.
+
+The screenshot is that weight step: 43 kg cooked the range, 45.5 kg starts it again at 10.
+
+People already have a name for the first two rungs. The third one is ours, and it is the one I trust least.
+
+## "If it felt easy, I add weight"
+
+That is the objection. It is also what the app used to do.
+
+Before this engine, cross-session "coaching" was average RIR from last time mapped onto a kilo bump. Under 1.5: hold. 1.5 to 2.5: plus one increment. Above 2.5: plus two, or a couple of reps. Easy meant a bigger plate. The leftover reps were optional. That table is still in `file:docs/done/Epic_Brief_—_RIR_Tracking_&_Auto-Suggestion_for_Load_Progression.md`. The session-to-session path no longer uses it.
+
+RIR is still logged. Inside a session, an easy early set can still nudge the *next* set (`file:src/lib/rirSuggestion.ts`). That is undershoot in the same hour, not a weekly plan. Across sessions, RIR is a veto. Average under 1 and nothing goes up.
+
+The suggestion is already written into the inputs. Change any cell. There is no lock.
+
+<Callout type="warning" title="Live at RIR 0 and you stop">
+  Average RIR under 1 trips `HOLD_NEAR_FAILURE`. The engine will keep the same targets until you leave some reps in the tank. Grinding every set to failure is not a shortcut around the ladder. It is how you freeze it.
+</Callout>
+
+<TechHeavy>
+
+`computeNextSessionTarget` in `file:src/lib/progression.ts` is a priority list. First matching rule wins. `RIR_SAFETY_THRESHOLD` is `1`. Duration work (planks, hollow holds) uses the same list with seconds instead of reps (`DURATION_UP` in place of `REPS_UP`). The block below is condensed from that function, not a copy-paste.
+
+```ts
+const completedSets = lastPerformance.filter((s) => s.completed)
+const allCompleted = completedSets.length >= currentSets
+
+if (!allCompleted) {
+  return makeSuggestion("HOLD_INCOMPLETE", /* same targets */)
+}
+
+const avgRir = averageRir(completedSets)
+if (avgRir != null && avgRir < RIR_SAFETY_THRESHOLD) {
+  return makeSuggestion("HOLD_NEAR_FAILURE", /* same targets */)
+}
+
+const allHitTarget = completedSets.every((s) => volumeValue(s) >= volume.current)
+if (!allHitTarget) {
+  return makeSuggestion("HOLD_INCOMPLETE", /* same targets */)
+}
+
+const allAtMax = completedSets.every((s) => volumeValue(s) >= volume.max)
+if (!allAtMax) {
+  return makeSuggestion(volumeRule, /* current + increment, capped at max */)
+}
+
+if (!maxWeightReached) {
+  return makeSuggestion("WEIGHT_UP", volume.min, currentWeight + weightIncrement, currentSets)
+}
+
+if (currentSets < setRangeMax) {
+  return makeSuggestion("SETS_UP", volume.min, currentWeight, currentSets + 1)
+}
+
+return makeSuggestion("PLATEAU", /* same targets */)
+```
+
+The comments are mine. The order, the names, and the RIR cut are the function.
+
+</TechHeavy>
+
+## Two things this engine will not do
+
+**It does not run a mesocycle.** Triple progression is per exercise, per session. `SETS_UP` can add a set with no idea whether that muscle group is already past a recoverable week. There is no deload when you stall for a month. Helms’ own framework treats extra sets as the last lever, and only when reps and load have actually stopped moving. Ours will add the set because the plate is gone. The long-lived ticket is [#149](https://github.com/PierreTsia/workout-app/issues/149). The vocabulary it would need (MEV, MAV, MRV) is [Israetel’s volume landmarks](https://rpstrength.com/expert-advice/training-volume-landmarks-muscle-growth), not something in `progression.ts`.
+
+**A jump is not a percentage.** `resolveWeightIncrement` in the same file is: your override, else 2 kg on a dumbbell, else 2.5 kg. That 2.5 kg is a rounding error on a squat and a new sport on a lateral raise. Training status is not in the function either. A novice and someone who has been on the same row for two years get the same step. Helms’ lateral-raise point from the video is the bug report.
+
+Leftover reps are the progression. The plate is what you do when that well is dry.
