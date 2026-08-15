@@ -283,9 +283,10 @@ Deno.test("dry_run payload has top-level days[] with rendered lines (description
     "each day must have a `rendered` array",
   );
   assertEquals(Array.isArray(days[0].rendered), true);
-  assertEquals(days[0].rendered.length, 1);
+  const renderedLines = days[0].rendered as string[];
+  assertEquals(renderedLines.length, 1);
 
-  const rendered = (days[0].rendered as string[]).join("\n");
+  const rendered = renderedLines.join("\n");
   assertStringIncludes(rendered, "Bench Press");
   assertStringIncludes(rendered, "4");
   assertStringIncludes(rendered, "8");
