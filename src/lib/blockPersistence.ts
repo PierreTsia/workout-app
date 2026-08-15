@@ -17,6 +17,8 @@ export interface ExerciseBlockInsertRow {
   sort_order: number
   mode: "rounds" | "amrap"
   cap_seconds: number | null
+  /** Null = jetable Circuit. Set when instantiated from a Benchmark Circuit. */
+  benchmark_circuit_id?: string | null
 }
 
 /** Row for `block_exercises` insert (no id/block_id; block_id filled after the block insert returns). */

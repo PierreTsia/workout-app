@@ -29,6 +29,8 @@ export interface ExerciseBlockInsertRow {
   sort_order: number
   mode: "rounds" | "amrap"
   cap_seconds: number | null
+  /** Null = jetable Circuit. Set when instantiated from a Benchmark Circuit. */
+  benchmark_circuit_id?: string | null
 }
 
 export interface BlockExerciseInsertRow {
@@ -74,6 +76,7 @@ export function buildCircuitInsertRows(
     cap_seconds: isAmrap
       ? (circuit.capMinutes ?? CIRCUIT_BOUNDS.cap_minutes.default) * 60
       : null,
+    benchmark_circuit_id: circuit.benchmarkCircuitId ?? null,
   }
 
   const blockExercises: BlockExerciseInsertRow[] = circuit.exercises.map((nested, position) => {

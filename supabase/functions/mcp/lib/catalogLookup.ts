@@ -8,6 +8,47 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
+import type { BenchmarkCircuitLookup, BenchmarkRx } from "./resolveBenchmark.ts"
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function parseBenchmarkRx(raw: unknown): BenchmarkRx | null {
+  if (!isRecord(raw)) return null
+  if (raw.mode !== "amrap" && raw.mode !== "rounds") return null
+  const cap = raw.cap_seconds
+  if (cap !== null && cap !== undefined && (typeof cap !== "number" || !Number.isFinite(cap))) {
+    return null
+  }
+  if (!Array.isArray(raw.exercises)) return null
+  const exercises = raw.exercises.flatMap((ex) => {
+    if (!isRecord(ex) || typeof ex.exercise_id !== "string") return []
+    if (typeof ex.amount !== "number" || typeof ex.weight !== "number") return []
+    return [{ exercise_id: ex.exercise_id, amount: ex.amount, weight: ex.weight }]
+  })
+  if (exercises.length !== raw.exercises.length) return null
+  return {
+    mode: raw.mode,
+    cap_seconds: typeof cap === "number" ? cap : null,
+    exercises,
+  }
+}
+
+function parseBenchmarkRow(raw: unknown): BenchmarkCircuitLookup | null {
+  if (!isRecord(raw) || typeof raw.id !== "string") return null
+  const rx = parseBenchmarkRx(raw.rx)
+  if (!rx) return null
+  const aliases = Array.isArray(raw.aliases)
+    ? raw.aliases.filter((a): a is string => typeof a === "string")
+    : []
+  return {
+    id: raw.id,
+    slug: typeof raw.slug === "string" ? raw.slug : null,
+    aliases,
+    rx,
+  }
+}
 
 const CATALOG_COLUMNS =
   "id, name, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
@@ -66,4 +107,23 @@ export async function fetchExercisesByIds(
     }
   }
   return { data: mapped, error: null }
+}
+
+/**
+ * Fetch Benchmark Circuits visible to the caller (GymLogic seeds + own forks).
+ * RLS: `owner_id IS NULL OR owner_id = auth.uid()`.
+ */
+export async function fetchBenchmarkCircuits(
+  supabase: SupabaseClient,
+): Promise<{ data: BenchmarkCircuitLookup[]; error: string | null }> {
+  const { data, error } = await supabase
+    .from("benchmark_circuits")
+    .select("id, slug, aliases, rx")
+
+  if (error) return { data: [], error: error.message }
+  const rows = Array.isArray(data) ? data.flatMap((row) => {
+    const parsed = parseBenchmarkRow(row)
+    return parsed ? [parsed] : []
+  }) : []
+  return { data: rows, error: null }
 }

@@ -46,6 +46,15 @@ interface BlockExerciseRow {
   exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
 }
 
+function slugFromEmbed(
+  embed: { slug: string | null } | { slug: string | null }[] | null | undefined,
+): string | null {
+  if (embed == null) return null
+  const row = Array.isArray(embed) ? embed[0] : embed
+  const slug = row?.slug?.trim()
+  return slug ? slug : null
+}
+
 interface ExerciseBlockRow {
   id: string
   label: string | null
@@ -55,13 +64,16 @@ interface ExerciseBlockRow {
   sort_order: number
   mode: "rounds" | "amrap"
   cap_seconds: number | null
+  benchmark_circuit_id: string | null
+  benchmark_circuits: { slug: string | null } | { slug: string | null }[] | null
   block_exercises: BlockExerciseRow[] | null
 }
 
 const PROGRAM_DETAILS_SELECT =
   "id, name, archived_at, workout_days(id, label, emoji, sort_order, " +
   "workout_exercises(id, exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order, exercises(name, name_en)), " +
-  "exercise_blocks(id, label, rounds, rest_seconds, transition_seconds, sort_order, mode, cap_seconds, " +
+  "exercise_blocks(id, label, rounds, rest_seconds, transition_seconds, sort_order, mode, cap_seconds, benchmark_circuit_id, " +
+  "benchmark_circuits(slug), " +
   "block_exercises(exercise_id, name_snapshot, position, per_round, exercises(name, name_en))))"
 
 export const getProgramDetails: ToolDefinition = {
@@ -160,6 +172,8 @@ export const getProgramDetails: ToolDefinition = {
           sort_order: block.sort_order,
           mode: block.mode,
           cap_seconds: block.cap_seconds,
+          benchmark_circuit_id: block.benchmark_circuit_id,
+          benchmark_slug: slugFromEmbed(block.benchmark_circuits),
           block_exercises: (block.block_exercises ?? []).map((be) => {
             const catalog = unwrapCatalogNameEmbed(be.exercises)
             return {

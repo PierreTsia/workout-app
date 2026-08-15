@@ -25,7 +25,8 @@
 
 import type { ToolDefinition } from "./registry.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
-import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
+import { fetchBenchmarkCircuits, fetchExercisesByIds } from "../lib/catalogLookup.ts"
+import { collectReferencedBenchmarkExerciseIds } from "../lib/resolveBenchmark.ts"
 import { validateDayExercises } from "../lib/createProgramValidation.ts"
 import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 import {
@@ -130,7 +131,7 @@ Patch shape:
 Each item in a day's \`exercises\` array can be EITHER:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest).
   - A full prescription object — required fields {exercise_id, sets, reps, weight_kg, rest_seconds}; \`target_duration_seconds\` for duration exercises (T75).
-  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011 + 0014: optional \`mode\` / \`cap_minutes\` for AMRAP). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
+  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011 + 0014 + 0015: optional \`mode\` / \`cap_minutes\` for AMRAP; \`benchmark_slug\` / \`benchmark_id\` instantiate a catalog Circuit). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
 
 Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior days are already persisted; the response includes \`applied_days\`, \`failed_at\`, and \`remaining_days\` plus retry guidance.
 
@@ -266,8 +267,18 @@ export const updateProgram: ToolDefinition = {
       Array.isArray(args.days)
         ? (args.days as Array<Record<string, unknown>>)
         : []
+    const { data: benchmarks, error: benchErr } = await fetchBenchmarkCircuits(supabase)
+    if (benchErr) {
+      return err(`Invalid input: ${benchErr}`)
+    }
+
     const patchIds = rawDays.flatMap((d) =>
-      Array.isArray(d.exercises) ? collectCandidateExerciseIds(d.exercises) : [],
+      Array.isArray(d.exercises)
+        ? [
+            ...collectCandidateExerciseIds(d.exercises),
+            ...collectReferencedBenchmarkExerciseIds(d.exercises, benchmarks),
+          ]
+        : [],
     )
     const currentIds = currentProgram.days.flatMap((d) =>
       d.workout_exercises.map((ex) => ex.exercise_id),
@@ -290,7 +301,7 @@ export const updateProgram: ToolDefinition = {
         const rawExercises = Array.isArray(rawDays[i]?.exercises)
           ? (rawDays[i].exercises as unknown[])
           : []
-        const result = validateDayExercises(rawExercises, day.label, catalogById)
+        const result = validateDayExercises(rawExercises, day.label, catalogById, benchmarks)
         if (!result.ok) return result
         return { ok: true, updated: { ...day, parsed_exercises: result.parsed } }
       }

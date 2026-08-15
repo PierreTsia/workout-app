@@ -153,6 +153,37 @@ describe("dbBlockToCircuitWire (T165)", () => {
     expect(wire).not.toHaveProperty("rest_seconds")
     expect(wire).not.toHaveProperty("transition_seconds")
   })
+
+  it("echoes benchmark_slug when the block is linked to a catalog seed (T191)", () => {
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Cindy",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: "cindy",
+        block_exercises: [
+          {
+            exercise_id: ID_A,
+            name_snapshot: "Pull-up",
+            position: 0,
+            per_round: [{ amount: 5, weight: 0 }],
+            exercises: { name: "Pull-up", name_en: "Pull-up" },
+          },
+          {
+            exercise_id: ID_B,
+            name_snapshot: "Push-up",
+            position: 1,
+            per_round: [{ amount: 10, weight: 0 }],
+            exercises: { name: "Push-up", name_en: "Push-up" },
+          },
+        ],
+      }),
+    )
+    expect(wire.benchmark_slug).toBe("cindy")
+  })
 })
 
 describe("mergeDaySequence (T165)", () => {

@@ -1,7 +1,9 @@
 import type { ToolDefinition } from "./registry.ts"
 import { validateDayExercises } from "../lib/createProgramValidation.ts"
-import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
+import { fetchBenchmarkCircuits, fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
+import { collectReferencedBenchmarkExerciseIds } from "../lib/resolveBenchmark.ts"
+import { parsedCircuitToWire } from "../lib/daySequenceRead.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
 import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
@@ -9,7 +11,7 @@ const TOOL_DESCRIPTION = `Create a single ad-hoc workout day in the user's GymLo
 
 Use this when the user wants ONE workout (today, tomorrow, an extra session) without changing their active multi-day program. Unlike \`create_program\`, this tool does NOT deactivate any existing program — the new day is stored as a standalone \`workout_days\` row with \`program_id: null\`.
 
-\`exercises[]\` accepts bare UUIDs, solo prescription objects, or Circuits (\`type: "circuit"\`) — same shape as \`create_program\` (ADR 0011 + 0014). A Circuit counts as one item toward the 20-item cap. Omit \`mode\` for Tours; \`mode: "amrap"\` + \`cap_minutes\` for AMRAP.
+\`exercises[]\` accepts bare UUIDs, solo prescription objects, or Circuits (\`type: "circuit"\`) — same shape as \`create_program\` (ADR 0011 + 0014 + 0015). A Circuit counts as one item toward the 20-item cap. Omit \`mode\` for Tours; \`mode: "amrap"\` + \`cap_minutes\` for AMRAP. Named WODs: \`benchmark_slug: "cindy"\` (or label Cindy / Holland) — catalog Rx wins; unknown slug is an error.
 
 Pass \`dry_run: true\` to preview the rendered prescription without writing.`
 
@@ -134,14 +136,24 @@ export const createWorkoutDay: ToolDefinition = {
       }
     }
 
-    const candidateIds = [...new Set(collectCandidateExerciseIds(rawExercises))]
+    const { data: benchmarks, error: benchErr } = await fetchBenchmarkCircuits(supabase)
+    if (benchErr) {
+      return { content: [{ type: "text", text: benchErr }], isError: true }
+    }
+
+    const candidateIds = [
+      ...new Set([
+        ...collectCandidateExerciseIds(rawExercises),
+        ...collectReferencedBenchmarkExerciseIds(rawExercises, benchmarks),
+      ]),
+    ]
     const { data: catalog, error: fetchErr } = await fetchExercisesByIds(supabase, candidateIds)
     if (fetchErr) {
       return { content: [{ type: "text", text: fetchErr }], isError: true }
     }
     const byId = new Map(catalog.map((e) => [e.id, e] as const))
 
-    const validation = validateDayExercises(rawExercises, label, byId)
+    const validation = validateDayExercises(rawExercises, label, byId, benchmarks)
     if (!validation.ok) {
       return {
         content: [{ type: "text", text: `Invalid input: ${validation.error}` }],
@@ -166,6 +178,15 @@ export const createWorkoutDay: ToolDefinition = {
 
     if (dryRun) {
       const rendered = buildDayRenderedLines(validation.parsed, byId)
+      const exercises = validation.parsed.map((item) =>
+        item.kind === "circuit" ? parsedCircuitToWire(item) : item.kind === "bare" ? item.exerciseId : {
+          exercise_id: item.exerciseId,
+          sets: item.sets,
+          reps: item.reps,
+          weight_kg: item.weightKg,
+          rest_seconds: item.restSeconds,
+        },
+      )
 
       return {
         content: [
@@ -180,6 +201,7 @@ export const createWorkoutDay: ToolDefinition = {
                   sort_order: 0,
                   program_id: null,
                   rendered,
+                  exercises,
                 },
                 note:
                   "workout_day_id omitted; server assigns the UUID on insert. Re-call with dry_run: false to persist.",

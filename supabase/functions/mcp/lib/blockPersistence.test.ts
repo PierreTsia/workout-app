@@ -137,4 +137,24 @@ describe("buildCircuitInsertRows (T163)", () => {
     expect(blockExercises[1].per_round).toHaveLength(1)
     expect(blockExercises[0].per_round).toEqual([{ amount: 5, weight: 0 }])
   })
+
+  it("stamps benchmark_circuit_id when the parsed Circuit is catalog-linked (T191)", () => {
+    const circuit: Extract<ParsedExercise, { kind: "circuit" }> = {
+      kind: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      capMinutes: 20,
+      rounds: 1,
+      restSeconds: 0,
+      transitionSeconds: 0,
+      benchmarkCircuitId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      benchmarkSlug: "cindy",
+      exercises: [
+        { mode: "flat", exerciseId: ID_A, amount: 5, weightKg: 0 },
+        { mode: "flat", exerciseId: ID_B, amount: 10, weightKg: 0 },
+      ],
+    }
+    const { block } = buildCircuitInsertRows("day-1", 0, circuit, catalog())
+    expect(block.benchmark_circuit_id).toBe("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")
+  })
 })

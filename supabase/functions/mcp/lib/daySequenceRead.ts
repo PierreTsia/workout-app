@@ -30,6 +30,9 @@ export interface DbBlockForRead {
   /** Present after T183; omitted on older fixtures → Tours. */
   mode?: "rounds" | "amrap"
   cap_seconds?: number | null
+  /** Catalog handle when the block was instantiated from a Benchmark Circuit. */
+  benchmark_slug?: string | null
+  benchmark_circuit_id?: string | null
 }
 
 export interface DbSoloForRead {
@@ -59,6 +62,7 @@ export interface CircuitWireItem {
   rest_seconds?: number
   transition_seconds?: number
   exercises: CircuitWireExercise[]
+  benchmark_slug?: string
 }
 
 function cellsAreHomogeneous(cells: PerRoundCellDb[]): boolean {
@@ -138,11 +142,13 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     })
 
   const label = block.label?.trim()
+  const slug = block.benchmark_slug?.trim()
   if (block.mode === "amrap") {
     const capMinutes = (block.cap_seconds ?? 0) / 60
     return {
       type: "circuit",
       ...(label ? { label } : {}),
+      ...(slug ? { benchmark_slug: slug } : {}),
       mode: "amrap",
       cap_minutes: capMinutes,
       exercises: nested,
@@ -157,6 +163,7 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     exercises: nested,
   }
   if (label) wire.label = label
+  if (slug) wire.benchmark_slug = slug
   return wire
 }
 
@@ -195,6 +202,42 @@ export type SoloWireItem = {
 }
 
 export type EchoDayExercise = string | SoloWireItem | CircuitWireItem
+
+/** Parsed Circuit → MCP wire (dry_run echo, including catalog slug). */
+export function parsedCircuitToWire(
+  circuit: Extract<ParsedExercise, { kind: "circuit" }>,
+): CircuitWireItem {
+  const nested: CircuitWireExercise[] = circuit.exercises.map((ex) => {
+    if (ex.mode === "flat") {
+      return { exercise_id: ex.exerciseId, amount: ex.amount, weight_kg: ex.weightKg }
+    }
+    return {
+      exercise_id: ex.exerciseId,
+      per_round: ex.perRound.map((c) => ({ amount: c.amount, weight_kg: c.weightKg })),
+    }
+  })
+  const slug = circuit.benchmarkSlug?.trim()
+  if (circuit.mode === "amrap") {
+    return {
+      type: "circuit",
+      ...(circuit.label ? { label: circuit.label } : {}),
+      ...(slug ? { benchmark_slug: slug } : {}),
+      mode: "amrap",
+      cap_minutes: circuit.capMinutes ?? 20,
+      exercises: nested,
+    }
+  }
+  const wire: CircuitWireItem = {
+    type: "circuit",
+    rounds: circuit.rounds,
+    rest_seconds: circuit.restSeconds,
+    transition_seconds: circuit.transitionSeconds,
+    exercises: nested,
+  }
+  if (circuit.label) wire.label = circuit.label
+  if (slug) wire.benchmark_slug = slug
+  return wire
+}
 
 /** Patch-shaped `days[].exercises` for the get_program_details JSON fence. */
 export function daySequenceToEchoExercises(items: DaySequenceReadItem[]): EchoDayExercise[] {

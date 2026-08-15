@@ -62,6 +62,54 @@ const PUSHUP: CatalogRow = {
   default_duration_seconds: null,
 }
 
+const ID_CINDY = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+const ID_PULL = "cccccccc-1111-4111-8111-cccccccccccc"
+const ID_PUSH = "cccccccc-2222-4222-8222-cccccccccccc"
+const ID_SQUAT = "cccccccc-3333-4333-8333-cccccccccccc"
+
+const PULL: CatalogRow = {
+  id: ID_PULL,
+  name: "Tractions",
+  muscle_group: "Dos",
+  emoji: "🚣",
+  equipment: "bodyweight",
+  measurement_type: "reps",
+  default_duration_seconds: null,
+}
+const PUSH: CatalogRow = {
+  id: ID_PUSH,
+  name: "Pompes",
+  muscle_group: "Pectoraux",
+  emoji: "🏋️",
+  equipment: "bodyweight",
+  measurement_type: "reps",
+  default_duration_seconds: null,
+}
+const SQUAT: CatalogRow = {
+  id: ID_SQUAT,
+  name: "Squat au poids du corps",
+  muscle_group: "Quadriceps",
+  emoji: "🦵",
+  equipment: "bodyweight",
+  measurement_type: "reps",
+  default_duration_seconds: null,
+}
+
+const CINDY_SEED: BenchmarkRow = {
+  id: ID_CINDY,
+  slug: "cindy",
+  aliases: ["holland", "tom holland"],
+  rx: {
+    mode: "amrap",
+    cap_seconds: 1200,
+    exercises: [
+      { exercise_id: ID_PULL, amount: 5, weight: 0 },
+      { exercise_id: ID_PUSH, amount: 10, weight: 0 },
+      { exercise_id: ID_SQUAT, amount: 15, weight: 0 },
+    ],
+  },
+}
+
 // ---------------------------------------------------------------------------
 // MockSupabase — scoped to the chains create_workout_day's handler builds.
 // ---------------------------------------------------------------------------
@@ -81,8 +129,20 @@ interface Filter {
   val: unknown
 }
 
+interface BenchmarkRow {
+  id: string
+  slug: string | null
+  aliases: string[]
+  rx: {
+    mode: "amrap" | "rounds"
+    cap_seconds: number | null
+    exercises: { exercise_id: string; amount: number; weight: number }[]
+  }
+}
+
 interface MockState {
   catalog: CatalogRow[]
+  benchmarks?: BenchmarkRow[]
   /**
    * When set, the mock returns an error from `workout_exercises.insert(...)`.
    * Drives the rollback test (#3 review feedback): handler must compensate by
@@ -186,6 +246,10 @@ class MockBuilder {
     this.entry.filters = this.filters
     this.mock.callLog.push(this.entry)
 
+    if (this.entry.op === "select" && this.table === "benchmark_circuits") {
+      return { data: this.mock.state.benchmarks ?? [], error: null }
+    }
+
     if (this.entry.op === "select" && this.table === "exercises") {
       const ids = this.filters.find((f) => f.type === "in" && f.col === "id")?.val as
         | string[]
@@ -238,6 +302,13 @@ class MockBuilder {
 
 function makeMock(): MockSupabase {
   return new MockSupabase({ catalog: [BENCH, PUSHUP] })
+}
+
+function makeCindyMock(): MockSupabase {
+  return new MockSupabase({
+    catalog: [BENCH, PUSHUP, PULL, PUSH, SQUAT],
+    benchmarks: [CINDY_SEED],
+  })
 }
 
 function dayInsertEntry(mock: MockSupabase): CallEntry | undefined {
@@ -807,4 +878,154 @@ Deno.test("T187: apply persists AMRAP Circuit with mode, cap_seconds, rounds=1",
   assertEquals(Array.isArray(first.per_round), true)
   if (!Array.isArray(first.per_round)) return
   assertEquals(first.per_round.length, 1)
+})
+
+Deno.test("T191: benchmark_slug cindy persists catalog FK and Rx, not caller exercises", async () => {
+  const mock = makeCindyMock()
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Cindy Day",
+      exercises: [
+        {
+          type: "circuit",
+          benchmark_slug: "cindy",
+          exercises: [
+            { exercise_id: ID_BENCH, amount: 6, weight_kg: 0 },
+            { exercise_id: ID_PUSHUP, amount: 11, weight_kg: 0 },
+          ],
+        },
+      ],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+
+  const blockInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "exercise_blocks",
+  )
+  assertExists(blockInsert)
+  assertEquals(isRecord(blockInsert.payload), true)
+  if (!isRecord(blockInsert.payload)) return
+  assertEquals(blockInsert.payload.benchmark_circuit_id, ID_CINDY)
+  assertEquals(blockInsert.payload.label, "Cindy")
+  assertEquals(blockInsert.payload.mode, "amrap")
+  assertEquals(blockInsert.payload.cap_seconds, 1200)
+  assertEquals(blockInsert.payload.rest_seconds, 0)
+  assertEquals(blockInsert.payload.transition_seconds, 0)
+
+  const beInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "block_exercises",
+  )
+  assertExists(beInsert)
+  assertEquals(Array.isArray(beInsert.payload), true)
+  if (!Array.isArray(beInsert.payload)) return
+  const amounts = beInsert.payload.map((row) => {
+    if (!isRecord(row) || !Array.isArray(row.per_round)) return null
+    const cell = row.per_round[0]
+    return isRecord(cell) ? cell.amount : null
+  })
+  assertEquals(amounts, [5, 10, 15])
+})
+
+Deno.test("T191: unknown benchmark_slug errors and writes nothing", async () => {
+  const mock = makeCindyMock()
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Nope",
+      exercises: [{ type: "circuit", benchmark_slug: "not-a-wod" }],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+  assertEquals(result.isError, true)
+  const text = JSON.stringify(result.content)
+  assertStringIncludes(text, "not-a-wod")
+  assertEquals(
+    mock.callLog.filter((e) => e.op === "insert").length,
+    0,
+    "unknown slug must not insert a day or block",
+  )
+})
+
+Deno.test("T191: label Holland coerces to cindy FK and Rx", async () => {
+  const mock = makeCindyMock()
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Metcon",
+      exercises: [
+        {
+          type: "circuit",
+          label: "Holland",
+          exercises: [
+            { exercise_id: ID_BENCH, amount: 6, weight_kg: 0 },
+            { exercise_id: ID_PUSHUP, amount: 11, weight_kg: 0 },
+          ],
+        },
+      ],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const blockInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "exercise_blocks",
+  )
+  assertExists(blockInsert)
+  assertEquals(isRecord(blockInsert.payload), true)
+  if (!isRecord(blockInsert.payload)) return
+  assertEquals(blockInsert.payload.benchmark_circuit_id, ID_CINDY)
+  assertEquals(blockInsert.payload.label, "Cindy")
+})
+
+Deno.test("T191: generic AMRAP stays jetable (null catalog FK)", async () => {
+  const mock = makeCindyMock()
+  const result = await createWorkoutDay.handler(
+    {
+      label: "HIIT",
+      exercises: [
+        {
+          type: "circuit",
+          label: "HIIT 20",
+          mode: "amrap",
+          cap_minutes: 20,
+          exercises: [
+            { exercise_id: ID_PUSHUP, amount: 10, weight_kg: 0 },
+            { exercise_id: ID_BENCH, amount: 8, weight_kg: 0 },
+          ],
+        },
+      ],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const blockInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "exercise_blocks",
+  )
+  assertExists(blockInsert)
+  assertEquals(isRecord(blockInsert.payload), true)
+  if (!isRecord(blockInsert.payload)) return
+  assertEquals(blockInsert.payload.benchmark_circuit_id ?? null, null)
+})
+
+Deno.test("T191: dry_run echoes benchmark_slug when linked", async () => {
+  const mock = makeCindyMock()
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Cindy Day",
+      exercises: [{ type: "circuit", benchmark_slug: "cindy" }],
+      dry_run: true,
+    },
+    mock as unknown as SupabaseClient,
+  )
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const text = typeof result.content[0] === "object" && "text" in result.content[0]
+    ? result.content[0].text
+    : ""
+  assertStringIncludes(text, "\"benchmark_slug\": \"cindy\"")
+  assertEquals(
+    mock.callLog.filter((e) => e.op === "insert").length,
+    0,
+  )
 })

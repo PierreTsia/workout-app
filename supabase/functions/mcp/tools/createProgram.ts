@@ -6,8 +6,10 @@ import {
   validateDayExercises,
   type ParsedExercise,
 } from "../lib/createProgramValidation.ts"
-import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
+import { fetchBenchmarkCircuits, fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
+import { collectReferencedBenchmarkExerciseIds } from "../lib/resolveBenchmark.ts"
+import { parsedCircuitToWire } from "../lib/daySequenceRead.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
 import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
@@ -29,7 +31,7 @@ const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymL
 Each item in a day's \`exercises\` array can be:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest, auto-derived ranges).
   - A prescription object — explicit \`sets\`, \`reps\`, \`weight_kg\`, \`rest_seconds\`. Freezes the progression ranges around the prescribed values.
-  - A Circuit object — \`{ type: "circuit", label?, mode?, cap_minutes?, rounds?, rest_seconds?, transition_seconds?, exercises: [{ exercise_id, amount, weight_kg } | { exercise_id, per_round }] }\`. Counts as one day item. Nested exercises use native amount/weight_kg (not solo sets/reps). Omit \`mode\` (or \`"rounds"\`) for Tours. \`mode: "amrap"\` + \`cap_minutes\` (default 20) for AMRAP — do not send rounds / rest / transition / per_round. See ADR 0011 + 0014.
+  - A Circuit object — \`{ type: "circuit", label?, mode?, cap_minutes?, rounds?, rest_seconds?, transition_seconds?, benchmark_slug?, benchmark_id?, exercises: [{ exercise_id, amount, weight_kg } | { exercise_id, per_round }] }\`. Counts as one day item. Nested exercises use native amount/weight_kg (not solo sets/reps). Omit \`mode\` (or \`"rounds"\`) for Tours. \`mode: "amrap"\` + \`cap_minutes\` (default 20) for AMRAP — do not send rounds / rest / transition / per_round. Named WODs: send \`benchmark_slug: "cindy"\` (or label Cindy / Holland) — catalog Rx wins. Unknown slug is an error. See ADR 0011 + 0014 + 0015.
 
 Reps formats:
   - "8"     → linear progression (rep_range frozen at 8/8). Weight bumps when target hit.
@@ -208,8 +210,18 @@ export const createProgram: ToolDefinition = {
     // are pre-filtered to syntactically-valid UUIDs so a malformed input
     // surfaces via validateDayExercises (locator-aware) rather than as a
     // Postgres syntax error from the IN clause.
+    const { data: benchmarks, error: benchErr } = await fetchBenchmarkCircuits(supabase)
+    if (benchErr) {
+      return { content: [{ type: "text", text: benchErr }], isError: true }
+    }
+
     const allIds = [
-      ...new Set(rawDays.flatMap((d) => collectCandidateExerciseIds(d.exercises))),
+      ...new Set(
+        rawDays.flatMap((d) => [
+          ...collectCandidateExerciseIds(d.exercises),
+          ...collectReferencedBenchmarkExerciseIds(d.exercises, benchmarks),
+        ]),
+      ),
     ]
     const { data: exercises, error: fetchErr } = await fetchExercisesByIds(supabase, allIds)
     if (fetchErr) {
@@ -221,7 +233,7 @@ export const createProgram: ToolDefinition = {
     // Phase 3 — full per-day validation: parse + cross-field (T75 superset).
     const parsedDays: ParsedDay[] = []
     for (const day of rawDays) {
-      const result = validateDayExercises(day.exercises, day.label, byId)
+      const result = validateDayExercises(day.exercises, day.label, byId, benchmarks)
       if (!result.ok) {
         return {
           content: [{ type: "text", text: `Invalid input: ${result.error}` }],
@@ -246,6 +258,15 @@ export const createProgram: ToolDefinition = {
       label: day.label,
       emoji: dayEmojiForProgramDayIndex(dayIndex),
       rendered: buildDayRenderedLines(day.exercises, byId),
+      exercises: day.exercises.map((item) =>
+        item.kind === "circuit" ? parsedCircuitToWire(item) : item.kind === "bare" ? item.exerciseId : {
+          exercise_id: item.exerciseId,
+          sets: item.sets,
+          reps: item.reps,
+          weight_kg: item.weightKg,
+          rest_seconds: item.restSeconds,
+        },
+      ),
     }))
 
     const previewPayload = {
