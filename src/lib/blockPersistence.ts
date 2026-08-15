@@ -15,6 +15,8 @@ export interface ExerciseBlockInsertRow {
   rest_seconds: number
   transition_seconds: number
   sort_order: number
+  mode: "rounds" | "amrap"
+  cap_seconds: number | null
 }
 
 /** Row for `block_exercises` insert (no id/block_id; block_id filled after the block insert returns). */
@@ -64,6 +66,8 @@ export function buildBlockInsertRows({
     rest_seconds: DEFAULT_BLOCK_REST_SECONDS,
     transition_seconds: DEFAULT_BLOCK_TRANSITION_SECONDS,
     sort_order: existingMaxSortOrder + 1,
+    mode: "rounds",
+    cap_seconds: null,
   }
 
   const blockExercises: BlockExerciseInsertRow[] = libraryExercises.map(
@@ -101,6 +105,8 @@ export function buildGeneratedCircuitInsertRows(
       rest_seconds: circuit.restSeconds,
       transition_seconds: circuit.transitionSeconds,
       sort_order: sortOrder,
+      mode: "rounds",
+      cap_seconds: null,
     },
     blockExercises: circuit.exercises.map((nested, position) => {
       const isBodyweight = nested.exercise.equipment === "bodyweight"
@@ -116,5 +122,34 @@ export function buildGeneratedCircuitInsertRows(
         })),
       }
     }),
+  }
+}
+
+/** Persist shape for an AMRAP Circuit: cap in seconds, template length 1. */
+export function buildAmrapPersistPayload(
+  minutes: number,
+  exercises: { id: string; per_round: PerRoundCell[] }[],
+): {
+  block: {
+    mode: "amrap"
+    cap_seconds: number
+    rounds: 1
+    rest_seconds: 0
+    transition_seconds: 0
+  }
+  exercises: { id: string; per_round: PerRoundCell[] }[]
+} {
+  return {
+    block: {
+      mode: "amrap",
+      cap_seconds: minutes * 60,
+      rounds: 1,
+      rest_seconds: 0,
+      transition_seconds: 0,
+    },
+    exercises: exercises.map((ex) => ({
+      id: ex.id,
+      per_round: ex.per_round.slice(0, 1),
+    })),
   }
 }

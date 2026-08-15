@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { compactNumberSequence } from "@/lib/blockPrescription"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
+import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { cn } from "@/lib/utils"
 import type {
   BlockExerciseWithExercise,
@@ -87,12 +88,16 @@ export function BlockSessionCard({
           <h2 className="truncate text-lg font-bold">
             {block.label || t("blockRunner.defaultLabel")}
           </h2>
-          <p className="text-xs text-muted-foreground">
-            {t("blockRunner.summary", {
-              exercises: block.exercises.length,
-              rounds: block.rounds,
-            })}
-          </p>
+          {block.mode === "amrap" && block.cap_seconds !== null ? (
+            <AmrapLabel minutes={block.cap_seconds / 60} />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t("blockRunner.summary", {
+                exercises: block.exercises.length,
+                rounds: block.rounds,
+              })}
+            </p>
+          )}
         </div>
         {completed && (
           <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green-500/15 px-2 py-1 text-xs font-semibold text-green-500">

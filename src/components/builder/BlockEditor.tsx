@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
-import type { ExerciseBlockWithExercises } from "@/types/database"
+import type {
+  ExerciseBlockMode,
+  ExerciseBlockWithExercises,
+} from "@/types/database"
+import { buildAmrapPersistPayload } from "@/lib/blockPersistence"
+import {
+  DEFAULT_AMRAP_CAP_MINUTES,
+  switchBlockMode,
+} from "@/lib/blockTemplate"
 import { useUpdateBlockMeta } from "@/hooks/useBlockMutations"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
+import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { PerRoundGrid } from "@/components/builder/PerRoundGrid"
+import { UniformExerciseList } from "@/components/builder/UniformExerciseList"
 import { SaveIndicator } from "@/components/builder/SaveIndicator"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Dialog,
   DialogContent,
@@ -30,7 +42,9 @@ interface BlockEditorProps {
 
 interface MetaForm {
   label: string
+  mode: ExerciseBlockMode
   rounds: string
+  cap_minutes: string
   rest_seconds: string
   transition_seconds: string
 }
@@ -60,52 +74,136 @@ export function BlockEditor({
   )
 
   const [form, setForm] = useState<MetaForm>(() => seedMeta(block))
+  const [showPerRoundGrid, setShowPerRoundGrid] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(debounceRef.current), [])
+
+  const persist = useCallback(
+    (input: Parameters<typeof updateBlockMeta.mutate>[0]) => {
+      reportSave("saving")
+      updateBlockMeta.mutate(input, {
+        onSuccess: () => reportSave("saved"),
+        onError: () => reportSave("error"),
+      })
+    },
+    [updateBlockMeta, reportSave],
+  )
 
   const flush = useCallback(
     (next: MetaForm, roundsChanged: boolean) => {
       clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        const rounds = parseInt(next.rounds, 10)
-        const rest = parseInt(next.rest_seconds, 10)
-        const transition = parseInt(next.transition_seconds, 10)
-        reportSave("saving")
-        updateBlockMeta.mutate(
-          {
+        const minutes = clampCapMinutes(next.cap_minutes)
+        if (next.mode === "amrap") {
+          const { block: patch } = buildAmrapPersistPayload(
+            minutes,
+            block.exercises,
+          )
+          persist({
             blockId: block.id,
             dayId,
             label: next.label.trim() === "" ? null : next.label.trim(),
-            rest_seconds: isNaN(rest) ? undefined : Math.max(0, rest),
-            transition_seconds: isNaN(transition)
-              ? undefined
-              : Math.max(0, transition),
-            rounds:
-              roundsChanged && !isNaN(rounds) && rounds > 0
-                ? rounds
-                : undefined,
-            exercises: roundsChanged
-              ? block.exercises.map((be) => ({
-                  id: be.id,
-                  per_round: be.per_round,
-                }))
+            ...patch,
+          })
+          return
+        }
+
+        const rounds = parseInt(next.rounds, 10)
+        const rest = parseInt(next.rest_seconds, 10)
+        const transition = parseInt(next.transition_seconds, 10)
+        persist({
+          blockId: block.id,
+          dayId,
+          label: next.label.trim() === "" ? null : next.label.trim(),
+          mode: "rounds",
+          cap_seconds: null,
+          rest_seconds: isNaN(rest) ? undefined : Math.max(0, rest),
+          transition_seconds: isNaN(transition)
+            ? undefined
+            : Math.max(0, transition),
+          rounds:
+            roundsChanged && !isNaN(rounds) && rounds > 0
+              ? rounds
               : undefined,
-          },
-          {
-            onSuccess: () => reportSave("saved"),
-            onError: () => reportSave("error"),
-          },
-        )
+          exercises: roundsChanged
+            ? block.exercises.map((be) => ({
+                id: be.id,
+                per_round: be.per_round,
+              }))
+            : undefined,
+        })
       }, 500)
     },
-    [block.id, block.exercises, dayId, updateBlockMeta, reportSave],
+    [block.id, block.exercises, dayId, persist],
   )
 
   function handleChange(field: keyof MetaForm, value: string) {
     const next = { ...form, [field]: value }
     setForm(next)
     flush(next, field === "rounds")
+  }
+
+  function handleModeChange(nextMode: ExerciseBlockMode) {
+    const switched = switchBlockMode(
+      {
+        mode: form.mode,
+        rounds: parseInt(form.rounds, 10) || block.rounds,
+        cap_seconds:
+          form.mode === "amrap"
+            ? clampCapMinutes(form.cap_minutes) * 60
+            : null,
+        rest_seconds: parseInt(form.rest_seconds, 10) || 0,
+        transition_seconds: parseInt(form.transition_seconds, 10) || 0,
+        exercises: block.exercises,
+      },
+      nextMode,
+    )
+    const nextForm: MetaForm = {
+      ...form,
+      mode: switched.mode,
+      rounds: String(switched.rounds),
+      cap_minutes: String(
+        switched.cap_seconds !== null
+          ? switched.cap_seconds / 60
+          : DEFAULT_AMRAP_CAP_MINUTES,
+      ),
+      rest_seconds: String(switched.rest_seconds),
+      transition_seconds: String(switched.transition_seconds),
+    }
+    setForm(nextForm)
+    setShowPerRoundGrid(false)
+
+    const exercises = switched.exercises.map((ex, i) => ({
+      id: block.exercises[i].id,
+      per_round: ex.per_round,
+    }))
+    if (switched.mode === "amrap") {
+      const { block: patch, exercises: amrapExercises } =
+        buildAmrapPersistPayload(
+          (switched.cap_seconds ?? DEFAULT_AMRAP_CAP_MINUTES * 60) / 60,
+          exercises,
+        )
+      persist({
+        blockId: block.id,
+        dayId,
+        label: nextForm.label.trim() === "" ? null : nextForm.label.trim(),
+        ...patch,
+        exercises: amrapExercises,
+      })
+      return
+    }
+    persist({
+      blockId: block.id,
+      dayId,
+      label: nextForm.label.trim() === "" ? null : nextForm.label.trim(),
+      mode: "rounds",
+      cap_seconds: null,
+      rounds: switched.rounds,
+      rest_seconds: switched.rest_seconds,
+      transition_seconds: switched.transition_seconds,
+      exercises,
+    })
   }
 
   const statusEl =
@@ -118,8 +216,28 @@ export function BlockEditor({
       <SaveIndicator status={saveStatus} />
     )
 
+  const capMinutes = clampCapMinutes(form.cap_minutes)
+  const isAmrap = form.mode === "amrap"
+
   const body = (
     <div className="flex flex-col gap-5 overflow-y-auto p-4">
+      <ToggleGroup
+        type="single"
+        value={form.mode}
+        onValueChange={(value) => {
+          if (value === "rounds" || value === "amrap") {
+            handleModeChange(value)
+          }
+        }}
+        variant="outline"
+        className="justify-start"
+      >
+        <ToggleGroupItem value="rounds">{t("rounds")}</ToggleGroupItem>
+        <ToggleGroupItem value="amrap">
+          <AmrapLabel minutes={capMinutes} />
+        </ToggleGroupItem>
+      </ToggleGroup>
+
       <FieldGroup label={t("blockLabel")}>
         <Input
           value={form.label}
@@ -128,45 +246,75 @@ export function BlockEditor({
         />
       </FieldGroup>
 
-      <div className="grid grid-cols-3 gap-3">
-        <FieldGroup label={t("rounds")}>
+      {isAmrap ? (
+        <FieldGroup label={t("amrapCapMinutes")}>
           <Input
             type="number"
             inputMode="numeric"
             min={1}
-            value={form.rounds}
-            onChange={(e) => handleChange("rounds", e.target.value)}
+            max={60}
+            value={form.cap_minutes}
+            onChange={(e) => handleChange("cap_minutes", e.target.value)}
           />
         </FieldGroup>
-        <FieldGroup label={t("restBetweenRounds")}>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={15}
-            value={form.rest_seconds}
-            onChange={(e) => handleChange("rest_seconds", e.target.value)}
-          />
-        </FieldGroup>
-        <FieldGroup label={t("transitionBetweenExercises")}>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={5}
-            value={form.transition_seconds}
-            onChange={(e) =>
-              handleChange("transition_seconds", e.target.value)
-            }
-          />
-        </FieldGroup>
-      </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          <FieldGroup label={t("rounds")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={form.rounds}
+              onChange={(e) => handleChange("rounds", e.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label={t("restBetweenRounds")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={15}
+              value={form.rest_seconds}
+              onChange={(e) => handleChange("rest_seconds", e.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label={t("transitionBetweenExercises")}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={5}
+              value={form.transition_seconds}
+              onChange={(e) =>
+                handleChange("transition_seconds", e.target.value)
+              }
+            />
+          </FieldGroup>
+        </div>
+      )}
 
-      <PerRoundGrid
-        block={block}
-        dayId={dayId}
-        onMutationStateChange={reportSave}
-      />
+      {isAmrap || !showPerRoundGrid ? (
+        <UniformExerciseList
+          block={block}
+          dayId={dayId}
+          onMutationStateChange={reportSave}
+        />
+      ) : (
+        <PerRoundGrid
+          block={block}
+          dayId={dayId}
+          onMutationStateChange={reportSave}
+        />
+      )}
+      {!isAmrap && !showPerRoundGrid && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowPerRoundGrid(true)}
+        >
+          {t("customizePerRound")}
+        </Button>
+      )}
     </div>
   )
 
@@ -204,10 +352,22 @@ export function BlockEditor({
   )
 }
 
+function clampCapMinutes(raw: string): number {
+  const parsed = parseInt(raw, 10)
+  if (isNaN(parsed)) return DEFAULT_AMRAP_CAP_MINUTES
+  return Math.min(60, Math.max(1, parsed))
+}
+
 function seedMeta(block: ExerciseBlockWithExercises): MetaForm {
   return {
     label: block.label ?? "",
+    mode: block.mode,
     rounds: String(block.rounds),
+    cap_minutes: String(
+      block.cap_seconds !== null
+        ? block.cap_seconds / 60
+        : DEFAULT_AMRAP_CAP_MINUTES,
+    ),
     rest_seconds: String(block.rest_seconds),
     transition_seconds: String(block.transition_seconds),
   }

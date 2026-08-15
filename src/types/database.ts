@@ -138,20 +138,39 @@ export interface PerRoundCell {
   weight: number
 }
 
+/** Circuit termination: fixed round count (Tours) or a time cap (AMRAP). */
+export type ExerciseBlockMode = "rounds" | "amrap"
+
 /** A superset/circuit: exercises trained round-by-round. See ADR 0007 (#351). */
 export interface ExerciseBlock {
   id: string
   workout_day_id: string
   label: string | null
-  /** Number of rounds (shared across all exercises of the block). */
+  /** Number of rounds (shared across all exercises of the block). AMRAP = 1 (template length). */
   rounds: number
-  /** Rest between rounds (seconds). */
+  /** Rest between rounds (seconds). Forced 0 in AMRAP. */
   rest_seconds: number
-  /** Transition between exercises within a round (seconds). */
+  /** Transition between exercises within a round (seconds). Forced 0 in AMRAP. */
   transition_seconds: number
+  /** `'rounds'` = Tours (default). `'amrap'` requires `cap_seconds`. */
+  mode: ExerciseBlockMode
+  /** Time cap in seconds (60–3600). Null iff Tours. */
+  cap_seconds: number | null
   /** Shared ordering namespace with workout_exercises within a day. */
   sort_order: number
   created_at: string
+}
+
+/** One AMRAP execution in a session. Tours do not write a row. See ADR 0014. */
+export interface BlockRun {
+  id: string
+  session_id: string
+  block_id: string
+  started_at: string
+  finished_at: string | null
+  mode: ExerciseBlockMode
+  cap_seconds: number
+  template_fingerprint: string
 }
 
 export interface BlockExercise {

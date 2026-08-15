@@ -36,6 +36,8 @@ function makeBlock(
     rounds: 3,
     rest_seconds: 90,
     transition_seconds: 0,
+    mode: "rounds",
+    cap_seconds: null,
     sort_order: 1,
     created_at: "1970-01-01T00:00:00Z",
     exercises: [],
