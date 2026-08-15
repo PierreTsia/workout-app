@@ -4,7 +4,11 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { BlockRunner } from "@/components/workout/BlockRunner"
-import { enqueueSetLog } from "@/lib/syncService"
+import {
+  enqueueBlockRun,
+  enqueueSetLog,
+  queuedBlockRunFor,
+} from "@/lib/syncService"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import type {
   BlockExerciseWithExercise,
@@ -18,6 +22,10 @@ vi.mock("@/lib/syncService", () => ({
   scheduleImmediateDrain: vi.fn(),
   peekSessionRealId: vi.fn(() => null),
   discardBlockSetLogs: vi.fn().mockResolvedValue(undefined),
+  queuedSetLogPayloadsForSession: vi.fn(() => []),
+  queuedBlockRunFor: vi.fn(() => null),
+  enqueueBlockRun: vi.fn(),
+  discardBlockRun: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/lib/supabase", () => ({
@@ -83,6 +91,7 @@ function renderAfterGo(ui: ReactElement, restoreRealTimers = true) {
 describe("BlockRunner", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(queuedBlockRunFor).mockReturnValue(null)
     vi.mocked(useSessionSetLogs).mockReturnValue({
       data: [] as SetLog[],
     } as ReturnType<typeof useSessionSetLogs>)
@@ -153,8 +162,7 @@ describe("BlockRunner", () => {
     ).toBeInTheDocument()
   })
 
-  it("marks an already-logged cell as validated and advances without re-logging", async () => {
-    const user = userEvent.setup()
+  it("resumes on the first empty cell when earlier cells are already logged", () => {
     vi.mocked(useSessionSetLogs).mockReturnValue({
       data: [
         { block_exercise_id: "A", set_number: 1 } as SetLog,
@@ -163,17 +171,8 @@ describe("BlockRunner", () => {
 
     renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
-    // First cell is already in set_logs: show it as logged, no fresh "Log".
-    expect(screen.getByText("Logged")).toBeInTheDocument()
-    expect(
-      screen.queryByRole("button", { name: /^Log$/i }),
-    ).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole("button", { name: /Next/i }))
-
-    // Moved on to the next exercise, and no duplicate set_log was enqueued.
     expect(screen.getByText("Squats")).toBeInTheDocument()
-    expect(enqueueSetLog).not.toHaveBeenCalled()
+    expect(screen.queryByText("Push-ups")).not.toBeInTheDocument()
   })
 
   it("shows the validated badge immediately after logging then going back", async () => {
@@ -386,5 +385,110 @@ describe("BlockRunner", () => {
     expect(screen.getByText("Circuit complete")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Back to session/i }))
     expect(onExit).toHaveBeenCalledTimes(1)
+  })
+
+  it("hides Skip on AMRAP and shows Tour N without a denominator", () => {
+    renderAfterGo(
+      <BlockRunner
+        block={block({
+          mode: "amrap",
+          cap_seconds: 1200,
+          rounds: 1,
+          rest_seconds: 0,
+          transition_seconds: 0,
+        })}
+        localSessionId="local-1"
+      />,
+    )
+
+    expect(screen.queryByRole("button", { name: /Skip/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Finish/i })).toBeInTheDocument()
+    expect(screen.getByTestId("block-round-count")).toHaveTextContent("1")
+    expect(screen.getByTestId("block-round-count")).not.toHaveTextContent("/")
+  })
+
+  it("captures leftover via Finish and shows a glossed AmrapScore", async () => {
+    const user = userEvent.setup()
+    renderAfterGo(
+      <BlockRunner
+        block={block({
+          mode: "amrap",
+          cap_seconds: 1200,
+          rounds: 1,
+          rest_seconds: 0,
+          transition_seconds: 0,
+        })}
+        localSessionId="local-1"
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: /Log/i }))
+    await user.click(screen.getByRole("button", { name: /Log/i }))
+    await user.click(screen.getByRole("button", { name: /Finish/i }))
+
+    expect(screen.getByRole("region", { name: /TIME/i })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: /increase/i }))
+    await user.click(screen.getByRole("button", { name: /increase/i }))
+    await user.click(screen.getByRole("button", { name: /increase/i }))
+    await user.click(screen.getByRole("button", { name: /log leftover/i }))
+
+    expect(screen.getByText("1+3")).toBeInTheDocument()
+    expect(screen.getByText("1 rounds · 3 Push-ups")).toBeInTheDocument()
+    expect(enqueueSetLog).toHaveBeenLastCalledWith(
+      expect.objectContaining({ repsLogged: "3", setNumber: 2 }),
+    )
+  })
+
+  it("skips a second GO when a Block Run is already queued and restores remaining cap", () => {
+    const t0 = 1_700_000_000_000
+    vi.useFakeTimers()
+    vi.setSystemTime(t0)
+    vi.mocked(queuedBlockRunFor).mockReturnValue({
+      sessionId: "local-1",
+      blockId: "blk-1",
+      startedAt: t0 - 12 * 60 * 1000,
+      finishedAt: null,
+      mode: "amrap",
+      capSeconds: 20 * 60,
+      templateFingerprint: "amrap|1200|ex-A:20:0",
+    })
+
+    renderWithProviders(
+      <BlockRunner
+        block={block({
+          mode: "amrap",
+          cap_seconds: 20 * 60,
+          rounds: 1,
+        })}
+        localSessionId="local-1"
+      />,
+    )
+
+    expect(
+      screen.queryByRole("region", { name: /get ready/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("Push-ups")).toBeInTheDocument()
+    expect(screen.getByRole("timer", { name: /remaining/i })).toHaveTextContent(
+      "08:00",
+    )
+  })
+
+  it("enqueues a Block Run at GO for AMRAP", () => {
+    renderAfterGo(
+      <BlockRunner
+        block={block({ mode: "amrap", cap_seconds: 1200, rounds: 1 })}
+        localSessionId="local-1"
+      />,
+    )
+
+    expect(enqueueBlockRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "local-1",
+        blockId: "blk-1",
+        mode: "amrap",
+        capSeconds: 1200,
+        finishedAt: null,
+      }),
+    )
   })
 })

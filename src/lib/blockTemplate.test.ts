@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { switchBlockMode } from "@/lib/blockTemplate"
-import type { PerRoundCell } from "@/types/database"
+import {
+  switchBlockMode,
+  templateCell,
+  templateFingerprint,
+} from "@/lib/blockTemplate"
+import type { BlockExerciseWithExercise, PerRoundCell } from "@/types/database"
 
 function makeCells(...amounts: number[]): PerRoundCell[] {
   return amounts.map((amount) => ({ amount, weight: 0 }))
@@ -23,6 +27,55 @@ function makeTemplate(
     ...overrides,
   }
 }
+
+function makeBlockExercise(
+  per_round: PerRoundCell[],
+): BlockExerciseWithExercise {
+  return {
+    id: "be-A",
+    block_id: "blk-1",
+    exercise_id: "ex-1",
+    name_snapshot: "Push-ups",
+    muscle_snapshot: "chest",
+    emoji_snapshot: "💪",
+    position: 0,
+    per_round,
+    exercise: null,
+  }
+}
+
+describe("templateCell", () => {
+  it("always reads per_round[0] on AMRAP so a late round does not explode", () => {
+    const be = makeBlockExercise(makeCells(5))
+
+    expect(templateCell(be, 7, "amrap")).toEqual({ amount: 5, weight: 0 })
+  })
+
+  it("reads the matching Tours cell for that round", () => {
+    const be = makeBlockExercise(makeCells(5, 8, 12))
+
+    expect(templateCell(be, 1, "rounds")).toEqual({ amount: 8, weight: 0 })
+  })
+})
+
+describe("templateFingerprint", () => {
+  it("snapshots mode, cap, and sorted exercise amounts so a later edit cannot rewrite history", () => {
+    const push = makeBlockExercise(makeCells(5))
+    const squat = {
+      ...makeBlockExercise(makeCells(10)),
+      id: "be-B",
+      exercise_id: "ex-2",
+    }
+
+    expect(
+      templateFingerprint({
+        mode: "amrap",
+        cap_seconds: 1200,
+        exercises: [squat, push],
+      }),
+    ).toBe("amrap|1200|ex-1:5:0,ex-2:10:0")
+  })
+})
 
 describe("switchBlockMode", () => {
   it("keeps round 1, forces length 1 and a 20 min cap when switching to AMRAP", () => {

@@ -2,9 +2,9 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
 interface BlockProgressBarsProps {
-  /** 1-based current round and total rounds. */
+  /** 1-based current round and total rounds. Omit total for AMRAP (`Tour N`). */
   roundCurrent: number
-  roundTotal: number
+  roundTotal?: number
   /** 1-based current exercise within the round and total exercises. */
   exerciseCurrent: number
   exerciseTotal: number
@@ -20,10 +20,13 @@ function Bar({
 }: {
   label: string
   current: number
-  total: number
+  total?: number
   tone: Tone
 }) {
-  const pct = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0
+  const pct =
+    total != null && total > 0
+      ? Math.min(100, Math.max(0, (current / total) * 100))
+      : 0
   const accent = tone === "round" ? "text-primary" : "text-amber-400"
   return (
     <div className="flex flex-col gap-1.5">
@@ -41,7 +44,9 @@ function Bar({
           className={cn("text-sm font-bold tabular-nums", accent)}
         >
           {current}
-          <span className="text-muted-foreground">/{total}</span>
+          {total != null && (
+            <span className="text-muted-foreground">/{total}</span>
+          )}
         </span>
       </div>
       <div className="h-3 w-full overflow-hidden rounded-full bg-muted/70">

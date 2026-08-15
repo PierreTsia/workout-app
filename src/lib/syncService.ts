@@ -80,6 +80,16 @@ export type SetLogPayloadDuration = {
 
 export type SetLogPayload = SetLogPayloadReps | SetLogPayloadDuration
 
+export interface BlockRunPayload {
+  sessionId: string
+  blockId: string
+  startedAt: number
+  finishedAt: number | null
+  mode: "amrap"
+  capSeconds: number
+  templateFingerprint: string
+}
+
 export interface SessionFinishPayload {
   sessionId: string
   workoutDayId: string
@@ -99,8 +109,8 @@ export interface SessionFinishPayload {
 // ---------------------------------------------------------------------------
 
 interface QueueItem {
-  type: "set_log" | "session_finish"
-  payload: SetLogPayload | SessionFinishPayload
+  type: "set_log" | "session_finish" | "block_run"
+  payload: SetLogPayload | SessionFinishPayload | BlockRunPayload
   realSessionId: string
   queuedAt: number
   dedupeComposite: string
@@ -336,6 +346,51 @@ export function enqueueSetLog(payload: SetLogPayload): void {
   updatePendingCount(userId)
 }
 
+export function enqueueBlockRun(payload: BlockRunPayload): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueBlockRun called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, payload.sessionId)
+  const composite = `${meta.realId}|block_run|${payload.blockId}`
+  const fp = fingerprint(composite)
+  const queue = getQueue(userId)
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
+
+  filtered.push({
+    type: "block_run",
+    payload,
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
+  updatePendingCount(userId)
+}
+
+/** Queued Block Run for this local session × block, if GO already stamped. */
+export function queuedBlockRunFor(
+  localSessionId: string,
+  blockId: string,
+): BlockRunPayload | null {
+  const userId = getUserId()
+  if (!userId) return null
+  const match = getQueue(userId).find((item) => {
+    if (item.type !== "block_run") return false
+    const payload = item.payload
+    return (
+      "blockId" in payload &&
+      payload.sessionId === localSessionId &&
+      payload.blockId === blockId
+    )
+  })
+  if (!match || !("blockId" in match.payload)) return null
+  return match.payload
+}
+
 export function enqueueSessionFinish(
   payload: SessionFinishPayload,
 ): void {
@@ -418,6 +473,38 @@ export function discardSessionQueue(realSessionId: string): void {
  * when offline (the queued items are gone, so nothing re-syncs). Returns once
  * the local queue is clean — callers don't need to await the remote delete.
  */
+/** Drop a queued Block Run and best-effort DELETE the persisted row. */
+export async function discardBlockRun(
+  realSessionId: string,
+  blockId: string,
+): Promise<void> {
+  const userId = getUserId()
+  if (!userId) return
+
+  const queue = getQueue(userId)
+  const surviving = queue.filter((item) => {
+    if (item.type !== "block_run" || item.realSessionId !== realSessionId) {
+      return true
+    }
+    const payload = item.payload
+    return !("blockId" in payload) || payload.blockId !== blockId
+  })
+  if (surviving.length !== queue.length) {
+    setQueue(userId, surviving)
+    updatePendingCount(userId)
+  }
+
+  try {
+    await supabase
+      .from("block_runs")
+      .delete()
+      .eq("session_id", realSessionId)
+      .eq("block_id", blockId)
+  } catch {
+    // Offline: queue item is gone so nothing re-syncs.
+  }
+}
+
 export async function discardBlockSetLogs(
   realSessionId: string,
   blockExerciseIds: string[],
@@ -558,6 +645,9 @@ async function drainQueueOnce(userId: string): Promise<void> {
         if (p.workoutExerciseId) workoutExerciseIds.add(p.workoutExerciseId)
         const ok = await processSetLog(item)
         if (!ok) surviving.push(item)
+      } else if (item.type === "block_run") {
+        const ok = await processBlockRun(item)
+        if (!ok) surviving.push(item)
       } else {
         const ok = await processSessionFinish(item, userId)
         if (!ok) surviving.push(item)
@@ -692,6 +782,34 @@ async function ensureSession(
     return true
   } catch (e) {
     console.error("[SyncService] ensureSession error", e)
+    return false
+  }
+}
+
+async function processBlockRun(item: QueueItem): Promise<boolean> {
+  const p = item.payload
+  if (!("blockId" in p)) return false
+  try {
+    const { error } = await supabase.from("block_runs").upsert(
+      {
+        session_id: item.realSessionId,
+        block_id: p.blockId,
+        started_at: new Date(p.startedAt).toISOString(),
+        finished_at:
+          p.finishedAt == null ? null : new Date(p.finishedAt).toISOString(),
+        mode: p.mode,
+        cap_seconds: p.capSeconds,
+        template_fingerprint: p.templateFingerprint,
+      },
+      { onConflict: "session_id,block_id" },
+    )
+    if (error) {
+      console.error("[SyncService] block_run upsert failed", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processBlockRun error", e)
     return false
   }
 }

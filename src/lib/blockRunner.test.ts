@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   initialRunnerState,
   blockRunnerReducer,
+  runnerStateFromLogs,
   type BlockRunnerContext,
   type RunnerEvent,
   type RunnerState,
@@ -12,6 +13,7 @@ const ctx = (over: Partial<BlockRunnerContext> = {}): BlockRunnerContext => ({
   exerciseCount: 2,
   transitionSeconds: 0,
   restSeconds: 0,
+  mode: "rounds",
   ...over,
 })
 
@@ -147,6 +149,96 @@ describe("blockRunnerReducer", () => {
     expect(blockRunnerReducer(transition, BACK, c, 0)).toEqual({
       phase: "exercise",
       cursor: { round: 0, exerciseIdx: 0 },
+    })
+  })
+
+  it("wraps into the next round on AMRAP instead of finishing after round 1", () => {
+    const c = ctx({ rounds: 1, mode: "amrap" })
+
+    const afterRound1 = applyAll(c, [LOG, LOG])
+    expect(afterRound1).toEqual({
+      phase: "exercise",
+      cursor: { round: 1, exerciseIdx: 0 },
+    })
+  })
+
+  it("opens leftover on the current station when TIME fires during an AMRAP", () => {
+    const c = ctx({ rounds: 1, mode: "amrap" })
+    const midRound = applyAll(c, [LOG])
+
+    expect(
+      blockRunnerReducer(midRound, { type: "TIME" }, c, 0),
+    ).toEqual({
+      phase: "leftover",
+      cursor: { round: 0, exerciseIdx: 1 },
+    })
+  })
+
+  it("returns to the last logged cell when going back from leftover", () => {
+    const c = ctx({ rounds: 1, mode: "amrap" })
+    const leftover = blockRunnerReducer(
+      applyAll(c, [LOG]),
+      { type: "TIME" },
+      c,
+      0,
+    )
+
+    expect(blockRunnerReducer(leftover, BACK, c, 0)).toEqual({
+      phase: "exercise",
+      cursor: { round: 0, exerciseIdx: 0 },
+    })
+  })
+
+  it("returns to the last logged cell when going back from an AMRAP done, not rounds-1", () => {
+    const c = ctx({ rounds: 1, mode: "amrap" })
+    const leftover = blockRunnerReducer(
+      applyAll(c, [LOG, LOG, LOG]),
+      { type: "TERMINATE" },
+      c,
+      0,
+    )
+    const done = blockRunnerReducer(leftover, LOG, c, 0)
+
+    expect(done).toEqual({
+      phase: "done",
+      lastLogged: { round: 1, exerciseIdx: 1 },
+    })
+    expect(blockRunnerReducer(done, BACK, c, 0)).toEqual({
+      phase: "exercise",
+      cursor: { round: 1, exerciseIdx: 1 },
+    })
+  })
+
+  it("finishes the run after leftover is logged, remembering that cell", () => {
+    const c = ctx({ rounds: 1, mode: "amrap" })
+    const leftover = blockRunnerReducer(
+      applyAll(c, [LOG]),
+      { type: "TIME" },
+      c,
+      0,
+    )
+
+    expect(blockRunnerReducer(leftover, LOG, c, 0)).toEqual({
+      phase: "done",
+      lastLogged: { round: 0, exerciseIdx: 1 },
+    })
+  })
+
+  it("hydrates onto the first empty cell from logs instead of dispatching GO_TO", () => {
+    const logged = new Set(["be-A#1", "be-B#1", "be-A#2"])
+
+    expect(runnerStateFromLogs(logged, ["be-A", "be-B"])).toEqual({
+      phase: "exercise",
+      cursor: { round: 1, exerciseIdx: 1 },
+    })
+  })
+
+  it("hydrates a finished Block Run to done on the last logged cell", () => {
+    const logged = new Set(["be-A#1", "be-B#1", "be-A#2"])
+
+    expect(runnerStateFromLogs(logged, ["be-A", "be-B"], { finished: true })).toEqual({
+      phase: "done",
+      lastLogged: { round: 1, exerciseIdx: 0 },
     })
   })
 

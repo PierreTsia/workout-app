@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AmrapScore > renders the hero score with a named leftover gloss 1`] = `
+<div>
+  <div
+    class="flex flex-col items-center gap-1"
+  >
+    <p
+      class="text-4xl font-bold tabular-nums"
+    >
+      27
+      +
+      3
+    </p>
+    <p
+      class="text-sm text-muted-foreground"
+    >
+      27 rounds · 3 push-ups
+    </p>
+  </div>
+</div>
+`;

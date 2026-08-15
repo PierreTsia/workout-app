@@ -5,6 +5,8 @@
  * cancelling a log is a delete + invalidation, never reducer state.
  */
 
+import { blockCellKey, blockSetNumber } from "@/lib/blockSetLog"
+
 export interface Cursor {
   round: number
   exerciseIdx: number
@@ -14,7 +16,8 @@ export type RunnerState =
   | { phase: "exercise"; cursor: Cursor }
   | { phase: "transition"; cursor: Cursor; next: Cursor; endsAt: number }
   | { phase: "roundRest"; cursor: Cursor; next: Cursor; endsAt: number }
-  | { phase: "done" }
+  | { phase: "leftover"; cursor: Cursor }
+  | { phase: "done"; lastLogged?: Cursor }
 
 export type RunnerEvent =
   | { type: "LOG_AND_ADVANCE" }
@@ -23,16 +26,50 @@ export type RunnerEvent =
   | { type: "GO_BACK" }
   | { type: "GO_TO"; cursor: Cursor }
   | { type: "CANCEL_LOG"; cursor?: Cursor }
+  | { type: "TIME" }
+  | { type: "TERMINATE" }
 
 export interface BlockRunnerContext {
   rounds: number
   exerciseCount: number
   transitionSeconds: number
   restSeconds: number
+  mode: "rounds" | "amrap"
 }
 
 export function initialRunnerState(): RunnerState {
   return { phase: "exercise", cursor: { round: 0, exerciseIdx: 0 } }
+}
+
+/**
+ * Rebuild runner state from persisted + queued logs. Kill-app hydrate must
+ * not dispatch `GO_TO` (typed, unhandled). Cursor is the first empty cell.
+ */
+export function runnerStateFromLogs(
+  loggedCells: Set<string>,
+  exerciseIds: string[],
+  options: { finished?: boolean } = {},
+): RunnerState {
+  if (exerciseIds.length === 0) return initialRunnerState()
+
+  const emptyAt = (round: number): Cursor | null => {
+    const exerciseIdx = exerciseIds.findIndex(
+      (id) => !loggedCells.has(blockCellKey(id, blockSetNumber(round))),
+    )
+    return exerciseIdx === -1 ? null : { round, exerciseIdx }
+  }
+  const firstEmpty = (round: number): Cursor =>
+    emptyAt(round) ?? firstEmpty(round + 1)
+  const cursor = firstEmpty(0)
+
+  if (options.finished) {
+    return {
+      phase: "done",
+      lastLogged: previousCursor(cursor, exerciseIds.length),
+    }
+  }
+
+  return { phase: "exercise", cursor }
 }
 
 /**
@@ -53,12 +90,12 @@ function advanceTo(
 }
 
 /** The cell before `cursor`, stepping across round boundaries; clamps at the first cell. */
-function previousCursor(cursor: Cursor, ctx: BlockRunnerContext): Cursor {
+function previousCursor(cursor: Cursor, exerciseCount: number): Cursor {
   if (cursor.exerciseIdx > 0) {
     return { round: cursor.round, exerciseIdx: cursor.exerciseIdx - 1 }
   }
   if (cursor.round > 0) {
-    return { round: cursor.round - 1, exerciseIdx: ctx.exerciseCount - 1 }
+    return { round: cursor.round - 1, exerciseIdx: exerciseCount - 1 }
   }
   return cursor
 }
@@ -71,13 +108,16 @@ export function blockRunnerReducer(
 ): RunnerState {
   switch (event.type) {
     case "LOG_AND_ADVANCE": {
+      if (state.phase === "leftover") {
+        return { phase: "done", lastLogged: state.cursor }
+      }
       if (state.phase !== "exercise") return state
       const { round, exerciseIdx } = state.cursor
       if (exerciseIdx < ctx.exerciseCount - 1) {
         const next: Cursor = { round, exerciseIdx: exerciseIdx + 1 }
         return advanceTo("transition", state.cursor, next, now, ctx.transitionSeconds)
       }
-      if (round < ctx.rounds - 1) {
+      if (ctx.mode === "amrap" || round < ctx.rounds - 1) {
         const next: Cursor = { round: round + 1, exerciseIdx: 0 }
         return advanceTo("roundRest", state.cursor, next, now, ctx.restSeconds)
       }
@@ -97,8 +137,11 @@ export function blockRunnerReducer(
       }
       const cursor =
         state.phase === "done"
-          ? { round: ctx.rounds - 1, exerciseIdx: ctx.exerciseCount - 1 }
-          : previousCursor(state.cursor, ctx)
+          ? (state.lastLogged ?? {
+              round: ctx.rounds - 1,
+              exerciseIdx: ctx.exerciseCount - 1,
+            })
+          : previousCursor(state.cursor, ctx.exerciseCount)
       return { phase: "exercise", cursor }
     }
     case "CANCEL_LOG":
@@ -106,6 +149,11 @@ export function blockRunnerReducer(
       // a side effect handled by the hook layer. Cursor stays put (T141
       // decision); jumping to the cancelled cell would be a T142 change.
       return state
+    case "TIME":
+    case "TERMINATE": {
+      if (state.phase !== "exercise") return state
+      return { phase: "leftover", cursor: state.cursor }
+    }
     default:
       return state
   }

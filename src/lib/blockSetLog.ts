@@ -1,4 +1,8 @@
 import type { SetLogPayload } from "@/lib/syncService"
+import {
+  templateCell,
+  type BlockTerminationMode,
+} from "@/lib/blockTemplate"
 import type { BlockExerciseWithExercise, SetLog } from "@/types/database"
 
 /** Block rounds are 0-based internally; set_logs.set_number is 1-based. */
@@ -17,6 +21,9 @@ interface BuildArgs {
   /** 0-based round index. */
   round: number
   now: number
+  mode?: BlockTerminationMode
+  /** Leftover actual (reps or seconds). Prescribed amount when omitted. */
+  actual?: number
 }
 
 /**
@@ -30,8 +37,11 @@ export function buildBlockSetLogPayload({
   blockExercise,
   round,
   now,
+  mode,
+  actual,
 }: BuildArgs): SetLogPayload {
-  const cell = blockExercise.per_round[round]
+  const cell = templateCell(blockExercise, round, mode ?? "rounds")
+  const amount = actual ?? cell.amount
   const base = {
     sessionId,
     exerciseId: blockExercise.exercise_id,
@@ -44,9 +54,9 @@ export function buildBlockSetLogPayload({
   }
 
   if (blockExercise.exercise?.measurement_type === "duration") {
-    return { ...base, durationSeconds: cell.amount }
+    return { ...base, durationSeconds: amount }
   }
-  return { ...base, repsLogged: String(cell.amount), estimatedOneRM: 0 }
+  return { ...base, repsLogged: String(amount), estimatedOneRM: 0 }
 }
 
 /** Set of `blockCellKey`s already logged in this session (ignores solo rows). */
