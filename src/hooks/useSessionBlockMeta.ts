@@ -21,7 +21,7 @@ export function useSessionBlockMeta(blockExerciseIds: string[]) {
       const { data, error } = await supabase
         .from("block_exercises")
         .select(
-          "id, block_id, emoji_snapshot, position, block:exercise_blocks(id, label, rounds, sort_order, mode)",
+          "id, block_id, emoji_snapshot, position, block:exercise_blocks(id, label, rounds, sort_order, mode, benchmark_circuit_id)",
         )
         .in("id", ids)
 

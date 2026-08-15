@@ -43,6 +43,7 @@ const meta = (over: Partial<BlockMeta> = {}): BlockMeta => ({
   emoji: "💪",
   blockSortOrder: 0,
   mode: "rounds",
+  benchmarkCircuitId: null,
   ...over,
 })
 
@@ -54,7 +55,14 @@ describe("buildBlockMetaMap", () => {
         block_id: "blk1",
         emoji_snapshot: "💪",
         position: 1,
-        block: { id: "blk1", label: "Bras", rounds: 3, sort_order: 2, mode: "rounds" },
+        block: {
+          id: "blk1",
+          label: "Bras",
+          rounds: 3,
+          sort_order: 2,
+          mode: "rounds",
+          benchmark_circuit_id: null,
+        },
       },
       {
         id: "be2",
@@ -73,6 +81,7 @@ describe("buildBlockMetaMap", () => {
       emoji: "💪",
       blockSortOrder: 2,
       mode: "rounds",
+      benchmarkCircuitId: null,
     })
   })
 })
@@ -199,6 +208,16 @@ describe("groupSessionHistory", () => {
       block.rounds[0].cells.map((c) => c.exercise_name_snapshot),
     ).toEqual(["Curl A", "Curl B"])
     expect(block.rounds[1].cells.map((c) => c.log.weight_logged)).toEqual([22, 17])
+  })
+
+  it("carries the catalog id so cindy days share one history sheet", () => {
+    const metaById = new Map<string, BlockMeta>([
+      ["beA", meta({ benchmarkCircuitId: "cindy-catalog" })],
+    ])
+    const logs = [log({ block_exercise_id: "beA" })]
+    const [block] = groupSessionHistory(logs, metaById)
+    if (block.kind !== "block") throw new Error("expected block")
+    expect(block.benchmarkCircuitId).toBe("cindy-catalog")
   })
 
   it("carries the catalog row onto block cells too", () => {

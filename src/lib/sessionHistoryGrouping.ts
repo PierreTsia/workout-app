@@ -24,6 +24,8 @@ export interface BlockMeta {
   emoji: string | null
   blockSortOrder: number
   mode: ExerciseBlockMode
+  /** Catalog identity on the live block. Null = jetable. */
+  benchmarkCircuitId: string | null
 }
 
 /** Raw `block_exercises` row shape returned by {@link useSessionBlockMeta}. */
@@ -38,6 +40,7 @@ export interface BlockExerciseMetaRow {
     rounds: number
     sort_order: number
     mode: ExerciseBlockMode
+    benchmark_circuit_id: string | null
   } | null
 }
 
@@ -56,6 +59,7 @@ export function buildBlockMetaMap(
           emoji: r.emoji_snapshot,
           blockSortOrder: r.block!.sort_order,
           mode: r.block!.mode,
+          benchmarkCircuitId: r.block!.benchmark_circuit_id ?? null,
         },
       ]),
   )
@@ -96,6 +100,7 @@ export interface BlockHistoryGroup {
   rounds: BlockHistoryRound[]
   exerciseCount: number
   mode: ExerciseBlockMode
+  benchmarkCircuitId: string | null
 }
 
 export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
@@ -183,6 +188,7 @@ export function groupSessionHistory(
         rounds,
         exerciseCount: new Set(blkLogs.map((l) => l.block_exercise_id)).size,
         mode: firstMeta.mode,
+        benchmarkCircuitId: firstMeta.benchmarkCircuitId,
       }
     },
   )

@@ -59,6 +59,7 @@ function makeCompleteGroup(): BlockHistoryGroup {
     sortOrder: 0,
     exerciseCount: 2,
     mode: "rounds",
+    benchmarkCircuitId: null,
     rounds: [
       {
         round: 1,
@@ -219,6 +220,7 @@ function makeAmrapGroup(
     sortOrder: 0,
     exerciseCount: 3,
     mode: "amrap",
+    benchmarkCircuitId: null,
     rounds: [
       ...full,
       {

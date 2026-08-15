@@ -8,6 +8,7 @@ import type {
   SetLogWithExercise,
 } from "@/types/database"
 import { SessionRow } from "./SessionRow"
+import type { BenchmarkCompletionHistory } from "@/hooks/useBenchmarkCompletionHistory"
 
 // The circuit sheet pulls in the real client transitively, which throws on
 // import when the env has no Supabase URL — as CI's does.
@@ -21,6 +22,34 @@ vi.mock("@/hooks/useSessionBlockMeta", () => ({ useSessionBlockMeta }))
 
 const useSessionBlockRuns = vi.hoisted(() => vi.fn())
 vi.mock("@/hooks/useSessionBlockRuns", () => ({ useSessionBlockRuns }))
+
+const useBenchmarkCompletionHistory = vi.hoisted(() =>
+  vi.fn(
+    (): {
+      data: BenchmarkCompletionHistory | undefined
+      isLoading: boolean
+      isError: boolean
+      refetch: () => void
+    } => ({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    }),
+  ),
+)
+vi.mock("@/hooks/useBenchmarkCompletionHistory", () => ({
+  useBenchmarkCompletionHistory,
+}))
+
+vi.mock("@/hooks/useBlockCompletionHistory", () => ({
+  useBlockCompletionHistory: () => ({
+    data: { views: [], trend: { seconds: [], dates: [] }, amrapViews: [] },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}))
 
 const session: Session = {
   id: "sess-1",
@@ -78,6 +107,12 @@ describe("SessionRow", () => {
     vi.clearAllMocks()
     useSessionBlockMeta.mockReturnValue(mockQueryResult(new Map()))
     useSessionBlockRuns.mockReturnValue(mockQueryResult(new Map()))
+    useBenchmarkCompletionHistory.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
   })
 
   it.each([
@@ -123,5 +158,56 @@ describe("SessionRow", () => {
       .getAllByText(/Bench Press|Barbell Row/)
       .map((el) => el.textContent)
     expect(headings).toEqual(["Bench Press", "Barbell Row"])
+  })
+
+  it("opens the catalog history sheet when the circuit carries a catalog id", async () => {
+    useSessionSetLogs.mockReturnValue(
+      mockQueryResult([
+        log({
+          block_exercise_id: "be-cindy",
+          exercise_name_snapshot: "Pompes",
+        }),
+      ]),
+    )
+    useSessionBlockMeta.mockReturnValue(
+      mockQueryResult(
+        new Map([
+          [
+            "be-cindy",
+            {
+              blockId: "block-tue",
+              label: "Cindy",
+              position: 0,
+              emoji: "🔥",
+              blockSortOrder: 0,
+              mode: "amrap",
+              benchmarkCircuitId: "cindy-catalog",
+            },
+          ],
+        ]),
+      ),
+    )
+    useBenchmarkCompletionHistory.mockReturnValue({
+      data: {
+        copy: {
+          tagline_fr: "Le WOD de Tom Holland. 20 min.",
+          tagline_en: "Tom Holland’s WOD. 20 min.",
+          story_fr: "Cinq tractions.",
+          story_en: "Five pull-ups, ten push-ups, fifteen squats.",
+          reference: { name: "Tom Holland", score: "27" },
+        },
+        amrapViews: [],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    await expand("en")
+    await userEvent.click(screen.getByRole("button", { name: /cindy/i }))
+
+    expect(screen.getByText("Tom Holland’s WOD. 20 min.")).toBeInTheDocument()
+    expect(screen.getByText("No PR yet")).toBeInTheDocument()
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
   })
 })

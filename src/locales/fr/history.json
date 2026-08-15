@@ -58,6 +58,8 @@
     "sheetTitle": "Temps du circuit",
     "trendHint": "Refais ce circuit avec la même prescription pour voir l’évolution de ton temps.",
     "noCompletedRuns": "Aucune exécution complète pour l’instant.",
+    "noPrYet": "Pas encore de PR",
+    "referenceBeat": "{{name}} — {{score}} tours",
     "incompleteRun": "Incomplet",
     "loading": "Chargement des temps…",
     "offline": "Connecte-toi à internet pour voir les temps de ton circuit.",

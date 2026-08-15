@@ -11,7 +11,9 @@ import {
 import { ExerciseHistoryTrendChart } from "@/components/workout/ExerciseHistoryTrendChart"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useBenchmarkCompletionHistory } from "@/hooks/useBenchmarkCompletionHistory"
 import { useBlockCompletionHistory } from "@/hooks/useBlockCompletionHistory"
+import { BenchmarkStoryHeader } from "@/components/history/BenchmarkStoryHeader"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
@@ -23,6 +25,8 @@ interface BlockHistorySheetProps {
   onOpenChange: (open: boolean) => void
   /** The circuit's `block_id` (the history group's key). */
   blockId: string
+  /** Catalog identity — when set, history is keyed by this id, not `blockId`. */
+  catalogId?: string | null
   label: string | null
 }
 
@@ -150,17 +154,30 @@ export function BlockHistorySheet({
   open,
   onOpenChange,
   blockId,
+  catalogId,
   label,
 }: BlockHistorySheetProps) {
   const { t, i18n } = useTranslation("history")
   const isOnline = useOnlineStatus()
   const { unit } = useWeightUnit()
-  const { data, isLoading, isError, refetch } = useBlockCompletionHistory(open, blockId)
+  const isCatalog = Boolean(catalogId)
+  const blockHistory = useBlockCompletionHistory(open && !isCatalog, blockId)
+  const catalogHistory = useBenchmarkCompletionHistory(
+    open && isCatalog,
+    catalogId ?? undefined,
+  )
 
-  const isAmrap = data?.mode === "amrap"
-  const views = data?.views ?? []
-  const amrapViews = data?.amrapViews ?? []
-  const trend = data?.trend ?? { seconds: [], dates: [] }
+  const isLoading = isCatalog ? catalogHistory.isLoading : blockHistory.isLoading
+  const isError = isCatalog ? catalogHistory.isError : blockHistory.isError
+  const refetch = isCatalog ? catalogHistory.refetch : blockHistory.refetch
+  const copy = isCatalog ? (catalogHistory.data?.copy ?? null) : null
+
+  const isAmrap = isCatalog || blockHistory.data?.mode === "amrap"
+  const views = isCatalog ? [] : (blockHistory.data?.views ?? [])
+  const amrapViews = isCatalog
+    ? (catalogHistory.data?.amrapViews ?? [])
+    : (blockHistory.data?.amrapViews ?? [])
+  const trend = blockHistory.data?.trend ?? { seconds: [], dates: [] }
   const showTrend = !isAmrap && trend.seconds.length >= 2
   const trendXLabels = trend.dates.map((d) => formatRelativeTime(d, i18n.language))
   const hasRuns = isAmrap ? amrapViews.length > 0 : views.length > 0
@@ -181,6 +198,11 @@ export function BlockHistorySheet({
           <p className="pt-1 font-semibold leading-tight">
             {label ?? t("circuit.fallbackLabel")}
           </p>
+          {copy ? (
+            <div className="pt-2">
+              <BenchmarkStoryHeader copy={copy} />
+            </div>
+          ) : null}
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-8 pt-3">
@@ -200,7 +222,7 @@ export function BlockHistorySheet({
             </div>
           ) : !hasRuns ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {t("circuit.noCompletedRuns")}
+              {isCatalog ? t("circuit.noPrYet") : t("circuit.noCompletedRuns")}
             </p>
           ) : (
             <>

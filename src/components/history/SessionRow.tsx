@@ -87,6 +87,7 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
           if (!o) setOpenCircuit(null)
         }}
         blockId={openCircuit?.key ?? ""}
+        catalogId={openCircuit?.benchmarkCircuitId ?? null}
         label={openCircuit?.label ?? null}
       />
     </div>
