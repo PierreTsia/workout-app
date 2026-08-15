@@ -12,6 +12,9 @@ import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 const CATALOG_COLUMNS =
   "id, name, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
 
+/** UUID v4 format (case-insensitive). */
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {
   const mt = row.measurement_type
   const measurement_type: "reps" | "duration" = mt === "duration" ? "duration" : "reps"
@@ -48,6 +51,16 @@ export async function fetchExercisesByIds(
   // exercises. Skip the round-trip entirely.
   if (unique.length === 0) {
     return { data: [], error: null }
+  }
+
+  // Guard: reject IDs that are not valid UUID v4 — this catches agents that
+  // fabricate placeholder strings (e.g. "kroc-row-id") after empty search results.
+  const malformed = unique.filter((id) => !UUID_V4_RE.test(id))
+  if (malformed.length > 0) {
+    return {
+      data: [],
+      error: `Invalid exercise_id format (expected UUID v4): ${malformed.join(", ")}. Use search_exercises to find valid IDs.`,
+    }
   }
   const { data, error } = await supabase
     .from("exercises")

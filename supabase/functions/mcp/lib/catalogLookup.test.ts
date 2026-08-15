@@ -149,6 +149,19 @@ describe("fetchExercisesByIds", () => {
     expect(supabase._calls).toHaveLength(0)
   })
 
+  it("rejects non-UUID ids with an actionable error before hitting supabase", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, ["kroc-row-id", ID_BENCH])
+
+    expect(result.error).toContain("Invalid exercise_id format (expected UUID v4)")
+    expect(result.error).toContain("kroc-row-id")
+    expect(result.error).toContain("search_exercises")
+    expect(result.error).not.toContain(ID_BENCH)
+    expect(result.data).toEqual([])
+    expect(supabase._calls).toHaveLength(0)
+  })
+
   it("normalises measurement_type 'duration' and parses default_duration_seconds to a finite number", async () => {
     const supabase = makeFakeSupabase({
       rows: [
