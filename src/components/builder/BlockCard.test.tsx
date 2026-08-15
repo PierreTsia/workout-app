@@ -16,6 +16,8 @@ function makeBlock(
     rounds: 3,
     rest_seconds: 90,
     transition_seconds: 20,
+    mode: "rounds",
+    cap_seconds: null,
     sort_order: 0,
     created_at: "1970-01-01T00:00:00Z",
     exercises: [
@@ -60,5 +62,26 @@ describe("BlockCard", () => {
     expect(screen.getByText(/3 rounds/i)).toBeInTheDocument()
     expect(screen.getByText("Burpee")).toBeInTheDocument()
     expect(screen.getByText("Lunge")).toBeInTheDocument()
+  })
+
+  it("shows AmrapLabel with minutes and gloss when the block is AMRAP", () => {
+    const block = makeBlock({
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+    })
+    renderWithProviders(
+      <DndContext>
+        <SortableContext items={[block.id]}>
+          <BlockCard block={block} />
+        </SortableContext>
+      </DndContext>,
+    )
+
+    expect(screen.getByText("AMRAP 20 min")).toBeInTheDocument()
+    expect(
+      screen.getByText("As many rounds as possible."),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/1 round/i)).not.toBeInTheDocument()
   })
 })

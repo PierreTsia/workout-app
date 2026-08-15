@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest"
-import { buildBlockInsertRows } from "@/lib/blockPersistence"
+import {
+  buildAmrapPersistPayload,
+  buildBlockInsertRows,
+} from "@/lib/blockPersistence"
 import type { ExerciseListItem } from "@/types/database"
 
 function makeLibExercise(
@@ -63,6 +66,8 @@ describe("buildBlockInsertRows", () => {
 
     expect(block.sort_order).toBe(5)
     expect(block.workout_day_id).toBe("day-1")
+    expect(block.mode).toBe("rounds")
+    expect(block.cap_seconds).toBeNull()
     expect(blockExercises.map((e) => e.position)).toEqual([0, 1])
     expect(blockExercises[0]).toMatchObject({
       exercise_id: "ex-a",
@@ -71,5 +76,36 @@ describe("buildBlockInsertRows", () => {
       emoji_snapshot: "🦵",
     })
     expect(blockExercises[1].emoji_snapshot).toBe("🏋️")
+  })
+})
+
+describe("buildAmrapPersistPayload", () => {
+  it("persists Cindy as AMRAP 20 min with a length-1 template", () => {
+    const cindy = [
+      {
+        id: "be-pull",
+        per_round: [
+          { amount: 5, weight: 0 },
+          { amount: 5, weight: 0 },
+        ],
+      },
+      { id: "be-push", per_round: [{ amount: 10, weight: 0 }] },
+      { id: "be-squat", per_round: [{ amount: 15, weight: 0 }] },
+    ]
+
+    const { block, exercises } = buildAmrapPersistPayload(20, cindy)
+
+    expect(block).toEqual({
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+      rest_seconds: 0,
+      transition_seconds: 0,
+    })
+    expect(exercises.map((e) => e.per_round)).toEqual([
+      [{ amount: 5, weight: 0 }],
+      [{ amount: 10, weight: 0 }],
+      [{ amount: 15, weight: 0 }],
+    ])
   })
 })

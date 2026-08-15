@@ -48,6 +48,8 @@ const block = (
   rounds: 2,
   rest_seconds: 0,
   transition_seconds: 0,
+  mode: "rounds",
+  cap_seconds: null,
   sort_order: 0,
   created_at: "2026-01-01",
   exercises: [blockExercise()],

@@ -1,0 +1,20 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AmrapLabel > always pairs AMRAP with minutes and the gloss 1`] = `
+<div>
+  <div
+    class="flex flex-col gap-1"
+  >
+    <div
+      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground"
+    >
+      AMRAP 20 min
+    </div>
+    <p
+      class="text-xs text-muted-foreground"
+    >
+      As many rounds as possible.
+    </p>
+  </div>
+</div>
+`;

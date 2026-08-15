@@ -68,6 +68,8 @@ interface UpdateBlockMetaInput {
   rounds?: number
   rest_seconds?: number
   transition_seconds?: number
+  mode?: "rounds" | "amrap"
+  cap_seconds?: number | null
   /** Current per_round of each block exercise; required when `rounds` changes so they can be resized in lockstep. */
   exercises?: { id: string; per_round: PerRoundCell[] }[]
 }
@@ -87,6 +89,8 @@ export function useUpdateBlockMeta() {
       rounds,
       rest_seconds,
       transition_seconds,
+      mode,
+      cap_seconds,
       exercises,
     }: UpdateBlockMetaInput) => {
       const blockPatch = {
@@ -94,6 +98,8 @@ export function useUpdateBlockMeta() {
         ...(rounds !== undefined && { rounds }),
         ...(rest_seconds !== undefined && { rest_seconds }),
         ...(transition_seconds !== undefined && { transition_seconds }),
+        ...(mode !== undefined && { mode }),
+        ...(cap_seconds !== undefined && { cap_seconds }),
       }
       if (Object.keys(blockPatch).length > 0) {
         const { error } = await supabase
@@ -103,18 +109,26 @@ export function useUpdateBlockMeta() {
         if (error) throw error
       }
 
-      if (rounds !== undefined && exercises) {
-        const results = await Promise.all(
-          exercises.map((ex) =>
-            supabase
-              .from("block_exercises")
-              .update({ per_round: resizePerRound(ex.per_round, rounds) })
-              .eq("id", ex.id),
-          ),
-        )
-        const failed = results.find((r) => r.error)
-        if (failed?.error) throw failed.error
-      }
+      if (!exercises) return
+
+      const nextPerRound =
+        mode === "amrap"
+          ? (cells: PerRoundCell[]) => cells
+          : rounds !== undefined
+            ? (cells: PerRoundCell[]) => resizePerRound(cells, rounds)
+            : null
+      if (!nextPerRound) return
+
+      const results = await Promise.all(
+        exercises.map((ex) =>
+          supabase
+            .from("block_exercises")
+            .update({ per_round: nextPerRound(ex.per_round) })
+            .eq("id", ex.id),
+        ),
+      )
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
