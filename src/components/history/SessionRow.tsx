@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Badge } from "@/components/ui/badge"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { useSessionBlockMeta } from "@/hooks/useSessionBlockMeta"
+import { useSessionBlockRuns } from "@/hooks/useSessionBlockRuns"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
@@ -26,6 +27,7 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
     .map((l) => l.block_exercise_id)
     .filter((id): id is string => id != null)
   const { data: blockMeta } = useSessionBlockMeta(blockExerciseIds)
+  const { data: blockRuns } = useSessionBlockRuns(sessionId)
   // Avoid a solo→circuit flash: wait for meta when the session has block logs.
   const metaPending = blockExerciseIds.length > 0 && blockMeta == null
 
@@ -48,6 +50,7 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
             group={item}
             formatWeight={formatWeight}
             onOpen={setOpenCircuit}
+            blockRun={blockRuns?.get(item.key)}
           />
         ) : (
           <div key={item.key}>

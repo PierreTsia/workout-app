@@ -58,6 +58,7 @@ function makeCompleteGroup(): BlockHistoryGroup {
     label: "Zeus",
     sortOrder: 0,
     exerciseCount: 2,
+    mode: "rounds",
     rounds: [
       {
         round: 1,
@@ -139,4 +140,105 @@ describe("BlockHistoryCard", () => {
 
     expect(screen.queryByText(/4:32/)).not.toBeInTheDocument()
   })
+
+  it("shows a glossed AmrapScore for a finished 27+3 AMRAP", () => {
+    const group = makeAmrapGroup(27, 3, "push-ups")
+
+    renderWithProviders(
+      <BlockHistoryCard
+        group={group}
+        formatWeight={(kg) => `${kg} kg`}
+        blockRun={{ finished_at: "2026-08-15T10:20:00.000Z" }}
+      />,
+    )
+
+    expect(screen.getByText("27+3")).toBeInTheDocument()
+    expect(screen.getByText("27 rounds · 3 push-ups")).toBeInTheDocument()
+    expect(screen.queryByText(/4:32/)).not.toBeInTheDocument()
+  })
+
+  it("glosses the leftover movement in French", () => {
+    renderWithProviders(
+      <BlockHistoryCard
+        group={makeAmrapGroup(27, 3, "pompes")}
+        formatWeight={(kg) => `${kg} kg`}
+        blockRun={{ finished_at: "2026-08-15T10:20:00.000Z" }}
+      />,
+      { locale: "fr" },
+    )
+
+    expect(screen.getByText("27+3")).toBeInTheDocument()
+    expect(screen.getByText("27 tours · 3 pompes")).toBeInTheDocument()
+  })
+
+  it("hides the AmrapScore when the run has no finished_at", () => {
+    renderWithProviders(
+      <BlockHistoryCard
+        group={makeAmrapGroup(14, 0, "push-ups")}
+        formatWeight={(kg) => `${kg} kg`}
+        blockRun={{ finished_at: null }}
+      />,
+    )
+
+    expect(screen.queryByText("14+0")).not.toBeInTheDocument()
+  })
 })
+
+function makeAmrapGroup(
+  fullRounds: number,
+  leftover: number,
+  leftoverName: string,
+): BlockHistoryGroup {
+  const stations = [
+    { be: "be1", name: "push-ups" },
+    { be: "be2", name: "sit-ups" },
+    { be: "be3", name: "air squats" },
+  ]
+  const full = Array.from({ length: fullRounds }, (_, r) => ({
+    round: r + 1,
+    cells: stations.map((s, i) => ({
+      blockExerciseId: s.be,
+      exercise: null,
+      exercise_name_snapshot: s.name,
+      emoji: "🔥",
+      log: makeLog({
+        block_exercise_id: s.be,
+        exercise_name_snapshot: s.name,
+        set_number: r + 1,
+        reps_logged: String(5 + i * 5),
+        logged_at: new Date(
+          Date.parse("2026-08-15T10:00:00.000Z") + (r * 3 + i) * 1000,
+        ).toISOString(),
+      }),
+    })),
+  }))
+  return {
+    kind: "block",
+    key: "cindy",
+    label: "Cindy",
+    sortOrder: 0,
+    exerciseCount: 3,
+    mode: "amrap",
+    rounds: [
+      ...full,
+      {
+        round: fullRounds + 1,
+        cells: [
+          {
+            blockExerciseId: "be1",
+            exercise: null,
+            exercise_name_snapshot: leftoverName,
+            emoji: "🔥",
+            log: makeLog({
+              block_exercise_id: "be1",
+              exercise_name_snapshot: leftoverName,
+              set_number: fullRounds + 1,
+              reps_logged: String(leftover),
+              logged_at: "2026-08-15T10:19:50.000Z",
+            }),
+          },
+        ],
+      },
+    ],
+  }
+}

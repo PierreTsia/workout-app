@@ -52,6 +52,7 @@
     "round": "Tour {{n}}",
     "completionTime": "Bouclé en {{time}}",
     "vsPrevious": "vs dernière",
+    "roundsDelta": "{{count}} tours",
     "pb": "Record",
     "shapeChanged": "Prescription modifiée",
     "sheetTitle": "Temps du circuit",

@@ -1,13 +1,34 @@
 import { useTranslation } from "react-i18next"
 import { Layers, Timer } from "lucide-react"
+import { AmrapScore } from "@/components/circuit/AmrapScore"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
+import { amrapScore, type AmrapScoreCell } from "@/lib/amrapScore"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import {
   isRunComplete,
   runCompletionSeconds,
   type BlockRunCellRow,
 } from "@/lib/blockCompletionHistory"
-import type { BlockHistoryGroup } from "@/lib/sessionHistoryGrouping"
+import type {
+  BlockHistoryCell,
+  BlockHistoryGroup,
+} from "@/lib/sessionHistoryGrouping"
+
+function amrapCells(
+  group: BlockHistoryGroup,
+  nameOf: (cell: BlockHistoryCell) => string,
+): AmrapScoreCell[] {
+  return group.rounds.flatMap((round) =>
+    round.cells.map((cell) => ({
+      session_id: cell.log.session_id,
+      set_number: cell.log.set_number,
+      reps_logged: cell.log.reps_logged,
+      duration_seconds: cell.log.duration_seconds,
+      logged_at: cell.log.logged_at,
+      exercise_name: nameOf(cell),
+    })),
+  )
+}
 
 /** Flatten a history group's cells into the row shape the completion-time lib expects. */
 function groupCells(group: BlockHistoryGroup): BlockRunCellRow[] {
@@ -34,17 +55,25 @@ export function BlockHistoryCard({
   group,
   formatWeight,
   onOpen,
+  blockRun,
 }: {
   group: BlockHistoryGroup
   formatWeight: (kg: number) => string
   onOpen?: (group: BlockHistoryGroup) => void
+  /** This session's `block_runs` row — completeness is `finished_at`. */
+  blockRun?: { finished_at: string | null }
 }) {
   const { t } = useTranslation("history")
   const { exerciseName } = useCatalogLabels()
   const cells = groupCells(group)
-  const completionTime = isRunComplete(cells)
-    ? formatSecondsMMSS(runCompletionSeconds(cells))
-    : null
+  const score =
+    group.mode === "amrap"
+      ? amrapScore(blockRun ?? { finished_at: null }, amrapCells(group, exerciseName))
+      : null
+  const completionTime =
+    score == null && isRunComplete(cells)
+      ? formatSecondsMMSS(runCompletionSeconds(cells))
+      : null
 
   return (
     <button
@@ -60,14 +89,22 @@ export function BlockHistoryCard({
         <span className="text-[10px] text-muted-foreground">
           · {t("circuit.rounds", { count: group.rounds.length })}
         </span>
-        {completionTime != null && (
+        {score != null ? (
+          <div className="ml-auto">
+            <AmrapScore
+              fullRounds={score.fullRounds}
+              leftover={score.leftover}
+              leftoverName={score.leftoverName}
+            />
+          </div>
+        ) : completionTime != null ? (
           <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-primary">
             <Timer className="h-3 w-3" aria-hidden />
             <span className="tabular-nums">
               {t("circuit.completionTime", { time: completionTime })}
             </span>
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">

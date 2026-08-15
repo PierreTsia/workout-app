@@ -42,6 +42,7 @@ const meta = (over: Partial<BlockMeta> = {}): BlockMeta => ({
   position: 0,
   emoji: "💪",
   blockSortOrder: 0,
+  mode: "rounds",
   ...over,
 })
 
@@ -53,7 +54,7 @@ describe("buildBlockMetaMap", () => {
         block_id: "blk1",
         emoji_snapshot: "💪",
         position: 1,
-        block: { id: "blk1", label: "Bras", rounds: 3, sort_order: 2 },
+        block: { id: "blk1", label: "Bras", rounds: 3, sort_order: 2, mode: "rounds" },
       },
       {
         id: "be2",
@@ -71,6 +72,7 @@ describe("buildBlockMetaMap", () => {
       position: 1,
       emoji: "💪",
       blockSortOrder: 2,
+      mode: "rounds",
     })
   })
 })
@@ -189,6 +191,7 @@ describe("groupSessionHistory", () => {
     expect(block.kind).toBe("block")
     if (block.kind !== "block") throw new Error("expected block")
     expect(block.label).toBe("Bras")
+    expect(block.mode).toBe("rounds")
     expect(block.exerciseCount).toBe(2)
     expect(block.rounds.map((r) => r.round)).toEqual([1, 2])
     // position 0 (A) before position 1 (B) within each round

@@ -2,6 +2,7 @@ import { vi, describe, it, expect } from "vitest"
 import { screen } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
 import { BlockHistorySheet } from "./BlockHistorySheet"
+import type { AmrapRunView } from "@/lib/amrapScore"
 import type { BlockRunView } from "@/lib/blockCompletionHistory"
 
 vi.mock("@/hooks/useOnlineStatus", () => ({ useOnlineStatus: () => true }))
@@ -81,5 +82,53 @@ describe("BlockHistorySheet", () => {
     renderSheet()
 
     expect(screen.getByText(/No completed runs yet\./)).toBeInTheDocument()
+  })
+
+  it("renders a glossed AmrapScore, PB, and rounds delta for AMRAP history", () => {
+    const amrapView = (
+      sessionId: string,
+      date: string,
+      fullRounds: number,
+      leftover: number,
+      leftoverName: string,
+      opts: Partial<Pick<AmrapRunView, "deltaRounds" | "isPb" | "isComplete">> = {},
+    ): AmrapRunView => ({
+      sessionId,
+      date,
+      fingerprint: "amrap|1200|ex-1:5:0",
+      isComplete: opts.isComplete ?? true,
+      score: { fullRounds, leftover, leftoverName },
+      deltaRounds: opts.deltaRounds ?? null,
+      isPb: opts.isPb ?? false,
+      shapeChanged: false,
+    })
+
+    mockHistory.mockReturnValue({
+      data: {
+        mode: "amrap",
+        views: [],
+        trend: { seconds: [], dates: [] },
+        amrapViews: [
+          amrapView("s2", "2026-08-15T10:00:00.000Z", 27, 3, "push-ups", {
+            deltaRounds: 2,
+            isPb: true,
+          }),
+          amrapView("s1", "2026-08-01T10:00:00.000Z", 25, 8, "push-ups"),
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: vi.fn(),
+    })
+
+    renderSheet()
+
+    expect(screen.getByText("27+3")).toBeInTheDocument()
+    expect(screen.getByText("27 rounds · 3 push-ups")).toBeInTheDocument()
+    expect(screen.getByText("25+8")).toBeInTheDocument()
+    expect(screen.getByText("PB")).toBeInTheDocument()
+    expect(screen.getByText(/2 rounds/)).toBeInTheDocument()
+    expect(screen.queryByText("4:00")).not.toBeInTheDocument()
   })
 })
