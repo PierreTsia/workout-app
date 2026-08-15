@@ -85,7 +85,29 @@ Expected agent behavior:
 
 5. Show Circuit preview lines to the user → re-call with `dry_run: false` after consent.
 
-Say **Circuit**, never "block". Mention once that Circuit prescriptions are frozen (no auto progression).
+Say **Circuit**, never "block". Mention once that Circuit prescriptions are frozen (no auto progression). Generic Circuits omit `benchmark_slug`.
+
+---
+
+## "Persist Cindy" (FR / EN)
+
+User says: *"Crée-moi Cindy"* / *"Give me Cindy"* / *"Holland WOD"*.
+
+Expected agent behavior:
+
+1. Do **not** reconstruct 5 pull-ups / 10 push-ups / 15 squats. Cindy is a catalog **Benchmark Circuit** — persist the slug.
+2. `create_workout_day` (or a program day) dry_run with:
+
+```jsonc
+{
+  type: "circuit",
+  benchmark_slug: "cindy"
+}
+```
+
+3. Catalog Rx wins (AMRAP 20, 5-10-15). Preview / details echo that Rx plus `benchmark_slug: "cindy"`.
+4. Unknown slug (`"not-a-wod"`) → **error**, no insert. Do not fall back to a labeled jetable.
+5. Holland / Tom Holland aliases resolve to `cindy` — still send `benchmark_slug: "cindy"`. Label coerce exists but agents should send the slug.
 
 ---
 
