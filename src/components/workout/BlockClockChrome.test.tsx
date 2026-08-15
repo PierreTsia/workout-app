@@ -36,6 +36,29 @@ describe("BlockClockChrome", () => {
     )
   })
 
+  it("keeps counting down during a session pause", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(T0)
+    const { store } = renderWithProviders(
+      <BlockClockChrome startedAt={T0} capSeconds={20 * 60} />,
+    )
+
+    act(() => {
+      store.set(sessionAtom, {
+        ...store.get(sessionAtom),
+        isActive: true,
+        startedAt: T0,
+        pausedAt: T0 + 1_000,
+        accumulatedPause: 60_000,
+      })
+      vi.advanceTimersByTime(8_000)
+    })
+
+    expect(screen.getByRole("timer", { name: /remaining/i })).toHaveTextContent(
+      "19:52",
+    )
+  })
+
   it("keeps ticking during a session pause (wall-clock, not SessionTimerChip)", () => {
     vi.useFakeTimers()
     vi.setSystemTime(T0)
@@ -54,6 +77,25 @@ describe("BlockClockChrome", () => {
 
     expect(screen.getByRole("timer", { name: /elapsed/i })).toHaveTextContent(
       "00:08",
+    )
+  })
+
+  it("counts down remaining cap from the GO instant", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(T0)
+    renderWithProviders(
+      <BlockClockChrome startedAt={T0} capSeconds={20 * 60} />,
+    )
+
+    expect(screen.getByRole("timer", { name: /remaining/i })).toHaveTextContent(
+      "20:00",
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(12 * 60 * 1000)
+    })
+    expect(screen.getByRole("timer", { name: /remaining/i })).toHaveTextContent(
+      "08:00",
     )
   })
 

@@ -233,5 +233,13 @@
   "blockRunner.exit": "Retour à la séance",
   "blockRunner.goTitle": "Prêt",
   "blockRunner.go": "GO",
-  "blockRunner.elapsed": "Temps écoulé"
+  "blockRunner.elapsed": "Temps écoulé",
+  "blockRunner.remaining": "Restant",
+  "blockRunner.time": "TIME",
+  "blockRunner.finishEarly": "Terminer",
+  "blockRunner.leftoverTitle": "Reste",
+  "blockRunner.leftoverConfirm": "Valider le reste",
+  "blockRunner.decrement": "Diminuer",
+  "blockRunner.increment": "Augmenter",
+  "blockRunner.amrapScoreGloss": "{{rounds}} tours · {{leftover}} {{name}}"
 }

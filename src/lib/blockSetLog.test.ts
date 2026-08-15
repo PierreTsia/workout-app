@@ -126,6 +126,30 @@ describe("buildBlockSetLogPayload", () => {
     })
   })
 
+  it("writes leftover actual instead of the prescribed amount", () => {
+    const payload = buildBlockSetLogPayload({
+      sessionId: "sess-1",
+      blockExercise: blockExercise({ per_round: [{ amount: 20, weight: 0 }] }),
+      round: 7,
+      now: 1000,
+      mode: "amrap",
+      actual: 3,
+    })
+
+    expect(payload).toEqual({
+      sessionId: "sess-1",
+      exerciseId: "ex-1",
+      blockExerciseId: "be-A",
+      exerciseNameSnapshot: "Push-ups",
+      setNumber: 8,
+      repsLogged: "3",
+      weightLogged: 0,
+      estimatedOneRM: 0,
+      wasPr: false,
+      loggedAt: 1000,
+    })
+  })
+
   it("treats a missing measurement_type as reps", () => {
     const payload = buildBlockSetLogPayload({
       sessionId: "sess-1",

@@ -28,12 +28,15 @@ import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
 import { useExerciseById } from "@/hooks/useExerciseById"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { playFinishBeeps } from "@/lib/audio"
+import { AmrapScore } from "@/components/circuit/AmrapScore"
 import { BlockClockChrome } from "@/components/workout/BlockClockChrome"
 import { BlockGoCountdown } from "@/components/workout/BlockGoCountdown"
 import { BlockProgressBars } from "@/components/workout/BlockProgressBars"
 import { CountdownRing } from "@/components/workout/CountdownRing"
+import { LeftoverStepper } from "@/components/workout/LeftoverStepper"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { blockCellKey, blockSetNumber } from "@/lib/blockSetLog"
+import { templateCell } from "@/lib/blockTemplate"
 import type { Cursor } from "@/lib/blockRunner"
 import type { ExerciseBlockWithExercises } from "@/types/database"
 
@@ -67,12 +70,21 @@ export function BlockRunner({
     logAndAdvance,
     skip,
     goBack,
+    timeOut,
+    terminate,
     loggedCells,
     discardBlock,
+    startedAt,
+    hydratePending,
+    stampGo,
+    stampFinish,
+    amrapScore,
   } = useBlockSession(block, localSessionId)
 
-  // Tours GO is display-only: in-memory stamp, no block_runs write (T184).
-  const [goStartedAt, setGoStartedAt] = useState<number | null>(null)
+  const isAmrap = block.mode === "amrap"
+  // Tours GO is display-only. AMRAP also persists a Block Run at this instant.
+  const [localGoAt, setLocalGoAt] = useState<number | null>(null)
+  const clockStart = localGoAt ?? startedAt
   const [cancelOpen, setCancelOpen] = useState(false)
   const confirmCancel = async () => {
     await discardBlock()
@@ -152,16 +164,16 @@ export function BlockRunner({
   const exCount = block.exercises.length
   // The bars track the cell you're at (exercise phase) or heading to (rest/done).
   const pos: Cursor =
-    state.phase === "exercise"
+    state.phase === "exercise" || state.phase === "leftover"
       ? state.cursor
       : state.phase === "transition" || state.phase === "roundRest"
         ? state.next
-        : { round: block.rounds - 1, exerciseIdx: exCount - 1 }
+        : state.lastLogged ?? { round: block.rounds - 1, exerciseIdx: exCount - 1 }
 
   const progressBars = (
     <BlockProgressBars
       roundCurrent={pos.round + 1}
-      roundTotal={block.rounds}
+      roundTotal={isAmrap ? undefined : block.rounds}
       exerciseCurrent={pos.exerciseIdx + 1}
       exerciseTotal={exCount}
     />
@@ -177,7 +189,15 @@ export function BlockRunner({
         {progressBars}
         <Check className="h-12 w-12 text-primary" />
         <h2 className="text-xl font-bold">{t("blockRunner.doneTitle")}</h2>
-        <p className="text-sm text-muted-foreground">{t("blockRunner.doneBody")}</p>
+        {amrapScore ? (
+          <AmrapScore
+            fullRounds={amrapScore.fullRounds}
+            leftover={amrapScore.leftover}
+            leftoverName={amrapScore.leftoverName}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("blockRunner.doneBody")}</p>
+        )}
         {onExit && (
           <Button className="mt-2" onClick={onExit}>
             {t("blockRunner.exit")}
@@ -187,20 +207,65 @@ export function BlockRunner({
     )
   }
 
-  if (goStartedAt == null) {
+  if (hydratePending) {
+    return <div className="flex flex-1" />
+  }
+
+  if (clockStart == null) {
     return (
       <div className="flex flex-1 flex-col px-5 pb-5 pt-7">
-        <BlockGoCountdown onComplete={() => setGoStartedAt(Date.now())} />
+        <BlockGoCountdown
+          onComplete={() => {
+            const at = Date.now()
+            setLocalGoAt(at)
+            stampGo(at)
+          }}
+        />
       </div>
     )
   }
 
   const runHeader = (
     <div className="flex flex-col items-center gap-2">
-      <BlockClockChrome startedAt={goStartedAt} />
+      <BlockClockChrome
+        startedAt={clockStart}
+        capSeconds={isAmrap ? (block.cap_seconds ?? undefined) : undefined}
+        onExpire={isAmrap ? timeOut : undefined}
+      />
       {progressBars}
     </div>
   )
+
+  if (state.phase === "leftover") {
+    const leftoverEx = block.exercises[state.cursor.exerciseIdx]
+    const leftoverCell = leftoverEx
+      ? templateCell(leftoverEx, state.cursor.round, block.mode)
+      : { amount: 0, weight: 0 }
+    const leftoverDuration =
+      leftoverEx?.exercise?.measurement_type === "duration"
+    const leftoverPrefill = leftoverDuration
+      ? leftoverCell.amount - (hold.remaining ?? leftoverCell.amount)
+      : 0
+    return (
+      <div
+        role="region"
+        aria-label={t("blockRunner.time")}
+        className="flex flex-1 flex-col items-center justify-center gap-4 px-5 pb-5 pt-7 text-center"
+      >
+        {runHeader}
+        <LeftoverStepper
+          max={leftoverCell.amount}
+          initial={Math.max(0, leftoverPrefill)}
+          unit={leftoverDuration ? "seconds" : "reps"}
+          onConfirm={(actual) => {
+            logAndAdvance(actual)
+            stampFinish(Date.now())
+          }}
+        />
+        {cancelSection}
+      </div>
+    )
+  }
 
   if (state.phase === "transition" || state.phase === "roundRest") {
     const nextExercise = block.exercises[state.next.exerciseIdx]
@@ -237,10 +302,12 @@ export function BlockRunner({
               <ChevronLeft className="h-4 w-4" />
               {t("blockRunner.back")}
             </Button>
-            <Button onClick={skip} className="flex-1 gap-1.5">
-              <SkipForward className="h-4 w-4" />
-              {t("blockRunner.skip")}
-            </Button>
+            {!isAmrap && (
+              <Button onClick={skip} className="flex-1 gap-1.5">
+                <SkipForward className="h-4 w-4" />
+                {t("blockRunner.skip")}
+              </Button>
+            )}
           </div>
           {cancelSection}
         </div>
@@ -250,7 +317,9 @@ export function BlockRunner({
 
   const { round, exerciseIdx } = state.cursor
   const blockExercise = block.exercises[exerciseIdx]
-  const cell = blockExercise?.per_round[round]
+  const cell = blockExercise
+    ? templateCell(blockExercise, round, block.mode)
+    : null
   const amount = cell?.amount ?? 0
   const isFirstCell = round === 0 && exerciseIdx === 0
   const isDuration = blockExercise?.exercise?.measurement_type === "duration"
@@ -344,7 +413,7 @@ export function BlockRunner({
               // Already validated (revisited via Back): move forward, no re-log.
               <Button
                 size="lg"
-                onClick={logAndAdvance}
+                onClick={() => logAndAdvance()}
                 className="flex-1 gap-1.5"
               >
                 {t("blockRunner.continue")}
@@ -359,7 +428,7 @@ export function BlockRunner({
                 <Play className="h-5 w-5" />
                 {t("durationStart")}
               </Button>
-            ) : isDuration && hold.running ? (
+            ) : isDuration && hold.running && !isAmrap ? (
               // Ending early is a skip, not a validation: reachable but quiet.
               <Button
                 size="lg"
@@ -388,6 +457,17 @@ export function BlockRunner({
               </Button>
             )}
           </div>
+          {isAmrap && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                hold.cancel()
+                terminate()
+              }}
+            >
+              {t("blockRunner.finishEarly")}
+            </Button>
+          )}
           {cancelSection}
         </div>
       </div>

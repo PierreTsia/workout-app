@@ -27,6 +27,29 @@ function keepFirstRound(
   }))
 }
 
+export function templateFingerprint(block: {
+  mode: BlockTerminationMode
+  cap_seconds: number | null
+  exercises: { exercise_id: string; per_round: PerRoundCell[] }[]
+}): string {
+  const cells = [...block.exercises]
+    .sort((a, b) => a.exercise_id.localeCompare(b.exercise_id))
+    .map((ex) => {
+      const cell = templateCell(ex, 0, block.mode)
+      return `${ex.exercise_id}:${cell.amount}:${cell.weight}`
+    })
+  return `${block.mode}|${block.cap_seconds ?? ""}|${cells.join(",")}`
+}
+
+export function templateCell(
+  be: { per_round: PerRoundCell[] },
+  round: number,
+  mode: BlockTerminationMode,
+): PerRoundCell {
+  const cell = mode === "amrap" ? be.per_round[0] : be.per_round[round]
+  return cell ?? { amount: 0, weight: 0 }
+}
+
 export function switchBlockMode(
   current: BlockTemplateState,
   nextMode: BlockTerminationMode,
