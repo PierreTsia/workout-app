@@ -1,3 +1,8 @@
+import {
+  circuitTerminationFields,
+  shouldRejectAmrapCircuit,
+} from "../_shared/amrapCircuitValidate.ts"
+
 export interface CatalogEntry {
   id: string
   muscle_group: string
@@ -10,6 +15,8 @@ export type QwCircuitExercise =
 export interface QwCircuitItem {
   type: "circuit"
   label?: string
+  mode?: "rounds" | "amrap"
+  cap_minutes?: number
   rounds?: number
   rest_seconds?: number
   transition_seconds?: number
@@ -92,6 +99,11 @@ export function validateAndRepair(
       continue
     }
 
+    if (shouldRejectAmrapCircuit(raw)) {
+      dropped++
+      continue
+    }
+
     const nested = raw.exercises
       .map((ex) => {
         if (!ex || typeof ex !== "object" || typeof ex.exercise_id !== "string") {
@@ -111,11 +123,7 @@ export function validateAndRepair(
       type: "circuit",
       exercises: nested,
       ...(raw.label !== undefined ? { label: raw.label } : {}),
-      ...(raw.rounds !== undefined ? { rounds: raw.rounds } : {}),
-      ...(raw.rest_seconds !== undefined ? { rest_seconds: raw.rest_seconds } : {}),
-      ...(raw.transition_seconds !== undefined
-        ? { transition_seconds: raw.transition_seconds }
-        : {}),
+      ...circuitTerminationFields(raw),
     })
 
     for (const ex of nested) {

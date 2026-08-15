@@ -3,6 +3,7 @@ import {
   validateProgram,
   type GenerateProgramResponse,
 } from "../../supabase/functions/_shared/programDraft"
+import { parseExerciseInput } from "../../supabase/functions/mcp/lib/createProgramValidation"
 
 const catalog = [
   { id: "c1", muscle_group: "chest" },
@@ -278,5 +279,243 @@ describe("validateProgram", () => {
     expect(
       result.days[0].exercises.filter((i) => typeof i !== "string").length,
     ).toBe(1)
+  })
+
+  it("T189: keeps Cindy as mode=amrap, cap_minutes=20, flat nested, no rounds", () => {
+    const result = validateProgram(
+      {
+        rationale: "Cindy",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              {
+                type: "circuit",
+                label: "Cindy",
+                mode: "amrap",
+                cap_minutes: 20,
+                exercises: [
+                  { exercise_id: "c1", amount: 5, weight_kg: 0 },
+                  { exercise_id: "c2", amount: 10, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    const circuit = result.days[0].exercises[0]
+    expect(typeof circuit).not.toBe("string")
+    if (typeof circuit === "string") throw new Error("expected circuit")
+    expect(circuit).toMatchObject({
+      type: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      cap_minutes: 20,
+    })
+    expect(circuit).not.toHaveProperty("rounds")
+    expect(circuit.exercises).toEqual([
+      { exercise_id: "c1", amount: 5, weight_kg: 0 },
+      { exercise_id: "c2", amount: 10, weight_kg: 0 },
+    ])
+  })
+
+  it("T189: drops mode=amrap when rounds, rest, or nested per_round leak", () => {
+    const result = validateProgram(
+      {
+        rationale: "leaky",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              {
+                type: "circuit",
+                mode: "amrap",
+                cap_minutes: 20,
+                rounds: 3,
+                rest_seconds: 90,
+                exercises: [
+                  { exercise_id: "c1", amount: 5, weight_kg: 0 },
+                  {
+                    exercise_id: "c2",
+                    per_round: [{ amount: 10, weight_kg: 0 }],
+                  },
+                ],
+              },
+              "c3",
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    expect(
+      result.days[0].exercises.filter((i) => typeof i !== "string"),
+    ).toHaveLength(0)
+    expect(result.days[0].dropped).toBeGreaterThanOrEqual(1)
+  })
+
+  it("T189: keeps HIIT / explicit-round Circuits as Tours (mode omitted, rounds kept)", () => {
+    const result = validateProgram(
+      {
+        rationale: "HIIT 20 min",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              {
+                type: "circuit",
+                label: "HIIT 20 min",
+                rounds: 4,
+                rest_seconds: 30,
+                exercises: [
+                  { exercise_id: "c1", amount: 10, weight_kg: 0 },
+                  { exercise_id: "c2", amount: 10, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    const circuit = result.days[0].exercises[0]
+    expect(typeof circuit).not.toBe("string")
+    if (typeof circuit === "string") throw new Error("expected circuit")
+    expect(circuit).toMatchObject({
+      type: "circuit",
+      label: "HIIT 20 min",
+      rounds: 4,
+      rest_seconds: 30,
+    })
+    expect(circuit).not.toHaveProperty("mode")
+    expect(circuit).not.toHaveProperty("cap_minutes")
+  })
+
+  it("T189: strips cap_minutes from a Tours Circuit (mode omitted)", () => {
+    const result = validateProgram(
+      {
+        rationale: "HIIT",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              {
+                type: "circuit",
+                label: "HIIT 20 min",
+                cap_minutes: 20,
+                rounds: 4,
+                exercises: [
+                  { exercise_id: "c1", amount: 10, weight_kg: 0 },
+                  { exercise_id: "c2", amount: 10, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    const circuit = result.days[0].exercises[0]
+    expect(typeof circuit).not.toBe("string")
+    if (typeof circuit === "string") throw new Error("expected circuit")
+    expect(circuit).toMatchObject({ type: "circuit", rounds: 4 })
+    expect(circuit).not.toHaveProperty("cap_minutes")
+    expect(circuit).not.toHaveProperty("mode")
+  })
+
+  it("T189: drops mode=amrap when cap_minutes is outside 1–60", () => {
+    const result = validateProgram(
+      {
+        rationale: "bad cap",
+        days: [
+          {
+            label: "Cond",
+            muscle_focus: "chest",
+            exercises: [
+              {
+                type: "circuit",
+                mode: "amrap",
+                cap_minutes: 90,
+                exercises: [
+                  { exercise_id: "c1", amount: 5, weight_kg: 0 },
+                  { exercise_id: "c2", amount: 10, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      catalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    expect(
+      result.days[0].exercises.filter((i) => typeof i !== "string"),
+    ).toHaveLength(0)
+  })
+
+  it("T189: validated Cindy payload passes MCP parseExerciseInput (T187)", () => {
+    const pull = "11111111-2222-4333-8444-555555555555"
+    const squat = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+    const uuidCatalog = [
+      { id: pull, muscle_group: "back" },
+      { id: squat, muscle_group: "legs" },
+    ]
+    const result = validateProgram(
+      {
+        rationale: "Cindy",
+        days: [
+          {
+            label: "Cindy Day",
+            muscle_focus: "back",
+            exercises: [
+              {
+                type: "circuit",
+                label: "Cindy",
+                mode: "amrap",
+                cap_minutes: 20,
+                exercises: [
+                  { exercise_id: pull, amount: 5, weight_kg: 0 },
+                  { exercise_id: squat, amount: 10, weight_kg: 0 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      uuidCatalog,
+      1,
+      { min: 1, max: 5 },
+    )
+
+    const circuit = result.days[0].exercises[0]
+    expect(typeof circuit).not.toBe("string")
+    const parsed = parseExerciseInput(circuit, "Cindy Day", 0)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) throw new Error(parsed.error)
+    expect(parsed.value).toMatchObject({
+      kind: "circuit",
+      mode: "amrap",
+      capMinutes: 20,
+    })
   })
 })

@@ -1,3 +1,5 @@
+import { AMRAP_CLOSED_INTENT_RULES } from "../_shared/amrapIntentPrompt.ts"
+
 const VOLUME_MAP: Record<number, { exerciseCount: number }> = {
   15: { exerciseCount: 4 },
   30: { exerciseCount: 5 },
@@ -127,6 +129,7 @@ export function buildPrompt(
     "- Return ONLY exercise IDs from the EXERCISE CATALOG below. Never invent IDs.",
     `- Select exactly ${targetCount} day items in \`exercises\` (a Circuit counts as ONE item toward ${targetCount}).`,
     "- Prefer bare UUID strings for normal strength work. Emit a Circuit (`type:\"circuit\"`) for conditioning finishers or when the user explicitly asks for a circuit/superset — nested exercises use `{exercise_id, amount, weight_kg}` (never solo sets/reps).",
+    AMRAP_CLOSED_INTENT_RULES,
     "- Respect the user's equipment and muscle group constraints.",
     "- Order: compounds first, isolations later; place Circuits after the main strength work when used as finishers.",
     "- Avoid exercises the user did in their last 5 sessions (listed below) unless the pool is too small.",
@@ -135,7 +138,7 @@ export function buildPrompt(
     "",
     "OUTPUT FORMAT:",
     "Return a JSON object with:",
-    `- exercises: array of length ${targetCount} — each entry is either a catalog UUID string OR a Circuit object { type:"circuit", label?, rounds?, rest_seconds?, transition_seconds?, exercises:[{exercise_id, amount, weight_kg}] }.`,
+    `- exercises: array of length ${targetCount} — each entry is either a catalog UUID string OR a Circuit object { type:"circuit", label?, mode?, cap_minutes?, rounds?, rest_seconds?, transition_seconds?, exercises:[{exercise_id, amount, weight_kg}] }.`,
     "- exerciseIds: string[] — optional legacy flat list of solo UUIDs only (omit when using Circuits).",
     "- rationale: string — 2–5 short sentences explaining your choices and order. Follow the LOCALE section below for the language of this field only.",
     "",

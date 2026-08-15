@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { X } from "lucide-react"
+import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
@@ -19,6 +20,8 @@ export function PreviewCircuitCard({
   const { t } = useTranslation("generator")
   const { catalogName } = useCatalogLabels()
   const label = circuit.label?.trim() || t("circuit.fallbackLabel")
+  const isAmrap = circuit.mode === "amrap"
+  const capMinutes = circuit.capMinutes ?? 20
 
   return (
     <div
@@ -31,13 +34,17 @@ export function PreviewCircuitCard({
             <Badge variant="secondary">{t("circuit.badge")}</Badge>
             <span className="truncate text-sm font-medium">{label}</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("circuit.summary", {
-              rounds: circuit.rounds,
-              count: circuit.exercises.length,
-              rest: circuit.restSeconds,
-            })}
-          </p>
+          {isAmrap ? (
+            <AmrapLabel minutes={capMinutes} />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {t("circuit.summary", {
+                rounds: circuit.rounds,
+                count: circuit.exercises.length,
+                rest: circuit.restSeconds,
+              })}
+            </p>
+          )}
         </div>
         <Button
           variant="ghost"

@@ -49,6 +49,8 @@ type ServerDayItem =
   | {
       type: "circuit"
       label?: string
+      mode?: "rounds" | "amrap"
+      cap_minutes?: number
       rounds?: number
       rest_seconds?: number
       transition_seconds?: number
@@ -120,14 +122,25 @@ function buildDayItems(
       return [{ exercise: ex, amount: n.amount, weightKg: n.weight_kg }]
     })
     if (nested.length < 2) return []
+    const isAmrap = item.mode === "amrap"
     return [
       {
         kind: "circuit",
         circuit: {
           ...(item.label ? { label: item.label } : {}),
-          rounds: item.rounds ?? 3,
-          restSeconds: item.rest_seconds ?? 90,
-          transitionSeconds: item.transition_seconds ?? 0,
+          ...(isAmrap
+            ? {
+                mode: "amrap" as const,
+                capMinutes: item.cap_minutes ?? 20,
+                rounds: 1,
+                restSeconds: 0,
+                transitionSeconds: 0,
+              }
+            : {
+                rounds: item.rounds ?? 3,
+                restSeconds: item.rest_seconds ?? 90,
+                transitionSeconds: item.transition_seconds ?? 0,
+              }),
           exercises: nested,
         },
       },

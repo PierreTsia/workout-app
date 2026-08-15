@@ -59,6 +59,47 @@ Deno.test("callGroqWorkout: requests strict json_schema with the workout shape",
   assertEquals(typeof schema.properties?.exerciseIds, "object")
 })
 
+Deno.test("T189: Groq QW schema exposes optional mode and cap_minutes (1–60)", async () => {
+  let body:
+    | {
+        response_format?: {
+          json_schema?: {
+            schema?: {
+              properties?: {
+                exercises?: {
+                  items?: {
+                    anyOf?: Array<{
+                      properties?: {
+                        mode?: { type?: string; enum?: string[] }
+                        cap_minutes?: { type?: string; minimum?: number; maximum?: number }
+                      }
+                      required?: string[]
+                    }>
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    | undefined
+  const fetchImpl = ((_url: string, init: RequestInit) => {
+    body = JSON.parse(init.body as string)
+    return Promise.resolve(groqJsonResponse({ rationale: "r", exerciseIds: ["ex-1"] }))
+  }) as unknown as typeof fetch
+
+  await callGroqWorkout("prompt", { apiKey: "k", fetchImpl })
+
+  const circuit = body!.response_format!.json_schema!.schema!.properties!.exercises!.items!.anyOf![1]
+  assertEquals(circuit.required, ["type", "exercises"])
+  assertEquals(circuit.properties?.mode, { type: "string", enum: ["rounds", "amrap"] })
+  assertEquals(circuit.properties?.cap_minutes, {
+    type: "integer",
+    minimum: 1,
+    maximum: 60,
+  })
+})
+
 Deno.test("callGroqWorkout: unparseable content throws ProviderError(empty_response)", async () => {
   const fetchImpl = (() =>
     Promise.resolve(

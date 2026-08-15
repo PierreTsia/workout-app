@@ -37,6 +37,8 @@ const RESPONSE_SCHEMA = {
             properties: {
               type: { type: "STRING" },
               label: { type: "STRING" },
+              mode: { type: "STRING" },
+              cap_minutes: { type: "INTEGER" },
               rounds: { type: "INTEGER" },
               rest_seconds: { type: "INTEGER" },
               transition_seconds: { type: "INTEGER" },

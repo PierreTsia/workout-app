@@ -27,4 +27,32 @@ describe("program draft schema parity (T168)", () => {
     expect(geminiCircuit.required).toEqual(["type", "exercises"])
     expect(groqCircuit.properties.type.const).toBe("circuit")
   })
+
+  it("T189: Gemini and Groq both expose optional mode and cap_minutes (MCP bounds 1–60)", () => {
+    const groqCircuit =
+      PROGRAM_JSON_SCHEMA_GROQ.properties.days.items.properties.exercises.items.anyOf[1]
+    const geminiCircuit =
+      PROGRAM_RESPONSE_SCHEMA_GEMINI.properties.days.items.properties.exercises.items.anyOf[1]
+
+    expect(Object.keys(groqCircuit.properties)).toEqual(
+      expect.arrayContaining(["mode", "cap_minutes"]),
+    )
+    expect(Object.keys(geminiCircuit.properties)).toEqual(
+      expect.arrayContaining(["mode", "cap_minutes"]),
+    )
+    expect(groqCircuit.required).toEqual(["type", "exercises"])
+    expect(geminiCircuit.required).toEqual(["type", "exercises"])
+
+    expect(groqCircuit.properties.mode).toEqual({
+      type: "string",
+      enum: ["rounds", "amrap"],
+    })
+    expect(groqCircuit.properties.cap_minutes).toEqual({
+      type: "integer",
+      minimum: 1,
+      maximum: 60,
+    })
+    expect(geminiCircuit.properties.mode.type).toBe("STRING")
+    expect(geminiCircuit.properties.cap_minutes.type).toBe("INTEGER")
+  })
 })

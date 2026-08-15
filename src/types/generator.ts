@@ -58,6 +58,8 @@ export interface GeneratedCircuitExercise {
 
 export interface GeneratedCircuit {
   label?: string
+  mode?: "rounds" | "amrap"
+  capMinutes?: number
   rounds: number
   restSeconds: number
   transitionSeconds: number
