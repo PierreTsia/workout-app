@@ -39,7 +39,7 @@ Weight conventions: per_hand for dumbbells/kettlebells, total for barbells/machi
 
 Bounds: sets [1,10], reps [1,50] for reps exercises (use "0" ONLY for duration exercises, paired with target_duration_seconds), weight_kg [0,500], rest_seconds [0,600], target_duration_seconds [5,600].
 
-Always call with dry_run: true first; review the \`preview.days[].rendered\` lines (e.g. "Bench Press — 4 × 8 × 80 kg total — 120s rest"), then re-call with dry_run: false to persist.
+Always call with dry_run: true first; review the \`days[].rendered\` lines (e.g. "Bench Press — 4 × 8 × 80 kg total — 120s rest"), then re-call with dry_run: false to persist.
 
 Activates the new program and deactivates any other active program. Breaking change in v0.3.0: the \`exercise_ids\` field has been removed (use \`exercises\` instead).`
 
