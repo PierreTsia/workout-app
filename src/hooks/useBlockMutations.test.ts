@@ -67,5 +67,14 @@ describe("useUpdateBlockMeta", () => {
       [{ amount: 10, weight: 0 }],
       [{ amount: 15, weight: 0 }],
     ])
+
+    const blockUpdate = updates.find((u) => u.table === "exercise_blocks")
+    expect(blockUpdate?.payload).toEqual({
+      mode: "amrap",
+      rounds: 1,
+      rest_seconds: 0,
+      transition_seconds: 0,
+      cap_seconds: 1200,
+    })
   })
 })

@@ -93,14 +93,24 @@ export function useUpdateBlockMeta() {
       cap_seconds,
       exercises,
     }: UpdateBlockMetaInput) => {
-      const blockPatch = {
-        ...(label !== undefined && { label }),
-        ...(rounds !== undefined && { rounds }),
-        ...(rest_seconds !== undefined && { rest_seconds }),
-        ...(transition_seconds !== undefined && { transition_seconds }),
-        ...(mode !== undefined && { mode }),
-        ...(cap_seconds !== undefined && { cap_seconds }),
-      }
+      const isAmrap = mode === "amrap"
+      const blockPatch = isAmrap
+        ? {
+            ...(label !== undefined && { label }),
+            mode: "amrap" as const,
+            rounds: 1,
+            rest_seconds: 0,
+            transition_seconds: 0,
+            ...(cap_seconds !== undefined && { cap_seconds }),
+          }
+        : {
+            ...(label !== undefined && { label }),
+            ...(rounds !== undefined && { rounds }),
+            ...(rest_seconds !== undefined && { rest_seconds }),
+            ...(transition_seconds !== undefined && { transition_seconds }),
+            ...(mode !== undefined && { mode }),
+            ...(cap_seconds !== undefined && { cap_seconds }),
+          }
       if (Object.keys(blockPatch).length > 0) {
         const { error } = await supabase
           .from("exercise_blocks")
@@ -113,7 +123,7 @@ export function useUpdateBlockMeta() {
 
       const nextPerRound =
         mode === "amrap"
-          ? (cells: PerRoundCell[]) => cells
+          ? (cells: PerRoundCell[]) => cells.slice(0, 1)
           : rounds !== undefined
             ? (cells: PerRoundCell[]) => resizePerRound(cells, rounds)
             : null
