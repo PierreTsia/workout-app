@@ -136,6 +136,7 @@ function makeBlockRunPayload(
     mode: "amrap",
     capSeconds: 1200,
     templateFingerprint: "amrap|1200|ex-1:5:0",
+    benchmarkCircuitId: null,
     ...overrides,
   }
 }
@@ -1113,6 +1114,33 @@ describe("SyncService", () => {
         }),
       )
       expect(readQueue()).toHaveLength(0)
+    })
+
+    it("carries the catalog id offline and upserts it as benchmark_circuit_id", async () => {
+      const cindyId = "11111111-1111-4111-8111-111111111111"
+      enqueueBlockRun(makeBlockRunPayload({ benchmarkCircuitId: cindyId }))
+
+      expect(queuedBlockRunFor("local-session-1", "blk-1")?.benchmarkCircuitId).toBe(
+        cindyId,
+      )
+
+      await drainQueue(USER_ID)
+
+      const [row] = blockRunsChain.upsert.mock.calls[0]
+      expect(row).toEqual(
+        expect.objectContaining({ benchmark_circuit_id: cindyId }),
+      )
+    })
+
+    it("upserts null benchmark_circuit_id for a jetable queued run", async () => {
+      enqueueBlockRun(makeBlockRunPayload({ benchmarkCircuitId: null }))
+
+      await drainQueue(USER_ID)
+
+      const [row] = blockRunsChain.upsert.mock.calls[0]
+      expect(row).toEqual(
+        expect.objectContaining({ benchmark_circuit_id: null }),
+      )
     })
 
     it("mints session meta and queues a block_run before any set_log", () => {

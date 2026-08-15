@@ -11,8 +11,37 @@ import {
   peekSessionRealId,
   queuedBlockRunFor,
   scheduleImmediateDrain,
+  type BlockRunPayload,
 } from "@/lib/syncService"
 import type { ExerciseBlockWithExercises } from "@/types/database"
+
+/** Identity at first GO. A later Circuit Fork on the day slot must not rewrite it. */
+function catalogSnapshot(
+  block: ExerciseBlockWithExercises,
+  queued: BlockRunPayload | null,
+): string | null {
+  if (queued != null) return queued.benchmarkCircuitId
+  return block.benchmark_circuit_id ?? null
+}
+
+function amrapRunPayload(
+  block: ExerciseBlockWithExercises,
+  localSessionId: string,
+  queued: BlockRunPayload | null,
+  times: { startedAt: number; finishedAt: number | null },
+): BlockRunPayload | null {
+  if (block.mode !== "amrap" || block.cap_seconds == null) return null
+  return {
+    sessionId: localSessionId,
+    blockId: block.id,
+    startedAt: times.startedAt,
+    finishedAt: times.finishedAt,
+    mode: "amrap",
+    capSeconds: block.cap_seconds,
+    templateFingerprint: templateFingerprint(block),
+    benchmarkCircuitId: catalogSnapshot(block, queued),
+  }
+}
 
 export interface UseBlockRun {
   startedAt: number | null
@@ -104,38 +133,30 @@ export function useBlockRun(
 
   const stampGo = useCallback(
     (at: number) => {
-      if (!isAmrap || block.cap_seconds == null) return
-      setLocalStart(at)
-      enqueueBlockRun({
-        sessionId: localSessionId,
-        blockId: block.id,
+      const payload = amrapRunPayload(block, localSessionId, queued, {
         startedAt: at,
         finishedAt: null,
-        mode: "amrap",
-        capSeconds: block.cap_seconds,
-        templateFingerprint: templateFingerprint(block),
       })
+      if (!payload) return
+      setLocalStart(at)
+      enqueueBlockRun(payload)
       scheduleImmediateDrain()
     },
-    [isAmrap, block, localSessionId],
+    [block, localSessionId, queued],
   )
 
   const stampFinish = useCallback(
     (at: number) => {
-      if (!isAmrap || block.cap_seconds == null) return
-      setLocalFinish(at)
-      enqueueBlockRun({
-        sessionId: localSessionId,
-        blockId: block.id,
+      const payload = amrapRunPayload(block, localSessionId, queued, {
         startedAt: startedAt ?? at,
         finishedAt: at,
-        mode: "amrap",
-        capSeconds: block.cap_seconds,
-        templateFingerprint: templateFingerprint(block),
       })
+      if (!payload) return
+      setLocalFinish(at)
+      enqueueBlockRun(payload)
       scheduleImmediateDrain()
     },
-    [isAmrap, block, localSessionId, startedAt],
+    [block, localSessionId, startedAt, queued],
   )
 
   const discardRun = useCallback(async () => {

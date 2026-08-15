@@ -207,6 +207,8 @@ export interface BlockRun {
   mode: ExerciseBlockMode
   cap_seconds: number
   template_fingerprint: string
+  /** Catalog identity snapped at GO. Null = jetable. Independent of the day's live block FK. */
+  benchmark_circuit_id: string | null
 }
 
 export interface BlockExercise {

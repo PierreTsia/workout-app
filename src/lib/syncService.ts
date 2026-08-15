@@ -88,6 +88,8 @@ export interface BlockRunPayload {
   mode: "amrap"
   capSeconds: number
   templateFingerprint: string
+  /** Catalog identity at GO. Null = jetable. Snapshot — later block retargets must not rewrite it. */
+  benchmarkCircuitId: string | null
 }
 
 export interface SessionFinishPayload {
@@ -800,6 +802,7 @@ async function processBlockRun(item: QueueItem): Promise<boolean> {
         mode: p.mode,
         cap_seconds: p.capSeconds,
         template_fingerprint: p.templateFingerprint,
+        benchmark_circuit_id: p.benchmarkCircuitId ?? null,
       },
       { onConflict: "session_id,block_id" },
     )
