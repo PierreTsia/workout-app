@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Timer } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -18,16 +18,20 @@ export function BlockClockChrome({
 }: BlockClockChromeProps) {
   const { t } = useTranslation("workout")
   const [now, setNow] = useState(() => Date.now())
+  const expiredRef = useRef(false)
 
   useEffect(() => {
+    expiredRef.current = false
     const id = window.setInterval(() => {
       const tNow = Date.now()
       setNow(tNow)
       if (
         capSeconds != null &&
         onExpire &&
+        !expiredRef.current &&
         tNow - startedAt >= capSeconds * 1000
       ) {
+        expiredRef.current = true
         onExpire()
       }
     }, 250)

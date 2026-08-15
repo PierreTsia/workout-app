@@ -111,4 +111,23 @@ describe("BlockClockChrome", () => {
       screen.queryByRole("button", { name: /elapsed/i }),
     ).not.toBeInTheDocument()
   })
+
+  it("fires onExpire once when the cap elapses, not on every tick after", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(T0)
+    const onExpire = vi.fn()
+    renderWithProviders(
+      <BlockClockChrome startedAt={T0} capSeconds={10} onExpire={onExpire} />,
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(onExpire).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      vi.advanceTimersByTime(2_000)
+    })
+    expect(onExpire).toHaveBeenCalledTimes(1)
+  })
 })
