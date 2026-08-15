@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
+  attachAmrapScores,
   buildBlockMetaMap,
   groupSessionHistory,
   type BlockExerciseMetaRow,
+  type BlockHistoryGroup,
   type BlockMeta,
   type HistorySetLog,
   type SoloHistoryGroup,
@@ -31,6 +33,7 @@ const meta = (over: Partial<BlockMeta> = {}): BlockMeta => ({
   position: 0,
   emoji: "💪",
   blockSortOrder: 0,
+  mode: "rounds",
   ...over,
 })
 
@@ -60,6 +63,7 @@ describe("buildBlockMetaMap (T166)", () => {
       position: 1,
       emoji: "💪",
       blockSortOrder: 2,
+      mode: "rounds",
     })
   })
 })
@@ -173,5 +177,84 @@ describe("groupSessionHistory (T166)", () => {
     )
     expect(solosOnly.every((i) => i.kind === "solo")).toBe(true)
     expect((solosOnly[0] as SoloHistoryGroup).sets.length).toBeGreaterThan(0)
+  })
+})
+
+function cindyGroup(): BlockHistoryGroup {
+  return {
+    kind: "block",
+    key: "cindy",
+    label: "Cindy",
+    sortOrder: 0,
+    exerciseCount: 3,
+    rounds: [
+      {
+        round: 28,
+        cells: [
+          {
+            blockExerciseId: "be1",
+            exercise_name_snapshot: "pompes",
+            emoji: null,
+            log: log({
+              block_exercise_id: "be1",
+              exercise_name_snapshot: "pompes",
+              set_number: 28,
+              reps_logged: "3",
+              logged_at: "2026-08-15T10:19:00Z",
+            }),
+          },
+        ],
+      },
+    ],
+  }
+}
+
+describe("attachAmrapScores (T188)", () => {
+  it("scores a finished AMRAP Block Run as 27+3 from the leftover cell", () => {
+    const items = attachAmrapScores(
+      [cindyGroup()],
+      [
+        {
+          session_id: "s1",
+          block_id: "cindy",
+          finished_at: "2026-08-15T10:20:00.000Z",
+          mode: "amrap",
+        },
+      ],
+      "s1",
+    )
+    const block = items[0]
+    expect(block.kind).toBe("block")
+    if (block.kind !== "block") throw new Error("expected block")
+    expect(block.amrapScore).toEqual({
+      fullRounds: 27,
+      leftover: 3,
+      leftoverName: "pompes",
+    })
+  })
+
+  it("does not attach a score when finished_at is null", () => {
+    const items = attachAmrapScores(
+      [cindyGroup()],
+      [
+        {
+          session_id: "s1",
+          block_id: "cindy",
+          finished_at: null,
+          mode: "amrap",
+        },
+      ],
+      "s1",
+    )
+    const block = items[0]
+    expect(block.kind).toBe("block")
+    if (block.kind !== "block") throw new Error("expected block")
+    expect(block.amrapScore).toBeNull()
+  })
+
+  it("leaves a Tours Circuit untouched when no AMRAP block_run exists", () => {
+    const tours = cindyGroup()
+    const items = attachAmrapScores([tours], [], "s1")
+    expect(items).toEqual([tours])
   })
 })

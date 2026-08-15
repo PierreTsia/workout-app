@@ -7,7 +7,15 @@ import {
   type EchoDayExercise,
 } from "./daySequenceRead.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
-import type { SessionHistoryItem } from "./sessionHistoryGrouping.ts"
+import type { AmrapScoreValue } from "./amrapScore.ts"
+import {
+  attachAmrapScores,
+  groupSessionHistory,
+  type BlockMeta,
+  type HistoryBlockRun,
+  type HistorySetLog,
+  type SessionHistoryItem,
+} from "./sessionHistoryGrouping.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -184,6 +192,14 @@ function formatSetMeasure(s: {
   return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
 }
 
+/** Hero `27+3` plus FR/EN leftover gloss — never the numeral alone. */
+export function formatAmrapScoreLines(score: AmrapScoreValue): string[] {
+  const hero = `${score.fullRounds}+${score.leftover}`
+  const glossFr = `${score.fullRounds} tours · ${score.leftover} ${score.leftoverName}`
+  const glossEn = `${score.fullRounds} rounds · ${score.leftover} ${score.leftoverName}`
+  return [hero, `${glossFr} / ${glossEn}`]
+}
+
 function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
   return items.flatMap((item) => {
     if (item.kind === "solo") {
@@ -194,14 +210,33 @@ function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
     }
     const labelPart = item.label?.trim() ? ` "${item.label.trim()}"` : ""
     const header = `  - Circuit${labelPart} (${item.exerciseCount} exercises):`
+    const scoreLines =
+      item.amrapScore != null
+        ? formatAmrapScoreLines(item.amrapScore).map((line) => `    ${line}`)
+        : []
     const roundLines = item.rounds.map((r) => {
       const cells = r.cells
         .map((c) => `${c.exercise_name_snapshot} ${formatSetMeasure(c.log)}`)
         .join(" · ")
       return `    Round ${r.round}: ${cells}`
     })
-    return [header, ...roundLines]
+    return [header, ...scoreLines, ...roundLines]
   })
+}
+
+export function formatSessionHistory(
+  session: SessionForFormat & { id: string },
+  logs: HistorySetLog[],
+  metaById: Map<string, BlockMeta>,
+  runs: HistoryBlockRun[],
+  programInfo?: ProgramInfoForSession,
+): string {
+  const historyItems = attachAmrapScores(
+    groupSessionHistory(logs, metaById),
+    runs,
+    session.id,
+  )
+  return formatSessionSummary(session, logs, programInfo, historyItems)
 }
 
 export function formatSessionSummary(

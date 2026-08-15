@@ -5,6 +5,7 @@ import {
   formatProgramAfterUpdate,
   formatProgramDetails,
   formatProgramListEntry,
+  formatSessionHistory,
   formatSessionSummary,
   formatWeightConvention,
   type WeightConvention,
@@ -512,6 +513,289 @@ describe("formatSessionSummary — T166 Circuit history", () => {
     expect(md).toContain('Circuit "Finisher" (2 exercises):')
     expect(md).toContain("Round 1: Push-up 10 reps × 0 kg · Bench Press 8 reps × 60 kg")
     expect(md).not.toMatch(/^- \*\*Push-up\*\*:/m)
+  })
+
+  it("T188: Tours Circuit markdown stays byte-identical (no CCT, no 27+3)", () => {
+    const session = {
+      workout_label_snapshot: "Push",
+      started_at: "2026-06-13T10:00:00.000Z",
+      finished_at: "2026-06-13T11:00:00.000Z",
+      active_duration_ms: 3_600_000,
+      total_sets_done: 4,
+    }
+    const historyItems = [
+      {
+        kind: "block" as const,
+        key: "blk1",
+        label: "Finisher",
+        sortOrder: 0,
+        exerciseCount: 2,
+        rounds: [
+          {
+            round: 1,
+            cells: [
+              {
+                blockExerciseId: "beA",
+                exercise_name_snapshot: "Push-up",
+                emoji: null,
+                log: {
+                  id: "1",
+                  exercise_id: "a",
+                  block_exercise_id: "beA",
+                  exercise_name_snapshot: "Push-up",
+                  set_number: 1,
+                  reps_logged: "10",
+                  duration_seconds: null,
+                  weight_logged: 0,
+                  was_pr: false,
+                  logged_at: "2026-06-13T10:00:00Z",
+                },
+              },
+              {
+                blockExerciseId: "beB",
+                exercise_name_snapshot: "Bench Press",
+                emoji: null,
+                log: {
+                  id: "2",
+                  exercise_id: "b",
+                  block_exercise_id: "beB",
+                  exercise_name_snapshot: "Bench Press",
+                  set_number: 1,
+                  reps_logged: "8",
+                  duration_seconds: null,
+                  weight_logged: 60,
+                  was_pr: false,
+                  logged_at: "2026-06-13T10:01:00Z",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const md = formatSessionSummary(session, [], undefined, historyItems)
+    const circuitBlock = md.split("\n").slice(2).join("\n")
+
+    expect(circuitBlock).toBe(
+      '  - Circuit "Finisher" (2 exercises):\n' +
+        "    Round 1: Push-up 10 reps × 0 kg · Bench Press 8 reps × 60 kg",
+    )
+    expect(md).toMatch(/^Duration: 1h \| 4 sets$/m)
+    expect(md).not.toContain("27+3")
+    expect(md).not.toContain("completion")
+    expect(md).not.toContain("CCT")
+  })
+})
+
+describe("formatSessionSummary — T188 AMRAP score line", () => {
+  it("renders hero 27+3 and the named leftover gloss on a finished Cindy Circuit", () => {
+    const session = {
+      workout_label_snapshot: "Cindy",
+      started_at: "2026-08-15T10:00:00.000Z",
+      finished_at: "2026-08-15T10:20:00.000Z",
+      active_duration_ms: 1_200_000,
+      total_sets_done: 82,
+    }
+    const historyItems = [
+      {
+        kind: "block" as const,
+        key: "cindy",
+        label: "Cindy",
+        sortOrder: 0,
+        exerciseCount: 3,
+        amrapScore: {
+          fullRounds: 27,
+          leftover: 3,
+          leftoverName: "pompes",
+        },
+        rounds: [
+          {
+            round: 1,
+            cells: [
+              {
+                blockExerciseId: "be1",
+                exercise_name_snapshot: "pompes",
+                emoji: null,
+                log: {
+                  id: "1",
+                  exercise_id: "a",
+                  block_exercise_id: "be1",
+                  exercise_name_snapshot: "pompes",
+                  set_number: 1,
+                  reps_logged: "5",
+                  duration_seconds: null,
+                  weight_logged: 0,
+                  was_pr: false,
+                  logged_at: "2026-08-15T10:00:00Z",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const md = formatSessionSummary(session, [], undefined, historyItems)
+
+    expect(md).toContain("27+3")
+    expect(md).toContain("27 tours · 3 pompes")
+    expect(md).toContain("27 rounds · 3 pompes")
+    expect(md).toMatch(/Duration: 20 min \| 82 sets/)
+  })
+
+  it("omits the 27+3 line when the Block Run has no finished_at", () => {
+    const session = {
+      workout_label_snapshot: "Cindy",
+      started_at: "2026-08-15T10:00:00.000Z",
+      finished_at: "2026-08-15T10:20:00.000Z",
+      active_duration_ms: 1_200_000,
+      total_sets_done: 42,
+    }
+    const historyItems = [
+      {
+        kind: "block" as const,
+        key: "cindy",
+        label: "Cindy",
+        sortOrder: 0,
+        exerciseCount: 3,
+        amrapScore: null,
+        rounds: [
+          {
+            round: 1,
+            cells: [
+              {
+                blockExerciseId: "be1",
+                exercise_name_snapshot: "pompes",
+                emoji: null,
+                log: {
+                  id: "1",
+                  exercise_id: "a",
+                  block_exercise_id: "be1",
+                  exercise_name_snapshot: "pompes",
+                  set_number: 1,
+                  reps_logged: "5",
+                  duration_seconds: null,
+                  weight_logged: 0,
+                  was_pr: false,
+                  logged_at: "2026-08-15T10:00:00Z",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const md = formatSessionSummary(session, [], undefined, historyItems)
+
+    expect(md).not.toContain("27+3")
+    expect(md).not.toContain("tours ·")
+    expect(md).not.toContain("rounds ·")
+    expect(md).toMatch(/Duration: 20 min \| 42 sets/)
+  })
+
+  it("joins a finished block_run onto the Circuit via session_id + block_id", () => {
+    const session = {
+      id: "s1",
+      workout_label_snapshot: "Cindy",
+      started_at: "2026-08-15T10:00:00.000Z",
+      finished_at: "2026-08-15T10:20:00.000Z",
+      active_duration_ms: 1_200_000,
+      total_sets_done: 82,
+    }
+    const logs = [
+      {
+        id: "1",
+        exercise_id: "a",
+        block_exercise_id: "be1",
+        exercise_name_snapshot: "pompes",
+        set_number: 28,
+        reps_logged: "3",
+        duration_seconds: null,
+        weight_logged: 0,
+        was_pr: false,
+        logged_at: "2026-08-15T10:19:00Z",
+      },
+    ]
+    const metaById = new Map([
+      [
+        "be1",
+        {
+          blockId: "cindy",
+          label: "Cindy",
+          position: 0,
+          emoji: null,
+          blockSortOrder: 0,
+          mode: "amrap",
+        },
+      ],
+    ])
+    const runs = [
+      {
+        session_id: "s1",
+        block_id: "cindy",
+        finished_at: "2026-08-15T10:20:00.000Z",
+        mode: "amrap" as const,
+      },
+    ]
+
+    const md = formatSessionHistory(session, logs, metaById, runs)
+
+    expect(md).toContain("27+3")
+    expect(md).toContain("27 tours · 3 pompes")
+    expect(md).toContain("27 rounds · 3 pompes")
+    expect(md).toMatch(/Duration: 20 min \| 82 sets/)
+  })
+
+  it("does not emit 27+3 when the joined block_run is unfinished", () => {
+    const session = {
+      id: "s1",
+      workout_label_snapshot: "Cindy",
+      started_at: "2026-08-15T10:00:00.000Z",
+      finished_at: "2026-08-15T10:20:00.000Z",
+      active_duration_ms: 1_200_000,
+      total_sets_done: 42,
+    }
+    const logs = [
+      {
+        id: "1",
+        exercise_id: "a",
+        block_exercise_id: "be1",
+        exercise_name_snapshot: "pompes",
+        set_number: 28,
+        reps_logged: "3",
+        duration_seconds: null,
+        weight_logged: 0,
+        was_pr: false,
+        logged_at: "2026-08-15T10:19:00Z",
+      },
+    ]
+    const metaById = new Map([
+      [
+        "be1",
+        {
+          blockId: "cindy",
+          label: "Cindy",
+          position: 0,
+          emoji: null,
+          blockSortOrder: 0,
+          mode: "amrap" as const,
+        },
+      ],
+    ])
+
+    const md = formatSessionHistory(session, logs, metaById, [
+      {
+        session_id: "s1",
+        block_id: "cindy",
+        finished_at: null,
+        mode: "amrap",
+      },
+    ])
+
+    expect(md).not.toContain("27+3")
+    expect(md).toMatch(/Duration: 20 min \| 42 sets/)
   })
 })
 

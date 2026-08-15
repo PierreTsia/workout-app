@@ -1,9 +1,8 @@
-import { formatSessionSummary } from "../lib/format.ts"
+import { formatSessionHistory } from "../lib/format.ts"
 import {
   buildBlockMetaMap,
-  groupSessionHistory,
   type BlockExerciseMetaRow,
-  type HistorySetLog,
+  type HistoryBlockRun,
 } from "../lib/sessionHistoryGrouping.ts"
 import type { ToolDefinition } from "./registry.ts"
 
@@ -132,7 +131,7 @@ export const getWorkoutHistory: ToolDefinition = {
       const { data: metaData, error: metaErr } = await supabase
         .from("block_exercises")
         .select(
-          "id, block_id, emoji_snapshot, position, block:exercise_blocks(id, label, rounds, sort_order)",
+          "id, block_id, emoji_snapshot, position, block:exercise_blocks(id, label, rounds, sort_order, mode)",
         )
         .in("id", blockExerciseIds)
 
@@ -158,6 +157,21 @@ export const getWorkoutHistory: ToolDefinition = {
 
     const metaById = buildBlockMetaMap(metaRows)
 
+    const { data: runRows, error: runErr } = await supabase
+      .from("block_runs")
+      .select("session_id, block_id, finished_at, mode")
+      .in("session_id", sessionIds)
+      .returns<HistoryBlockRun[]>()
+
+    if (runErr) {
+      return {
+        content: [{ type: "text", text: `Error fetching Block Runs: ${runErr.message}` }],
+        isError: true,
+      }
+    }
+
+    const blockRuns = runRows ?? []
+
     const setsBySession = logs.reduce((acc, s) => {
       const existing = acc.get(s.session_id) ?? []
       return acc.set(s.session_id, [...existing, s])
@@ -177,24 +191,12 @@ export const getWorkoutHistory: ToolDefinition = {
     const blocks = relevantSessions.map((s: Record<string, unknown>) => {
       const sessionId = String(s.id)
       const sessionLogs = setsBySession.get(sessionId) ?? []
-      const historyLogs: HistorySetLog[] = sessionLogs.map((row) => ({
-        id: row.id,
-        exercise_id: row.exercise_id,
-        block_exercise_id: row.block_exercise_id,
-        exercise_name_snapshot: row.exercise_name_snapshot,
-        set_number: row.set_number,
-        reps_logged: row.reps_logged,
-        duration_seconds: row.duration_seconds,
-        weight_logged: row.weight_logged,
-        was_pr: row.was_pr,
-        logged_at: row.logged_at,
-      }))
-      const historyItems = groupSessionHistory(historyLogs, metaById)
       const cycle = s.cycle as { program?: { id: string; name: string } | null } | null
       const program = cycle?.program ?? null
       const programInfo = program ? { id: program.id, name: program.name } : undefined
-      return formatSessionSummary(
+      return formatSessionHistory(
         {
+          id: sessionId,
           workout_label_snapshot: String(s.workout_label_snapshot),
           started_at: String(s.started_at),
           finished_at: (s.finished_at as string | null) ?? null,
@@ -202,8 +204,9 @@ export const getWorkoutHistory: ToolDefinition = {
           total_sets_done: Number(s.total_sets_done),
         },
         sessionLogs,
+        metaById,
+        blockRuns,
         programInfo,
-        historyItems,
       )
     })
 
