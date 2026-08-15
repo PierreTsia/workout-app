@@ -87,6 +87,7 @@ function AmrapRunRow({ view }: { view: AmrapRunView }) {
               </span>
             )}
             <AmrapScore
+              size="compact"
               fullRounds={view.score.fullRounds}
               leftover={view.score.leftover}
               leftoverName={view.score.leftoverName}

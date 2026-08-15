@@ -95,6 +95,11 @@ describe("BlockEditor", () => {
 
     const amrap = screen.getByRole("radio", { name: /AMRAP 20 min/i })
     expect(amrap).toHaveAttribute("data-state", "on")
+    expect(
+      screen.getByRole("radio", { name: /time is the score/i }),
+    ).toHaveAttribute("data-state", "off")
+    expect(screen.getByText("As many rounds as possible.")).toBeInTheDocument()
+    expect(screen.getByText("Time is the score.")).toBeInTheDocument()
     expect(screen.getByLabelText(/minutes/i)).toHaveValue(20)
     expect(screen.queryByLabelText(/rest \(sec\)/i)).not.toBeInTheDocument()
     expect(

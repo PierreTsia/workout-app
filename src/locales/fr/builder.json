@@ -76,7 +76,9 @@
   "perRoundDuration": "Durée (s)",
   "removeBlockTitle": "Supprimer le circuit ?",
   "removeBlockDescription": "« {{name}} » et ses prescriptions par tour seront retirés de ce jour.",
+  "amrap": "AMRAP",
   "amrapGloss": "Autant de tours que possible.",
+  "toursModeHint": "Le score, c’est le temps.",
   "amrapCapMinutes": "Minutes",
   "customizePerRound": "Personnaliser par tour"
 }

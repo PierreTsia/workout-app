@@ -54,7 +54,9 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
             <span className="truncate">
               {block.label ?? t("blockDefaultLabel")}
             </span>
-            {amrapMinutes === null && (
+            {amrapMinutes !== null ? (
+              <AmrapLabel minutes={amrapMinutes} variant="inline" />
+            ) : (
               <span className="shrink-0 text-xs text-muted-foreground">
                 {t("blockRounds", { count: block.rounds })}
               </span>
@@ -84,8 +86,6 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
               )}
             </span>
           </div>
-
-          {amrapMinutes !== null && <AmrapLabel minutes={amrapMinutes} />}
 
           <ul className="flex flex-col gap-1">
             {block.exercises.map((be) => (

@@ -1,17 +1,39 @@
 import { useTranslation } from "react-i18next"
-import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface AmrapLabelProps {
   minutes: number
+  className?: string
+  /** `full` = cap + gloss. `inline` = cap only, same slot as "2 tours" on BlockCard. */
+  variant?: "full" | "inline"
 }
 
-/** Sole renderer of the word AMRAP — always badge + gloss, never naked. */
-export function AmrapLabel({ minutes }: AmrapLabelProps) {
+/** Sole renderer of the word AMRAP — never naked. Gloss is visual on `full`, a11y on `inline`. */
+export function AmrapLabel({
+  minutes,
+  className,
+  variant = "full",
+}: AmrapLabelProps) {
   const { t } = useTranslation("builder")
+  const cap = `AMRAP ${minutes} min`
+  const gloss = t("amrapGloss")
+
+  if (variant === "inline") {
+    return (
+      <span
+        className={cn("shrink-0 text-xs text-muted-foreground", className)}
+        aria-label={`${cap}. ${gloss}`}
+      >
+        {cap}
+      </span>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-1">
-      <Badge variant="outline">{`AMRAP ${minutes} min`}</Badge>
-      <p className="text-xs text-muted-foreground">{t("amrapGloss")}</p>
-    </div>
+    <p className={cn("truncate text-xs text-muted-foreground", className)}>
+      <span className="font-medium text-secondary-foreground">{cap}</span>
+      {" · "}
+      <span>{gloss}</span>
+    </p>
   )
 }

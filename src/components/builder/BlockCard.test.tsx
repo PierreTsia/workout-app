@@ -64,7 +64,7 @@ describe("BlockCard", () => {
     expect(screen.getByText("Lunge")).toBeInTheDocument()
   })
 
-  it("shows AmrapLabel with minutes and gloss when the block is AMRAP", () => {
+  it("shows inline AmrapLabel next to the title, not a gloss row", () => {
     const block = makeBlock({
       mode: "amrap",
       cap_seconds: 1200,
@@ -80,8 +80,8 @@ describe("BlockCard", () => {
 
     expect(screen.getByText("AMRAP 20 min")).toBeInTheDocument()
     expect(
-      screen.getByText("As many rounds as possible."),
-    ).toBeInTheDocument()
+      screen.queryByText("As many rounds as possible."),
+    ).not.toBeInTheDocument()
     expect(screen.queryByText(/1 round/i)).not.toBeInTheDocument()
   })
 })

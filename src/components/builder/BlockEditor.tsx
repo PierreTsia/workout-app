@@ -12,13 +12,13 @@ import {
 } from "@/lib/blockTemplate"
 import { useUpdateBlockMeta } from "@/hooks/useBlockMutations"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
-import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { PerRoundGrid } from "@/components/builder/PerRoundGrid"
 import { UniformExerciseList } from "@/components/builder/UniformExerciseList"
 import { SaveIndicator } from "@/components/builder/SaveIndicator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -218,6 +218,8 @@ export function BlockEditor({
 
   const capMinutes = clampCapMinutes(form.cap_minutes)
   const isAmrap = form.mode === "amrap"
+  const modeItemClass =
+    "h-auto min-h-11 flex-1 flex-col gap-0.5 py-2.5 data-[state=on]:bg-secondary data-[state=on]:text-secondary-foreground"
 
   const body = (
     <div className="flex flex-col gap-5 overflow-y-auto p-4">
@@ -230,11 +232,27 @@ export function BlockEditor({
           }
         }}
         variant="outline"
-        className="justify-start"
+        className="grid w-full grid-cols-2 gap-0"
       >
-        <ToggleGroupItem value="rounds">{t("rounds")}</ToggleGroupItem>
-        <ToggleGroupItem value="amrap">
-          <AmrapLabel minutes={capMinutes} />
+        <ToggleGroupItem
+          value="rounds"
+          aria-label={`${t("rounds")}. ${t("toursModeHint")}`}
+          className={cn(modeItemClass, "rounded-r-none")}
+        >
+          <span>{t("rounds")}</span>
+          <span className="text-[10px] font-normal opacity-70">
+            {t("toursModeHint")}
+          </span>
+        </ToggleGroupItem>
+        <ToggleGroupItem
+          value="amrap"
+          aria-label={`AMRAP ${capMinutes} min. ${t("amrapGloss")}`}
+          className={cn(modeItemClass, "-ml-px rounded-l-none")}
+        >
+          <span>{t("amrap")}</span>
+          <span className="text-[10px] font-normal opacity-70">
+            {t("amrapGloss")}
+          </span>
         </ToggleGroupItem>
       </ToggleGroup>
 

@@ -92,6 +92,7 @@ export function BlockHistoryCard({
         {score != null ? (
           <div className="ml-auto">
             <AmrapScore
+              size="compact"
               fullRounds={score.fullRounds}
               leftover={score.leftover}
               leftoverName={score.leftoverName}
