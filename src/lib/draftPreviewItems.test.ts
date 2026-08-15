@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { summarizeDraftExercises } from "./draftPreviewItems"
+import { formatDraftExerciseFallback, summarizeDraftExercises } from "./draftPreviewItems"
 
 describe("summarizeDraftExercises (T169)", () => {
   it("counts bare UUIDs as solos only", () => {
@@ -25,5 +25,24 @@ describe("summarizeDraftExercises (T169)", () => {
         "solo-2",
       ]),
     ).toEqual({ items: 3, solos: 2, circuits: 1 })
+  })
+})
+
+describe("formatDraftExerciseFallback (T189)", () => {
+  it("renders AMRAP as AMRAP 20 min plus gloss, never naked AMRAP or rounds ?? 3", () => {
+    const line = formatDraftExerciseFallback({
+      type: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      cap_minutes: 20,
+      exercises: [
+        { exercise_id: "x", amount: 5, weight_kg: 0 },
+        { exercise_id: "y", amount: 10, weight_kg: 0 },
+      ],
+    })
+    expect(line).toContain("AMRAP 20 min")
+    expect(line).toMatch(/As many rounds as possible|Autant de tours que possible/)
+    expect(line).not.toMatch(/AMRAP(?! \d+ min)/)
+    expect(line).not.toContain("3 rounds")
   })
 })
