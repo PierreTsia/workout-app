@@ -110,6 +110,49 @@ describe("dbBlockToCircuitWire (T165)", () => {
       weight_kg: 60,
     })
   })
+
+  it("echoes AMRAP as mode + cap_minutes without Tours fields (echo-ready)", () => {
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Cindy",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        block_exercises: [
+          {
+            exercise_id: ID_A,
+            name_snapshot: "Pull-up",
+            position: 0,
+            per_round: [{ amount: 5, weight: 0 }],
+            exercises: { name: "Pull-up", name_en: "Pull-up" },
+          },
+          {
+            exercise_id: ID_B,
+            name_snapshot: "Push-up",
+            position: 1,
+            per_round: [{ amount: 10, weight: 0 }],
+            exercises: { name: "Push-up", name_en: "Push-up" },
+          },
+        ],
+      }),
+    )
+
+    expect(wire).toEqual({
+      type: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      cap_minutes: 20,
+      exercises: [
+        { exercise_id: ID_A, amount: 5, weight_kg: 0 },
+        { exercise_id: ID_B, amount: 10, weight_kg: 0 },
+      ],
+    })
+    expect(wire).not.toHaveProperty("rounds")
+    expect(wire).not.toHaveProperty("rest_seconds")
+    expect(wire).not.toHaveProperty("transition_seconds")
+  })
 })
 
 describe("mergeDaySequence (T165)", () => {
@@ -164,5 +207,46 @@ describe("daySequenceToEchoExercises (T165)", () => {
       amount: 10,
       weightKg: 0,
     })
+  })
+
+  it("round-trips an AMRAP echo wire through parseExerciseInput", () => {
+    const items = mergeDaySequence(
+      [],
+      [
+        makeBlock({
+          label: "Cindy",
+          mode: "amrap",
+          cap_seconds: 1200,
+          rounds: 1,
+          rest_seconds: 0,
+          transition_seconds: 0,
+          block_exercises: [
+            {
+              exercise_id: ID_A,
+              name_snapshot: "Pull-up",
+              position: 0,
+              per_round: [{ amount: 5, weight: 0 }],
+              exercises: { name: "Pull-up", name_en: "Pull-up" },
+            },
+            {
+              exercise_id: ID_B,
+              name_snapshot: "Push-up",
+              position: 1,
+              per_round: [{ amount: 10, weight: 0 }],
+              exercises: { name: "Push-up", name_en: "Push-up" },
+            },
+          ],
+        }),
+      ],
+    )
+    const echo = daySequenceToEchoExercises(items)
+    const parsed = parseExerciseInput(echo[0], "Cindy", 0)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok || parsed.value.kind !== "circuit") {
+      throw new Error("expected circuit parse")
+    }
+    expect(parsed.value.mode).toBe("amrap")
+    expect(parsed.value.capMinutes).toBe(20)
+    expect(parsed.value.rounds).toBe(1)
   })
 })

@@ -1,5 +1,5 @@
 import { formatBilingualExerciseName } from "./bilingualName.ts"
-import type { ParsedExercise } from "./createProgramValidation.ts"
+import { CIRCUIT_BOUNDS, type ParsedExercise } from "./createProgramValidation.ts"
 import {
   catalogMapFromBlock,
   dbBlockToParsedCircuit,
@@ -73,12 +73,18 @@ export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
  * Adaptive Circuit dry_run lines (ADR 0011): compact when all rounds identical,
  * round-by-round when any nested exercise uses a heterogeneous per_round.
  */
+const AMRAP_GLOSS_EN = "As many rounds as possible."
+
 export function formatCircuitPreviewLines(
   circuit: Extract<ParsedExercise, { kind: "circuit" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): string[] {
   const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
-  const header = `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
+  const isAmrap = circuit.mode === "amrap"
+  const capMinutes = circuit.capMinutes ?? CIRCUIT_BOUNDS.cap_minutes.default
+  const header = isAmrap
+    ? `Circuit${labelPart} — AMRAP ${capMinutes} min`
+    : `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
 
   const needsExpand = circuit.exercises.some((ex) => {
     if (ex.mode !== "per_round") return false
@@ -90,6 +96,8 @@ export function formatCircuitPreviewLines(
 
   const nameOf = (id: string) => catalogById.get(id)?.name ?? id
 
+  const heading = isAmrap ? [header, AMRAP_GLOSS_EN] : [header]
+
   if (!needsExpand) {
     const exoLines = circuit.exercises.map((ex) => {
       const name = nameOf(ex.exerciseId)
@@ -99,10 +107,10 @@ export function formatCircuitPreviewLines(
       const cell = ex.perRound[0]
       return `  ${name} — ${cell.amount} @ ${formatWeight(cell.weightKg)}`
     })
-    return [header, ...exoLines]
+    return [...heading, ...exoLines]
   }
 
-  const lines = [header]
+  const lines = [...heading]
   for (let r = 0; r < circuit.rounds; r++) {
     const parts = circuit.exercises.map((ex) => {
       const name = nameOf(ex.exerciseId)

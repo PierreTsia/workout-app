@@ -61,6 +61,8 @@ describe("buildCircuitInsertRows (T163)", () => {
       rest_seconds: 90,
       transition_seconds: 0,
       sort_order: 2,
+      mode: "rounds",
+      cap_seconds: null,
     })
     expect(blockExercises[0].per_round).toEqual([
       { amount: 10, weight: 0 },
@@ -99,5 +101,40 @@ describe("buildCircuitInsertRows (T163)", () => {
       { amount: 20, weight: 0 },
       { amount: 15, weight: 0 },
     ])
+  })
+
+  it("persists AMRAP as mode=amrap, cap_seconds=minutes*60, rounds=1, rest/transition 0, per_round length 1", () => {
+    const circuit: Extract<ParsedExercise, { kind: "circuit" }> = {
+      kind: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      capMinutes: 20,
+      rounds: 1,
+      restSeconds: 0,
+      transitionSeconds: 0,
+      exercises: [
+        { mode: "flat", exerciseId: ID_A, amount: 5, weightKg: 0 },
+        { mode: "flat", exerciseId: ID_B, amount: 10, weightKg: 0 },
+      ],
+    }
+    const { block, blockExercises } = buildCircuitInsertRows(
+      "day-1",
+      0,
+      circuit,
+      catalog(),
+    )
+    expect(block).toMatchObject({
+      workout_day_id: "day-1",
+      label: "Cindy",
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+      rest_seconds: 0,
+      transition_seconds: 0,
+      sort_order: 0,
+    })
+    expect(blockExercises[0].per_round).toHaveLength(1)
+    expect(blockExercises[1].per_round).toHaveLength(1)
+    expect(blockExercises[0].per_round).toEqual([{ amount: 5, weight: 0 }])
   })
 })

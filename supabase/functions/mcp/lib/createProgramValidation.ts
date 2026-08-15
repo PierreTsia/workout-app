@@ -25,11 +25,12 @@ export const BOUNDS = {
   target_duration_seconds: { min: 5, max: 600 },
 } as const
 
-/** Bounds + defaults for MCP Circuit Items (ADR 0011 / T163). */
+/** Bounds + defaults for MCP Circuit Items (ADR 0011 / T163 / T187). */
 export const CIRCUIT_BOUNDS = {
   rounds: { min: 1, max: 10, default: 3 },
   rest_seconds: { min: 0, max: 600, default: 90 },
   transition_seconds: { min: 0, max: 600, default: 0 },
+  cap_minutes: { min: 1, max: 60, default: 20 },
   exercises: { min: 2, max: 8 },
   amount_reps: { min: 1, max: 50 },
   amount_duration: { min: 5, max: 600 },
@@ -61,6 +62,9 @@ export type ParsedExercise =
       restSeconds: number
       transitionSeconds: number
       exercises: ParsedCircuitExercise[]
+      /** Termination mode. Omitted on Tours-only fixtures; parse always sets it. */
+      mode?: "rounds" | "amrap"
+      capMinutes?: number | null
     }
 
 /** Alias used by day-sequence code; same union as ParsedExercise. */
@@ -219,6 +223,45 @@ function parseCircuitExercise(
   }
 }
 
+function parseCircuitTermination(
+  obj: Record<string, unknown>,
+  at: string,
+): ParseResult<{ mode: "rounds" | "amrap"; capMinutes: number | null }> {
+  const rawMode = obj.mode
+  if (rawMode === undefined || rawMode === null) {
+    return { ok: true, value: { mode: "rounds", capMinutes: null } }
+  }
+  if (rawMode !== "rounds" && rawMode !== "amrap") {
+    return {
+      ok: false,
+      error: `${at}.mode must be "rounds" or "amrap", got ${String(rawMode)}`,
+    }
+  }
+  if (rawMode === "rounds") {
+    return { ok: true, value: { mode: "rounds", capMinutes: null } }
+  }
+
+  const cap = obj.cap_minutes
+  if (cap === undefined || cap === null) {
+    return {
+      ok: true,
+      value: { mode: "amrap", capMinutes: CIRCUIT_BOUNDS.cap_minutes.default },
+    }
+  }
+  if (
+    !isFiniteNumber(cap) ||
+    !Number.isInteger(cap) ||
+    cap < CIRCUIT_BOUNDS.cap_minutes.min ||
+    cap > CIRCUIT_BOUNDS.cap_minutes.max
+  ) {
+    return {
+      ok: false,
+      error: `${at}.cap_minutes must be an integer in [${CIRCUIT_BOUNDS.cap_minutes.min}, ${CIRCUIT_BOUNDS.cap_minutes.max}], got ${String(cap)}`,
+    }
+  }
+  return { ok: true, value: { mode: "amrap", capMinutes: cap } }
+}
+
 function parseCircuitInput(
   obj: Record<string, unknown>,
   at: string,
@@ -240,21 +283,48 @@ function parseCircuitInput(
     }
   }
 
-  const roundsResult = parseOptionalIntBound(obj.rounds, "rounds", at, CIRCUIT_BOUNDS.rounds)
+  const termination = parseCircuitTermination(obj, at)
+  if (!termination.ok) return termination
+
+  const isAmrap = termination.value.mode === "amrap"
+  if (isAmrap) {
+    const forbidden = (["rounds", "rest_seconds", "transition_seconds"] as const).find(
+      (field) => field in obj,
+    )
+    if (forbidden) {
+      return {
+        ok: false,
+        error: `${at}: mode "amrap" cannot include "${forbidden}" — omit Tours fields (rounds, rest_seconds, transition_seconds, nested per_round)`,
+      }
+    }
+  } else if ("cap_minutes" in obj) {
+    return {
+      ok: false,
+      error: `${at}: cap_minutes is only valid with mode "amrap"`,
+    }
+  }
+  const amrapTemplate = { ok: true, value: 0 } satisfies ParseResult<number>
+  const roundsResult = isAmrap
+    ? { ok: true, value: 1 } satisfies ParseResult<number>
+    : parseOptionalIntBound(obj.rounds, "rounds", at, CIRCUIT_BOUNDS.rounds)
   if (!roundsResult.ok) return roundsResult
-  const restResult = parseOptionalIntBound(
-    obj.rest_seconds,
-    "rest_seconds",
-    at,
-    CIRCUIT_BOUNDS.rest_seconds,
-  )
+  const restResult = isAmrap
+    ? amrapTemplate
+    : parseOptionalIntBound(
+        obj.rest_seconds,
+        "rest_seconds",
+        at,
+        CIRCUIT_BOUNDS.rest_seconds,
+      )
   if (!restResult.ok) return restResult
-  const transitionResult = parseOptionalIntBound(
-    obj.transition_seconds,
-    "transition_seconds",
-    at,
-    CIRCUIT_BOUNDS.transition_seconds,
-  )
+  const transitionResult = isAmrap
+    ? amrapTemplate
+    : parseOptionalIntBound(
+        obj.transition_seconds,
+        "transition_seconds",
+        at,
+        CIRCUIT_BOUNDS.transition_seconds,
+      )
   if (!transitionResult.ok) return transitionResult
 
   let label: string | null = null
@@ -278,6 +348,22 @@ function parseCircuitInput(
     }
   }
 
+  if (isAmrap) {
+    const perRoundIdx = obj.exercises.findIndex(
+      (rawEx) =>
+        rawEx !== null &&
+        typeof rawEx === "object" &&
+        !Array.isArray(rawEx) &&
+        "per_round" in rawEx,
+    )
+    if (perRoundIdx >= 0) {
+      return {
+        ok: false,
+        error: `${at}.exercises[${perRoundIdx}]: mode "amrap" cannot include nested per_round — use flat {amount, weight_kg}`,
+      }
+    }
+  }
+
   const exercises: ParsedCircuitExercise[] = []
   for (const [i, rawEx] of obj.exercises.entries()) {
     const parsedEx = parseCircuitExercise(rawEx, `${at}.exercises[${i}]`, roundsResult.value)
@@ -294,6 +380,8 @@ function parseCircuitInput(
       restSeconds: restResult.value,
       transitionSeconds: transitionResult.value,
       exercises,
+      mode: termination.value.mode,
+      capMinutes: termination.value.capMinutes,
     },
   }
 }

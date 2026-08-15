@@ -130,7 +130,7 @@ Patch shape:
 Each item in a day's \`exercises\` array can be EITHER:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest).
   - A full prescription object — required fields {exercise_id, sets, reps, weight_kg, rest_seconds}; \`target_duration_seconds\` for duration exercises (T75).
-  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
+  - A Circuit object — \`{ type: "circuit", ... }\` same shape as \`create_program\` (ADR 0011 + 0014: optional \`mode\` / \`cap_minutes\` for AMRAP). A patched day's \`exercises[]\` fully replaces that day's solos AND Circuits.
 
 Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior days are already persisted; the response includes \`applied_days\`, \`failed_at\`, and \`remaining_days\` plus retry guidance.
 

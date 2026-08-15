@@ -685,3 +685,126 @@ Deno.test("rolls back the inserted workout_days row when workout_exercises inser
     "rollback must scope the delete to the just-inserted day id",
   )
 })
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function circuitArmFromDayItemOneOf(exercisesProp: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(exercisesProp) || !isRecord(exercisesProp.items)) return undefined
+  const oneOf = exercisesProp.items.oneOf
+  if (!Array.isArray(oneOf)) return undefined
+  return oneOf.find((arm) => {
+    if (!isRecord(arm) || !isRecord(arm.properties) || !isRecord(arm.properties.type)) {
+      return false
+    }
+    return arm.properties.type.const === "circuit"
+  })
+}
+
+Deno.test("T187: inputSchema oneOf includes Circuit with mode and cap_minutes", () => {
+  const exercises = createWorkoutDay.inputSchema.properties?.exercises
+  assertExists(exercises, "exercises property must exist")
+  assertEquals(
+    isRecord(exercises) && isRecord(exercises.items) && Array.isArray(exercises.items.oneOf)
+      ? exercises.items.oneOf.length
+      : 0,
+    3,
+    "oneOf must be bare UUID | solo | Circuit",
+  )
+
+  const circuitArm = circuitArmFromDayItemOneOf(exercises)
+  assertExists(circuitArm, "oneOf must include the Circuit arm (type: circuit)")
+  assertEquals(isRecord(circuitArm.properties), true)
+  if (!isRecord(circuitArm.properties)) return
+  assertExists(circuitArm.properties.mode, "Circuit schema must expose mode")
+  assertExists(circuitArm.properties.cap_minutes, "Circuit schema must expose cap_minutes")
+})
+
+Deno.test("T187: dry_run Cindy echoes AMRAP 20 min + gloss, never naked AMRAP", async () => {
+  const mock = makeMock()
+
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Cindy Day",
+      exercises: [
+        {
+          type: "circuit",
+          label: "Cindy",
+          mode: "amrap",
+          cap_minutes: 20,
+          exercises: [
+            { exercise_id: ID_PUSHUP, amount: 5, weight_kg: 0 },
+            { exercise_id: ID_BENCH, amount: 10, weight_kg: 0 },
+          ],
+        },
+      ],
+      dry_run: true,
+    },
+    mock as unknown as SupabaseClient,
+  )
+
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const text = result.content[0].text
+  assertStringIncludes(text, "AMRAP 20 min")
+  assertStringIncludes(text, "As many rounds as possible.")
+  assertEquals(
+    /AMRAP(?! \d+ min)/.test(text),
+    false,
+    `naked AMRAP in rendered output: ${text}`,
+  )
+  const writes = mock.callLog.filter(
+    (e) => e.op === "insert" || e.op === "update" || e.op === "delete",
+  )
+  assertEquals(writes.length, 0)
+})
+
+Deno.test("T187: apply persists AMRAP Circuit with mode, cap_seconds, rounds=1", async () => {
+  const mock = makeMock()
+
+  const result = await createWorkoutDay.handler(
+    {
+      label: "Cindy Day",
+      exercises: [
+        {
+          type: "circuit",
+          label: "Cindy",
+          mode: "amrap",
+          cap_minutes: 20,
+          exercises: [
+            { exercise_id: ID_PUSHUP, amount: 5, weight_kg: 0 },
+            { exercise_id: ID_BENCH, amount: 10, weight_kg: 0 },
+          ],
+        },
+      ],
+      dry_run: false,
+    },
+    mock as unknown as SupabaseClient,
+  )
+
+  assertEquals(result.isError, undefined, JSON.stringify(result.content))
+  const blockInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "exercise_blocks",
+  )
+  assertExists(blockInsert, "must insert exercise_blocks")
+  assertEquals(isRecord(blockInsert.payload), true)
+  if (!isRecord(blockInsert.payload)) return
+  assertEquals(blockInsert.payload.mode, "amrap")
+  assertEquals(blockInsert.payload.cap_seconds, 1200)
+  assertEquals(blockInsert.payload.rounds, 1)
+  assertEquals(blockInsert.payload.rest_seconds, 0)
+  assertEquals(blockInsert.payload.transition_seconds, 0)
+
+  const beInsert = mock.callLog.find(
+    (e) => e.op === "insert" && e.table === "block_exercises",
+  )
+  assertExists(beInsert, "must insert block_exercises")
+  assertEquals(Array.isArray(beInsert.payload), true)
+  if (!Array.isArray(beInsert.payload)) return
+  const first = beInsert.payload[0]
+  assertEquals(isRecord(first), true)
+  if (!isRecord(first)) return
+  assertEquals(Array.isArray(first.per_round), true)
+  if (!Array.isArray(first.per_round)) return
+  assertEquals(first.per_round.length, 1)
+})

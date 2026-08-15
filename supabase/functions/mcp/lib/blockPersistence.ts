@@ -5,9 +5,10 @@
  */
 
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
-import type {
-  ParsedCircuitExercise,
-  ParsedExercise,
+import {
+  CIRCUIT_BOUNDS,
+  type ParsedCircuitExercise,
+  type ParsedExercise,
 } from "./createProgramValidation.ts"
 
 export const DEFAULT_BLOCK_ROUNDS = 3
@@ -26,6 +27,8 @@ export interface ExerciseBlockInsertRow {
   rest_seconds: number
   transition_seconds: number
   sort_order: number
+  mode: "rounds" | "amrap"
+  cap_seconds: number | null
 }
 
 export interface BlockExerciseInsertRow {
@@ -59,6 +62,7 @@ export function buildCircuitInsertRows(
   circuit: Extract<ParsedExercise, { kind: "circuit" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): { block: ExerciseBlockInsertRow; blockExercises: BlockExerciseInsertRow[] } {
+  const isAmrap = circuit.mode === "amrap"
   const block: ExerciseBlockInsertRow = {
     workout_day_id: dayId,
     label: circuit.label,
@@ -66,6 +70,10 @@ export function buildCircuitInsertRows(
     rest_seconds: circuit.restSeconds,
     transition_seconds: circuit.transitionSeconds,
     sort_order: sortOrder,
+    mode: isAmrap ? "amrap" : "rounds",
+    cap_seconds: isAmrap
+      ? (circuit.capMinutes ?? CIRCUIT_BOUNDS.cap_minutes.default) * 60
+      : null,
   }
 
   const blockExercises: BlockExerciseInsertRow[] = circuit.exercises.map((nested, position) => {

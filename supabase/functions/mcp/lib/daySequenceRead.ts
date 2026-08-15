@@ -27,6 +27,9 @@ export interface DbBlockForRead {
   transition_seconds: number
   sort_order: number
   block_exercises: DbBlockExerciseForRead[]
+  /** Present after T183; omitted on older fixtures → Tours. */
+  mode?: "rounds" | "amrap"
+  cap_seconds?: number | null
 }
 
 export interface DbSoloForRead {
@@ -50,9 +53,11 @@ export type CircuitWireExercise =
 export interface CircuitWireItem {
   type: "circuit"
   label?: string
-  rounds: number
-  rest_seconds: number
-  transition_seconds: number
+  mode?: "rounds" | "amrap"
+  cap_minutes?: number
+  rounds?: number
+  rest_seconds?: number
+  transition_seconds?: number
   exercises: CircuitWireExercise[]
 }
 
@@ -91,13 +96,19 @@ export function dbBlockToParsedCircuit(
       }
     })
 
+  const isAmrap = block.mode === "amrap"
+  const capMinutes =
+    isAmrap && block.cap_seconds != null ? block.cap_seconds / 60 : null
+
   return {
     kind: "circuit",
     label: block.label?.trim() ? block.label.trim() : null,
-    rounds: block.rounds,
-    restSeconds: block.rest_seconds,
-    transitionSeconds: block.transition_seconds,
+    rounds: isAmrap ? 1 : block.rounds,
+    restSeconds: isAmrap ? 0 : block.rest_seconds,
+    transitionSeconds: isAmrap ? 0 : block.transition_seconds,
     exercises,
+    mode: isAmrap ? "amrap" : "rounds",
+    capMinutes,
   }
 }
 
@@ -126,6 +137,18 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
       }
     })
 
+  const label = block.label?.trim()
+  if (block.mode === "amrap") {
+    const capMinutes = (block.cap_seconds ?? 0) / 60
+    return {
+      type: "circuit",
+      ...(label ? { label } : {}),
+      mode: "amrap",
+      cap_minutes: capMinutes,
+      exercises: nested,
+    }
+  }
+
   const wire: CircuitWireItem = {
     type: "circuit",
     rounds: block.rounds,
@@ -133,7 +156,6 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     transition_seconds: block.transition_seconds,
     exercises: nested,
   }
-  const label = block.label?.trim()
   if (label) wire.label = label
   return wire
 }
