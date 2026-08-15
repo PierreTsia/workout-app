@@ -19,6 +19,9 @@ vi.mock("@/hooks/useSessionSetLogs", () => ({ useSessionSetLogs }))
 const useSessionBlockMeta = vi.hoisted(() => vi.fn())
 vi.mock("@/hooks/useSessionBlockMeta", () => ({ useSessionBlockMeta }))
 
+const useSessionBlockRuns = vi.hoisted(() => vi.fn())
+vi.mock("@/hooks/useSessionBlockRuns", () => ({ useSessionBlockRuns }))
+
 const session: Session = {
   id: "sess-1",
   user_id: "user-1",
@@ -74,6 +77,7 @@ describe("SessionRow", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     useSessionBlockMeta.mockReturnValue(mockQueryResult(new Map()))
+    useSessionBlockRuns.mockReturnValue(mockQueryResult(new Map()))
   })
 
   it.each([

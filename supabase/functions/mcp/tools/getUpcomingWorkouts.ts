@@ -131,6 +131,8 @@ export const getUpcomingWorkouts: ToolDefinition = {
       rest_seconds: number
       transition_seconds: number
       sort_order: number
+      mode: "rounds" | "amrap"
+      cap_seconds: number | null
       block_exercises: {
         exercise_id: string
         name_snapshot: string
@@ -156,7 +158,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
     const { data: blocks, error: blockErr } = await supabase
       .from("exercise_blocks")
       .select(
-        "id, workout_day_id, label, rounds, rest_seconds, transition_seconds, sort_order, " +
+        "id, workout_day_id, label, rounds, rest_seconds, transition_seconds, sort_order, mode, cap_seconds, " +
           "block_exercises(exercise_id, name_snapshot, position, per_round, exercises(name, name_en))",
       )
       .in("workout_day_id", dayIds)
@@ -195,6 +197,8 @@ export const getUpcomingWorkouts: ToolDefinition = {
         rest_seconds: block.rest_seconds,
         transition_seconds: block.transition_seconds,
         sort_order: block.sort_order,
+        mode: block.mode,
+        cap_seconds: block.cap_seconds,
         block_exercises: (block.block_exercises ?? []).map((be) => {
           const catalog = unwrapCatalogNameEmbed(be.exercises)
           return {

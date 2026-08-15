@@ -9,6 +9,7 @@ const ctx = (over: Partial<BlockRunnerContext> = {}): BlockRunnerContext => ({
   exerciseCount: 2,
   transitionSeconds: 0,
   restSeconds: 0,
+  mode: "rounds",
   ...over,
 })
 
@@ -30,7 +31,7 @@ describe("useBlockRunner", () => {
 
     act(() => result.current.logAndAdvance())
 
-    expect(onLog).toHaveBeenCalledWith({ round: 0, exerciseIdx: 0 })
+    expect(onLog).toHaveBeenCalledWith({ round: 0, exerciseIdx: 0 }, undefined)
     expect(result.current.state).toEqual({
       phase: "exercise",
       cursor: { round: 0, exerciseIdx: 1 },

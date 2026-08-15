@@ -231,6 +231,50 @@ describe("useGenerateQuickWorkoutPreview", () => {
     expect(workout!.exercises[0].exercise.id).toBe("ex-bench")
   })
 
+  it("T189: hydrates mode=amrap without forcing rounds ?? 3", async () => {
+    invoke.mockResolvedValueOnce({
+      data: {
+        exerciseIds: ["ex-bench", "ex-row"],
+        items: [
+          {
+            type: "circuit",
+            label: "Cindy",
+            mode: "amrap",
+            cap_minutes: 20,
+            exercises: [
+              { exercise_id: "ex-row", amount: 5, weight_kg: 0 },
+              { exercise_id: "ex-bench", amount: 10, weight_kg: 0 },
+            ],
+          },
+        ],
+        rationale: "Cindy.",
+      },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useGenerateQuickWorkoutPreview({ exercisePool: [POOL_BENCH, POOL_ROW] }),
+    )
+
+    let workout: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      workout = await result.current.mutateAsync(CONSTRAINTS)
+    })
+
+    expect(workout!.dayItems).toHaveLength(1)
+    expect(workout!.dayItems![0]).toMatchObject({
+      kind: "circuit",
+      circuit: {
+        label: "Cindy",
+        mode: "amrap",
+        capMinutes: 20,
+      },
+    })
+    const circuit = workout!.dayItems![0]
+    if (circuit.kind !== "circuit") throw new Error("expected circuit")
+    expect(circuit.circuit.rounds).not.toBe(3)
+  })
+
   it("maps invoke error with 429 context to quota_exceeded", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: functionsError(429) })
 

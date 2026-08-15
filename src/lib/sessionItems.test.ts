@@ -37,6 +37,8 @@ function block(id: string, sortOrder: number): ExerciseBlockWithExercises {
     rounds: 3,
     rest_seconds: 60,
     transition_seconds: 0,
+    mode: "rounds",
+    cap_seconds: null,
     sort_order: sortOrder,
     created_at: "2020-01-01",
     exercises: [],

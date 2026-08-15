@@ -52,6 +52,16 @@ Deno.test("T168: buildSystemPrompt encodes conservative Circuit rules for first 
   assertStringIncludes(prompt, 'Always say "Circuit", never "block"')
 })
 
+Deno.test("T189: buildSystemPrompt teaches closed-intent AMRAP vs default Tours", () => {
+  const prompt = buildSystemPrompt({ locale: "en", userProfile: makeProfile() })
+  assertStringIncludes(prompt, 'mode:"amrap"')
+  assertStringIncludes(prompt, "Cindy")
+  assertStringIncludes(prompt, "Holland")
+  assertStringIncludes(prompt, "autant de tours")
+  assertStringIncludes(prompt, "HIIT 20 min")
+  assertStringIncludes(prompt, "4 rounds in 20 min")
+})
+
 Deno.test("buildSystemPrompt never names external providers (Claude / Gemini / GPT / OpenAI / Anthropic)", () => {
   const en = buildSystemPrompt({ locale: "en", userProfile: makeProfile() })
   const fr = buildSystemPrompt({ locale: "fr", userProfile: makeProfile() })

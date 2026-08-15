@@ -321,6 +321,24 @@ A **Circuit** is one day item that groups 2–8 nested exercises across rounds (
 
 Nested exercises use **`amount` + `weight_kg`** (or `per_round`) — **never** solo fields (`sets`, `reps`, per-exercise `rest_seconds`). Flat + `per_round` together → reject. A Circuit counts as **one** slot toward the day cap (40 on `create_program`, 20 on `create_workout_day`).
 
+**Tours vs AMRAP:** omit `mode` (or send `"rounds"`) → **Tours** (N rounds, defaults 3 / 90s rest / 0s transition). CrossFit-style WODs that stop on a clock (Cindy, Helen, “as many rounds as possible”) use `mode: "amrap"` + `cap_minutes` (1–60, default 20). AMRAP + `rounds` / `rest_seconds` / `transition_seconds` / nested `per_round` is a **hard reject** — do not send those fields. dry_run / details echo `AMRAP 20 min` plus the gloss *As many rounds as possible.* — never the naked acronym.
+
+**Cindy** (classic CrossFit AMRAP):
+
+```jsonc
+{
+  type: "circuit",
+  label: "Cindy",
+  mode: "amrap",
+  cap_minutes: 20,
+  exercises: [
+    { exercise_id: "<uuid-pull-up>", amount: 5, weight_kg: 0 },
+    { exercise_id: "<uuid-push-up>", amount: 10, weight_kg: 0 },
+    { exercise_id: "<uuid-air-squat>", amount: 15, weight_kg: 0 }
+  ]
+}
+```
+
 **When to propose a Circuit** (External MCP / Additional program — be proactive when it fits):
 
 - User asks for a circuit / superset / triset / finisher / conditioning complex

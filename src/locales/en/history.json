@@ -52,6 +52,7 @@
     "round": "Round {{n}}",
     "completionTime": "Completed in {{time}}",
     "vsPrevious": "vs last",
+    "roundsDelta": "{{count}} rounds",
     "pb": "PB",
     "shapeChanged": "Prescription changed",
     "sheetTitle": "Circuit times",

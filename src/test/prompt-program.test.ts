@@ -174,4 +174,15 @@ describe("buildProgramPrompt", () => {
     expect(prompt).toContain("frozen")
     expect(prompt).not.toMatch(/\bblock\b/i)
   })
+
+  it("T189: teaches closed-intent AMRAP vs default Tours", () => {
+    const prompt = buildProgramPrompt(catalog, null, [], constraints, false)
+    expect(prompt).toContain("mode:\"amrap\"")
+    expect(prompt).toContain("Cindy")
+    expect(prompt).toContain("Holland")
+    expect(prompt).toContain("autant de tours")
+    expect(prompt).toContain("HIIT 20 min")
+    expect(prompt).toContain("4 rounds in 20 min")
+    expect(prompt).toMatch(/omit mode|Tours/i)
+  })
 })

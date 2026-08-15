@@ -80,6 +80,19 @@ export const MCP_CIRCUIT_DAY_ITEM_SCHEMA = {
   properties: {
     type: { type: "string", const: "circuit" },
     label: { type: "string" },
+    mode: {
+      type: "string",
+      enum: ["rounds", "amrap"],
+      description:
+        'Termination mode. Omit or "rounds" = Tours (N rounds). "amrap" = time cap; do not send rounds, rest_seconds, transition_seconds, or nested per_round.',
+    },
+    cap_minutes: {
+      type: "integer",
+      minimum: CIRCUIT_BOUNDS.cap_minutes.min,
+      maximum: CIRCUIT_BOUNDS.cap_minutes.max,
+      description:
+        "AMRAP cap in minutes (default 20). Only valid with mode \"amrap\". Persisted as cap_seconds = minutes * 60.",
+    },
     rounds: {
       type: "integer",
       minimum: CIRCUIT_BOUNDS.rounds.min,

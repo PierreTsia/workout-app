@@ -12,6 +12,8 @@ export type DraftPreviewExercise =
   | {
       type: "circuit"
       label?: string
+      mode?: "rounds" | "amrap"
+      cap_minutes?: number
       rounds?: number
       rest_seconds?: number
       transition_seconds?: number
@@ -41,6 +43,10 @@ export function summarizeDraftExercises(exercises: DraftPreviewExercise[]): {
 export function formatDraftExerciseFallback(item: DraftPreviewExercise): string {
   if (typeof item === "string") return item
   const label = item.label?.trim() ? ` "${item.label.trim()}"` : ""
+  if (item.mode === "amrap") {
+    const cap = item.cap_minutes ?? 20
+    return `Circuit${label} — AMRAP ${cap} min. As many rounds as possible.`
+  }
   const rounds = item.rounds ?? 3
   const nested = item.exercises.length
   return `Circuit${label} — ${rounds} rounds · ${nested} exercises`

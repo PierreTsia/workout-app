@@ -1,5 +1,5 @@
 import { formatBilingualExerciseName } from "./bilingualName.ts"
-import type { ParsedExercise } from "./createProgramValidation.ts"
+import { CIRCUIT_BOUNDS, type ParsedExercise } from "./createProgramValidation.ts"
 import {
   catalogMapFromBlock,
   dbBlockToParsedCircuit,
@@ -7,7 +7,15 @@ import {
   type EchoDayExercise,
 } from "./daySequenceRead.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
-import type { SessionHistoryItem } from "./sessionHistoryGrouping.ts"
+import type { AmrapScoreValue } from "./amrapScore.ts"
+import {
+  attachAmrapScores,
+  groupSessionHistory,
+  type BlockMeta,
+  type HistoryBlockRun,
+  type HistorySetLog,
+  type SessionHistoryItem,
+} from "./sessionHistoryGrouping.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -73,12 +81,18 @@ export function formatPrescriptionLine(input: FormatPrescriptionInput): string {
  * Adaptive Circuit dry_run lines (ADR 0011): compact when all rounds identical,
  * round-by-round when any nested exercise uses a heterogeneous per_round.
  */
+const AMRAP_GLOSS_EN = "As many rounds as possible."
+
 export function formatCircuitPreviewLines(
   circuit: Extract<ParsedExercise, { kind: "circuit" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
 ): string[] {
   const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
-  const header = `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
+  const isAmrap = circuit.mode === "amrap"
+  const capMinutes = circuit.capMinutes ?? CIRCUIT_BOUNDS.cap_minutes.default
+  const header = isAmrap
+    ? `Circuit${labelPart} — AMRAP ${capMinutes} min`
+    : `Circuit${labelPart} — ${circuit.rounds} rounds · rest ${circuit.restSeconds}s · transition ${circuit.transitionSeconds}s`
 
   const needsExpand = circuit.exercises.some((ex) => {
     if (ex.mode !== "per_round") return false
@@ -90,6 +104,8 @@ export function formatCircuitPreviewLines(
 
   const nameOf = (id: string) => catalogById.get(id)?.name ?? id
 
+  const heading = isAmrap ? [header, AMRAP_GLOSS_EN] : [header]
+
   if (!needsExpand) {
     const exoLines = circuit.exercises.map((ex) => {
       const name = nameOf(ex.exerciseId)
@@ -99,10 +115,10 @@ export function formatCircuitPreviewLines(
       const cell = ex.perRound[0]
       return `  ${name} — ${cell.amount} @ ${formatWeight(cell.weightKg)}`
     })
-    return [header, ...exoLines]
+    return [...heading, ...exoLines]
   }
 
-  const lines = [header]
+  const lines = [...heading]
   for (let r = 0; r < circuit.rounds; r++) {
     const parts = circuit.exercises.map((ex) => {
       const name = nameOf(ex.exerciseId)
@@ -176,6 +192,14 @@ function formatSetMeasure(s: {
   return `${measure} × ${formatWeight(s.weight_logged)}${pr}`
 }
 
+/** Hero `27+3` plus FR/EN leftover gloss — never the numeral alone. */
+export function formatAmrapScoreLines(score: AmrapScoreValue): string[] {
+  const hero = `${score.fullRounds}+${score.leftover}`
+  const glossFr = `${score.fullRounds} tours · ${score.leftover} ${score.leftoverName}`
+  const glossEn = `${score.fullRounds} rounds · ${score.leftover} ${score.leftoverName}`
+  return [hero, `${glossFr} / ${glossEn}`]
+}
+
 function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
   return items.flatMap((item) => {
     if (item.kind === "solo") {
@@ -186,14 +210,33 @@ function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
     }
     const labelPart = item.label?.trim() ? ` "${item.label.trim()}"` : ""
     const header = `  - Circuit${labelPart} (${item.exerciseCount} exercises):`
+    const scoreLines =
+      item.amrapScore != null
+        ? formatAmrapScoreLines(item.amrapScore).map((line) => `    ${line}`)
+        : []
     const roundLines = item.rounds.map((r) => {
       const cells = r.cells
         .map((c) => `${c.exercise_name_snapshot} ${formatSetMeasure(c.log)}`)
         .join(" · ")
       return `    Round ${r.round}: ${cells}`
     })
-    return [header, ...roundLines]
+    return [header, ...scoreLines, ...roundLines]
   })
+}
+
+export function formatSessionHistory(
+  session: SessionForFormat & { id: string },
+  logs: HistorySetLog[],
+  metaById: Map<string, BlockMeta>,
+  runs: HistoryBlockRun[],
+  programInfo?: ProgramInfoForSession,
+): string {
+  const historyItems = attachAmrapScores(
+    groupSessionHistory(logs, metaById),
+    runs,
+    session.id,
+  )
+  return formatSessionSummary(session, logs, programInfo, historyItems)
 }
 
 export function formatSessionSummary(

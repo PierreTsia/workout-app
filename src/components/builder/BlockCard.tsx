@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Layers, Pencil, Timer, Trash2 } from "lucide-react"
 import type { ExerciseBlockWithExercises } from "@/types/database"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
+import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -31,6 +32,11 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
+  const amrapMinutes =
+    block.mode === "amrap" && block.cap_seconds !== null
+      ? block.cap_seconds / 60
+      : null
+
   return (
     <Card ref={setNodeRef} style={style} className="bg-card">
       <CardContent className="flex items-start gap-2 p-3">
@@ -48,9 +54,13 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
             <span className="truncate">
               {block.label ?? t("blockDefaultLabel")}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {t("blockRounds", { count: block.rounds })}
-            </span>
+            {amrapMinutes !== null ? (
+              <AmrapLabel minutes={amrapMinutes} variant="inline" />
+            ) : (
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {t("blockRounds", { count: block.rounds })}
+              </span>
+            )}
             <span className="ml-auto flex shrink-0 items-center">
               {onEdit && (
                 <Button
@@ -89,16 +99,18 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
             ))}
           </ul>
 
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Timer className="h-3 w-3" />
-            {t("restShort", { seconds: block.rest_seconds })}
-            {block.transition_seconds > 0 && (
-              <span>
-                {" · "}
-                {t("blockTransition", { seconds: block.transition_seconds })}
-              </span>
-            )}
-          </p>
+          {amrapMinutes === null && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Timer className="h-3 w-3" />
+              {t("restShort", { seconds: block.rest_seconds })}
+              {block.transition_seconds > 0 && (
+                <span>
+                  {" · "}
+                  {t("blockTransition", { seconds: block.transition_seconds })}
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

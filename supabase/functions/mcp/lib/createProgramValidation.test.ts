@@ -675,6 +675,8 @@ describe("parseExerciseInput — circuit form (T163 / ADR 0011)", () => {
       value: {
         kind: "circuit",
         label: "Finisher",
+        mode: "rounds",
+        capMinutes: null,
         rounds: 3,
         restSeconds: 90,
         transitionSeconds: 0,
@@ -771,5 +773,202 @@ describe("parseExerciseInput — circuit form (T163 / ADR 0011)", () => {
     )
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toContain("between 2 and 8")
+  })
+})
+
+const ID_PULLUP = "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"
+
+describe("parseExerciseInput — AMRAP Circuit (T187 / ADR 0014)", () => {
+  it("parses Cindy (mode=amrap, cap_minutes=20, flat nested) as AMRAP with cap 20", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        label: "Cindy",
+        mode: "amrap",
+        cap_minutes: 20,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+          { exercise_id: ID_PULLUP, amount: 15, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        kind: "circuit",
+        label: "Cindy",
+        mode: "amrap",
+        capMinutes: 20,
+        rounds: 1,
+        restSeconds: 0,
+        transitionSeconds: 0,
+        exercises: [
+          { mode: "flat", exerciseId: VALID_UUID, amount: 5, weightKg: 0 },
+          { mode: "flat", exerciseId: VALID_UUID_2, amount: 10, weightKg: 0 },
+          { mode: "flat", exerciseId: ID_PULLUP, amount: 15, weightKg: 0 },
+        ],
+      },
+    })
+  })
+
+  it("rejects mode=amrap when rounds is also present (no silent drop)", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        cap_minutes: 20,
+        rounds: 3,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("amrap")
+      expect(result.error).toContain("rounds")
+    }
+  })
+
+  it("rejects mode=amrap when rest_seconds is present", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        rest_seconds: 90,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("rest_seconds")
+  })
+
+  it("rejects mode=amrap when transition_seconds is present", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        transition_seconds: 15,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("transition_seconds")
+  })
+
+  it("rejects mode=amrap when a nested exercise uses per_round", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        cap_minutes: 20,
+        exercises: [
+          {
+            exercise_id: VALID_UUID,
+            per_round: [{ amount: 5, weight_kg: 0 }],
+          },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("per_round")
+  })
+
+  it("rejects cap_minutes on a Tours Circuit (mode omitted or rounds)", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        cap_minutes: 20,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 10, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("cap_minutes")
+    }
+  })
+
+  it("defaults cap_minutes to 20 when mode=amrap omits the cap", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.value.kind === "circuit") {
+      expect(result.value.mode).toBe("amrap")
+      expect(result.value.capMinutes).toBe(20)
+    }
+  })
+
+  it("rejects an unknown mode instead of dropping it", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "emom",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 10, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("mode")
+      expect(result.error).toContain("emom")
+    }
+  })
+
+  it("rejects cap_minutes outside 1–60", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        mode: "amrap",
+        cap_minutes: 90,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 5, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 10, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain("cap_minutes")
   })
 })

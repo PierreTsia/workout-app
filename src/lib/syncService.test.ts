@@ -33,6 +33,7 @@ function createChain(resolveWith: { data?: unknown; error?: unknown } = {}) {
     insert: vi.fn(() => chain),
     upsert: vi.fn(() => chain),
     update: vi.fn(() => chain),
+    delete: vi.fn(() => chain),
     then: vi.fn((resolve: (v: unknown) => void) =>
       resolve({ data: resolveWith.data ?? null, error: resolveWith.error ?? null }),
     ),
@@ -44,6 +45,7 @@ let sessionsChain = createChain()
 let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
 let cyclesChain = createChain()
+let blockRunsChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -123,6 +125,21 @@ function makeSessionFinishPayload(
   }
 }
 
+function makeBlockRunPayload(
+  overrides: Partial<import("./syncService").BlockRunPayload> = {},
+): import("./syncService").BlockRunPayload {
+  return {
+    sessionId: "local-session-1",
+    blockId: "blk-1",
+    startedAt: 5_000,
+    finishedAt: null,
+    mode: "amrap",
+    capSeconds: 1200,
+    templateFingerprint: "amrap|1200|ex-1:5:0",
+    ...overrides,
+  }
+}
+
 function readQueue() {
   const raw = localStorage.getItem(`offlineQueue:${USER_ID}`)
   return raw ? JSON.parse(raw) : []
@@ -145,6 +162,9 @@ let discardSessionQueue: typeof import("./syncService").discardSessionQueue
 let markSessionCancelled: typeof import("./syncService").markSessionCancelled
 let pruneCancelledSessions: typeof import("./syncService").pruneCancelledSessions
 let peekSessionRealId: typeof import("./syncService").peekSessionRealId
+let enqueueBlockRun: typeof import("./syncService").enqueueBlockRun
+let discardBlockRun: typeof import("./syncService").discardBlockRun
+let queuedBlockRunFor: typeof import("./syncService").queuedBlockRunFor
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -190,12 +210,14 @@ describe("SyncService", () => {
     setLogsChain = createChain()
     workoutExercisesChain = createChain()
     cyclesChain = createChain()
+    blockRunsChain = createChain()
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
       if (table === "set_logs") return setLogsChain
       if (table === "workout_exercises") return workoutExercisesChain
       if (table === "cycles") return cyclesChain
+      if (table === "block_runs") return blockRunsChain
       return createChain()
     })
 
@@ -208,6 +230,9 @@ describe("SyncService", () => {
     markSessionCancelled = mod.markSessionCancelled
     pruneCancelledSessions = mod.pruneCancelledSessions
     peekSessionRealId = mod.peekSessionRealId
+    enqueueBlockRun = mod.enqueueBlockRun
+    discardBlockRun = mod.discardBlockRun
+    queuedBlockRunFor = mod.queuedBlockRunFor
   })
 
   afterEach(() => {
@@ -1053,6 +1078,87 @@ describe("SyncService", () => {
 
       expect(setLogsChain.upsert).toHaveBeenCalledTimes(1)
       expect(readQueue()).toHaveLength(0)
+    })
+  })
+
+  describe("enqueueBlockRun", () => {
+    it("replaces started_at when GO is stamped again for the same block", () => {
+      enqueueBlockRun(makeBlockRunPayload({ startedAt: 5_000 }))
+      enqueueBlockRun(makeBlockRunPayload({ startedAt: 9_000 }))
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].payload.startedAt).toBe(9_000)
+    })
+
+    it("ensures the session row before upserting block_runs on drain", async () => {
+      enqueueBlockRun(makeBlockRunPayload())
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.upsert).toHaveBeenCalled()
+      expect(blockRunsChain.upsert).toHaveBeenCalled()
+      const sessionOrder = sessionsChain.upsert.mock.invocationCallOrder[0]
+      const runOrder = blockRunsChain.upsert.mock.invocationCallOrder[0]
+      expect(sessionOrder).toBeLessThan(runOrder)
+      const [row, opts] = blockRunsChain.upsert.mock.calls[0]
+      expect(opts).toEqual({ onConflict: "session_id,block_id" })
+      expect(row).toEqual(
+        expect.objectContaining({
+          session_id: DETERMINISTIC_UUID,
+          block_id: "blk-1",
+          mode: "amrap",
+          cap_seconds: 1200,
+          finished_at: null,
+        }),
+      )
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("mints session meta and queues a block_run before any set_log", () => {
+      expect(peekSessionRealId(USER_ID, "local-session-1")).toBeNull()
+
+      enqueueBlockRun(makeBlockRunPayload())
+
+      expect(peekSessionRealId(USER_ID, "local-session-1")).toBe(
+        DETERMINISTIC_UUID,
+      )
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].type).toBe("block_run")
+      expect(queue[0].payload).toEqual(
+        expect.objectContaining({
+          blockId: "blk-1",
+          startedAt: 5_000,
+          finishedAt: null,
+        }),
+      )
+      expect(queuedBlockRunFor("local-session-1", "blk-1")?.startedAt).toBe(
+        5_000,
+      )
+    })
+  })
+
+  describe("discardBlockRun", () => {
+    it("drops the queued Block Run and deletes the persisted row", async () => {
+      enqueueBlockRun(makeBlockRunPayload())
+      enqueueSetLog(
+        makeSetLogPayload({ blockExerciseId: "be-A", setNumber: 1 }),
+      )
+
+      await discardBlockRun(DETERMINISTIC_UUID, "blk-1")
+
+      const queue = readQueue()
+      expect(
+        queue.every((item: { type: string }) => item.type !== "block_run"),
+      ).toBe(true)
+      expect(queue).toHaveLength(1)
+      expect(blockRunsChain.delete).toHaveBeenCalled()
+      expect(blockRunsChain.eq).toHaveBeenCalledWith(
+        "session_id",
+        DETERMINISTIC_UUID,
+      )
+      expect(blockRunsChain.eq).toHaveBeenCalledWith("block_id", "blk-1")
     })
   })
 

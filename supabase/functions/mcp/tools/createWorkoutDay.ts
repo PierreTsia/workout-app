@@ -3,12 +3,13 @@ import { validateDayExercises } from "../lib/createProgramValidation.ts"
 import { fetchExercisesByIds } from "../lib/catalogLookup.ts"
 import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
+import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
 const TOOL_DESCRIPTION = `Create a single ad-hoc workout day in the user's GymLogic account (Quick Workout flow).
 
 Use this when the user wants ONE workout (today, tomorrow, an extra session) without changing their active multi-day program. Unlike \`create_program\`, this tool does NOT deactivate any existing program — the new day is stored as a standalone \`workout_days\` row with \`program_id: null\`.
 
-\`exercises[]\` accepts bare UUIDs, solo prescription objects, or Circuits (\`type: "circuit"\`) — same shape as \`create_program\` (ADR 0011). A Circuit counts as one item toward the 20-item cap.
+\`exercises[]\` accepts bare UUIDs, solo prescription objects, or Circuits (\`type: "circuit"\`) — same shape as \`create_program\` (ADR 0011 + 0014). A Circuit counts as one item toward the 20-item cap. Omit \`mode\` for Tours; \`mode: "amrap"\` + \`cap_minutes\` for AMRAP.
 
 Pass \`dry_run: true\` to preview the rendered prescription without writing.`
 
@@ -90,6 +91,7 @@ export const createWorkoutDay: ToolDefinition = {
               },
               required: ["exercise_id", "sets", "reps", "weight_kg", "rest_seconds"],
             },
+            MCP_CIRCUIT_DAY_ITEM_SCHEMA,
           ],
         },
       },

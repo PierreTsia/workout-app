@@ -82,4 +82,29 @@ describe("formatCircuitPreviewLines (T163)", () => {
     expect(lines[3]).toContain("Round 3:")
     expect(lines[3]).toContain("Burpee 10@0 kg")
   })
+
+  it("renders AMRAP as 'AMRAP 20 min' plus gloss, never a naked AMRAP", () => {
+    const circuit: Extract<ParsedExercise, { kind: "circuit" }> = {
+      kind: "circuit",
+      label: "Cindy",
+      mode: "amrap",
+      capMinutes: 20,
+      rounds: 1,
+      restSeconds: 0,
+      transitionSeconds: 0,
+      exercises: [
+        { mode: "flat", exerciseId: ID_A, amount: 5, weightKg: 0 },
+        { mode: "flat", exerciseId: ID_B, amount: 10, weightKg: 0 },
+      ],
+    }
+    const lines = formatCircuitPreviewLines(circuit, catalog)
+    const rendered = lines.join("\n")
+
+    expect(lines[0]).toContain("AMRAP 20 min")
+    expect(rendered).toContain("As many rounds as possible.")
+    expect(rendered).not.toMatch(/AMRAP(?! \d+ min)/)
+    expect(lines[0]).not.toContain("rounds")
+    expect(lines).toContain("  Burpee — 5 @ 0 kg")
+    expect(lines).toContain("  Swing — 10 @ 0 kg")
+  })
 })

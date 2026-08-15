@@ -1,3 +1,9 @@
+import {
+  circuitTerminationFields,
+  shouldRejectAmrapCircuit,
+} from "./amrapCircuitValidate.ts"
+import { AMRAP_CLOSED_INTENT_RULES } from "./amrapIntentPrompt.ts"
+
 // Shared program draft logic — the single home for program-drafting plumbing,
 // called by the `embedded-agent` Edge function via `runProgramDraftStep`.
 // Originally extracted from the `generate-program/` function (now deleted) to
@@ -63,6 +69,8 @@ export type DraftCircuitExercise =
 export interface DraftCircuitItem {
   type: "circuit"
   label?: string
+  mode?: "rounds" | "amrap"
+  cap_minutes?: number
   rounds?: number
   rest_seconds?: number
   transition_seconds?: number
@@ -192,6 +200,7 @@ export function buildProgramPrompt(
     "- Each day `exercises` array mixes bare UUID strings (solos) and optional Circuit objects `{ type: \"circuit\", exercises: [{ exercise_id, amount, weight_kg }, ...] }`. A Circuit counts as ONE slot toward the per-day min/max.",
     "- Nested Circuit exercises use amount + weight_kg (not solo sets/reps). Same exercise_id may appear twice inside one Circuit (complexes); do not duplicate a solo UUID across days.",
     "- Circuit prescriptions are frozen (no auto progression on nested amount/weight). Prefer Circuits for finishers, supersets, conditioning complexes — not every pairing.",
+    AMRAP_CLOSED_INTENT_RULES,
     "- Order solos within each day: compound movements (those with secondary_muscles) first, isolation last. Place Circuits after the main strength work when used as finishers.",
     "- Group synergistic muscles on the same day (e.g. chest + triceps, back + biceps).",
     "- Distribute muscle groups across the week so no group is overtrained.",
@@ -332,6 +341,11 @@ export function validateProgram(
         continue
       }
 
+      if (shouldRejectAmrapCircuit(raw)) {
+        dropped++
+        continue
+      }
+
       const nested = raw.exercises
         .map((ex) => {
           if (!ex || typeof ex !== "object" || typeof ex.exercise_id !== "string") {
@@ -352,11 +366,7 @@ export function validateProgram(
         type: "circuit",
         exercises: nested,
         ...(raw.label !== undefined ? { label: raw.label } : {}),
-        ...(raw.rounds !== undefined ? { rounds: raw.rounds } : {}),
-        ...(raw.rest_seconds !== undefined ? { rest_seconds: raw.rest_seconds } : {}),
-        ...(raw.transition_seconds !== undefined
-          ? { transition_seconds: raw.transition_seconds }
-          : {}),
+        ...circuitTerminationFields(raw),
       }
       items.push(circuit)
 

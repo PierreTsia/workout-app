@@ -27,6 +27,8 @@ const block: ExerciseBlockWithExercises = {
   rounds: 3,
   rest_seconds: 60,
   transition_seconds: 0,
+  mode: "rounds",
+  cap_seconds: null,
   sort_order: 0,
   created_at: "2020-01-01",
   exercises: [be("A", "Push-ups"), be("B", "Squats")],
@@ -125,5 +127,20 @@ describe("BlockSessionCard", () => {
     expect(
       screen.queryByRole("button", { name: /^Start$/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it("shows AmrapLabel instead of the Tours round count when the block is AMRAP", () => {
+    const cindy: ExerciseBlockWithExercises = {
+      ...block,
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+    }
+    renderWithProviders(<BlockSessionCard block={cindy} />)
+
+    expect(screen.getByText("AMRAP 20 min")).toBeInTheDocument()
+    expect(
+      screen.getByText("As many rounds as possible."),
+    ).toBeInTheDocument()
   })
 })

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Layers, Loader2, Trophy, TrendingDown, TrendingUp } from "lucide-react"
+import { AmrapScore } from "@/components/circuit/AmrapScore"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -14,6 +15,7 @@ import { useBlockCompletionHistory } from "@/hooks/useBlockCompletionHistory"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import type { AmrapRunView } from "@/lib/amrapScore"
 import type { BlockRunView } from "@/lib/blockCompletionHistory"
 
 interface BlockHistorySheetProps {
@@ -41,6 +43,64 @@ function DeltaChip({ seconds }: { seconds: number }) {
       {Math.abs(seconds)}s
       <span className="font-normal text-muted-foreground"> {t("circuit.vsPrevious")}</span>
     </span>
+  )
+}
+
+function AmrapDeltaChip({ rounds }: { rounds: number }) {
+  const { t } = useTranslation("history")
+  const improved = rounds > 0
+  const Icon = improved ? TrendingUp : TrendingDown
+  return (
+    <span
+      className={cn(
+        "flex items-center gap-0.5 text-[11px] font-medium tabular-nums",
+        improved ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400",
+      )}
+    >
+      <Icon className="h-3 w-3" aria-hidden />
+      {improved ? "+" : "−"}
+      {t("circuit.roundsDelta", { count: Math.abs(rounds) })}
+      <span className="font-normal text-muted-foreground"> {t("circuit.vsPrevious")}</span>
+    </span>
+  )
+}
+
+function AmrapRunRow({ view }: { view: AmrapRunView }) {
+  const { t, i18n } = useTranslation("history")
+  const when = formatRelativeTime(view.date, i18n.language)
+
+  return (
+    <li className="flex items-center justify-between gap-3 border-b border-border/50 py-2 last:border-b-0">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{when}</p>
+        {view.shapeChanged && (
+          <p className="text-[11px] text-muted-foreground">{t("circuit.shapeChanged")}</p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        {view.score != null ? (
+          <div className="flex items-center gap-2">
+            {view.isPb && (
+              <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                <Trophy className="h-3 w-3" aria-hidden />
+                {t("circuit.pb")}
+              </span>
+            )}
+            <AmrapScore
+              size="compact"
+              fullRounds={view.score.fullRounds}
+              leftover={view.score.leftover}
+              leftoverName={view.score.leftoverName}
+            />
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">{t("circuit.incompleteRun")}</span>
+        )}
+        {view.score != null && view.deltaRounds != null && (
+          <AmrapDeltaChip rounds={view.deltaRounds} />
+        )}
+      </div>
+    </li>
   )
 }
 
@@ -97,10 +157,13 @@ export function BlockHistorySheet({
   const { unit } = useWeightUnit()
   const { data, isLoading, isError, refetch } = useBlockCompletionHistory(open, blockId)
 
+  const isAmrap = data?.mode === "amrap"
   const views = data?.views ?? []
+  const amrapViews = data?.amrapViews ?? []
   const trend = data?.trend ?? { seconds: [], dates: [] }
-  const showTrend = trend.seconds.length >= 2
+  const showTrend = !isAmrap && trend.seconds.length >= 2
   const trendXLabels = trend.dates.map((d) => formatRelativeTime(d, i18n.language))
+  const hasRuns = isAmrap ? amrapViews.length > 0 : views.length > 0
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -135,13 +198,13 @@ export function BlockHistorySheet({
                 {t("circuit.retry")}
               </Button>
             </div>
-          ) : views.length === 0 ? (
+          ) : !hasRuns ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               {t("circuit.noCompletedRuns")}
             </p>
           ) : (
             <>
-              {showTrend ? (
+              {isAmrap ? null : showTrend ? (
                 <div className="mb-4 w-full">
                   <ExerciseHistoryTrendChart
                     variant="completionTime"
@@ -157,9 +220,13 @@ export function BlockHistorySheet({
               )}
 
               <ul className="flex flex-col">
-                {views.map((view) => (
-                  <RunRow key={view.run.sessionId} view={view} />
-                ))}
+                {isAmrap
+                  ? amrapViews.map((view) => (
+                      <AmrapRunRow key={view.sessionId} view={view} />
+                    ))
+                  : views.map((view) => (
+                      <RunRow key={view.run.sessionId} view={view} />
+                    ))}
               </ul>
             </>
           )}

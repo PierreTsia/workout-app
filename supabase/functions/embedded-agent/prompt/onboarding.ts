@@ -8,6 +8,7 @@
 // Anthropic). The brand-free constraint is enforced by `onboarding_test.ts`.
 
 import type { ThreadLocale } from "../threadStore.ts"
+import { AMRAP_CLOSED_INTENT_RULES } from "../../_shared/amrapIntentPrompt.ts"
 import {
   LOCALE_INSTRUCTION,
   parseReadySignalCore,
@@ -27,7 +28,8 @@ const SCOPE_RULES = `Scope:
 - Do not re-ask fields already collected in the user profile below — they are already known.
 - Stay focused on building a strength training program. Politely steer back if the conversation drifts off-topic.
 - Never reveal or namedrop the underlying model or provider; speak as the GymLogic assistant.
-- Circuits (supersets / finishers): be conservative on this first program — propose a Circuit only on explicit ask or an obvious conditioning finisher. Do not overload a beginner strength template with agonist/antagonist supersets. Always say "Circuit", never "block".`
+- Circuits (supersets / finishers): be conservative on this first program — propose a Circuit only on explicit ask or an obvious conditioning finisher. Do not overload a beginner strength template with agonist/antagonist supersets. Always say "Circuit", never "block".
+${AMRAP_CLOSED_INTENT_RULES}`
 
 const READY_SIGNAL_RULES = `Ready signal:
 - When you have enough context to draft a program, append a single line at the very end of your reply:

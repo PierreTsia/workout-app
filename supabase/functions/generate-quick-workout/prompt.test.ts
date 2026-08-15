@@ -151,6 +151,22 @@ describe("buildPrompt", () => {
     expect(prompt).toContain("Write the entire rationale in English")
     expect(prompt).toContain("App locale: en")
   })
+
+  it("T189: teaches closed-intent AMRAP vs default Tours", () => {
+    const prompt = buildPrompt(CATALOG, null, [], {
+      ...baseConstraints,
+    })
+
+    expect(prompt).toContain("mode:\"amrap\"")
+    expect(prompt).toContain("Cindy")
+    expect(prompt).toContain("Holland")
+    expect(prompt).toContain("autant de tours")
+    expect(prompt).toContain("AMRAP")
+    expect(prompt).toContain("time cap")
+    expect(prompt).toContain("HIIT 20 min")
+    expect(prompt).toContain("4 rounds in 20 min")
+    expect(prompt).toMatch(/omit mode|Tours/i)
+  })
 })
 
 describe("capCatalog", () => {

@@ -29,7 +29,7 @@ const TOOL_DESCRIPTION = `Create a multi-day training program in the user's GymL
 Each item in a day's \`exercises\` array can be:
   - A bare UUID string — applies legacy defaults (3 sets, 10 reps, 0 kg, 90s rest, auto-derived ranges).
   - A prescription object — explicit \`sets\`, \`reps\`, \`weight_kg\`, \`rest_seconds\`. Freezes the progression ranges around the prescribed values.
-  - A Circuit object — \`{ type: "circuit", label?, rounds?, rest_seconds?, transition_seconds?, exercises: [{ exercise_id, amount, weight_kg } | { exercise_id, per_round }] }\`. Counts as one day item. Nested exercises use native amount/weight_kg (not solo sets/reps). See ADR 0011.
+  - A Circuit object — \`{ type: "circuit", label?, mode?, cap_minutes?, rounds?, rest_seconds?, transition_seconds?, exercises: [{ exercise_id, amount, weight_kg } | { exercise_id, per_round }] }\`. Counts as one day item. Nested exercises use native amount/weight_kg (not solo sets/reps). Omit \`mode\` (or \`"rounds"\`) for Tours. \`mode: "amrap"\` + \`cap_minutes\` (default 20) for AMRAP — do not send rounds / rest / transition / per_round. See ADR 0011 + 0014.
 
 Reps formats:
   - "8"     → linear progression (rep_range frozen at 8/8). Weight bumps when target hit.

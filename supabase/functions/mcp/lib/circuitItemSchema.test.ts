@@ -4,6 +4,22 @@ import {
   MCP_CIRCUIT_NESTED_EXERCISE_SCHEMA,
 } from "./circuitItemSchema"
 import { CIRCUIT_BOUNDS } from "./createProgramValidation"
+import { createProgram } from "../tools/createProgram"
+import { updateProgram } from "../tools/updateProgram"
+
+function dayItemOneOf(tool: { inputSchema: { properties: Record<string, unknown> } }): unknown[] {
+  const days = tool.inputSchema.properties.days
+  if (days === null || typeof days !== "object" || !("items" in days)) return []
+  const dayItems = days.items
+  if (dayItems === null || typeof dayItems !== "object" || !("properties" in dayItems)) return []
+  const props = dayItems.properties
+  if (props === null || typeof props !== "object" || !("exercises" in props)) return []
+  const exercises = props.exercises
+  if (exercises === null || typeof exercises !== "object" || !("items" in exercises)) return []
+  const items = exercises.items
+  if (items === null || typeof items !== "object" || !("oneOf" in items)) return []
+  return Array.isArray(items.oneOf) ? items.oneOf : []
+}
 
 describe("MCP_CIRCUIT_NESTED_EXERCISE_SCHEMA", () => {
   it("encodes flat and per_round nested shapes as oneOf", () => {
@@ -40,5 +56,26 @@ describe("MCP_CIRCUIT_DAY_ITEM_SCHEMA", () => {
     expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.exercises.maxItems).toBe(
       CIRCUIT_BOUNDS.exercises.max,
     )
+  })
+
+  it("exposes mode and cap_minutes so agents can write AMRAP (T187)", () => {
+    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.mode).toEqual({
+      type: "string",
+      enum: ["rounds", "amrap"],
+      description:
+        'Termination mode. Omit or "rounds" = Tours (N rounds). "amrap" = time cap; do not send rounds, rest_seconds, transition_seconds, or nested per_round.',
+    })
+    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.cap_minutes).toEqual({
+      type: "integer",
+      minimum: CIRCUIT_BOUNDS.cap_minutes.min,
+      maximum: CIRCUIT_BOUNDS.cap_minutes.max,
+      description:
+        "AMRAP cap in minutes (default 20). Only valid with mode \"amrap\". Persisted as cap_seconds = minutes * 60.",
+    })
+  })
+
+  it("is the Circuit oneOf arm on create_program and update_program", () => {
+    expect(dayItemOneOf(createProgram)).toContain(MCP_CIRCUIT_DAY_ITEM_SCHEMA)
+    expect(dayItemOneOf(updateProgram)).toContain(MCP_CIRCUIT_DAY_ITEM_SCHEMA)
   })
 })

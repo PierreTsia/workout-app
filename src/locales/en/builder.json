@@ -75,5 +75,10 @@
   "perRoundReps": "Reps",
   "perRoundDuration": "Duration (s)",
   "removeBlockTitle": "Remove circuit?",
-  "removeBlockDescription": "\"{{name}}\" and its per-round prescriptions will be removed from this day."
+  "removeBlockDescription": "\"{{name}}\" and its per-round prescriptions will be removed from this day.",
+  "amrap": "AMRAP",
+  "amrapGloss": "As many rounds as possible.",
+  "toursModeHint": "Time is the score.",
+  "amrapCapMinutes": "Minutes",
+  "customizePerRound": "Customize per round"
 }

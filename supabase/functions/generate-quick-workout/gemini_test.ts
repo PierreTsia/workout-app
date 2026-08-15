@@ -46,3 +46,38 @@ Deno.test("callGemini (quick-workout): 200 valid JSON returns trimmed shape", as
 
   assertEquals(out, { rationale: "go", exerciseIds: ["e1"] })
 })
+
+Deno.test("T189: Gemini QW schema exposes optional mode and cap_minutes", async () => {
+  let body:
+    | {
+        generationConfig?: {
+          response_schema?: {
+            properties?: {
+              exercises?: {
+                items?: {
+                  anyOf?: Array<{
+                    properties?: {
+                      mode?: { type?: string }
+                      cap_minutes?: { type?: string }
+                    }
+                    required?: string[]
+                  }>
+                }
+              }
+            }
+          }
+        }
+      }
+    | undefined
+  const fetchImpl = ((_url: string, init: RequestInit) => {
+    body = JSON.parse(init.body as string)
+    return Promise.resolve(geminiJson({ rationale: "r", exerciseIds: ["e1"] }))
+  }) as typeof fetch
+
+  await callGemini("p", { fetchImpl })
+
+  const circuit = body!.generationConfig!.response_schema!.properties!.exercises!.items!.anyOf![1]
+  assertEquals(circuit.required, ["type", "exercises"])
+  assertEquals(circuit.properties?.mode?.type, "STRING")
+  assertEquals(circuit.properties?.cap_minutes?.type, "INTEGER")
+})

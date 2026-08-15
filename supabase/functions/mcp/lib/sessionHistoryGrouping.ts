@@ -3,12 +3,15 @@
  * No `@/` imports — Deno Edge only.
  */
 
+import { amrapScore, type AmrapScoreCell, type AmrapScoreValue } from "./amrapScore.ts"
+
 export interface BlockMeta {
   blockId: string
   label: string | null
   position: number
   emoji: string | null
   blockSortOrder: number
+  mode: "rounds" | "amrap"
 }
 
 export interface BlockExerciseMetaRow {
@@ -21,6 +24,7 @@ export interface BlockExerciseMetaRow {
     label: string | null
     rounds: number
     sort_order: number
+    mode?: "rounds" | "amrap"
   } | null
 }
 
@@ -64,6 +68,8 @@ export interface BlockHistoryGroup {
   sortOrder: number
   rounds: BlockHistoryRound[]
   exerciseCount: number
+  /** Finished AMRAP only — T188. Absent / null for Tours and unfinished runs. */
+  amrapScore?: AmrapScoreValue | null
 }
 
 export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
@@ -96,6 +102,7 @@ export function buildBlockMetaMap(
             position: r.position,
             emoji: r.emoji_snapshot,
             blockSortOrder: block.sort_order,
+            mode: block.mode ?? "rounds",
           },
         ] as const
       }),
@@ -174,4 +181,52 @@ export function groupSessionHistory(
 
   const sortedBlocks = [...blockGroups].sort((a, b) => a.sortOrder - b.sortOrder)
   return [...sortedBlocks, ...soloGroups]
+}
+
+export interface HistoryBlockRun {
+  session_id: string
+  block_id: string
+  finished_at: string | null
+  mode: "rounds" | "amrap"
+}
+
+function cellsFromGroup(
+  sessionId: string,
+  group: BlockHistoryGroup,
+): AmrapScoreCell[] {
+  return group.rounds.flatMap((round) =>
+    round.cells.map((cell) => ({
+      session_id: sessionId,
+      set_number: cell.log.set_number,
+      reps_logged: cell.log.reps_logged,
+      duration_seconds: cell.log.duration_seconds,
+      logged_at: cell.log.logged_at,
+      exercise_name: cell.exercise_name_snapshot,
+    })),
+  )
+}
+
+/**
+ * Attach a finished AMRAP score onto each matching Circuit. Tours have no
+ * `block_runs` row, so they stay untouched (no CCT on the MCP wire).
+ */
+export function attachAmrapScores(
+  items: SessionHistoryItem[],
+  runs: HistoryBlockRun[],
+  sessionId: string,
+): SessionHistoryItem[] {
+  const runByBlockId = new Map(
+    runs
+      .filter((run) => run.session_id === sessionId && run.mode === "amrap")
+      .map((run) => [run.block_id, run] as const),
+  )
+  return items.map((item) => {
+    if (item.kind !== "block") return item
+    const run = runByBlockId.get(item.key)
+    if (run == null) return item
+    return {
+      ...item,
+      amrapScore: amrapScore(run, cellsFromGroup(sessionId, item)),
+    }
+  })
 }

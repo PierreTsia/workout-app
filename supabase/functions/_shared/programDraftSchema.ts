@@ -33,6 +33,8 @@ const CIRCUIT_ITEM_GROQ = {
   properties: {
     type: { type: "string", const: "circuit" },
     label: { type: "string" },
+    mode: { type: "string", enum: ["rounds", "amrap"] },
+    cap_minutes: { type: "integer", minimum: 1, maximum: 60 },
     rounds: { type: "integer" },
     rest_seconds: { type: "integer" },
     transition_seconds: { type: "integer" },
@@ -94,6 +96,8 @@ export const PROGRAM_RESPONSE_SCHEMA_GEMINI = {
                   properties: {
                     type: { type: "STRING" },
                     label: { type: "STRING" },
+                    mode: { type: "STRING" },
+                    cap_minutes: { type: "INTEGER" },
                     rounds: { type: "INTEGER" },
                     rest_seconds: { type: "INTEGER" },
                     transition_seconds: { type: "INTEGER" },

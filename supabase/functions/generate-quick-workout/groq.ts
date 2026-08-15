@@ -22,6 +22,8 @@ const WORKOUT_JSON_SCHEMA = {
             properties: {
               type: { type: "string", const: "circuit" },
               label: { type: "string" },
+              mode: { type: "string", enum: ["rounds", "amrap"] },
+              cap_minutes: { type: "integer", minimum: 1, maximum: 60 },
               rounds: { type: "integer" },
               rest_seconds: { type: "integer" },
               transition_seconds: { type: "integer" },

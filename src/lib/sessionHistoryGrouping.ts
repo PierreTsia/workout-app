@@ -1,6 +1,10 @@
 import { groupBy } from "@/lib/utils"
 import type { CatalogNameSource } from "@/lib/catalogLabels"
-import type { ExerciseLabelFields, SetLogWithExercise } from "@/types/database"
+import type {
+  ExerciseBlockMode,
+  ExerciseLabelFields,
+  SetLogWithExercise,
+} from "@/types/database"
 
 /** `set_number` breaks ties: bulk-inserted logs can share a `logged_at`. */
 const byLoggedThenSetNumber = (a: SetLogWithExercise, b: SetLogWithExercise) =>
@@ -19,6 +23,7 @@ export interface BlockMeta {
   position: number
   emoji: string | null
   blockSortOrder: number
+  mode: ExerciseBlockMode
 }
 
 /** Raw `block_exercises` row shape returned by {@link useSessionBlockMeta}. */
@@ -32,6 +37,7 @@ export interface BlockExerciseMetaRow {
     label: string | null
     rounds: number
     sort_order: number
+    mode: ExerciseBlockMode
   } | null
 }
 
@@ -49,6 +55,7 @@ export function buildBlockMetaMap(
           position: r.position,
           emoji: r.emoji_snapshot,
           blockSortOrder: r.block!.sort_order,
+          mode: r.block!.mode,
         },
       ]),
   )
@@ -88,6 +95,7 @@ export interface BlockHistoryGroup {
   sortOrder: number
   rounds: BlockHistoryRound[]
   exerciseCount: number
+  mode: ExerciseBlockMode
 }
 
 export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
@@ -174,6 +182,7 @@ export function groupSessionHistory(
         sortOrder: firstMeta.blockSortOrder,
         rounds,
         exerciseCount: new Set(blkLogs.map((l) => l.block_exercise_id)).size,
+        mode: firstMeta.mode,
       }
     },
   )

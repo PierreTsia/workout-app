@@ -230,5 +230,16 @@
   "blockRunner.redo": "Restart",
   "blockRunner.doneTitle": "Circuit complete",
   "blockRunner.doneBody": "Nice work — every round logged.",
-  "blockRunner.exit": "Back to session"
+  "blockRunner.exit": "Back to session",
+  "blockRunner.goTitle": "Get ready",
+  "blockRunner.go": "GO",
+  "blockRunner.elapsed": "Elapsed",
+  "blockRunner.remaining": "Remaining",
+  "blockRunner.time": "TIME",
+  "blockRunner.finishEarly": "Finish",
+  "blockRunner.leftoverTitle": "Leftover",
+  "blockRunner.leftoverConfirm": "Log leftover",
+  "blockRunner.decrement": "Decrease",
+  "blockRunner.increment": "Increase",
+  "blockRunner.amrapScoreGloss": "{{rounds}} rounds · {{leftover}} {{name}}"
 }
