@@ -184,6 +184,41 @@ describe("dbBlockToCircuitWire (T165)", () => {
     )
     expect(wire.benchmark_slug).toBe("cindy")
   })
+
+  it("T195: fork with NULL slug echoes benchmark_id and does not invent a handle", () => {
+    const forkId = "ffffffff-ffff-4fff-8fff-ffffffffffff"
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Cindy remix",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: null,
+        benchmark_circuit_id: forkId,
+      }),
+    )
+    expect(wire.benchmark_slug).toBeUndefined()
+    expect(wire.benchmark_id).toBe(forkId)
+  })
+
+  it("T195: generic Circuit has no slug and no invented id", () => {
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Zeus",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: null,
+        benchmark_circuit_id: null,
+      }),
+    )
+    expect(wire).not.toHaveProperty("benchmark_slug")
+    expect(wire).not.toHaveProperty("benchmark_id")
+  })
 })
 
 describe("mergeDaySequence (T165)", () => {

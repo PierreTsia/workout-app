@@ -2,6 +2,7 @@ import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualN
 import {
   daySequenceToEchoExercises,
   mergeDaySequence,
+  slugFromBenchmarkEmbed,
   type DbBlockForRead,
   type DbSoloForRead,
 } from "../lib/daySequenceRead.ts"
@@ -44,15 +45,6 @@ interface BlockExerciseRow {
   position: number
   per_round: { amount: number; weight: number }[]
   exercises: CatalogNameEmbed | CatalogNameEmbed[] | null
-}
-
-function slugFromEmbed(
-  embed: { slug: string | null } | { slug: string | null }[] | null | undefined,
-): string | null {
-  if (embed == null) return null
-  const row = Array.isArray(embed) ? embed[0] : embed
-  const slug = row?.slug?.trim()
-  return slug ? slug : null
 }
 
 interface ExerciseBlockRow {
@@ -173,7 +165,7 @@ export const getProgramDetails: ToolDefinition = {
           mode: block.mode,
           cap_seconds: block.cap_seconds,
           benchmark_circuit_id: block.benchmark_circuit_id,
-          benchmark_slug: slugFromEmbed(block.benchmark_circuits),
+          benchmark_slug: slugFromBenchmarkEmbed(block.benchmark_circuits),
           block_exercises: (block.block_exercises ?? []).map((be) => {
             const catalog = unwrapCatalogNameEmbed(be.exercises)
             return {

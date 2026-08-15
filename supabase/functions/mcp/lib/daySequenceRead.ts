@@ -63,6 +63,8 @@ export interface CircuitWireItem {
   transition_seconds?: number
   exercises: CircuitWireExercise[]
   benchmark_slug?: string
+  /** Present on Circuit Forks (slug is NULL) so agents can re-target without a fake handle. */
+  benchmark_id?: string
 }
 
 function cellsAreHomogeneous(cells: PerRoundCellDb[]): boolean {
@@ -113,6 +115,8 @@ export function dbBlockToParsedCircuit(
     exercises,
     mode: isAmrap ? "amrap" : "rounds",
     capMinutes,
+    benchmarkSlug: block.benchmark_slug ?? null,
+    benchmarkCircuitId: block.benchmark_circuit_id ?? null,
   }
 }
 
@@ -142,13 +146,13 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     })
 
   const label = block.label?.trim()
-  const slug = block.benchmark_slug?.trim()
+  const catalogEcho = catalogEchoFields(block.benchmark_slug, block.benchmark_circuit_id)
   if (block.mode === "amrap") {
     const capMinutes = (block.cap_seconds ?? 0) / 60
     return {
       type: "circuit",
       ...(label ? { label } : {}),
-      ...(slug ? { benchmark_slug: slug } : {}),
+      ...catalogEcho,
       mode: "amrap",
       cap_minutes: capMinutes,
       exercises: nested,
@@ -161,10 +165,21 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     rest_seconds: block.rest_seconds,
     transition_seconds: block.transition_seconds,
     exercises: nested,
+    ...catalogEcho,
   }
   if (label) wire.label = label
-  if (slug) wire.benchmark_slug = slug
   return wire
+}
+
+/** Seed → slug. Fork (slug NULL) → id. Generic → omit both. Never invent a handle. */
+function catalogEchoFields(
+  slug: string | null | undefined,
+  catalogId: string | null | undefined,
+): Pick<CircuitWireItem, "benchmark_slug" | "benchmark_id"> {
+  const trimmed = slug?.trim()
+  if (trimmed) return { benchmark_slug: trimmed }
+  if (catalogId) return { benchmark_id: catalogId }
+  return {}
 }
 
 export type DaySequenceReadItem =
@@ -216,12 +231,12 @@ export function parsedCircuitToWire(
       per_round: ex.perRound.map((c) => ({ amount: c.amount, weight_kg: c.weightKg })),
     }
   })
-  const slug = circuit.benchmarkSlug?.trim()
+  const catalogEcho = catalogEchoFields(circuit.benchmarkSlug, circuit.benchmarkCircuitId)
   if (circuit.mode === "amrap") {
     return {
       type: "circuit",
       ...(circuit.label ? { label: circuit.label } : {}),
-      ...(slug ? { benchmark_slug: slug } : {}),
+      ...catalogEcho,
       mode: "amrap",
       cap_minutes: circuit.capMinutes ?? 20,
       exercises: nested,
@@ -233,9 +248,9 @@ export function parsedCircuitToWire(
     rest_seconds: circuit.restSeconds,
     transition_seconds: circuit.transitionSeconds,
     exercises: nested,
+    ...catalogEcho,
   }
   if (circuit.label) wire.label = circuit.label
-  if (slug) wire.benchmark_slug = slug
   return wire
 }
 
@@ -256,6 +271,16 @@ export function daySequenceToEchoExercises(items: DaySequenceReadItem[]): EchoDa
     }
     return wire
   })
+}
+
+/** Embed from `benchmark_circuits(slug)` — object or accidental array. */
+export function slugFromBenchmarkEmbed(
+  embed: { slug: string | null } | { slug: string | null }[] | null | undefined,
+): string | null {
+  if (embed == null) return null
+  const row = Array.isArray(embed) ? embed[0] : embed
+  const slug = row?.slug?.trim()
+  return slug ? slug : null
 }
 
 /** Catalog-ish map for formatCircuitPreviewLines from a DB block embed. */

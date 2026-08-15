@@ -1,6 +1,7 @@
 import { unwrapCatalogNameEmbed, type CatalogNameEmbed } from "../lib/bilingualName.ts"
 import {
   mergeDaySequence,
+  slugFromBenchmarkEmbed,
   type DbBlockForRead,
   type DbSoloForRead,
 } from "../lib/daySequenceRead.ts"
@@ -133,6 +134,8 @@ export const getUpcomingWorkouts: ToolDefinition = {
       sort_order: number
       mode: "rounds" | "amrap"
       cap_seconds: number | null
+      benchmark_circuit_id: string | null
+      benchmark_circuits: { slug: string | null } | { slug: string | null }[] | null
       block_exercises: {
         exercise_id: string
         name_snapshot: string
@@ -159,6 +162,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
       .from("exercise_blocks")
       .select(
         "id, workout_day_id, label, rounds, rest_seconds, transition_seconds, sort_order, mode, cap_seconds, " +
+          "benchmark_circuit_id, benchmark_circuits(slug), " +
           "block_exercises(exercise_id, name_snapshot, position, per_round, exercises(name, name_en))",
       )
       .in("workout_day_id", dayIds)
@@ -199,6 +203,8 @@ export const getUpcomingWorkouts: ToolDefinition = {
         sort_order: block.sort_order,
         mode: block.mode,
         cap_seconds: block.cap_seconds,
+        benchmark_circuit_id: block.benchmark_circuit_id,
+        benchmark_slug: slugFromBenchmarkEmbed(block.benchmark_circuits),
         block_exercises: (block.block_exercises ?? []).map((be) => {
           const catalog = unwrapCatalogNameEmbed(be.exercises)
           return {

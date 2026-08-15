@@ -1,4 +1,4 @@
-import { formatSessionHistory } from "../lib/format.ts"
+import { formatWorkoutHistory } from "../lib/format.ts"
 import {
   buildBlockMetaMap,
   type BlockExerciseMetaRow,
@@ -159,7 +159,9 @@ export const getWorkoutHistory: ToolDefinition = {
 
     const { data: runRows, error: runErr } = await supabase
       .from("block_runs")
-      .select("session_id, block_id, finished_at, mode")
+      .select(
+        "session_id, block_id, finished_at, mode, started_at, template_fingerprint, benchmark_circuit_id",
+      )
       .in("session_id", sessionIds)
       .returns<HistoryBlockRun[]>()
 
@@ -188,30 +190,33 @@ export const getWorkoutHistory: ToolDefinition = {
       }
     }
 
-    const blocks = relevantSessions.map((s: Record<string, unknown>) => {
+    const sessionsForFormat = relevantSessions.map((s: Record<string, unknown>) => {
       const sessionId = String(s.id)
-      const sessionLogs = setsBySession.get(sessionId) ?? []
       const cycle = s.cycle as { program?: { id: string; name: string } | null } | null
       const program = cycle?.program ?? null
-      const programInfo = program ? { id: program.id, name: program.name } : undefined
-      return formatSessionHistory(
-        {
-          id: sessionId,
-          workout_label_snapshot: String(s.workout_label_snapshot),
-          started_at: String(s.started_at),
-          finished_at: (s.finished_at as string | null) ?? null,
-          active_duration_ms: (s.active_duration_ms as number | null) ?? null,
-          total_sets_done: Number(s.total_sets_done),
-        },
-        sessionLogs,
-        metaById,
-        blockRuns,
-        programInfo,
-      )
+      return {
+        id: sessionId,
+        workout_label_snapshot: String(s.workout_label_snapshot),
+        started_at: String(s.started_at),
+        finished_at: (s.finished_at as string | null) ?? null,
+        active_duration_ms: (s.active_duration_ms as number | null) ?? null,
+        total_sets_done: Number(s.total_sets_done),
+        program: program ? { id: program.id, name: program.name } : null,
+      }
     })
+    const programBySession = new Map(
+      sessionsForFormat.flatMap((s) => (s.program ? [[s.id, s.program] as const] : [])),
+    )
+    const history = formatWorkoutHistory(
+      sessionsForFormat,
+      setsBySession,
+      metaById,
+      blockRuns,
+      programBySession,
+    )
 
     return {
-      content: [{ type: "text", text: `## Workout History (${relevantSessions.length} sessions)\n\n${blocks.join("\n\n")}` }],
+      content: [{ type: "text", text: `## Workout History (${relevantSessions.length} sessions)\n\n${history}` }],
     }
   },
 }
