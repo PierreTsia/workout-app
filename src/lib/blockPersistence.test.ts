@@ -2,8 +2,10 @@ import { describe, it, expect } from "vitest"
 import {
   buildAmrapPersistPayload,
   buildBlockInsertRows,
+  buildGeneratedCircuitInsertRows,
 } from "@/lib/blockPersistence"
 import type { ExerciseListItem } from "@/types/database"
+import type { GeneratedCircuit } from "@/types/generator"
 
 function makeLibExercise(
   overrides: Partial<ExerciseListItem> = {},
@@ -103,6 +105,87 @@ describe("buildAmrapPersistPayload", () => {
       transition_seconds: 0,
     })
     expect(exercises.map((e) => e.per_round)).toEqual([
+      [{ amount: 5, weight: 0 }],
+      [{ amount: 10, weight: 0 }],
+      [{ amount: 15, weight: 0 }],
+    ])
+  })
+})
+
+describe("buildGeneratedCircuitInsertRows", () => {
+  it("keeps a Tours preview as rounds with no cap", () => {
+    const burpee = makeLibExercise({ id: "ex-1", name: "Burpee" })
+    const circuit: GeneratedCircuit = {
+      label: "Finisher",
+      rounds: 3,
+      restSeconds: 90,
+      transitionSeconds: 20,
+      exercises: [{ exercise: burpee, amount: 10, weightKg: 0 }],
+    }
+
+    const { block, blockExercises } = buildGeneratedCircuitInsertRows(
+      "day-1",
+      0,
+      circuit,
+    )
+
+    expect(block).toMatchObject({
+      mode: "rounds",
+      cap_seconds: null,
+      rounds: 3,
+      rest_seconds: 90,
+      transition_seconds: 20,
+    })
+    expect(blockExercises[0].per_round).toHaveLength(3)
+  })
+
+  it("persists a generated Cindy as AMRAP, not Tours with a dropped cap", () => {
+    const pull = makeLibExercise({
+      id: "ex-pull",
+      name: "Pull-up",
+      equipment: "bodyweight",
+    })
+    const push = makeLibExercise({
+      id: "ex-push",
+      name: "Push-up",
+      equipment: "bodyweight",
+    })
+    const squat = makeLibExercise({
+      id: "ex-squat",
+      name: "Squat",
+      equipment: "bodyweight",
+    })
+    const circuit: GeneratedCircuit = {
+      label: "Cindy",
+      mode: "amrap",
+      capMinutes: 20,
+      rounds: 3,
+      restSeconds: 90,
+      transitionSeconds: 20,
+      exercises: [
+        { exercise: pull, amount: 5, weightKg: 0 },
+        { exercise: push, amount: 10, weightKg: 0 },
+        { exercise: squat, amount: 15, weightKg: 0 },
+      ],
+    }
+
+    const { block, blockExercises } = buildGeneratedCircuitInsertRows(
+      "day-1",
+      2,
+      circuit,
+    )
+
+    expect(block).toMatchObject({
+      workout_day_id: "day-1",
+      label: "Cindy",
+      sort_order: 2,
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+      rest_seconds: 0,
+      transition_seconds: 0,
+    })
+    expect(blockExercises.map((row) => row.per_round)).toEqual([
       [{ amount: 5, weight: 0 }],
       [{ amount: 10, weight: 0 }],
       [{ amount: 15, weight: 0 }],

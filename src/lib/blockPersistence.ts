@@ -96,17 +96,19 @@ export function buildGeneratedCircuitInsertRows(
   block: ExerciseBlockInsertRow
   blockExercises: BlockExerciseInsertRow[]
 } {
-  const rounds = circuit.rounds
+  const isAmrap = circuit.mode === "amrap"
+  const rounds = isAmrap ? 1 : circuit.rounds
+  const capMinutes = circuit.capMinutes ?? 20
   return {
     block: {
       workout_day_id: dayId,
       label: circuit.label?.trim() ? circuit.label.trim() : null,
       rounds,
-      rest_seconds: circuit.restSeconds,
-      transition_seconds: circuit.transitionSeconds,
+      rest_seconds: isAmrap ? 0 : circuit.restSeconds,
+      transition_seconds: isAmrap ? 0 : circuit.transitionSeconds,
       sort_order: sortOrder,
-      mode: "rounds",
-      cap_seconds: null,
+      mode: isAmrap ? "amrap" : "rounds",
+      cap_seconds: isAmrap ? capMinutes * 60 : null,
     },
     blockExercises: circuit.exercises.map((nested, position) => {
       const isBodyweight = nested.exercise.equipment === "bodyweight"
