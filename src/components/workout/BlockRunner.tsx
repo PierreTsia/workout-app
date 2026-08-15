@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
+import { useBlockHydratePending } from "@/hooks/useBlockRun"
 import { useBlockSession } from "@/hooks/useBlockSession"
 import { useCountdown } from "@/hooks/useCountdown"
 import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
@@ -53,7 +54,18 @@ interface BlockRunnerProps {
   paused?: boolean
 }
 
-export function BlockRunner({
+export function BlockRunner(props: BlockRunnerProps) {
+  const hydratePending = useBlockHydratePending(
+    props.block,
+    props.localSessionId,
+  )
+  if (hydratePending) {
+    return <div className="flex flex-1" />
+  }
+  return <BlockRunnerReady {...props} />
+}
+
+function BlockRunnerReady({
   block,
   localSessionId,
   onExit,

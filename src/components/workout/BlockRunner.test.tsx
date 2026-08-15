@@ -7,15 +7,19 @@ import { BlockRunner } from "@/components/workout/BlockRunner"
 import {
   enqueueBlockRun,
   enqueueSetLog,
+  peekSessionRealId,
   queuedBlockRunFor,
 } from "@/lib/syncService"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { authAtom } from "@/store/atoms"
 import type {
   BlockExerciseWithExercise,
   Exercise,
   ExerciseBlockWithExercises,
   SetLog,
 } from "@/types/database"
+
+const maybeSingle = vi.fn()
 
 vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: vi.fn(),
@@ -29,7 +33,17 @@ vi.mock("@/lib/syncService", () => ({
 }))
 
 vi.mock("@/lib/supabase", () => ({
-  supabase: { from: vi.fn() },
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            maybeSingle,
+          }),
+        }),
+      }),
+    }),
+  },
 }))
 
 vi.mock("@/hooks/useSessionSetLogs", () => ({
@@ -92,11 +106,16 @@ describe("BlockRunner", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(queuedBlockRunFor).mockReturnValue(null)
+    vi.mocked(peekSessionRealId).mockReturnValue(null)
+    maybeSingle.mockResolvedValue({ data: null, error: null })
     vi.mocked(useSessionSetLogs).mockReturnValue({
       data: [] as SetLog[],
     } as ReturnType<typeof useSessionSetLogs>)
   })
-  afterEach(() => vi.useRealTimers())
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
 
   it("starts on 3-2-1-GO then lands on the first station", () => {
     vi.useFakeTimers()
@@ -490,5 +509,92 @@ describe("BlockRunner", () => {
         finishedAt: null,
       }),
     )
+  })
+
+  it("restores the cursor from drained set_logs after hydrate, not (0,0)", async () => {
+    const t0 = 1_700_000_000_000
+    vi.spyOn(Date, "now").mockReturnValue(t0)
+    vi.mocked(peekSessionRealId).mockReturnValue("real-1")
+    vi.mocked(useSessionSetLogs).mockReturnValue({
+      data: undefined,
+      isPending: true,
+    } as ReturnType<typeof useSessionSetLogs>)
+    maybeSingle.mockResolvedValue({
+      data: {
+        started_at: new Date(t0 - 12 * 60 * 1000).toISOString(),
+        finished_at: null,
+      },
+      error: null,
+    })
+
+    const cindy = block({
+      mode: "amrap",
+      cap_seconds: 20 * 60,
+      rounds: 1,
+    })
+    const { store, rerender } = renderWithProviders(<div />)
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+    rerender(<BlockRunner block={cindy} localSessionId="local-1" />)
+
+    expect(screen.queryByText("Push-ups")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("region", { name: /get ready/i }),
+    ).not.toBeInTheDocument()
+
+    vi.mocked(useSessionSetLogs).mockReturnValue({
+      data: [{ block_exercise_id: "A", set_number: 1 } as SetLog],
+    } as ReturnType<typeof useSessionSetLogs>)
+    rerender(<BlockRunner block={cindy} localSessionId="local-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Squats")).toBeInTheDocument()
+    })
+    expect(screen.queryByText("Push-ups")).not.toBeInTheDocument()
+    expect(screen.getByRole("timer", { name: /remaining/i })).toHaveTextContent(
+      "08:00",
+    )
+  })
+
+  it("opens a finished AMRAP on the done screen, not as a live run", async () => {
+    const t0 = 1_700_000_000_000
+    vi.spyOn(Date, "now").mockReturnValue(t0)
+    vi.mocked(peekSessionRealId).mockReturnValue("real-1")
+    vi.mocked(useSessionSetLogs).mockReturnValue({
+      data: undefined,
+      isPending: true,
+    } as ReturnType<typeof useSessionSetLogs>)
+    maybeSingle.mockResolvedValue({
+      data: {
+        started_at: new Date(t0 - 20 * 60 * 1000).toISOString(),
+        finished_at: new Date(t0).toISOString(),
+      },
+      error: null,
+    })
+
+    const cindy = block({
+      mode: "amrap",
+      cap_seconds: 20 * 60,
+      rounds: 1,
+    })
+    const { store, rerender } = renderWithProviders(<div />)
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+    rerender(<BlockRunner block={cindy} localSessionId="local-1" />)
+
+    vi.mocked(useSessionSetLogs).mockReturnValue({
+      data: [
+        { block_exercise_id: "A", set_number: 1 } as SetLog,
+        { block_exercise_id: "B", set_number: 1 } as SetLog,
+      ],
+    } as ReturnType<typeof useSessionSetLogs>)
+    rerender(<BlockRunner block={cindy} localSessionId="local-1" />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Circuit complete")).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: /^Log$/i })).not.toBeInTheDocument()
   })
 })

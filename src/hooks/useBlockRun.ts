@@ -4,6 +4,7 @@ import { useAtomValue } from "jotai"
 import { authAtom } from "@/store/atoms"
 import { supabase } from "@/lib/supabase"
 import { templateFingerprint } from "@/lib/blockTemplate"
+import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import {
   discardBlockRun,
   enqueueBlockRun,
@@ -38,15 +39,18 @@ function parseRunRow(
   }
 }
 
-export function useBlockRun(
+function useSessionRealId(localSessionId: string): string | null {
+  const userId = useAtomValue(authAtom)?.id ?? null
+  return userId ? peekSessionRealId(userId, localSessionId) : null
+}
+
+function usePersistedBlockRunQuery(
   block: ExerciseBlockWithExercises,
   localSessionId: string,
-): UseBlockRun {
-  const userId = useAtomValue(authAtom)?.id ?? null
-  const realId = userId ? peekSessionRealId(userId, localSessionId) : null
+) {
+  const realId = useSessionRealId(localSessionId)
   const isAmrap = block.mode === "amrap"
   const queued = isAmrap ? queuedBlockRunFor(localSessionId, block.id) : null
-
   const query = useQuery({
     queryKey: ["block-run", realId, block.id],
     queryFn: async () => {
@@ -61,7 +65,33 @@ export function useBlockRun(
     },
     enabled: isAmrap && realId != null && queued == null,
   })
+  return { realId, isAmrap, queued, query }
+}
 
+/** True until drained set_logs and (AMRAP) block_runs have settled — do not mount the runner. */
+export function useBlockHydratePending(
+  block: ExerciseBlockWithExercises,
+  localSessionId: string,
+): boolean {
+  const { realId, isAmrap, queued, query } = usePersistedBlockRunQuery(
+    block,
+    localSessionId,
+  )
+  const logsQuery = useSessionSetLogs(realId)
+  const logsPending = realId != null && logsQuery.isPending
+  const runPending =
+    isAmrap && realId != null && queued == null && query.isPending
+  return logsPending || runPending
+}
+
+export function useBlockRun(
+  block: ExerciseBlockWithExercises,
+  localSessionId: string,
+): UseBlockRun {
+  const { realId, isAmrap, queued, query } = usePersistedBlockRunQuery(
+    block,
+    localSessionId,
+  )
   const [localStart, setLocalStart] = useState<number | null>(null)
   const [localFinish, setLocalFinish] = useState<number | null>(null)
 
