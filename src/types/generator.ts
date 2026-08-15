@@ -60,6 +60,8 @@ export interface GeneratedCircuit {
   label?: string
   mode?: "rounds" | "amrap"
   capMinutes?: number
+  /** Catalog handle from generate — commit instantiates Rx, no nested LLM exercises. */
+  benchmarkSlug?: string
   rounds: number
   restSeconds: number
   transitionSeconds: number

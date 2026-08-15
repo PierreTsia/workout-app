@@ -275,6 +275,39 @@ describe("useGenerateQuickWorkoutPreview", () => {
     expect(circuit.circuit.rounds).not.toBe(3)
   })
 
+  it("T192: hydrates a slug-only Cindy item without nested exercises", async () => {
+    invoke.mockResolvedValueOnce({
+      data: {
+        exerciseIds: [],
+        items: [{ type: "circuit", benchmark_slug: "cindy" }],
+        rationale: "Official Cindy.",
+      },
+      error: null,
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useGenerateQuickWorkoutPreview({ exercisePool: [POOL_BENCH, POOL_ROW] }),
+    )
+
+    let workout: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      workout = await result.current.mutateAsync(CONSTRAINTS)
+    })
+
+    expect(workout!.dayItems).toEqual([
+      {
+        kind: "circuit",
+        circuit: {
+          benchmarkSlug: "cindy",
+          rounds: 1,
+          restSeconds: 0,
+          transitionSeconds: 0,
+          exercises: [],
+        },
+      },
+    ])
+  })
+
   it("maps invoke error with 429 context to quota_exceeded", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: functionsError(429) })
 

@@ -17,7 +17,27 @@ import {
   workoutDayItemsToMcpExercises,
   workoutToMcpExercises,
 } from "./quickWorkout"
+import { parseExerciseInput } from "../../supabase/functions/mcp/lib/createProgramValidation"
+import type { BenchmarkCircuitLookup } from "../../supabase/functions/mcp/lib/resolveBenchmark"
 import type { GeneratedExercise, GeneratedWorkout } from "@/types/generator"
+
+const CINDY_PULL = "cccccccc-1111-4111-8111-cccccccccccc"
+const CINDY_PUSH = "cccccccc-2222-4222-8222-cccccccccccc"
+const CINDY_SQUAT = "cccccccc-3333-4333-8333-cccccccccccc"
+const CINDY_SEED: BenchmarkCircuitLookup = {
+  id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  slug: "cindy",
+  aliases: ["holland", "tom holland"],
+  rx: {
+    mode: "amrap",
+    cap_seconds: 1200,
+    exercises: [
+      { exercise_id: CINDY_PULL, amount: 5, weight: 0 },
+      { exercise_id: CINDY_PUSH, amount: 10, weight: 0 },
+      { exercise_id: CINDY_SQUAT, amount: 15, weight: 0 },
+    ],
+  },
+}
 
 const REPS_EX: GeneratedExercise = {
   exercise: {
@@ -194,5 +214,111 @@ describe("workoutDayItemsToMcpExercises", () => {
     expect(workoutDayItemsToMcpExercises(workout)).toEqual(
       workoutToMcpExercises([REPS_EX]),
     )
+  })
+
+  it("T192: generic AMRAP commit keeps mode and cap_minutes, not Tours rounds", () => {
+    const workout: GeneratedWorkout = {
+      name: "AI: AMRAP",
+      hasFallback: false,
+      exercises: [],
+      dayItems: [
+        {
+          kind: "circuit",
+          circuit: {
+            label: "HIIT finisher",
+            mode: "amrap",
+            capMinutes: 20,
+            rounds: 1,
+            restSeconds: 0,
+            transitionSeconds: 0,
+            exercises: [
+              { exercise: BODYWEIGHT_EX.exercise, amount: 10, weightKg: 0 },
+              { exercise: DURATION_EX.exercise, amount: 30, weightKg: 0 },
+            ],
+          },
+        },
+      ],
+    }
+
+    expect(workoutDayItemsToMcpExercises(workout)).toEqual([
+      {
+        type: "circuit",
+        label: "HIIT finisher",
+        mode: "amrap",
+        cap_minutes: 20,
+        exercises: [
+          {
+            exercise_id: BODYWEIGHT_EX.exercise.id,
+            amount: 10,
+            weight_kg: 0,
+          },
+          {
+            exercise_id: DURATION_EX.exercise.id,
+            amount: 30,
+            weight_kg: 0,
+          },
+        ],
+      },
+    ])
+  })
+
+  it("T192: slug-only Cindy round-trips as benchmark_slug without nested exercises", () => {
+    const workout: GeneratedWorkout = {
+      name: "AI: Cindy",
+      hasFallback: false,
+      exercises: [],
+      dayItems: [
+        {
+          kind: "circuit",
+          circuit: {
+            benchmarkSlug: "cindy",
+            rounds: 1,
+            restSeconds: 0,
+            transitionSeconds: 0,
+            exercises: [],
+          },
+        },
+      ],
+    }
+
+    expect(workoutDayItemsToMcpExercises(workout)).toEqual([
+      { type: "circuit", benchmark_slug: "cindy" },
+    ])
+  })
+
+  it("T192: slug-only commit parses to catalog FK and seed Rx, not LLM numbers", () => {
+    const workout: GeneratedWorkout = {
+      name: "AI: Cindy",
+      hasFallback: false,
+      exercises: [],
+      dayItems: [
+        {
+          kind: "circuit",
+          circuit: {
+            benchmarkSlug: "cindy",
+            rounds: 1,
+            restSeconds: 0,
+            transitionSeconds: 0,
+            exercises: [],
+          },
+        },
+      ],
+    }
+
+    const [payload] = workoutDayItemsToMcpExercises(workout)
+    const parsed = parseExerciseInput(payload, "Cindy", 0, [CINDY_SEED])
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok || parsed.value.kind !== "circuit") {
+      throw new Error("expected catalog Circuit")
+    }
+    expect(parsed.value.benchmarkCircuitId).toBe(CINDY_SEED.id)
+    expect(parsed.value.benchmarkSlug).toBe("cindy")
+    expect(parsed.value.mode).toBe("amrap")
+    expect(parsed.value.capMinutes).toBe(20)
+    expect(parsed.value.exercises).toEqual([
+      { mode: "flat", exerciseId: CINDY_PULL, amount: 5, weightKg: 0 },
+      { mode: "flat", exerciseId: CINDY_PUSH, amount: 10, weightKg: 0 },
+      { mode: "flat", exerciseId: CINDY_SQUAT, amount: 15, weightKg: 0 },
+    ])
   })
 })

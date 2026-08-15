@@ -22,7 +22,8 @@ import {
   getEquipmentValuesForCategories,
   getTargetExerciseCount,
 } from "./prompt.ts"
-import { validateAndRepair, type QwDayItem } from "./validate.ts"
+import { collectQwExerciseIds, validateAndRepair, type QwDayItem } from "./validate.ts"
+import { replaceCatalogCircuits } from "./replaceCatalogCircuits.ts"
 import { ProviderError } from "../_shared/providerError.ts"
 import type {
   CatalogExercise,
@@ -132,7 +133,11 @@ async function callGeminiWithBilling(
   prompt: string,
   deps: Pick<GenerateQuickWorkoutDeps, "callGemini" | "logBillableCall" | "log">,
   ctx: { userId: string; requestId: string },
-): Promise<{ exerciseIds: string[]; rationale: string }> {
+): Promise<{
+  exerciseIds: string[]
+  exercises?: QwDayItem[]
+  rationale: string
+}> {
   try {
     return await deps.callGemini(prompt)
   } finally {
@@ -253,10 +258,12 @@ export async function handleGenerateQuickWorkout(
       ? llmOutput.exercises
       : llmOutput.exerciseIds
   const result = validateAndRepair(llmItems, catalogIds, targetCount)
+  const items = replaceCatalogCircuits(result.items, parsed.focusAreas)
+  const exerciseIds = collectQwExerciseIds(items)
 
   return jsonResponse({
-    items: result.items,
-    exerciseIds: result.exerciseIds,
+    items,
+    exerciseIds,
     repaired: result.repaired,
     rationale: llmOutput.rationale.trim(),
   })

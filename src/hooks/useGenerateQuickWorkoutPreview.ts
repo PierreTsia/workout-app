@@ -54,7 +54,8 @@ type ServerDayItem =
       rounds?: number
       rest_seconds?: number
       transition_seconds?: number
-      exercises: Array<{ exercise_id: string; amount: number; weight_kg: number }>
+      benchmark_slug?: string
+      exercises?: Array<{ exercise_id: string; amount: number; weight_kg: number }>
     }
 
 interface ServerResponse {
@@ -116,7 +117,21 @@ function buildDayItems(
       return [{ kind: "solo", exercise: buildExercise(ex, setsPerExercise) }]
     }
     if (item.type !== "circuit") return []
-    const nested = item.exercises.flatMap((n) => {
+    if (item.benchmark_slug) {
+      return [
+        {
+          kind: "circuit",
+          circuit: {
+            benchmarkSlug: item.benchmark_slug,
+            rounds: 1,
+            restSeconds: 0,
+            transitionSeconds: 0,
+            exercises: [],
+          },
+        },
+      ]
+    }
+    const nested = (item.exercises ?? []).flatMap((n) => {
       const ex = byId.get(n.exercise_id)
       if (!ex) return []
       return [{ exercise: ex, amount: n.amount, weightKg: n.weight_kg }]
@@ -169,7 +184,9 @@ export function useGenerateQuickWorkoutPreview({ exercisePool }: AIGenerateConte
       if (!daySource.length) throw new Error("AI returned no exercises")
 
       const allIds = daySource.flatMap((item) =>
-        typeof item === "string" ? [item] : item.exercises.map((e) => e.exercise_id),
+        typeof item === "string"
+          ? [item]
+          : (item.exercises ?? []).map((e) => e.exercise_id),
       )
       const byId = await hydrateExercises(allIds, exercisePool)
       const { setsPerExercise } = VOLUME_MAP[constraints.duration as Duration]

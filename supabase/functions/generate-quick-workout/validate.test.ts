@@ -233,6 +233,17 @@ describe("validateAndRepair", () => {
     expect(circuit).not.toHaveProperty("mode")
   })
 
+  it("T192: keeps a slug-only Cindy item without requiring nested exercises", () => {
+    const result = validateAndRepair(
+      [{ type: "circuit", benchmark_slug: "cindy" }],
+      CATALOG,
+      1,
+    )
+    expect(result.items).toEqual([{ type: "circuit", benchmark_slug: "cindy" }])
+    expect(result.exerciseIds).toEqual([])
+    expect(result.repaired).toBe(false)
+  })
+
   it("T189: validated QW AMRAP payload passes MCP parseExerciseInput", () => {
     const pull = "11111111-2222-4333-8444-555555555555"
     const squat = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
