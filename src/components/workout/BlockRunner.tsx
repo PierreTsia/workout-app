@@ -28,6 +28,8 @@ import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
 import { useExerciseById } from "@/hooks/useExerciseById"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { playFinishBeeps } from "@/lib/audio"
+import { BlockClockChrome } from "@/components/workout/BlockClockChrome"
+import { BlockGoCountdown } from "@/components/workout/BlockGoCountdown"
 import { BlockProgressBars } from "@/components/workout/BlockProgressBars"
 import { CountdownRing } from "@/components/workout/CountdownRing"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
@@ -69,6 +71,8 @@ export function BlockRunner({
     discardBlock,
   } = useBlockSession(block, localSessionId)
 
+  // Tours GO is display-only: in-memory stamp, no block_runs write (T184).
+  const [goStartedAt, setGoStartedAt] = useState<number | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
   const confirmCancel = async () => {
     await discardBlock()
@@ -183,6 +187,21 @@ export function BlockRunner({
     )
   }
 
+  if (goStartedAt == null) {
+    return (
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-7">
+        <BlockGoCountdown onComplete={() => setGoStartedAt(Date.now())} />
+      </div>
+    )
+  }
+
+  const runHeader = (
+    <div className="flex flex-col items-center gap-2">
+      <BlockClockChrome startedAt={goStartedAt} />
+      {progressBars}
+    </div>
+  )
+
   if (state.phase === "transition" || state.phase === "roundRest") {
     const nextExercise = block.exercises[state.next.exerciseIdx]
     const title =
@@ -204,7 +223,7 @@ export function BlockRunner({
         aria-label={title}
         className="flex flex-1 flex-col px-5 pb-5 pt-7 text-center"
       >
-        <div className="flex justify-center">{progressBars}</div>
+        {runHeader}
 
         <div className="flex flex-1 flex-col items-center justify-center gap-5">
           <h2 className="text-2xl font-bold">{title}</h2>
@@ -255,7 +274,7 @@ export function BlockRunner({
         aria-label={block.label ?? t("blockRunner.round", { current: round + 1, total: block.rounds })}
         className="flex flex-1 flex-col px-5 pb-5 pt-7 text-center"
       >
-        <div className="flex justify-center">{progressBars}</div>
+        {runHeader}
 
         <div className="flex flex-1 flex-col items-center justify-center gap-6">
           <div className="flex flex-col items-center gap-1.5">

@@ -230,5 +230,8 @@
   "blockRunner.redo": "Recommencer",
   "blockRunner.doneTitle": "Circuit terminé",
   "blockRunner.doneBody": "Bien joué — tous les tours sont enregistrés.",
-  "blockRunner.exit": "Retour à la séance"
+  "blockRunner.exit": "Retour à la séance",
+  "blockRunner.goTitle": "Prêt",
+  "blockRunner.go": "GO",
+  "blockRunner.elapsed": "Temps écoulé"
 }

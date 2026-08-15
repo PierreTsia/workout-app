@@ -1,3 +1,4 @@
+import type { ReactElement } from "react"
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest"
 import { act, fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -64,6 +65,19 @@ const block = (
   ...over,
 })
 
+const GO_MS = 4_000
+
+/** Circuits always open on 3-2-1-GO; most tests care about the first station. */
+function renderAfterGo(ui: ReactElement, restoreRealTimers = true) {
+  vi.useFakeTimers()
+  const result = renderWithProviders(ui)
+  act(() => {
+    vi.advanceTimersByTime(GO_MS)
+  })
+  if (restoreRealTimers) vi.useRealTimers()
+  return result
+}
+
 describe("BlockRunner", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -73,8 +87,60 @@ describe("BlockRunner", () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it("shows the current round, exercise and rep prescription", () => {
+  it("starts on 3-2-1-GO then lands on the first station", () => {
+    vi.useFakeTimers()
     renderWithProviders(<BlockRunner block={block()} localSessionId="local-1" />)
+
+    expect(screen.getByRole("region", { name: /get ready/i })).toBeInTheDocument()
+    expect(screen.queryByText("Push-ups")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /^Log$/i }),
+    ).not.toBeInTheDocument()
+
+    act(() => {
+      vi.advanceTimersByTime(4_000)
+    })
+
+    expect(screen.getByText("Push-ups")).toBeInTheDocument()
+    expect(screen.getByText("20")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Log$/i })).toBeInTheDocument()
+  })
+
+  it("shows elapsed chrome after GO that is not a tap target", () => {
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />, false)
+
+    const clock = screen.getByRole("timer", { name: /elapsed/i })
+    expect(clock).toHaveTextContent("00:00")
+    expect(clock).toHaveClass("pointer-events-none")
+    expect(screen.queryByRole("button", { name: /elapsed/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^Log$/i })).toBeInTheDocument()
+
+    act(() => {
+      vi.advanceTimersByTime(3_000)
+    })
+    expect(clock).toHaveTextContent("00:03")
+  })
+
+  it("keeps elapsed chrome up during a transition timer", () => {
+    renderAfterGo(
+      <BlockRunner
+        block={block({ transition_seconds: 20 })}
+        localSessionId="local-1"
+      />,
+      false,
+    )
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /^Log$/i }))
+    })
+
+    expect(screen.getByText("Rest")).toBeInTheDocument()
+    expect(screen.getByRole("timer", { name: /elapsed/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Skip/i })).toBeInTheDocument()
+  })
+
+  it("shows the current round, exercise and rep prescription", () => {
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
     expect(screen.getByTestId("block-round-count")).toHaveTextContent("1/2")
     expect(screen.getByText("Push-ups")).toBeInTheDocument()
@@ -93,7 +159,7 @@ describe("BlockRunner", () => {
       ] as SetLog[],
     } as ReturnType<typeof useSessionSetLogs>)
 
-    renderWithProviders(<BlockRunner block={block()} localSessionId="local-1" />)
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
     // First cell is already in set_logs: show it as logged, no fresh "Log".
     expect(screen.getByText("Logged")).toBeInTheDocument()
@@ -110,7 +176,7 @@ describe("BlockRunner", () => {
 
   it("shows the validated badge immediately after logging then going back", async () => {
     const user = userEvent.setup()
-    renderWithProviders(<BlockRunner block={block()} localSessionId="local-1" />)
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
     expect(screen.queryByText("Logged")).not.toBeInTheDocument()
 
@@ -126,7 +192,7 @@ describe("BlockRunner", () => {
 
   it("advances to the next exercise when logging (no transition)", async () => {
     const user = userEvent.setup()
-    renderWithProviders(<BlockRunner block={block()} localSessionId="local-1" />)
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
     await user.click(screen.getByRole("button", { name: /Log/i }))
 
@@ -135,15 +201,15 @@ describe("BlockRunner", () => {
   })
 
   it("disables Back on the very first cell", () => {
-    renderWithProviders(<BlockRunner block={block()} localSessionId="local-1" />)
+    renderAfterGo(<BlockRunner block={block()} localSessionId="local-1" />)
 
     expect(screen.getByRole("button", { name: /Back/i })).toBeDisabled()
   })
 
   it("shows a transition countdown and skips to the next exercise", () => {
-    vi.useFakeTimers()
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner block={block({ transition_seconds: 20 })} localSessionId="local-1" />,
+      false,
     )
 
     act(() => {
@@ -161,7 +227,7 @@ describe("BlockRunner", () => {
   })
 
   it("renders round and exercise progress bars filled to position", () => {
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block({ rounds: 4, exercises: [be("A", "Push-ups"), be("B", "Squats")] })}
         localSessionId="local-1"
@@ -176,16 +242,16 @@ describe("BlockRunner", () => {
   })
 
   it("holds a duration cell, then waits for an explicit Validate at zero", () => {
-    vi.useFakeTimers()
     const plank = be("A", "Plank", {
       per_round: [{ amount: 30, weight: 0 }],
       exercise: { measurement_type: "duration" } as Exercise,
     })
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block({ rounds: 1, transition_seconds: 0, exercises: [plank] })}
         localSessionId="local-1"
       />,
+      false,
     )
 
     expect(screen.getByText("30")).toBeInTheDocument()
@@ -251,7 +317,7 @@ describe("BlockRunner", () => {
   it("cancels the block after confirmation and returns to the selector", async () => {
     const user = userEvent.setup()
     const onCancel = vi.fn()
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block()}
         localSessionId="local-1"
@@ -269,7 +335,7 @@ describe("BlockRunner", () => {
   it("keeps running when the cancel dialog is dismissed", async () => {
     const user = userEvent.setup()
     const onCancel = vi.fn()
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block()}
         localSessionId="local-1"
@@ -287,7 +353,7 @@ describe("BlockRunner", () => {
   it("fires onComplete once when the block reaches done", async () => {
     const user = userEvent.setup()
     const onComplete = vi.fn()
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block({ rounds: 1, exercises: [be("A", "Push-ups")] })}
         localSessionId="local-1"
@@ -305,7 +371,7 @@ describe("BlockRunner", () => {
   it("reaches the done state after the last cell and calls onExit", async () => {
     const user = userEvent.setup()
     const onExit = vi.fn()
-    renderWithProviders(
+    renderAfterGo(
       <BlockRunner
         block={block({ rounds: 1, exercises: [be("A", "Push-ups")] })}
         localSessionId="local-1"
