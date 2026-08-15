@@ -7,7 +7,10 @@ import type {
 } from "@/types/database"
 import { pendingFromBlock } from "@/lib/circuitFork"
 import { useUpdatePerRound } from "@/hooks/useBlockMutations"
-import type { RequestCircuitForkPersist } from "@/hooks/useCircuitForkGate"
+import {
+  persistGatedMutation,
+  type RequestCircuitForkPersist,
+} from "@/hooks/useCircuitForkGate"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -95,16 +98,16 @@ function PerRoundExerciseRow({
         })
         void requestPersist(
           pending,
-          () => {
-            onMutationStateChange("saving")
-            updatePerRound.mutate(
-              { blockExerciseId: blockExercise.id, dayId, perRound },
-              {
-                onSuccess: () => onMutationStateChange("saved"),
-                onError: () => onMutationStateChange("error"),
-              },
-            )
-          },
+          async () =>
+            persistGatedMutation(
+              () =>
+                updatePerRound.mutateAsync({
+                  blockExerciseId: blockExercise.id,
+                  dayId,
+                  perRound,
+                }),
+              onMutationStateChange,
+            ),
           () =>
             setForm(seedForm(blockExercise.per_round, rounds, toDisplay)),
         )

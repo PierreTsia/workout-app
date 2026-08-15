@@ -47,28 +47,62 @@ const supabaseCircuitForkWriter: CircuitForkWriter = {
 
 export type RequestCircuitForkPersist = (
   pending: CircuitForkPending,
-  persist: () => void,
+  persist: () => void | Promise<void>,
   revert: () => void,
 ) => Promise<void>
 
-export function useCircuitForkGate(block: {
-  id: string
-  benchmark_circuit_id?: string | null
-}) {
+export async function persistGatedMutation(
+  write: () => Promise<unknown>,
+  report: (state: "saving" | "saved" | "error") => void,
+): Promise<void> {
+  report("saving")
+  try {
+    await write()
+    report("saved")
+  } catch (err) {
+    report("error")
+    throw err
+  }
+}
+
+export function useCircuitForkGate(
+  block: {
+    id: string
+    benchmark_circuit_id?: string | null
+  },
+  options?: { onError?: () => void },
+) {
   const user = useAtomValue(authAtom)
+  const onError = options?.onError
   const [open, setOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
+  const [forkedCatalogId, setForkedCatalogId] = useState<string | null>(null)
+  const [gateBlockId, setGateBlockId] = useState(block.id)
+  if (gateBlockId !== block.id) {
+    setGateBlockId(block.id)
+    setForkedCatalogId(null)
+  }
+  const catalogId = forkedCatalogId ?? block.benchmark_circuit_id ?? null
   const heldRef = useRef<{
     pending: CircuitForkPending
-    persist: () => void
+    persist: () => void | Promise<void>
     revert: () => void
   } | null>(null)
 
+  const failHeld = useCallback(
+    (revert: () => void) => {
+      revert()
+      onError?.()
+      heldRef.current = null
+      setOpen(false)
+    },
+    [onError],
+  )
+
   const requestPersist = useCallback<RequestCircuitForkPersist>(
     async (pending, persist, revert) => {
-      const catalogId = block.benchmark_circuit_id
       if (catalogId == null) {
-        persist()
+        await persist()
         return
       }
       if (user == null) {
@@ -78,6 +112,7 @@ export function useCircuitForkGate(block: {
       const catalog = await loadCatalogViaSupabase(catalogId)
       if (catalog == null) {
         revert()
+        onError?.()
         return
       }
       if (
@@ -89,52 +124,55 @@ export function useCircuitForkGate(block: {
           pending,
         })
       ) {
-        persist()
+        await persist()
         return
       }
       heldRef.current = { pending, persist, revert }
       setOpen(true)
     },
-    [block.benchmark_circuit_id, user],
+    [catalogId, onError, user],
   )
 
-  const closeHeld = useCallback((action: "persist" | "revert") => {
+  const closeHeld = useCallback(() => {
     const held = heldRef.current
     if (held == null) return
-    if (action === "persist") held.persist()
-    else held.revert()
+    held.revert()
     heldRef.current = null
     setOpen(false)
   }, [])
 
   const confirm = useCallback(async () => {
     const held = heldRef.current
-    const catalogId = block.benchmark_circuit_id
     if (held == null || user == null || catalogId == null) return
     setIsPending(true)
     try {
       const catalog = await loadCatalogViaSupabase(catalogId)
       if (catalog == null) {
-        closeHeld("revert")
+        failHeld(held.revert)
         return
       }
-      await persistCircuitFork(supabaseCircuitForkWriter, {
+      const { forkedId } = await persistCircuitFork(supabaseCircuitForkWriter, {
         catalog,
         currentUserId: user.id,
         pending: held.pending,
         blockId: block.id,
+        persistMeta: async () => {
+          await held.persist()
+        },
       })
-      closeHeld("persist")
+      setForkedCatalogId(forkedId)
+      heldRef.current = null
+      setOpen(false)
     } catch {
-      closeHeld("revert")
+      failHeld(held.revert)
     } finally {
       setIsPending(false)
     }
-  }, [block.benchmark_circuit_id, block.id, closeHeld, user])
+  }, [block.id, catalogId, failHeld, user])
 
   const onOpenChange = useCallback(
     (next: boolean) => {
-      if (!next) closeHeld("revert")
+      if (!next) closeHeld()
       else setOpen(true)
     },
     [closeHeld],

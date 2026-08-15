@@ -196,3 +196,15 @@ export function groupSessionHistory(
   const sortedBlocks = [...blockGroups].sort((a, b) => a.sortOrder - b.sortOrder)
   return [...sortedBlocks, ...soloGroups]
 }
+
+/**
+ * History sheet identity for a scored session: the GO snapshot on `block_runs`
+ * wins over the live `exercise_blocks` FK, so a later Circuit Fork cannot
+ * retarget Monday's card.
+ */
+export function sheetCatalogId(
+  liveCatalogId: string | null,
+  goSnapshotCatalogId: string | null | undefined,
+): string | null {
+  return goSnapshotCatalogId ?? liveCatalogId
+}

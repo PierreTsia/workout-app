@@ -210,4 +210,73 @@ describe("SessionRow", () => {
     expect(screen.getByText("No PR yet")).toBeInTheDocument()
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
   })
+
+  it("opens Cindy history from the GO stamp after the live block was forked", async () => {
+    useSessionSetLogs.mockReturnValue(
+      mockQueryResult([
+        log({
+          block_exercise_id: "be-cindy",
+          exercise_name_snapshot: "Pompes",
+        }),
+      ]),
+    )
+    useSessionBlockMeta.mockReturnValue(
+      mockQueryResult(
+        new Map([
+          [
+            "be-cindy",
+            {
+              blockId: "block-tue",
+              label: "Cindy",
+              position: 0,
+              emoji: "🔥",
+              blockSortOrder: 0,
+              mode: "amrap",
+              benchmarkCircuitId: "fork-id",
+            },
+          ],
+        ]),
+      ),
+    )
+    useSessionBlockRuns.mockReturnValue(
+      mockQueryResult(
+        new Map([
+          [
+            "block-tue",
+            {
+              finished_at: "2026-08-01T10:20:00.000Z",
+              benchmarkCircuitId: "cindy-catalog",
+            },
+          ],
+        ]),
+      ),
+    )
+    useBenchmarkCompletionHistory.mockReturnValue({
+      data: {
+        copy: {
+          tagline_fr: "Le WOD de Tom Holland. 20 min.",
+          tagline_en: "Tom Holland’s WOD. 20 min.",
+          story_fr: "Cinq tractions.",
+          story_en: "Five pull-ups, ten push-ups, fifteen squats.",
+          reference: { name: "Tom Holland", score: "27" },
+        },
+        amrapViews: [],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    await expand("en")
+    await userEvent.click(screen.getByRole("button", { name: /cindy/i }))
+
+    expect(useBenchmarkCompletionHistory).toHaveBeenCalledWith(
+      true,
+      "cindy-catalog",
+    )
+    expect(useBenchmarkCompletionHistory).not.toHaveBeenCalledWith(
+      true,
+      "fork-id",
+    )
+  })
 })

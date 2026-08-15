@@ -12,7 +12,7 @@ import {
 } from "@/lib/blockTemplate"
 import { pendingFromBlock } from "@/lib/circuitFork"
 import { useUpdateBlockMeta } from "@/hooks/useBlockMutations"
-import { useCircuitForkGate } from "@/hooks/useCircuitForkGate"
+import { useCircuitForkGate, persistGatedMutation } from "@/hooks/useCircuitForkGate"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { PerRoundGrid } from "@/components/builder/PerRoundGrid"
 import { UniformExerciseList } from "@/components/builder/UniformExerciseList"
@@ -62,14 +62,6 @@ export function BlockEditor({
   const { t } = useTranslation("builder")
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const updateBlockMeta = useUpdateBlockMeta()
-  const {
-    forkOpen,
-    isPending: forkPending,
-    requestPersist,
-    confirm: confirmFork,
-    onOpenChange: onForkOpenChange,
-  } = useCircuitForkGate(block)
-
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle")
@@ -82,6 +74,14 @@ export function BlockEditor({
     },
     [onMutationStateChange],
   )
+  const onForkError = useCallback(() => reportSave("error"), [reportSave])
+  const {
+    forkOpen,
+    isPending: forkPending,
+    requestPersist,
+    confirm: confirmFork,
+    onOpenChange: onForkOpenChange,
+  } = useCircuitForkGate(block, { onError: onForkError })
 
   const [form, setForm] = useState<MetaForm>(() => seedMeta(block))
   const [showPerRoundGrid, setShowPerRoundGrid] = useState(false)
@@ -96,13 +96,11 @@ export function BlockEditor({
     ) => {
       void requestPersist(
         pending,
-        () => {
-          reportSave("saving")
-          updateBlockMeta.mutate(input, {
-            onSuccess: () => reportSave("saved"),
-            onError: () => reportSave("error"),
-          })
-        },
+        async () =>
+          persistGatedMutation(
+            () => updateBlockMeta.mutateAsync(input),
+            reportSave,
+          ),
         () => setForm(seedMeta(block)),
       )
     },

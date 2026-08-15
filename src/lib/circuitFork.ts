@@ -107,11 +107,15 @@ export async function persistCircuitFork(
     currentUserId: string
     pending: CircuitForkPending
     blockId: string
+    persistMeta?: () => Promise<void>
   },
 ): Promise<{ forkedId: string }> {
   const inserted = await writer.insertFork(
     buildForkInsertRow(input.catalog, input.currentUserId, input.pending),
   )
+  if (input.persistMeta != null) {
+    await input.persistMeta()
+  }
   await writer.retargetBlock(input.blockId, inserted.id)
   return { forkedId: inserted.id }
 }

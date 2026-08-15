@@ -3,16 +3,29 @@ import { screen } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
 import { BlockHistorySheet } from "./BlockHistorySheet"
 import type { BenchmarkCompletionHistory } from "@/hooks/useBenchmarkCompletionHistory"
+import type { BlockCompletionHistory } from "@/hooks/useBlockCompletionHistory"
 import type { AmrapRunView } from "@/lib/amrapScore"
 import type { BlockRunView } from "@/lib/blockCompletionHistory"
 
 vi.mock("@/hooks/useOnlineStatus", () => ({ useOnlineStatus: () => true }))
 
-function idleBlockHistory() {
+function idleBlockHistory(): {
+  data: BlockCompletionHistory
+  isLoading: boolean
+  isError: boolean
+  isFetching: boolean
+  refetch: () => void
+} {
   return {
-    data: { views: [], trend: { seconds: [], dates: [] }, amrapViews: [] },
+    data: {
+      mode: "rounds",
+      views: [],
+      trend: { seconds: [], dates: [] },
+      amrapViews: [],
+    },
     isLoading: false,
     isError: false,
+    isFetching: false,
     refetch: vi.fn(),
   }
 }
@@ -83,6 +96,7 @@ describe("BlockHistorySheet", () => {
   it("lists each run's completion time, the delta vs last, and a PB badge", () => {
     mockHistory.mockReturnValue({
       data: {
+        mode: "rounds",
         views: [
           view("s2", "2026-06-08T10:00:00.000Z", 240, { deltaSeconds: -60, isPb: true }),
           view("s1", "2026-06-01T10:00:00.000Z", 300),
@@ -91,6 +105,7 @@ describe("BlockHistorySheet", () => {
           seconds: [300, 240],
           dates: ["2026-06-01T10:00:00.000Z", "2026-06-08T10:00:00.000Z"],
         },
+        amrapViews: [],
       },
       isLoading: false,
       isError: false,
@@ -107,13 +122,7 @@ describe("BlockHistorySheet", () => {
   })
 
   it("shows an empty state when there are no runs", () => {
-    mockHistory.mockReturnValue({
-      data: { views: [], trend: { seconds: [], dates: [] } },
-      isLoading: false,
-      isError: false,
-      isFetching: false,
-      refetch: vi.fn(),
-    })
+    mockHistory.mockReturnValue(idleBlockHistory())
 
     renderSheet()
 

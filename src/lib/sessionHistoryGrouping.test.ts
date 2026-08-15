@@ -3,6 +3,7 @@ import { resolveExerciseName } from "@/lib/catalogLabels"
 import {
   buildBlockMetaMap,
   groupSessionHistory,
+  sheetCatalogId,
   type BlockExerciseMetaRow,
   type BlockMeta,
   type SoloHistoryGroup,
@@ -218,6 +219,13 @@ describe("groupSessionHistory", () => {
     const [block] = groupSessionHistory(logs, metaById)
     if (block.kind !== "block") throw new Error("expected block")
     expect(block.benchmarkCircuitId).toBe("cindy-catalog")
+  })
+
+  it("prefers the GO snapshot over a live fork FK for the history sheet", () => {
+    expect(sheetCatalogId("fork-id", "cindy-catalog")).toBe("cindy-catalog")
+    expect(sheetCatalogId("cindy-catalog", null)).toBe("cindy-catalog")
+    expect(sheetCatalogId("cindy-catalog", undefined)).toBe("cindy-catalog")
+    expect(sheetCatalogId(null, undefined)).toBe(null)
   })
 
   it("carries the catalog row onto block cells too", () => {

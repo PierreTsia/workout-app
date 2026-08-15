@@ -199,4 +199,23 @@ describe("persistCircuitFork", () => {
     expect(dayBlock.benchmark_circuit_id).toBe("fork-new")
     expect(mondayRun.benchmark_circuit_id).toBe(CINDY_ID)
   })
+
+  it("does not retarget the day block when persisting the new Rx fails", async () => {
+    const { writer, inserts, retargets } = makeWriter()
+
+    await expect(
+      persistCircuitFork(writer, {
+        catalog: makeCindyCatalog(),
+        currentUserId: USER_ID,
+        pending: pendingFromRx(CINDY_RX, 600),
+        blockId: "block-monday",
+        persistMeta: async () => {
+          throw new Error("cap write failed")
+        },
+      }),
+    ).rejects.toThrow("cap write failed")
+
+    expect(inserts).toHaveLength(1)
+    expect(retargets).toEqual([])
+  })
 })

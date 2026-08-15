@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase"
 
 export interface SessionBlockRun {
   finished_at: string | null
+  /** Catalog id stamped at GO. Null = jetable, or a run from before the column. */
+  benchmarkCircuitId: string | null
 }
 
 /**
@@ -15,11 +17,17 @@ export function useSessionBlockRuns(sessionId: string | undefined) {
       if (sessionId == null) return new Map()
       const { data, error } = await supabase
         .from("block_runs")
-        .select("block_id, finished_at")
+        .select("block_id, finished_at, benchmark_circuit_id")
         .eq("session_id", sessionId)
       if (error) throw error
       return new Map(
-        (data ?? []).map((row) => [row.block_id, { finished_at: row.finished_at }]),
+        (data ?? []).map((row) => [
+          row.block_id,
+          {
+            finished_at: row.finished_at,
+            benchmarkCircuitId: row.benchmark_circuit_id ?? null,
+          },
+        ]),
       )
     },
     enabled: Boolean(sessionId),
