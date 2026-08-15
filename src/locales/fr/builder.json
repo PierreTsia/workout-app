@@ -80,5 +80,8 @@
   "amrapGloss": "Autant de tours que possible.",
   "toursModeHint": "Le score, c’est le temps.",
   "amrapCapMinutes": "Minutes",
-  "customizePerRound": "Personnaliser par tour"
+  "customizePerRound": "Personnaliser par tour",
+  "forkTitle": "Ça ne sera plus Cindy.",
+  "forkDescription": "Votre circuit modifié devient une copie privée. Cindy reste à 20 minutes.",
+  "forkConfirm": "Continuer"
 }

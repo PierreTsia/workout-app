@@ -3,13 +3,54 @@ import { screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { BlockEditor } from "@/components/builder/BlockEditor"
+import { authAtom } from "@/store/atoms"
 import type { ExerciseBlockWithExercises } from "@/types/database"
 
+const CINDY_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 const updates: { table: string; payload: unknown }[] = []
+const inserts: { table: string; payload: unknown }[] = []
+
+const CINDY_CATALOG = {
+  id: CINDY_ID,
+  owner_id: null,
+  aliases: ["holland"],
+  tagline_fr: "Le WOD de Tom Holland. 20 min.",
+  tagline_en: "Tom Holland’s WOD. 20 min.",
+  story_fr: null,
+  story_en: null,
+  reference: { name: "Tom Holland", score: "27" },
+  rx: {
+    mode: "amrap" as const,
+    cap_seconds: 1200,
+    exercises: [
+      { exercise_id: "ex-pull", amount: 5, weight: 0 },
+      { exercise_id: "ex-push", amount: 10, weight: 0 },
+      { exercise_id: "ex-squat", amount: 15, weight: 0 },
+    ],
+  },
+}
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: (table: string) => ({
+      select: () => ({
+        eq: () => ({
+          single: () =>
+            Promise.resolve({
+              data: table === "benchmark_circuits" ? CINDY_CATALOG : null,
+              error: null,
+            }),
+        }),
+      }),
+      insert: (payload: unknown) => {
+        inserts.push({ table, payload })
+        return {
+          select: () => ({
+            single: () =>
+              Promise.resolve({ data: { id: "fork-new" }, error: null }),
+          }),
+        }
+      },
       update: (payload: unknown) => ({
         eq: () => {
           updates.push({ table, payload })
@@ -77,9 +118,12 @@ function makeBlock(
   }
 }
 
+const TEST_USER = { id: "user-1" }
+
 describe("BlockEditor", () => {
   beforeEach(() => {
     updates.length = 0
+    inserts.length = 0
   })
 
   it("reopens an AMRAP block on the AMRAP toggle with a 20 min cap and no rest fields", () => {
@@ -230,5 +274,127 @@ describe("BlockEditor", () => {
         }),
       )
     })
+  })
+
+  it("does not persist a Cindy cap edit under the seed id — cancel writes nothing", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <BlockEditor
+        open
+        onOpenChange={vi.fn()}
+        block={makeBlock({ benchmark_circuit_id: CINDY_ID })}
+        dayId="day-1"
+        onMutationStateChange={vi.fn()}
+      />,
+    )
+    store.set(authAtom, TEST_USER as never)
+
+    const minutes = screen.getByLabelText(/minutes/i)
+    await user.clear(minutes)
+    await user.type(minutes, "10")
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("alertdialog", { name: /this will no longer be cindy/i }),
+      ).toBeInTheDocument()
+    })
+
+    expect(inserts).toEqual([])
+    expect(updates).toEqual([])
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }))
+
+    expect(inserts).toEqual([])
+    expect(updates).toEqual([])
+    expect(screen.getByLabelText(/minutes/i)).toHaveValue(20)
+  })
+
+  it("confirms a Cindy cap fork then persists onto the retargeted block", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <BlockEditor
+        open
+        onOpenChange={vi.fn()}
+        block={makeBlock({ benchmark_circuit_id: CINDY_ID })}
+        dayId="day-1"
+        onMutationStateChange={vi.fn()}
+      />,
+    )
+    store.set(authAtom, TEST_USER as never)
+
+    const minutes = screen.getByLabelText(/minutes/i)
+    await user.clear(minutes)
+    await user.type(minutes, "10")
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("alertdialog", { name: /this will no longer be cindy/i }),
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole("button", { name: /continue/i }))
+
+    await waitFor(() => {
+      expect(inserts).toHaveLength(1)
+    })
+
+    expect(inserts[0]).toEqual({
+      table: "benchmark_circuits",
+      payload: expect.objectContaining({
+        slug: null,
+        owner_id: "user-1",
+        forked_from: CINDY_ID,
+        rx: expect.objectContaining({
+          mode: "amrap",
+          cap_seconds: 600,
+        }),
+      }),
+    })
+
+    const retarget = updates.find((u) => {
+      if (u.table !== "exercise_blocks") return false
+      if (typeof u.payload !== "object" || u.payload === null) return false
+      return "benchmark_circuit_id" in u.payload
+    })
+    expect(retarget?.payload).toEqual({ benchmark_circuit_id: "fork-new" })
+
+    const capWrite = updates.find((u) => {
+      if (u.table !== "exercise_blocks") return false
+      if (typeof u.payload !== "object" || u.payload === null) return false
+      return "cap_seconds" in u.payload
+    })
+    expect(capWrite?.payload).toEqual(
+      expect.objectContaining({
+        mode: "amrap",
+        cap_seconds: 600,
+        rounds: 1,
+      }),
+    )
+  })
+
+  it("does not persist a seed amount edit from the uniform list under the seed id", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <BlockEditor
+        open
+        onOpenChange={vi.fn()}
+        block={makeBlock({ benchmark_circuit_id: CINDY_ID })}
+        dayId="day-1"
+        onMutationStateChange={vi.fn()}
+      />,
+    )
+    store.set(authAtom, TEST_USER as never)
+
+    const pullReps = screen.getByLabelText(/reps pull-up/i)
+    await user.clear(pullReps)
+    await user.type(pullReps, "6")
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("alertdialog", { name: /this will no longer be cindy/i }),
+      ).toBeInTheDocument()
+    })
+    expect(inserts).toEqual([])
+    expect(updates).toEqual([])
   })
 })

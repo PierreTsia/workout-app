@@ -10,10 +10,13 @@ import {
   DEFAULT_AMRAP_CAP_MINUTES,
   switchBlockMode,
 } from "@/lib/blockTemplate"
+import { pendingFromBlock } from "@/lib/circuitFork"
 import { useUpdateBlockMeta } from "@/hooks/useBlockMutations"
+import { useCircuitForkGate } from "@/hooks/useCircuitForkGate"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { PerRoundGrid } from "@/components/builder/PerRoundGrid"
 import { UniformExerciseList } from "@/components/builder/UniformExerciseList"
+import { CircuitForkDialog } from "@/components/builder/CircuitForkDialog"
 import { SaveIndicator } from "@/components/builder/SaveIndicator"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,6 +62,13 @@ export function BlockEditor({
   const { t } = useTranslation("builder")
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const updateBlockMeta = useUpdateBlockMeta()
+  const {
+    forkOpen,
+    isPending: forkPending,
+    requestPersist,
+    confirm: confirmFork,
+    onOpenChange: onForkOpenChange,
+  } = useCircuitForkGate(block)
 
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -80,14 +90,23 @@ export function BlockEditor({
   useEffect(() => () => clearTimeout(debounceRef.current), [])
 
   const persist = useCallback(
-    (input: Parameters<typeof updateBlockMeta.mutate>[0]) => {
-      reportSave("saving")
-      updateBlockMeta.mutate(input, {
-        onSuccess: () => reportSave("saved"),
-        onError: () => reportSave("error"),
-      })
+    (
+      input: Parameters<typeof updateBlockMeta.mutate>[0],
+      pending: ReturnType<typeof pendingFromBlock>,
+    ) => {
+      void requestPersist(
+        pending,
+        () => {
+          reportSave("saving")
+          updateBlockMeta.mutate(input, {
+            onSuccess: () => reportSave("saved"),
+            onError: () => reportSave("error"),
+          })
+        },
+        () => setForm(seedMeta(block)),
+      )
     },
-    [updateBlockMeta, reportSave],
+    [block, requestPersist, updateBlockMeta, reportSave],
   )
 
   const flush = useCallback(
@@ -95,47 +114,58 @@ export function BlockEditor({
       clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         const minutes = clampCapMinutes(next.cap_minutes)
+        const pending = pendingFromBlock({
+          mode: next.mode,
+          cap_seconds: next.mode === "amrap" ? minutes * 60 : null,
+          exercises: block.exercises,
+        })
         if (next.mode === "amrap") {
           const { block: patch } = buildAmrapPersistPayload(
             minutes,
             block.exercises,
           )
-          persist({
-            blockId: block.id,
-            dayId,
-            label: next.label.trim() === "" ? null : next.label.trim(),
-            ...patch,
-          })
+          persist(
+            {
+              blockId: block.id,
+              dayId,
+              label: next.label.trim() === "" ? null : next.label.trim(),
+              ...patch,
+            },
+            pending,
+          )
           return
         }
 
         const rounds = parseInt(next.rounds, 10)
         const rest = parseInt(next.rest_seconds, 10)
         const transition = parseInt(next.transition_seconds, 10)
-        persist({
-          blockId: block.id,
-          dayId,
-          label: next.label.trim() === "" ? null : next.label.trim(),
-          mode: "rounds",
-          cap_seconds: null,
-          rest_seconds: isNaN(rest) ? undefined : Math.max(0, rest),
-          transition_seconds: isNaN(transition)
-            ? undefined
-            : Math.max(0, transition),
-          rounds:
-            roundsChanged && !isNaN(rounds) && rounds > 0
-              ? rounds
+        persist(
+          {
+            blockId: block.id,
+            dayId,
+            label: next.label.trim() === "" ? null : next.label.trim(),
+            mode: "rounds",
+            cap_seconds: null,
+            rest_seconds: isNaN(rest) ? undefined : Math.max(0, rest),
+            transition_seconds: isNaN(transition)
+              ? undefined
+              : Math.max(0, transition),
+            rounds:
+              roundsChanged && !isNaN(rounds) && rounds > 0
+                ? rounds
+                : undefined,
+            exercises: roundsChanged
+              ? block.exercises.map((be) => ({
+                  id: be.id,
+                  per_round: be.per_round,
+                }))
               : undefined,
-          exercises: roundsChanged
-            ? block.exercises.map((be) => ({
-                id: be.id,
-                per_round: be.per_round,
-              }))
-            : undefined,
-        })
+          },
+          pending,
+        )
       }, 500)
     },
-    [block.id, block.exercises, dayId, persist],
+    [block.exercises, block.id, dayId, persist],
   )
 
   function handleChange(field: keyof MetaForm, value: string) {
@@ -178,32 +208,47 @@ export function BlockEditor({
       id: block.exercises[i].id,
       per_round: ex.per_round,
     }))
+    const pending = pendingFromBlock({
+      mode: switched.mode,
+      cap_seconds: switched.cap_seconds,
+      exercises: block.exercises.map((be, i) => ({
+        id: be.id,
+        exercise_id: be.exercise_id,
+        per_round: switched.exercises[i].per_round,
+      })),
+    })
     if (switched.mode === "amrap") {
       const { block: patch, exercises: amrapExercises } =
         buildAmrapPersistPayload(
           (switched.cap_seconds ?? DEFAULT_AMRAP_CAP_MINUTES * 60) / 60,
           exercises,
         )
-      persist({
+      persist(
+        {
+          blockId: block.id,
+          dayId,
+          label: nextForm.label.trim() === "" ? null : nextForm.label.trim(),
+          ...patch,
+          exercises: amrapExercises,
+        },
+        pending,
+      )
+      return
+    }
+    persist(
+      {
         blockId: block.id,
         dayId,
         label: nextForm.label.trim() === "" ? null : nextForm.label.trim(),
-        ...patch,
-        exercises: amrapExercises,
-      })
-      return
-    }
-    persist({
-      blockId: block.id,
-      dayId,
-      label: nextForm.label.trim() === "" ? null : nextForm.label.trim(),
-      mode: "rounds",
-      cap_seconds: null,
-      rounds: switched.rounds,
-      rest_seconds: switched.rest_seconds,
-      transition_seconds: switched.transition_seconds,
-      exercises,
-    })
+        mode: "rounds",
+        cap_seconds: null,
+        rounds: switched.rounds,
+        rest_seconds: switched.rest_seconds,
+        transition_seconds: switched.transition_seconds,
+        exercises,
+      },
+      pending,
+    )
   }
 
   const statusEl =
@@ -316,12 +361,14 @@ export function BlockEditor({
           block={block}
           dayId={dayId}
           onMutationStateChange={reportSave}
+          requestPersist={requestPersist}
         />
       ) : (
         <PerRoundGrid
           block={block}
           dayId={dayId}
           onMutationStateChange={reportSave}
+          requestPersist={requestPersist}
         />
       )}
       {!isAmrap && !showPerRoundGrid && (
@@ -336,37 +383,54 @@ export function BlockEditor({
     </div>
   )
 
+  const forkDialog = (
+    <CircuitForkDialog
+      open={forkOpen}
+      onOpenChange={onForkOpenChange}
+      onConfirm={() => {
+        void confirmFork()
+      }}
+      isPending={forkPending}
+    />
+  )
+
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          aria-describedby={undefined}
-          className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0"
-        >
-          <DialogHeader className="shrink-0 px-4 pt-4 pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <DialogTitle>{t("editBlock")}</DialogTitle>
-              <span className="flex h-5 items-center">{statusEl}</span>
-            </div>
-          </DialogHeader>
-          {body}
-        </DialogContent>
-      </Dialog>
+      <>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent
+            aria-describedby={undefined}
+            className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0"
+          >
+            <DialogHeader className="shrink-0 px-4 pt-4 pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle>{t("editBlock")}</DialogTitle>
+                <span className="flex h-5 items-center">{statusEl}</span>
+              </div>
+            </DialogHeader>
+            {body}
+          </DialogContent>
+        </Dialog>
+        {forkDialog}
+      </>
     )
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="flex max-h-[85vh] flex-col gap-0 p-0">
-        <DrawerHeader className="shrink-0 px-4 pt-2 pb-0">
-          <div className="flex items-center justify-between gap-2">
-            <DrawerTitle>{t("editBlock")}</DrawerTitle>
-            <span className="flex h-5 items-center">{statusEl}</span>
-          </div>
-        </DrawerHeader>
-        {body}
-      </DrawerContent>
-    </Drawer>
+    <>
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="flex max-h-[85vh] flex-col gap-0 p-0">
+          <DrawerHeader className="shrink-0 px-4 pt-2 pb-0">
+            <div className="flex items-center justify-between gap-2">
+              <DrawerTitle>{t("editBlock")}</DrawerTitle>
+              <span className="flex h-5 items-center">{statusEl}</span>
+            </div>
+          </DrawerHeader>
+          {body}
+        </DrawerContent>
+      </Drawer>
+      {forkDialog}
+    </>
   )
 }
 

@@ -5,7 +5,9 @@ import type {
   ExerciseBlockWithExercises,
   PerRoundCell,
 } from "@/types/database"
+import { pendingFromBlock } from "@/lib/circuitFork"
 import { useUpdatePerRound } from "@/hooks/useBlockMutations"
+import type { RequestCircuitForkPersist } from "@/hooks/useCircuitForkGate"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
@@ -15,12 +17,14 @@ interface PerRoundGridProps {
   block: ExerciseBlockWithExercises
   dayId: string
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  requestPersist: RequestCircuitForkPersist
 }
 
 export function PerRoundGrid({
   block,
   dayId,
   onMutationStateChange,
+  requestPersist,
 }: PerRoundGridProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -29,10 +33,12 @@ export function PerRoundGrid({
         // resized per_round (no setState-in-effect).
         <PerRoundExerciseRow
           key={`${be.id}:${block.rounds}`}
+          block={block}
           blockExercise={be}
           rounds={block.rounds}
           dayId={dayId}
           onMutationStateChange={onMutationStateChange}
+          requestPersist={requestPersist}
         />
       ))}
     </div>
@@ -45,17 +51,21 @@ interface CellForm {
 }
 
 interface PerRoundExerciseRowProps {
+  block: ExerciseBlockWithExercises
   blockExercise: BlockExerciseWithExercise
   rounds: number
   dayId: string
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  requestPersist: RequestCircuitForkPersist
 }
 
 function PerRoundExerciseRow({
+  block,
   blockExercise,
   rounds,
   dayId,
   onMutationStateChange,
+  requestPersist,
 }: PerRoundExerciseRowProps) {
   const { t } = useTranslation("builder")
   const { unit, toDisplay, toKg } = useWeightUnit()
@@ -79,17 +89,39 @@ function PerRoundExerciseRow({
           amount: Math.max(0, Math.round(Number(c.amount) || 0)),
           weight: Math.round(toKg(Number(c.weight) || 0) * 10) / 10,
         }))
-        onMutationStateChange("saving")
-        updatePerRound.mutate(
-          { blockExerciseId: blockExercise.id, dayId, perRound },
-          {
-            onSuccess: () => onMutationStateChange("saved"),
-            onError: () => onMutationStateChange("error"),
+        const pending = pendingFromBlock(block, {
+          blockExerciseId: blockExercise.id,
+          per_round: perRound,
+        })
+        void requestPersist(
+          pending,
+          () => {
+            onMutationStateChange("saving")
+            updatePerRound.mutate(
+              { blockExerciseId: blockExercise.id, dayId, perRound },
+              {
+                onSuccess: () => onMutationStateChange("saved"),
+                onError: () => onMutationStateChange("error"),
+              },
+            )
           },
+          () =>
+            setForm(seedForm(blockExercise.per_round, rounds, toDisplay)),
         )
       }, 500)
     },
-    [blockExercise.id, dayId, toKg, updatePerRound, onMutationStateChange],
+    [
+      block,
+      blockExercise.id,
+      blockExercise.per_round,
+      dayId,
+      onMutationStateChange,
+      requestPersist,
+      rounds,
+      toDisplay,
+      toKg,
+      updatePerRound,
+    ],
   )
 
   function handleCellChange(
