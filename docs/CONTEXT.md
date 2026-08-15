@@ -145,7 +145,21 @@ A group of exercises trained **round-by-round** (supersets, trisets, circuits) �
 → ADR `file:docs/adr/0007-exercise-blocks-rich-structure-no-progression.md`
 
 **Round**:
-One pass through every exercise of an **Exercise Block** (A → B → C). The block's **unit of work**: an N-round block means doing A, B, C in sequence N times. The block-level rest is armed **between rounds** (after the last exercise of a round), never between A→B→C inside a round — that gap is the **Transition**. Distinct from a `set` on a flat `workout_exercise`, though a block round produces one `set_logs` row per exercise for history. Resolves issue #351 open-question 0: "1 round = pass through the exercises once", **not** "1 rep = pass through the exercises once" (the latter — dumbbell complex / tight EMOM — is a separate, out-of-scope primitive).
+One pass through every exercise of an **Exercise Block** (A → B → C). The block's **unit of work**: an N-round block means doing A, B, C in sequence N times. The block-level rest is armed **between rounds** (after the last exercise of a round), never between A→B→C inside a round — that gap is the **Transition**. Distinct from a `set` on a flat `workout_exercise`, though a block round produces one `set_logs` row per exercise for history. Resolves issue #351 open-question 0: "1 round = pass through the exercises once", **not** "1 rep = pass through the exercises once" (the latter — dumbbell complex / tight EMOM — is a separate, out-of-scope primitive). Distinct from **Tours** / **AMRAP**, which are *termination modes* for a Circuit, not the unit of work.
+
+**Tours** (mode, FR; EN: **Rounds**):
+Circuit termination whose constraint is a fixed round count. You set N **Rounds**; the score is time (**Circuit Completion Time**). User-facing opposite of **AMRAP**. Internal `mode: "rounds"` (the v1 default — every Circuit shipped before this mode exists is **Tours**).
+
+**AMRAP**:
+Circuit termination whose constraint is a time cap and whose score is **Rounds** completed (+ leftover reps on the station in progress, written `27+3`). User-facing term in **FR and EN** — not translated, same loanword policy as **Circuit**. Internal `mode: "amrap"`.
+
+**Never shown naked.** Every surface (Builder segmented control, `BlockCard`, pre-session, **Round Screen**, history, MCP `rendered` / details / history) pairs the word with the cap **and** a one-line gloss: FR *« Autant de tours que possible. »* / EN *« As many rounds as possible. »* Canonical badge: `AMRAP 20 min`, never `AMRAP` alone. The gloss is part of the term, not a tooltip you can skip.
+
+Same rule for the score: `27+3` is never shown alone. Hero numeral plus a gloss naming the leftover movement — FR `27 tours · 3 pompes` / EN `27 rounds · 3 push-ups`. TIME, Terminer, history, and MCP all use that pair.
+
+**Block Run**:
+One execution of an **AMRAP** Circuit in a **session**. Persisted row (`block_runs`) keyed by `(session_id, block_id)`: GO `started_at`, optional `finished_at` (TIME / Terminer), and a **template fingerprint** snapshot (mode + cap + exercise amounts/weights) so later Builder edits don't rewrite history. Leftover is **not** stored here — it is the ragged last **Round** in `set_logs`. **Tours** Circuits do not write a **Block Run**; their time stays **Circuit Completion Time** (ADR 0008).
+→ `file:docs/adr/0014-amrap-mode-and-block-runs.md`
 
 **Transition** (`transition_seconds`):
 The block-level pause **between exercises inside a single Round** (e.g. 20s between burpees and lunges in a station circuit). `0` for a pure superset; 15-30s for a circuit with equipment changes. Distinct from the block's `rest_seconds`, which applies **between rounds**. Block-level scalar in v1 (not per-round, not per-exercise).
