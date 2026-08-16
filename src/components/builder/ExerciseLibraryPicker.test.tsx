@@ -1,9 +1,31 @@
+import { useState } from "react"
 import { vi, describe, it, expect, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import type { Exercise } from "@/types/database"
+import type { CatalogPreviewRow } from "@/lib/previewCatalogCircuit"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
+
+const PULL_ID = "11111111-1111-4111-8111-111111111111"
+
+function makeCindySeed(
+  overrides: Partial<CatalogPreviewRow> = {},
+): CatalogPreviewRow {
+  return {
+    id: "cindy-id",
+    slug: "cindy",
+    aliases: ["holland"],
+    rx: {
+      mode: "amrap",
+      cap_seconds: 1200,
+      exercises: [{ exercise_id: PULL_ID, amount: 5, weight: 0 }],
+    },
+    tagline_fr: "Le WOD de Tom Holland.",
+    tagline_en: "Tom Holland’s WOD.",
+    ...overrides,
+  }
+}
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn() },
@@ -158,6 +180,28 @@ vi.mock("@/hooks/useBuilderMutations", () => ({
   useDeleteExercise: () => mockUseDeleteExercise(),
 }))
 
+const mockUseBenchmarkSeeds = vi.fn((_enabled: boolean) => ({
+  data: [] as CatalogPreviewRow[],
+  isLoading: false,
+  isError: false,
+}))
+const mockInstantiateMutateAsync = vi.fn().mockResolvedValue({ blockId: "b-1" })
+const mockUseInstantiateBenchmarkOnDay = vi.fn(() => ({
+  mutateAsync: mockInstantiateMutateAsync,
+  isPending: false,
+  variables: undefined,
+}))
+
+vi.mock("@/hooks/useBenchmarkSeeds", () => ({
+  useBenchmarkSeeds: (enabled: boolean) => mockUseBenchmarkSeeds(enabled),
+}))
+vi.mock("@/hooks/useInstantiateBenchmarkOnDay", () => ({
+  useInstantiateBenchmarkOnDay: () => mockUseInstantiateBenchmarkOnDay(),
+}))
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn() },
+}))
+
 vi.mock("@/components/exercise/ExerciseInfoDialog", () => ({
   ExerciseInfoDialog: () => null,
 }))
@@ -187,6 +231,12 @@ function renderPicker(overrides = {}, locale: "en" | "fr" = "en") {
 describe("ExerciseLibraryPicker", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    })
+    mockInstantiateMutateAsync.mockResolvedValue({ blockId: "b-1" })
     mockUseExerciseLibraryPaginated.mockImplementation(
       (params: {
         muscleGroup?: string | null
@@ -511,5 +561,182 @@ describe("ExerciseLibraryPicker", () => {
     expect(
       screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
     ).toBeInTheDocument()
+  })
+
+  it("shows the Exercises | Circuits kind toggle when the instantiate path is present", () => {
+    renderPicker({ existingMaxSortOrder: -1 })
+
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
+  })
+
+  it("does not show the kind toggle in Create circuit (block) mode", () => {
+    renderPicker({ onCreateBlock: vi.fn() })
+
+    expect(screen.queryByRole("radio", { name: "Exercises" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("radio", { name: "Circuits" })).not.toBeInTheDocument()
+  })
+
+  it("lists Cindy as a WOD card on the Circuits kind", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.getByText("AMRAP 20 min")).toBeInTheDocument()
+    expect(screen.getByText("Tom Holland’s WOD.")).toBeInTheDocument()
+    expect(screen.queryByText("5-10-15")).not.toBeInTheDocument()
+  })
+
+  it("keeps the kind toggle visible and shows empty copy when there are no seeds", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
+    expect(screen.getByText("No benchmark circuits yet.")).toBeInTheDocument()
+  })
+
+  it("shows error copy on Circuits and still lists exercises on Exercises", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: true,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    expect(screen.getByText("Couldn’t load circuits.")).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("radio", { name: "Exercises" }))
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+  })
+
+  it("closes the sheet after a successful Cindy tap", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    const onOpenChange = vi.fn()
+    const onMutationStateChange = vi.fn()
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onOpenChange,
+      onMutationStateChange,
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "Cindy" }))
+
+    expect(mockInstantiateMutateAsync).toHaveBeenCalledWith({
+      dayId: "day-1",
+      catalog: makeCindySeed(),
+      existingMaxSortOrder: -1,
+    })
+    expect(onMutationStateChange).toHaveBeenCalledWith("saved")
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("keeps the sheet open and toasts when instantiate throws", async () => {
+    const { toast } = await import("sonner")
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    mockInstantiateMutateAsync.mockRejectedValueOnce(new Error("offline"))
+    const onOpenChange = vi.fn()
+    const onMutationStateChange = vi.fn()
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onOpenChange,
+      onMutationStateChange,
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "Cindy" }))
+
+    expect(toast.error).toHaveBeenCalledWith("Couldn’t add this circuit.")
+    expect(onMutationStateChange).toHaveBeenCalledWith("error")
+    expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+  })
+
+  it("hides muscle filters on the Circuits kind", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expect(screen.queryByLabelText("Filters")).not.toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
+  })
+
+  it("resets to the Exercises kind when the picker is closed and reopened", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+
+    function Harness() {
+      const [open, setOpen] = useState(true)
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen
+          </button>
+          <ExerciseLibraryPicker
+            open={open}
+            onOpenChange={setOpen}
+            dayId="day-1"
+            existingExerciseCount={0}
+            onMutationStateChange={vi.fn()}
+            existingMaxSortOrder={-1}
+          />
+        </>
+      )
+    }
+
+    renderWithProviders(<Harness />)
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Close" }))
+    await user.click(screen.getByRole("button", { name: "Reopen" }))
+
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
+  })
+
+  it("does not fetch seeds when the Create circuit picker is open", () => {
+    renderPicker({ onCreateBlock: vi.fn() })
+    expect(mockUseBenchmarkSeeds).toHaveBeenCalledWith(false)
   })
 })
