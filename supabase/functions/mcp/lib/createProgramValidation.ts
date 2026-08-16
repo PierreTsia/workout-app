@@ -331,10 +331,13 @@ function parseCircuitInput(
   if (benchmarkSlug != null || benchmarkId != null) {
     const found = resolveBenchmark(benchmarks, { slug: benchmarkSlug, id: benchmarkId })
     if (!found) {
-      const shown = benchmarkSlug ?? benchmarkId ?? ""
+      const byId =
+        benchmarkId != null && benchmarkId.trim() !== ""
+      const field = byId ? "benchmark_id" : "benchmark_slug"
+      const shown = byId ? benchmarkId : (benchmarkSlug ?? "")
       return {
         ok: false,
-        error: `${at}: unknown benchmark_slug "${shown}" — not found in the Circuit catalog`,
+        error: `${at}: unknown ${field} "${shown}" — not found in the Circuit catalog`,
       }
     }
     return { ok: true, value: circuitFromCatalog(found) }

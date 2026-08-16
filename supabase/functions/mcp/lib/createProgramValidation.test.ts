@@ -1007,8 +1007,30 @@ describe("parseExerciseInput — Benchmark Circuit slug (T191)", () => {
     )
     expect(result.ok).toBe(false)
     if (!result.ok) {
+      expect(result.error).toContain("unknown benchmark_slug")
       expect(result.error).toContain("not-a-wod")
-      expect(result.error.toLowerCase()).toMatch(/unknown|not found/)
+    }
+  })
+
+  it("names an unknown benchmark_id in the error, not benchmark_slug", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        benchmark_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 6, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 11, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+      [CINDY_SEED],
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("unknown benchmark_id")
+      expect(result.error).toContain("dddddddd-dddd-4ddd-8ddd-dddddddddddd")
+      expect(result.error).not.toContain("unknown benchmark_slug")
     }
   })
 
