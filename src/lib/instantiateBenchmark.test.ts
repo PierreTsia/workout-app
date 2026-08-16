@@ -11,6 +11,7 @@ function makeCindy(): BenchmarkCircuitLookup {
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",
@@ -61,6 +62,18 @@ describe("instantiateBenchmark", () => {
       { exercise_id: PUSH_ID, position: 1, per_round: [{ amount: 10, weight: 0 }], name_snapshot: "Pompes" },
       { exercise_id: SQUAT_ID, position: 2, per_round: [{ amount: 15, weight: 0 }], name_snapshot: "Squat au poids du corps" },
     ])
+  })
+
+  it("copies a catalog label with emoji instead of deriving it from the slug", () => {
+    const zeus = { ...makeCindy(), slug: "zeus", label: "Zeus ⚡" }
+
+    const { block } = instantiateBenchmark(zeus, {
+      workoutDayId: "day-1",
+      sortOrder: 0,
+      exerciseById: exerciseCatalog(),
+    })
+
+    expect(block.label).toBe("Zeus ⚡")
   })
 
   it("fails clearly when any catalog exercise_id is missing — no half-Cindy", () => {

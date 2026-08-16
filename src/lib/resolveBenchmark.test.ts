@@ -12,6 +12,7 @@ function makeCindy(overrides: Partial<BenchmarkCircuitLookup> = {}): BenchmarkCi
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",
@@ -27,11 +28,10 @@ function makeCindy(overrides: Partial<BenchmarkCircuitLookup> = {}): BenchmarkCi
 }
 
 describe("catalogDisplayName", () => {
-  it("title-cases a seed slug and returns null for a fork (no slug)", () => {
-    expect(catalogDisplayName("cindy")).toBe("Cindy")
-    expect(catalogDisplayName("  cindy  ")).toBe("Cindy")
-    expect(catalogDisplayName(null)).toBeNull()
-    expect(catalogDisplayName("")).toBeNull()
+  it("prefers a non-empty catalog label and falls back to the title-cased slug", () => {
+    expect(catalogDisplayName("Zeus ⚡", "zeus")).toBe("Zeus ⚡")
+    expect(catalogDisplayName("  ", "cindy")).toBe("Cindy")
+    expect(catalogDisplayName(null, null)).toBeNull()
   })
 })
 

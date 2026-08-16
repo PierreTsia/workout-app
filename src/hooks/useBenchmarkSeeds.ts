@@ -9,8 +9,9 @@ export function useBenchmarkSeeds(enabled: boolean) {
     queryFn: async (): Promise<CatalogPreviewRow[]> => {
       const { data, error } = await supabase
         .from("benchmark_circuits")
-        .select("id, slug, aliases, rx, tagline_fr, tagline_en")
+        .select("id, slug, label, aliases, rx, tagline_fr, tagline_en")
         .is("owner_id", null)
+        .order("slug", { ascending: true })
       if (error) throw error
       return (data ?? []).flatMap((row) => {
         const parsed = parseCatalogPreviewRow(row)

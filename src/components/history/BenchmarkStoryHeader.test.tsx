@@ -6,6 +6,7 @@ import type { BenchmarkCopy } from "@/hooks/useBenchmarkCompletionHistory"
 
 const CINDY_COPY: BenchmarkCopy = {
   slug: "cindy",
+  label: "Cindy",
   tagline_fr: "Le WOD de Tom Holland. 20 min.",
   tagline_en: "Tom Holland’s WOD. 20 min.",
   story_fr:

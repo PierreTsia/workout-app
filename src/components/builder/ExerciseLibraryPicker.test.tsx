@@ -15,6 +15,7 @@ function makeCindySeed(
   return {
     id: "cindy-id",
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland"],
     rx: {
       mode: "amrap",
@@ -679,6 +680,7 @@ describe("ExerciseLibraryPicker", () => {
     const fran = makeCindySeed({
       id: "fran-id",
       slug: "fran",
+      label: "Fran",
       aliases: [],
       tagline_en: "Thrusters and pull-ups.",
       tagline_fr: "Thrusters et tractions.",
@@ -846,6 +848,7 @@ describe("ExerciseLibraryPicker", () => {
         makeCindySeed({
           id: "zeus-id",
           slug: "zeus",
+          label: "Zeus",
           aliases: [],
           tagline_en: "A rounds benchmark.",
           tagline_fr: "Un benchmark en tours.",

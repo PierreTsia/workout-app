@@ -11,6 +11,7 @@ function makeCindy(): BenchmarkCircuitLookup {
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",
@@ -45,6 +46,18 @@ Deno.test("instantiateBenchmark copies Cindy Rx and stamps the catalog FK", () =
   assertEquals(block.rest_seconds, 0)
   assertEquals(block.transition_seconds, 0)
   assertEquals(blockExercises.map((ex) => ex.per_round[0]?.amount), [5, 10, 15])
+})
+
+Deno.test("instantiateBenchmark copies a catalog label with emoji", () => {
+  const zeus = { ...makeCindy(), slug: "zeus", label: "Zeus ⚡" }
+
+  const { block } = instantiateBenchmark(zeus, {
+    workoutDayId: "day-1",
+    sortOrder: 0,
+    exerciseById: exerciseCatalog(),
+  })
+
+  assertEquals(block.label, "Zeus ⚡")
 })
 
 Deno.test("instantiateBenchmark throws when an rx exercise is missing", () => {

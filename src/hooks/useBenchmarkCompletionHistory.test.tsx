@@ -128,6 +128,7 @@ describe("fetchBenchmarkCompletionHistory", () => {
     catalogResponse = {
       data: {
         slug: "cindy",
+        label: "Cindy",
         tagline_fr: "Le WOD de Tom Holland. 20 min.",
         tagline_en: "Tom Holland’s WOD. 20 min.",
         story_fr:
@@ -161,6 +162,7 @@ describe("fetchBenchmarkCompletionHistory", () => {
     expect(catalogChain.eq).toHaveBeenCalledWith("id", CINDY_ID)
     expect(out.copy).toEqual({
       slug: "cindy",
+      label: "Cindy",
       tagline_fr: "Le WOD de Tom Holland. 20 min.",
       tagline_en: "Tom Holland’s WOD. 20 min.",
       story_fr:

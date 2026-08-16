@@ -38,6 +38,7 @@ function parseRx(raw: unknown): BenchmarkCircuitLookup["rx"] | null {
 
 export function parseCatalogPreviewRow(raw: unknown): CatalogPreviewRow | null {
   if (!isRecord(raw) || typeof raw.id !== "string") return null
+  if (typeof raw.label !== "string" || raw.label.trim() === "") return null
   const rx = parseRx(raw.rx)
   if (!rx) return null
   const aliases = Array.isArray(raw.aliases)
@@ -46,16 +47,12 @@ export function parseCatalogPreviewRow(raw: unknown): CatalogPreviewRow | null {
   return {
     id: raw.id,
     slug: typeof raw.slug === "string" ? raw.slug : null,
+    label: raw.label,
     aliases,
     rx,
     tagline_fr: stringOrNull(raw.tagline_fr),
     tagline_en: stringOrNull(raw.tagline_en),
   }
-}
-
-function seedLabel(slug: string): string {
-  const trimmed = slug.trim()
-  return `${trimmed.slice(0, 1).toUpperCase()}${trimmed.slice(1)}`
 }
 
 export function generatedCircuitFromCatalog(
@@ -89,7 +86,7 @@ export function generatedCircuitFromCatalog(
 
   return {
     benchmarkSlug: slug,
-    label: seedLabel(slug),
+    label: row.label,
     ...(taglineFr ? { taglineFr } : {}),
     ...(taglineEn ? { taglineEn } : {}),
     ...(isAmrap

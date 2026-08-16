@@ -231,9 +231,9 @@ describe("groupSessionHistory", () => {
   })
 
   it("keeps the seed name on a scored card after the live block was renamed", () => {
-    expect(sessionBlockHeading("Cindy Light", "cindy")).toBe("Cindy")
-    expect(sessionBlockHeading("Cindy Light", null)).toBe("Cindy Light")
-    expect(sessionBlockHeading("Cindy Light", undefined)).toBe("Cindy Light")
+    expect(sessionBlockHeading("Zeus Light", "Zeus ⚡", "zeus")).toBe("Zeus ⚡")
+    expect(sessionBlockHeading("Cindy Light", null, "cindy")).toBe("Cindy")
+    expect(sessionBlockHeading("Cindy Light", null, null)).toBe("Cindy Light")
     expect(catalogSlugFromEmbed({ slug: "cindy" })).toBe("cindy")
     expect(catalogSlugFromEmbed([{ slug: "cindy" }])).toBe("cindy")
     expect(catalogSlugFromEmbed({ slug: null })).toBeNull()

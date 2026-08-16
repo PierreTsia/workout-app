@@ -188,6 +188,7 @@ export interface BenchmarkCircuit {
   owner_id: string | null
   forked_from: string | null
   aliases: string[]
+  label: string | null
   tagline_fr: string | null
   tagline_en: string | null
   story_fr: string | null

@@ -10,6 +10,7 @@ function makeCindyRow(overrides: Record<string, unknown> = {}) {
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",
@@ -23,18 +24,26 @@ function makeCindyRow(overrides: Record<string, unknown> = {}) {
 }
 
 const isCalls: { column: string; value: unknown }[] = []
+const selectCalls: string[] = []
+const orderCalls: { column: string; options: unknown }[] = []
 let catalogRows: unknown[] = []
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
     from: (table: string) => ({
-      select: () => ({
+      select: (columns: string) => ({
         is: (column: string, value: unknown) => {
           if (table !== "benchmark_circuits") {
             throw new Error(`unexpected table ${table}`)
           }
+          selectCalls.push(columns)
           isCalls.push({ column, value })
-          return Promise.resolve({ data: catalogRows, error: null })
+          return {
+            order: (orderColumn: string, options: unknown) => {
+              orderCalls.push({ column: orderColumn, options })
+              return Promise.resolve({ data: catalogRows, error: null })
+            },
+          }
         },
       }),
     }),
@@ -44,6 +53,8 @@ vi.mock("@/lib/supabase", () => ({
 describe("useBenchmarkSeeds", () => {
   beforeEach(() => {
     isCalls.length = 0
+    selectCalls.length = 0
+    orderCalls.length = 0
     catalogRows = []
   })
 
@@ -55,6 +66,8 @@ describe("useBenchmarkSeeds", () => {
     })
 
     expect(isCalls).toEqual([{ column: "owner_id", value: null }])
+    expect(selectCalls[0]).toContain("label")
+    expect(orderCalls).toEqual([{ column: "slug", options: { ascending: true } }])
   })
 
   it("parses catalog rows and drops unparsable Rx", async () => {
@@ -73,6 +86,7 @@ describe("useBenchmarkSeeds", () => {
       {
         id: CINDY_ID,
         slug: "cindy",
+        label: "Cindy",
         aliases: ["holland", "tom holland"],
         rx: {
           mode: "amrap",

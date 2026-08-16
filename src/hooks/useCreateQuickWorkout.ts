@@ -32,7 +32,7 @@ function dayItemsForPersist(workout: GeneratedWorkout): GeneratedDayItem[] {
 async function fetchCatalogPreviewRows(): Promise<CatalogPreviewRow[]> {
   const { data, error } = await supabase
     .from("benchmark_circuits")
-    .select("id, slug, aliases, rx, tagline_fr, tagline_en")
+    .select("id, slug, label, aliases, rx, tagline_fr, tagline_en")
   if (error) throw error
   return (Array.isArray(data) ? data : []).flatMap((row) => {
     const parsed = parseCatalogPreviewRow(row)

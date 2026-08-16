@@ -269,19 +269,13 @@ function parseCircuitTermination(
   return { ok: true, value: { mode: "amrap", capMinutes: cap } }
 }
 
-function seedLabelFromSlug(slug: string | null): string | null {
-  if (slug == null || slug.trim() === "") return null
-  const trimmed = slug.trim()
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
-}
-
 function circuitFromCatalog(
   row: BenchmarkCircuitLookup,
 ): Extract<ParsedExercise, { kind: "circuit" }> {
   const isAmrap = row.rx.mode === "amrap"
   return {
     kind: "circuit",
-    label: seedLabelFromSlug(row.slug),
+    label: row.label,
     rounds: 1,
     restSeconds: isAmrap ? 0 : 90,
     transitionSeconds: 0,

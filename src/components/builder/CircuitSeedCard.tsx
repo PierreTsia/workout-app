@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Button } from "@/components/ui/button"
 import { isEnglish } from "@/lib/catalogLabels"
-import { catalogDisplayName } from "@/lib/resolveBenchmark"
 import type { CatalogPreviewRow } from "@/lib/previewCatalogCircuit"
 
 interface CircuitSeedCardProps {
@@ -20,7 +19,7 @@ export function CircuitSeedCard({
   locked = false,
 }: CircuitSeedCardProps) {
   const { t, i18n } = useTranslation("builder")
-  const label = catalogDisplayName(seed.slug) ?? seed.slug ?? ""
+  const label = seed.label
   const tagline = isEnglish(i18n.language)
     ? (seed.tagline_en ?? seed.tagline_fr)
     : (seed.tagline_fr ?? seed.tagline_en)
@@ -34,6 +33,7 @@ export function CircuitSeedCard({
       variant="outline"
       disabled={pending || locked}
       aria-label={label}
+      title={label}
       onClick={onSelect}
       className="h-auto w-full items-start justify-start gap-3 whitespace-normal border-primary/25 bg-card px-3 py-3 text-left shadow-xs hover:border-primary/40 hover:bg-accent/50"
     >

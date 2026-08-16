@@ -105,6 +105,7 @@ function makeCindyCatalog(): CircuitForkCatalog {
   return {
     id: CINDY_ID,
     owner_id: null,
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     tagline_fr: "Le WOD de Tom Holland. 20 min.",
     tagline_en: "Tom Holland’s WOD. 20 min.",
@@ -151,6 +152,7 @@ describe("persistCircuitFork", () => {
         slug: null,
         owner_id: USER_ID,
         forked_from: CINDY_ID,
+        label: "Cindy",
         aliases: [],
         tagline_fr: "Le WOD de Tom Holland. 20 min.",
         tagline_en: "Tom Holland’s WOD. 20 min.",

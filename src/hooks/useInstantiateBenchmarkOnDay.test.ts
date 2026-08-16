@@ -14,6 +14,7 @@ function makeCindy(overrides: Partial<CatalogPreviewRow> = {}): CatalogPreviewRo
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",

@@ -299,6 +299,7 @@ describe("useGenerateQuickWorkoutPreview", () => {
                 {
                   id: "cindy-id",
                   slug: "cindy",
+                  label: "Cindy",
                   aliases: ["holland", "tom holland"],
                   tagline_fr: "Le WOD de Tom Holland. 20 min.",
                   tagline_en: "Tom Holland’s WOD. 20 min.",

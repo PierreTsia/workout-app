@@ -15,6 +15,7 @@ const RUN_LIMIT = 8
 
 export interface BenchmarkCopy {
   slug: string | null
+  label: string | null
   tagline_fr: string | null
   tagline_en: string | null
   story_fr: string | null
@@ -29,6 +30,7 @@ export interface BenchmarkCompletionHistory {
 
 const EMPTY_COPY: BenchmarkCopy = {
   slug: null,
+  label: null,
   tagline_fr: null,
   tagline_en: null,
   story_fr: null,
@@ -56,6 +58,7 @@ function parseCopy(row: unknown): BenchmarkCopy {
   if (!isRecord(row)) return EMPTY_COPY
   return {
     slug: stringOrNull(row.slug),
+    label: stringOrNull(row.label),
     tagline_fr: stringOrNull(row.tagline_fr),
     tagline_en: stringOrNull(row.tagline_en),
     story_fr: stringOrNull(row.story_fr),
@@ -67,7 +70,7 @@ function parseCopy(row: unknown): BenchmarkCopy {
 async function fetchCatalogCopy(catalogId: string): Promise<BenchmarkCopy> {
   const { data, error } = await supabase
     .from("benchmark_circuits")
-    .select("slug, tagline_fr, tagline_en, story_fr, story_en, reference")
+    .select("slug, label, tagline_fr, tagline_en, story_fr, story_en, reference")
     .eq("id", catalogId)
     .maybeSingle()
   if (error) throw error

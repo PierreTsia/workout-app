@@ -219,10 +219,19 @@ export function catalogSlugFromEmbed(raw: unknown): string | null {
   return typeof slug === "string" ? slug : null
 }
 
-/** Card / sheet heading: GO-stamped seed slug wins over a later live rename. */
+export function catalogLabelFromEmbed(raw: unknown): string | null {
+  const row = Array.isArray(raw) ? raw[0] : raw
+  if (row == null || typeof row !== "object") return null
+  if (!("label" in row)) return null
+  const label = row.label
+  return typeof label === "string" ? label : null
+}
+
+/** Card / sheet heading: GO-stamped catalog identity wins over a later live rename. */
 export function sessionBlockHeading(
   liveLabel: string | null,
+  goCatalogLabel: string | null | undefined,
   goCatalogSlug: string | null | undefined,
 ): string | null {
-  return catalogDisplayName(goCatalogSlug) ?? liveLabel
+  return catalogDisplayName(goCatalogLabel, goCatalogSlug) ?? liveLabel
 }
