@@ -688,8 +688,8 @@ describe("ExerciseLibraryPicker", () => {
       isLoading: false,
       isError: false,
     })
-    const hold = {
-      resolve: (_value: { blockId: string }) => {},
+    const hold: { resolve: (value: { blockId: string }) => void } = {
+      resolve: () => {},
     }
     mockInstantiateMutateAsync.mockImplementation(
       () =>
