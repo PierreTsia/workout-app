@@ -105,6 +105,12 @@ function buildWorkoutName(constraints: GeneratorConstraints): string {
   return `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`
 }
 
+function catalogPreviewLabel(slug: string): string {
+  const trimmed = slug.trim()
+  if (trimmed === "") return trimmed
+  return `${trimmed.slice(0, 1).toUpperCase()}${trimmed.slice(1)}`
+}
+
 function buildDayItems(
   items: ServerDayItem[],
   byId: Map<string, Exercise>,
@@ -123,6 +129,7 @@ function buildDayItems(
           kind: "circuit",
           circuit: {
             benchmarkSlug: item.benchmark_slug,
+            label: catalogPreviewLabel(item.benchmark_slug),
             rounds: 1,
             restSeconds: 0,
             transitionSeconds: 0,

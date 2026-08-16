@@ -299,6 +299,7 @@ describe("useGenerateQuickWorkoutPreview", () => {
         kind: "circuit",
         circuit: {
           benchmarkSlug: "cindy",
+          label: "Cindy",
           rounds: 1,
           restSeconds: 0,
           transitionSeconds: 0,
