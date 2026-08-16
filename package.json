@@ -25,6 +25,7 @@
     "dedup-exercises": "tsx scripts/dedup-exercises.ts",
     "audit-muscles": "tsx scripts/audit-muscle-tags.ts",
     "seed:history": "tsx scripts/seed-local-history.ts",
+    "seed:circuit-history": "tsx scripts/seed-local-history.ts --circuits-only",
     "seed:prime-mover": "tsx scripts/seed-prime-mover.ts",
     "backfill:was-pr": "tsx scripts/backfill-was-pr.ts",
     "translate-instructions": "tsx --tsconfig tsconfig.app.json scripts/translate-instructions.ts"

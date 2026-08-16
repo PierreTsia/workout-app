@@ -66,6 +66,16 @@
 
   "drawerPrograms": "Programs",
   "drawerExercises": "Exercises",
+  "drawerCircuits": "Circuits",
+
+  "circuitsBrowseTitle": "Circuits",
+  "circuitsBrowseEmpty": "No circuits yet.",
+  "circuitsBrowseLoading": "Loading…",
+  "circuitsBrowseError": "Could not load circuits. Try again.",
+  "circuitStationUnknown": "Unknown exercise",
+  "circuitNotFound": "Circuit not found.",
+  "circuitDetailLoading": "Loading…",
+  "circuitBrowseBack": "Back to circuits",
 
   "exerciseBrowseTitle": "Exercises",
   "exerciseBrowseBack": "Back",

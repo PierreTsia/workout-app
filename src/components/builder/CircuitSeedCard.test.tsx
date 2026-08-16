@@ -69,4 +69,17 @@ describe("CircuitSeedCard", () => {
 
     expect(screen.getByRole("button", { name: "Cindy" })).toBeDisabled()
   })
+
+  it("renders a navigation link when given a destination", () => {
+    renderWithProviders(
+      <CircuitSeedCard
+        seed={makeCindy({ slug: "zeus", label: "Zeus ⚡" })}
+        to="/library/circuits/zeus"
+      />,
+    )
+
+    const card = screen.getByRole("link", { name: "Zeus ⚡" })
+    expect(card).toHaveAttribute("href", "/library/circuits/zeus")
+    expect(screen.queryByRole("button", { name: "Zeus ⚡" })).not.toBeInTheDocument()
+  })
 })

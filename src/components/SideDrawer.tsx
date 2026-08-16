@@ -280,6 +280,16 @@ export function SideDrawer() {
                       {t("library:drawerExercises")}
                     </Link>
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 justify-start px-2 text-sm text-muted-foreground hover:text-foreground"
+                    asChild
+                  >
+                    <Link to="/library/circuits" onClick={closeDrawer}>
+                      {t("library:drawerCircuits")}
+                    </Link>
+                  </Button>
                 </div>
               </CollapsibleContent>
             </Collapsible>

@@ -1,10 +1,16 @@
 import { resolveBenchmark, type BenchmarkCircuitLookup } from "@/lib/resolveBenchmark"
-import type { ExerciseListItem } from "@/types/database"
+import type { BenchmarkCircuitReference, ExerciseListItem } from "@/types/database"
 import type { GeneratedCircuit } from "@/types/generator"
 
 export interface CatalogPreviewRow extends BenchmarkCircuitLookup {
   tagline_fr: string | null
   tagline_en: string | null
+}
+
+export interface CatalogSeedRow extends CatalogPreviewRow {
+  story_fr: string | null
+  story_en: string | null
+  reference: BenchmarkCircuitReference | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -13,6 +19,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === "string" ? value : null
+}
+
+function parseReference(value: unknown): BenchmarkCircuitReference | null {
+  if (!isRecord(value)) return null
+  if (typeof value.name !== "string" || typeof value.score !== "string") {
+    return null
+  }
+  return { name: value.name, score: value.score }
 }
 
 function parseRx(raw: unknown): BenchmarkCircuitLookup["rx"] | null {
@@ -52,6 +66,17 @@ export function parseCatalogPreviewRow(raw: unknown): CatalogPreviewRow | null {
     rx,
     tagline_fr: stringOrNull(raw.tagline_fr),
     tagline_en: stringOrNull(raw.tagline_en),
+  }
+}
+
+export function parseCatalogSeedRow(raw: unknown): CatalogSeedRow | null {
+  const preview = parseCatalogPreviewRow(raw)
+  if (!preview || !isRecord(raw)) return null
+  return {
+    ...preview,
+    story_fr: stringOrNull(raw.story_fr),
+    story_en: stringOrNull(raw.story_en),
+    reference: parseReference(raw.reference),
   }
 }
 

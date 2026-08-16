@@ -53,6 +53,16 @@ const ExerciseLibraryExercisePage = lazyWithRecover(() =>
     default: m.ExerciseLibraryExercisePage,
   })),
 )
+const CircuitCatalogPage = lazyWithRecover(() =>
+  import("@/pages/library/CircuitCatalogPage").then((m) => ({
+    default: m.CircuitCatalogPage,
+  })),
+)
+const CircuitCatalogSeedPage = lazyWithRecover(() =>
+  import("@/pages/library/CircuitCatalogSeedPage").then((m) => ({
+    default: m.CircuitCatalogSeedPage,
+  })),
+)
 const AdminFeedbackPage = lazyWithRecover(() =>
   import("@/pages/AdminFeedbackPage").then((m) => ({
     default: m.AdminFeedbackPage,
@@ -177,6 +187,14 @@ export const router = createBrowserRouter([
                   {
                     path: "exercises/:exerciseId",
                     element: <ExerciseLibraryExercisePage />,
+                  },
+                  {
+                    path: "circuits",
+                    element: <CircuitCatalogPage />,
+                  },
+                  {
+                    path: "circuits/:slug",
+                    element: <CircuitCatalogSeedPage />,
                   },
                 ],
               },
