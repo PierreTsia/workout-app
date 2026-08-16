@@ -14,8 +14,10 @@
  * List users on the target instance (service role):
  *   npm run seed:history -- --list-users
  *
- * Re-run safe: removes previous rows where workout_label_snapshot LIKE 'Local seed%'.
- * Circuit seed uses 'Local seed circuit%' days/sessions and is independent.
+ * Re-run safe:
+ *   seed:history removes sessions labeled `Local seed — %` (strength heatmap).
+ *   seed:circuit-history removes days/sessions labeled `Local seed circuit%`.
+ *   The two prefixes do not overlap.
  *
  * Target URL (this script does NOT read VITE_SUPABASE_URL — that often points at hosted prod):
  *   1. --url=http://127.0.0.1:54321
@@ -44,6 +46,7 @@ const LOCAL_DEMO_SERVICE_ROLE =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
 
 const PREFIX = "Local seed"
+const STRENGTH_PREFIX = `${PREFIX} — `
 const CIRCUIT_PREFIX = `${PREFIX} circuit`
 
 function normalizeSupabaseUrl(raw: string): string {
@@ -602,7 +605,7 @@ async function main() {
     .from("sessions")
     .delete()
     .eq("user_id", userId)
-    .like("workout_label_snapshot", `${PREFIX}%`)
+    .like("workout_label_snapshot", `${STRENGTH_PREFIX}%`)
   if (delErr) {
     console.error("Failed to clear old seed sessions:", delErr.message)
     process.exit(1)
@@ -653,7 +656,7 @@ async function main() {
       daysAgo,
       startHourUTC,
       durationMin,
-      label: `${PREFIX} — ${primary.split(" ")[0]} ${i + 1}`,
+      label: `${STRENGTH_PREFIX}${primary.split(" ")[0]} ${i + 1}`,
       totalSets: sets.length,
       exerciseName: primary,
       sets,
@@ -663,7 +666,7 @@ async function main() {
         daysAgo,
         startHourUTC: (startHourUTC + 5) % 20,
         durationMin: 28,
-        label: `${PREFIX} — Quick ${i}`,
+        label: `${STRENGTH_PREFIX}Quick ${i}`,
         totalSets: 2,
         exerciseName: secondary,
         sets: [

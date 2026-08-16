@@ -11,8 +11,8 @@
 | Job | Browse + detail, **no write** | Unique hole is encyclopedia. Meet Cindy already drops. Same tap cannot be both. |
 | IA | Third Library child `/library/circuits` | Cheapest nav. Exercise Library already stretched Library. Ranked/social stay out (ADR 0018). |
 | Roster | `owner_id IS NULL` via `useBenchmarkSeeds` | Forks have `slug` NULL; slug URLs enforce curated roster. |
-| Card | Optional `to` on `CircuitSeedCard` | Picker keeps `onSelect` = instantiate. Shelf passes `to={`/library/circuits/${slug}`}`. Discriminated props so you cannot pass both. |
-| Detail fetch | New `useBenchmarkSeed(slug)` | List hook omits `story_*` / `reference` / full copy. 404 if `owner_id` set or slug missing. |
+| Card | `CircuitCatalogCard` on the shelf; `CircuitSeedCard` stays picker-only | HITL: encyclopedia needs story, not picker chrome. Picker keeps discriminated `to` vs `onSelect` so a stray reuse cannot instantiate. |
+| Detail fetch | New `useBenchmarkSeed(slug)` | List hook also selects `story_*` for the shelf card. Detail loads full copy including `reference`. 404 if `owner_id` set or slug missing. |
 | History | `useBenchmarkCompletionHistory(true, id)` on the page | Do **not** mount `BlockHistorySheet` (it still wants a `blockId` for the jetable path). Export `AmrapRunRow` from the sheet file (or a sibling) and reuse. |
 | Rx names | `fetchExercisesByIds` + `useCatalogLabels` | Same as instantiate. Never hardcode 5-10-15. |
 | Index | `/library` still redirects to programs | Legacy bookmarks stay program-centric. |
@@ -20,7 +20,7 @@
 
 ### Critical Constraints
 
-**Picker tap is instantiate.** `file:src/components/builder/CircuitSeedCard.tsx` is a `<Button onClick={onSelect}>`. The picker’s `onSelect` is `handleInstantiate`. A shelf that reuses the card without a navigation mode writes blocks. Discriminated `to` vs `onSelect` is the whole ticket.
+**Picker tap is instantiate.** `file:src/components/builder/CircuitSeedCard.tsx` is a `<Button onClick={onSelect}>`. The picker’s `onSelect` is `handleInstantiate`. The shelf uses `file:src/components/library/CircuitCatalogCard.tsx` (`to` only) so it cannot write a block. `CircuitSeedCard` still has discriminated `to` vs `onSelect` as a trap for a future reuse.
 
 **Do not copy `useCreateQuickWorkout`’s catalog select.** That query is unfiltered. The shelf must use `useBenchmarkSeeds` (`owner_id IS NULL`) or an equivalent `.is("owner_id", null)`.
 
@@ -72,8 +72,8 @@ classDiagram
 graph TD
     SideDrawer --> CircuitsLink
     CircuitsLink --> CircuitCatalogPage
-    CircuitCatalogPage --> CircuitSeedCard
-    CircuitSeedCard --> CircuitCatalogSeedPage
+    CircuitCatalogPage --> CircuitCatalogCard
+    CircuitCatalogCard --> CircuitCatalogSeedPage
     CircuitCatalogSeedPage --> BenchmarkStoryHeader
     CircuitCatalogSeedPage --> CircuitRxList
     CircuitCatalogSeedPage --> AmrapRunRow
@@ -85,20 +85,24 @@ graph TD
 
 | File | Purpose |
 |---|---|
-| `file:src/pages/library/CircuitCatalogPage.tsx` | List: `useBenchmarkSeeds(true)`, cards with `to`, library i18n header, back to `/` (not `/library/programs`) |
+| `file:src/pages/library/CircuitCatalogPage.tsx` | List: `useBenchmarkSeeds(true)`, `CircuitCatalogCard` with `to`, library i18n header, back to `/` (not `/library/programs`) |
 | `file:src/pages/library/CircuitCatalogPage.test.tsx` | Drawer-adjacent: 9 labels, tap navigates, instantiate **not** called |
 | `file:src/pages/library/CircuitCatalogSeedPage.tsx` | Detail: slug param, story, Rx, history/empty/offline/404 |
 | `file:src/pages/library/CircuitCatalogSeedPage.test.tsx` | cindy story + Rx names + `noPrYet`; unknown slug; no instantiate |
 | `file:src/hooks/useBenchmarkSeed.ts` | `maybeSingle` by slug + `owner_id IS NULL`; include story + reference + rx |
 | `file:src/hooks/useBenchmarkSeed.test.ts` | Fork/unknown → empty; seed row parses |
-| `file:src/components/library/CircuitRxList.tsx` | Presentational stations (amount × localized name) |
+| `file:src/components/library/CircuitRxList.tsx` | Presentational stations (amount × localized name); tap opens `ExerciseDetailSheet` |
+| `file:src/components/library/CircuitCatalogCard.tsx` | Shelf card: label, glossed `AmrapLabel`, tagline, story. Not the picker card. |
 
 ### Component Responsibilities
 
-**CircuitSeedCard** (extend, do not fork a second card)
-- Discriminated: `{ onSelect: () => void }` **or** `{ to: string }`
-- `to` → `Button asChild` + `Link`. No `pending` spinner on the nav path
-- Keep `builder` i18n for AMRAP/Tours fallback; shelf does not need a second card chrome
+**CircuitSeedCard** (picker only)
+- Discriminated: `{ onSelect: () => void }` **or** `{ to: string }` — `to` exists so a future nav reuse cannot silently instantiate, but the **shelf does not use this card**
+- Keep `builder` i18n for AMRAP/Tours fallback
+
+**CircuitCatalogCard**
+- Encyclopedia chrome: `AmrapLabel` full (never a naked AMRAP badge), tagline, clamped story
+- `to` only — no instantiate path
 
 **CircuitCatalogPage**
 - Header in `library` namespace (`circuitsBrowseTitle`)
@@ -114,6 +118,7 @@ graph TD
 
 **CircuitRxList**
 - Input: `rx.exercises` + catalog map. Output: list of `amount` + `catalogName`
+- Known stations are instruction links; they open `ExerciseDetailSheet` so the encyclopedia stays mounted
 
 ### Failure Mode Analysis
 

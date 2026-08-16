@@ -114,4 +114,17 @@ describe("useBenchmarkSeed", () => {
     expect(eqCalls).toEqual([])
     expect(isCalls).toEqual([])
   })
+
+  it("trims padded slugs so they fetch and share the same cache key", async () => {
+    catalogRow = makeCindyRow()
+
+    const { result } = renderHookWithProviders(() => useBenchmarkSeed("  cindy  "))
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
+
+    expect(eqCalls).toEqual([{ column: "slug", value: "cindy" }])
+    expect(result.current.data?.slug).toBe("cindy")
+  })
 })
