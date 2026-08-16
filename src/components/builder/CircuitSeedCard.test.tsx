@@ -43,6 +43,7 @@ describe("CircuitSeedCard", () => {
     )
 
     expect(screen.getByText("AMRAP 20 min")).toBeInTheDocument()
+    expect(screen.getByText("As many rounds as possible.")).toBeInTheDocument()
     expect(screen.getByText("Tom Holland’s WOD.")).toBeInTheDocument()
     expect(screen.queryByText("Le WOD de Tom Holland.")).not.toBeInTheDocument()
   })

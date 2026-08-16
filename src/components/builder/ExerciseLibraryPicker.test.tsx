@@ -573,6 +573,24 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
   })
 
+  it("keeps a locked dialog height when switching to Circuits", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+    const dialog = screen.getByRole("dialog")
+
+    expect(dialog).toHaveClass("h-[80vh]", "max-h-[80vh]")
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expect(screen.getByRole("dialog")).toHaveClass("h-[80vh]", "max-h-[80vh]")
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+  })
+
   it("does not show the kind toggle in Create circuit (block) mode", () => {
     renderPicker({ onCreateBlock: vi.fn() })
 

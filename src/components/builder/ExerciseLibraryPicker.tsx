@@ -480,7 +480,7 @@ export function ExerciseLibraryPicker({
         <DialogContent
           aria-describedby={undefined}
           onInteractOutside={(e) => e.preventDefault()}
-          className="flex max-h-[80vh] max-w-2xl flex-col gap-0 p-0"
+          className="flex h-[80vh] max-h-[80vh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
         >
           <DialogHeader className="shrink-0 px-4 pt-4 pb-2">
             <DialogTitle>{pickerTitle}</DialogTitle>
@@ -493,7 +493,7 @@ export function ExerciseLibraryPicker({
 
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent className="flex max-h-[75vh] flex-col gap-0 p-0 sm:max-h-[80vh]">
+      <DrawerContent className="flex h-[75vh] max-h-[75vh] flex-col gap-0 overflow-hidden p-0">
         <DrawerHeader className="shrink-0 px-4 pt-2 pb-0">
           <DrawerTitle>{pickerTitle}</DrawerTitle>
         </DrawerHeader>

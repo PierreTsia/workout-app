@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react"
+import { Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Button } from "@/components/ui/button"
@@ -33,24 +33,31 @@ export function CircuitSeedCard({
       disabled={pending}
       aria-label={label}
       onClick={onSelect}
-      className="h-auto w-full flex-col items-start gap-1 whitespace-normal px-3 py-3 text-left"
+      className="h-auto w-full items-start justify-start gap-3 whitespace-normal border-primary/25 bg-card px-3 py-3 text-left shadow-xs hover:border-primary/40 hover:bg-accent/50"
     >
-      <span className="flex w-full items-center gap-2">
-        <span className="truncate text-sm font-medium">{label}</span>
-        {pending ? (
-          <Loader2 className="ml-auto h-4 w-4 shrink-0 animate-spin" />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+        <Layers className="h-5 w-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="flex w-full items-center gap-2">
+          <span className="truncate text-base font-semibold tracking-tight">
+            {label}
+          </span>
+          {pending ? (
+            <Loader2 className="ml-auto h-4 w-4 shrink-0 animate-spin" />
+          ) : null}
+        </span>
+        {isAmrap ? (
+          <AmrapLabel minutes={capMinutes} />
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            {t("blockRounds", { count: 1 })}
+          </span>
+        )}
+        {tagline ? (
+          <span className="text-xs text-muted-foreground">{tagline}</span>
         ) : null}
       </span>
-      {isAmrap ? (
-        <AmrapLabel minutes={capMinutes} variant="inline" />
-      ) : (
-        <span className="text-xs text-muted-foreground">
-          {t("blockRounds", { count: 1 })}
-        </span>
-      )}
-      {tagline ? (
-        <span className="text-xs text-muted-foreground">{tagline}</span>
-      ) : null}
     </Button>
   )
 }
