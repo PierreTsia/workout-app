@@ -180,11 +180,14 @@ vi.mock("@/hooks/useBuilderMutations", () => ({
   useDeleteExercise: () => mockUseDeleteExercise(),
 }))
 
-const mockUseBenchmarkSeeds = vi.fn((_enabled: boolean) => ({
-  data: [] as CatalogPreviewRow[],
-  isLoading: false,
-  isError: false,
-}))
+const mockUseBenchmarkSeeds = vi.fn((enabled: boolean) => {
+  void enabled
+  return {
+    data: [] as CatalogPreviewRow[],
+    isLoading: false,
+    isError: false,
+  }
+})
 const mockInstantiateMutateAsync = vi.fn().mockResolvedValue({ blockId: "b-1" })
 const mockUseInstantiateBenchmarkOnDay = vi.fn(() => ({
   mutateAsync: mockInstantiateMutateAsync,
