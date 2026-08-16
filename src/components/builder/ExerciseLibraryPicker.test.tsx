@@ -739,4 +739,142 @@ describe("ExerciseLibraryPicker", () => {
     renderPicker({ onCreateBlock: vi.fn() })
     expect(mockUseBenchmarkSeeds).toHaveBeenCalledWith(false)
   })
+
+  it("does not pin a seed card on Exercises when the query is empty", () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+    expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+  })
+
+  it("pins Cindy above muscle groups when searching her name from Exercises", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.type(screen.getByLabelText("Search exercises..."), "cindy")
+
+    const cindy = screen.getByRole("button", { name: "Cindy" })
+    const bench = screen.getByText("Bench Press")
+    expect(cindy.compareDocumentPosition(bench) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+  })
+
+  it("does not pin a seed card on Exercises for a one-character query", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.type(screen.getByLabelText("Search exercises..."), "c")
+
+    expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+  })
+
+  it("filters the Circuits list with the same matcher", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [
+        makeCindySeed(),
+        makeCindySeed({
+          id: "zeus-id",
+          slug: "zeus",
+          aliases: [],
+          tagline_en: "A rounds benchmark.",
+          tagline_fr: "Un benchmark en tours.",
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Zeus" })).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText("Search exercises..."), "cindy")
+
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Zeus" })).not.toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeChecked()
+  })
+
+  it("shows empty copy on Circuits when the query matches no seed", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.type(screen.getByLabelText("Search exercises..."), "zzzz")
+
+    expect(screen.getByText("No benchmark circuits yet.")).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
+  })
+
+  it("instantiates from a pinned Cindy card without leaving Exercises", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    const onOpenChange = vi.fn()
+    const onMutationStateChange = vi.fn()
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onOpenChange,
+      onMutationStateChange,
+    })
+    const user = userEvent.setup()
+
+    await user.type(screen.getByLabelText("Search exercises..."), "cindy")
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+    await user.click(screen.getByRole("button", { name: "Cindy" }))
+
+    expect(mockInstantiateMutateAsync).toHaveBeenCalledWith({
+      dayId: "day-1",
+      catalog: makeCindySeed(),
+      existingMaxSortOrder: -1,
+    })
+    expect(onMutationStateChange).toHaveBeenCalledWith("saved")
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("keeps the pinned Cindy card when muscle filters hide other exercises", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.type(screen.getByLabelText("Search exercises..."), "holland")
+    await user.click(screen.getByLabelText("Filters"))
+    await user.click(screen.getByRole("button", { name: "Chest" }))
+
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
+  })
 })

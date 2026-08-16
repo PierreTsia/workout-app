@@ -22,6 +22,8 @@ import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated
 import { useInstantiateBenchmarkOnDay } from "@/hooks/useInstantiateBenchmarkOnDay"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import type { CatalogPreviewRow } from "@/lib/previewCatalogCircuit"
+import { normalizeBenchmarkKey } from "@/lib/resolveBenchmark"
+import { seedMatchesQuery } from "@/lib/seedSearch"
 import { cn } from "@/lib/utils"
 import type { Exercise } from "@/types/database"
 import {
@@ -41,6 +43,25 @@ import { Input } from "@/components/ui/input"
 
 const SEARCH_DEBOUNCE_MS = 300
 
+function SeedCardList({
+  seeds,
+  pendingSeedId,
+  onSelect,
+}: {
+  seeds: CatalogPreviewRow[]
+  pendingSeedId: string | undefined
+  onSelect: (seed: CatalogPreviewRow) => void
+}) {
+  return seeds.map((seed) => (
+    <CircuitSeedCard
+      key={seed.id}
+      seed={seed}
+      pending={pendingSeedId === seed.id}
+      onSelect={() => onSelect(seed)}
+    />
+  ))
+}
+
 interface PickerSelectionPanelProps {
   selectionKey: string
   initialSelectedIds: string[]
@@ -58,6 +79,9 @@ interface PickerSelectionPanelProps {
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
+  pinnedSeeds: CatalogPreviewRow[]
+  pendingSeedId: string | undefined
+  onSelectSeed: (seed: CatalogPreviewRow) => void
 }
 
 function PickerSelectionPanel({
@@ -66,6 +90,9 @@ function PickerSelectionPanel({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  pinnedSeeds,
+  pendingSeedId,
+  onSelectSeed,
   ...selectionProps
 }: PickerSelectionPanelProps) {
   const { t } = useTranslation("builder")
@@ -74,6 +101,15 @@ function PickerSelectionPanel({
   return (
     <>
       <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
+        {pinnedSeeds.length > 0 ? (
+          <div className="flex flex-col gap-2 p-3 pb-1">
+            <SeedCardList
+              seeds={pinnedSeeds}
+              pendingSeedId={pendingSeedId}
+              onSelect={onSelectSeed}
+            />
+          </div>
+        ) : null}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -148,14 +184,11 @@ function CircuitsKindBody({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
-      {seeds.map((seed) => (
-        <CircuitSeedCard
-          key={seed.id}
-          seed={seed}
-          pending={pendingSeedId === seed.id}
-          onSelect={() => onSelect(seed)}
-        />
-      ))}
+      <SeedCardList
+        seeds={seeds}
+        pendingSeedId={pendingSeedId}
+        onSelect={onSelect}
+      />
     </div>
   )
 }
@@ -238,6 +271,11 @@ export function ExerciseLibraryPicker({
 
   const seedsQuery = useBenchmarkSeeds(open && canInstantiate)
   const seeds = seedsQuery.data ?? []
+  const queryIsActive = normalizeBenchmarkKey(searchInput).length >= 2
+  const matchingSeeds = queryIsActive
+    ? seeds.filter((seed) => seedMatchesQuery(seed, searchInput))
+    : []
+  const circuitsSeeds = queryIsActive ? matchingSeeds : seeds
   const pendingSeedId = instantiate.isPending
     ? instantiate.variables?.catalog.id
     : undefined
@@ -401,7 +439,7 @@ export function ExerciseLibraryPicker({
         <CircuitsKindBody
           isLoading={seedsQuery.isLoading}
           isError={seedsQuery.isError}
-          seeds={seeds}
+          seeds={circuitsSeeds}
           pendingSeedId={pendingSeedId}
           onSelect={(seed) => {
             void handleInstantiate(seed)
@@ -426,6 +464,11 @@ export function ExerciseLibraryPicker({
           hasNextPage={!!hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
           onLoadMore={() => fetchNextPage()}
+          pinnedSeeds={matchingSeeds}
+          pendingSeedId={pendingSeedId}
+          onSelectSeed={(seed) => {
+            void handleInstantiate(seed)
+          }}
         />
       )}
     </Command>
