@@ -98,13 +98,15 @@ describe("SideDrawer library navigation", () => {
     vi.clearAllMocks()
   })
 
-  it("exposes Programs and Exercises links under Library", async () => {
+  it("exposes Programs, Exercises, and Circuits links under Library", async () => {
     renderDrawer()
     const dialog = await screen.findByRole("dialog")
     const programs = within(dialog).getByRole("link", { name: /^Programs$/i })
     const exercises = within(dialog).getByRole("link", { name: /^Exercises$/i })
+    const circuits = within(dialog).getByRole("link", { name: /^Circuits$/i })
     expect(programs).toHaveAttribute("href", "/library/programs")
     expect(exercises).toHaveAttribute("href", "/library/exercises")
+    expect(circuits).toHaveAttribute("href", "/library/circuits")
   })
 })
 

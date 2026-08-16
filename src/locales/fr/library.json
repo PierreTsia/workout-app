@@ -66,6 +66,12 @@
 
   "drawerPrograms": "Programmes",
   "drawerExercises": "Exercices",
+  "drawerCircuits": "Circuits",
+
+  "circuitsBrowseTitle": "Circuits",
+  "circuitsBrowseEmpty": "Aucun circuit pour le moment.",
+  "circuitsBrowseLoading": "Chargement…",
+  "circuitsBrowseError": "Impossible de charger les circuits. Réessayez.",
 
   "exerciseBrowseTitle": "Exercices",
   "exerciseBrowseBack": "Retour",

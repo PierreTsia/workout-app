@@ -1,23 +1,24 @@
 import { Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Button } from "@/components/ui/button"
 import { isEnglish } from "@/lib/catalogLabels"
 import type { CatalogPreviewRow } from "@/lib/previewCatalogCircuit"
 
-interface CircuitSeedCardProps {
+type CircuitSeedCardProps = {
   seed: CatalogPreviewRow
-  onSelect: () => void
   pending?: boolean
   locked?: boolean
-}
+} & ({ onSelect: () => void; to?: never } | { to: string; onSelect?: never })
 
-export function CircuitSeedCard({
+function SeedCardBody({
   seed,
-  onSelect,
-  pending = false,
-  locked = false,
-}: CircuitSeedCardProps) {
+  pending,
+}: {
+  seed: CatalogPreviewRow
+  pending: boolean
+}) {
   const { t, i18n } = useTranslation("builder")
   const label = seed.label
   const tagline = isEnglish(i18n.language)
@@ -28,15 +29,7 @@ export function CircuitSeedCard({
     seed.rx.cap_seconds != null ? Math.round(seed.rx.cap_seconds / 60) : 20
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      disabled={pending || locked}
-      aria-label={label}
-      title={label}
-      onClick={onSelect}
-      className="h-auto w-full items-start justify-start gap-3 whitespace-normal border-primary/25 bg-card px-3 py-3 text-left shadow-xs hover:border-primary/40 hover:bg-accent/50"
-    >
+    <>
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
         <Layers className="h-5 w-5" />
       </span>
@@ -60,6 +53,39 @@ export function CircuitSeedCard({
           <span className="text-xs text-muted-foreground">{tagline}</span>
         ) : null}
       </span>
+    </>
+  )
+}
+
+const cardClassName =
+  "h-auto w-full items-start justify-start gap-3 whitespace-normal border-primary/25 bg-card px-3 py-3 text-left shadow-xs hover:border-primary/40 hover:bg-accent/50"
+
+export function CircuitSeedCard(props: CircuitSeedCardProps) {
+  const { seed, pending = false, locked = false } = props
+  const label = seed.label
+
+  const destination = "to" in props ? props.to : undefined
+  if (destination !== undefined) {
+    return (
+      <Button variant="outline" className={cardClassName} asChild>
+        <Link to={destination} aria-label={label} title={label}>
+          <SeedCardBody seed={seed} pending={false} />
+        </Link>
+      </Button>
+    )
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={pending || locked}
+      aria-label={label}
+      title={label}
+      onClick={props.onSelect}
+      className={cardClassName}
+    >
+      <SeedCardBody seed={seed} pending={pending} />
     </Button>
   )
 }
