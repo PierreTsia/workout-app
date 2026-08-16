@@ -39,7 +39,7 @@ function catalogCanonicalFingerprint(rx: BenchmarkCircuitRx): string {
 export interface CircuitForkCatalog {
   id: string
   owner_id: string | null
-  label: string | null
+  label: string
   aliases: string[]
   tagline_fr: string | null
   tagline_en: string | null
@@ -53,7 +53,7 @@ export interface CircuitForkInsertRow {
   slug: null
   owner_id: string
   forked_from: string
-  label: string | null
+  label: string
   aliases: string[]
   tagline_fr: string | null
   tagline_en: string | null
@@ -193,13 +193,15 @@ export function parseCircuitForkCatalog(
   if (row.owner_id != null && typeof row.owner_id !== "string") return null
   const rx = parseRx(row.rx)
   if (rx == null) return null
+  const label = typeof row.label === "string" ? row.label.trim() : ""
+  if (label === "") return null
   const aliases = Array.isArray(row.aliases)
     ? row.aliases.filter((alias) => typeof alias === "string")
     : []
   return {
     id: row.id,
     owner_id: row.owner_id ?? null,
-    label: stringOrNull(row.label),
+    label,
     aliases,
     tagline_fr: stringOrNull(row.tagline_fr),
     tagline_en: stringOrNull(row.tagline_en),

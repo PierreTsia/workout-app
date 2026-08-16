@@ -40,4 +40,15 @@ describe("Pantheon benchmark seed migration", () => {
     expect(constraintPosition).toBeGreaterThan(strictPosition)
     expect(sql).not.toContain("'cindy'")
   })
+
+  it("backfills leftover labels (forks) before SET NOT NULL", () => {
+    const sql = readPantheonMigration()
+    const inheritPosition = sql.indexOf("parent.label")
+    const leftoverPosition = sql.indexOf("WHERE label IS NULL")
+    const constraintPosition = sql.indexOf("ALTER COLUMN label SET NOT NULL")
+
+    expect(inheritPosition).toBeGreaterThanOrEqual(0)
+    expect(leftoverPosition).toBeGreaterThan(inheritPosition)
+    expect(constraintPosition).toBeGreaterThan(leftoverPosition)
+  })
 })

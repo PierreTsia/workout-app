@@ -230,5 +230,17 @@ BEGIN
   );
 END $$;
 
+-- Circuit Forks (and any leftover seeds) still have NULL labels from T201.
+UPDATE benchmark_circuits AS bc
+SET label = parent.label
+FROM benchmark_circuits AS parent
+WHERE bc.label IS NULL
+  AND bc.forked_from = parent.id
+  AND parent.label IS NOT NULL;
+
+UPDATE benchmark_circuits
+SET label = COALESCE(initcap(slug), 'Circuit')
+WHERE label IS NULL;
+
 ALTER TABLE benchmark_circuits
   ALTER COLUMN label SET NOT NULL;

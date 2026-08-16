@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   needsCircuitFork,
+  parseCircuitForkCatalog,
   persistCircuitFork,
   type CircuitForkCatalog,
   type CircuitForkWriter,
@@ -98,6 +99,20 @@ describe("needsCircuitFork", () => {
         pending: pendingFromRx(CINDY_RX),
       }),
     ).toBe(false)
+  })
+})
+
+describe("parseCircuitForkCatalog", () => {
+  it("drops a catalog row whose label is missing after NOT NULL", () => {
+    expect(
+      parseCircuitForkCatalog({
+        id: CINDY_ID,
+        owner_id: null,
+        label: null,
+        aliases: [],
+        rx: CINDY_RX,
+      }),
+    ).toBeNull()
   })
 })
 
