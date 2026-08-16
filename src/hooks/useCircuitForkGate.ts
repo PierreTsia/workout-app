@@ -16,7 +16,7 @@ async function loadCatalogViaSupabase(id: string) {
   const { data, error } = await supabase
     .from("benchmark_circuits")
     .select(
-      "id, owner_id, aliases, tagline_fr, tagline_en, story_fr, story_en, reference, rx",
+      "id, owner_id, label, aliases, tagline_fr, tagline_en, story_fr, story_en, reference, rx",
     )
     .eq("id", id)
     .single()

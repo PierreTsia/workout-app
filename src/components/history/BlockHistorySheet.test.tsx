@@ -182,6 +182,7 @@ describe("BlockHistorySheet", () => {
       data: {
         copy: {
           slug: "cindy",
+          label: "Cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions, dix pompes, quinze squats.",
@@ -230,6 +231,7 @@ describe("BlockHistorySheet", () => {
       data: {
         copy: {
           slug: "cindy",
+          label: "Cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions.",
@@ -265,6 +267,7 @@ describe("BlockHistorySheet", () => {
       data: {
         copy: {
           slug: "cindy",
+          label: "Cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions.",

@@ -7,6 +7,7 @@ function makeCindy(overrides: Partial<BenchmarkCircuitLookup> = {}): BenchmarkCi
   return {
     id: CINDY_ID,
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     rx: {
       mode: "amrap",

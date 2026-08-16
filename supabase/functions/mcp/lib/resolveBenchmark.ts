@@ -18,6 +18,7 @@ export interface BenchmarkRx {
 export interface BenchmarkCircuitLookup {
   id: string
   slug: string | null
+  label: string
   aliases: string[]
   rx: BenchmarkRx
 }

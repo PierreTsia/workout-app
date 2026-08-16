@@ -14,6 +14,7 @@ const catalogLookup = vi.hoisted(() => ({ fail: false }))
 const CINDY_CATALOG = {
   id: CINDY_ID,
   owner_id: null,
+  label: "Cindy",
   aliases: ["holland"],
   tagline_fr: "Le WOD de Tom Holland. 20 min.",
   tagline_en: "Tom Holland’s WOD. 20 min.",

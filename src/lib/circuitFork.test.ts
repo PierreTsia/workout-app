@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   needsCircuitFork,
+  parseCircuitForkCatalog,
   persistCircuitFork,
   type CircuitForkCatalog,
   type CircuitForkWriter,
@@ -101,10 +102,25 @@ describe("needsCircuitFork", () => {
   })
 })
 
+describe("parseCircuitForkCatalog", () => {
+  it("drops a catalog row whose label is missing after NOT NULL", () => {
+    expect(
+      parseCircuitForkCatalog({
+        id: CINDY_ID,
+        owner_id: null,
+        label: null,
+        aliases: [],
+        rx: CINDY_RX,
+      }),
+    ).toBeNull()
+  })
+})
+
 function makeCindyCatalog(): CircuitForkCatalog {
   return {
     id: CINDY_ID,
     owner_id: null,
+    label: "Cindy",
     aliases: ["holland", "tom holland"],
     tagline_fr: "Le WOD de Tom Holland. 20 min.",
     tagline_en: "Tom Holland’s WOD. 20 min.",
@@ -151,6 +167,7 @@ describe("persistCircuitFork", () => {
         slug: null,
         owner_id: USER_ID,
         forked_from: CINDY_ID,
+        label: "Cindy",
         aliases: [],
         tagline_fr: "Le WOD de Tom Holland. 20 min.",
         tagline_en: "Tom Holland’s WOD. 20 min.",

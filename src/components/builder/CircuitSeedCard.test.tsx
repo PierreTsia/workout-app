@@ -11,6 +11,7 @@ function makeCindy(overrides: Partial<CatalogPreviewRow> = {}): CatalogPreviewRo
   return {
     id: "cindy-id",
     slug: "cindy",
+    label: "Cindy",
     aliases: ["holland"],
     rx: {
       mode: "amrap",
@@ -24,13 +25,16 @@ function makeCindy(overrides: Partial<CatalogPreviewRow> = {}): CatalogPreviewRo
 }
 
 describe("CircuitSeedCard", () => {
-  it("exposes the capitalized slug as the accessible name and calls onSelect on tap", async () => {
+  it("exposes the catalog label as the accessible name and calls onSelect on tap", async () => {
     const onSelect = vi.fn()
     renderWithProviders(
-      <CircuitSeedCard seed={makeCindy()} onSelect={onSelect} />,
+      <CircuitSeedCard
+        seed={makeCindy({ slug: "zeus", label: "Zeus ⚡" })}
+        onSelect={onSelect}
+      />,
     )
 
-    const card = screen.getByRole("button", { name: "Cindy" })
+    const card = screen.getByRole("button", { name: "Zeus ⚡" })
     expect(card).toBeInTheDocument()
     await userEvent.setup().click(card)
     expect(onSelect).toHaveBeenCalledTimes(1)

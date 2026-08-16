@@ -18,6 +18,7 @@ const CINDY_SQUAT = "cccccccc-3333-4333-8333-cccccccccccc"
 const CINDY_SEED: BenchmarkCircuitLookup = {
   id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
   slug: "cindy",
+  label: "Cindy",
   aliases: ["holland", "tom holland"],
   rx: {
     mode: "amrap",

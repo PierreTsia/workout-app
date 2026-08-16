@@ -34,4 +34,62 @@ describe("seedMatchesQuery", () => {
   ])("is $expected for query $query", ({ query, expected, row }) => {
     expect(seedMatchesQuery(row, query)).toBe(expected)
   })
+
+  it.each([
+    {
+      query: "arès",
+      expectedSlugs: ["ares"],
+    },
+    {
+      query: "force",
+      expectedSlugs: ["ares", "theseus"],
+    },
+    {
+      query: "hercule",
+      expectedSlugs: ["heracles"],
+    },
+    {
+      query: "jambes",
+      expectedSlugs: ["hades", "achilles"],
+    },
+  ])("matches Pantheon discovery query $query", ({ query, expectedSlugs }) => {
+    const seeds = [
+      makeSeedRow({
+        slug: "ares",
+        aliases: ["arès"],
+        tagline_fr: "Force haut du corps",
+        tagline_en: "Upper-body strength",
+      }),
+      makeSeedRow({
+        slug: "theseus",
+        aliases: ["thésée"],
+        tagline_fr: "Force haut du corps",
+        tagline_en: "Upper-body strength",
+      }),
+      makeSeedRow({
+        slug: "heracles",
+        aliases: ["hercule", "héraclès"],
+        tagline_fr: "Full body",
+        tagline_en: "Full body",
+      }),
+      makeSeedRow({
+        slug: "hades",
+        aliases: ["hadès"],
+        tagline_fr: "Jambes",
+        tagline_en: "Legs",
+      }),
+      makeSeedRow({
+        slug: "achilles",
+        aliases: ["achille"],
+        tagline_fr: "Jambes",
+        tagline_en: "Legs",
+      }),
+    ]
+
+    expect(
+      seeds
+        .filter((seed) => seedMatchesQuery(seed, query))
+        .map(({ slug }) => slug),
+    ).toEqual(expectedSlugs)
+  })
 })

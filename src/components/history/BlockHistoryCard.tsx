@@ -62,11 +62,19 @@ export function BlockHistoryCard({
   formatWeight: (kg: number) => string
   onOpen?: (group: BlockHistoryGroup) => void
   /** This session's `block_runs` row — completeness is `finished_at`. */
-  blockRun?: { finished_at: string | null; catalogSlug?: string | null }
+  blockRun?: {
+    finished_at: string | null
+    catalogSlug?: string | null
+    catalogLabel?: string | null
+  }
 }) {
   const { t } = useTranslation("history")
   const { exerciseName } = useCatalogLabels()
-  const heading = sessionBlockHeading(group.label, blockRun?.catalogSlug)
+  const heading = sessionBlockHeading(
+    group.label,
+    blockRun?.catalogLabel,
+    blockRun?.catalogSlug,
+  )
   const cells = groupCells(group)
   const score =
     group.mode === "amrap"

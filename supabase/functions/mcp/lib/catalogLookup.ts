@@ -37,6 +37,7 @@ function parseBenchmarkRx(raw: unknown): BenchmarkRx | null {
 
 function parseBenchmarkRow(raw: unknown): BenchmarkCircuitLookup | null {
   if (!isRecord(raw) || typeof raw.id !== "string") return null
+  if (typeof raw.label !== "string" || raw.label.trim() === "") return null
   const rx = parseBenchmarkRx(raw.rx)
   if (!rx) return null
   const aliases = Array.isArray(raw.aliases)
@@ -45,6 +46,7 @@ function parseBenchmarkRow(raw: unknown): BenchmarkCircuitLookup | null {
   return {
     id: raw.id,
     slug: typeof raw.slug === "string" ? raw.slug : null,
+    label: raw.label,
     aliases,
     rx,
   }
@@ -118,7 +120,7 @@ export async function fetchBenchmarkCircuits(
 ): Promise<{ data: BenchmarkCircuitLookup[]; error: string | null }> {
   const { data, error } = await supabase
     .from("benchmark_circuits")
-    .select("id, slug, aliases, rx")
+    .select("id, slug, label, aliases, rx")
 
   if (error) return { data: [], error: error.message }
   const rows = Array.isArray(data) ? data.flatMap((row) => {

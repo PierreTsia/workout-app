@@ -98,6 +98,7 @@ const SQUAT: CatalogRow = {
 const CINDY_SEED: BenchmarkRow = {
   id: ID_CINDY,
   slug: "cindy",
+  label: "Cindy",
   aliases: ["holland", "tom holland"],
   rx: {
     mode: "amrap",
@@ -132,6 +133,7 @@ interface Filter {
 interface BenchmarkRow {
   id: string
   slug: string | null
+  label: string
   aliases: string[]
   rx: {
     mode: "amrap" | "rounds"

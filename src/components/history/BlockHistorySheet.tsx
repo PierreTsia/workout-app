@@ -172,7 +172,8 @@ export function BlockHistorySheet({
   const isError = isCatalog ? catalogHistory.isError : blockHistory.isError
   const refetch = isCatalog ? catalogHistory.refetch : blockHistory.refetch
   const copy = isCatalog ? (catalogHistory.data?.copy ?? null) : null
-  const heading = catalogDisplayName(copy?.slug) ?? label ?? t("circuit.fallbackLabel")
+  const heading =
+    catalogDisplayName(copy?.label, copy?.slug) ?? label ?? t("circuit.fallbackLabel")
 
   const isAmrap = isCatalog || blockHistory.data?.mode === "amrap"
   const views = isCatalog ? [] : (blockHistory.data?.views ?? [])

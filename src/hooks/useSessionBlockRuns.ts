@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
-import { catalogSlugFromEmbed } from "@/lib/sessionHistoryGrouping"
+import {
+  catalogLabelFromEmbed,
+  catalogSlugFromEmbed,
+} from "@/lib/sessionHistoryGrouping"
 
 export interface SessionBlockRun {
   finished_at: string | null
@@ -8,6 +11,8 @@ export interface SessionBlockRun {
   benchmarkCircuitId: string | null
   /** Seed slug at GO. Null on a Circuit Fork (slug-less) or a jetable. */
   catalogSlug: string | null
+  /** Display label joined through the GO-stamped catalog identity. */
+  catalogLabel: string | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -26,6 +31,7 @@ function parseSessionBlockRun(
       finished_at: typeof finished === "string" ? finished : null,
       benchmarkCircuitId: typeof catalogId === "string" ? catalogId : null,
       catalogSlug: catalogSlugFromEmbed(row.benchmark_circuits),
+      catalogLabel: catalogLabelFromEmbed(row.benchmark_circuits),
     },
   }
 }
@@ -41,7 +47,7 @@ export function useSessionBlockRuns(sessionId: string | undefined) {
       const { data, error } = await supabase
         .from("block_runs")
         .select(
-          "block_id, finished_at, benchmark_circuit_id, benchmark_circuits(slug)",
+          "block_id, finished_at, benchmark_circuit_id, benchmark_circuits(slug, label)",
         )
         .eq("session_id", sessionId)
       if (error) throw error

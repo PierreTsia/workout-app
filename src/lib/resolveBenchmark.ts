@@ -13,6 +13,7 @@ export interface BenchmarkRx {
 export interface BenchmarkCircuitLookup {
   id: string
   slug: string | null
+  label: string
   aliases: string[]
   rx: BenchmarkRx
 }
@@ -45,8 +46,13 @@ function rowMatchesKey(row: BenchmarkCircuitLookup, key: string): boolean {
   return row.aliases.some((alias) => normalizeBenchmarkKey(alias) === key)
 }
 
-/** Seed heading: slug `cindy` → `Cindy`. Null/blank slug (a Circuit Fork) has no catalog name. */
-export function catalogDisplayName(slug: string | null | undefined): string | null {
+/** Catalog label wins; legacy/null labels fall back to a title-cased seed slug. */
+export function catalogDisplayName(
+  label: string | null | undefined,
+  slug: string | null | undefined,
+): string | null {
+  const trimmedLabel = label?.trim()
+  if (trimmedLabel) return trimmedLabel
   if (slug == null) return null
   const trimmed = slug.trim()
   if (trimmed === "") return null

@@ -19,14 +19,6 @@ export interface InstantiateBenchmarkArgs {
   exerciseById: ReadonlyMap<string, InstantiateExerciseRow>
 }
 
-function seedLabel(slug: string | null): string {
-  if (slug == null || slug.trim() === "") {
-    throw new Error("instantiateBenchmark: catalog row has no slug to derive a label")
-  }
-  const trimmed = slug.trim()
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
-}
-
 /**
  * Snapshot a Benchmark Circuit Rx onto a day-scoped Exercise Block.
  * Fails if any rx.exercise_id is missing from the exercise catalog — no half-Cindy.
@@ -48,7 +40,7 @@ export function instantiateBenchmark(
   const rounds = 1
   const block: ExerciseBlockInsertRow = {
     workout_day_id: workoutDayId,
-    label: seedLabel(catalog.slug),
+    label: catalog.label,
     rounds,
     rest_seconds: isAmrap ? 0 : 90,
     transition_seconds: 0,
