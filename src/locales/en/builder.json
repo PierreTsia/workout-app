@@ -83,5 +83,10 @@
   "customizePerRound": "Customize per round",
   "forkTitle": "This will no longer be Cindy.",
   "forkDescription": "Scores you already logged stay. From now on, this is a different workout.",
-  "forkConfirm": "Continue"
+  "forkConfirm": "Continue",
+  "kindExercises": "Exercises",
+  "kindCircuits": "Circuits",
+  "circuitsEmpty": "No benchmark circuits yet.",
+  "circuitsError": "Couldn’t load circuits.",
+  "instantiateError": "Couldn’t add this circuit."
 }

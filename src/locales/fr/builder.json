@@ -83,5 +83,10 @@
   "customizePerRound": "Personnaliser par tour",
   "forkTitle": "Ça ne sera plus Cindy.",
   "forkDescription": "Tes scores déjà faits restent. Les suivants, c’est un autre circuit.",
-  "forkConfirm": "Continuer"
+  "forkConfirm": "Continuer",
+  "kindExercises": "Exercices",
+  "kindCircuits": "Circuits",
+  "circuitsEmpty": "Pas encore de circuits de référence.",
+  "circuitsError": "Impossible de charger les circuits.",
+  "instantiateError": "Impossible d’ajouter ce circuit."
 }

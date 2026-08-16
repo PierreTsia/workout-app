@@ -30,10 +30,10 @@ export function AmrapLabel({
   }
 
   return (
-    <p className={cn("truncate text-xs text-muted-foreground", className)}>
+    <span className={cn("block truncate text-xs text-muted-foreground", className)}>
       <span className="font-medium text-secondary-foreground">{cap}</span>
       {" · "}
       <span>{gloss}</span>
-    </p>
+    </span>
   )
 }

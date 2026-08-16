@@ -160,11 +160,12 @@ export function DayEditor({
     )
   }
 
+  const existingMaxSortOrder = dayItems.reduce(
+    (max, item) => Math.max(max, item.sort_order),
+    -1,
+  )
+
   async function handleCreateBlock(selected: Exercise[]) {
-    const existingMaxSortOrder = dayItems.reduce(
-      (max, item) => Math.max(max, item.sort_order),
-      -1,
-    )
     await createBlock.mutateAsync({
       dayId,
       libraryExercises: selected,
@@ -282,6 +283,7 @@ export function DayEditor({
           id: e.id,
         }))}
         onMutationStateChange={onMutationStateChange}
+        existingMaxSortOrder={existingMaxSortOrder}
       />
 
       <ExerciseLibraryPicker
