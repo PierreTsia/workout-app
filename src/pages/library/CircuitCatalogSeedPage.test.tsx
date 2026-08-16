@@ -68,6 +68,8 @@ function makeExercise(
 
 const mockUseBenchmarkSeed = vi.fn()
 const mockUseExerciseBatch = vi.fn()
+const mockUseBenchmarkCompletionHistory = vi.fn()
+const mockUseOnlineStatus = vi.fn(() => true)
 
 vi.mock("@/hooks/useBenchmarkSeed", () => ({
   useBenchmarkSeed: (slug: string | undefined) => mockUseBenchmarkSeed(slug),
@@ -75,6 +77,15 @@ vi.mock("@/hooks/useBenchmarkSeed", () => ({
 
 vi.mock("@/hooks/useExerciseBatch", () => ({
   useExerciseBatch: (ids: readonly string[]) => mockUseExerciseBatch(ids),
+}))
+
+vi.mock("@/hooks/useBenchmarkCompletionHistory", () => ({
+  useBenchmarkCompletionHistory: (open: boolean, catalogId: string | undefined) =>
+    mockUseBenchmarkCompletionHistory(open, catalogId),
+}))
+
+vi.mock("@/hooks/useOnlineStatus", () => ({
+  useOnlineStatus: () => mockUseOnlineStatus(),
 }))
 
 function renderAt(path: string, locale: "en" | "fr" = "en") {
@@ -101,6 +112,13 @@ describe("CircuitCatalogSeedPage", () => {
         makeExercise(SQUAT_ID, "Squats", "Air squats"),
       ],
       isLoading: false,
+    })
+    mockUseOnlineStatus.mockReturnValue(true)
+    mockUseBenchmarkCompletionHistory.mockReturnValue({
+      data: { copy: null, amrapViews: [] },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
     })
   })
 
@@ -159,5 +177,59 @@ describe("CircuitCatalogSeedPage", () => {
       "href",
       "/library/circuits",
     )
+  })
+
+  it("shows noPrYet on a first visit while the story stays visible", () => {
+    renderAt("/library/circuits/cindy")
+
+    expect(mockUseBenchmarkCompletionHistory).toHaveBeenCalledWith(true, "cindy-id")
+    expect(screen.getByText("No PR yet")).toBeInTheDocument()
+    expect(screen.queryByText(/No completed runs yet/)).not.toBeInTheDocument()
+    expect(screen.getByText("Tom Holland’s WOD. 20 min.")).toBeInTheDocument()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("renders catalog-keyed AMRAP scores with the shared run row", () => {
+    mockUseBenchmarkCompletionHistory.mockReturnValue({
+      data: {
+        copy: null,
+        amrapViews: [
+          {
+            sessionId: "s2",
+            date: "2026-08-15T10:00:00.000Z",
+            fingerprint: "amrap|1200|ex-1:5:0",
+            isComplete: true,
+            score: { fullRounds: 27, leftover: 3, leftoverName: "push-ups" },
+            deltaRounds: 2,
+            isPb: true,
+            shapeChanged: false,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderAt("/library/circuits/cindy")
+
+    expect(screen.getByText("27+3")).toBeInTheDocument()
+    expect(screen.getByText("PB")).toBeInTheDocument()
+    expect(screen.getByText(/2 rounds/)).toBeInTheDocument()
+    expect(screen.queryByText("No PR yet")).not.toBeInTheDocument()
+    expect(screen.queryByText("Circuit times")).not.toBeInTheDocument()
+  })
+
+  it("shows the circuit offline string instead of a fake PB", () => {
+    mockUseOnlineStatus.mockReturnValue(false)
+
+    renderAt("/library/circuits/cindy")
+
+    expect(
+      screen.getByText("Connect to the internet to see your circuit times."),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("No PR yet")).not.toBeInTheDocument()
+    expect(screen.queryByText("PB")).not.toBeInTheDocument()
+    expect(screen.getByText("Tom Holland’s WOD. 20 min.")).toBeInTheDocument()
   })
 })

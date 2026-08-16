@@ -1,12 +1,17 @@
 import { Link, useParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
+import { AmrapRunRow } from "@/components/history/AmrapRunRow"
 import { BenchmarkStoryHeader } from "@/components/history/BenchmarkStoryHeader"
 import { CircuitRxList } from "@/components/library/CircuitRxList"
 import { Button } from "@/components/ui/button"
+import {
+  useBenchmarkCompletionHistory,
+  type BenchmarkCopy,
+} from "@/hooks/useBenchmarkCompletionHistory"
 import { useBenchmarkSeed } from "@/hooks/useBenchmarkSeed"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
-import type { BenchmarkCopy } from "@/hooks/useBenchmarkCompletionHistory"
+import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import type { CatalogSeedRow } from "@/lib/previewCatalogCircuit"
 
 function seedCopy(seed: CatalogSeedRow): BenchmarkCopy {
@@ -33,14 +38,22 @@ function NotFound({ message, back }: { message: string; back: string }) {
 }
 
 export function CircuitCatalogSeedPage() {
-  const { t } = useTranslation("library")
+  const { t } = useTranslation(["library", "history"])
   const { slug } = useParams<{ slug: string }>()
   const trimmed = slug?.trim() ?? ""
   const { data: seed, isLoading } = useBenchmarkSeed(trimmed)
+  const isOnline = useOnlineStatus()
+  const {
+    data: history,
+    isLoading: historyLoading,
+    isError: historyError,
+    refetch,
+  } = useBenchmarkCompletionHistory(true, seed?.id)
 
   const exerciseIds = (seed?.rx.exercises ?? []).map((ex) => ex.exercise_id)
   const { data: exercises } = useExerciseBatch(exerciseIds)
   const byId = new Map((exercises ?? []).map((ex) => [ex.id, ex]))
+  const amrapViews = history?.amrapViews ?? []
 
   if (trimmed === "") {
     return <NotFound message={t("circuitNotFound")} back={t("circuitBrowseBack")} />
@@ -72,6 +85,33 @@ export function CircuitCatalogSeedPage() {
       </div>
       <BenchmarkStoryHeader copy={seedCopy(seed)} />
       <CircuitRxList exercises={seed.rx.exercises} byId={byId} />
+      <section>
+        {!isOnline ? (
+          <p className="text-sm text-muted-foreground">{t("history:circuit.offline")}</p>
+        ) : historyLoading ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
+            <span className="text-sm">{t("history:circuit.loading")}</span>
+          </div>
+        ) : historyError ? (
+          <div className="flex flex-col gap-3 py-4">
+            <p className="text-sm text-destructive">{t("history:circuit.loadError")}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
+              {t("history:circuit.retry")}
+            </Button>
+          </div>
+        ) : amrapViews.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            {t("history:circuit.noPrYet")}
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {amrapViews.map((view) => (
+              <AmrapRunRow key={view.sessionId} view={view} />
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
