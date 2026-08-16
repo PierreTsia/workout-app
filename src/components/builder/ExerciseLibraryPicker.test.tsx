@@ -616,6 +616,43 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.queryByText("5-10-15")).not.toBeInTheDocument()
   })
 
+  it("lists Cindy and all eight Pantheon seeds on an empty Circuits query", async () => {
+    const pantheonSeeds = [
+      { slug: "zeus", label: "Zeus ⚡" },
+      { slug: "heracles", label: "Heracles 🦁" },
+      { slug: "ares", label: "Ares 🗡️" },
+      { slug: "theseus", label: "Theseus 🐂" },
+      { slug: "athena", label: "Athena 🦉" },
+      { slug: "atlas", label: "Atlas 🌍" },
+      { slug: "hades", label: "Hades 🌑" },
+      { slug: "achilles", label: "Achilles 🛡️" },
+    ].map(({ slug, label }) =>
+      makeCindySeed({
+        id: `${slug}-id`,
+        slug,
+        label,
+        aliases: [],
+      }),
+    )
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed(), ...pantheonSeeds],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+    const expectedLabels = [
+      "Cindy",
+      ...pantheonSeeds.map(({ label }) => label),
+    ]
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expectedLabels.forEach((label) => {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
+    })
+  })
+
   it("keeps the kind toggle visible and shows empty copy when there are no seeds", async () => {
     mockUseBenchmarkSeeds.mockReturnValue({
       data: [],
