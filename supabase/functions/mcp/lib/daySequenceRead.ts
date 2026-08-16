@@ -30,6 +30,9 @@ export interface DbBlockForRead {
   /** Present after T183; omitted on older fixtures → Tours. */
   mode?: "rounds" | "amrap"
   cap_seconds?: number | null
+  /** Catalog handle when the block was instantiated from a Benchmark Circuit. */
+  benchmark_slug?: string | null
+  benchmark_circuit_id?: string | null
 }
 
 export interface DbSoloForRead {
@@ -59,6 +62,9 @@ export interface CircuitWireItem {
   rest_seconds?: number
   transition_seconds?: number
   exercises: CircuitWireExercise[]
+  benchmark_slug?: string
+  /** Present on Circuit Forks (slug is NULL) so agents can re-target without a fake handle. */
+  benchmark_id?: string
 }
 
 function cellsAreHomogeneous(cells: PerRoundCellDb[]): boolean {
@@ -109,6 +115,8 @@ export function dbBlockToParsedCircuit(
     exercises,
     mode: isAmrap ? "amrap" : "rounds",
     capMinutes,
+    benchmarkSlug: block.benchmark_slug ?? null,
+    benchmarkCircuitId: block.benchmark_circuit_id ?? null,
   }
 }
 
@@ -138,11 +146,13 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     })
 
   const label = block.label?.trim()
+  const catalogEcho = catalogEchoFields(block.benchmark_slug, block.benchmark_circuit_id)
   if (block.mode === "amrap") {
     const capMinutes = (block.cap_seconds ?? 0) / 60
     return {
       type: "circuit",
       ...(label ? { label } : {}),
+      ...catalogEcho,
       mode: "amrap",
       cap_minutes: capMinutes,
       exercises: nested,
@@ -155,9 +165,21 @@ export function dbBlockToCircuitWire(block: DbBlockForRead): CircuitWireItem {
     rest_seconds: block.rest_seconds,
     transition_seconds: block.transition_seconds,
     exercises: nested,
+    ...catalogEcho,
   }
   if (label) wire.label = label
   return wire
+}
+
+/** Seed → slug. Fork (slug NULL) → id. Generic → omit both. Never invent a handle. */
+function catalogEchoFields(
+  slug: string | null | undefined,
+  catalogId: string | null | undefined,
+): Pick<CircuitWireItem, "benchmark_slug" | "benchmark_id"> {
+  const trimmed = slug?.trim()
+  if (trimmed) return { benchmark_slug: trimmed }
+  if (catalogId) return { benchmark_id: catalogId }
+  return {}
 }
 
 export type DaySequenceReadItem =
@@ -196,6 +218,42 @@ export type SoloWireItem = {
 
 export type EchoDayExercise = string | SoloWireItem | CircuitWireItem
 
+/** Parsed Circuit → MCP wire (dry_run echo, including catalog slug). */
+export function parsedCircuitToWire(
+  circuit: Extract<ParsedExercise, { kind: "circuit" }>,
+): CircuitWireItem {
+  const nested: CircuitWireExercise[] = circuit.exercises.map((ex) => {
+    if (ex.mode === "flat") {
+      return { exercise_id: ex.exerciseId, amount: ex.amount, weight_kg: ex.weightKg }
+    }
+    return {
+      exercise_id: ex.exerciseId,
+      per_round: ex.perRound.map((c) => ({ amount: c.amount, weight_kg: c.weightKg })),
+    }
+  })
+  const catalogEcho = catalogEchoFields(circuit.benchmarkSlug, circuit.benchmarkCircuitId)
+  if (circuit.mode === "amrap") {
+    return {
+      type: "circuit",
+      ...(circuit.label ? { label: circuit.label } : {}),
+      ...catalogEcho,
+      mode: "amrap",
+      cap_minutes: circuit.capMinutes ?? 20,
+      exercises: nested,
+    }
+  }
+  const wire: CircuitWireItem = {
+    type: "circuit",
+    rounds: circuit.rounds,
+    rest_seconds: circuit.restSeconds,
+    transition_seconds: circuit.transitionSeconds,
+    exercises: nested,
+    ...catalogEcho,
+  }
+  if (circuit.label) wire.label = circuit.label
+  return wire
+}
+
 /** Patch-shaped `days[].exercises` for the get_program_details JSON fence. */
 export function daySequenceToEchoExercises(items: DaySequenceReadItem[]): EchoDayExercise[] {
   return items.map((item) => {
@@ -213,6 +271,16 @@ export function daySequenceToEchoExercises(items: DaySequenceReadItem[]): EchoDa
     }
     return wire
   })
+}
+
+/** Embed from `benchmark_circuits(slug)` — object or accidental array. */
+export function slugFromBenchmarkEmbed(
+  embed: { slug: string | null } | { slug: string | null }[] | null | undefined,
+): string | null {
+  if (embed == null) return null
+  const row = Array.isArray(embed) ? embed[0] : embed
+  const slug = row?.slug?.trim()
+  return slug ? slug : null
 }
 
 /** Catalog-ish map for formatCircuitPreviewLines from a DB block embed. */

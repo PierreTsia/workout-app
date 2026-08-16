@@ -1,5 +1,13 @@
 # T144 — Top-level "Create circuit" entry
 
+> **STATUS: SUPERSEDED FRAMING (2026-08-15, post-#475).** The architecture
+> diagnosis below still holds (`BlockEditor` is a modal inside `DayEditor`; no
+> ad-hoc edit surface). The **goal does not**. After AMRAP, this is not "blank
+> Create circuit from home" — it is **Do Cindy**: instantiate a named
+> **Benchmark Circuit** (#398) onto an ad-hoc day and land on pre-session.
+> GitHub issue rewritten: [#393](https://github.com/PierreTsia/workout-app/issues/393).
+> Do not implement this file as written. Grill #398 + #393 together.
+>
 > **STATUS: POSTPONED (2026-06-14).** Not mature enough to implement — needs a
 > dedicated `grill-with-docs` design session before any code. The ticket's core
 > assumption ("route directly to `BlockEditor`") **does not hold against the

@@ -470,6 +470,7 @@ describe("BlockRunner", () => {
       mode: "amrap",
       capSeconds: 20 * 60,
       templateFingerprint: "amrap|1200|ex-A:20:0",
+      benchmarkCircuitId: null,
     })
 
     renderWithProviders(

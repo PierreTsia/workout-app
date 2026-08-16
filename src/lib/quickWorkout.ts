@@ -1,7 +1,8 @@
-// PWA → MCP shape adapter for Quick Workout AI commits (T128 / T170).
+// PWA → MCP shape adapter for Quick Workout AI commits (T128 / T170 / T192).
 //
 // Object-form solos preserve preview prescriptions. Circuits map to MCP
-// Circuit Items (`type: "circuit"`, nested amount/weight_kg).
+// Circuit Items (`type: "circuit"`). AMRAP keeps mode/cap; catalog items
+// pass benchmark_slug and omit nested LLM exercises.
 
 import type {
   GeneratedCircuit,
@@ -24,10 +25,13 @@ export interface McpWorkoutDaySolo {
 export interface McpWorkoutDayCircuit {
   type: "circuit"
   label?: string
-  rounds: number
-  rest_seconds: number
-  transition_seconds: number
-  exercises: Array<{ exercise_id: string; amount: number; weight_kg: number }>
+  mode?: "rounds" | "amrap"
+  cap_minutes?: number
+  benchmark_slug?: string
+  rounds?: number
+  rest_seconds?: number
+  transition_seconds?: number
+  exercises?: Array<{ exercise_id: string; amount: number; weight_kg: number }>
 }
 
 export type McpWorkoutDayExercise = McpWorkoutDaySolo | McpWorkoutDayCircuit
@@ -53,19 +57,40 @@ function dayItemToMcp(item: GeneratedDayItem): McpWorkoutDayExercise {
   return toMcpCircuit(item.circuit)
 }
 
+function toMcpNestedExercises(circuit: GeneratedCircuit) {
+  return circuit.exercises.map((ex) => ({
+    exercise_id: ex.exercise.id,
+    amount: ex.amount,
+    weight_kg: ex.exercise.equipment === "bodyweight" ? 0 : ex.weightKg,
+  }))
+}
+
 function toMcpCircuit(circuit: GeneratedCircuit): McpWorkoutDayCircuit {
+  if (circuit.benchmarkSlug) {
+    return {
+      type: "circuit",
+      benchmark_slug: circuit.benchmarkSlug,
+    }
+  }
+
+  const label = circuit.label ? { label: circuit.label } : {}
+  const nested = { exercises: toMcpNestedExercises(circuit) }
+  if (circuit.mode === "amrap") {
+    return {
+      type: "circuit",
+      ...label,
+      mode: "amrap",
+      cap_minutes: circuit.capMinutes ?? 20,
+      ...nested,
+    }
+  }
   return {
     type: "circuit",
-    ...(circuit.label ? { label: circuit.label } : {}),
+    ...label,
     rounds: circuit.rounds,
     rest_seconds: circuit.restSeconds,
     transition_seconds: circuit.transitionSeconds,
-    exercises: circuit.exercises.map((ex) => ({
-      exercise_id: ex.exercise.id,
-      amount: ex.amount,
-      weight_kg:
-        ex.exercise.equipment === "bodyweight" ? 0 : ex.weightKg,
-    })),
+    ...nested,
   }
 }
 

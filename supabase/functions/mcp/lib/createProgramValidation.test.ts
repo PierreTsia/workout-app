@@ -8,9 +8,27 @@ import {
   validateRepsModeCrossField,
 } from "./createProgramValidation"
 import type { CatalogExerciseForProgram } from "./programPersistence"
+import type { BenchmarkCircuitLookup } from "./resolveBenchmark"
 
 const VALID_UUID = "11111111-2222-4333-8444-555555555555"
 const VALID_UUID_2 = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+const CINDY_PULL = "cccccccc-1111-4111-8111-cccccccccccc"
+const CINDY_PUSH = "cccccccc-2222-4222-8222-cccccccccccc"
+const CINDY_SQUAT = "cccccccc-3333-4333-8333-cccccccccccc"
+const CINDY_SEED: BenchmarkCircuitLookup = {
+  id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  slug: "cindy",
+  aliases: ["holland", "tom holland"],
+  rx: {
+    mode: "amrap",
+    cap_seconds: 1200,
+    exercises: [
+      { exercise_id: CINDY_PULL, amount: 5, weight: 0 },
+      { exercise_id: CINDY_PUSH, amount: 10, weight: 0 },
+      { exercise_id: CINDY_SQUAT, amount: 15, weight: 0 },
+    ],
+  },
+}
 const DAY = "Push"
 
 describe("detectLegacyExerciseIds", () => {
@@ -970,5 +988,134 @@ describe("parseExerciseInput — AMRAP Circuit (T187 / ADR 0014)", () => {
     )
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.error).toContain("cap_minutes")
+  })
+})
+
+describe("parseExerciseInput — Benchmark Circuit slug (T191)", () => {
+  it("rejects an unknown benchmark_slug and does not treat the item as a jetable Circuit", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        benchmark_slug: "not-a-wod",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 6, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 11, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("unknown benchmark_slug")
+      expect(result.error).toContain("not-a-wod")
+    }
+  })
+
+  it("names an unknown benchmark_id in the error, not benchmark_slug", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        benchmark_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 6, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 11, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+      [CINDY_SEED],
+    )
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain("unknown benchmark_id")
+      expect(result.error).toContain("dddddddd-dddd-4ddd-8ddd-dddddddddddd")
+      expect(result.error).not.toContain("unknown benchmark_slug")
+    }
+  })
+
+  it("replaces caller exercises/mode/cap with catalog Rx when benchmark_slug is known", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        benchmark_slug: "cindy",
+        mode: "rounds",
+        rounds: 4,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 6, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 11, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+      [CINDY_SEED],
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok || result.value.kind !== "circuit") {
+      throw new Error("expected catalog Circuit")
+    }
+    expect(result.value.benchmarkCircuitId).toBe(CINDY_SEED.id)
+    expect(result.value.benchmarkSlug).toBe("cindy")
+    expect(result.value.label).toBe("Cindy")
+    expect(result.value.mode).toBe("amrap")
+    expect(result.value.capMinutes).toBe(20)
+    expect(result.value.rounds).toBe(1)
+    expect(result.value.restSeconds).toBe(0)
+    expect(result.value.transitionSeconds).toBe(0)
+    expect(result.value.exercises).toEqual([
+      { mode: "flat", exerciseId: CINDY_PULL, amount: 5, weightKg: 0 },
+      { mode: "flat", exerciseId: CINDY_PUSH, amount: 10, weightKg: 0 },
+      { mode: "flat", exerciseId: CINDY_SQUAT, amount: 15, weightKg: 0 },
+    ])
+  })
+
+  it("coerces label Holland (no slug) to the cindy seed Rx and FK", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        label: "Holland",
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 6, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 11, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+      [CINDY_SEED],
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok || result.value.kind !== "circuit") {
+      throw new Error("expected coerced Cindy")
+    }
+    expect(result.value.benchmarkCircuitId).toBe(CINDY_SEED.id)
+    expect(result.value.benchmarkSlug).toBe("cindy")
+    expect(result.value.label).toBe("Cindy")
+    expect(result.value.exercises.map((ex) => ex.mode === "flat" ? ex.amount : 0)).toEqual([5, 10, 15])
+  })
+
+  it("leaves a generic AMRAP jetable (null catalog FK) when the label is not a seed name", () => {
+    const result = parseExerciseInput(
+      {
+        type: "circuit",
+        label: "HIIT 20",
+        mode: "amrap",
+        cap_minutes: 20,
+        exercises: [
+          { exercise_id: VALID_UUID, amount: 10, weight_kg: 0 },
+          { exercise_id: VALID_UUID_2, amount: 12, weight_kg: 0 },
+        ],
+      },
+      DAY,
+      0,
+      [CINDY_SEED],
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok || result.value.kind !== "circuit") {
+      throw new Error("expected jetable Circuit")
+    }
+    expect(result.value.benchmarkCircuitId ?? null).toBeNull()
+    expect(result.value.benchmarkSlug ?? null).toBeNull()
+    expect(result.value.label).toBe("HIIT 20")
+    expect(result.value.exercises).toHaveLength(2)
   })
 })

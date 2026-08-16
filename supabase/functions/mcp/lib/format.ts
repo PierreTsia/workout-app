@@ -9,6 +9,7 @@ import {
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 import type { AmrapScoreValue } from "./amrapScore.ts"
 import {
+  attachAmrapHistory,
   attachAmrapScores,
   groupSessionHistory,
   type BlockMeta,
@@ -104,7 +105,16 @@ export function formatCircuitPreviewLines(
 
   const nameOf = (id: string) => catalogById.get(id)?.name ?? id
 
-  const heading = isAmrap ? [header, AMRAP_GLOSS_EN] : [header]
+  const slug = circuit.benchmarkSlug?.trim()
+  const catalogId = circuit.benchmarkCircuitId?.trim()
+  const catalogLine = slug
+    ? `  benchmark_slug: "${slug}"`
+    : catalogId
+      ? `  benchmark_id: "${catalogId}"`
+      : null
+  const heading = isAmrap
+    ? [header, AMRAP_GLOSS_EN, ...(catalogLine ? [catalogLine] : [])]
+    : [header, ...(catalogLine ? [catalogLine] : [])]
 
   if (!needsExpand) {
     const exoLines = circuit.exercises.map((ex) => {
@@ -214,13 +224,20 @@ function formatHistoryItemLines(items: SessionHistoryItem[]): string[] {
       item.amrapScore != null
         ? formatAmrapScoreLines(item.amrapScore).map((line) => `    ${line}`)
         : []
+    const pbLines = item.isPb ? ["    PB"] : []
+    const deltaLines =
+      item.deltaRounds != null
+        ? [
+            `    ${item.deltaRounds > 0 ? "+" : ""}${item.deltaRounds} rounds vs last`,
+          ]
+        : []
     const roundLines = item.rounds.map((r) => {
       const cells = r.cells
         .map((c) => `${c.exercise_name_snapshot} ${formatSetMeasure(c.log)}`)
         .join(" · ")
       return `    Round ${r.round}: ${cells}`
     })
-    return [header, ...scoreLines, ...roundLines]
+    return [header, ...scoreLines, ...pbLines, ...deltaLines, ...roundLines]
   })
 }
 
@@ -237,6 +254,37 @@ export function formatSessionHistory(
     session.id,
   )
   return formatSessionSummary(session, logs, programInfo, historyItems)
+}
+
+/**
+ * Cross-session history: Cindy days share one catalog PB via
+ * {@link attachAmrapHistory}. Used by `get_workout_history`.
+ */
+export function formatWorkoutHistory(
+  sessions: Array<SessionForFormat & { id: string }>,
+  logsBySession: Map<string, HistorySetLog[]>,
+  metaById: Map<string, BlockMeta>,
+  runs: HistoryBlockRun[],
+  programBySession?: Map<string, ProgramInfoForSession>,
+): string {
+  const attached = attachAmrapHistory(
+    sessions.map((session) => ({
+      sessionId: session.id,
+      items: groupSessionHistory(logsBySession.get(session.id) ?? [], metaById),
+    })),
+    runs,
+  )
+  const itemsBySession = new Map(attached.map((b) => [b.sessionId, b.items]))
+  return sessions
+    .map((session) =>
+      formatSessionSummary(
+        session,
+        logsBySession.get(session.id) ?? [],
+        programBySession?.get(session.id),
+        itemsBySession.get(session.id),
+      ),
+    )
+    .join("\n\n")
 }
 
 export function formatSessionSummary(

@@ -323,18 +323,26 @@ Nested exercises use **`amount` + `weight_kg`** (or `per_round`) — **never** s
 
 **Tours vs AMRAP:** omit `mode` (or send `"rounds"`) → **Tours** (N rounds, defaults 3 / 90s rest / 0s transition). CrossFit-style WODs that stop on a clock (Cindy, Helen, “as many rounds as possible”) use `mode: "amrap"` + `cap_minutes` (1–60, default 20). AMRAP + `rounds` / `rest_seconds` / `transition_seconds` / nested `per_round` is a **hard reject** — do not send those fields. dry_run / details echo `AMRAP 20 min` plus the gloss *As many rounds as possible.* — never the naked acronym.
 
-**Cindy** (classic CrossFit AMRAP):
+**Cindy** is a catalog **Benchmark Circuit**. Persist with `benchmark_slug` — do **not** reconstruct 5-10-15 as identity. Catalog Rx wins (AMRAP 20, 5 pull-ups / 10 push-ups / 15 squats). Unknown slug → **error**, no insert. Label coerce exists (`Cindy` / `Holland` / `tom holland` → `cindy`) but agents should send the slug. Generic Circuits omit `benchmark_slug`.
 
 ```jsonc
 {
   type: "circuit",
-  label: "Cindy",
+  benchmark_slug: "cindy"
+}
+```
+
+**Generic AMRAP** (not a catalog seed — omit slug, send mode + nested Rx):
+
+```jsonc
+{
+  type: "circuit",
+  label: "Conditioning",
   mode: "amrap",
-  cap_minutes: 20,
+  cap_minutes: 12,
   exercises: [
-    { exercise_id: "<uuid-pull-up>", amount: 5, weight_kg: 0 },
-    { exercise_id: "<uuid-push-up>", amount: 10, weight_kg: 0 },
-    { exercise_id: "<uuid-air-squat>", amount: 15, weight_kg: 0 }
+    { exercise_id: "<uuid-burpee>", amount: 10, weight_kg: 0 },
+    { exercise_id: "<uuid-kb-swing>", amount: 15, weight_kg: 16 }
   ]
 }
 ```

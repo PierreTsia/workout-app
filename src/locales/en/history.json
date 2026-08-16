@@ -58,6 +58,8 @@
     "sheetTitle": "Circuit times",
     "trendHint": "Repeat this circuit with the same prescription to see your time trend.",
     "noCompletedRuns": "No completed runs yet.",
+    "noPrYet": "No PR yet",
+    "referenceBeat": "{{name}} — {{score}} rounds",
     "incompleteRun": "Incomplete",
     "loading": "Loading times…",
     "offline": "Connect to the internet to see your circuit times.",

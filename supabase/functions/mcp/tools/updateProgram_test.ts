@@ -296,6 +296,10 @@ class MockBuilder {
       return finalizeSelect(rows, this.entry.terminal)
     }
 
+    if (t === "benchmark_circuits") {
+      return finalizeSelect([], this.entry.terminal)
+    }
+
     if (t === "sessions") {
       const rows = this.mock.state.sessions.filter((s) => matchAll(s, f))
       return finalizeSelect(

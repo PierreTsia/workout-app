@@ -9,6 +9,7 @@ import {
   runCompletionSeconds,
   type BlockRunCellRow,
 } from "@/lib/blockCompletionHistory"
+import { sessionBlockHeading } from "@/lib/sessionHistoryGrouping"
 import type {
   BlockHistoryCell,
   BlockHistoryGroup,
@@ -61,10 +62,11 @@ export function BlockHistoryCard({
   formatWeight: (kg: number) => string
   onOpen?: (group: BlockHistoryGroup) => void
   /** This session's `block_runs` row — completeness is `finished_at`. */
-  blockRun?: { finished_at: string | null }
+  blockRun?: { finished_at: string | null; catalogSlug?: string | null }
 }) {
   const { t } = useTranslation("history")
   const { exerciseName } = useCatalogLabels()
+  const heading = sessionBlockHeading(group.label, blockRun?.catalogSlug)
   const cells = groupCells(group)
   const score =
     group.mode === "amrap"
@@ -84,7 +86,7 @@ export function BlockHistoryCard({
       <div className="mb-2 flex items-center gap-1.5">
         <Layers className="h-3.5 w-3.5 text-primary" aria-hidden />
         <p className="text-xs font-semibold text-foreground">
-          {group.label ?? t("circuit.fallbackLabel")}
+          {heading ?? t("circuit.fallbackLabel")}
         </p>
         <span className="text-[10px] text-muted-foreground">
           · {t("circuit.rounds", { count: group.rounds.length })}

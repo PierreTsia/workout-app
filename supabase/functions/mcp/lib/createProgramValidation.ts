@@ -13,6 +13,10 @@
 
 import { isUuid } from "./uuid.ts"
 import { parseRepsBounds, type CatalogExerciseForProgram } from "./programPersistence.ts"
+import {
+  resolveBenchmark,
+  type BenchmarkCircuitLookup,
+} from "./resolveBenchmark.ts"
 
 export const BOUNDS = {
   sets: { min: 1, max: 10 },
@@ -65,6 +69,9 @@ export type ParsedExercise =
       /** Termination mode. Omitted on Tours-only fixtures; parse always sets it. */
       mode?: "rounds" | "amrap"
       capMinutes?: number | null
+      /** Set when resolved from the Benchmark Circuit catalog. */
+      benchmarkCircuitId?: string | null
+      benchmarkSlug?: string | null
     }
 
 /** Alias used by day-sequence code; same union as ParsedExercise. */
@@ -262,9 +269,39 @@ function parseCircuitTermination(
   return { ok: true, value: { mode: "amrap", capMinutes: cap } }
 }
 
+function seedLabelFromSlug(slug: string | null): string | null {
+  if (slug == null || slug.trim() === "") return null
+  const trimmed = slug.trim()
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
+function circuitFromCatalog(
+  row: BenchmarkCircuitLookup,
+): Extract<ParsedExercise, { kind: "circuit" }> {
+  const isAmrap = row.rx.mode === "amrap"
+  return {
+    kind: "circuit",
+    label: seedLabelFromSlug(row.slug),
+    rounds: 1,
+    restSeconds: isAmrap ? 0 : 90,
+    transitionSeconds: 0,
+    exercises: row.rx.exercises.map((ex) => ({
+      mode: "flat" as const,
+      exerciseId: ex.exercise_id,
+      amount: ex.amount,
+      weightKg: ex.weight,
+    })),
+    mode: row.rx.mode,
+    capMinutes: isAmrap && row.rx.cap_seconds != null ? row.rx.cap_seconds / 60 : null,
+    benchmarkCircuitId: row.id,
+    benchmarkSlug: row.slug,
+  }
+}
+
 function parseCircuitInput(
   obj: Record<string, unknown>,
   at: string,
+  benchmarks: readonly BenchmarkCircuitLookup[] = [],
 ): ParseResult<ParsedExercise> {
   // Solo-shaped fields on the circuit root (except rest_seconds which is block-level).
   for (const field of ["sets", "reps", "exercise_id", "target_duration_seconds"] as const) {
@@ -281,6 +318,42 @@ function parseCircuitInput(
       ok: false,
       error: `${at}: Circuit items must not include root "weight_kg" — set weight_kg on each nested exercise`,
     }
+  }
+
+  if (obj.benchmark_slug !== undefined && obj.benchmark_slug !== null && typeof obj.benchmark_slug !== "string") {
+    return { ok: false, error: `${at}.benchmark_slug must be a string` }
+  }
+  if (obj.benchmark_id !== undefined && obj.benchmark_id !== null && typeof obj.benchmark_id !== "string") {
+    return { ok: false, error: `${at}.benchmark_id must be a string` }
+  }
+  const benchmarkSlug = typeof obj.benchmark_slug === "string" ? obj.benchmark_slug : null
+  const benchmarkId = typeof obj.benchmark_id === "string" ? obj.benchmark_id : null
+  if (benchmarkSlug != null || benchmarkId != null) {
+    const found = resolveBenchmark(benchmarks, { slug: benchmarkSlug, id: benchmarkId })
+    if (!found) {
+      const byId =
+        benchmarkId != null && benchmarkId.trim() !== ""
+      const field = byId ? "benchmark_id" : "benchmark_slug"
+      const shown = byId ? benchmarkId : (benchmarkSlug ?? "")
+      return {
+        ok: false,
+        error: `${at}: unknown ${field} "${shown}" — not found in the Circuit catalog`,
+      }
+    }
+    return { ok: true, value: circuitFromCatalog(found) }
+  }
+
+  let label: string | null = null
+  if (obj.label !== undefined && obj.label !== null) {
+    if (typeof obj.label !== "string") {
+      return { ok: false, error: `${at}.label must be a string or null` }
+    }
+    label = obj.label
+  }
+
+  const coerced = resolveBenchmark(benchmarks, { label })
+  if (coerced) {
+    return { ok: true, value: circuitFromCatalog(coerced) }
   }
 
   const termination = parseCircuitTermination(obj, at)
@@ -326,14 +399,6 @@ function parseCircuitInput(
         CIRCUIT_BOUNDS.transition_seconds,
       )
   if (!transitionResult.ok) return transitionResult
-
-  let label: string | null = null
-  if (obj.label !== undefined && obj.label !== null) {
-    if (typeof obj.label !== "string") {
-      return { ok: false, error: `${at}.label must be a string or null` }
-    }
-    label = obj.label
-  }
 
   if (!Array.isArray(obj.exercises)) {
     return { ok: false, error: `${at}.exercises must be an array of 2–8 circuit exercises` }
@@ -397,6 +462,7 @@ export function parseExerciseInput(
   raw: unknown,
   dayLabel: string,
   position: number,
+  benchmarks: readonly BenchmarkCircuitLookup[] = [],
 ): ParseResult<ParsedExercise> {
   const at = locator(dayLabel, position)
 
@@ -417,7 +483,7 @@ export function parseExerciseInput(
   const obj = raw as Record<string, unknown>
 
   if (obj.type === "circuit") {
-    return parseCircuitInput(obj, at)
+    return parseCircuitInput(obj, at, benchmarks)
   }
 
   const exerciseId = obj.exercise_id
@@ -608,10 +674,11 @@ export function validateDayExercises(
   rawExercises: unknown[],
   dayLabel: string,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  benchmarks: readonly BenchmarkCircuitLookup[] = [],
 ): { ok: true; parsed: ParsedExercise[] } | { ok: false; error: string } {
   const parsed: ParsedExercise[] = []
   for (const [j, raw] of rawExercises.entries()) {
-    const parseResult = parseExerciseInput(raw, dayLabel, j)
+    const parseResult = parseExerciseInput(raw, dayLabel, j, benchmarks)
     if (!parseResult.ok) {
       return { ok: false, error: parseResult.error }
     }

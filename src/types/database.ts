@@ -156,8 +156,44 @@ export interface ExerciseBlock {
   mode: ExerciseBlockMode
   /** Time cap in seconds (60–3600). Null iff Tours. */
   cap_seconds: number | null
+  /** Catalog identity when this block was instantiated from a Benchmark Circuit. Null / omitted = jetable. */
+  benchmark_circuit_id?: string | null
   /** Shared ordering namespace with workout_exercises within a day. */
   sort_order: number
+  created_at: string
+}
+
+/** Catalog Rx stored as JSONB on `benchmark_circuits`. */
+export interface BenchmarkCircuitRxExercise {
+  exercise_id: string
+  amount: number
+  weight: number
+}
+
+export interface BenchmarkCircuitRx {
+  mode: ExerciseBlockMode
+  cap_seconds: number | null
+  exercises: BenchmarkCircuitRxExercise[]
+}
+
+export interface BenchmarkCircuitReference {
+  name: string
+  score: string
+}
+
+/** Named reusable circuit (GymLogic seed or user Circuit Fork). See ADR 0015. */
+export interface BenchmarkCircuit {
+  id: string
+  slug: string | null
+  owner_id: string | null
+  forked_from: string | null
+  aliases: string[]
+  tagline_fr: string | null
+  tagline_en: string | null
+  story_fr: string | null
+  story_en: string | null
+  reference: BenchmarkCircuitReference | null
+  rx: BenchmarkCircuitRx
   created_at: string
 }
 
@@ -171,6 +207,8 @@ export interface BlockRun {
   mode: ExerciseBlockMode
   cap_seconds: number
   template_fingerprint: string
+  /** Catalog identity snapped at GO. Null = jetable. Independent of the day's live block FK. */
+  benchmark_circuit_id: string | null
 }
 
 export interface BlockExercise {

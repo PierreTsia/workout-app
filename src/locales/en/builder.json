@@ -80,5 +80,8 @@
   "amrapGloss": "As many rounds as possible.",
   "toursModeHint": "Time is the score.",
   "amrapCapMinutes": "Minutes",
-  "customizePerRound": "Customize per round"
+  "customizePerRound": "Customize per round",
+  "forkTitle": "This will no longer be Cindy.",
+  "forkDescription": "Scores you already logged stay. From now on, this is a different workout.",
+  "forkConfirm": "Continue"
 }

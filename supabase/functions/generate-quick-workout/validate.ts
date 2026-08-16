@@ -23,7 +23,13 @@ export interface QwCircuitItem {
   exercises: QwCircuitExercise[]
 }
 
-export type QwDayItem = string | QwCircuitItem
+/** Post-LLM catalog replace (T192): no nested exercises — MCP instantiates Rx. */
+export interface QwCatalogCircuitItem {
+  type: "circuit"
+  benchmark_slug: string
+}
+
+export type QwDayItem = string | QwCircuitItem | QwCatalogCircuitItem
 
 export interface ValidationResult {
   /** Day sequence: bare UUIDs and Circuits (Circuit = 1 slot). */
@@ -38,12 +44,24 @@ export interface ValidationResult {
   backfilled: number
 }
 
-function isCircuitItem(raw: unknown): raw is QwCircuitItem {
+function isCatalogCircuitItem(raw: unknown): raw is QwCatalogCircuitItem {
+  if (typeof raw !== "object" || raw === null) return false
+  if (!("type" in raw) || raw.type !== "circuit") return false
+  if (!("benchmark_slug" in raw) || typeof raw.benchmark_slug !== "string") {
+    return false
+  }
+  return raw.benchmark_slug.trim() !== ""
+}
+
+function isCircuitItem(raw: unknown): raw is QwCircuitItem | QwCatalogCircuitItem {
+  if (isCatalogCircuitItem(raw)) return true
   return (
     typeof raw === "object" &&
     raw !== null &&
-    (raw as { type?: unknown }).type === "circuit" &&
-    Array.isArray((raw as { exercises?: unknown }).exercises)
+    "type" in raw &&
+    raw.type === "circuit" &&
+    "exercises" in raw &&
+    Array.isArray(raw.exercises)
   )
 }
 
@@ -55,9 +73,10 @@ function normalizeInput(llmOutput: string[] | QwDayItem[]): QwDayItem[] {
   })
 }
 
-function collectIds(items: QwDayItem[]): string[] {
+export function collectQwExerciseIds(items: QwDayItem[]): string[] {
   return items.flatMap((item) => {
     if (typeof item === "string") return [item]
+    if (!("exercises" in item) || item.exercises == null) return []
     return item.exercises.map((e) => e.exercise_id)
   })
 }
@@ -99,6 +118,16 @@ export function validateAndRepair(
       continue
     }
 
+    if (isCatalogCircuitItem(raw)) {
+      items.push({ type: "circuit", benchmark_slug: raw.benchmark_slug.trim() })
+      continue
+    }
+
+    if (!("exercises" in raw) || !Array.isArray(raw.exercises)) {
+      dropped++
+      continue
+    }
+
     if (shouldRejectAmrapCircuit(raw)) {
       dropped++
       continue
@@ -131,7 +160,7 @@ export function validateAndRepair(
     }
   }
 
-  const usedIds = new Set(collectIds(items))
+  const usedIds = new Set(collectQwExerciseIds(items))
   const unusedByGroup = new Map<string, string[]>()
   for (const entry of catalog) {
     if (usedIds.has(entry.id)) continue
@@ -176,7 +205,7 @@ export function validateAndRepair(
 
   return {
     items,
-    exerciseIds: collectIds(items),
+    exerciseIds: collectQwExerciseIds(items),
     repaired: dropped > 0 || backfilled > 0,
     dropped,
     backfilled,

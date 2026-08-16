@@ -5,7 +5,12 @@ import type {
   ExerciseBlockWithExercises,
   PerRoundCell,
 } from "@/types/database"
+import { pendingFromBlock } from "@/lib/circuitFork"
 import { useUpdatePerRound } from "@/hooks/useBlockMutations"
+import {
+  persistGatedMutation,
+  type RequestCircuitForkPersist,
+} from "@/hooks/useCircuitForkGate"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { Input } from "@/components/ui/input"
@@ -14,6 +19,7 @@ interface UniformExerciseListProps {
   block: ExerciseBlockWithExercises
   dayId: string
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  requestPersist: RequestCircuitForkPersist
 }
 
 /** One amount/weight per exercise. Tours writes the cell across every round. */
@@ -21,16 +27,19 @@ export function UniformExerciseList({
   block,
   dayId,
   onMutationStateChange,
+  requestPersist,
 }: UniformExerciseListProps) {
   return (
     <div className="flex flex-col gap-3">
       {block.exercises.map((be) => (
         <UniformExerciseRow
           key={be.id}
+          block={block}
           blockExercise={be}
           rounds={block.rounds}
           dayId={dayId}
           onMutationStateChange={onMutationStateChange}
+          requestPersist={requestPersist}
         />
       ))}
     </div>
@@ -38,15 +47,19 @@ export function UniformExerciseList({
 }
 
 function UniformExerciseRow({
+  block,
   blockExercise,
   rounds,
   dayId,
   onMutationStateChange,
+  requestPersist,
 }: {
+  block: ExerciseBlockWithExercises
   blockExercise: BlockExerciseWithExercise
   rounds: number
   dayId: string
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
+  requestPersist: RequestCircuitForkPersist
 }) {
   const { t } = useTranslation("builder")
   const { unit, toDisplay, toKg } = useWeightUnit()
@@ -72,17 +85,42 @@ function UniformExerciseRow({
           weight: Math.round(toKg(Number(nextWeight) || 0) * 10) / 10,
         }
         const perRound = Array.from({ length: rounds }, () => ({ ...cell }))
-        onMutationStateChange("saving")
-        updatePerRound.mutate(
-          { blockExerciseId: blockExercise.id, dayId, perRound },
-          {
-            onSuccess: () => onMutationStateChange("saved"),
-            onError: () => onMutationStateChange("error"),
+        const pending = pendingFromBlock(block, {
+          blockExerciseId: blockExercise.id,
+          per_round: perRound,
+        })
+        void requestPersist(
+          pending,
+          async () =>
+            persistGatedMutation(
+              () =>
+                updatePerRound.mutateAsync({
+                  blockExerciseId: blockExercise.id,
+                  dayId,
+                  perRound,
+                }),
+              onMutationStateChange,
+            ),
+          () => {
+            setAmount(String(seed.amount))
+            setWeight(String(Math.round(toDisplay(seed.weight) * 10) / 10))
           },
         )
       }, 500)
     },
-    [blockExercise.id, dayId, rounds, toKg, updatePerRound, onMutationStateChange],
+    [
+      block,
+      blockExercise.id,
+      dayId,
+      onMutationStateChange,
+      requestPersist,
+      rounds,
+      seed.amount,
+      seed.weight,
+      toDisplay,
+      toKg,
+      updatePerRound,
+    ],
   )
 
   const amountLabel = isDuration ? t("perRoundDuration") : t("perRoundReps")

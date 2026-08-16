@@ -153,6 +153,72 @@ describe("dbBlockToCircuitWire (T165)", () => {
     expect(wire).not.toHaveProperty("rest_seconds")
     expect(wire).not.toHaveProperty("transition_seconds")
   })
+
+  it("echoes benchmark_slug when the block is linked to a catalog seed (T191)", () => {
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Cindy",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: "cindy",
+        block_exercises: [
+          {
+            exercise_id: ID_A,
+            name_snapshot: "Pull-up",
+            position: 0,
+            per_round: [{ amount: 5, weight: 0 }],
+            exercises: { name: "Pull-up", name_en: "Pull-up" },
+          },
+          {
+            exercise_id: ID_B,
+            name_snapshot: "Push-up",
+            position: 1,
+            per_round: [{ amount: 10, weight: 0 }],
+            exercises: { name: "Push-up", name_en: "Push-up" },
+          },
+        ],
+      }),
+    )
+    expect(wire.benchmark_slug).toBe("cindy")
+  })
+
+  it("T195: fork with NULL slug echoes benchmark_id and does not invent a handle", () => {
+    const forkId = "ffffffff-ffff-4fff-8fff-ffffffffffff"
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Cindy remix",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: null,
+        benchmark_circuit_id: forkId,
+      }),
+    )
+    expect(wire.benchmark_slug).toBeUndefined()
+    expect(wire.benchmark_id).toBe(forkId)
+  })
+
+  it("T195: generic Circuit has no slug and no invented id", () => {
+    const wire = dbBlockToCircuitWire(
+      makeBlock({
+        label: "Zeus",
+        mode: "amrap",
+        cap_seconds: 1200,
+        rounds: 1,
+        rest_seconds: 0,
+        transition_seconds: 0,
+        benchmark_slug: null,
+        benchmark_circuit_id: null,
+      }),
+    )
+    expect(wire).not.toHaveProperty("benchmark_slug")
+    expect(wire).not.toHaveProperty("benchmark_id")
+  })
 })
 
 describe("mergeDaySequence (T165)", () => {

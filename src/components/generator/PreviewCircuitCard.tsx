@@ -4,6 +4,7 @@ import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
+import { isEnglish } from "@/lib/catalogLabels"
 import type { GeneratedCircuit } from "@/types/generator"
 
 interface PreviewCircuitCardProps {
@@ -17,11 +18,14 @@ export function PreviewCircuitCard({
   index,
   onRemove,
 }: PreviewCircuitCardProps) {
-  const { t } = useTranslation("generator")
+  const { t, i18n } = useTranslation("generator")
   const { catalogName } = useCatalogLabels()
   const label = circuit.label?.trim() || t("circuit.fallbackLabel")
   const isAmrap = circuit.mode === "amrap"
   const capMinutes = circuit.capMinutes ?? 20
+  const tagline = isEnglish(i18n.language)
+    ? (circuit.taglineEn ?? circuit.taglineFr)
+    : (circuit.taglineFr ?? circuit.taglineEn)
 
   return (
     <div
@@ -34,6 +38,9 @@ export function PreviewCircuitCard({
             <Badge variant="secondary">{t("circuit.badge")}</Badge>
             <span className="truncate text-sm font-medium">{label}</span>
           </div>
+          {tagline ? (
+            <p className="text-xs text-muted-foreground">{tagline}</p>
+          ) : null}
           {isAmrap ? (
             <AmrapLabel minutes={capMinutes} />
           ) : (
@@ -56,22 +63,24 @@ export function PreviewCircuitCard({
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
-      <ul className="flex flex-col gap-1 border-t pt-2">
-        {circuit.exercises.map((nested, i) => (
-          <li
-            key={`${nested.exercise.id}-${i}`}
-            className="flex items-center justify-between gap-2 text-xs"
-          >
-            <span className="truncate">
-              {nested.exercise.emoji} {catalogName(nested.exercise)}
-            </span>
-            <span className="shrink-0 text-muted-foreground">
-              {nested.amount}
-              {nested.weightKg > 0 ? ` · ${nested.weightKg}kg` : ""}
-            </span>
-          </li>
-        ))}
-      </ul>
+      {circuit.exercises.length > 0 ? (
+        <ul className="flex flex-col gap-1 border-t pt-2">
+          {circuit.exercises.map((nested, i) => (
+            <li
+              key={`${nested.exercise.id}-${i}`}
+              className="flex items-center justify-between gap-2 text-xs"
+            >
+              <span className="truncate">
+                {nested.exercise.emoji} {catalogName(nested.exercise)}
+              </span>
+              <span className="shrink-0 text-muted-foreground">
+                {nested.amount}
+                {nested.weightKg > 0 ? ` · ${nested.weightKg}kg` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   )
 }

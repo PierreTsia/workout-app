@@ -114,6 +114,15 @@ export const MCP_CIRCUIT_DAY_ITEM_SCHEMA = {
       maxItems: CIRCUIT_BOUNDS.exercises.max,
       items: MCP_CIRCUIT_NESTED_EXERCISE_SCHEMA,
     },
+    benchmark_slug: {
+      type: "string",
+      description:
+        'Catalog handle (e.g. "cindy"). When present, catalog Rx wins — do not send a reconstructed 5-10-15. Unknown slug is an error.',
+    },
+    benchmark_id: {
+      type: "string",
+      description: "Catalog uuid. Same as benchmark_slug: catalog Rx wins; unknown id is an error.",
+    },
   },
-  required: ["type", "exercises"],
+  required: ["type"],
 } as const

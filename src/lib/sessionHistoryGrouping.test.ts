@@ -3,6 +3,9 @@ import { resolveExerciseName } from "@/lib/catalogLabels"
 import {
   buildBlockMetaMap,
   groupSessionHistory,
+  sheetCatalogId,
+  sessionBlockHeading,
+  catalogSlugFromEmbed,
   type BlockExerciseMetaRow,
   type BlockMeta,
   type SoloHistoryGroup,
@@ -43,6 +46,7 @@ const meta = (over: Partial<BlockMeta> = {}): BlockMeta => ({
   emoji: "💪",
   blockSortOrder: 0,
   mode: "rounds",
+  benchmarkCircuitId: null,
   ...over,
 })
 
@@ -54,7 +58,14 @@ describe("buildBlockMetaMap", () => {
         block_id: "blk1",
         emoji_snapshot: "💪",
         position: 1,
-        block: { id: "blk1", label: "Bras", rounds: 3, sort_order: 2, mode: "rounds" },
+        block: {
+          id: "blk1",
+          label: "Bras",
+          rounds: 3,
+          sort_order: 2,
+          mode: "rounds",
+          benchmark_circuit_id: null,
+        },
       },
       {
         id: "be2",
@@ -73,6 +84,7 @@ describe("buildBlockMetaMap", () => {
       emoji: "💪",
       blockSortOrder: 2,
       mode: "rounds",
+      benchmarkCircuitId: null,
     })
   })
 })
@@ -199,6 +211,32 @@ describe("groupSessionHistory", () => {
       block.rounds[0].cells.map((c) => c.exercise_name_snapshot),
     ).toEqual(["Curl A", "Curl B"])
     expect(block.rounds[1].cells.map((c) => c.log.weight_logged)).toEqual([22, 17])
+  })
+
+  it("carries the catalog id so cindy days share one history sheet", () => {
+    const metaById = new Map<string, BlockMeta>([
+      ["beA", meta({ benchmarkCircuitId: "cindy-catalog" })],
+    ])
+    const logs = [log({ block_exercise_id: "beA" })]
+    const [block] = groupSessionHistory(logs, metaById)
+    if (block.kind !== "block") throw new Error("expected block")
+    expect(block.benchmarkCircuitId).toBe("cindy-catalog")
+  })
+
+  it("prefers the GO snapshot over a live fork FK for the history sheet", () => {
+    expect(sheetCatalogId("fork-id", "cindy-catalog")).toBe("cindy-catalog")
+    expect(sheetCatalogId("cindy-catalog", null)).toBe("cindy-catalog")
+    expect(sheetCatalogId("cindy-catalog", undefined)).toBe("cindy-catalog")
+    expect(sheetCatalogId(null, undefined)).toBe(null)
+  })
+
+  it("keeps the seed name on a scored card after the live block was renamed", () => {
+    expect(sessionBlockHeading("Cindy Light", "cindy")).toBe("Cindy")
+    expect(sessionBlockHeading("Cindy Light", null)).toBe("Cindy Light")
+    expect(sessionBlockHeading("Cindy Light", undefined)).toBe("Cindy Light")
+    expect(catalogSlugFromEmbed({ slug: "cindy" })).toBe("cindy")
+    expect(catalogSlugFromEmbed([{ slug: "cindy" }])).toBe("cindy")
+    expect(catalogSlugFromEmbed({ slug: null })).toBeNull()
   })
 
   it("carries the catalog row onto block cells too", () => {

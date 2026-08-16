@@ -13,6 +13,7 @@ import {
   type GenerateQuickWorkoutDeps,
   type LogEvent,
 } from "./handler.ts"
+import type { QwDayItem } from "./validate.ts"
 import type {
   CatalogExercise,
   RecentExercise,
@@ -104,7 +105,9 @@ interface DepsOverrides {
     equipmentValues: string[],
     muscleGroupFilter?: string[],
   ) => Promise<CatalogExercise[]>
-  callGemini?: (prompt: string) => Promise<{ exerciseIds: string[]; rationale: string }>
+  callGemini?: (
+    prompt: string,
+  ) => Promise<{ exerciseIds: string[]; exercises?: QwDayItem[]; rationale: string }>
   logBillableCall?: (userId: string) => Promise<void>
 }
 
@@ -345,6 +348,74 @@ Deno.test("empty catalog (no exercises match the filters) returns 404 without bi
   assertEquals(res.status, 404)
   assertEquals(calls.callGemini.length, 0)
   assertEquals(calls.logBillableCall.length, 0)
+})
+
+Deno.test("T192: HIIT 20 min with no seed name stays a jetable Circuit", async () => {
+  const hiit = {
+    type: "circuit" as const,
+    label: "HIIT 20 min",
+    rounds: 4,
+    rest_seconds: 30,
+    exercises: [
+      { exercise_id: "ex-bench", amount: 10, weight_kg: 0 },
+      { exercise_id: "ex-row", amount: 10, weight_kg: 0 },
+    ],
+  }
+  const { deps } = makeDeps({
+    callGemini: async () => ({
+      exerciseIds: ["ex-bench", "ex-row"],
+      exercises: [hiit],
+      rationale: "HIIT finisher.",
+    }),
+  })
+
+  const res = await handleGenerateQuickWorkout(
+    makeRequest({ ...VALID_BODY, focusAreas: "HIIT 20 min" }),
+    deps,
+  )
+  assertEquals(res.status, 200)
+  const body = (await res.json()) as { items: unknown[] }
+  const circuits = body.items.filter(
+    (item): item is { type: string; benchmark_slug?: string; label?: string } =>
+      typeof item === "object" && item !== null && (item as { type?: unknown }).type === "circuit",
+  )
+  assertEquals(circuits.length, 1)
+  assertEquals(circuits[0].benchmark_slug, undefined)
+  assertEquals(circuits[0].label, "HIIT 20 min")
+})
+
+Deno.test("T192: focusAreas Cindy replaces the LLM circuit with benchmark_slug and drops model numbers", async () => {
+  const { deps } = makeDeps({
+    callGemini: async () => ({
+      exerciseIds: ["ex-bench", "ex-row", "ex-squat"],
+      exercises: [
+        {
+          type: "circuit",
+          label: "Cindy",
+          mode: "amrap",
+          cap_minutes: 20,
+          exercises: [
+            { exercise_id: "ex-bench", amount: 6, weight_kg: 0 },
+            { exercise_id: "ex-row", amount: 11, weight_kg: 0 },
+            { exercise_id: "ex-squat", amount: 16, weight_kg: 0 },
+          ],
+        },
+      ],
+      rationale: "Cindy from the model.",
+    }),
+  })
+
+  const res = await handleGenerateQuickWorkout(
+    makeRequest({ ...VALID_BODY, focusAreas: "Cindy" }),
+    deps,
+  )
+  assertEquals(res.status, 200)
+  const body = (await res.json()) as { items: unknown[] }
+  const circuits = body.items.filter(
+    (item): item is { type: string; benchmark_slug?: string; exercises?: unknown[] } =>
+      typeof item === "object" && item !== null && (item as { type?: unknown }).type === "circuit",
+  )
+  assertEquals(circuits, [{ type: "circuit", benchmark_slug: "cindy" }])
 })
 
 Deno.test("garbage LLM output is silently repaired by backfill (no retry, one billable row)", async () => {

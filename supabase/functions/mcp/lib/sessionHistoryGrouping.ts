@@ -3,7 +3,13 @@
  * No `@/` imports — Deno Edge only.
  */
 
-import { amrapScore, type AmrapScoreCell, type AmrapScoreValue } from "./amrapScore.ts"
+import {
+  amrapScore,
+  annotateAmrapRuns,
+  type AmrapRunView,
+  type AmrapScoreCell,
+  type AmrapScoreValue,
+} from "./amrapScore.ts"
 
 export interface BlockMeta {
   blockId: string
@@ -70,6 +76,9 @@ export interface BlockHistoryGroup {
   exerciseCount: number
   /** Finished AMRAP only — T188. Absent / null for Tours and unfinished runs. */
   amrapScore?: AmrapScoreValue | null
+  /** PB / delta from {@link annotateHistoryAmrap}, scoped to the catalog key. */
+  isPb?: boolean
+  deltaRounds?: number | null
 }
 
 export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
@@ -188,6 +197,38 @@ export interface HistoryBlockRun {
   block_id: string
   finished_at: string | null
   mode: "rounds" | "amrap"
+  /** GO snapshot — catalog identity. Null / omitted = jetable. */
+  benchmark_circuit_id?: string | null
+  started_at?: string
+  template_fingerprint?: string
+}
+
+/** Catalog id when the GO snapshot is set, else the day-scoped block_id. */
+export function historyGroupKey(
+  run: Pick<HistoryBlockRun, "block_id" | "benchmark_circuit_id">,
+): string {
+  return run.benchmark_circuit_id ?? run.block_id
+}
+
+/**
+ * PB / delta via existing `annotateAmrapRuns`, scoped to {@link historyGroupKey}
+ * so two Cindy days share a PB and two jetable AMRAPs do not.
+ */
+export function annotateHistoryAmrap(
+  runs: HistoryBlockRun[],
+  cells: AmrapScoreCell[],
+): AmrapRunView[] {
+  return [...groupBy(runs, historyGroupKey).values()].flatMap((group) =>
+    annotateAmrapRuns(
+      group.map((run) => ({
+        session_id: run.session_id,
+        started_at: run.started_at ?? "",
+        finished_at: run.finished_at,
+        template_fingerprint: run.template_fingerprint ?? run.block_id,
+      })),
+      cells,
+    ),
+  )
 }
 
 function cellsFromGroup(
@@ -204,6 +245,46 @@ function cellsFromGroup(
       exercise_name: cell.exercise_name_snapshot,
     })),
   )
+}
+
+export interface SessionHistoryBundle {
+  sessionId: string
+  items: SessionHistoryItem[]
+}
+
+/**
+ * Cross-session attach: score each Circuit, then stamp PB / delta from
+ * {@link annotateHistoryAmrap} so two Cindy days share one catalog PB.
+ */
+export function attachAmrapHistory(
+  sessions: SessionHistoryBundle[],
+  runs: HistoryBlockRun[],
+): SessionHistoryBundle[] {
+  const cells = sessions.flatMap(({ sessionId, items }) =>
+    items.flatMap((item) =>
+      item.kind === "block" ? cellsFromGroup(sessionId, item) : [],
+    ),
+  )
+  const views = annotateHistoryAmrap(runs, cells)
+  const runBySessionBlock = new Map(
+    runs.map((run) => [`${run.session_id}:${run.block_id}`, run] as const),
+  )
+  const viewBySessionFingerprint = new Map(
+    views.map((view) => [`${view.sessionId}:${view.fingerprint}`, view] as const),
+  )
+  return sessions.map(({ sessionId, items }) => ({
+    sessionId,
+    items: attachAmrapScores(items, runs, sessionId).map((item) => {
+      if (item.kind !== "block") return item
+      const run = runBySessionBlock.get(`${sessionId}:${item.key}`)
+      if (run == null) return item
+      const view = viewBySessionFingerprint.get(
+        `${sessionId}:${run.template_fingerprint ?? run.block_id}`,
+      )
+      if (view == null) return item
+      return { ...item, isPb: view.isPb, deltaRounds: view.deltaRounds }
+    }),
+  }))
 }
 
 /**

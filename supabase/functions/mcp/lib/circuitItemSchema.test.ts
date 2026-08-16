@@ -5,6 +5,7 @@ import {
 } from "./circuitItemSchema"
 import { CIRCUIT_BOUNDS } from "./createProgramValidation"
 import { createProgram } from "../tools/createProgram"
+import { createWorkoutDay } from "../tools/createWorkoutDay"
 import { updateProgram } from "../tools/updateProgram"
 
 function dayItemOneOf(tool: { inputSchema: { properties: Record<string, unknown> } }): unknown[] {
@@ -46,7 +47,7 @@ describe("MCP_CIRCUIT_DAY_ITEM_SCHEMA", () => {
       type: "string",
       const: "circuit",
     })
-    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.required).toEqual(["type", "exercises"])
+    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.required).toEqual(["type"])
     expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.exercises.items).toBe(
       MCP_CIRCUIT_NESTED_EXERCISE_SCHEMA,
     )
@@ -74,8 +75,32 @@ describe("MCP_CIRCUIT_DAY_ITEM_SCHEMA", () => {
     })
   })
 
-  it("is the Circuit oneOf arm on create_program and update_program", () => {
+  it("is the Circuit oneOf arm on create_program, create_workout_day, and update_program", () => {
     expect(dayItemOneOf(createProgram)).toContain(MCP_CIRCUIT_DAY_ITEM_SCHEMA)
     expect(dayItemOneOf(updateProgram)).toContain(MCP_CIRCUIT_DAY_ITEM_SCHEMA)
+    const qwExercises = createWorkoutDay.inputSchema.properties.exercises
+    const qwItems =
+      qwExercises !== null &&
+      typeof qwExercises === "object" &&
+      "items" in qwExercises &&
+      qwExercises.items !== null &&
+      typeof qwExercises.items === "object" &&
+      "oneOf" in qwExercises.items &&
+      Array.isArray(qwExercises.items.oneOf)
+        ? qwExercises.items.oneOf
+        : []
+    expect(qwItems).toContain(MCP_CIRCUIT_DAY_ITEM_SCHEMA)
+  })
+
+  it("exposes benchmark_slug and benchmark_id so agents can instantiate a catalog Circuit (T191)", () => {
+    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.benchmark_slug).toEqual({
+      type: "string",
+      description:
+        'Catalog handle (e.g. "cindy"). When present, catalog Rx wins — do not send a reconstructed 5-10-15. Unknown slug is an error.',
+    })
+    expect(MCP_CIRCUIT_DAY_ITEM_SCHEMA.properties.benchmark_id).toEqual({
+      type: "string",
+      description: "Catalog uuid. Same as benchmark_slug: catalog Rx wins; unknown id is an error.",
+    })
   })
 })

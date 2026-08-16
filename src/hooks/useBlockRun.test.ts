@@ -2,7 +2,11 @@ import { vi, describe, it, expect, beforeEach } from "vitest"
 import { act } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
 import { useBlockRun } from "@/hooks/useBlockRun"
-import { enqueueBlockRun, queuedBlockRunFor } from "@/lib/syncService"
+import {
+  enqueueBlockRun,
+  queuedBlockRunFor,
+  type BlockRunPayload,
+} from "@/lib/syncService"
 import type {
   BlockExerciseWithExercise,
   ExerciseBlockWithExercises,
@@ -21,6 +25,22 @@ vi.mock("@/lib/syncService", () => ({
 }))
 
 const T0 = 1_700_000_000_000
+const CINDY_ID = "11111111-1111-4111-8111-111111111111"
+const FORK_ID = "22222222-2222-4222-8222-222222222222"
+
+const queuedRun = (
+  over: Partial<BlockRunPayload> = {},
+): BlockRunPayload => ({
+  sessionId: "local-1",
+  blockId: "blk-1",
+  startedAt: T0,
+  finishedAt: null,
+  mode: "amrap",
+  capSeconds: 1200,
+  templateFingerprint: "amrap|1200|ex-1:5:0",
+  benchmarkCircuitId: null,
+  ...over,
+})
 
 const blockExercise = (
   over: Partial<BlockExerciseWithExercise> = {},
@@ -57,18 +77,11 @@ const amrapBlock = (
 describe("useBlockRun", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(queuedBlockRunFor).mockReturnValue(null)
   })
 
   it("hydrates started_at from the queue so a remount skips a second GO", () => {
-    vi.mocked(queuedBlockRunFor).mockReturnValue({
-      sessionId: "local-1",
-      blockId: "blk-1",
-      startedAt: T0,
-      finishedAt: null,
-      mode: "amrap",
-      capSeconds: 1200,
-      templateFingerprint: "amrap|1200|ex-1:5:0",
-    })
+    vi.mocked(queuedBlockRunFor).mockReturnValue(queuedRun())
 
     const { result } = renderHookWithProviders(() =>
       useBlockRun(amrapBlock(), "local-1"),
@@ -97,6 +110,60 @@ describe("useBlockRun", () => {
       }),
     )
     expect(result.current.startedAt).toBe(T0)
+  })
+
+  it("stamps the catalog id on GO when the day's block is Cindy-linked", () => {
+    const { result } = renderHookWithProviders(() =>
+      useBlockRun(amrapBlock({ benchmark_circuit_id: CINDY_ID }), "local-1"),
+    )
+
+    act(() => result.current.stampGo(T0))
+
+    expect(enqueueBlockRun).toHaveBeenCalledWith(
+      expect.objectContaining({ benchmarkCircuitId: CINDY_ID }),
+    )
+  })
+
+  it("writes null on GO for a jetable AMRAP", () => {
+    const { result } = renderHookWithProviders(() =>
+      useBlockRun(amrapBlock(), "local-1"),
+    )
+
+    act(() => result.current.stampGo(T0))
+
+    expect(enqueueBlockRun).toHaveBeenCalledWith(
+      expect.objectContaining({ benchmarkCircuitId: null }),
+    )
+  })
+
+  it("keeps a jetable GO snapshot when the day's block is later linked to a catalog", () => {
+    vi.mocked(queuedBlockRunFor).mockReturnValue(queuedRun())
+
+    const { result } = renderHookWithProviders(() =>
+      useBlockRun(amrapBlock({ benchmark_circuit_id: CINDY_ID }), "local-1"),
+    )
+
+    act(() => result.current.stampFinish(T0 + 60_000))
+
+    expect(enqueueBlockRun).toHaveBeenCalledWith(
+      expect.objectContaining({ benchmarkCircuitId: null }),
+    )
+  })
+
+  it("keeps the GO catalog snapshot when the day's block is later retargeted", () => {
+    vi.mocked(queuedBlockRunFor).mockReturnValue(
+      queuedRun({ benchmarkCircuitId: CINDY_ID }),
+    )
+
+    const { result } = renderHookWithProviders(() =>
+      useBlockRun(amrapBlock({ benchmark_circuit_id: FORK_ID }), "local-1"),
+    )
+
+    act(() => result.current.stampFinish(T0 + 60_000))
+
+    expect(enqueueBlockRun).toHaveBeenCalledWith(
+      expect.objectContaining({ benchmarkCircuitId: CINDY_ID }),
+    )
   })
 
   it("does not write a Block Run for Tours", () => {

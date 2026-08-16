@@ -17,6 +17,8 @@ export interface ExerciseBlockInsertRow {
   sort_order: number
   mode: "rounds" | "amrap"
   cap_seconds: number | null
+  /** Null = jetable Circuit. Set when instantiated from a Benchmark Circuit. */
+  benchmark_circuit_id?: string | null
 }
 
 /** Row for `block_exercises` insert (no id/block_id; block_id filled after the block insert returns). */
@@ -96,6 +98,11 @@ export function buildGeneratedCircuitInsertRows(
   block: ExerciseBlockInsertRow
   blockExercises: BlockExerciseInsertRow[]
 } {
+  if (circuit.benchmarkSlug && circuit.exercises.length === 0) {
+    throw new Error(
+      "buildGeneratedCircuitInsertRows: catalog circuit has no Rx — hydrate first",
+    )
+  }
   const isAmrap = circuit.mode === "amrap"
   const rounds = isAmrap ? 1 : circuit.rounds
   const capMinutes = circuit.capMinutes ?? 20

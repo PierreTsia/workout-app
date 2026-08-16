@@ -1,3 +1,4 @@
+import { catalogDisplayName } from "@/lib/resolveBenchmark"
 import { groupBy } from "@/lib/utils"
 import type { CatalogNameSource } from "@/lib/catalogLabels"
 import type {
@@ -24,6 +25,8 @@ export interface BlockMeta {
   emoji: string | null
   blockSortOrder: number
   mode: ExerciseBlockMode
+  /** Catalog identity on the live block. Null = jetable. */
+  benchmarkCircuitId: string | null
 }
 
 /** Raw `block_exercises` row shape returned by {@link useSessionBlockMeta}. */
@@ -38,6 +41,7 @@ export interface BlockExerciseMetaRow {
     rounds: number
     sort_order: number
     mode: ExerciseBlockMode
+    benchmark_circuit_id: string | null
   } | null
 }
 
@@ -56,6 +60,7 @@ export function buildBlockMetaMap(
           emoji: r.emoji_snapshot,
           blockSortOrder: r.block!.sort_order,
           mode: r.block!.mode,
+          benchmarkCircuitId: r.block!.benchmark_circuit_id ?? null,
         },
       ]),
   )
@@ -96,6 +101,7 @@ export interface BlockHistoryGroup {
   rounds: BlockHistoryRound[]
   exerciseCount: number
   mode: ExerciseBlockMode
+  benchmarkCircuitId: string | null
 }
 
 export type SessionHistoryItem = SoloHistoryGroup | BlockHistoryGroup
@@ -183,10 +189,40 @@ export function groupSessionHistory(
         rounds,
         exerciseCount: new Set(blkLogs.map((l) => l.block_exercise_id)).size,
         mode: firstMeta.mode,
+        benchmarkCircuitId: firstMeta.benchmarkCircuitId,
       }
     },
   )
 
   const sortedBlocks = [...blockGroups].sort((a, b) => a.sortOrder - b.sortOrder)
   return [...sortedBlocks, ...soloGroups]
+}
+
+/**
+ * History sheet identity for a scored session: the GO snapshot on `block_runs`
+ * wins over the live `exercise_blocks` FK, so a later Circuit Fork cannot
+ * retarget Monday's card.
+ */
+export function sheetCatalogId(
+  liveCatalogId: string | null,
+  goSnapshotCatalogId: string | null | undefined,
+): string | null {
+  return goSnapshotCatalogId ?? liveCatalogId
+}
+
+/** PostgREST may return the embed as an object or a one-row array. */
+export function catalogSlugFromEmbed(raw: unknown): string | null {
+  const row = Array.isArray(raw) ? raw[0] : raw
+  if (row == null || typeof row !== "object") return null
+  if (!("slug" in row)) return null
+  const slug = row.slug
+  return typeof slug === "string" ? slug : null
+}
+
+/** Card / sheet heading: GO-stamped seed slug wins over a later live rename. */
+export function sessionBlockHeading(
+  liveLabel: string | null,
+  goCatalogSlug: string | null | undefined,
+): string | null {
+  return catalogDisplayName(goCatalogSlug) ?? liveLabel
 }

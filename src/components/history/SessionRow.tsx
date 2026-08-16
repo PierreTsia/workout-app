@@ -11,7 +11,7 @@ import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { computeEpley1RM } from "@/lib/epley"
 import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
 import { formatSessionRowDuration } from "@/lib/sessionRowDuration"
-import { groupSessionHistory, type BlockHistoryGroup } from "@/lib/sessionHistoryGrouping"
+import { groupSessionHistory, sheetCatalogId, type BlockHistoryGroup } from "@/lib/sessionHistoryGrouping"
 import { BlockHistoryCard } from "@/components/history/BlockHistoryCard"
 import { BlockHistorySheet } from "@/components/history/BlockHistorySheet"
 import type { Session, SetLog } from "@/types/database"
@@ -87,6 +87,12 @@ function SessionSetLogs({ sessionId }: { sessionId: string }) {
           if (!o) setOpenCircuit(null)
         }}
         blockId={openCircuit?.key ?? ""}
+        catalogId={sheetCatalogId(
+          openCircuit?.benchmarkCircuitId ?? null,
+          openCircuit != null
+            ? blockRuns?.get(openCircuit.key)?.benchmarkCircuitId
+            : undefined,
+        )}
         label={openCircuit?.label ?? null}
       />
     </div>

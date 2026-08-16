@@ -275,6 +275,87 @@ describe("useGenerateQuickWorkoutPreview", () => {
     expect(circuit.circuit.rounds).not.toBe(3)
   })
 
+  it("T192: hydrates slug-only Cindy from catalog Rx (AMRAP 20, 5-10-15), keeps benchmarkSlug", async () => {
+    const pull = makeExercise("ex-pull", { name: "Tractions", muscle_group: "Dos" })
+    const push = makeExercise("ex-push", { name: "Pompes", muscle_group: "Pectoraux" })
+    const squat = makeExercise("ex-squat", {
+      name: "Squat au poids du corps",
+      muscle_group: "Quadriceps",
+    })
+    invoke.mockResolvedValueOnce({
+      data: {
+        exerciseIds: [],
+        items: [{ type: "circuit", benchmark_slug: "cindy" }],
+        rationale: "Official Cindy.",
+      },
+      error: null,
+    })
+    fromExercises.mockImplementation((table: string) => {
+      if (table === "benchmark_circuits") {
+        return {
+          select: () =>
+            Promise.resolve({
+              data: [
+                {
+                  id: "cindy-id",
+                  slug: "cindy",
+                  aliases: ["holland", "tom holland"],
+                  tagline_fr: "Le WOD de Tom Holland. 20 min.",
+                  tagline_en: "Tom Holland’s WOD. 20 min.",
+                  rx: {
+                    mode: "amrap",
+                    cap_seconds: 1200,
+                    exercises: [
+                      { exercise_id: pull.id, amount: 5, weight: 0 },
+                      { exercise_id: push.id, amount: 10, weight: 0 },
+                      { exercise_id: squat.id, amount: 15, weight: 0 },
+                    ],
+                  },
+                },
+              ],
+              error: null,
+            }),
+        }
+      }
+      if (table === "exercises") {
+        return {
+          select: () => ({
+            in: () => Promise.resolve({ data: [pull, push, squat], error: null }),
+          }),
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useGenerateQuickWorkoutPreview({ exercisePool: [POOL_BENCH, POOL_ROW] }),
+    )
+
+    let workout: Awaited<ReturnType<typeof result.current.mutateAsync>> | undefined
+    await act(async () => {
+      workout = await result.current.mutateAsync(CONSTRAINTS)
+    })
+
+    const item = workout!.dayItems![0]
+    expect(item).toMatchObject({
+      kind: "circuit",
+      circuit: {
+        benchmarkSlug: "cindy",
+        label: "Cindy",
+        mode: "amrap",
+        capMinutes: 20,
+        taglineFr: "Le WOD de Tom Holland. 20 min.",
+        taglineEn: "Tom Holland’s WOD. 20 min.",
+      },
+    })
+    if (item.kind !== "circuit") throw new Error("expected circuit")
+    expect(item.circuit.exercises.map((ex) => [ex.exercise.name, ex.amount])).toEqual([
+      ["Tractions", 5],
+      ["Pompes", 10],
+      ["Squat au poids du corps", 15],
+    ])
+  })
+
   it("maps invoke error with 429 context to quota_exceeded", async () => {
     invoke.mockResolvedValueOnce({ data: null, error: functionsError(429) })
 

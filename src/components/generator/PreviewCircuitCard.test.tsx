@@ -55,4 +55,53 @@ describe("PreviewCircuitCard", () => {
     expect(screen.queryByText(/1 round/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/^AMRAP$/)).not.toBeInTheDocument()
   })
+
+  it("shows catalog tagline and Rx amounts so a named WOD is not an empty Circuit", () => {
+    renderWithProviders(
+      <PreviewCircuitCard
+        circuit={makeCircuit({
+          label: "Cindy",
+          mode: "amrap",
+          capMinutes: 20,
+          taglineFr: "Le WOD de Tom Holland. 20 min.",
+          taglineEn: "Tom Holland’s WOD. 20 min.",
+          exercises: [
+            { exercise: makeExercise("ex-1", "Pull-ups"), amount: 5, weightKg: 0 },
+            { exercise: makeExercise("ex-2", "Push-ups"), amount: 10, weightKg: 0 },
+            { exercise: makeExercise("ex-3", "Squats"), amount: 15, weightKg: 0 },
+          ],
+        })}
+        index={0}
+        onRemove={vi.fn()}
+      />,
+      { locale: "en" },
+    )
+
+    expect(screen.getByText("Tom Holland’s WOD. 20 min.")).toBeInTheDocument()
+    expect(screen.getByText(/Pull-ups/)).toBeInTheDocument()
+    expect(screen.getByText("5")).toBeInTheDocument()
+    expect(screen.getByText("10")).toBeInTheDocument()
+    expect(screen.getByText("15")).toBeInTheDocument()
+    expect(screen.queryByText(/0 exercices/i)).not.toBeInTheDocument()
+  })
+
+  it("picks the French tagline when the UI locale is fr", () => {
+    renderWithProviders(
+      <PreviewCircuitCard
+        circuit={makeCircuit({
+          label: "Cindy",
+          mode: "amrap",
+          capMinutes: 20,
+          taglineFr: "Le WOD de Tom Holland. 20 min.",
+          taglineEn: "Tom Holland’s WOD. 20 min.",
+        })}
+        index={0}
+        onRemove={vi.fn()}
+      />,
+      { locale: "fr" },
+    )
+
+    expect(screen.getByText("Le WOD de Tom Holland. 20 min.")).toBeInTheDocument()
+    expect(screen.queryByText("Tom Holland’s WOD. 20 min.")).not.toBeInTheDocument()
+  })
 })
