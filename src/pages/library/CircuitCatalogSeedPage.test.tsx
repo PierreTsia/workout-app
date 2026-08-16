@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { Route, Routes } from "react-router-dom"
 import { renderWithProviders } from "@/test/utils"
 import type { CatalogSeedRow } from "@/lib/previewCatalogCircuit"
@@ -218,6 +219,46 @@ describe("CircuitCatalogSeedPage", () => {
     expect(screen.getByText(/2 rounds/)).toBeInTheDocument()
     expect(screen.queryByText("No PR yet")).not.toBeInTheDocument()
     expect(screen.queryByText("Circuit times")).not.toBeInTheDocument()
+  })
+
+  it("opens station instructions in a sheet without leaving the encyclopedia", async () => {
+    mockUseExerciseBatch.mockReturnValue({
+      data: [
+        {
+          ...makeExercise(PULL_ID, "Tractions", "Pull-ups"),
+          instructions: {
+            setup: ["Suspends-toi à la barre"],
+            movement: ["Tire"],
+            breathing: ["Expire"],
+            common_mistakes: ["Kipping"],
+          },
+          instructions_en: {
+            setup: ["Hang from the bar"],
+            movement: ["Pull"],
+            breathing: ["Exhale"],
+            common_mistakes: ["Kipping"],
+          },
+          instructions_en_status: "clean",
+        },
+        makeExercise(PUSH_ID, "Pompes", "Push-ups"),
+        makeExercise(SQUAT_ID, "Squats", "Air squats"),
+      ],
+      isLoading: false,
+    })
+
+    renderAt("/library/circuits/cindy")
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: "Instructions: Pull-ups" }))
+
+    expect(screen.getByRole("dialog", { name: /Pull-ups/ })).toBeInTheDocument()
+    expect(screen.getByText("Hang from the bar")).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Cindy", hidden: true }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Close" }))
+    expect(screen.getByRole("heading", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.queryByText("Hang from the bar")).not.toBeInTheDocument()
   })
 
   it("shows the circuit offline string instead of a fake PB", () => {

@@ -1,6 +1,8 @@
 import { Link, useParams } from "react-router-dom"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft, Loader2 } from "lucide-react"
+import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { AmrapRunRow } from "@/components/history/AmrapRunRow"
 import { BenchmarkStoryHeader } from "@/components/history/BenchmarkStoryHeader"
 import { CircuitRxList } from "@/components/library/CircuitRxList"
@@ -54,6 +56,9 @@ export function CircuitCatalogSeedPage() {
   const { data: exercises } = useExerciseBatch(exerciseIds)
   const byId = new Map((exercises ?? []).map((ex) => [ex.id, ex]))
   const amrapViews = history?.amrapViews ?? []
+  const [infoExerciseId, setInfoExerciseId] = useState<string | null>(null)
+  const infoExercise =
+    infoExerciseId == null ? null : (byId.get(infoExerciseId) ?? null)
 
   if (trimmed === "") {
     return <NotFound message={t("circuitNotFound")} back={t("circuitBrowseBack")} />
@@ -84,7 +89,18 @@ export function CircuitCatalogSeedPage() {
         <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight">{seed.label}</h1>
       </div>
       <BenchmarkStoryHeader copy={seedCopy(seed)} />
-      <CircuitRxList exercises={seed.rx.exercises} byId={byId} />
+      <CircuitRxList
+        exercises={seed.rx.exercises}
+        byId={byId}
+        onSelectExercise={setInfoExerciseId}
+      />
+      <ExerciseDetailSheet
+        exercise={infoExercise}
+        open={infoExercise != null}
+        onOpenChange={(open) => {
+          if (!open) setInfoExerciseId(null)
+        }}
+      />
       <section>
         {!isOnline ? (
           <p className="text-sm text-muted-foreground">{t("history:circuit.offline")}</p>

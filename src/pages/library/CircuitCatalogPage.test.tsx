@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import type { CatalogPreviewRow } from "@/lib/previewCatalogCircuit"
+import type { CatalogSeedRow } from "@/lib/previewCatalogCircuit"
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn() },
@@ -12,7 +12,7 @@ import { CircuitCatalogPage } from "./CircuitCatalogPage"
 
 const PULL_ID = "11111111-1111-4111-8111-111111111111"
 
-function makeSeed(overrides: Partial<CatalogPreviewRow> = {}): CatalogPreviewRow {
+function makeSeed(overrides: Partial<CatalogSeedRow> = {}): CatalogSeedRow {
   return {
     id: "cindy-id",
     slug: "cindy",
@@ -25,6 +25,9 @@ function makeSeed(overrides: Partial<CatalogPreviewRow> = {}): CatalogPreviewRow
     },
     tagline_fr: "Le WOD de Tom Holland.",
     tagline_en: "Tom Holland’s WOD.",
+    story_fr: null,
+    story_en: null,
+    reference: null,
     ...overrides,
   }
 }
@@ -72,6 +75,8 @@ describe("CircuitCatalogPage", () => {
       "/library/circuits/cindy",
     )
     expect(screen.queryByRole("button", { name: "Zeus ⚡" })).not.toBeInTheDocument()
+    expect(screen.getAllByText("Tom Holland’s WOD.")).toHaveLength(2)
+    expect(screen.getAllByText("As many rounds as possible.")).toHaveLength(2)
   })
 
   it("skips seeds whose slug is missing so the list never links to /null", () => {

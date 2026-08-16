@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { CircuitRxList } from "./CircuitRxList"
 
@@ -36,6 +37,32 @@ describe("CircuitRxList", () => {
     expect(items[2]).toHaveTextContent("15")
     expect(items[2]).toHaveTextContent("Air squats")
     expect(screen.queryByText(PULL_ID)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("opens known stations as instruction links and leaves unknown stations inert", async () => {
+    const onSelectExercise = vi.fn()
+    renderWithProviders(
+      <CircuitRxList
+        exercises={[
+          { exercise_id: PULL_ID, amount: 5 },
+          { exercise_id: "missing-id", amount: 7 },
+        ]}
+        byId={byId}
+        onSelectExercise={onSelectExercise}
+      />,
+      { locale: "en" },
+    )
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "Instructions: Pull-ups" }),
+    )
+    expect(onSelectExercise).toHaveBeenCalledTimes(1)
+    expect(onSelectExercise).toHaveBeenCalledWith(PULL_ID)
+    expect(screen.getByText("Unknown exercise")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /Unknown exercise/i }),
+    ).not.toBeInTheDocument()
   })
 
   it("shows a muted fallback when a station id is missing from the catalog map", () => {

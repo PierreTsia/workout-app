@@ -67,6 +67,7 @@ describe("useBenchmarkSeeds", () => {
 
     expect(isCalls).toEqual([{ column: "owner_id", value: null }])
     expect(selectCalls[0]).toContain("label")
+    expect(selectCalls[0]).toContain("story_fr")
     expect(orderCalls).toEqual([{ column: "slug", options: { ascending: true } }])
   })
 
@@ -95,6 +96,9 @@ describe("useBenchmarkSeeds", () => {
         },
         tagline_fr: "Le WOD de Tom Holland.",
         tagline_en: "Tom Holland’s WOD.",
+        story_fr: null,
+        story_en: null,
+        reference: null,
       },
     ])
   })

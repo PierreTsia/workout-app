@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft, Loader2 } from "lucide-react"
-import { CircuitSeedCard } from "@/components/builder/CircuitSeedCard"
+import { CircuitCatalogCard } from "@/components/library/CircuitCatalogCard"
 import { useBenchmarkSeeds } from "@/hooks/useBenchmarkSeeds"
 
 export function CircuitCatalogPage() {
@@ -45,7 +45,7 @@ export function CircuitCatalogPage() {
           </p>
         ) : (
           catalogSeeds.map(({ seed, slug }) => (
-            <CircuitSeedCard
+            <CircuitCatalogCard
               key={seed.id}
               seed={seed}
               to={`/library/circuits/${slug}`}
