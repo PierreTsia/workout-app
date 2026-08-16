@@ -111,6 +111,27 @@ Expected agent behavior:
 
 ---
 
+## "Persist Zeus" (FR / EN)
+
+User says: *"Crée-moi Zeus"* / *"Give me Zeus"*.
+
+Expected agent behavior:
+
+1. Do **not** reconstruct Zeus from remembered exercises. Zeus is a catalog **Benchmark Circuit** — persist the slug.
+2. `create_workout_day` (or a program day) dry_run with:
+
+```jsonc
+{
+  type: "circuit",
+  benchmark_slug: "zeus"
+}
+```
+
+3. Catalog Rx wins. Preview / details echo the canonical Zeus prescription plus `benchmark_slug: "zeus"`.
+4. An unknown slug → **error**, no insert. A generic Circuit has no `benchmark_slug`.
+
+---
+
 ## "Pyramid Circuit on a Quick Workout" (EN)
 
 User says: *"Give me a quick conditioning session: pyramid circuit 20-15-10 burpees / swing / plank, 3 rounds."*

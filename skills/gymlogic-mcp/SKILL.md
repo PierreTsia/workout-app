@@ -323,7 +323,7 @@ Nested exercises use **`amount` + `weight_kg`** (or `per_round`) — **never** s
 
 **Tours vs AMRAP:** omit `mode` (or send `"rounds"`) → **Tours** (N rounds, defaults 3 / 90s rest / 0s transition). CrossFit-style WODs that stop on a clock (Cindy, Helen, “as many rounds as possible”) use `mode: "amrap"` + `cap_minutes` (1–60, default 20). AMRAP + `rounds` / `rest_seconds` / `transition_seconds` / nested `per_round` is a **hard reject** — do not send those fields. dry_run / details echo `AMRAP 20 min` plus the gloss *As many rounds as possible.* — never the naked acronym.
 
-**Cindy** is a catalog **Benchmark Circuit**. Persist with `benchmark_slug` — do **not** reconstruct 5-10-15 as identity. Catalog Rx wins (AMRAP 20, 5 pull-ups / 10 push-ups / 15 squats). Unknown slug → **error**, no insert. Label coerce exists (`Cindy` / `Holland` / `tom holland` → `cindy`) but agents should send the slug. Generic Circuits omit `benchmark_slug`.
+**Named WODs** are catalog **Benchmark Circuits**. Persist with `benchmark_slug` — do **not** reconstruct an Rx as identity. Catalog Rx wins. Supported slugs are `cindy`, `zeus`, `heracles`, `ares`, `theseus`, `athena`, `atlas`, `hades`, and `achilles`. Unknown slug → **error**, no insert. Generic Circuits omit `benchmark_slug`.
 
 ```jsonc
 {
@@ -331,6 +331,17 @@ Nested exercises use **`amount` + `weight_kg`** (or `per_round`) — **never** s
   benchmark_slug: "cindy"
 }
 ```
+
+For Zeus, send the catalog identity directly:
+
+```jsonc
+{
+  type: "circuit",
+  benchmark_slug: "zeus"
+}
+```
+
+Do not reconstruct Zeus's burpees, jump squats, and push-ups as its identity; the catalog prescription is authoritative. Label coerce exists for Cindy (`Cindy` / `Holland` / `tom holland` → `cindy`), but agents should still send the slug. Quick Workout's closed-intent coerce remains Cindy-only; extending it to Pantheon names is out of scope for [#480](https://github.com/PierreTsia/workout-app/issues/480), not a bug.
 
 **Generic AMRAP** (not a catalog seed — omit slug, send mode + nested Rx):
 
