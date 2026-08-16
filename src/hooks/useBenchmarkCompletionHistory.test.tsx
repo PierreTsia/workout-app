@@ -127,6 +127,7 @@ describe("fetchBenchmarkCompletionHistory", () => {
   it("loads seed story and withholds delta on the first cindy run", async () => {
     catalogResponse = {
       data: {
+        slug: "cindy",
         tagline_fr: "Le WOD de Tom Holland. 20 min.",
         tagline_en: "Tom Holland’s WOD. 20 min.",
         story_fr:
@@ -159,6 +160,7 @@ describe("fetchBenchmarkCompletionHistory", () => {
 
     expect(catalogChain.eq).toHaveBeenCalledWith("id", CINDY_ID)
     expect(out.copy).toEqual({
+      slug: "cindy",
       tagline_fr: "Le WOD de Tom Holland. 20 min.",
       tagline_en: "Tom Holland’s WOD. 20 min.",
       story_fr:

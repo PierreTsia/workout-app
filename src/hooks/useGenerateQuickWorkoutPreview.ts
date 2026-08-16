@@ -7,6 +7,13 @@ import { trimFocusAreas } from "@/lib/aiFocusAreas"
 import { buildExercise } from "@/lib/generateWorkout"
 import { formatEquipmentLabelForName } from "@/lib/equipmentSelection"
 import { VOLUME_MAP } from "@/lib/generatorConfig"
+import { collectReferencedBenchmarkExerciseIds } from "@/lib/resolveBenchmark"
+import {
+  catalogRowForSlug,
+  generatedCircuitFromCatalog,
+  parseCatalogPreviewRow,
+  type CatalogPreviewRow,
+} from "@/lib/previewCatalogCircuit"
 import type { Exercise } from "@/types/database"
 import type {
   GeneratorConstraints,
@@ -105,16 +112,28 @@ function buildWorkoutName(constraints: GeneratorConstraints): string {
   return `AI: ${focusLabel} / ${equipLabel} / ${constraints.duration}min`
 }
 
-function catalogPreviewLabel(slug: string): string {
-  const trimmed = slug.trim()
-  if (trimmed === "") return trimmed
-  return `${trimmed.slice(0, 1).toUpperCase()}${trimmed.slice(1)}`
+function slugFromItem(item: ServerDayItem): string | null {
+  if (typeof item === "string") return null
+  const slug = item.benchmark_slug
+  return typeof slug === "string" && slug.trim() !== "" ? slug : null
+}
+
+async function fetchCatalogPreviewRows(): Promise<CatalogPreviewRow[]> {
+  const { data, error } = await supabase
+    .from("benchmark_circuits")
+    .select("id, slug, aliases, rx, tagline_fr, tagline_en")
+  if (error) throw error
+  return (Array.isArray(data) ? data : []).flatMap((row) => {
+    const parsed = parseCatalogPreviewRow(row)
+    return parsed ? [parsed] : []
+  })
 }
 
 function buildDayItems(
   items: ServerDayItem[],
   byId: Map<string, Exercise>,
   setsPerExercise: number,
+  catalog: readonly CatalogPreviewRow[],
 ): GeneratedDayItem[] {
   return items.flatMap((item): GeneratedDayItem[] => {
     if (typeof item === "string") {
@@ -123,20 +142,13 @@ function buildDayItems(
       return [{ kind: "solo", exercise: buildExercise(ex, setsPerExercise) }]
     }
     if (item.type !== "circuit") return []
-    if (item.benchmark_slug) {
-      return [
-        {
-          kind: "circuit",
-          circuit: {
-            benchmarkSlug: item.benchmark_slug,
-            label: catalogPreviewLabel(item.benchmark_slug),
-            rounds: 1,
-            restSeconds: 0,
-            transitionSeconds: 0,
-            exercises: [],
-          },
-        },
-      ]
+    const slug = slugFromItem(item)
+    if (slug) {
+      const row = catalogRowForSlug(catalog, slug)
+      if (!row) {
+        throw new Error(`Unknown catalog circuit: ${slug}`)
+      }
+      return [{ kind: "circuit", circuit: generatedCircuitFromCatalog(row, byId) }]
     }
     const nested = (item.exercises ?? []).flatMap((n) => {
       const ex = byId.get(n.exercise_id)
@@ -190,14 +202,22 @@ export function useGenerateQuickWorkoutPreview({ exercisePool }: AIGenerateConte
 
       if (!daySource.length) throw new Error("AI returned no exercises")
 
-      const allIds = daySource.flatMap((item) =>
-        typeof item === "string"
-          ? [item]
-          : (item.exercises ?? []).map((e) => e.exercise_id),
-      )
+      const catalog = daySource.some((item) => slugFromItem(item) != null)
+        ? await fetchCatalogPreviewRows()
+        : []
+      const allIds = [
+        ...new Set([
+          ...daySource.flatMap((item) =>
+            typeof item === "string"
+              ? [item]
+              : (item.exercises ?? []).map((e) => e.exercise_id),
+          ),
+          ...collectReferencedBenchmarkExerciseIds(daySource, catalog),
+        ]),
+      ]
       const byId = await hydrateExercises(allIds, exercisePool)
       const { setsPerExercise } = VOLUME_MAP[constraints.duration as Duration]
-      const dayItems = buildDayItems(daySource, byId, setsPerExercise)
+      const dayItems = buildDayItems(daySource, byId, setsPerExercise, catalog)
       if (dayItems.length === 0) throw new Error("AI returned no exercises")
 
       const rationaleText =

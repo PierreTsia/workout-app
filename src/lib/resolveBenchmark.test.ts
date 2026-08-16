@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  catalogDisplayName,
   collectReferencedBenchmarkExerciseIds,
   resolveBenchmark,
   type BenchmarkCircuitLookup,
@@ -24,6 +25,15 @@ function makeCindy(overrides: Partial<BenchmarkCircuitLookup> = {}): BenchmarkCi
     ...overrides,
   }
 }
+
+describe("catalogDisplayName", () => {
+  it("title-cases a seed slug and returns null for a fork (no slug)", () => {
+    expect(catalogDisplayName("cindy")).toBe("Cindy")
+    expect(catalogDisplayName("  cindy  ")).toBe("Cindy")
+    expect(catalogDisplayName(null)).toBeNull()
+    expect(catalogDisplayName("")).toBeNull()
+  })
+})
 
 describe("resolveBenchmark", () => {
   it("finds a seed by slug, ignoring case and surrounding whitespace", () => {

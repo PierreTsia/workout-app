@@ -191,4 +191,19 @@ describe("buildGeneratedCircuitInsertRows", () => {
       [{ amount: 15, weight: 0 }],
     ])
   })
+
+  it("refuses a slug-only Cindy with no Rx — that persists as Tours / 0 exercises", () => {
+    const emptyCindy: GeneratedCircuit = {
+      benchmarkSlug: "cindy",
+      label: "Cindy",
+      rounds: 1,
+      restSeconds: 0,
+      transitionSeconds: 0,
+      exercises: [],
+    }
+
+    expect(() =>
+      buildGeneratedCircuitInsertRows("day-1", 0, emptyCindy),
+    ).toThrow(/hydrate/i)
+  })
 })

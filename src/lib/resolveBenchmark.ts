@@ -45,6 +45,14 @@ function rowMatchesKey(row: BenchmarkCircuitLookup, key: string): boolean {
   return row.aliases.some((alias) => normalizeBenchmarkKey(alias) === key)
 }
 
+/** Seed heading: slug `cindy` → `Cindy`. Null/blank slug (a Circuit Fork) has no catalog name. */
+export function catalogDisplayName(slug: string | null | undefined): string | null {
+  if (slug == null) return null
+  const trimmed = slug.trim()
+  if (trimmed === "") return null
+  return `${trimmed.slice(0, 1).toUpperCase()}${trimmed.slice(1)}`
+}
+
 export function resolveBenchmark(
   catalog: readonly BenchmarkCircuitLookup[],
   query: { id?: string | null; slug?: string | null; label?: string | null },

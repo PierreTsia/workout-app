@@ -82,6 +82,6 @@
   "amrapCapMinutes": "Minutes",
   "customizePerRound": "Customize per round",
   "forkTitle": "This will no longer be Cindy.",
-  "forkDescription": "Your edited circuit becomes a private copy. Cindy stays 20 minutes.",
+  "forkDescription": "Scores you already logged stay. From now on, this is a different workout.",
   "forkConfirm": "Continue"
 }

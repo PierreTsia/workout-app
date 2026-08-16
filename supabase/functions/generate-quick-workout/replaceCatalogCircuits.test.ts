@@ -48,6 +48,17 @@ describe("replaceCatalogCircuits", () => {
     ])
   })
 
+  it("closed-intent circuit label drops leftover targetCount solos", () => {
+    const items: QwDayItem[] = [
+      "ex-squat",
+      "ex-row",
+      makeLlmCircuit({ label: "Cindy" }),
+    ]
+    expect(replaceCatalogCircuits(items, "full body")).toEqual([
+      { type: "circuit", benchmark_slug: "cindy" },
+    ])
+  })
+
   it("T192: 4 rounds Cindy still becomes official catalog cindy, not Tours", () => {
     const items: QwDayItem[] = [
       makeLlmCircuit({ label: "4 rounds Cindy", rounds: 4 }),
@@ -55,6 +66,27 @@ describe("replaceCatalogCircuits", () => {
     expect(replaceCatalogCircuits(items, "4 rounds Cindy")).toEqual([
       { type: "circuit", benchmark_slug: "cindy" },
     ])
+  })
+
+  it("closed intent with only solos injects cindy and drops the backfill", () => {
+    const items: QwDayItem[] = ["ex-squat", "ex-bench", "ex-row", "ex-crunch"]
+    expect(replaceCatalogCircuits(items, "une cindy")).toEqual([
+      { type: "circuit", benchmark_slug: "cindy" },
+    ])
+  })
+
+  it("closed-ish Tom Holland prompt injects cindy from solos", () => {
+    const items: QwDayItem[] = ["ex-squat", "ex-row", "ex-press", "ex-crunch"]
+    expect(replaceCatalogCircuits(items, "le wod de tom holland")).toEqual([
+      { type: "circuit", benchmark_slug: "cindy" },
+    ])
+  })
+
+  it("generic full-body solos are not coerced to cindy", () => {
+    const items: QwDayItem[] = ["ex-squat", "ex-bench", "ex-row", "ex-crunch"]
+    expect(replaceCatalogCircuits(items, "full body salle 15 min, pas de tractions")).toEqual(
+      items,
+    )
   })
 
   it("T192: HIIT 20 min with no seed name stays jetable", () => {

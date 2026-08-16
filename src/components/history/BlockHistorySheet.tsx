@@ -17,6 +17,7 @@ import { BenchmarkStoryHeader } from "@/components/history/BenchmarkStoryHeader"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { formatSecondsMMSS } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import { catalogDisplayName } from "@/lib/resolveBenchmark"
 import type { AmrapRunView } from "@/lib/amrapScore"
 import type { BlockRunView } from "@/lib/blockCompletionHistory"
 
@@ -171,6 +172,7 @@ export function BlockHistorySheet({
   const isError = isCatalog ? catalogHistory.isError : blockHistory.isError
   const refetch = isCatalog ? catalogHistory.refetch : blockHistory.refetch
   const copy = isCatalog ? (catalogHistory.data?.copy ?? null) : null
+  const heading = catalogDisplayName(copy?.slug) ?? label ?? t("circuit.fallbackLabel")
 
   const isAmrap = isCatalog || blockHistory.data?.mode === "amrap"
   const views = isCatalog ? [] : (blockHistory.data?.views ?? [])
@@ -196,7 +198,7 @@ export function BlockHistorySheet({
             </SheetTitle>
           </div>
           <p className="pt-1 font-semibold leading-tight">
-            {label ?? t("circuit.fallbackLabel")}
+            {heading}
           </p>
           {copy ? (
             <div className="pt-2">

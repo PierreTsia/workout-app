@@ -30,6 +30,11 @@ describe("CircuitForkDialog", () => {
     expect(
       screen.getByRole("alertdialog", { name: /ça ne sera plus cindy/i }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(/tes scores déjà faits restent/i),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/cette séance ne comptera plus/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/copie privée/i)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: /annuler/i }))
     expect(onConfirm).not.toHaveBeenCalled()

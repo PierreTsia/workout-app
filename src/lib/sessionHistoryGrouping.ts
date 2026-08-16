@@ -1,3 +1,4 @@
+import { catalogDisplayName } from "@/lib/resolveBenchmark"
 import { groupBy } from "@/lib/utils"
 import type { CatalogNameSource } from "@/lib/catalogLabels"
 import type {
@@ -207,4 +208,21 @@ export function sheetCatalogId(
   goSnapshotCatalogId: string | null | undefined,
 ): string | null {
   return goSnapshotCatalogId ?? liveCatalogId
+}
+
+/** PostgREST may return the embed as an object or a one-row array. */
+export function catalogSlugFromEmbed(raw: unknown): string | null {
+  const row = Array.isArray(raw) ? raw[0] : raw
+  if (row == null || typeof row !== "object") return null
+  if (!("slug" in row)) return null
+  const slug = row.slug
+  return typeof slug === "string" ? slug : null
+}
+
+/** Card / sheet heading: GO-stamped seed slug wins over a later live rename. */
+export function sessionBlockHeading(
+  liveLabel: string | null,
+  goCatalogSlug: string | null | undefined,
+): string | null {
+  return catalogDisplayName(goCatalogSlug) ?? liveLabel
 }

@@ -183,6 +183,26 @@ describe("BlockHistoryCard", () => {
 
     expect(screen.queryByText("14+0")).not.toBeInTheDocument()
   })
+
+  it("keeps the seed name when the live block was renamed after a fork", () => {
+    const group = makeAmrapGroup(16, 3, "pull-ups")
+    group.label = "Cindy Light"
+
+    renderWithProviders(
+      <BlockHistoryCard
+        group={group}
+        formatWeight={(kg) => `${kg} kg`}
+        blockRun={{
+          finished_at: "2026-08-16T11:30:00.000Z",
+          catalogSlug: "cindy",
+        }}
+      />,
+    )
+
+    expect(screen.getByText("Cindy")).toBeInTheDocument()
+    expect(screen.queryByText("Cindy Light")).not.toBeInTheDocument()
+    expect(screen.getByText("16+3")).toBeInTheDocument()
+  })
 })
 
 function makeAmrapGroup(

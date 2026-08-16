@@ -35,10 +35,20 @@ interface InsertCall {
 }
 
 const insertCalls: InsertCall[] = []
+const catalogSelectData: unknown[] = []
+const exerciseSelectData: unknown[] = []
 
 vi.mock("@/lib/supabase", () => {
   function from(table: string) {
     return {
+      select() {
+        if (table === "benchmark_circuits") {
+          return Promise.resolve({ data: catalogSelectData, error: null })
+        }
+        return {
+          in: () => Promise.resolve({ data: exerciseSelectData, error: null }),
+        }
+      },
       insert(payload: unknown) {
         insertCalls.push({ table, payload })
         return {
@@ -160,6 +170,8 @@ function setupHook() {
 describe("useCreateQuickWorkout — shape parity", () => {
   beforeEach(() => {
     insertCalls.length = 0
+    catalogSelectData.length = 0
+    exerciseSelectData.length = 0
   })
 
   it("inserts workout_exercises rows that deep-equal buildWorkoutExerciseInsertRowsForDay output", async () => {
@@ -321,5 +333,84 @@ describe("useCreateQuickWorkout — shape parity", () => {
     expect(Number.isFinite(stamp)).toBe(true)
     expect(stamp).toBeGreaterThanOrEqual(before)
     expect(stamp).toBeLessThanOrEqual(after)
+  })
+
+  it("T191: slug-only Cindy instantiates catalog Rx (AMRAP 20, 5-10-15) and stamps the FK", async () => {
+    const pull = makeExercise({ id: "ex-pull", name: "Tractions", muscle_group: "Dos" })
+    const push = makeExercise({ id: "ex-push", name: "Pompes" })
+    const squat = makeExercise({
+      id: "ex-squat",
+      name: "Squat au poids du corps",
+      muscle_group: "Quadriceps",
+    })
+    catalogSelectData.splice(
+      0,
+      catalogSelectData.length,
+      {
+        id: "cindy-catalog-id",
+        slug: "cindy",
+        aliases: ["holland"],
+        tagline_fr: "Le WOD de Tom Holland. 20 min.",
+        tagline_en: "Tom Holland’s WOD. 20 min.",
+        rx: {
+          mode: "amrap",
+          cap_seconds: 1200,
+          exercises: [
+            { exercise_id: pull.id, amount: 5, weight: 0 },
+            { exercise_id: push.id, amount: 10, weight: 0 },
+            { exercise_id: squat.id, amount: 15, weight: 0 },
+          ],
+        },
+      },
+    )
+    exerciseSelectData.splice(0, exerciseSelectData.length, pull, push, squat)
+
+    const workout: GeneratedWorkout = {
+      name: "AI: Cindy",
+      hasFallback: false,
+      exercises: [],
+      dayItems: [
+        {
+          kind: "circuit",
+          circuit: {
+            benchmarkSlug: "cindy",
+            label: "Cindy",
+            rounds: 1,
+            restSeconds: 0,
+            transitionSeconds: 0,
+            exercises: [],
+          },
+        },
+      ],
+    }
+
+    const { result, store } = setupHook()
+    act(() => {
+      store.set(authAtom, TEST_USER)
+    })
+
+    await act(async () => {
+      await result.current.mutateAsync({ workout, saveAsDraft: true })
+    })
+
+    const blockInsert = insertCalls.find((c) => c.table === "exercise_blocks")
+    expect(blockInsert!.payload).toMatchObject({
+      label: "Cindy",
+      mode: "amrap",
+      cap_seconds: 1200,
+      rounds: 1,
+      benchmark_circuit_id: "cindy-catalog-id",
+    })
+
+    const beInsert = insertCalls.find((c) => c.table === "block_exercises")
+    const beRows = beInsert!.payload as Array<{
+      exercise_id: string
+      per_round: Array<{ amount: number }>
+    }>
+    expect(beRows.map((row) => [row.exercise_id, row.per_round[0]?.amount])).toEqual([
+      [pull.id, 5],
+      [push.id, 10],
+      [squat.id, 15],
+    ])
   })
 })

@@ -15,15 +15,17 @@ function mentionsCindySeed(text: string | undefined): boolean {
   })
 }
 
+function circuitLabel(item: QwDayItem): string | undefined {
+  if (typeof item === "string") return undefined
+  return "label" in item ? item.label : undefined
+}
+
 export function replaceCatalogCircuits(
   items: QwDayItem[],
   focusAreas?: string,
 ): QwDayItem[] {
-  const intentMentionsSeed = mentionsCindySeed(focusAreas)
-  return items.map((item) => {
-    if (typeof item === "string") return item
-    const label = "label" in item ? item.label : undefined
-    if (intentMentionsSeed || mentionsCindySeed(label)) return CINDY_CATALOG_ITEM
-    return item
-  })
+  const closedIntent =
+    mentionsCindySeed(focusAreas) || items.some((item) => mentionsCindySeed(circuitLabel(item)))
+  if (closedIntent) return [CINDY_CATALOG_ITEM]
+  return items
 }

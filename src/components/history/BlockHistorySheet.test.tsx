@@ -181,6 +181,7 @@ describe("BlockHistorySheet", () => {
     mockCatalogHistory.mockReturnValue({
       data: {
         copy: {
+          slug: "cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions, dix pompes, quinze squats.",
@@ -228,6 +229,7 @@ describe("BlockHistorySheet", () => {
     mockCatalogHistory.mockReturnValue({
       data: {
         copy: {
+          slug: "cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions.",
@@ -256,5 +258,49 @@ describe("BlockHistorySheet", () => {
     expect(screen.queryByText(/No completed runs yet/)).not.toBeInTheDocument()
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
     expect(screen.getByText(/Tom Holland — 27 rounds/)).toBeInTheDocument()
+  })
+
+  it("keeps the catalog name when the live block was renamed after a fork", () => {
+    mockCatalogHistory.mockReturnValue({
+      data: {
+        copy: {
+          slug: "cindy",
+          tagline_fr: "Le WOD de Tom Holland. 20 min.",
+          tagline_en: "Tom Holland’s WOD. 20 min.",
+          story_fr: "Cinq tractions.",
+          story_en: "Five pull-ups.",
+          reference: { name: "Tom Holland", score: "27" },
+        },
+        amrapViews: [
+          {
+            sessionId: "s1",
+            date: "2026-08-16T11:30:00.000Z",
+            fingerprint: "amrap|1200|ex-1:5:0",
+            isComplete: true,
+            score: { fullRounds: 16, leftover: 3, leftoverName: "pull-ups" },
+            deltaRounds: null,
+            isPb: true,
+            shapeChanged: false,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+
+    renderWithProviders(
+      <BlockHistorySheet
+        open
+        onOpenChange={() => {}}
+        blockId="block-tuesday"
+        catalogId="cindy-catalog"
+        label="Cindy Light"
+      />,
+    )
+
+    expect(screen.getByText("Cindy")).toBeInTheDocument()
+    expect(screen.queryByText("Cindy Light")).not.toBeInTheDocument()
+    expect(screen.getByText("16+3")).toBeInTheDocument()
   })
 })

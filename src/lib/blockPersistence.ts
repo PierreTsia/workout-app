@@ -98,6 +98,11 @@ export function buildGeneratedCircuitInsertRows(
   block: ExerciseBlockInsertRow
   blockExercises: BlockExerciseInsertRow[]
 } {
+  if (circuit.benchmarkSlug && circuit.exercises.length === 0) {
+    throw new Error(
+      "buildGeneratedCircuitInsertRows: catalog circuit has no Rx — hydrate first",
+    )
+  }
   const isAmrap = circuit.mode === "amrap"
   const rounds = isAmrap ? 1 : circuit.rounds
   const capMinutes = circuit.capMinutes ?? 20

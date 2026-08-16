@@ -190,6 +190,7 @@ describe("SessionRow", () => {
     useBenchmarkCompletionHistory.mockReturnValue({
       data: {
         copy: {
+          slug: "cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions.",
@@ -227,7 +228,7 @@ describe("SessionRow", () => {
             "be-cindy",
             {
               blockId: "block-tue",
-              label: "Cindy",
+              label: "Cindy Light",
               position: 0,
               emoji: "🔥",
               blockSortOrder: 0,
@@ -246,6 +247,7 @@ describe("SessionRow", () => {
             {
               finished_at: "2026-08-01T10:20:00.000Z",
               benchmarkCircuitId: "cindy-catalog",
+              catalogSlug: "cindy",
             },
           ],
         ]),
@@ -254,6 +256,7 @@ describe("SessionRow", () => {
     useBenchmarkCompletionHistory.mockReturnValue({
       data: {
         copy: {
+          slug: "cindy",
           tagline_fr: "Le WOD de Tom Holland. 20 min.",
           tagline_en: "Tom Holland’s WOD. 20 min.",
           story_fr: "Cinq tractions.",
@@ -268,6 +271,7 @@ describe("SessionRow", () => {
     })
 
     await expand("en")
+    expect(screen.queryByText("Cindy Light")).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: /cindy/i }))
 
     expect(useBenchmarkCompletionHistory).toHaveBeenCalledWith(

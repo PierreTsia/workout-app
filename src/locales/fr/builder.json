@@ -82,6 +82,6 @@
   "amrapCapMinutes": "Minutes",
   "customizePerRound": "Personnaliser par tour",
   "forkTitle": "Ça ne sera plus Cindy.",
-  "forkDescription": "Votre circuit modifié devient une copie privée. Cindy reste à 20 minutes.",
+  "forkDescription": "Tes scores déjà faits restent. Les suivants, c’est un autre circuit.",
   "forkConfirm": "Continuer"
 }

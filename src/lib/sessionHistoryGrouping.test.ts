@@ -4,6 +4,8 @@ import {
   buildBlockMetaMap,
   groupSessionHistory,
   sheetCatalogId,
+  sessionBlockHeading,
+  catalogSlugFromEmbed,
   type BlockExerciseMetaRow,
   type BlockMeta,
   type SoloHistoryGroup,
@@ -226,6 +228,15 @@ describe("groupSessionHistory", () => {
     expect(sheetCatalogId("cindy-catalog", null)).toBe("cindy-catalog")
     expect(sheetCatalogId("cindy-catalog", undefined)).toBe("cindy-catalog")
     expect(sheetCatalogId(null, undefined)).toBe(null)
+  })
+
+  it("keeps the seed name on a scored card after the live block was renamed", () => {
+    expect(sessionBlockHeading("Cindy Light", "cindy")).toBe("Cindy")
+    expect(sessionBlockHeading("Cindy Light", null)).toBe("Cindy Light")
+    expect(sessionBlockHeading("Cindy Light", undefined)).toBe("Cindy Light")
+    expect(catalogSlugFromEmbed({ slug: "cindy" })).toBe("cindy")
+    expect(catalogSlugFromEmbed([{ slug: "cindy" }])).toBe("cindy")
+    expect(catalogSlugFromEmbed({ slug: null })).toBeNull()
   })
 
   it("carries the catalog row onto block cells too", () => {
