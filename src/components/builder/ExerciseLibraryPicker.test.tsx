@@ -675,6 +675,39 @@ describe("ExerciseLibraryPicker", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
+  it("does not start a second instantiate while one is already in flight", async () => {
+    const fran = makeCindySeed({
+      id: "fran-id",
+      slug: "fran",
+      aliases: [],
+      tagline_en: "Thrusters and pull-ups.",
+      tagline_fr: "Thrusters et tractions.",
+    })
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed(), fran],
+      isLoading: false,
+      isError: false,
+    })
+    const hold = {
+      resolve: (_value: { blockId: string }) => {},
+    }
+    mockInstantiateMutateAsync.mockImplementation(
+      () =>
+        new Promise<{ blockId: string }>((resolve) => {
+          hold.resolve = resolve
+        }),
+    )
+    renderPicker({ existingMaxSortOrder: -1 })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "Cindy" }))
+    await user.click(screen.getByRole("button", { name: "Fran" }))
+
+    expect(mockInstantiateMutateAsync).toHaveBeenCalledTimes(1)
+    hold.resolve({ blockId: "b-1" })
+  })
+
   it("keeps the sheet open and toasts when instantiate throws", async () => {
     const { toast } = await import("sonner")
     mockUseBenchmarkSeeds.mockReturnValue({

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect } from "react"
+import { useMemo, useState, useCallback, useEffect, useRef } from "react"
 import { Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -46,10 +46,12 @@ const SEARCH_DEBOUNCE_MS = 300
 function SeedCardList({
   seeds,
   pendingSeedId,
+  locked,
   onSelect,
 }: {
   seeds: CatalogPreviewRow[]
   pendingSeedId: string | undefined
+  locked: boolean
   onSelect: (seed: CatalogPreviewRow) => void
 }) {
   return seeds.map((seed) => (
@@ -57,6 +59,7 @@ function SeedCardList({
       key={seed.id}
       seed={seed}
       pending={pendingSeedId === seed.id}
+      locked={locked}
       onSelect={() => onSelect(seed)}
     />
   ))
@@ -81,6 +84,7 @@ interface PickerSelectionPanelProps {
   onLoadMore: () => void
   pinnedSeeds: CatalogPreviewRow[]
   pendingSeedId: string | undefined
+  locked: boolean
   onSelectSeed: (seed: CatalogPreviewRow) => void
 }
 
@@ -92,6 +96,7 @@ function PickerSelectionPanel({
   onLoadMore,
   pinnedSeeds,
   pendingSeedId,
+  locked,
   onSelectSeed,
   ...selectionProps
 }: PickerSelectionPanelProps) {
@@ -106,6 +111,7 @@ function PickerSelectionPanel({
             <SeedCardList
               seeds={pinnedSeeds}
               pendingSeedId={pendingSeedId}
+              locked={locked}
               onSelect={onSelectSeed}
             />
           </div>
@@ -148,12 +154,14 @@ function CircuitsKindBody({
   isError,
   seeds,
   pendingSeedId,
+  locked,
   onSelect,
 }: {
   isLoading: boolean
   isError: boolean
   seeds: CatalogPreviewRow[]
   pendingSeedId: string | undefined
+  locked: boolean
   onSelect: (seed: CatalogPreviewRow) => void
 }) {
   const { t } = useTranslation("builder")
@@ -187,6 +195,7 @@ function CircuitsKindBody({
       <SeedCardList
         seeds={seeds}
         pendingSeedId={pendingSeedId}
+        locked={locked}
         onSelect={onSelect}
       />
     </div>
@@ -225,6 +234,7 @@ export function ExerciseLibraryPicker({
   const deleteExercise = useDeleteExercise()
   const canInstantiate = existingMaxSortOrder !== undefined && !onCreateBlock
   const instantiate = useInstantiateBenchmarkOnDay()
+  const instantiateInFlight = useRef(false)
 
   const [kind, setKind] = useState<"exercises" | "circuits">("exercises")
   const [searchInput, setSearchInput] = useState("")
@@ -328,6 +338,8 @@ export function ExerciseLibraryPicker({
   const handleInstantiate = useCallback(
     async (seed: CatalogPreviewRow) => {
       if (existingMaxSortOrder === undefined) return
+      if (instantiate.isPending || instantiateInFlight.current) return
+      instantiateInFlight.current = true
       onMutationStateChange("saving")
       try {
         await instantiate.mutateAsync({
@@ -340,6 +352,8 @@ export function ExerciseLibraryPicker({
       } catch {
         toast.error(t("instantiateError"))
         onMutationStateChange("error")
+      } finally {
+        instantiateInFlight.current = false
       }
     },
     [
@@ -441,6 +455,7 @@ export function ExerciseLibraryPicker({
           isError={seedsQuery.isError}
           seeds={circuitsSeeds}
           pendingSeedId={pendingSeedId}
+          locked={instantiate.isPending}
           onSelect={(seed) => {
             void handleInstantiate(seed)
           }}
@@ -466,6 +481,7 @@ export function ExerciseLibraryPicker({
           onLoadMore={() => fetchNextPage()}
           pinnedSeeds={matchingSeeds}
           pendingSeedId={pendingSeedId}
+          locked={instantiate.isPending}
           onSelectSeed={(seed) => {
             void handleInstantiate(seed)
           }}

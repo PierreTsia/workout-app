@@ -10,12 +10,14 @@ interface CircuitSeedCardProps {
   seed: CatalogPreviewRow
   onSelect: () => void
   pending?: boolean
+  locked?: boolean
 }
 
 export function CircuitSeedCard({
   seed,
   onSelect,
   pending = false,
+  locked = false,
 }: CircuitSeedCardProps) {
   const { t, i18n } = useTranslation("builder")
   const label = catalogDisplayName(seed.slug) ?? seed.slug ?? ""
@@ -30,7 +32,7 @@ export function CircuitSeedCard({
     <Button
       type="button"
       variant="outline"
-      disabled={pending}
+      disabled={pending || locked}
       aria-label={label}
       onClick={onSelect}
       className="h-auto w-full items-start justify-start gap-3 whitespace-normal border-primary/25 bg-card px-3 py-3 text-left shadow-xs hover:border-primary/40 hover:bg-accent/50"
