@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
 import enAchievements from "@/locales/en/achievements.json"
 import frAchievements from "@/locales/fr/achievements.json"
+import { importsOf } from "./imports"
 
 /**
- * #482 / T209 oracle: the circuit achievement migration must seed five tracks
- * and wire identical `qualifying_runs` + metric branches into both RPCs.
- * T210 hardens catalog isolation; this file only pins the SQL/i18n contract.
+ * #482 / T209–T210: migration SQL + i18n contract (T209) and Circuit Catalog
+ * isolation from badge chrome (T210 / ADR 0018).
  */
 
 const migrationSources = import.meta.glob("../../supabase/migrations/*.sql", {
@@ -70,7 +70,9 @@ describe("circuit achievement tracks migration (#482 / T209)", () => {
   })
 
   it("seeds all five metric_type literals and Cast Clearing slug lists", () => {
-    expect(circuitSql).toContain("owner_id IS NULL")
+    expect(normalizeSql(circuitSql)).toMatch(
+      /JOIN\s+benchmark_circuits\s+\w+\s+ON[\s\S]*?owner_id\s+IS\s+NULL/i,
+    )
     expect(circuitSql).toContain("qualifying_runs")
     expect(
       CIRCUIT_METRICS.every((metric) => circuitSql.includes(`'${metric}'`)),
@@ -80,7 +82,15 @@ describe("circuit achievement tracks migration (#482 / T209)", () => {
         circuitSql.includes(`'${slug}'`),
       ),
     ).toBe(true)
-    expect(circuitSql).toMatch(/LEFT\s+JOIN\s+qualifying_runs/i)
+    expect(circuitSql).toMatch(
+      /unnest\s*\(\s*ARRAY\s*\[\s*'zeus'\s*,\s*'ares'\s*,\s*'athena'\s*,\s*'hades'\s*\]\s*\)/i,
+    )
+    expect(circuitSql).toMatch(
+      /unnest\s*\(\s*ARRAY\s*\[\s*'heracles'\s*,\s*'theseus'\s*,\s*'atlas'\s*,\s*'achilles'\s*\]\s*\)/i,
+    )
+    expect(circuitSql).toMatch(
+      /LEFT\s+JOIN\s+qualifying_runs\s+\w+\s+ON\s+\w+\.slug\s*=/i,
+    )
   })
 
   it("keeps qualifying_runs + circuit metrics identical in both RPCs", () => {
@@ -127,5 +137,49 @@ describe("circuit achievement i18n (#482 / T209)", () => {
     )
 
     expect(missing).toEqual([])
+  })
+})
+
+/**
+ * ADR 0018: Circuit Catalog is encyclopedia under Library — no badge chrome.
+ * Badge status / overlay / session badges stay on /achievements and session UI.
+ */
+const catalogCircuitSources = import.meta.glob(
+  [
+    "../pages/library/CircuitCatalog*.tsx",
+    "../components/library/Circuit*.tsx",
+  ],
+  {
+    query: "?raw",
+    eager: true,
+    import: "default",
+  },
+) as Record<string, string>
+
+const CATALOG_BADGE_FORBIDDEN = [
+  "useBadgeStatus",
+  "SessionBadges",
+  "AchievementUnlockOverlay",
+  "lastSessionBadgesAtom",
+  "achievementUnlockQueueAtom",
+] as const
+
+const badgeChromeImports = (source: string): string[] =>
+  CATALOG_BADGE_FORBIDDEN.flatMap((token) => {
+    const fromSpecifier = importsOf(source, token)
+    if (fromSpecifier.length > 0) return fromSpecifier
+    return new RegExp(`\\b${token}\\b`).test(source) ? [token] : []
+  })
+
+describe("circuit catalog isolation (#482 / T210 / ADR 0018)", () => {
+  it("does not import badge status, overlay, or achievement atoms", () => {
+    const offenders = Object.entries(catalogCircuitSources)
+      .filter(([path]) => !/\.test\.tsx?$/.test(path))
+      .flatMap(([path, source]) =>
+        badgeChromeImports(source).map((hit) => `${path}: ${hit}`),
+      )
+      .sort()
+
+    expect(offenders).toEqual([])
   })
 })

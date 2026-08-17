@@ -291,3 +291,86 @@ describe("SECURITY DEFINER functions", () => {
     expect(stale).toEqual([])
   })
 })
+
+/**
+ * #482 / T210: the circuit achievement migration must keep the five metric
+ * branches, seed-only join (`owner_id IS NULL`), Cast Clearing slug lists, and
+ * the LEFT JOIN / unnest pattern that yields 0 when a seed is missing.
+ * Auth-guard coverage for both RPCs stays in the suite above (last-wins).
+ */
+const CIRCUIT_ACHIEVEMENT_METRICS = [
+  "circuit_runner",
+  "spidey",
+  "olympians",
+  "heroes",
+  "pantheoniste",
+] as const
+
+const CAST_CLEARING_SLUGS = [
+  "zeus",
+  "ares",
+  "athena",
+  "hades",
+  "heracles",
+  "theseus",
+  "atlas",
+  "achilles",
+] as const
+
+const circuitAchievementMigration = Object.entries(migrationSources).find(
+  ([path]) => path.includes("circuit_achievement_tracks"),
+)
+
+const circuitAchievementSql = circuitAchievementMigration?.[1] ?? ""
+
+describe("circuit achievement tracks migration (#482 / T210)", () => {
+  it("ships the circuit_achievement_tracks migration", () => {
+    expect(circuitAchievementMigration).toBeDefined()
+  })
+
+  it("keeps both achievement RPCs on the SECURITY DEFINER roster", () => {
+    expect(SECURITY_DEFINER_FUNCTIONS).toEqual(
+      expect.arrayContaining([
+        "check_and_grant_achievements",
+        "get_badge_status",
+      ]),
+    )
+  })
+
+  it("pins the five circuit metric_type literals", () => {
+    const missing = CIRCUIT_ACHIEVEMENT_METRICS.filter(
+      (metric) => !circuitAchievementSql.includes(`'${metric}'`),
+    )
+
+    expect(missing).toEqual([])
+  })
+
+  it("keeps the seed-only owner_id IS NULL guard on the circuit join path", () => {
+    const sql = stripComments(circuitAchievementSql)
+    const seedJoins = [
+      ...sql.matchAll(
+        /JOIN\s+benchmark_circuits\s+\w+\s+ON[\s\S]*?owner_id\s+IS\s+NULL/gi,
+      ),
+    ]
+
+    // Both check_and_grant_achievements and get_badge_status must keep the guard.
+    expect(seedJoins).toHaveLength(2)
+  })
+
+  it("pins Cast Clearing fixed slugs and the LEFT JOIN / unnest pattern", () => {
+    const missingSlugs = CAST_CLEARING_SLUGS.filter(
+      (slug) => !circuitAchievementSql.includes(`'${slug}'`),
+    )
+
+    expect(missingSlugs).toEqual([])
+    expect(circuitAchievementSql).toMatch(
+      /unnest\s*\(\s*ARRAY\s*\[\s*'zeus'\s*,\s*'ares'\s*,\s*'athena'\s*,\s*'hades'\s*\]\s*\)/i,
+    )
+    expect(circuitAchievementSql).toMatch(
+      /unnest\s*\(\s*ARRAY\s*\[\s*'heracles'\s*,\s*'theseus'\s*,\s*'atlas'\s*,\s*'achilles'\s*\]\s*\)/i,
+    )
+    expect(circuitAchievementSql).toMatch(
+      /LEFT\s+JOIN\s+qualifying_runs\s+\w+\s+ON\s+\w+\.slug\s*=/i,
+    )
+  })
+})
