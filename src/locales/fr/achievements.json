@@ -42,7 +42,12 @@
     "streak_king": "Streak King",
     "marathoner": "Le Marathonien",
     "pr_streak": "Série de Records",
-    "early_bird": "Early Bird"
+    "early_bird": "Early Bird",
+    "circuit_runner": "Circuit runner",
+    "spidey": "L'Araignée",
+    "olympians": "Au sommet de l'Olympe",
+    "heroes": "Le tour des Héros",
+    "pantheoniste": "Le Pantheoniste"
   },
   "groupDescriptions": {
     "consistency_streak": "Nombre total de séances terminées",
@@ -55,7 +60,12 @@
     "streak_king": "Plus longue série de semaines consécutives",
     "marathoner": "Séances avec un volume total ≥ 5 000 kg",
     "pr_streak": "Plus longue série de séances avec au moins 1 PR",
-    "early_bird": "Séances terminées avant 8h"
+    "early_bird": "Séances terminées avant 8h",
+    "circuit_runner": "Runs de circuits GymLogic (1+ tour)",
+    "spidey": "Meilleur score Cindy en tours",
+    "olympians": "Min. de runs Zeus / Arès / Athéna / Hadès",
+    "heroes": "Min. de runs Héraclès / Thésée / Atlas / Achille",
+    "pantheoniste": "Min. de runs sur les huit grecs"
   },
   "thresholdHint": {
     "consistency_streak": "Terminer {{target}} séances",
@@ -68,6 +78,11 @@
     "streak_king": "S'entraîner {{target}} semaines d'affilée",
     "marathoner": "Compléter {{target}} séances lourdes (≥ 5 000 kg)",
     "pr_streak": "Battre des records dans {{target}} séances d'affilée",
-    "early_bird": "Terminer {{target}} séances avant 8h"
+    "early_bird": "Terminer {{target}} séances avant 8h",
+    "circuit_runner": "Atteins {{target}}",
+    "spidey": "Atteins {{target}}",
+    "olympians": "Atteins {{target}}",
+    "heroes": "Atteins {{target}}",
+    "pantheoniste": "Atteins {{target}}"
   }
 }

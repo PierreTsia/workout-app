@@ -55,7 +55,35 @@ function makeCindyPlusLeftover(
 }
 
 describe("amrapScore", () => {
-  it("derives 27+3 and the leftover movement from a finished ragged last round", () => {
+  /**
+   * #482 RPC `qualifying_runs` must match `fullRounds = MAX(set_number) - 1`.
+   * Spidey / Circuit Achievement Run tiers key off fullRounds only; leftover is
+   * display/PB tie-break in history, not a SQL tier input. When two cells share
+   * the max set_number, leftover identity is max(logged_at) — SQL authors still
+   * only need MAX(set_number)-1 for the round count.
+   */
+  it("sets fullRounds to max(set_number) - 1 on a finished run", () => {
+    const cells = [
+      makeCell({ set_number: 1, reps_logged: "5", logged_at: "2026-08-15T10:00:00.000Z" }),
+      makeCell({ set_number: 2, reps_logged: "5", logged_at: "2026-08-15T10:01:00.000Z" }),
+      makeCell({
+        set_number: 5,
+        reps_logged: "12",
+        exercise_name: "sit-ups",
+        logged_at: "2026-08-15T10:04:00.000Z",
+      }),
+    ]
+
+    expect(
+      amrapScore({ finished_at: "2026-08-15T10:20:00.000Z" }, cells),
+    ).toEqual({
+      fullRounds: 4,
+      leftover: 12,
+      leftoverName: "sit-ups",
+    })
+  })
+
+  it("derives 27+3 Cindy shape; leftover does not change fullRounds for Spidey tiers", () => {
     const cells = makeCindyPlusLeftover(27, 3, "pompes")
 
     expect(
@@ -67,10 +95,56 @@ describe("amrapScore", () => {
     })
   })
 
-  it("returns no score when finished_at is missing (session finish without Terminer)", () => {
-    const cells = makeCindyPlusLeftover(14, 0)
+  it("returns null for an unfinished run (finished_at null)", () => {
+    const cells = [
+      makeCell({ set_number: 14, reps_logged: "10", logged_at: "2026-08-15T10:14:00.000Z" }),
+    ]
 
     expect(amrapScore({ finished_at: null }, cells)).toBeNull()
+  })
+
+  it("yields fullRounds 0 when the only leftover is set_number 1", () => {
+    const cells = [
+      makeCell({
+        set_number: 1,
+        reps_logged: "7",
+        exercise_name: "push-ups",
+        logged_at: "2026-08-15T10:00:00.000Z",
+      }),
+    ]
+
+    expect(
+      amrapScore({ finished_at: "2026-08-15T10:20:00.000Z" }, cells),
+    ).toEqual({
+      fullRounds: 0,
+      leftover: 7,
+      leftoverName: "push-ups",
+    })
+  })
+
+  it("picks the later logged_at when two leftover cells share max set_number", () => {
+    const cells = [
+      makeCell({
+        set_number: 3,
+        reps_logged: "5",
+        exercise_name: "push-ups",
+        logged_at: "2026-08-15T10:03:00.000Z",
+      }),
+      makeCell({
+        set_number: 3,
+        reps_logged: "9",
+        exercise_name: "sit-ups",
+        logged_at: "2026-08-15T10:03:30.000Z",
+      }),
+    ]
+
+    expect(
+      amrapScore({ finished_at: "2026-08-15T10:20:00.000Z" }, cells),
+    ).toEqual({
+      fullRounds: 2,
+      leftover: 9,
+      leftoverName: "sit-ups",
+    })
   })
 })
 

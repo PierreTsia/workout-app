@@ -188,10 +188,10 @@ Wall-clock time to grind through one run of an **Exercise Block** in a session, 
 A **named, reusable, catalog-level circuit** — its own entity (`benchmark_circuits`), not a promoted **Exercise Block**. Its public machine handle is an immutable ASCII `slug`; its display name is the `label` (`Zeus ⚡`). The GymLogic roster is Cindy plus eight Pantheon seeds (`zeus`, `heracles`, `ares`, `theseus`, `athena`, `atlas`, `hades`, `achilles`), all flat bodyweight **AMRAP** prescriptions in this wave. Dropping one onto a **workout day** snapshot-copies its fixed Rx into a day-scoped **Exercise Block** and stamps `benchmark_circuit_id`; catalog Rx wins over caller- or LLM-reconstructed exercises. A generic Circuit with no seed name stays jetable. Comparability uses `templateFingerprint`; history / PR reads the GO snapshot in `block_runs.benchmark_circuit_id`, not the live day FK. Canonical Rx is JSONB; a different Rx is a different catalog row, while label, tagline, story, and other editorial metadata may be patched. Breaking a seed's Rx contract creates a **Circuit Fork**. A Tours or pyramidal benchmark catalog is deferred; see ADR `file:docs/adr/0017-pantheon-amrap-seeds-and-label.md`.
 
 **Olympien**:
-Editorial cast for the four 20-minute Pantheon **Benchmark Circuits** (Zeus, Ares, Athena, Hades). It is roster language, not a database column.
+Editorial cast for the four 20-minute Pantheon **Benchmark Circuits** (Zeus, Ares, Athena, Hades). It is roster language, not a database column. The achievement group that scores this cast is **Olympians**.
 
 **Héros**:
-Editorial cast for the four 10-minute Pantheon **Benchmark Circuits** (Heracles, Theseus, Atlas, Achilles). It is roster language, not a database column.
+Editorial cast for the four 10-minute Pantheon **Benchmark Circuits** (Heracles, Theseus, Atlas, Achilles). It is roster language, not a database column. The achievement group that scores this cast is **Heroes**.
 
 **Specialty**:
 The canonical tagline category assigned to one Pantheon matrix column: Full body, Upper-body strength, Core, or Legs. Each Specialty pairs one **Olympien** with one **Héros** and lives in localized tagline copy, not a dedicated column.
@@ -244,6 +244,33 @@ The condition `workout_exercises.template_updated_at > last_session.finished_at`
 **Last Performance**:
 The `set_logs` rows from the most recent session that logged a given **Exercise Slot** (keyed by `workout_exercise_id` + catalog `exercise_id`), carrying both actuals (`reps_logged`, `weight_logged`, `duration_seconds`) and the **Prescription Snapshot** (`prescribed_*`) captured at log-time. Source of the engine's `volume.current` and `currentWeight` on subsequent sessions, unless the **Manual Override Window** applies. **Exercise Block** logs stay out (`block_exercise_id` set / `workout_exercise_id` null — ADR 0007). Legacy or orphaned rows with null `workout_exercise_id` do not anchor — the engine bootstraps from **Template Prescription**. Athlete-level history, trends, and PRs remain catalog-global; only session prescription / prefill follows the slot (#463). Filtered by `logged_at < sessionStartedAt` when called in-session (so the live session's own logs don't pollute the comparison) or unfiltered pre-session.
 → `file:src/hooks/useLastSessionDetail.ts`, `file:src/hooks/useProgressionSuggestionsForDay.ts`, ADR `file:docs/adr/0012-slot-scoped-last-performance.md`
+
+---
+
+## Achievements
+
+**Circuit Achievement Run**:
+One finished **Block Run** on a GymLogic **Benchmark Circuit** seed (`owner_id` NULL) whose AMRAP score has `fullRounds ≥ 1`. TIME-empty closes (`0+0`) and **Circuit Fork** / jetable Circuits do not qualify. Each qualifying run increments that seed's ledger by one. Shared unit for **Circuit runner**, **Cast Clearing**, and the collection tracks below.
+→ `file:src/lib/amrapScore.ts`, `file:supabase/migrations/20260817120000_circuit_achievement_tracks.sql`
+
+**Circuit runner**:
+Achievement group `circuit_runner` (accordion *Circuit runner* / *Circuit Runner*). Metric: count of **Circuit Achievement Run**s across all GymLogic seeds (Cindy included). Thresholds 1 / 5 / 15 / 40 / 100. Surfaces: `/achievements` + session unlock overlay — not the **Circuit Catalog** (ADR 0018).
+
+**Spidey**:
+Achievement group `spidey` (accordion *L’Araignée* / *Spidey*). Metric: personal-best Cindy score in **full rounds only** (same run identity as history / `amrapScore`; leftover does not cross a tier). Thresholds 1 / 10 / 18 / 23 / 27; diamond equals Holland (`reference` 27), not 28+. Catalog label stays **Cindy**; Holland remains editorial `reference`, not the group name.
+
+**Cast Clearing**:
+Progress on a collection track: `MIN` of **Circuit Achievement Run** counts over that track's hardcoded seed cast. Surplus runs on one seed are advance toward later tiers, not wasted. Accordion v1 shows the numeric `MIN` only; naming the bottleneck seed is a follow-up.
+→ ADR `file:docs/adr/0019-circuit-achievement-cast-clearing-and-spidey.md`
+
+**Olympians** (achievement group):
+Group `olympians` (accordion *Au sommet de l’Olympe* / *Olympus Summit*). **Cast Clearing** over the four **Olympien** seeds (`zeus`, `ares`, `athena`, `hades`). Thresholds 1 / 5 / 10 / 50 / 100. Distinct from the editorial cast term **Olympien**.
+
+**Heroes** (achievement group):
+Group `heroes` (accordion *Le tour des Héros* / *Heroes’ Tour*). **Cast Clearing** over the four **Héros** seeds (`heracles`, `theseus`, `atlas`, `achilles`). Same thresholds as **Olympians**. Distinct from the editorial cast term **Héros**.
+
+**Pantheoniste**:
+Achievement group `pantheoniste` (accordion *Le Pantheoniste* / *Pantheoniste*). **Cast Clearing** over all eight Greek Pantheon seeds (Cindy excluded). Same thresholds as **Olympians** / **Heroes**. A single seed run can feed **Circuit runner** plus the matching quatuor plus this capstone.
 
 ---
 
