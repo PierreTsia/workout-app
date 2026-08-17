@@ -84,6 +84,16 @@ And a shorter one to check tight spacing:
 npm i @astrojs/rss reading-time
 ```
 
+## Tables
+
+In prose, Typography styles the header rule and cell padding:
+
+| Specialty | Long column header | Short |
+|---|---|---|
+| Full body | Zeus ⚡ | 20 min |
+| Core | Athena 🦉 | 20 min |
+| Legs | Achilles 🛡️ | 10 min |
+
 ---
 
 ## MDX components
@@ -93,6 +103,14 @@ A plain note callout for context:
 <Callout type="note" title="Heads up">
   Notes carry low-stakes context. They use the default border + card
   background — quiet, but visible.
+
+  The wrapper is `not-prose`, so a table in here relies on the callout's
+  own cell spacing. Check the header rule and the column gaps:
+
+  | Specialty | Long column header | Short |
+  |---|---|---|
+  | Full body | Zeus ⚡ | 20 min |
+  | Legs | Achilles 🛡️ | 10 min |
 </Callout>
 
 A tip callout for guidance:
@@ -146,6 +164,7 @@ controls and aspect ratio are what we're checking:
 
 ## Closing paragraph
 
-That's the full surface: prose, lists, code, hr, every callout
-variant, screenshot, and video. If the layout breaks, this fixture
-should make it obvious in a single dev visit.
+That's the full surface: prose, lists, code, tables (in prose and
+inside a callout), hr, every callout variant, screenshot, and video. If
+the layout breaks, this fixture should make it obvious in a single dev
+visit.

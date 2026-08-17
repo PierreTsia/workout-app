@@ -38,7 +38,16 @@ const styles = {
     )
   }
   <div
-    class="text-sm text-foreground leading-relaxed [&>p]:mt-2 [&>p:first-child]:mt-0"
+    class:list={[
+      'text-sm text-foreground leading-relaxed [&>p]:mt-2 [&>p:first-child]:mt-0',
+      // not-prose above strips Typography, so tables need their own spacing back
+      '[&_table]:mt-3 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left',
+      '[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold',
+      '[&_td]:border-b [&_td]:border-border/40 [&_td]:px-3 [&_td]:py-2 [&_td]:align-top',
+      '[&_th:first-child]:pl-0 [&_td:first-child]:pl-0',
+      '[&_th:last-child]:pr-0 [&_td:last-child]:pr-0',
+      '[&_tbody_tr:last-child_td]:border-0',
+    ]}
   >
     <slot />
   </div>

@@ -6,18 +6,40 @@ interface Props {
   alt: string
   caption?: string
   priority?: boolean
+  layout?: 'wide' | 'portrait'
+  float?: 'left' | 'right'
 }
 
-const { src, alt, caption, priority = false } = Astro.props
+const {
+  src,
+  alt,
+  caption,
+  priority = false,
+  layout = 'wide',
+  float,
+} = Astro.props
+
+const portrait = layout === 'portrait'
+const figureClass = portrait
+  ? float
+    ? [
+        // Float beside body copy on desktop, centered on mobile
+        'not-prose mx-auto my-6 w-full max-w-72',
+        'md:my-2 md:mb-6 md:w-64 md:max-w-[38%]',
+        float === 'right' ? 'md:float-right md:ml-6' : 'md:float-left md:mr-6',
+      ]
+    : // Standalone tall portrait: centered, constrained so it never dominates
+      ['not-prose mx-auto my-8 w-full max-w-xs']
+  : ['not-prose my-8']
 ---
 
-<figure class="not-prose my-8">
+<figure class:list={figureClass}>
   <Image
     src={src}
     alt={alt}
-    widths={[800, 1200, 1600]}
-    sizes="(min-width: 768px) 768px, 100vw"
-    class="rounded-lg border border-border"
+    widths={portrait ? [288, 480, 576] : [800, 1200, 1600]}
+    sizes={portrait ? '(min-width: 768px) 288px, 288px' : '(min-width: 768px) 768px, 100vw'}
+    class="h-auto w-full rounded-lg border border-border"
     loading={priority ? 'eager' : 'lazy'}
     {...(priority && { fetchpriority: 'high' })}
   />

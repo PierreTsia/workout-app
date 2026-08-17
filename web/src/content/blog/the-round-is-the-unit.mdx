@@ -1,0 +1,142 @@
+---
+title: 'GymLogic ships Circuits: the round is the unit of work'
+date: 2026-08-17
+excerpt: 'GymLogic now has Circuits: supersets, AMRAP WODs, and a small pantheon of benchmarks. Why the round became the unit of work, and how we built it.'
+tags:
+  - circuits
+  - supersets
+  - amrap
+  - build-log
+draft: false
+---
+
+import Callout from '@/components/mdx/Callout.astro'
+import TechHeavy from '@/components/mdx/TechHeavy.astro'
+import Screenshot from '@/components/mdx/Screenshot.astro'
+import circuitCatalog from '@/assets/screenshots/circuit-catalog.png'
+import circuitRoundScreen from '@/assets/screenshots/circuit-round-screen.png'
+import circuitAchievements from '@/assets/screenshots/circuit-achievements.png'
+
+Tom Holland’s Spider-Man prep workout went viral for a reason: five pull-ups, ten push-ups, fifteen air squats, twenty minutes, as many rounds as you can. The score is not kilos. It is something like `27+3`: twenty-seven full rounds and three pull-ups when the clock hits zero. Holland’s published mark sits at 27. GymLogic ships that beat as editorial copy on Cindy, not as a fake row in your personal-best list.
+
+That workout is easy to screenshot. It is awkward to *own* inside an app that still thinks a day is a sorted list of independent exercises.
+
+## Why Circuits earn their place
+
+Supersets and circuits are not a niche. They are a standard training primitive: the way you program a finisher, a conditioning block, a Freeletics-style pyramid, or a bodyweight WOD you can run without a rack. That last part is the point for anyone who trains on the street, in a living room, or against a friend’s score. No barbell required, and the shape travels.
+
+The payoff is a comparable result. Once a Circuit has a stable identity and a mode-aware score, your `27+3` this Tuesday and your `27+3` next month are the *same* workout, so a personal best actually means something. Diamond on the **Spidey** track equals Holland’s 27 rounds ([PR #485](https://github.com/PierreTsia/workout-app/pull/485)). A group challenge is just two people reading the same score off the same shape, not two screenshots you eyeball side by side.
+
+GymLogic ships Cindy plus a small Greek pantheon to make the point. Not eight random gods: a matrix of four specialties, each pairing one **Olympien** at AMRAP 20 with one **Héros** at AMRAP 10, so “I have ten minutes and I want legs” has an answer.
+
+<Callout type="note" title="The catalog, one shelf">
+  All bodyweight, three stations, reps only, so a PB compares and nobody needs a rack.
+
+  | Specialty | Olympien · AMRAP 20 | Héros · AMRAP 10 |
+  |---|---|---|
+  | Full body | Zeus ⚡ | Heracles 🦁 |
+  | Upper-body strength | Ares 🗡️ | Theseus 🐂 |
+  | Core | Athena 🦉 | Atlas 🌍 |
+  | Legs | Hades 🌑 | Achilles 🛡️ |
+
+  Plus **Cindy 🕷️** (AMRAP 20, the Holland WOD): 5 pull-ups, 10 push-ups, 15 air squats.
+
+  Browse them live at [gymlogic.me/library/circuits](https://gymlogic.me/library/circuits).
+</Callout>
+
+<Screenshot
+  src={circuitCatalog}
+  alt="GymLogic Library Circuits shelf listing Athena, Atlas, Cindy, Hades, and Heracles as WOD cards with AMRAP caps and specialty taglines."
+  caption="Library → Circuits. Each card is a Benchmark Circuit: label, AMRAP gloss, specialty, and the opening of the story. Browse only; drop still happens from the Builder."
+  layout="portrait"
+/>
+
+None of that works on a flat list. Here is what a flat list was, and what it cost us to leave it.
+
+## A day used to be a flat list
+
+Before Circuits, a GymLogic `workout_day` was exactly that: `workout_exercises` ordered by `sort_order`, each row carrying one scalar prescription (sets, reps, weight, rest) in `file:supabase/migrations/20240101000003_create_workout_exercises.sql`. Session UI lit one exercise at a time. The rest timer was mono-stream. There was no group, no “between rounds,” no way to say the gap after the last station is rest and the gap A→B inside a loop is only a transition.
+
+That model is fine for a classic PPL day. It lies the moment you want a superset, a Freeletics-style pyramid (20 → 15 → 10), or Holland’s cap.
+
+Issue [#351](https://github.com/PierreTsia/workout-app/issues/351) was the user demand: stop pretending advanced programming is “two solos next to each other with a note.”
+
+<div class="clear-both" />
+
+## The near-miss we did not ship
+
+The cheapest schema looked tempting. Option A: nullable `group_id` + `group_position` on `workout_exercises`, every member of the group sharing the same set count and a single reps value. Backward compatible. Fast. Wrong for the product we already wanted.
+
+Pyramids need a different number per round. Transitions need a timer that is not “rest after every set.” A history card that flattens A and B back into disconnected solos makes the training look like something else happened. ADR [`0007`](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0007-exercise-blocks-rich-structure-no-progression.md) records the call: ship the rich structure in v1, and keep the expensive brain (the progression engine) flat.
+
+So we almost shipped a cosplay circuit. We would have remigrated the moment the first pyramid showed up.
+
+## Structure ships rich. Intelligence stays flat.
+
+<Screenshot
+  src={circuitRoundScreen}
+  alt="GymLogic Round Screen mid-AMRAP on Bear Crawl: Round 2, exercise 1 of 3, circular countdown at 11 seconds, Log and Finish controls."
+  caption="Athena, round 2, station 1/3. Cap clock up top; the current station is the hero. This is what “the round is the unit” looks like in session."
+  layout="portrait"
+  float="left"
+/>
+
+What landed is an **Exercise Block**: ordered stations, a round count, block-level rest between rounds, a **Transition** between stations inside a round, and a **Per-round Prescription** `{ amount, weight }` per cell. In the UI you never see the word “block.” Lifters see **Circuit**. Code and tables still say `exercise_blocks`: ubiquitous language with a split we chose on purpose (ADR 0007 §5).
+
+A workout day became a **Unified Day Sequence**: solos and Circuits interleaved on one `sort_order`. Heavy squat, then a finisher Circuit, then curls. Not a separate “circuits section.” Not “everything is a block.”
+
+In session, Circuits do not reuse the auto-advancing single-exercise strip. They get a **Round Screen**: this round’s numbers, transition, then rest after the last station, then the next round’s grid.
+
+What we deliberately did *not* do in that first wave: hang Circuits on the progression engine. No **Progression Suggestion**, no per-round **Prescription Snapshot**, no auto `WEIGHT_UP` inside a pyramid. Frozen prescription, hand-edited in the Builder. Logging still writes `set_logs` actuals. That is not laziness. It is the cost bound that made the rich model shippable without rewriting `file:src/lib/progression.ts`.
+
+<div class="clear-both" />
+
+<Callout type="note" title="Block vs Circuit">
+  Internal docs and TypeScript say **Exercise Block**. Every user-facing string says **Circuit**. If a PR review lets “block” leak into i18n values, that is a bug, not a synonym.
+</Callout>
+
+<TechHeavy>
+
+The progression engine still assumes one prescription per **Exercise Slot**. A pyramidal station has one prescription *per round*. Feeding that into `computeNextSessionTarget` without a new model would invent wrong suggestions or silently ignore half the grid. ADR 0007 keeps block cells out of that path (`block_exercise_id` set, `workout_exercise_id` null on those logs). Two prescription worlds coexist on purpose: solos progress; Circuits are authored.
+
+</TechHeavy>
+
+## “A note in Strong is enough”
+
+The honest objection: open any logging app, write “A1/A2 superset,” start a phone timer, done.
+
+It is enough until the numbers change by round, until rest belongs between loops rather than after every movement, or until you care whether Tuesday’s Cindy and next month’s Cindy are the *same* workout. Free text does not fingerprint. It does not invert a score when the constraint flips from “N rounds, time is the result” to “20 minutes, rounds are the result.” It does not stop an agent from minting a fresh snowflake every time someone says “Cindy.”
+
+We built the structure first. Then we closed the holes the flat list had papered over.
+
+## Closing the Cindy hole
+
+[#351](https://github.com/PierreTsia/workout-app/issues/351) explicitly cut AMRAP and EMOM to keep v1 bounded. That left Holland’s WODs expressible as marketing, not as data. [PR #475](https://github.com/PierreTsia/workout-app/pull/475) added **AMRAP** as a termination mode on the same Circuit primitive: cap in minutes, wall-clock from GO, leftover stepper, score written `27+3` and always glossed (`27 rounds · 3 push-ups`). **Tours** Circuits keep time as the result. Same Round Screen family; inverted score. ADR [`0014`](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0014-amrap-mode-and-block-runs.md) persists a **Block Run** so kill-app mid-cap does not reset you to 20:00.
+
+Expressible is not identity. A disposable Circuit with a “Cindy” label still keyed history on a throwaway `block_id`. [PR #478](https://github.com/PierreTsia/workout-app/pull/478) made Cindy a **Benchmark Circuit**: catalog row, frozen Rx, slug `cindy`, story and Holland `reference` shipped as copy. Dropping her snapshots Rx onto the day and stamps `benchmark_circuit_id`. Two Tuesdays compare. Edit the official recipe and you **Circuit Fork** (a private row) instead of poisoning the name.
+
+[PR #479](https://github.com/PierreTsia/workout-app/pull/479) made that droppable in the Builder: **Add Exercise** gained an Exercises | Circuits kind. Circuits lists GymLogic seeds as WOD cards, not muscle pills. Search for `holland` from Exercises pins Cindy above the catalog. Create-circuit stays the jetable authoring verb.
+
+One seed is a showcase. [PR #481](https://github.com/PierreTsia/workout-app/pull/481) seeded the eight Greek **Benchmark Circuits** from the shelf above beside Cindy. The label carries the emoji (`Zeus ⚡`) instead of a separate glyph column, and each seed ships a real bilingual story rather than a placeholder: *“Five burpees, ten jump squats, fifteen push-ups. The king doesn’t weigh anything. He counts rounds. Twenty minutes under the storm.”* Search accepts accented aliases too, so `arès` and `thésée` find their card. That copy sells the WOD without pretending we shipped a CrossFit leaderboard. [PR #484](https://github.com/PierreTsia/workout-app/pull/484) put an encyclopedia under Library at [`/library/circuits`](https://gymlogic.me/library/circuits): browse story, Rx, and your catalog-keyed history. Browse is not drop; Meet Cindy remains the write path (ADR 0018).
+
+<Screenshot
+  src={circuitAchievements}
+  alt="GymLogic Succès accordion with Circuit runner at Or 20/40, L’Araignée at Platine 24/27, and a Bronze drawer for Stage chez Héraclès on Le tour des Héros."
+  caption="Succès after the circuit tracks landed. Circuit runner counts finished seed runs; L’Araignée climbs Cindy full rounds toward Holland’s 27; cast tracks unlock when the whole Olympian or Héros set has been cleared."
+  layout="portrait"
+  float="right"
+/>
+
+[PR #485](https://github.com/PierreTsia/workout-app/pull/485) finally feeds finishes into Succès: **Circuit runner**, **Spidey** (Cindy full-round PB ladder, diamond = Holland’s 27), cast-clearing tracks for Olympians / Heroes / Pantheoniste. Completing Zeus stops being invisible to achievements.
+
+That sequence is not a feature dump for its own sake. It is what you can build once the unit of work is the round and the score knows how the Circuit ends. GymLogic’s catalog is still curated seeds, not a social board; the bet is that identity plus Round Screen plus history is the reusable core, and publish or ranked shelves can hang off that shape later without another remigration.
+
+<div class="clear-both" />
+
+## What I’d quote back
+
+A session is not a flat list of independent exercises. Once you train supersets and circuits, the **round** is the unit of work, and prescription, timers, history, and score have to follow.
+
+We almost faked that with a `group_id`. We shipped the rich Circuit instead, kept progression off it on purpose, then filled AMRAP, Cindy, a small pantheon, a Library shelf, and the Spidey track on top of a model that could hold them.
+
+If you already train in GymLogic: open [Library → Circuits](https://gymlogic.me/library/circuits), or Builder → Add Exercise → Circuits to drop one on a day. Cindy is waiting. If you want the gory ADRs, start at `file:docs/adr/0007-exercise-blocks-rich-structure-no-progression.md` and walk forward.
