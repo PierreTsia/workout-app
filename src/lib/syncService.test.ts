@@ -795,6 +795,7 @@ describe("SyncService", () => {
 
       await drainQueue(USER_ID)
 
+      expect(mockRpc).toHaveBeenCalledTimes(1)
       expect(mockRpc).toHaveBeenCalledWith("check_and_grant_achievements", {
         p_user_id: USER_ID,
       })
@@ -803,12 +804,42 @@ describe("SyncService", () => {
     it("returns true even when achievement RPC fails", async () => {
       mockRpc.mockRejectedValueOnce(new Error("RPC failed"))
       vi.spyOn(console, "error").mockImplementation(() => {})
+      vi.spyOn(console, "warn").mockImplementation(() => {})
 
       enqueueSessionFinish(makeSessionFinishPayload())
 
       await drainQueue(USER_ID)
 
       expect(readQueue()).toHaveLength(0)
+      const statusCalls = mockStore.set.mock.calls
+        .filter(([atom]) => atom === SYNC_STATUS_ATOM)
+        .map(([, val]) => val)
+      expect(statusCalls).toContain("synced")
+      expect(statusCalls).not.toContain("failed")
+      expect(
+        mockStore.set.mock.calls.some(
+          ([atom]) => atom === LAST_SESSION_BADGES_ATOM,
+        ),
+      ).toBe(false)
+    })
+
+    it("treats achievement RPC error response as non-critical", async () => {
+      mockRpc.mockResolvedValueOnce({
+        data: null,
+        error: { message: "RPC failed" },
+      })
+      vi.spyOn(console, "warn").mockImplementation(() => {})
+
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      expect(readQueue()).toHaveLength(0)
+      const statusCalls = mockStore.set.mock.calls
+        .filter(([atom]) => atom === SYNC_STATUS_ATOM)
+        .map(([, val]) => val)
+      expect(statusCalls).toContain("synced")
+      expect(statusCalls).not.toContain("failed")
     })
 
     it("pushes RPC response into achievement queue and lastSessionBadgesAtom", async () => {
@@ -831,12 +862,12 @@ describe("SyncService", () => {
       const queueSetCall = mockStore.set.mock.calls.find(
         ([atom]) => atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM,
       )
-      expect(queueSetCall).toBeDefined()
+      expect(queueSetCall?.[1]).toEqual(mockBadges)
 
       const badgesSetCall = mockStore.set.mock.calls.find(
         ([atom]) => atom === LAST_SESSION_BADGES_ATOM,
       )
-      expect(badgesSetCall).toBeDefined()
+      expect(badgesSetCall?.[1]).toEqual(mockBadges)
     })
 
     it("does not call RPC when session upsert fails", async () => {

@@ -26,6 +26,10 @@ T209 (RPCs must expose the new metrics before retroactive grant is meaningful).
 | Ticket/PR note | One-line runbook: migrate → run script (service role / trusted) → optional next finish for overlay |
 | Behavior | Silent `user_achievements` inserts; overlay not required for catch-up (Realtime gate) |
 
+### Ops runbook (post-migrate)
+
+After applying the **#482** migration, run `scripts/retroactive-badge-grant.sql` once (SQL Editor / service role). Idempotent; silent grants. Overlay not required for catch-up — optional next session finish still grants remaining tiers via the normal RPC path.
+
 ### Grant path regression
 
 | File | Change |
@@ -41,10 +45,10 @@ T209 (RPCs must expose the new metrics before retroactive grant is meaningful).
 
 ## Acceptance Criteria
 
-- [ ] PR description or ticket checklist includes: run `scripts/retroactive-badge-grant.sql` after applying the #482 migration
-- [ ] `syncService` tests still assert RPC-on-finish, non-critical failure, and queue/`lastSessionBadgesAtom` push
-- [ ] No change that makes badge RPC failure fail `processSessionFinish`
-- [ ] Vitest for syncService green with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
+- [x] PR description or ticket checklist includes: run `scripts/retroactive-badge-grant.sql` after applying the #482 migration
+- [x] `syncService` tests still assert RPC-on-finish, non-critical failure, and queue/`lastSessionBadgesAtom` push
+- [x] No change that makes badge RPC failure fail `processSessionFinish`
+- [x] Vitest for syncService green with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
 
 ## References
 
