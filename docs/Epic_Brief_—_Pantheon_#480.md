@@ -32,7 +32,7 @@ Cindy n’est plus seule. Le catalog GymLogic gagne **8 Benchmark Circuits** Cin
 | Zeus ⚡ | `zeus` | 20 | Full body | 5 burpees · 10 squats sautés · 15 pompes |
 | Heracles 🦁 | `heracles` | 10 | Full body | 20 jumping jacks · 10 squats · 10 pompes genoux |
 | Ares 🗡️ | `ares` | 20 | Force haut du corps / Upper-body strength | 5 tractions · 10 dips · 15 pompes diamant |
-| Theseus 🐂 | `theseus` | 10 | Force haut du corps / Upper-body strength | 5 rowing inversé · 10 dips banc · 15 pompes |
+| Theseus 🐂 | `theseus` | 10 | Force haut du corps / Upper-body strength | 10 rowing inversé · 10 dips banc · 10 pompes |
 | Athena 🦉 | `athena` | 20 | Core | 20 bear walk · 15 crunches bicyclette · 15 shoulder taps |
 | Atlas 🌍 | `atlas` | 10 | Core | 10 bird dog · 15 crunches · 10 dead bug |
 | Hades 🌑 | `hades` | 20 | Jambes / Legs | 5 squat pistol box · 10 fentes · 15 pont unipodal |
@@ -45,7 +45,7 @@ Aliases (search, pas display) : `arès`, `athéna`, `hadès`, `hercule` / `héra
 - **Zeus ⚡** — FR: *Cinq burpees, dix squats sautés, quinze pompes. Le roi ne pèse rien : il compte les tours. Vingt minutes sous l’orage.* EN: *Five burpees, ten jump squats, fifteen push-ups. The king doesn’t weigh anything. He counts rounds. Twenty minutes under the storm.*
 - **Heracles 🦁** — FR: *Vingt jumping jacks, dix squats, dix pompes genoux. Les travaux, version mortel. Dix minutes, tu sors, tu recommences.* EN: *Twenty jumping jacks, ten squats, ten knee push-ups. The labors, mortal edition. Ten minutes, you walk out, you go again.*
 - **Ares 🗡️** — FR: *Cinq tractions, dix dips, quinze diamants. Pas de traité. Les bras d’abord, la tête après.* EN: *Five pull-ups, ten dips, fifteen diamonds. No treaty. Arms first, head later.*
-- **Theseus 🐂** — FR: *Cinq rowings inversés, dix dips banc, quinze pompes. Le fil est là. Dix minutes pour le taureau, sans te perdre.* EN: *Five inverted rows, ten bench dips, fifteen push-ups. The thread is in your hand. Ten minutes for the bull, don’t get lost.*
+- **Theseus 🐂** — FR: *Dix rowings inversés, dix dips banc, dix pompes. Le fil est là. Dix minutes pour le taureau, sans te perdre.* EN: *Ten inverted rows, ten bench dips, ten push-ups. The thread is in your hand. Ten minutes for the bull, don’t get lost.*
 - **Athena 🦉** — FR: *Vingt pas de bear walk, quinze bicyclettes, quinze shoulder taps. La sagesse, c’est le milieu qui ne lâche pas.* EN: *Twenty bear-crawl steps, fifteen bicycles, fifteen shoulder taps. Wisdom is the middle that doesn’t leak.*
 - **Atlas 🌍** — FR: *Dix bird dogs, quinze crunches, dix dead bugs. Tu ne portes pas le ciel. Tu apprends à ne pas le poser.* EN: *Ten bird dogs, fifteen crunches, ten dead bugs. You’re not holding the sky. You’re learning not to set it down.*
 - **Hades 🌑** — FR: *Cinq pistols box, dix fentes, quinze ponts unipodaux. On ne sprint pas Hadès. On descend.* EN: *Five box pistols, ten lunges, fifteen single-leg glute bridges. You don’t sprint Hades. You go down.*
