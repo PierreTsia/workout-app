@@ -251,7 +251,7 @@ The `set_logs` rows from the most recent session that logged a given **Exercise 
 
 **Circuit Achievement Run**:
 One finished **Block Run** on a GymLogic **Benchmark Circuit** seed (`owner_id` NULL) whose AMRAP score has `fullRounds ≥ 1`. TIME-empty closes (`0+0`) and **Circuit Fork** / jetable Circuits do not qualify. Each qualifying run increments that seed's ledger by one. Shared unit for **Circuit runner**, **Cast Clearing**, and the collection tracks below.
-→ `file:src/lib/amrapScore.ts`, `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql` (RPC shape; #482 branches TBD)
+→ `file:src/lib/amrapScore.ts`, `file:supabase/migrations/20260817120000_circuit_achievement_tracks.sql`
 
 **Circuit runner**:
 Achievement group `circuit_runner` (accordion *Circuit runner* / *Circuit Runner*). Metric: count of **Circuit Achievement Run**s across all GymLogic seeds (Cindy included). Thresholds 1 / 5 / 15 / 40 / 100. Surfaces: `/achievements` + session unlock overlay — not the **Circuit Catalog** (ADR 0018).
