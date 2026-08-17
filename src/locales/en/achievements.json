@@ -42,7 +42,12 @@
     "streak_king": "Streak King",
     "marathoner": "The Marathoner",
     "pr_streak": "PR Streak",
-    "early_bird": "Early Bird"
+    "early_bird": "Early Bird",
+    "circuit_runner": "Circuit Runner",
+    "spidey": "Spidey",
+    "olympians": "Olympus Summit",
+    "heroes": "Heroes' Tour",
+    "pantheoniste": "Pantheoniste"
   },
   "groupDescriptions": {
     "consistency_streak": "Total finished workout sessions",
@@ -55,7 +60,12 @@
     "streak_king": "Longest streak of consecutive weeks",
     "marathoner": "Sessions with total volume ≥ 5,000 kg",
     "pr_streak": "Longest streak of sessions with a PR",
-    "early_bird": "Sessions finished before 8 AM"
+    "early_bird": "Sessions finished before 8 AM",
+    "circuit_runner": "GymLogic circuit runs (1+ round)",
+    "spidey": "Best Cindy score in rounds",
+    "olympians": "Min. runs across Zeus / Ares / Athena / Hades",
+    "heroes": "Min. runs across Heracles / Theseus / Atlas / Achilles",
+    "pantheoniste": "Min. runs across the eight Greek seeds"
   },
   "thresholdHint": {
     "consistency_streak": "Complete {{target}} sessions",
@@ -68,6 +78,11 @@
     "streak_king": "Train {{target}} weeks in a row",
     "marathoner": "Complete {{target}} heavy sessions (≥ 5,000 kg)",
     "pr_streak": "Set PRs in {{target}} sessions in a row",
-    "early_bird": "Finish {{target}} sessions before 8 AM"
+    "early_bird": "Finish {{target}} sessions before 8 AM",
+    "circuit_runner": "Reach {{target}}",
+    "spidey": "Reach {{target}}",
+    "olympians": "Reach {{target}}",
+    "heroes": "Reach {{target}}",
+    "pantheoniste": "Reach {{target}}"
   }
 }
