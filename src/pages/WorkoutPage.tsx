@@ -74,14 +74,7 @@ import {
 import { resetSessionAtoms } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { buildSessionItems } from "@/lib/sessionItems"
-import {
-  countBlockSetsDone,
-  countBlocksCompleted,
-  countSessionSlots,
-  countSoloExercisesCompleted,
-  countSoloSetsDone,
-  sessionHasSkippedSets,
-} from "@/lib/sessionFinishStats"
+import { sessionProgress } from "@/lib/sessionFinishStats"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
@@ -775,20 +768,31 @@ export function WorkoutPage() {
 
 
 
-  const daySetsDone = useMemo(() => {
-    const solo = countSoloSetsDone(exercises, session.setsData)
-    const block = dayBlocks
-      .filter((b) => completedBlockIds.has(b.id))
-      .reduce((sum, b) => sum + b.rounds * b.exercises.length, 0)
-    return solo + block
-  }, [exercises, session.setsData, dayBlocks, completedBlockIds])
+  const persistedLogsForActiveSession = (): SetLog[] => {
+    const realId =
+      user != null ? peekSessionRealId(user.id, sessionId) : null
+    if (realId == null) return []
+    return queryClient.getQueryData<SetLog[]>(["session-set-logs", realId]) ?? []
+  }
 
-  const exercisesCompleted = useMemo(() => {
-    return (
-      countSoloExercisesCompleted(exercises, session.setsData) +
-      countBlocksCompleted(completedBlockIds)
-    )
-  }, [exercises, session.setsData, completedBlockIds])
+  const dayProgress = useMemo(() => {
+    return sessionProgress({
+      exercises,
+      setsData: session.setsData,
+      blocks: dayBlocks,
+      completedBlockIds,
+      persistedLogs: persistedLogsForActiveSession(),
+      queuedPayloads: queuedSetLogPayloadsForSession(sessionId),
+    })
+  }, [
+    user,
+    sessionId,
+    queryClient,
+    exercises,
+    session.setsData,
+    dayBlocks,
+    completedBlockIds,
+  ])
 
   const prExercises = useMemo(() => {
     return exercises
@@ -800,32 +804,24 @@ export function WorkoutPage() {
       }))
   }, [exercises, prFlags])
 
-  // Circuits not yet in completedBlockIds — shared by SessionNav confirm +
-  // sessions.has_skipped_sets on finish (block work never lands in setsData).
+  // Circuits not yet in completedBlockIds — SessionNav confirm still needs
+  // this; block work never lands in setsData. Finish skipped-state lives on
+  // sessionProgress.hasSkipped.
   const incompleteBlockCount = dayBlocks.filter(
     (b) => !completedBlockIds.has(b.id),
   ).length
 
   function handleFinish() {
-    const hasSkipped = sessionHasSkippedSets(
-      exercises,
-      session.setsData,
-      incompleteBlockCount,
+    const { setsDone, slotsCompleted, hasSkipped, totalSlots } = sessionProgress(
+      {
+        exercises,
+        setsData: session.setsData,
+        blocks: dayBlocks,
+        completedBlockIds,
+        persistedLogs: persistedLogsForActiveSession(),
+        queuedPayloads: queuedSetLogPayloadsForSession(sessionId),
+      },
     )
-
-    const realId =
-      user != null ? peekSessionRealId(user.id, sessionId) : null
-    const persistedLogs =
-      realId != null
-        ? (queryClient.getQueryData<SetLog[]>(["session-set-logs", realId]) ??
-          [])
-        : []
-    const totalSetsDone =
-      countSoloSetsDone(exercises, session.setsData) +
-      countBlockSetsDone(persistedLogs, queuedSetLogPayloadsForSession(sessionId))
-    const slotsCompleted =
-      countSoloExercisesCompleted(exercises, session.setsData) +
-      countBlocksCompleted(completedBlockIds)
 
     const finishedAt = Date.now()
     const activeDurationMs = Math.max(
@@ -884,7 +880,7 @@ export function WorkoutPage() {
       startedAt: session.startedAt ?? Date.now(),
       finishedAt,
       activeDurationMs,
-      totalSetsDone,
+      totalSetsDone: setsDone,
       hasSkippedSets: hasSkipped,
       cycleId: session.cycleId,
       closeCycleOnComplete,
@@ -913,8 +909,8 @@ export function WorkoutPage() {
     clearSessionExercisePatchStorage()
     setFinishedStats({
       exercisesCompleted: slotsCompleted,
-      setsDone: totalSetsDone,
-      totalExercises: countSessionSlots(exercises, dayBlocks),
+      setsDone,
+      totalExercises: totalSlots,
       prExercises,
       durationMs: activeDurationMs,
     })
@@ -1051,9 +1047,11 @@ export function WorkoutPage() {
   if (finished) {
     return (
       <SessionSummary
-        setsDone={finishedStats?.setsDone ?? daySetsDone}
-        exercisesCompleted={finishedStats?.exercisesCompleted ?? exercisesCompleted}
-        totalExercises={finishedStats?.totalExercises ?? exercises.length}
+        setsDone={finishedStats?.setsDone ?? dayProgress.setsDone}
+        exercisesCompleted={
+          finishedStats?.exercisesCompleted ?? dayProgress.slotsCompleted
+        }
+        totalExercises={finishedStats?.totalExercises ?? dayProgress.totalSlots}
         prExercises={finishedStats?.prExercises ?? prExercises}
         durationMs={finishedStats?.durationMs}
         onNewSession={handleNewSession}
