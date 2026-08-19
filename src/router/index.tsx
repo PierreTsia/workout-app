@@ -104,6 +104,11 @@ const AchievementsPage = lazyWithRecover(() =>
     default: m.AchievementsPage,
   })),
 )
+const UnlockOverlayPlaygroundPage = lazyWithRecover(() =>
+  import("@/pages/UnlockOverlayPlaygroundPage").then((m) => ({
+    default: m.UnlockOverlayPlaygroundPage,
+  })),
+)
 const PrivacyPage = lazyWithRecover(() =>
   import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
 )
@@ -209,6 +214,10 @@ export const router = createBrowserRouter([
               {
                 path: "/achievements",
                 element: <AchievementsPage />,
+              },
+              {
+                path: "/_unlock-overlay",
+                element: <UnlockOverlayPlaygroundPage />,
               },
               {
                 path: "/cycle-summary/:cycleId",
