@@ -7,8 +7,8 @@
 # This workflow counts findings on the latest Copilot review of the current
 # HEAD SHA, then:
 #   - sets exactly one of copilot:pending | copilot:blocking | copilot:ok
-#   - posts commit status `copilot / review` (pending / failure / success)
-# Pierre can mark that status required in a ruleset. This file cannot.
+#   - posts check run + commit status `copilot / review`
+# Pierre can mark that check required in a ruleset. This file cannot.
 
 name: Copilot gate
 
@@ -28,6 +28,7 @@ permissions:
   pull-requests: write
   issues: write
   statuses: write
+  checks: write
 
 jobs:
   report:
@@ -47,7 +48,7 @@ jobs:
       EVENT_ACTION: ${{ github.event.action }}
       REQUESTED_REVIEWER: ${{ github.event.requested_reviewer.login || '' }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      STATUS_CONTEXT: "copilot / review"
+      GATE_NAME: "copilot / review"
       BOT: "copilot-pull-request-reviewer[bot]"
     steps:
       - name: Evaluate Copilot review on HEAD
@@ -81,15 +82,36 @@ jobs:
               | gh api -X POST "repos/${GH_REPO}/issues/${PR_NUMBER}/labels" --input - >/dev/null
           }
 
+          # Commit status: pending | success | failure (ruleset-compatible).
           post_status() {
             local state="$1" desc="$2"
             jq -n \
               --arg state "$state" \
               --arg desc "$desc" \
-              --arg ctx "$STATUS_CONTEXT" \
+              --arg ctx "$GATE_NAME" \
               --arg url "$RUN_URL" \
               '{state:$state, description:$desc, context:$ctx, target_url:$url}' \
               | gh api -X POST "repos/${GH_REPO}/statuses/${HEAD_SHA}" --input - >/dev/null
+          }
+
+          # Check run: in_progress (pending) or completed + success/failure.
+          post_check() {
+            local status="$1" conclusion="${2:-}" title="$3"
+            jq -n \
+              --arg name "$GATE_NAME" \
+              --arg sha "$HEAD_SHA" \
+              --arg status "$status" \
+              --arg conclusion "$conclusion" \
+              --arg title "$title" \
+              --arg url "$RUN_URL" \
+              '{
+                name: $name,
+                head_sha: $sha,
+                status: $status,
+                details_url: $url,
+                output: {title: $title, summary: $title}
+              } + (if $status == "completed" then {conclusion: $conclusion} else {} end)' \
+              | gh api -X POST "repos/${GH_REPO}/check-runs" --input - >/dev/null
           }
 
           HEAD_SHA=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}" --jq .head.sha)
@@ -150,19 +172,22 @@ jobs:
             pending)
               apply_label "copilot:pending"
               post_status "pending" "$DETAIL"
+              post_check "in_progress" "" "$DETAIL"
               ;;
             blocking)
               apply_label "copilot:blocking"
               post_status "failure" "$DETAIL"
+              post_check "completed" "failure" "$DETAIL"
               ;;
             ok)
               apply_label "copilot:ok"
               post_status "success" "$DETAIL"
+              post_check "completed" "success" "$DETAIL"
               ;;
           esac
 
       - name: Fail when Copilot left findings
         if: steps.eval.outputs.verdict == 'blocking'
         run: |
-          echo "Copilot left findings on this HEAD. Status \`copilot / review\` is failure."
+          echo "Copilot left findings on this HEAD. Check \`copilot / review\` is failure."
           exit 1
