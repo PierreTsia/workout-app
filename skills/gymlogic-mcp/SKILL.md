@@ -465,7 +465,7 @@ Always `dry_run: true` first. The preview returns:
 - `removed_days[]`: every day that would be deleted (with `session_count` and `blocking` flag)
 - `added_days[]`: every new day that would be inserted
 - `warnings[]`: includes the active-cycle warning (`"Cycle actif depuis YYYY-MM-DD — ..."`) when applicable
-- `errors[]`: blocking issues (e.g. trying to delete a day with logged sessions)
+- `errors[]`: validation / apply failures (empty when the patch is well-formed)
 
 **Discovery prerequisite for any non-rename edit**: `list_programs` → `get_program_details(program_id)` to read every current day's `id`, label, and exercise prescription. The `*(exercise_id: <uuid>)*` annotation on every exercise line in `get_program_details` (since v0.4.0) is the catalog id you reuse in your patch — not the row's slot id.
 
@@ -586,7 +586,7 @@ update_program({
 
 When the dry_run preview's `removed_days[]` is non-empty, applying needs **both** `dry_run: false` AND `confirm: true`. Without `confirm`, the server returns: *"Patch removes N day(s): … Pass `confirm: true` along with `dry_run: false` to apply, or revise the payload to keep these days."*
 
-Days with logged sessions are **always** blocked, even with `confirm: true` — the response surfaces an `errors[]` entry: *"Cannot remove day 'X' — it has N logged sessions. Rename or repurpose it instead, or remove the corresponding entries from the patch and resubmit."* The user has to decide between renaming (keep history) or doing it manually in-app.
+Removing a day with logged sessions is allowed. Those sessions are **detached** from the template (`sessions.workout_day_id` SET NULL) — history stays (label snapshot + set logs). `removed_days[].session_count` tells you how many sessions will be detached; `blocking` stays `false`. `confirm: true` is still required.
 
 **Mid-cycle awareness**:
 

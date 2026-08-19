@@ -441,6 +441,57 @@ describe("SyncService", () => {
       )
     })
 
+    it("retries session upsert without workout_day_id when the day row is gone", async () => {
+      enqueueSessionFinish(makeSessionFinishPayload())
+      let upserts = 0
+      sessionsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
+        upserts += 1
+        if (upserts === 1) {
+          return resolve({
+            data: null,
+            error: { code: "23503", message: "fk" },
+          })
+        }
+        return resolve({ data: null, error: null })
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.upsert.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(
+        sessionsChain.upsert.mock.calls.some(
+          ([row]) => row.workout_day_id === null,
+        ),
+      ).toBe(true)
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("retries set_log upsert without slot FKs when the template row is gone", async () => {
+      enqueueSetLog(makeSetLogPayload({ workoutExerciseId: "we-gone" }))
+      let upserts = 0
+      setLogsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
+        upserts += 1
+        if (upserts === 1) {
+          return resolve({
+            data: null,
+            error: { code: "23503", message: "fk" },
+          })
+        }
+        return resolve({ data: null, error: null })
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(setLogsChain.upsert.mock.calls.length).toBeGreaterThanOrEqual(2)
+      expect(
+        setLogsChain.upsert.mock.calls.some(
+          ([row]) =>
+            row.workout_exercise_id === null && row.block_exercise_id === null,
+        ),
+      ).toBe(true)
+      expect(readQueue()).toHaveLength(0)
+    })
+
     it("keeps failed item in queue and sets syncStatus to failed on partial failure", async () => {
       enqueueSetLog(makeSetLogPayload({ setNumber: 1, loggedAt: 1000 }))
       enqueueSetLog(makeSetLogPayload({ setNumber: 2, loggedAt: 2000 }))

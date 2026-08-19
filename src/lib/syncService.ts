@@ -726,6 +726,62 @@ export function drainQueue(userId: string): Promise<void> {
 // Supabase operations
 // ---------------------------------------------------------------------------
 
+async function upsertSession(row: {
+  id: string
+  user_id: string
+  workout_day_id: string | null
+  workout_label_snapshot: string
+  started_at: string
+  finished_at?: string
+  active_duration_ms?: number
+  total_sets_done: number
+  has_skipped_sets: boolean
+  cycle_id?: string | null
+}) {
+  const first = await supabase.from("sessions").upsert(row, { onConflict: "id" })
+  if (first.error?.code !== "23503" || row.workout_day_id == null) {
+    return first
+  }
+  return supabase.from("sessions").upsert(
+    { ...row, workout_day_id: null },
+    { onConflict: "id" },
+  )
+}
+
+async function upsertSetLog(row: {
+  session_id: string
+  exercise_id: string
+  block_exercise_id: string | null
+  workout_exercise_id: string | null
+  exercise_name_snapshot: string
+  set_number: number
+  weight_logged: number
+  logged_at: string
+  reps_logged: string | null
+  duration_seconds: number | null
+  estimated_1rm: number | null
+  was_pr: boolean
+  rir: number | null
+  rest_seconds: number | null
+  prescribed_reps: number | null
+  prescribed_weight: number | null
+  prescribed_sets: number | null
+  prescribed_duration_seconds: number | null
+}) {
+  const first = await supabase.from("set_logs").upsert(row, {
+    onConflict: "session_id,log_slot,set_number",
+  })
+  const hasSlotFk =
+    row.block_exercise_id != null || row.workout_exercise_id != null
+  if (first.error?.code !== "23503" || !hasSlotFk) {
+    return first
+  }
+  return supabase.from("set_logs").upsert(
+    { ...row, block_exercise_id: null, workout_exercise_id: null },
+    { onConflict: "session_id,log_slot,set_number" },
+  )
+}
+
 async function ensureSession(
   realSessionId: string,
   userId: string,
@@ -740,42 +796,36 @@ async function ensureSession(
 
     if (sessionFinishItem) {
       const p = sessionFinishItem.payload as SessionFinishPayload
-      const { error } = await supabase.from("sessions").upsert(
-        {
-          id: realSessionId,
-          user_id: userId,
-          workout_day_id: p.workoutDayId || null,
-          workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
-          started_at: new Date(p.startedAt).toISOString(),
-          finished_at: new Date(p.finishedAt).toISOString(),
-          active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
-          total_sets_done: p.totalSetsDone,
-          has_skipped_sets: p.hasSkippedSets,
-          cycle_id: p.cycleId ?? null,
-        },
-        { onConflict: "id" },
-      )
+      const { error } = await upsertSession({
+        id: realSessionId,
+        user_id: userId,
+        workout_day_id: p.workoutDayId || null,
+        workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
+        started_at: new Date(p.startedAt).toISOString(),
+        finished_at: new Date(p.finishedAt).toISOString(),
+        active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
+        total_sets_done: p.totalSetsDone,
+        has_skipped_sets: p.hasSkippedSets,
+        cycle_id: p.cycleId ?? null,
+      })
       if (error) {
         console.error("[SyncService] session upsert failed", error)
         return false
       }
     } else {
       // Partial session (mid-session drain — no finish yet)
-      const { error } = await supabase.from("sessions").upsert(
-        {
-          id: realSessionId,
-          user_id: userId,
-          workout_day_id: meta?.workoutDayId ?? null,
-          workout_label_snapshot:
-            meta?.workoutLabelSnapshot || "Workout",
-          started_at: new Date(
-            meta?.startedAt ?? Date.now(),
-          ).toISOString(),
-          total_sets_done: 0,
-          has_skipped_sets: false,
-        },
-        { onConflict: "id" },
-      )
+      const { error } = await upsertSession({
+        id: realSessionId,
+        user_id: userId,
+        workout_day_id: meta?.workoutDayId ?? null,
+        workout_label_snapshot:
+          meta?.workoutLabelSnapshot || "Workout",
+        started_at: new Date(
+          meta?.startedAt ?? Date.now(),
+        ).toISOString(),
+        total_sets_done: 0,
+        has_skipped_sets: false,
+      })
       if (error) {
         console.error("[SyncService] partial session upsert failed", error)
         return false
@@ -851,11 +901,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       prescribed_duration_seconds: isDuration ? (p.prescribedDurationSeconds ?? null) : null,
     }
 
-    const { error } = await supabase
-      .from("set_logs")
-      .upsert(row, {
-        onConflict: "session_id,log_slot,set_number",
-      })
+    const { error } = await upsertSetLog(row)
 
     if (error) {
       console.error("[SyncService] set_log upsert failed", error)
@@ -874,21 +920,18 @@ async function processSessionFinish(
 ): Promise<boolean> {
   const p = item.payload as SessionFinishPayload
   try {
-    const { error } = await supabase.from("sessions").upsert(
-      {
-        id: item.realSessionId,
-        user_id: userId,
-        workout_day_id: p.workoutDayId || null,
-        workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
-        started_at: new Date(p.startedAt).toISOString(),
-        finished_at: new Date(p.finishedAt).toISOString(),
-        active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
-        total_sets_done: p.totalSetsDone,
-        has_skipped_sets: p.hasSkippedSets,
-        cycle_id: p.cycleId ?? null,
-      },
-      { onConflict: "id" },
-    )
+    const { error } = await upsertSession({
+      id: item.realSessionId,
+      user_id: userId,
+      workout_day_id: p.workoutDayId || null,
+      workout_label_snapshot: p.workoutLabelSnapshot || "Workout",
+      started_at: new Date(p.startedAt).toISOString(),
+      finished_at: new Date(p.finishedAt).toISOString(),
+      active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
+      total_sets_done: p.totalSetsDone,
+      has_skipped_sets: p.hasSkippedSets,
+      cycle_id: p.cycleId ?? null,
+    })
 
     if (error) {
       console.error("[SyncService] session finish upsert failed", error)

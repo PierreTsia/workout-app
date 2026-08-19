@@ -15,11 +15,11 @@
  *   ↓
  *   computeProgramDiff (T78)      → structural diff + apply_order
  *   ↓
- *   FK pre-check (sessions)       → annotates days_to_delete with session_count
+ *   session-count on days_to_delete → informational (ON DELETE SET NULL)
  *   ↓
  *   active-cycle check            → optional warning string
  *   ↓
- *   ┌─ dry_run=true  → render + structured preview (errors[] when blocking)
+ *   ┌─ dry_run=true  → render + structured preview
  *   └─ dry_run=false → requireConfirmForDestructive + applyProgramDiff (T80)
  */
 
@@ -137,7 +137,7 @@ Atomicity: per-day, no cross-day rollback. If a mid-flight INSERT fails, prior d
 
 Always call with \`dry_run: true\` first (the default) — review the top-level \`rendered\` markdown plus the \`removed_days\`/\`added_days\`/\`warnings\` arrays. Re-call with \`dry_run: false\` to apply.
 
-Destructive guard: removing ≥1 day requires \`confirm: true\` along with \`dry_run: false\`. The handler also blocks deletion of any day with logged sessions (returns a structured error).
+Destructive guard: removing ≥1 day requires \`confirm: true\` along with \`dry_run: false\`. Logged sessions do not block deletion — \`sessions.workout_day_id\` is \`ON DELETE SET NULL\`, so history stays (label snapshot + set_logs).
 
 Mid-cycle awareness: when an active cycle exists for the program, the response surfaces a French warning ("Cycle actif depuis ..."). Edits still proceed when confirmed.
 
@@ -165,7 +165,7 @@ export const updateProgram: ToolDefinition = {
       days: {
         type: "array",
         description:
-          "Optional. Full desired list of days (declarative PUT inside this field). Days with `id` matching an existing day = UPDATE; days without `id` = INSERT; existing days NOT in this array = DELETE (requires `confirm: true` and FK pre-check). Omit the field entirely to leave days unchanged.",
+          "Optional. Full desired list of days (declarative PUT inside this field). Days with `id` matching an existing day = UPDATE; days without `id` = INSERT; existing days NOT in this array = DELETE (requires `confirm: true`). Logged sessions are detached (SET NULL), not deleted. Omit the field entirely to leave days unchanged.",
         minItems: 1,
         maxItems: 14,
         items: {
@@ -318,9 +318,8 @@ export const updateProgram: ToolDefinition = {
 
     const diff = computeProgramDiff(currentProgram, parsedPatch)
 
-    // FK pre-check: count sessions per to-be-deleted day in a single batched
-    // query, then annotate the diff entries (mutating in place is fine — the
-    // diff is a fresh object owned by this handler).
+    // Count sessions per to-be-deleted day for `removed_days[].session_count`.
+    // Deletion is not blocked: sessions.workout_day_id is ON DELETE SET NULL.
     if (diff.days_to_delete.length > 0) {
       const deleteIds = diff.days_to_delete.map((d) => d.id)
       const { data: sessionRows, error: sessErr } = await supabase
@@ -337,7 +336,6 @@ export const updateProgram: ToolDefinition = {
       }, new Map())
       diff.days_to_delete.forEach((d) => {
         d.session_count = counts.get(d.id) ?? 0
-        d.blocking = d.session_count > 0
       })
     }
 
@@ -352,12 +350,7 @@ export const updateProgram: ToolDefinition = {
         ? formatActiveCycleWarning({ started_at: (cycleData as { started_at: string }).started_at })
         : null
 
-    const blockingErrors = diff.days_to_delete
-      .filter((d) => d.blocking)
-      .map((d) => ({
-        day_label: d.label,
-        error: `Cannot remove day '${d.label}' — it has ${d.session_count} logged sessions. Rename or repurpose it instead, or remove the corresponding entries from the patch and resubmit.`,
-      }))
+    const warnings = activeCycleWarning ? [activeCycleWarning] : []
 
     if (parsedPatch.dry_run) {
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
@@ -368,7 +361,6 @@ export const updateProgram: ToolDefinition = {
         blocking: d.blocking,
       }))
       const added_days = diff.days_to_insert.map((d) => ({ label: d.label }))
-      const warnings = activeCycleWarning ? [activeCycleWarning] : []
 
       const payload = {
         dry_run: true,
@@ -377,24 +369,17 @@ export const updateProgram: ToolDefinition = {
         removed_days,
         added_days,
         warnings,
-        errors: blockingErrors,
+        errors: [],
         message:
-          blockingErrors.length > 0
-            ? "Patch blocked — see `errors[]`. Revise the payload and re-run."
-            : "Dry run preview only — no writes performed. Re-call with `dry_run: false` to apply.",
+          "Dry run preview only — no writes performed. Re-call with `dry_run: false` to apply.",
       }
 
-      return jsonReply(payload, blockingErrors.length > 0)
+      return jsonReply(payload, false)
     }
 
     const confirmResult = requireConfirmForDestructive(diff, parsedPatch.confirm)
     if (!confirmResult.ok) {
       return err(confirmResult.error)
-    }
-
-    if (blockingErrors.length > 0) {
-      const message = blockingErrors.map((e) => e.error).join("\n")
-      return err(message)
     }
 
     const applyResult = await applyProgramDiff(supabase, diff, catalogById, userId)
@@ -404,7 +389,7 @@ export const updateProgram: ToolDefinition = {
       applied_days: applyResult.applied_days,
       failed_at: applyResult.failed_at,
       remaining_days: applyResult.remaining_days,
-      warnings: activeCycleWarning ? [activeCycleWarning] : [],
+      warnings,
       message: applyResult.message,
     }
     return jsonReply(responsePayload, applyResult.failed_at !== null)

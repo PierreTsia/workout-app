@@ -615,9 +615,8 @@ Deno.test("update_program adds a new day, captures its id, and reports it in app
   assertEquals(newDays.length, 3)
 })
 
-Deno.test("update_program blocks deletion of a day with logged sessions (FK pre-check) and writes nothing", async () => {
+Deno.test("update_program removes a trained day without deleting its logged sessions", async () => {
   const state = makeBaseState()
-  // Pull day has 2 logged sessions → FK pre-check should block deletion.
   state.sessions.push(
     { id: "s1", workout_day_id: ID_DAY_PULL, user_id: ID_USER },
     { id: "s2", workout_day_id: ID_DAY_PULL, user_id: ID_USER },
@@ -627,7 +626,6 @@ Deno.test("update_program blocks deletion of a day with logged sessions (FK pre-
   const reply = await updateProgram.handler(
     {
       program_id: ID_PROGRAM,
-      // Omit Pull → DELETE intended. Pass confirm so we reach the FK check.
       days: [
         {
           id: ID_DAY_PUSH,
@@ -642,12 +640,15 @@ Deno.test("update_program blocks deletion of a day with logged sessions (FK pre-
     mock as never,
   )
 
-  assertEquals(reply.isError, true)
-  const text = reply.content[0].text
-  assertStringIncludes(text, "Pull")
-  assertStringIncludes(text, "2 logged sessions")
-  // No mutating writes happened on programs/workout_days/workout_exercises.
-  assertEquals(writeOps(mock.callLog).length, 0)
+  assertEquals(reply.isError ?? false, false)
+  assertEquals(
+    mock.state.days.some((d) => d.id === ID_DAY_PULL),
+    false,
+  )
+  assertEquals(
+    mock.state.sessions.map((s) => s.id),
+    ["s1", "s2"],
+  )
 })
 
 Deno.test("update_program rejects destructive apply without confirm and writes nothing", async () => {
