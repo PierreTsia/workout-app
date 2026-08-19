@@ -202,7 +202,7 @@ export interface BenchmarkCircuit {
 export interface BlockRun {
   id: string
   session_id: string
-  block_id: string
+  block_id: string | null
   started_at: string
   finished_at: string | null
   mode: ExerciseBlockMode

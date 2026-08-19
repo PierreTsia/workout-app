@@ -748,6 +748,40 @@ async function upsertSession(row: {
   )
 }
 
+async function upsertSetLog(row: {
+  session_id: string
+  exercise_id: string
+  block_exercise_id: string | null
+  workout_exercise_id: string | null
+  exercise_name_snapshot: string
+  set_number: number
+  weight_logged: number
+  logged_at: string
+  reps_logged: string | null
+  duration_seconds: number | null
+  estimated_1rm: number | null
+  was_pr: boolean
+  rir: number | null
+  rest_seconds: number | null
+  prescribed_reps: number | null
+  prescribed_weight: number | null
+  prescribed_sets: number | null
+  prescribed_duration_seconds: number | null
+}) {
+  const first = await supabase.from("set_logs").upsert(row, {
+    onConflict: "session_id,log_slot,set_number",
+  })
+  const hasSlotFk =
+    row.block_exercise_id != null || row.workout_exercise_id != null
+  if (first.error?.code !== "23503" || !hasSlotFk) {
+    return first
+  }
+  return supabase.from("set_logs").upsert(
+    { ...row, block_exercise_id: null, workout_exercise_id: null },
+    { onConflict: "session_id,log_slot,set_number" },
+  )
+}
+
 async function ensureSession(
   realSessionId: string,
   userId: string,
@@ -867,11 +901,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       prescribed_duration_seconds: isDuration ? (p.prescribedDurationSeconds ?? null) : null,
     }
 
-    const { error } = await supabase
-      .from("set_logs")
-      .upsert(row, {
-        onConflict: "session_id,log_slot,set_number",
-      })
+    const { error } = await upsertSetLog(row)
 
     if (error) {
       console.error("[SyncService] set_log upsert failed", error)
