@@ -59,8 +59,22 @@ function setAuthed(store: ReturnType<typeof createStore>) {
   })
 }
 
+function stubPrefersReducedMotion(reduce: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query.includes("prefers-reduced-motion: reduce") ? reduce : false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }))
+}
+
 describe("AchievementUnlockOverlay", () => {
   beforeEach(() => {
+    stubPrefersReducedMotion(false)
     mockUpdateEq.mockResolvedValue({ error: null })
     mockMaybeSingle.mockResolvedValue({
       data: { active_title_tier_id: null },
@@ -346,5 +360,65 @@ describe("AchievementUnlockOverlay", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it("reveals the hero with a rank glow when motion is allowed", () => {
+    renderCeremony([makeUnlock()])
+
+    const dialog = screen.getByRole("dialog")
+    expect(dialog.querySelector(".achievement-badge-reveal")).not.toBeNull()
+    expect(dialog.querySelector(".achievement-glow-gold")).not.toBeNull()
+    expect(dialog.querySelector(".achievement-particle-burst")).not.toBeNull()
+  })
+
+  it("keeps medals, copy, and Equip without burst or rain when motion is reduced", () => {
+    stubPrefersReducedMotion(true)
+    const { store } = renderCeremony([
+      makeUnlock({
+        tier_id: "diamond",
+        rank: "diamond",
+        title_en: "The Spider",
+        group_slug: "spidey",
+        threshold_value: 27,
+      }),
+      makeUnlock({
+        tier_id: "gold",
+        rank: "gold",
+        title_en: "Volume King",
+      }),
+    ])
+    setAuthed(store)
+
+    expect(
+      screen.getByRole("heading", { name: "The Spider" }),
+    ).toBeInTheDocument()
+    expect(screen.getByText("2 unlocked")).toBeInTheDocument()
+    expect(screen.getByLabelText("Volume King")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /equip title/i }),
+    ).toBeInTheDocument()
+
+    const dialog = screen.getByRole("dialog")
+    expect(dialog.querySelector(".achievement-badge-reveal")).toBeNull()
+    expect(dialog.querySelector(".achievement-particle-burst")).toBeNull()
+    expect(dialog.querySelector(".achievement-diamond-particles")).toBeNull()
+  })
+
+  it("keeps the Diamond particle burst aria-hidden so the title stays the accessible name", () => {
+    renderCeremony([
+      makeUnlock({
+        tier_id: "diamond",
+        rank: "diamond",
+        title_en: "The Spider",
+        group_slug: "spidey",
+        threshold_value: 27,
+      }),
+    ])
+
+    const particles = document.querySelector(".achievement-diamond-particles")
+    expect(particles).toHaveAttribute("aria-hidden", "true")
+    expect(
+      screen.getByRole("heading", { name: "The Spider" }),
+    ).toBeInTheDocument()
   })
 })

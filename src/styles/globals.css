@@ -268,6 +268,11 @@
   100% { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes supporting-slide-in {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
 .achievement-badge-reveal {
   animation: badge-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -285,6 +290,36 @@
 
 .achievement-text-entrance {
   animation: text-slide-up 0.4s 0.35s ease-out both;
+}
+
+.achievement-supporting-entrance {
+  animation: supporting-slide-in 0.3s 0.12s ease-out both;
+}
+
+@keyframes diamond-particle-burst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(45deg) scale(1);
+    opacity: 0.18;
+  }
+}
+
+.achievement-diamond-particles {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.achievement-diamond-particle {
+  position: absolute;
+  border-radius: 1px;
+  pointer-events: none;
+  animation: diamond-particle-burst 0.85s ease-out forwards;
 }
 
 /* ===== Badge Frame Classes ===== */

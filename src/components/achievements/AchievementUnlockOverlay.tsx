@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { useTranslation } from "react-i18next"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -21,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useEquipTitle } from "@/hooks/useEquipTitle"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
 import type { AchievementRank, UnlockedAchievement } from "@/types/achievements"
 
 let audioCtx: AudioContext | null = null
@@ -80,6 +87,52 @@ function localizedTitle(
   return language === "fr" ? item.title_fr : item.title_en
 }
 
+const DIAMOND_PARTICLE_COLORS = ["#a855f7", "#67e8f9"] as const
+const DIAMOND_PARTICLE_COUNT = 18
+
+type DiamondParticleStyle = CSSProperties & {
+  "--dx": string
+  "--dy": string
+}
+
+function diamondParticleStyle(index: number): DiamondParticleStyle {
+  const angle = (index / DIAMOND_PARTICLE_COUNT) * Math.PI * 2
+  const radius = 48 + (index % 5) * 18
+  const size = 4 + (index % 3) * 2
+  return {
+    "--dx": `${Math.cos(angle) * radius}px`,
+    "--dy": `${Math.sin(angle) * radius}px`,
+    width: size,
+    height: size,
+    backgroundColor: DIAMOND_PARTICLE_COLORS[index % 2],
+    animationDelay: `${(index % 6) * 40}ms`,
+    left: "50%",
+    top: "38%",
+  }
+}
+
+const DIAMOND_PARTICLES = Array.from(
+  { length: DIAMOND_PARTICLE_COUNT },
+  (_, index) => diamondParticleStyle(index),
+)
+
+function DiamondParticleBurst() {
+  return (
+    <div
+      className="achievement-diamond-particles pointer-events-none absolute inset-0 z-0"
+      aria-hidden="true"
+    >
+      {DIAMOND_PARTICLES.map((style, index) => (
+        <span
+          key={index}
+          className="achievement-diamond-particle"
+          style={style}
+        />
+      ))}
+    </div>
+  )
+}
+
 export function AchievementUnlockOverlay() {
   const { t, i18n } = useTranslation("achievements")
   const [queue, setQueue] = useAtom(achievementUnlockQueueAtom)
@@ -88,6 +141,8 @@ export function AchievementUnlockOverlay() {
   const hasPlayedRef = useRef(false)
   const equipTitle = useEquipTitle()
   const { data: profile } = useUserProfile()
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)")
+  const allowMotion = !reduceMotion
 
   if (batch === null && queue.length > 0) {
     setBatch(queue)
@@ -149,21 +204,32 @@ export function AchievementUnlockOverlay() {
           onClick={dismiss}
           aria-label={title}
         >
-          <div className="relative">
+          {rank === "diamond" && allowMotion && <DiamondParticleBurst />}
+          <div className="relative z-10">
             <div
               className={cn(
-                "absolute -inset-10 opacity-0 achievement-rank-glow",
+                "absolute -inset-10",
                 rankGlowClass[rank],
+                allowMotion
+                  ? "opacity-0 achievement-rank-glow"
+                  : "opacity-35",
               )}
             />
 
-            <div className="relative achievement-badge-reveal">
-              <div
-                className={cn(
-                  "absolute inset-0 achievement-particle-burst",
-                  rankGlowClass[rank],
-                )}
-              />
+            <div
+              className={cn(
+                "relative",
+                allowMotion && "achievement-badge-reveal",
+              )}
+            >
+              {allowMotion && (
+                <div
+                  className={cn(
+                    "absolute inset-0 achievement-particle-burst",
+                    rankGlowClass[rank],
+                  )}
+                />
+              )}
               <BadgeIcon
                 rank={rank}
                 iconUrl={hero.icon_asset_url}
@@ -174,7 +240,10 @@ export function AchievementUnlockOverlay() {
               />
               {overlapping && (
                 <div
-                  className="absolute -bottom-1 -right-3"
+                  className={cn(
+                    "absolute -bottom-1 -right-3",
+                    allowMotion && "achievement-supporting-entrance",
+                  )}
                   aria-label={localizedTitle(overlapping, i18n.language)}
                 >
                   <BadgeIcon
@@ -190,7 +259,12 @@ export function AchievementUnlockOverlay() {
           </div>
 
           {showSupportingRow && (
-            <ul className="flex items-end justify-center gap-3">
+            <ul
+              className={cn(
+                "relative z-10 flex items-end justify-center gap-3",
+                allowMotion && "achievement-supporting-entrance",
+              )}
+            >
               {visible.map((item) => {
                 const caption = `${t(`ranks.${item.rank}`)} ${localizedTitle(item, i18n.language)}`
                 return (
@@ -223,7 +297,12 @@ export function AchievementUnlockOverlay() {
             </ul>
           )}
 
-          <div className="flex flex-col items-center gap-2 achievement-text-entrance">
+          <div
+            className={cn(
+              "relative z-10 flex flex-col items-center gap-2",
+              allowMotion && "achievement-text-entrance",
+            )}
+          >
             <p className="text-sm font-medium tracking-wide text-muted-foreground">
               {eyebrow}
             </p>
