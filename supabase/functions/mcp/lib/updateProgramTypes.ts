@@ -72,9 +72,13 @@ export interface DiffDayUpdate {
 export interface DiffDayDelete {
   id: string
   label: string
-  /** Populated post-FK-precheck (initially 0 from `computeProgramDiff`). */
+  /** Populated after counting sessions on days_to_delete (initially 0). */
   session_count: number
-  /** Populated post-FK-precheck (initially false). True iff session_count > 0. */
+  /**
+   * Always false: `sessions.workout_day_id` is ON DELETE SET NULL, so logged
+   * sessions never block a day delete. Kept on the wire so agents that still
+   * read `removed_days[].blocking` don't treat a history-safe delete as an error.
+   */
   blocking: boolean
 }
 
