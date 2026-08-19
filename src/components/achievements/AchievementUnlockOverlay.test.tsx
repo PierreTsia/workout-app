@@ -1,15 +1,34 @@
-import { describe, expect, it, vi, afterEach } from "vitest"
-import { act, screen } from "@testing-library/react"
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest"
+import { act, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { createStore } from "jotai"
 import { renderWithProviders } from "@/test/utils"
 import {
   achievementUnlockQueueAtom,
   achievementShownIdsAtom,
+  authAtom,
 } from "@/store/atoms"
 import { AchievementUnlockOverlay } from "./AchievementUnlockOverlay"
 import type { UnlockedAchievement } from "@/types/achievements"
 
-vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
+const mockUpdateEq = vi.fn()
+const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
+const mockMaybeSingle = vi.fn()
+const mockSelectEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle }))
+const mockSelect = vi.fn(() => ({ eq: mockSelectEq }))
+
+vi.mock("@/lib/supabase", () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      update: mockUpdate,
+      select: mockSelect,
+    })),
+  },
+}))
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
 
 function makeUnlock(
   overrides: Partial<UnlockedAchievement> = {},
@@ -34,9 +53,24 @@ function renderCeremony(queue: UnlockedAchievement[]) {
   return result
 }
 
+function setAuthed(store: ReturnType<typeof createStore>) {
+  act(() => {
+    store.set(authAtom, { id: "user-1" } as never)
+  })
+}
+
 describe("AchievementUnlockOverlay", () => {
+  beforeEach(() => {
+    mockUpdateEq.mockResolvedValue({ error: null })
+    mockMaybeSingle.mockResolvedValue({
+      data: { active_title_tier_id: null },
+      error: null,
+    })
+  })
+
   afterEach(() => {
     vi.useRealTimers()
+    vi.clearAllMocks()
   })
 
   it("shows a single-grant ceremony with hero title, rank chip, track, and threshold", () => {
@@ -257,5 +291,60 @@ describe("AchievementUnlockOverlay", () => {
     expect(
       screen.getByRole("heading", { name: "Volume King" }),
     ).toBeInTheDocument()
+  })
+
+  it("keeps the ceremony open when Equip title is clicked", async () => {
+    const user = userEvent.setup()
+    const batch = [makeUnlock()]
+    const { store } = renderCeremony(batch)
+    setAuthed(store)
+
+    await user.click(screen.getByRole("button", { name: /equip title/i }))
+
+    expect(
+      screen.getByRole("heading", { name: "Volume King" }),
+    ).toBeInTheDocument()
+    expect(store.get(achievementUnlockQueueAtom)).toEqual(batch)
+  })
+
+  it("equips the hero tier id when Equip title is clicked", async () => {
+    const user = userEvent.setup()
+    const { store } = renderCeremony([makeUnlock({ tier_id: "tier-gold" })])
+    setAuthed(store)
+
+    await user.click(screen.getByRole("button", { name: /equip title/i }))
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith({
+        active_title_tier_id: "tier-gold",
+      })
+    })
+    expect(mockUpdateEq).toHaveBeenCalledWith("user_id", "user-1")
+  })
+
+  it("hides Equip title when the hero is already the active title", async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: { active_title_tier_id: "tier-gold" },
+      error: null,
+    })
+    const { store } = renderCeremony([makeUnlock({ tier_id: "tier-gold" })])
+    setAuthed(store)
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", { name: /equip title/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it("dismisses without equipping when the overlay is tapped outside Equip", async () => {
+    const user = userEvent.setup()
+    const { store } = renderCeremony([makeUnlock()])
+    setAuthed(store)
+
+    await user.click(screen.getByText("Tap to continue"))
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(mockUpdate).not.toHaveBeenCalled()
   })
 })

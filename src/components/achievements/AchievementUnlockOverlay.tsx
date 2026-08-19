@@ -18,6 +18,9 @@ import { formatCompactNumber } from "@/lib/formatters"
 import { pickHero, supportingMedals, supportingOverflow } from "@/lib/achievementUtils"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useEquipTitle } from "@/hooks/useEquipTitle"
+import { useUserProfile } from "@/hooks/useUserProfile"
 import type { AchievementRank, UnlockedAchievement } from "@/types/achievements"
 
 let audioCtx: AudioContext | null = null
@@ -83,6 +86,8 @@ export function AchievementUnlockOverlay() {
   const setShownIds = useSetAtom(achievementShownIdsAtom)
   const [batch, setBatch] = useState<UnlockedAchievement[] | null>(null)
   const hasPlayedRef = useRef(false)
+  const equipTitle = useEquipTitle()
+  const { data: profile } = useUserProfile()
 
   if (batch === null && queue.length > 0) {
     setBatch(queue)
@@ -125,6 +130,7 @@ export function AchievementUnlockOverlay() {
   const { visible, overflowCount } = supportingOverflow(supporting)
   const overflowLabel = t("ceremonyOverflow", { count: overflowCount })
   const showSupportingRow = supporting.length >= 2
+  const heroAlreadyEquipped = profile?.active_title_tier_id === hero.tier_id
 
   return (
     <Dialog
@@ -242,6 +248,20 @@ export function AchievementUnlockOverlay() {
                   target: thresholdTarget,
                 })}
               </p>
+            )}
+            {!heroAlreadyEquipped && (
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full max-w-xs"
+                disabled={equipTitle.isPending}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  equipTitle.mutate(hero.tier_id)
+                }}
+              >
+                {t("equipTitle")}
+              </Button>
             )}
             <p className="text-sm text-muted-foreground">
               {t("ceremonyTapToContinue")}
