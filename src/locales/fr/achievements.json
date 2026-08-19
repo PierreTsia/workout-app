@@ -67,6 +67,10 @@
     "heroes": "Min. de runs Héraclès / Thésée / Atlas / Achille",
     "pantheoniste": "Min. de runs sur les huit grecs"
   },
+  "ceremonyEyebrow": "Débloqué",
+  "ceremonyEyebrowCount": "{{count}} débloqués",
+  "ceremonyOverflow": "+{{count}}",
+  "ceremonyTapToContinue": "Toucher pour continuer",
   "thresholdHint": {
     "consistency_streak": "Terminer {{target}} séances",
     "volume_king": "Soulever {{target}} kg au total",

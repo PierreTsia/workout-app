@@ -1,16 +1,24 @@
-import { useEffect, useRef, useCallback } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useAtom, useSetAtom } from "jotai"
 import { useTranslation } from "react-i18next"
-import * as Dialog from "@radix-ui/react-dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import {
+  Dialog,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   achievementUnlockQueueAtom,
   achievementShownIdsAtom,
 } from "@/store/atoms"
 import { cn } from "@/lib/utils"
+import { formatCompactNumber } from "@/lib/formatters"
+import { pickHero, supportingMedals, supportingOverflow } from "@/lib/achievementUtils"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
-import type { AchievementRank } from "@/types/achievements"
-
-const AUTO_DISMISS_MS = 4_000
+import { Badge } from "@/components/ui/badge"
+import type { AchievementRank, UnlockedAchievement } from "@/types/achievements"
 
 let audioCtx: AudioContext | null = null
 function getAudioCtx(): AudioContext {
@@ -46,14 +54,6 @@ function playAchievementChime() {
   }
 }
 
-const rankColorClass: Record<AchievementRank, string> = {
-  bronze: "text-amber-600",
-  silver: "text-slate-300",
-  gold: "text-yellow-400",
-  platinum: "text-blue-300",
-  diamond: "text-purple-400",
-}
-
 const rankGlowClass: Record<AchievementRank, string> = {
   bronze: "achievement-glow-bronze",
   silver: "achievement-glow-silver",
@@ -62,121 +62,197 @@ const rankGlowClass: Record<AchievementRank, string> = {
   diamond: "achievement-glow-diamond",
 }
 
+const rankChipHex: Record<AchievementRank, string> = {
+  bronze: "#C26A16",
+  silver: "#c8c8dc",
+  gold: "#F0C014",
+  platinum: "#93c5fd",
+  diamond: "#a855f7",
+}
+
+function localizedTitle(
+  item: UnlockedAchievement,
+  language: string,
+): string {
+  return language === "fr" ? item.title_fr : item.title_en
+}
+
 export function AchievementUnlockOverlay() {
   const { t, i18n } = useTranslation("achievements")
   const [queue, setQueue] = useAtom(achievementUnlockQueueAtom)
   const setShownIds = useSetAtom(achievementShownIdsAtom)
-  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [batch, setBatch] = useState<UnlockedAchievement[] | null>(null)
   const hasPlayedRef = useRef(false)
 
-  const current = queue[0] ?? null
-  const isOpen = current !== null
+  if (batch === null && queue.length > 0) {
+    setBatch(queue)
+  }
 
   const dismiss = useCallback(() => {
-    if (dismissTimerRef.current) {
-      clearTimeout(dismissTimerRef.current)
-      dismissTimerRef.current = null
-    }
-    hasPlayedRef.current = false
-
-    setQueue((prev) => {
-      const dismissed = prev[0]
-      if (dismissed) {
-        setShownIds((ids: Set<string>) => new Set([...ids, dismissed.tier_id]))
-      }
-      return prev.slice(1)
-    })
-  }, [setQueue, setShownIds])
+    if (!batch) return
+    const batchIds = new Set(batch.map((item) => item.tier_id))
+    setShownIds((ids) => new Set([...ids, ...batchIds]))
+    setQueue((prev) => prev.filter((item) => !batchIds.has(item.tier_id)))
+    setBatch(null)
+  }, [batch, setQueue, setShownIds])
 
   useEffect(() => {
-    if (!current) return
+    if (!batch) {
+      hasPlayedRef.current = false
+      return
+    }
     if (hasPlayedRef.current) return
     hasPlayedRef.current = true
-
     if (navigator.vibrate) navigator.vibrate([100, 50, 200])
     playAchievementChime()
+  }, [batch])
 
-    dismissTimerRef.current = setTimeout(dismiss, AUTO_DISMISS_MS)
-    return () => {
-      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
-    }
-  }, [current, dismiss])
+  if (!batch) return null
 
-  if (!current) return null
-
-  const title =
-    i18n.language === "fr" ? current.title_fr : current.title_en
-  const rank = current.rank
+  const hero = pickHero(batch)
+  const supporting = supportingMedals(batch, hero)
+  const title = localizedTitle(hero, i18n.language)
+  const rank = hero.rank
+  const chipHex = rankChipHex[rank]
+  const thresholdTarget = Number.isFinite(hero.threshold_value)
+    ? formatCompactNumber(hero.threshold_value, i18n.language)
+    : null
+  const eyebrow =
+    batch.length === 1
+      ? t("ceremonyEyebrow")
+      : t("ceremonyEyebrowCount", { count: batch.length })
+  const overlapping = supporting.length === 1 ? supporting[0] : null
+  const { visible, overflowCount } = supportingOverflow(supporting)
+  const overflowLabel = t("ceremonyOverflow", { count: overflowCount })
+  const showSupportingRow = supporting.length >= 2
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) dismiss() }}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          className="fixed inset-0 z-50 bg-black/70 animate-in fade-in duration-300"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) dismiss()
+      }}
+    >
+      <DialogPortal>
+        <DialogOverlay
+          className="bg-[#0f0f13]/70 backdrop-blur-sm"
           onClick={dismiss}
         />
-        <Dialog.Content
+        <DialogPrimitive.Content
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 outline-hidden"
           onClick={dismiss}
           aria-label={title}
-          onEscapeKeyDown={dismiss}
         >
-          {/* Rank glow */}
-          <div
-            className={cn(
-              "absolute inset-0 opacity-0 achievement-rank-glow",
-              rankGlowClass[rank],
-            )}
-          />
-
-          {/* Badge reveal */}
-          <div className="relative achievement-badge-reveal">
-            {/* Particle burst */}
-            <div className={cn("absolute inset-0 achievement-particle-burst", rankGlowClass[rank])} />
-
+          <div className="relative">
             <div
               className={cn(
-                "flex h-28 w-28 items-center justify-center rounded-full border-2 bg-card/80 backdrop-blur-sm",
-                rank === "bronze" && "border-amber-600",
-                rank === "silver" && "border-slate-300",
-                rank === "gold" && "border-yellow-400",
-                rank === "platinum" && "border-blue-300",
-                rank === "diamond" && "border-purple-400",
+                "absolute -inset-10 opacity-0 achievement-rank-glow",
+                rankGlowClass[rank],
               )}
-            >
+            />
+
+            <div className="relative achievement-badge-reveal">
+              <div
+                className={cn(
+                  "absolute inset-0 achievement-particle-burst",
+                  rankGlowClass[rank],
+                )}
+              />
               <BadgeIcon
                 rank={rank}
-                iconUrl={current.icon_asset_url}
+                iconUrl={hero.icon_asset_url}
                 size="lg"
+                className={overlapping ? "h-[120px] w-[120px]" : undefined}
                 alt={title}
                 eager
               />
+              {overlapping && (
+                <div
+                  className="absolute -bottom-1 -right-3"
+                  aria-label={localizedTitle(overlapping, i18n.language)}
+                >
+                  <BadgeIcon
+                    rank={overlapping.rank}
+                    iconUrl={overlapping.icon_asset_url}
+                    className="h-[72px] w-[72px]"
+                    alt={localizedTitle(overlapping, i18n.language)}
+                    eager
+                  />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Text entrance */}
-          <div className="flex flex-col items-center gap-2 achievement-text-entrance">
-            <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-            <span
-              className={cn(
-                "rounded-full px-3 py-0.5 text-sm font-semibold capitalize",
-                rankColorClass[rank],
-                "bg-card/60",
+          {showSupportingRow && (
+            <ul className="flex items-end justify-center gap-3">
+              {visible.map((item) => {
+                const caption = `${t(`ranks.${item.rank}`)} ${localizedTitle(item, i18n.language)}`
+                return (
+                  <li
+                    key={item.tier_id}
+                    aria-label={caption}
+                    className="flex max-w-20 flex-col items-center gap-1"
+                  >
+                    <BadgeIcon
+                      rank={item.rank}
+                      iconUrl={item.icon_asset_url}
+                      className="h-14 w-14"
+                      alt=""
+                      eager
+                    />
+                    <p className="text-center text-xs text-muted-foreground">
+                      {caption}
+                    </p>
+                  </li>
+                )
+              })}
+              {overflowCount > 0 && (
+                <li
+                  aria-label={overflowLabel}
+                  className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-sm font-semibold text-muted-foreground"
+                >
+                  {overflowLabel}
+                </li>
               )}
-            >
-              {rank}
-            </span>
+            </ul>
+          )}
+
+          <div className="flex flex-col items-center gap-2 achievement-text-entrance">
+            <p className="text-sm font-medium tracking-wide text-muted-foreground">
+              {eyebrow}
+            </p>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+              {title}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="bg-card/60"
+                style={{ color: chipHex, borderColor: chipHex }}
+              >
+                {t(`ranks.${rank}`)}
+              </Badge>
+              <Badge variant="outline" className="text-muted-foreground">
+                {t(`groups.${hero.group_slug}`)}
+              </Badge>
+            </div>
+            {thresholdTarget !== null && (
+              <p className="text-sm text-muted-foreground">
+                {t(`thresholdHint.${hero.group_slug}`, {
+                  target: thresholdTarget,
+                })}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">
-              {t(`groupDescriptions.${current.group_slug}`)}
+              {t("ceremonyTapToContinue")}
             </p>
           </div>
 
-          <Dialog.Title className="sr-only">{title}</Dialog.Title>
-          <Dialog.Description className="sr-only">
-            {rank} achievement unlocked
-          </Dialog.Description>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <DialogDescription className="sr-only">
+            {t(`ranks.${rank}`)} {title}
+          </DialogDescription>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   )
 }
