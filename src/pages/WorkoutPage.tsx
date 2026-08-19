@@ -29,6 +29,7 @@ import {
   quickSheetOpenAtom,
   restAtom,
   completedBlockIdsAtom,
+  queueSyncMetaAtom,
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
@@ -117,7 +118,6 @@ import {
 } from "@/types/preSessionOverrides"
 import type {
   ExerciseListItem,
-  SetLog,
   WorkoutDay,
   WorkoutExerciseWithLabel,
 } from "@/types/database"
@@ -691,6 +691,15 @@ export function WorkoutPage() {
     return "no-session"
   }, [session.isActive, session.startedAt])
 
+  const activeRealId =
+    user != null ? peekSessionRealId(user.id, sessionId) : null
+  const { data: activeSessionLogs = [] } = useSessionSetLogs(activeRealId)
+  const queuePendingCount = useAtomValue(queueSyncMetaAtom).pendingCount
+  const queuedPayloads = useMemo(() => {
+    void queuePendingCount
+    return queuedSetLogPayloadsForSession(sessionId)
+  }, [sessionId, queuePendingCount])
+
   useEffect(() => {
     if (!session.isActive || !user?.id || !currentExercise) return
     const lib = exerciseById.get(currentExercise.exercise_id)
@@ -768,31 +777,14 @@ export function WorkoutPage() {
 
 
 
-  const persistedLogsForActiveSession = (): SetLog[] => {
-    const realId =
-      user != null ? peekSessionRealId(user.id, sessionId) : null
-    if (realId == null) return []
-    return queryClient.getQueryData<SetLog[]>(["session-set-logs", realId]) ?? []
-  }
-
-  const dayProgress = useMemo(() => {
-    return sessionProgress({
-      exercises,
-      setsData: session.setsData,
-      blocks: dayBlocks,
-      completedBlockIds,
-      persistedLogs: persistedLogsForActiveSession(),
-      queuedPayloads: queuedSetLogPayloadsForSession(sessionId),
-    })
-  }, [
-    user,
-    sessionId,
-    queryClient,
+  const dayProgress = sessionProgress({
     exercises,
-    session.setsData,
-    dayBlocks,
+    setsData: session.setsData,
+    blocks: dayBlocks,
     completedBlockIds,
-  ])
+    persistedLogs: activeSessionLogs,
+    queuedPayloads,
+  })
 
   const prExercises = useMemo(() => {
     return exercises
@@ -818,7 +810,7 @@ export function WorkoutPage() {
         setsData: session.setsData,
         blocks: dayBlocks,
         completedBlockIds,
-        persistedLogs: persistedLogsForActiveSession(),
+        persistedLogs: activeSessionLogs,
         queuedPayloads: queuedSetLogPayloadsForSession(sessionId),
       },
     )
