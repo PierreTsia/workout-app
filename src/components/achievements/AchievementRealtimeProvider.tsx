@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { pushAchievementsToQueue } from "@/lib/syncService"
-import type { UnlockedAchievement, AchievementRank } from "@/types/achievements"
+import type { UnlockedAchievement } from "@/types/achievements"
 
 /**
  * Global Realtime subscription for `user_achievements` INSERT events.
@@ -43,10 +43,11 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
           const unlocked: UnlockedAchievement = {
             tier_id: match.tier_id,
             group_slug: match.group_slug,
-            rank: match.rank as AchievementRank,
+            rank: match.rank,
             title_en: match.title_en,
             title_fr: match.title_fr,
             icon_asset_url: match.icon_asset_url,
+            threshold_value: match.threshold_value,
           }
           pushAchievementsToQueue([unlocked])
         },

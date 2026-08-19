@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest"
+import type { UnlockedAchievement } from "@/types/achievements"
 
 // ---------------------------------------------------------------------------
 // Atom markers — unique objects used as identity keys for store.get/set
@@ -49,7 +50,11 @@ let blockRunsChain = createChain()
 
 const mockFrom = vi.fn()
 
-const mockRpc = vi.fn().mockResolvedValue({ data: [], error: null })
+function rpcCall(result: Promise<{ data: unknown; error: unknown }>) {
+  return Object.assign(result, { returns: () => result })
+}
+
+const mockRpc = vi.fn(() => rpcCall(Promise.resolve({ data: [], error: null })))
 const mockSupabase = { from: mockFrom, rpc: mockRpc }
 
 const mockQueryClient = {
@@ -221,6 +226,10 @@ describe("SyncService", () => {
       if (table === "block_runs") return blockRunsChain
       return createChain()
     })
+
+    mockRpc.mockImplementation(() =>
+      rpcCall(Promise.resolve({ data: [], error: null })),
+    )
 
     const mod = await import("./syncService")
     enqueueSetLog = mod.enqueueSetLog
@@ -853,7 +862,9 @@ describe("SyncService", () => {
     })
 
     it("returns true even when achievement RPC fails", async () => {
-      mockRpc.mockRejectedValueOnce(new Error("RPC failed"))
+      mockRpc.mockImplementationOnce(() =>
+        rpcCall(Promise.reject(new Error("RPC failed"))),
+      )
       vi.spyOn(console, "error").mockImplementation(() => {})
       vi.spyOn(console, "warn").mockImplementation(() => {})
 
@@ -875,10 +886,14 @@ describe("SyncService", () => {
     })
 
     it("treats achievement RPC error response as non-critical", async () => {
-      mockRpc.mockResolvedValueOnce({
-        data: null,
-        error: { message: "RPC failed" },
-      })
+      mockRpc.mockImplementationOnce(() =>
+        rpcCall(
+          Promise.resolve({
+            data: null,
+            error: { message: "RPC failed" },
+          }),
+        ),
+      )
       vi.spyOn(console, "warn").mockImplementation(() => {})
 
       enqueueSessionFinish(makeSessionFinishPayload())
@@ -894,7 +909,7 @@ describe("SyncService", () => {
     })
 
     it("pushes RPC response into achievement queue and lastSessionBadgesAtom", async () => {
-      const mockBadges = [
+      const mockBadges: UnlockedAchievement[] = [
         {
           tier_id: "tier-1",
           group_slug: "consistency_streak",
@@ -902,9 +917,12 @@ describe("SyncService", () => {
           title_en: "The Sore Apprentice",
           title_fr: "Apprenti Courbaturé",
           icon_asset_url: null,
+          threshold_value: 3,
         },
       ]
-      mockRpc.mockResolvedValueOnce({ data: mockBadges, error: null })
+      mockRpc.mockImplementationOnce(() =>
+        rpcCall(Promise.resolve({ data: mockBadges, error: null })),
+      )
 
       enqueueSessionFinish(makeSessionFinishPayload())
 

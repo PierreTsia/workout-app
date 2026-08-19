@@ -56,4 +56,5 @@ export interface UnlockedAchievement {
   title_en: string
   title_fr: string
   icon_asset_url: string | null
+  threshold_value: number
 }

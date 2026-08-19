@@ -964,11 +964,13 @@ async function processSessionFinish(
     }
 
     try {
-      const { data, error } = await supabase.rpc("check_and_grant_achievements", {
-        p_user_id: userId,
-      })
+      const { data, error } = await supabase
+        .rpc("check_and_grant_achievements", {
+          p_user_id: userId,
+        })
+        .returns<UnlockedAchievement[]>()
       if (error) throw error
-      const unlocked = (data ?? []) as UnlockedAchievement[]
+      const unlocked = Array.isArray(data) ? data : []
       if (unlocked.length > 0) {
         pushAchievementsToQueue(unlocked)
         store.set(lastSessionBadgesAtom, unlocked)
