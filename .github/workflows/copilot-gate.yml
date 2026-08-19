@@ -1,0 +1,168 @@
+# Derive a merge gate from Copilot code review findings.
+#
+# Copilot always submits a "Comment" review — never Approve or Request
+# changes — so review.state cannot block merge. Docs:
+# https://docs.github.com/en/copilot/how-tos/use-copilot-agents/request-a-code-review/use-code-review
+#
+# This workflow counts findings on the latest Copilot review of the current
+# HEAD SHA, then:
+#   - sets exactly one of copilot:pending | copilot:blocking | copilot:ok
+#   - posts commit status `copilot / review` (pending / failure / success)
+# Pierre can mark that status required in a ruleset. This file cannot.
+
+name: Copilot gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, review_requested]
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: copilot-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+jobs:
+  report:
+    name: report
+    runs-on: ubuntu-latest
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main' &&
+      (
+        github.event_name == 'pull_request' ||
+        github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'
+      )
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      EVENT_ACTION: ${{ github.event.action }}
+      REQUESTED_REVIEWER: ${{ github.event.requested_reviewer.login || '' }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      STATUS_CONTEXT: "copilot / review"
+      BOT: "copilot-pull-request-reviewer[bot]"
+    steps:
+      - name: Evaluate Copilot review on HEAD
+        id: eval
+        run: |
+          set -euo pipefail
+
+          is_copilot_login() {
+            [[ "$1" == "copilot-pull-request-reviewer[bot]" || "$1" == "Copilot" ]]
+          }
+
+          ensure_label() {
+            local name="$1" color="$2" desc="$3"
+            local encoded
+            encoded=$(jq -nr --arg n "$name" '$n | @uri')
+            if gh api "repos/${GH_REPO}/labels/${encoded}" >/dev/null 2>&1; then
+              return 0
+            fi
+            gh api -X POST "repos/${GH_REPO}/labels" \
+              -f name="$name" -f color="$color" -f description="$desc" >/dev/null
+          }
+
+          apply_label() {
+            local wanted="$1"
+            local encoded
+            for name in copilot:pending copilot:blocking copilot:ok; do
+              encoded=$(jq -nr --arg n "$name" '$n | @uri')
+              gh api -X DELETE "repos/${GH_REPO}/issues/${PR_NUMBER}/labels/${encoded}" >/dev/null 2>&1 || true
+            done
+            jq -n --arg l "$wanted" '{labels:[$l]}' \
+              | gh api -X POST "repos/${GH_REPO}/issues/${PR_NUMBER}/labels" --input - >/dev/null
+          }
+
+          post_status() {
+            local state="$1" desc="$2"
+            jq -n \
+              --arg state "$state" \
+              --arg desc "$desc" \
+              --arg ctx "$STATUS_CONTEXT" \
+              --arg url "$RUN_URL" \
+              '{state:$state, description:$desc, context:$ctx, target_url:$url}' \
+              | gh api -X POST "repos/${GH_REPO}/statuses/${HEAD_SHA}" --input - >/dev/null
+          }
+
+          HEAD_SHA=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}" --jq .head.sha)
+          echo "HEAD_SHA=${HEAD_SHA}"
+
+          ensure_label "copilot:pending" "fbca04" "Waiting for Copilot to review this HEAD"
+          ensure_label "copilot:blocking" "b60205" "Copilot left findings; copilot / review check fails"
+          ensure_label "copilot:ok" "0e8a16" "Copilot reviewed this HEAD with no findings"
+
+          VERDICT="pending"
+          DETAIL="No Copilot review on this HEAD yet"
+
+          # Re-requesting Copilot starts a new review in flight — do not keep
+          # the previous ok/blocking label while we wait for it.
+          if [[ "$EVENT_ACTION" == "review_requested" ]] && is_copilot_login "$REQUESTED_REVIEWER"; then
+            VERDICT="pending"
+            DETAIL="Copilot review requested; waiting for submission"
+          else
+            REVIEWS_JSON=$(gh api --paginate "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews")
+            LATEST=$(jq -c --arg sha "$HEAD_SHA" --arg bot "$BOT" '
+              [.[]
+                | select(.user.login == $bot
+                    and .commit_id == $sha
+                    and ((.state | ascii_upcase) != "DISMISSED"))]
+              | sort_by(.submitted_at)
+              | last
+            ' <<<"$REVIEWS_JSON")
+
+            if [[ "$LATEST" != "null" ]]; then
+              REVIEW_ID=$(jq -r .id <<<"$LATEST")
+              BODY=$(jq -r '.body // ""' <<<"$LATEST")
+              COMMENT_COUNT=$(gh api --paginate \
+                "repos/${GH_REPO}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments" \
+                --jq '.[]' | jq -s 'length')
+              BODY_FINDINGS=$(jq -n --arg b "$BODY" '
+                ($b | ascii_downcase) as $t
+                | if ($t | test("comments suppressed due to low confidence")) then 1
+                  elif ($t | test("generated no( new)? comments")) then 0
+                  elif ($t | test("generated [0-9]+ comments?")) then
+                    ($t | capture("generated (?<n>[0-9]+) comments?") | .n | tonumber)
+                  else 0 end
+              ')
+              echo "review_id=${REVIEW_ID} comments=${COMMENT_COUNT} body_findings=${BODY_FINDINGS}"
+              if (( COMMENT_COUNT > 0 || BODY_FINDINGS > 0 )); then
+                VERDICT="blocking"
+                DETAIL="Copilot left ${COMMENT_COUNT} inline comment(s) (body=${BODY_FINDINGS})"
+              else
+                VERDICT="ok"
+                DETAIL="Copilot reviewed this HEAD with no findings"
+              fi
+            fi
+          fi
+
+          echo "verdict=${VERDICT}"
+          echo "verdict=${VERDICT}" >> "$GITHUB_OUTPUT"
+
+          case "$VERDICT" in
+            pending)
+              apply_label "copilot:pending"
+              post_status "pending" "$DETAIL"
+              ;;
+            blocking)
+              apply_label "copilot:blocking"
+              post_status "failure" "$DETAIL"
+              ;;
+            ok)
+              apply_label "copilot:ok"
+              post_status "success" "$DETAIL"
+              ;;
+          esac
+
+      - name: Fail when Copilot left findings
+        if: steps.eval.outputs.verdict == 'blocking'
+        run: |
+          echo "Copilot left findings on this HEAD. Status \`copilot / review\` is failure."
+          exit 1
