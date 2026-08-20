@@ -1,6 +1,12 @@
 -- Overlay threshold copy interpolates the hero's requirement. Grant RPC
 -- returned rank/title/icon but not threshold_value; get_badge_status already
 -- does. Additive column only — metrics / qualifying_runs unchanged.
+--
+-- CREATE OR REPLACE cannot change RETURNS TABLE (SQLSTATE 42P13). Drop the
+-- existing (uuid) signature first, then recreate with threshold_value. DROP
+-- clears EXECUTE grants — re-apply the 20260802170000 definer grants below.
+
+DROP FUNCTION IF EXISTS check_and_grant_achievements(uuid);
 
 CREATE OR REPLACE FUNCTION check_and_grant_achievements(p_user_id uuid)
 RETURNS TABLE (
@@ -230,3 +236,6 @@ BEGIN
   JOIN granted g ON g.tier_id = e.id;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION check_and_grant_achievements(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION check_and_grant_achievements(uuid) TO authenticated, service_role;

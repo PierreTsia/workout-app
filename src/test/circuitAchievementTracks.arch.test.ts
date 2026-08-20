@@ -147,6 +147,18 @@ describe("grant RPC threshold_value (#491 / T213)", () => {
     "check_and_grant_achievements",
   )
 
+  it("drops the existing (uuid) signature before changing RETURNS TABLE", () => {
+    // CREATE OR REPLACE cannot change RETURNS TABLE (42P13). Pin to this
+    // file — a later body-only replace must not be forced to DROP.
+    const thresholdSql =
+      Object.entries(migrationSources).find(([path]) =>
+        path.includes("grant_achievements_threshold_value"),
+      )?.[1] ?? ""
+    expect(thresholdSql).toMatch(
+      /DROP\s+FUNCTION\s+IF\s+EXISTS\s+check_and_grant_achievements\s*\(\s*uuid\s*\)/i,
+    )
+  })
+
   it("latest RETURNS TABLE includes threshold_value numeric", () => {
     expect(grantHeader).toMatch(/threshold_value\s+numeric/i)
   })
