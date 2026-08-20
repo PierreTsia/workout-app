@@ -272,6 +272,18 @@ Group `heroes` (accordion *Le tour des Héros* / *Heroes’ Tour*). **Cast Clear
 **Pantheoniste**:
 Achievement group `pantheoniste` (accordion *Le Pantheoniste* / *Pantheoniste*). **Cast Clearing** over all eight Greek Pantheon seeds (Cindy excluded). Same thresholds as **Olympians** / **Heroes**. A single seed run can feed **Circuit runner** plus the matching quatuor plus this capstone.
 
+**Grant Batch**:
+Every newly unlocked achievement tier from one finish (RPC return + any Realtime inserts that landed before the overlay opened), frozen as the ceremony opens. Late grants wait for the next ceremony. The unit of the unlock overlay.
+_Avoid_: slot machine, serial queue, one-medal-at-a-time ceremony
+
+**Hero** (unlock ceremony):
+The highest-rank tier in a **Grant Batch** (`diamond > platinum > gold > silver > bronze`; ties keep queue order). Title, rank chip, track name, threshold line, and Equip all describe this tier only.
+_Avoid_: featured badge, primary tile among equals
+
+**Supporting medal**:
+A non-hero grant in the same **Grant Batch**. Count 2: overlaps the hero bottom-right. Count 3+: one under-row. Count 5+: under-row with a `+N` overflow tile. Never an equal grid.
+_Avoid_: second hero, 2×2 grid, carousel, app-icon row
+
 ---
 
 ## Marketing site

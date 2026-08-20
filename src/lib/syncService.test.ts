@@ -931,12 +931,21 @@ describe("SyncService", () => {
       const queueSetCall = mockStore.set.mock.calls.find(
         ([atom]) => atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM,
       )
-      expect(queueSetCall?.[1]).toEqual(mockBadges)
+      const queued = queueSetCall?.[1]
+      expect(Array.isArray(queued)).toBe(true)
+      if (!Array.isArray(queued)) return
+      expect(queued).toHaveLength(1)
+      expect(queued[0]).toEqual(
+        expect.objectContaining({
+          ...mockBadges[0],
+          granted_at: expect.any(String),
+        }),
+      )
 
       const badgesSetCall = mockStore.set.mock.calls.find(
         ([atom]) => atom === LAST_SESSION_BADGES_ATOM,
       )
-      expect(badgesSetCall?.[1]).toEqual(mockBadges)
+      expect(badgesSetCall?.[1]).toEqual(queued)
     })
 
     it("does not call RPC when session upsert fails", async () => {

@@ -9,6 +9,7 @@ const FIXTURE_BUTTONS = [
   "Platinum",
   "Diamond",
   "2 overlap",
+  "Burst 3",
   "Burst 4",
   "Overflow 5+",
 ] as const
@@ -30,6 +31,7 @@ function grant(
     title_fr,
     icon_asset_url: null,
     threshold_value,
+    granted_at: new Date().toISOString(),
   }
 }
 
@@ -82,6 +84,11 @@ const FIXTURES: Record<FixtureName, () => UnlockedAchievement[]> = {
       "Apprenti Courbaturé",
       5,
     ),
+  ],
+  "Burst 3": () => [
+    grant("gold", "volume_king", "Plateau Titan", "Titan du plateau", 50_000),
+    grant("silver", "consistency_streak", "Iron Routine", "Routine de Fer", 25),
+    grant("bronze", "record_hunter", "Ceiling Breaker", "Briseur de plafonds", 1),
   ],
   "Burst 4": () => [
     grant(

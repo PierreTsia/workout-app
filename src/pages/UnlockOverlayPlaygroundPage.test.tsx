@@ -18,6 +18,7 @@ const BUTTON_NAMES = [
   "Platinum",
   "Diamond",
   "2 overlap",
+  "Burst 3",
   "Burst 4",
   "Overflow 5+",
 ] as const
@@ -29,7 +30,7 @@ describe("UnlockOverlayPlaygroundPage", () => {
     store.set(achievementShownIdsAtom, new Set())
   })
 
-  it("renders the eight fixture buttons", () => {
+  it("renders the nine fixture buttons", () => {
     renderWithProviders(<UnlockOverlayPlaygroundPage />)
 
     for (const name of BUTTON_NAMES) {

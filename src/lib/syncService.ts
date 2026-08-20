@@ -970,7 +970,11 @@ async function processSessionFinish(
         })
         .returns<UnlockedAchievement[]>()
       if (error) throw error
-      const unlocked = Array.isArray(data) ? data : []
+      const grantedAt = new Date().toISOString()
+      const unlocked = (Array.isArray(data) ? data : []).map((row) => ({
+        ...row,
+        granted_at: row.granted_at ?? grantedAt,
+      }))
       if (unlocked.length > 0) {
         pushAchievementsToQueue(unlocked)
         store.set(lastSessionBadgesAtom, unlocked)

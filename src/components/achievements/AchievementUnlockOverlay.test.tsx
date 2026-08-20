@@ -41,6 +41,7 @@ function makeUnlock(
     title_fr: "Roi du Volume",
     icon_asset_url: null,
     threshold_value: 5000,
+    granted_at: "2026-08-19T12:00:00.000Z",
     ...overrides,
   }
 }
@@ -97,11 +98,14 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.getByText("Gold")).toBeInTheDocument()
     expect(screen.getByText("Volume")).toBeInTheDocument()
     expect(screen.getByText("Lift 5,000 kg total")).toBeInTheDocument()
+    expect(screen.getByText(/Unlocked on/)).toBeInTheDocument()
     expect(screen.getByText("Tap to continue")).toBeInTheDocument()
     expect(
       screen.queryByText("Total volume lifted (kg)"),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
+    expect(screen.getByRole("dialog").textContent).toContain("GYMLOGIC")
+    expect(screen.getByRole("dialog").textContent).not.toContain("🏆")
   })
 
   it("treats Silver as the only hero when a Bronze grant overlaps it", () => {
@@ -130,6 +134,13 @@ describe("AchievementUnlockOverlay", () => {
       screen.queryByRole("heading", { name: "First Steps" }),
     ).not.toBeInTheDocument()
     expect(screen.getByText("Silver")).toBeInTheDocument()
+    expect(screen.getByText("Bronze")).toBeInTheDocument()
+    expect(screen.getByText("Volume")).toBeInTheDocument()
+    expect(screen.getByText("Consistency")).toBeInTheDocument()
+    expect(screen.getByText(/Lift .* kg total/)).toBeInTheDocument()
+    expect(screen.getByText("Complete 3 sessions")).toBeInTheDocument()
+    expect(screen.getByText("First Steps")).toBeInTheDocument()
+    expect(screen.getAllByText(/Unlocked on/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByLabelText("First Steps")).toBeInTheDocument()
     expect(screen.getAllByRole("heading")).toHaveLength(1)
   })
@@ -184,6 +195,7 @@ describe("AchievementUnlockOverlay", () => {
     expect(
       screen.getByRole("listitem", { name: /Volume King/ }),
     ).toBeInTheDocument()
+    expect(screen.getAllByText(/Unlocked on/)).toHaveLength(4)
   })
 
   it("shows a +N overflow tile when more than three supporting medals", () => {
@@ -213,6 +225,7 @@ describe("AchievementUnlockOverlay", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("+2")).toBeInTheDocument()
     expect(screen.getAllByRole("listitem")).toHaveLength(4)
+    expect(screen.getAllByText(/Unlocked on/)).toHaveLength(4)
   })
 
   it("dismisses the whole batch when the overlay is tapped", async () => {
@@ -369,6 +382,25 @@ describe("AchievementUnlockOverlay", () => {
     expect(dialog.querySelector(".achievement-badge-reveal")).not.toBeNull()
     expect(dialog.querySelector(".achievement-glow-gold")).not.toBeNull()
     expect(dialog.querySelector(".achievement-particle-burst")).not.toBeNull()
+    expect(dialog.querySelector(".achievement-rank-sparkles")).not.toBeNull()
+  })
+
+  it("shows medal-colored sparkles from Bronze", () => {
+    renderCeremony([
+      makeUnlock({
+        tier_id: "bronze",
+        rank: "bronze",
+        title_en: "First Steps",
+        group_slug: "consistency_streak",
+        threshold_value: 3,
+      }),
+    ])
+
+    const sparkles = screen
+      .getByRole("dialog")
+      .querySelector(".achievement-rank-sparkles")
+    expect(sparkles).toHaveAttribute("aria-hidden", "true")
+    expect(sparkles?.querySelectorAll(".achievement-sparkle").length).toBe(16)
   })
 
   it("keeps medals, copy, and Equip without burst or rain when motion is reduced", () => {
@@ -401,10 +433,10 @@ describe("AchievementUnlockOverlay", () => {
     const dialog = screen.getByRole("dialog")
     expect(dialog.querySelector(".achievement-badge-reveal")).toBeNull()
     expect(dialog.querySelector(".achievement-particle-burst")).toBeNull()
-    expect(dialog.querySelector(".achievement-diamond-particles")).toBeNull()
+    expect(dialog.querySelector(".achievement-rank-sparkles")).toBeNull()
   })
 
-  it("keeps the Diamond particle burst aria-hidden so the title stays the accessible name", () => {
+  it("keeps rank sparkles aria-hidden so the title stays the accessible name", () => {
     renderCeremony([
       makeUnlock({
         tier_id: "diamond",
@@ -415,8 +447,8 @@ describe("AchievementUnlockOverlay", () => {
       }),
     ])
 
-    const particles = document.querySelector(".achievement-diamond-particles")
-    expect(particles).toHaveAttribute("aria-hidden", "true")
+    const sparkles = document.querySelector(".achievement-rank-sparkles")
+    expect(sparkles).toHaveAttribute("aria-hidden", "true")
     expect(
       screen.getByRole("heading", { name: "The Spider" }),
     ).toBeInTheDocument()

@@ -33,10 +33,12 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const grantedAt = payload.new.granted_at as string
+          const grantedAt = payload.new.granted_at
+          if (typeof grantedAt !== "string") return
           if (new Date(grantedAt).getTime() < subscriptionStartedAt) return
 
-          const tierId = payload.new.tier_id as string
+          const tierId = payload.new.tier_id
+          if (typeof tierId !== "string") return
           const match = badgeRows.find((r) => r.tier_id === tierId)
           if (!match) return
 
@@ -48,6 +50,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
             title_fr: match.title_fr,
             icon_asset_url: match.icon_asset_url,
             threshold_value: match.threshold_value,
+            granted_at: grantedAt,
           }
           pushAchievementsToQueue([unlocked])
         },

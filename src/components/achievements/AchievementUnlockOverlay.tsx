@@ -20,49 +20,16 @@ import {
   achievementShownIdsAtom,
 } from "@/store/atoms"
 import { cn } from "@/lib/utils"
-import { formatCompactNumber } from "@/lib/formatters"
+import { formatCompactNumber, formatDate } from "@/lib/formatters"
 import { pickHero, supportingMedals, supportingOverflow } from "@/lib/achievementUtils"
-import { BadgeIcon } from "@/components/achievements/BadgeIcon"
+import { CeremonyMedal } from "@/components/achievements/CeremonyMedal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useEquipTitle } from "@/hooks/useEquipTitle"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
+import { playAchievementFanfare } from "@/lib/audio"
 import type { AchievementRank, UnlockedAchievement } from "@/types/achievements"
-
-let audioCtx: AudioContext | null = null
-function getAudioCtx(): AudioContext {
-  if (!audioCtx) audioCtx = new AudioContext()
-  return audioCtx
-}
-
-function playAchievementChime() {
-  try {
-    const ctx = getAudioCtx()
-    if (ctx.state === "suspended") ctx.resume()
-
-    const play = (freq: number, delay: number, dur: number) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = freq
-      osc.type = "sine"
-      gain.gain.setValueAtTime(0.35, ctx.currentTime + delay)
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        ctx.currentTime + delay + dur,
-      )
-      osc.start(ctx.currentTime + delay)
-      osc.stop(ctx.currentTime + delay + dur)
-    }
-
-    play(523, 0, 0.25)
-    play(784, 0.15, 0.35)
-  } catch {
-    // Web Audio unavailable — silent fallback
-  }
-}
 
 const rankGlowClass: Record<AchievementRank, string> = {
   bronze: "achievement-glow-bronze",
@@ -87,47 +54,112 @@ function localizedTitle(
   return language === "fr" ? item.title_fr : item.title_en
 }
 
-const DIAMOND_PARTICLE_COLORS = ["#a855f7", "#67e8f9"] as const
-const DIAMOND_PARTICLE_COUNT = 18
+const UNLOCK_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+}
 
-type DiamondParticleStyle = CSSProperties & {
+function unlockDateLabel(grantedAt: string | undefined, locale: string): string {
+  return formatDate(grantedAt ?? new Date(), locale, UNLOCK_DATE_OPTIONS)
+}
+
+function CeremonyGrantMeta({
+  item,
+  locale,
+  t,
+}: {
+  item: UnlockedAchievement
+  locale: string
+  t: (key: string, options?: { target?: string; date?: string }) => string
+}) {
+  const thresholdTarget = Number.isFinite(item.threshold_value)
+    ? formatCompactNumber(item.threshold_value, locale)
+    : null
+  return (
+    <div className="flex flex-col items-center">
+      <div className="mt-3 flex items-center gap-2">
+        <Badge
+          variant="outline"
+          className="rounded-md border-transparent bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
+          style={{ color: rankChipHex[item.rank] }}
+        >
+          {t(`ranks.${item.rank}`)}
+        </Badge>
+        <span className="text-sm text-white/70">
+          {t(`groups.${item.group_slug}`)}
+        </span>
+      </div>
+      {thresholdTarget !== null && (
+        <p className="mt-2 text-center text-sm text-white/55">
+          {t(`thresholdHint.${item.group_slug}`, { target: thresholdTarget })}
+        </p>
+      )}
+      <p className="mt-1 text-center text-xs text-white/40">
+        {t("unlockedOn", {
+          date: unlockDateLabel(item.granted_at, locale),
+        })}
+      </p>
+    </div>
+  )
+}
+
+const SPARKLE_COLORS: Record<AchievementRank, readonly [string, string]> = {
+  bronze: ["#C26A16", "#E8A04A"],
+  silver: ["#c8c8dc", "#e8e8f4"],
+  gold: ["#F0C014", "#FFE27A"],
+  platinum: ["#93c5fd", "#dbeafe"],
+  diamond: ["#a855f7", "#67e8f9"],
+}
+
+const SPARKLE_COUNT: Record<AchievementRank, number> = {
+  bronze: 16,
+  silver: 20,
+  gold: 22,
+  platinum: 22,
+  diamond: 28,
+}
+
+type SparkleStyle = CSSProperties & {
   "--dx": string
   "--dy": string
 }
 
-function diamondParticleStyle(index: number): DiamondParticleStyle {
-  const angle = (index / DIAMOND_PARTICLE_COUNT) * Math.PI * 2
-  const radius = 48 + (index % 5) * 18
-  const size = 4 + (index % 3) * 2
+function sparkleStyle(
+  rank: AchievementRank,
+  index: number,
+  count: number,
+): SparkleStyle {
+  const colors = SPARKLE_COLORS[rank]
+  const color = colors[index % 2]
+  const angle = (index / count) * Math.PI * 2
+  const radius = 52 + (index % 5) * 18
+  const size = 4 + (index % 3)
   return {
     "--dx": `${Math.cos(angle) * radius}px`,
     "--dy": `${Math.sin(angle) * radius}px`,
     width: size,
     height: size,
-    backgroundColor: DIAMOND_PARTICLE_COLORS[index % 2],
+    backgroundColor: color,
+    color,
     animationDelay: `${(index % 6) * 40}ms`,
     left: "50%",
-    top: "38%",
+    top: "42%",
   }
 }
 
-const DIAMOND_PARTICLES = Array.from(
-  { length: DIAMOND_PARTICLE_COUNT },
-  (_, index) => diamondParticleStyle(index),
-)
-
-function DiamondParticleBurst() {
+function RankSparkles({ rank }: { rank: AchievementRank }) {
+  const count = SPARKLE_COUNT[rank]
+  const particles = Array.from({ length: count }, (_, index) =>
+    sparkleStyle(rank, index, count),
+  )
   return (
     <div
-      className="achievement-diamond-particles pointer-events-none absolute inset-0 z-0"
+      className="achievement-rank-sparkles pointer-events-none absolute inset-0 z-0"
       aria-hidden="true"
     >
-      {DIAMOND_PARTICLES.map((style, index) => (
-        <span
-          key={index}
-          className="achievement-diamond-particle"
-          style={style}
-        />
+      {particles.map((style, index) => (
+        <span key={index} className="achievement-sparkle" style={style} />
       ))}
     </div>
   )
@@ -163,8 +195,8 @@ export function AchievementUnlockOverlay() {
     }
     if (hasPlayedRef.current) return
     hasPlayedRef.current = true
-    if (navigator.vibrate) navigator.vibrate([100, 50, 200])
-    playAchievementChime()
+    if (navigator.vibrate) navigator.vibrate([40, 30, 40, 30, 140])
+    playAchievementFanfare(pickHero(batch).rank)
   }, [batch])
 
   if (!batch) return null
@@ -173,10 +205,6 @@ export function AchievementUnlockOverlay() {
   const supporting = supportingMedals(batch, hero)
   const title = localizedTitle(hero, i18n.language)
   const rank = hero.rank
-  const chipHex = rankChipHex[rank]
-  const thresholdTarget = Number.isFinite(hero.threshold_value)
-    ? formatCompactNumber(hero.threshold_value, i18n.language)
-    : null
   const eyebrow =
     batch.length === 1
       ? t("ceremonyEyebrow")
@@ -186,6 +214,12 @@ export function AchievementUnlockOverlay() {
   const overflowLabel = t("ceremonyOverflow", { count: overflowCount })
   const showSupportingRow = supporting.length >= 2
   const heroAlreadyEquipped = profile?.active_title_tier_id === hero.tier_id
+  const heroSize = overlapping ? 120 : 112
+  const eyebrowNode = (
+    <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/55">
+      {eyebrow}
+    </p>
+  )
 
   return (
     <Dialog
@@ -196,143 +230,151 @@ export function AchievementUnlockOverlay() {
     >
       <DialogPortal>
         <DialogOverlay
-          className="bg-[#0f0f13]/70 backdrop-blur-sm"
+          className="bg-[#0f0f13]/90 backdrop-blur-[2px]"
           onClick={dismiss}
         />
         <DialogPrimitive.Content
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 outline-hidden"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center outline-hidden"
           onClick={dismiss}
           aria-label={title}
         >
-          {rank === "diamond" && allowMotion && <DiamondParticleBurst />}
-          <div className="relative z-10">
-            <div
-              className={cn(
-                "absolute -inset-10",
-                rankGlowClass[rank],
-                allowMotion
-                  ? "opacity-0 achievement-rank-glow"
-                  : "opacity-35",
-              )}
-            />
-
-            <div
-              className={cn(
-                "relative",
-                allowMotion && "achievement-badge-reveal",
-              )}
-            >
-              {allowMotion && (
-                <div
-                  className={cn(
-                    "absolute inset-0 achievement-particle-burst",
-                    rankGlowClass[rank],
-                  )}
-                />
-              )}
-              <BadgeIcon
-                rank={rank}
-                iconUrl={hero.icon_asset_url}
-                size="lg"
-                className={overlapping ? "h-[120px] w-[120px]" : undefined}
-                alt={title}
-                eager
-              />
-              {overlapping && (
-                <div
-                  className={cn(
-                    "absolute -bottom-1 -right-3",
-                    allowMotion && "achievement-supporting-entrance",
-                  )}
-                  aria-label={localizedTitle(overlapping, i18n.language)}
-                >
-                  <BadgeIcon
-                    rank={overlapping.rank}
-                    iconUrl={overlapping.icon_asset_url}
-                    className="h-[72px] w-[72px]"
-                    alt={localizedTitle(overlapping, i18n.language)}
-                    eager
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {showSupportingRow && (
-            <ul
-              className={cn(
-                "relative z-10 flex items-end justify-center gap-3",
-                allowMotion && "achievement-supporting-entrance",
-              )}
-            >
-              {visible.map((item) => {
-                const caption = `${t(`ranks.${item.rank}`)} ${localizedTitle(item, i18n.language)}`
-                return (
-                  <li
-                    key={item.tier_id}
-                    aria-label={caption}
-                    className="flex max-w-20 flex-col items-center gap-1"
-                  >
-                    <BadgeIcon
-                      rank={item.rank}
-                      iconUrl={item.icon_asset_url}
-                      className="h-14 w-14"
-                      alt=""
-                      eager
-                    />
-                    <p className="text-center text-xs text-muted-foreground">
-                      {caption}
-                    </p>
-                  </li>
-                )
-              })}
-              {overflowCount > 0 && (
-                <li
-                  aria-label={overflowLabel}
-                  className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-sm font-semibold text-muted-foreground"
-                >
-                  {overflowLabel}
-                </li>
-              )}
-            </ul>
-          )}
-
           <div
             className={cn(
-              "relative z-10 flex flex-col items-center gap-2",
+              "relative z-10 flex w-full max-w-[320px] flex-col items-center px-6",
               allowMotion && "achievement-text-entrance",
             )}
           >
-            <p className="text-sm font-medium tracking-wide text-muted-foreground">
-              {eyebrow}
-            </p>
-            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+            {batch.length > 1 && <div className="mb-5">{eyebrowNode}</div>}
+
+            <div className="relative">
+              <div
+                className={cn(
+                  "absolute -inset-12",
+                  rankGlowClass[rank],
+                  allowMotion
+                    ? "opacity-0 achievement-rank-glow"
+                    : "opacity-35",
+                )}
+              />
+              <div
+                className={cn(
+                  "relative",
+                  allowMotion && "achievement-badge-reveal",
+                )}
+              >
+                {allowMotion && <RankSparkles rank={rank} />}
+                {allowMotion && (
+                  <div
+                    className={cn(
+                      "absolute inset-0 achievement-particle-burst",
+                      rankGlowClass[rank],
+                    )}
+                  />
+                )}
+                <CeremonyMedal
+                  rank={rank}
+                  iconUrl={hero.icon_asset_url}
+                  alt={title}
+                  size={heroSize}
+                />
+                {overlapping && (
+                  <div
+                    className={cn(
+                      "absolute -bottom-1 -right-3",
+                      allowMotion && "achievement-supporting-entrance",
+                    )}
+                  >
+                    <CeremonyMedal
+                      rank={overlapping.rank}
+                      iconUrl={overlapping.icon_asset_url}
+                      alt={localizedTitle(overlapping, i18n.language)}
+                      size={72}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {batch.length === 1 && <div className="mt-5">{eyebrowNode}</div>}
+
+            <DialogTitle className="mt-3 text-center text-[28px] font-semibold leading-tight tracking-tight text-white">
               {title}
             </DialogTitle>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className="bg-card/60"
-                style={{ color: chipHex, borderColor: chipHex }}
+            <CeremonyGrantMeta item={hero} locale={i18n.language} t={t} />
+
+            {overlapping && (
+              <div
+                className={cn(
+                  "mt-6 flex flex-col items-center",
+                  allowMotion && "achievement-supporting-entrance",
+                )}
               >
-                {t(`ranks.${rank}`)}
-              </Badge>
-              <Badge variant="outline" className="text-muted-foreground">
-                {t(`groups.${hero.group_slug}`)}
-              </Badge>
-            </div>
-            {thresholdTarget !== null && (
-              <p className="text-sm text-muted-foreground">
-                {t(`thresholdHint.${hero.group_slug}`, {
-                  target: thresholdTarget,
-                })}
-              </p>
+                <p className="text-center text-lg font-semibold text-white">
+                  {localizedTitle(overlapping, i18n.language)}
+                </p>
+                <CeremonyGrantMeta
+                  item={overlapping}
+                  locale={i18n.language}
+                  t={t}
+                />
+              </div>
             )}
+
+            {showSupportingRow && (
+              <ul
+                className={cn(
+                  "mt-8 flex items-start justify-center gap-5",
+                  allowMotion && "achievement-supporting-entrance",
+                )}
+              >
+                {visible.map((item) => {
+                  const itemTitle = localizedTitle(item, i18n.language)
+                  const caption = `${t(`ranks.${item.rank}`)} ${itemTitle}`
+                  return (
+                    <li
+                      key={item.tier_id}
+                      aria-label={caption}
+                      className="flex w-[72px] flex-col items-center gap-1.5"
+                    >
+                      <CeremonyMedal
+                        rank={item.rank}
+                        iconUrl={item.icon_asset_url}
+                        alt=""
+                        size={56}
+                      />
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: rankChipHex[item.rank] }}
+                      >
+                        {t(`ranks.${item.rank}`)}
+                      </p>
+                      <p className="text-center text-[11px] leading-tight text-white/50">
+                        {itemTitle}
+                      </p>
+                      <p className="text-center text-[10px] text-white/35">
+                        {t("unlockedOn", {
+                          date: unlockDateLabel(item.granted_at, i18n.language),
+                        })}
+                      </p>
+                    </li>
+                  )
+                })}
+                {overflowCount > 0 && (
+                  <li
+                    aria-label={overflowLabel}
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-white/25 text-sm font-semibold text-white/50"
+                  >
+                    {overflowLabel}
+                  </li>
+                )}
+              </ul>
+            )}
+
             {!heroAlreadyEquipped && (
               <Button
                 variant="default"
                 size="lg"
-                className="w-full max-w-xs"
+                className="mt-10 h-12 w-full rounded-lg text-base font-semibold"
                 disabled={equipTitle.isPending}
                 onClick={(event) => {
                   event.stopPropagation()
@@ -342,7 +384,12 @@ export function AchievementUnlockOverlay() {
                 {t("equipTitle")}
               </Button>
             )}
-            <p className="text-sm text-muted-foreground">
+            <p
+              className={cn(
+                "mt-4 text-sm font-medium uppercase tracking-[0.18em] text-white/50",
+                allowMotion && "achievement-tap-continue-pulse",
+              )}
+            >
               {t("ceremonyTapToContinue")}
             </p>
           </div>

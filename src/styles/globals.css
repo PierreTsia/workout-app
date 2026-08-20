@@ -296,30 +296,43 @@
   animation: supporting-slide-in 0.3s 0.12s ease-out both;
 }
 
-@keyframes diamond-particle-burst {
+@keyframes sparkle-burst {
   0% {
-    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.3);
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.4);
     opacity: 0;
   }
-  25% {
+  18% {
+    opacity: 1;
+  }
+  48% {
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(45deg) scale(1);
-    opacity: 0.18;
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(45deg) scale(1.2);
+    opacity: 0;
   }
 }
 
-.achievement-diamond-particles {
+.achievement-rank-sparkles {
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.achievement-diamond-particle {
+.achievement-sparkle {
   position: absolute;
   border-radius: 1px;
   pointer-events: none;
-  animation: diamond-particle-burst 0.85s ease-out forwards;
+  box-shadow: 0 0 5px 1px currentColor;
+  animation: sparkle-burst 0.9s ease-out forwards;
+}
+
+@keyframes tap-continue-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+.achievement-tap-continue-pulse {
+  animation: tap-continue-pulse 1.8s ease-in-out infinite;
 }
 
 /* ===== Badge Frame Classes ===== */
