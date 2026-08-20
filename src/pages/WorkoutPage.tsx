@@ -55,11 +55,6 @@ import { shouldCloseCycleOnSessionFinish } from "@/lib/cycleCompletion"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
-import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
-import {
-  summarizeSessionLogs,
-  templateToPreviewItems,
-} from "@/lib/sessionSummary"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import {
   buildInitialSetRowsForExercise,
@@ -87,7 +82,7 @@ import { ExerciseStrip } from "@/components/workout/ExerciseStrip"
 import { BlockSessionCard } from "@/components/workout/BlockSessionCard"
 import { BlockRunner } from "@/components/workout/BlockRunner"
 import { ExerciseDetail } from "@/components/workout/ExerciseDetail"
-import { ExerciseListPreview } from "@/components/workout/ExerciseListPreview"
+import { LastSessionRecap } from "@/components/workout/LastSessionRecap"
 import { PreSessionExerciseList } from "@/components/workout/PreSessionExerciseList"
 import {
   ExerciseEditScopeDialog,
@@ -387,17 +382,6 @@ export function WorkoutPage() {
   const { data: lastSessionForDay } = useLastSessionForDay(
     isDayDoneInCycle ? session.currentDayId : null,
   )
-  const { data: sessionLogs } = useSessionSetLogs(lastSessionForDay?.id ?? null)
-
-  const previewItems = useMemo(() => {
-    if (isDayDoneInCycle && sessionLogs && sessionLogs.length > 0) {
-      return summarizeSessionLogs(sessionLogs, baseExercises)
-    }
-    if (isDayDoneInCycle) {
-      return templateToPreviewItems(baseExercises)
-    }
-    return []
-  }, [isDayDoneInCycle, sessionLogs, baseExercises])
 
   const [restartCycleDialogOpen, setRestartCycleDialogOpen] = useState(false)
   const abandonAndRestartCycle = useAbandonAndRestartCycle()
@@ -1211,9 +1195,13 @@ export function WorkoutPage() {
                 completedDayIds={cycleProgress.completedDayIds}
               />
 
-              {isDayDoneInCycle && previewItems.length > 0 && (
+              {isDayDoneInCycle && (
                 <div className="px-4">
-                  <ExerciseListPreview items={previewItems} />
+                  <LastSessionRecap
+                    lastSession={lastSessionForDay}
+                    exercises={exercises}
+                    blocks={dayBlocks}
+                  />
                 </div>
               )}
               {!isDayDoneInCycle && (

@@ -111,6 +111,9 @@ test.describe("Abandon & restart an incomplete cycle", () => {
     const startButton = page.getByRole("button", { name: /start workout/i })
     await expect(startButton).not.toBeVisible()
 
+    // Empty set_logs: no recap tabs (programme list still sits under the card).
+    await expect(page.getByRole("tablist")).not.toBeVisible()
+
     // Instead, the restart-cycle CTA is shown.
     const restartCta = page.getByRole("button", {
       name: /restart cycle to do it again/i,

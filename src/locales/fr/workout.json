@@ -244,5 +244,7 @@
   "blockRunner.leftoverConfirm": "Valider le reste",
   "blockRunner.decrement": "Diminuer",
   "blockRunner.increment": "Augmenter",
-  "blockRunner.amrapScoreGloss": "{{rounds}} tours · {{leftover}} {{name}}"
+  "blockRunner.amrapScoreGloss": "{{rounds}} tours · {{leftover}} {{name}}",
+  "recap.tabLastSession": "Dernière séance",
+  "recap.tabProgram": "Programme"
 }

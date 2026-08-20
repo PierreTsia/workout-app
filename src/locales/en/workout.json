@@ -244,5 +244,7 @@
   "blockRunner.leftoverConfirm": "Log leftover",
   "blockRunner.decrement": "Decrease",
   "blockRunner.increment": "Increase",
-  "blockRunner.amrapScoreGloss": "{{rounds}} rounds · {{leftover}} {{name}}"
+  "blockRunner.amrapScoreGloss": "{{rounds}} rounds · {{leftover}} {{name}}",
+  "recap.tabLastSession": "Last session",
+  "recap.tabProgram": "Program"
 }
