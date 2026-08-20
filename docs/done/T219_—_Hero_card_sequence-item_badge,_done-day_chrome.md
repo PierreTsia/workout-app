@@ -61,5 +61,5 @@ Add a real `WorkoutDayCard` component test (today `WorkoutDayCard.test.ts` only 
 
 ## References
 
-- `file:docs/Epic_Brief_—_Completed-day_Home_Last_Session_Recap_#498.md` stories 4–5
-- `file:docs/Tech_Plan_—_Completed-day_Home_Last_Session_Recap_#498.md` WorkoutDayCard / sequenceItemBadge
+- `file:docs/done/Epic_Brief_—_Completed-day_Home_Last_Session_Recap_#498.md` stories 4–5
+- `file:docs/done/Tech_Plan_—_Completed-day_Home_Last_Session_Recap_#498.md` WorkoutDayCard / sequenceItemBadge

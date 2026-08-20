@@ -48,7 +48,7 @@ Specifically:
 
 - Update `skills/gymlogic-mcp/SKILL.md`: URL on line 57, plus the `nine` vs `Ten` tool count inconsistency between line 13 and line 66 — same PR.
 - Update every `docs/mcp-connect/*.md` to reference `mcp.gymlogic.me` — same PR.
-- Tech Plan #302's MDX example (line 525 of `file:docs/Tech_Plan_—_A4_Connect_Claude_#302.md`) hardcodes the Supabase URL; #302's implementer should pick up the new URL on rebase. Tag in the #302 implementation kickoff.
+- Tech Plan #302's MDX example (line 525 of `file:docs/done/Tech_Plan_—_A4_Connect_Claude_#302.md`) hardcodes the Supabase URL; #302's implementer should pick up the new URL on rebase. Tag in the #302 implementation kickoff.
 - ADR sequel if Anthropic rejects on issuer-domain grounds: extend Worker scope to also proxy OAuth metadata + endpoints.
 
 ## Alternatives considered

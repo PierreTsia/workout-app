@@ -14,6 +14,8 @@ Break an Epic Brief + Tech Plan into actionable, dependency-ordered implementati
 
 The output follows the Ticket template defined in `.cursor/rules/docs-format.mdc`. Read that rule before generating any document.
 
+**Exception — achievement / badge ladders:** stop and use the `new-achievement-track` skill instead. Do not split those epics into T209/T210/T211-shaped tickets.
+
 ---
 
 ## Core principle: vertical slicing (tracer bullets)

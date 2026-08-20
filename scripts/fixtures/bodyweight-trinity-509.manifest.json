@@ -1,0 +1,153 @@
+{
+  "issue": 509,
+  "stem": "bodyweight_trinity_achievement_tracks",
+  "title": "Bodyweight Trinity",
+  "playgroundMixedLabel": "BW mixed",
+  "groups": [
+    {
+      "slug": "push_ups",
+      "sortOrder": 17,
+      "nameFr": "Pompes",
+      "nameEn": "Push-ups",
+      "descriptionFr": "Reps cumulées de la famille Pompes",
+      "descriptionEn": "Cumulative Pompes-family reps",
+      "metricType": "push_ups",
+      "thresholdHintFr": "Cumuler {{target}} pompes",
+      "thresholdHintEn": "Accumulate {{target}} push-ups",
+      "playgroundLabel": "Pompes",
+      "family": {
+        "cteName": "push_up_ids",
+        "inUuids": [
+          "e63fe427-e910-4e0d-9f73-c51d85b36a3f",
+          "5c7e172f-6c33-46cc-9886-4c31287623a8",
+          "de827afb-d91b-400a-bd5f-415beca277df",
+          "4a1a7219-bd91-4d59-9d73-2c30c5d9f0ce",
+          "92d8460a-b5c6-449a-9659-004a7ee9565c",
+          "01babef5-3139-4f37-b23f-88ef8d40279d",
+          "426a5c8a-60bd-456c-b5c9-9bf92913f089",
+          "6b46d77b-1291-44b9-9d40-f4da8930ae17"
+        ],
+        "outUuids": [
+          "af2cc5d5-b63d-44dc-aedc-366b6733873a",
+          "9dd1bc26-5d88-4744-9543-18477885d0f4",
+          "13a23234-1be6-4849-9a95-353ec25dc8fc",
+          "1eb9e156-c832-4372-945b-b1902d3822d6"
+        ]
+      },
+      "tiers": [
+        { "rank": "bronze", "titleFr": "Nez au sol", "titleEn": "Nose to Floor", "threshold": 100 },
+        { "rank": "silver", "titleFr": "Piston", "titleEn": "Piston", "threshold": 500 },
+        { "rank": "gold", "titleFr": "Mur de pompes", "titleEn": "Push-up Wall", "threshold": 2500 },
+        { "rank": "platinum", "titleFr": "Le Vérin", "titleEn": "The Jack", "threshold": 10000 },
+        { "rank": "diamond", "titleFr": "La Pompe éternelle", "titleEn": "The Eternal Pump", "threshold": 25000 }
+      ]
+    },
+    {
+      "slug": "pull_ups",
+      "sortOrder": 18,
+      "nameFr": "Tractions",
+      "nameEn": "Pull-ups",
+      "descriptionFr": "Reps cumulées de la famille Tractions",
+      "descriptionEn": "Cumulative Tractions-family reps",
+      "metricType": "pull_ups",
+      "thresholdHintFr": "Cumuler {{target}} tractions",
+      "thresholdHintEn": "Accumulate {{target}} pull-ups",
+      "playgroundLabel": "Tractions",
+      "family": {
+        "cteName": "pull_up_ids",
+        "inUuids": [
+          "261dca1e-9bae-4098-8676-6169597f9964",
+          "00731099-9e50-4c90-a92e-0b4433881125",
+          "5c0d0e9c-2118-4be4-a90b-31239029b7a3",
+          "3ce11aeb-966e-4168-b744-902b7d357cfe",
+          "366e1372-4fa0-40c4-816c-6fa83aa2c53d",
+          "a3de462c-9cb9-4a59-ae31-11fbb842895b"
+        ],
+        "outUuids": [
+          "01807007-7465-4a5f-8155-e0eff0dc10da",
+          "6f2c8b23-2ac7-4e10-be50-82fc633c68a3"
+        ]
+      },
+      "tiers": [
+        { "rank": "bronze", "titleFr": "Menton à la barre", "titleEn": "Chin Over", "threshold": 100 },
+        { "rank": "silver", "titleFr": "Dos en V", "titleEn": "V-Taper", "threshold": 500 },
+        { "rank": "gold", "titleFr": "Grand dorsal", "titleEn": "The Lats", "threshold": 2500 },
+        { "rank": "platinum", "titleFr": "Tractionnaire", "titleEn": "Bar Addict", "threshold": 10000 },
+        { "rank": "diamond", "titleFr": "Le Roi de la barre", "titleEn": "King of the Bar", "threshold": 25000 }
+      ]
+    },
+    {
+      "slug": "bw_squats",
+      "sortOrder": 19,
+      "nameFr": "Squat poids du corps",
+      "nameEn": "Bodyweight Squat",
+      "descriptionFr": "Reps cumulées de la famille Squat PDC",
+      "descriptionEn": "Cumulative bodyweight-squat family reps",
+      "metricType": "bw_squats",
+      "thresholdHintFr": "Cumuler {{target}} squats au poids du corps",
+      "thresholdHintEn": "Accumulate {{target}} bodyweight squats",
+      "playgroundLabel": "Squat",
+      "family": {
+        "cteName": "bw_squat_ids",
+        "inUuids": [
+          "41de0558-c044-4f90-b112-2b09c16e985c",
+          "f1c88f28-8742-4862-985d-0752deca3675",
+          "24e5654d-8414-4df6-b928-d2a4f6974d22",
+          "473523ed-8ef9-493e-8e33-660de7979a7a",
+          "113d352b-5f40-46ad-9d43-a1f5c9f33934",
+          "4abd9a5f-78ed-4772-bf3d-153cccc7cb65"
+        ],
+        "outUuids": [
+          "96a9ad05-192e-4e20-878f-90a153efa4d8",
+          "ffa0994b-a4a2-492f-b718-23d8bb795549",
+          "873f87b6-2eea-47e7-882e-7665b2f20a26"
+        ]
+      },
+      "tiers": [
+        { "rank": "bronze", "titleFr": "Cul vers l'herbe", "titleEn": "Ass to Grass", "threshold": 100 },
+        { "rank": "silver", "titleFr": "Genoux souples", "titleEn": "Soft Knees", "threshold": 500 },
+        { "rank": "gold", "titleFr": "Le Puits", "titleEn": "The Well", "threshold": 2500 },
+        { "rank": "platinum", "titleFr": "Sans barre", "titleEn": "No Bar", "threshold": 10000 },
+        { "rank": "diamond", "titleFr": "Le Puits éternel", "titleEn": "The Eternal Well", "threshold": 25000 }
+      ]
+    },
+    {
+      "slug": "bw_expert",
+      "sortOrder": 20,
+      "nameFr": "Expert du poids du corps",
+      "nameEn": "Bodyweight Expert",
+      "descriptionFr": "Min. des trois familles",
+      "descriptionEn": "Min. of the three family totals",
+      "metricType": "bw_expert",
+      "thresholdHintFr": "Atteindre {{target}} sur les trois",
+      "thresholdHintEn": "Reach {{target}} on all three",
+      "playgroundLabel": "Expert",
+      "tiers": [
+        { "rank": "bronze", "titleFr": "Le Trio", "titleEn": "The Trio", "threshold": 100 },
+        { "rank": "silver", "titleFr": "Équilibriste", "titleEn": "Tightrope", "threshold": 500 },
+        { "rank": "gold", "titleFr": "Sans machine", "titleEn": "No Machine", "threshold": 2500 },
+        { "rank": "platinum", "titleFr": "Calisthéniste", "titleEn": "Calisthenist", "threshold": 10000 },
+        { "rank": "diamond", "titleFr": "Expert du poids du corps", "titleEn": "Bodyweight Expert", "threshold": 25000 }
+      ]
+    },
+    {
+      "slug": "hundred_a_day",
+      "sortOrder": 21,
+      "nameFr": "100 jours ferme",
+      "nameEn": "Hard Time",
+      "descriptionFr": "Jours d'affilée en cours avec ≥100 pompes (famille)",
+      "descriptionEn": "Current consecutive days with ≥100 Pompes-family reps",
+      "metricType": "hundred_a_day",
+      "thresholdHintFr": "{{target}} jours d'affilée à 100+ pompes",
+      "thresholdHintEn": "{{target}} consecutive days at 100+ push-ups",
+      "playgroundLabel": "Hard Time",
+      "tiers": [
+        { "rank": "bronze", "titleFr": "Garde à vue", "titleEn": "In Custody", "threshold": 1 },
+        { "rank": "silver", "titleFr": "Préventive", "titleEn": "On Remand", "threshold": 10 },
+        { "rank": "gold", "titleFr": "Un mois ferme", "titleEn": "A Month Inside", "threshold": 30 },
+        { "rank": "platinum", "titleFr": "Mitard", "titleEn": "The Hole", "threshold": 60 },
+        { "rank": "diamond", "titleFr": "100 jours ferme", "titleEn": "Hard Time", "threshold": 100 }
+      ]
+    }
+  ]
+}

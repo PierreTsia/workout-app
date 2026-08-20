@@ -47,7 +47,12 @@
     "spidey": "Spidey",
     "olympians": "Olympus Summit",
     "heroes": "Heroes' Tour",
-    "pantheoniste": "Pantheoniste"
+    "pantheoniste": "Pantheoniste",
+    "push_ups": "Push-ups",
+    "pull_ups": "Pull-ups",
+    "bw_squats": "Bodyweight Squat",
+    "bw_expert": "Bodyweight Expert",
+    "hundred_a_day": "Hard Time"
   },
   "groupDescriptions": {
     "consistency_streak": "Total finished workout sessions",
@@ -65,7 +70,12 @@
     "spidey": "Best Cindy score in rounds",
     "olympians": "Min. runs across Zeus / Ares / Athena / Hades",
     "heroes": "Min. runs across Heracles / Theseus / Atlas / Achilles",
-    "pantheoniste": "Min. runs across the eight Greek seeds"
+    "pantheoniste": "Min. runs across the eight Greek seeds",
+    "push_ups": "Cumulative Pompes-family reps",
+    "pull_ups": "Cumulative Tractions-family reps",
+    "bw_squats": "Cumulative bodyweight-squat family reps",
+    "bw_expert": "Min. of the three family totals",
+    "hundred_a_day": "Current consecutive days with ≥100 Pompes-family reps"
   },
   "ceremonyEyebrow": "Unlocked",
   "ceremonyEyebrowCount": "{{count}} unlocked",
@@ -87,6 +97,11 @@
     "spidey": "Reach {{target}}",
     "olympians": "Reach {{target}}",
     "heroes": "Reach {{target}}",
-    "pantheoniste": "Reach {{target}}"
+    "pantheoniste": "Reach {{target}}",
+    "push_ups": "Accumulate {{target}} push-ups",
+    "pull_ups": "Accumulate {{target}} pull-ups",
+    "bw_squats": "Accumulate {{target}} bodyweight squats",
+    "bw_expert": "Reach {{target}} on all three",
+    "hundred_a_day": "{{target}} consecutive days at 100+ push-ups"
   }
 }

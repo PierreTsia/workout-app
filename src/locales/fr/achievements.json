@@ -47,7 +47,12 @@
     "spidey": "L'Araignée",
     "olympians": "Au sommet de l'Olympe",
     "heroes": "Le tour des Héros",
-    "pantheoniste": "Le Pantheoniste"
+    "pantheoniste": "Le Pantheoniste",
+    "push_ups": "Pompes",
+    "pull_ups": "Tractions",
+    "bw_squats": "Squat poids du corps",
+    "bw_expert": "Expert du poids du corps",
+    "hundred_a_day": "100 jours ferme"
   },
   "groupDescriptions": {
     "consistency_streak": "Nombre total de séances terminées",
@@ -65,7 +70,12 @@
     "spidey": "Meilleur score Cindy en tours",
     "olympians": "Min. de runs Zeus / Arès / Athéna / Hadès",
     "heroes": "Min. de runs Héraclès / Thésée / Atlas / Achille",
-    "pantheoniste": "Min. de runs sur les huit grecs"
+    "pantheoniste": "Min. de runs sur les huit grecs",
+    "push_ups": "Reps cumulées de la famille Pompes",
+    "pull_ups": "Reps cumulées de la famille Tractions",
+    "bw_squats": "Reps cumulées de la famille Squat PDC",
+    "bw_expert": "Min. des trois familles",
+    "hundred_a_day": "Jours d'affilée en cours avec ≥100 pompes (famille)"
   },
   "ceremonyEyebrow": "Débloqué",
   "ceremonyEyebrowCount": "{{count}} débloqués",
@@ -87,6 +97,11 @@
     "spidey": "Atteins {{target}}",
     "olympians": "Atteins {{target}}",
     "heroes": "Atteins {{target}}",
-    "pantheoniste": "Atteins {{target}}"
+    "pantheoniste": "Atteins {{target}}",
+    "push_ups": "Cumuler {{target}} pompes",
+    "pull_ups": "Cumuler {{target}} tractions",
+    "bw_squats": "Cumuler {{target}} squats au poids du corps",
+    "bw_expert": "Atteindre {{target}} sur les trois",
+    "hundred_a_day": "{{target}} jours d'affilée à 100+ pompes"
   }
 }
