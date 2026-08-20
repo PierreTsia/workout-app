@@ -55,6 +55,7 @@ import { shouldCloseCycleOnSessionFinish } from "@/lib/cycleCompletion"
 import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
+import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import {
   buildInitialSetRowsForExercise,
