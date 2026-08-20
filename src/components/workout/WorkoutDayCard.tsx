@@ -55,7 +55,9 @@ export function WorkoutDayCard({
   const { data: exercises } = useWorkoutExercises(shouldFetch ? day.id : null)
   const { data: blocks = [] } = useExerciseBlocks(shouldFetch ? day.id : null)
   const heatmapData = useAggregatedMuscles(exercises ?? [], blocks)
-  const { data: lastSession } = useLastSessionForDay(shouldFetch ? day.id : null)
+  const { data: lastSession } = useLastSessionForDay(
+    shouldFetch && !isCycleDone ? day.id : null,
+  )
 
   const sequenceBadge = sequenceItemBadge(
     exercises?.length ?? 0,

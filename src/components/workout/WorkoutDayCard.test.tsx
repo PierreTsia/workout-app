@@ -151,6 +151,13 @@ describe("WorkoutDayCard", () => {
     expect(screen.queryByText("12 sets")).not.toBeInTheDocument()
   })
 
+  it("does not fetch last-session data for a done-in-cycle card", () => {
+    stubDay({ blocks: fourCircuits() })
+    renderCard(true)
+
+    expect(useLastSessionForDay).toHaveBeenCalledWith(null)
+  })
+
   it("does not show the last-session date on a done-in-cycle card", () => {
     stubDay({ blocks: fourCircuits() })
     renderCard(true)
@@ -177,6 +184,7 @@ describe("WorkoutDayCard", () => {
     renderCard(false)
 
     expect(screen.getByText(/Last:/)).toBeInTheDocument()
+    expect(useLastSessionForDay).toHaveBeenCalledWith("day-1")
   })
 
   it("reuses exercise count copy for a solos-only day", () => {
