@@ -12,6 +12,7 @@ import {
   achievementShownIdsAtom,
   lastSessionBadgesAtom,
 } from "@/store/atoms"
+import { coerceNumeric } from "@/lib/achievementUtils"
 import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
 
@@ -973,6 +974,7 @@ async function processSessionFinish(
       const grantedAt = new Date().toISOString()
       const unlocked = (Array.isArray(data) ? data : []).map((row) => ({
         ...row,
+        threshold_value: coerceNumeric(row.threshold_value),
         granted_at: row.granted_at ?? grantedAt,
       }))
       if (unlocked.length > 0) {

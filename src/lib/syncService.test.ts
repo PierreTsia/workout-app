@@ -948,6 +948,43 @@ describe("SyncService", () => {
       expect(badgesSetCall?.[1]).toEqual(queued)
     })
 
+    it("coerces PostgREST NUMERIC strings on grant RPC rows", async () => {
+      mockRpc.mockImplementationOnce(() =>
+        rpcCall(
+          Promise.resolve({
+            data: [
+              {
+                tier_id: "tier-1",
+                group_slug: "consistency_streak",
+                rank: "bronze",
+                title_en: "The Sore Apprentice",
+                title_fr: "Apprenti Courbaturé",
+                icon_asset_url: null,
+                threshold_value: "3",
+              },
+            ],
+            error: null,
+          }),
+        ),
+      )
+
+      enqueueSessionFinish(makeSessionFinishPayload())
+
+      await drainQueue(USER_ID)
+
+      const queueSetCall = mockStore.set.mock.calls.find(
+        ([atom]) => atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM,
+      )
+      const queued = queueSetCall?.[1]
+      expect(Array.isArray(queued)).toBe(true)
+      if (!Array.isArray(queued)) return
+      expect(queued[0]).toEqual(
+        expect.objectContaining({
+          threshold_value: 3,
+        }),
+      )
+    })
+
     it("does not call RPC when session upsert fails", async () => {
       sessionsChain.then.mockImplementation(
         (resolve: (v: unknown) => void) =>

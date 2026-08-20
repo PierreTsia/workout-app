@@ -43,6 +43,14 @@ export function supportingOverflow(supporting: UnlockedAchievement[]): {
   return { visible, overflowCount }
 }
 
+/** PostgREST NUMERIC often arrives as a string. Domain values stay `number`. */
+export function coerceNumeric(value: unknown): number {
+  if (typeof value === "number" || typeof value === "string") {
+    return Number(value)
+  }
+  return Number.NaN
+}
+
 export function resolveActiveTitle(
   profile: UserProfile | null | undefined,
   rows: BadgeStatusRow[],

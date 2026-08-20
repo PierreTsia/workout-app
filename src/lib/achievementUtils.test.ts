@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { pickHero, supportingMedals, supportingOverflow } from "./achievementUtils"
+import {
+  coerceNumeric,
+  pickHero,
+  supportingMedals,
+  supportingOverflow,
+} from "./achievementUtils"
 import type { UnlockedAchievement } from "@/types/achievements"
 
 function makeUnlock(
@@ -92,5 +97,24 @@ describe("supportingOverflow", () => {
       visible: supporting,
       overflowCount: 0,
     })
+  })
+})
+
+describe("coerceNumeric", () => {
+  it("keeps finite numbers", () => {
+    expect(coerceNumeric(3)).toBe(3)
+    expect(coerceNumeric(5000.5)).toBe(5000.5)
+  })
+
+  it("parses PostgREST NUMERIC strings", () => {
+    expect(coerceNumeric("3")).toBe(3)
+    expect(coerceNumeric("5000.5")).toBe(5000.5)
+  })
+
+  it("returns NaN for junk so callers can hide the threshold line", () => {
+    expect(Number.isFinite(coerceNumeric("nope"))).toBe(false)
+    expect(Number.isFinite(coerceNumeric(null))).toBe(false)
+    expect(Number.isFinite(coerceNumeric(undefined))).toBe(false)
+    expect(Number.isFinite(coerceNumeric({}))).toBe(false)
   })
 })

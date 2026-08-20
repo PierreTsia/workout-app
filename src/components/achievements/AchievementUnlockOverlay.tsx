@@ -23,7 +23,7 @@ import {
 } from "@/store/atoms"
 import { cn } from "@/lib/utils"
 import { formatCompactNumber, formatDate } from "@/lib/formatters"
-import { pickHero, supportingMedals, supportingOverflow } from "@/lib/achievementUtils"
+import { coerceNumeric, pickHero, supportingMedals, supportingOverflow } from "@/lib/achievementUtils"
 import { CeremonyMedal } from "@/components/achievements/CeremonyMedal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -75,7 +75,7 @@ function CeremonyGrantMeta({
   locale: string
   t: (key: string, options?: { target?: string; date?: string }) => string
 }) {
-  const threshold = Number(item.threshold_value)
+  const threshold = coerceNumeric(item.threshold_value)
   const thresholdTarget = Number.isFinite(threshold)
     ? formatCompactNumber(threshold, locale)
     : null

@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
+import { coerceNumeric } from "@/lib/achievementUtils"
 import { pushAchievementsToQueue } from "@/lib/syncService"
 import type { UnlockedAchievement } from "@/types/achievements"
 
@@ -49,7 +50,7 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
             title_en: match.title_en,
             title_fr: match.title_fr,
             icon_asset_url: match.icon_asset_url,
-            threshold_value: match.threshold_value,
+            threshold_value: coerceNumeric(match.threshold_value),
             granted_at: grantedAt,
           }
           pushAchievementsToQueue([unlocked])
