@@ -5,8 +5,10 @@ import {
   useState,
   type CSSProperties,
 } from "react"
+import { Link } from "react-router-dom"
 import { useAtom, useSetAtom } from "jotai"
 import { useTranslation } from "react-i18next"
+import { ChevronRight } from "lucide-react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
   Dialog,
@@ -73,12 +75,26 @@ function CeremonyGrantMeta({
   locale: string
   t: (key: string, options?: { target?: string; date?: string }) => string
 }) {
-  const thresholdTarget = Number.isFinite(item.threshold_value)
-    ? formatCompactNumber(item.threshold_value, locale)
+  const threshold = Number(item.threshold_value)
+  const thresholdTarget = Number.isFinite(threshold)
+    ? formatCompactNumber(threshold, locale)
     : null
   return (
     <div className="flex flex-col items-center">
-      <div className="mt-3 flex items-center gap-2">
+      {thresholdTarget !== null && (
+        <p
+          className="mt-3 text-center text-base font-semibold"
+          style={{ color: rankChipHex[item.rank] }}
+        >
+          {t(`thresholdHint.${item.group_slug}`, { target: thresholdTarget })}
+        </p>
+      )}
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          thresholdTarget !== null ? "mt-2" : "mt-3",
+        )}
+      >
         <Badge
           variant="outline"
           className="rounded-md border-transparent bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
@@ -90,17 +106,41 @@ function CeremonyGrantMeta({
           {t(`groups.${item.group_slug}`)}
         </span>
       </div>
-      {thresholdTarget !== null && (
-        <p className="mt-2 text-center text-sm text-white/55">
-          {t(`thresholdHint.${item.group_slug}`, { target: thresholdTarget })}
-        </p>
-      )}
-      <p className="mt-1 text-center text-xs text-white/40">
+      <p className="mt-1.5 text-center text-xs text-white/40">
         {t("unlockedOn", {
           date: unlockDateLabel(item.granted_at, locale),
         })}
       </p>
     </div>
+  )
+}
+
+function CeremonySeeAllLink({
+  onNavigate,
+  compact = false,
+}: {
+  onNavigate: () => void
+  compact?: boolean
+}) {
+  const { t } = useTranslation("achievements")
+  return (
+    <Link
+      to="/achievements"
+      onClick={(event) => {
+        event.stopPropagation()
+        onNavigate()
+      }}
+      className={cn(
+        "inline-flex items-center font-medium text-white/70 underline-offset-4 hover:text-white hover:underline",
+        compact ? "mt-1 gap-0.5 text-[10px]" : "mt-3 gap-0.5 text-xs",
+      )}
+    >
+      {t("showcaseSeeAll")}
+      <ChevronRight
+        aria-hidden
+        className={compact ? "size-3" : "size-3.5"}
+      />
+    </Link>
   )
 }
 
@@ -301,6 +341,7 @@ export function AchievementUnlockOverlay() {
               {title}
             </DialogTitle>
             <CeremonyGrantMeta item={hero} locale={i18n.language} t={t} />
+            <CeremonySeeAllLink onNavigate={dismiss} />
 
             {overlapping && (
               <div
@@ -317,6 +358,7 @@ export function AchievementUnlockOverlay() {
                   locale={i18n.language}
                   t={t}
                 />
+                <CeremonySeeAllLink onNavigate={dismiss} />
               </div>
             )}
 
@@ -356,6 +398,7 @@ export function AchievementUnlockOverlay() {
                           date: unlockDateLabel(item.granted_at, i18n.language),
                         })}
                       </p>
+                      <CeremonySeeAllLink compact onNavigate={dismiss} />
                     </li>
                   )
                 })}

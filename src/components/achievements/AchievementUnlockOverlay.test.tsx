@@ -98,6 +98,9 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.getByText("Gold")).toBeInTheDocument()
     expect(screen.getByText("Volume")).toBeInTheDocument()
     expect(screen.getByText("Lift 5,000 kg total")).toBeInTheDocument()
+    expect(screen.getByText("Lift 5,000 kg total")).toHaveStyle({
+      color: "#F0C014",
+    })
     expect(screen.getByText(/Unlocked on/)).toBeInTheDocument()
     expect(screen.getByText("Tap to continue")).toBeInTheDocument()
     expect(
@@ -106,6 +109,27 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
     expect(screen.getByRole("dialog").textContent).toContain("GYMLOGIC")
     expect(screen.getByRole("dialog").textContent).not.toContain("🏆")
+  })
+
+  it("paints the threshold hint in the grant's rank metal color", () => {
+    renderCeremony([
+      makeUnlock({
+        rank: "platinum",
+        title_en: "Steel Forger",
+      }),
+    ])
+
+    expect(screen.getByText("Lift 5,000 kg total")).toHaveStyle({
+      color: "#93c5fd",
+    })
+  })
+
+  it("links the solo hero card to the achievements page", () => {
+    renderCeremony([makeUnlock()])
+
+    const links = screen.getAllByRole("link", { name: /see all/i })
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAttribute("href", "/achievements")
   })
 
   it("treats Silver as the only hero when a Bronze grant overlaps it", () => {
@@ -137,12 +161,41 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.getByText("Bronze")).toBeInTheDocument()
     expect(screen.getByText("Volume")).toBeInTheDocument()
     expect(screen.getByText("Consistency")).toBeInTheDocument()
-    expect(screen.getByText(/Lift .* kg total/)).toBeInTheDocument()
-    expect(screen.getByText("Complete 3 sessions")).toBeInTheDocument()
+    expect(screen.getByText(/Lift .* kg total/)).toHaveStyle({
+      color: "#c8c8dc",
+    })
+    expect(screen.getByText("Complete 3 sessions")).toHaveStyle({
+      color: "#C26A16",
+    })
     expect(screen.getByText("First Steps")).toBeInTheDocument()
     expect(screen.getAllByText(/Unlocked on/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByLabelText("First Steps")).toBeInTheDocument()
     expect(screen.getAllByRole("heading")).toHaveLength(1)
+  })
+
+  it("links both 2-up cards to the achievements page", () => {
+    renderCeremony([
+      makeUnlock({
+        tier_id: "bronze",
+        rank: "bronze",
+        title_en: "First Steps",
+        group_slug: "consistency_streak",
+        threshold_value: 3,
+      }),
+      makeUnlock({
+        tier_id: "silver",
+        rank: "silver",
+        title_en: "Quiet Strength",
+        group_slug: "volume_king",
+        threshold_value: 10_000,
+      }),
+    ])
+
+    const links = screen.getAllByRole("link", { name: /see all/i })
+    expect(links).toHaveLength(2)
+    expect(links.every((link) => link.getAttribute("href") === "/achievements")).toBe(
+      true,
+    )
   })
 
   it("shows a Diamond hero with three supporting medals in one row, not a 2×2", () => {
@@ -183,7 +236,7 @@ describe("AchievementUnlockOverlay", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("Diamond")).toBeInTheDocument()
     expect(screen.getByText("Spidey")).toBeInTheDocument()
-    expect(screen.getByText("Reach 27")).toBeInTheDocument()
+    expect(screen.getByText("Reach 27")).toHaveStyle({ color: "#a855f7" })
     expect(screen.getAllByRole("heading")).toHaveLength(1)
     expect(screen.getAllByRole("listitem")).toHaveLength(3)
     expect(
@@ -196,6 +249,45 @@ describe("AchievementUnlockOverlay", () => {
       screen.getByRole("listitem", { name: /Volume King/ }),
     ).toBeInTheDocument()
     expect(screen.getAllByText(/Unlocked on/)).toHaveLength(4)
+  })
+
+  it("links the hero and each supporting-row card to the achievements page", () => {
+    renderCeremony([
+      makeUnlock({
+        tier_id: "bronze",
+        rank: "bronze",
+        title_en: "First Steps",
+        group_slug: "consistency_streak",
+        threshold_value: 3,
+      }),
+      makeUnlock({
+        tier_id: "silver",
+        rank: "silver",
+        title_en: "Quiet Strength",
+        group_slug: "rhythm_master",
+        threshold_value: 12,
+      }),
+      makeUnlock({
+        tier_id: "gold",
+        rank: "gold",
+        title_en: "Volume King",
+        group_slug: "volume_king",
+        threshold_value: 5000,
+      }),
+      makeUnlock({
+        tier_id: "diamond",
+        rank: "diamond",
+        title_en: "The Spider",
+        group_slug: "spidey",
+        threshold_value: 27,
+      }),
+    ])
+
+    const links = screen.getAllByRole("link", { name: /see all/i })
+    expect(links).toHaveLength(4)
+    links.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/achievements")
+    })
   })
 
   it("shows a +N overflow tile when more than three supporting medals", () => {
@@ -226,6 +318,32 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.getByText("+2")).toBeInTheDocument()
     expect(screen.getAllByRole("listitem")).toHaveLength(4)
     expect(screen.getAllByText(/Unlocked on/)).toHaveLength(4)
+  })
+
+  it("does not put a See all link on the overflow tile", () => {
+    const extras = ["s1", "s2", "s3", "s4", "s5"].map((id) =>
+      makeUnlock({
+        tier_id: id,
+        rank: "gold",
+        title_en: `Support ${id}`,
+        group_slug: "volume_king",
+        threshold_value: 5000,
+      }),
+    )
+    renderCeremony([
+      makeUnlock({
+        tier_id: "diamond",
+        rank: "diamond",
+        title_en: "The Spider",
+        group_slug: "spidey",
+        threshold_value: 27,
+      }),
+      ...extras,
+    ])
+
+    expect(screen.getAllByRole("link", { name: /see all/i })).toHaveLength(4)
+    const overflow = screen.getByRole("listitem", { name: "+2" })
+    expect(overflow.querySelector("a")).toBeNull()
   })
 
   it("dismisses the whole batch when the overlay is tapped", async () => {
@@ -332,6 +450,20 @@ describe("AchievementUnlockOverlay", () => {
       screen.getByRole("heading", { name: "Volume King" }),
     ).toBeInTheDocument()
     expect(store.get(achievementUnlockQueueAtom)).toEqual(batch)
+  })
+
+  it("dismisses the batch when See all is clicked instead of leaving the overlay stuck", async () => {
+    const user = userEvent.setup()
+    const batch = [makeUnlock({ tier_id: "tier-gold" })]
+    const { store } = renderCeremony(batch)
+    setAuthed(store)
+
+    await user.click(screen.getByRole("link", { name: /see all/i }))
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(store.get(achievementUnlockQueueAtom)).toEqual([])
+    expect(store.get(achievementShownIdsAtom)).toEqual(new Set(["tier-gold"]))
+    expect(mockUpdate).not.toHaveBeenCalled()
   })
 
   it("equips the hero tier id when Equip title is clicked", async () => {
