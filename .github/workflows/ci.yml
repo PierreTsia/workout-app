@@ -86,7 +86,13 @@ jobs:
       # by `tools/registry.ts`). Local Deno auto-installs; the CI runner is
       # clean by default, so we have to opt in explicitly. Without this flag
       # the type-check phase fails with `Could not find "@types/node"`.
+      # `DENO_NO_PACKAGE_JSON=1` keeps that graph off the SPA `package.json`.
+      # Deno 2.9's 24h min-dep-age otherwise tries to install Vite's
+      # `@rolldown/binding-*` optional natives (including darwin-x64 on
+      # ubuntu) and fails when the version is <24h old.
       - run: deno test --node-modules-dir=auto "supabase/functions/**/*_test.ts" --allow-env
+        env:
+          DENO_NO_PACKAGE_JSON: "1"
 
   e2e:
     runs-on: ubuntu-latest
