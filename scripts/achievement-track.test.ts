@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest"
 import {
   mergeAchievementI18n,
   parseManifest,
+  parseSlugs,
   planIconAssets,
   prepareRpcSeed,
   renderArchTest,
@@ -46,6 +47,14 @@ describe("parseManifest", () => {
     }
 
     expect(() => parseManifest(broken)).toThrow()
+  })
+
+  it("rejects nested or punctuated slugs", () => {
+    expect(() => parseSlugs(["push_ups", "foo/bar"])).toThrow(/invalid slugs/)
+    expect(parseSlugs(["push_ups", "bw_expert"])).toEqual([
+      "push_ups",
+      "bw_expert",
+    ])
   })
 })
 

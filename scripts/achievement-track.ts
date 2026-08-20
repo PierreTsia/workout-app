@@ -16,6 +16,7 @@ import {
   iconMigrationFilename,
   nextMigrationTimestamp,
   parseManifest,
+  parseSlugs,
   planIconAssets,
   prepareRpcSeed,
   renderArchTest,
@@ -211,7 +212,7 @@ const runPrepareRpc = async (): Promise<void> => {
 const resolveSlugs = async (): Promise<string[]> => {
   const fromFlag = flagValue("slugs")
   if (fromFlag) {
-    return fromFlag.split(",").map((slug) => slug.trim()).filter(Boolean)
+    return parseSlugs(fromFlag.split(","))
   }
   const manifestPath = flagValue("manifest")
   const manifest = await loadManifest(

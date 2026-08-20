@@ -84,7 +84,7 @@
       "descriptionFr": "Reps cumulées de la famille Squat PDC",
       "descriptionEn": "Cumulative bodyweight-squat family reps",
       "metricType": "bw_squats",
-      "thresholdHintFr": "Cumuler {{target}} squats poids du corps",
+      "thresholdHintFr": "Cumuler {{target}} squats au poids du corps",
       "thresholdHintEn": "Accumulate {{target}} bodyweight squats",
       "playgroundLabel": "Squat",
       "family": {

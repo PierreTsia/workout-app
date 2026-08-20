@@ -128,7 +128,7 @@ describe("bodyweight trinity achievement tracks migration (#509 / T220)", () => 
     ).toBe(true)
   })
 
-  it("keeps family_rep_totals and push_up_ids identical in both RPCs", () => {
+  it("keeps family CTEs and hundred_a_day_current identical in both RPCs", () => {
     const grantBody = extractFunctionBody(
       bodyweightSql,
       "check_and_grant_achievements",
@@ -138,18 +138,21 @@ describe("bodyweight trinity achievement tracks migration (#509 / T220)", () => 
     expect(grantBody.length).toBeGreaterThan(0)
     expect(statusBody.length).toBeGreaterThan(0)
 
-    expect(normalizeSql(extractNamedCte(grantBody, "family_rep_totals"))).toBe(
-      normalizeSql(extractNamedCte(statusBody, "family_rep_totals")),
-    )
-    expect(normalizeSql(extractNamedCte(grantBody, "push_up_ids"))).toBe(
-      normalizeSql(extractNamedCte(statusBody, "push_up_ids")),
-    )
-    expect(
-      normalizeSql(extractNamedCte(grantBody, "family_rep_totals")).length,
-    ).toBeGreaterThan(0)
-    expect(
-      normalizeSql(extractNamedCte(grantBody, "push_up_ids")).length,
-    ).toBeGreaterThan(0)
+    const parityCtes = [
+      "family_rep_totals",
+      "push_up_ids",
+      "pull_up_ids",
+      "bw_squat_ids",
+      "qualifying_push_days",
+      "hundred_a_day_current",
+    ] as const
+
+    parityCtes.forEach((cteName) => {
+      const grantCte = normalizeSql(extractNamedCte(grantBody, cteName))
+      const statusCte = normalizeSql(extractNamedCte(statusBody, cteName))
+      expect(grantCte.length).toBeGreaterThan(0)
+      expect(grantCte).toBe(statusCte)
+    })
   })
 
   it("uses a live hundred_a_day chain with yesterday grace, not MAX(streak_len)", () => {

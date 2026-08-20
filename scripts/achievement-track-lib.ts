@@ -11,6 +11,8 @@ export const RANKS = [
 
 export type AchievementRank = (typeof RANKS)[number]
 
+export const SLUG_RE = /^[a-z][a-z0-9_]*$/
+
 export const PROD_BADGE_ICON_PUBLIC_BASE =
   "https://favusepjqwpcroiolvaz.supabase.co/storage/v1/object/public/badge-icons"
 
@@ -34,7 +36,7 @@ const tierSchema = z.object({
 
 const groupSchema = z
   .object({
-    slug: z.string().regex(/^[a-z][a-z0-9_]*$/),
+    slug: z.string().regex(SLUG_RE),
     sortOrder: z.number().int().positive(),
     nameFr: z.string().min(1),
     nameEn: z.string().min(1),
@@ -66,6 +68,15 @@ export type AchievementTrackGroup = AchievementTrackManifest["groups"][number]
 
 export const parseManifest = (raw: unknown): AchievementTrackManifest =>
   manifestSchema.parse(raw)
+
+export const parseSlugs = (raw: readonly string[]): string[] => {
+  const slugs = raw.map((slug) => slug.trim()).filter(Boolean)
+  const invalid = slugs.filter((slug) => !SLUG_RE.test(slug))
+  if (invalid.length > 0) {
+    throw new Error(`invalid slugs: ${invalid.join(", ")}`)
+  }
+  return slugs
+}
 
 const sqlLit = (value: string): string => `'${value.replaceAll("'", "''")}'`
 
