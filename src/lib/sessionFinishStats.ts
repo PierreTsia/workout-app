@@ -7,7 +7,43 @@ import type {
   WorkoutExercise,
 } from "@/types/database"
 
-export function countSoloSetsDone(
+export type SessionProgressInput = {
+  exercises: WorkoutExercise[]
+  setsData: Record<string, SessionSetRow[]>
+  blocks: ExerciseBlockWithExercises[]
+  completedBlockIds: ReadonlySet<string>
+  persistedLogs: SetLog[]
+  queuedPayloads: SetLogPayload[]
+}
+
+export type SessionProgress = {
+  setsDone: number
+  slotsCompleted: number
+  hasSkipped: boolean
+  totalSlots: number
+}
+
+export function sessionProgress(input: SessionProgressInput): SessionProgress {
+  const incompleteBlockCount = input.blocks.filter(
+    (b) => !input.completedBlockIds.has(b.id),
+  ).length
+  return {
+    setsDone:
+      countSoloSetsDone(input.exercises, input.setsData) +
+      countBlockSetsDone(input.persistedLogs, input.queuedPayloads),
+    slotsCompleted:
+      countSoloExercisesCompleted(input.exercises, input.setsData) +
+      input.completedBlockIds.size,
+    hasSkipped: sessionHasSkippedSets(
+      input.exercises,
+      input.setsData,
+      incompleteBlockCount,
+    ),
+    totalSlots: input.exercises.length + input.blocks.length,
+  }
+}
+
+function countSoloSetsDone(
   exercises: WorkoutExercise[],
   setsData: Record<string, SessionSetRow[]>,
 ): number {
@@ -17,25 +53,24 @@ export function countSoloSetsDone(
 }
 
 /** Unique block cells logged (persisted + still queued), including partial circuits. */
-export function countBlockSetsDone(
+function countBlockSetsDone(
   persistedLogs: SetLog[],
   queuedPayloads: SetLogPayload[],
 ): number {
-  const keys = new Set<string>()
-  for (const log of persistedLogs) {
-    if (log.block_exercise_id != null) {
-      keys.add(blockCellKey(log.block_exercise_id, log.set_number))
-    }
-  }
-  for (const payload of queuedPayloads) {
-    if (payload.blockExerciseId != null) {
-      keys.add(blockCellKey(payload.blockExerciseId, payload.setNumber))
-    }
-  }
-  return keys.size
+  const fromLogs = persistedLogs.flatMap((log) =>
+    log.block_exercise_id != null
+      ? [blockCellKey(log.block_exercise_id, log.set_number)]
+      : [],
+  )
+  const fromQueue = queuedPayloads.flatMap((payload) =>
+    payload.blockExerciseId != null
+      ? [blockCellKey(payload.blockExerciseId, payload.setNumber)]
+      : [],
+  )
+  return new Set([...fromLogs, ...fromQueue]).size
 }
 
-export function countSoloExercisesCompleted(
+function countSoloExercisesCompleted(
   exercises: WorkoutExercise[],
   setsData: Record<string, SessionSetRow[]>,
 ): number {
@@ -45,23 +80,7 @@ export function countSoloExercisesCompleted(
   }).length
 }
 
-export function countBlocksCompleted(completedBlockIds: ReadonlySet<string>): number {
-  return completedBlockIds.size
-}
-
-export function countSessionSlots(
-  exercises: WorkoutExercise[],
-  blocks: ExerciseBlockWithExercises[],
-): number {
-  return exercises.length + blocks.length
-}
-
-/**
- * True when the finish payload should set `sessions.has_skipped_sets`.
- * Solo set rows alone are not enough: an unfinished circuit never appears
- * in `setsData`, so incomplete blocks must count as skipped work too.
- */
-export function sessionHasSkippedSets(
+function sessionHasSkippedSets(
   exercises: WorkoutExercise[],
   setsData: Record<string, SessionSetRow[]>,
   incompleteBlockCount: number,

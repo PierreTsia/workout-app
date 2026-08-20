@@ -1,11 +1,96 @@
 import { describe, it, expect } from "vitest"
-import {
-  countBlockSetsDone,
-  countSessionSlots,
-  countSoloSetsDone,
-  sessionHasSkippedSets,
-} from "@/lib/sessionFinishStats"
-import type { SetLog, WorkoutExercise } from "@/types/database"
+import { sessionProgress } from "@/lib/sessionFinishStats"
+import type { SessionSetRow } from "@/lib/sessionSetRow"
+import type { SetLogPayloadReps } from "@/lib/syncService"
+import type {
+  ExerciseBlockWithExercises,
+  SetLog,
+  WorkoutExercise,
+} from "@/types/database"
+
+function makeQueued(
+  overrides: Partial<SetLogPayloadReps> = {},
+): SetLogPayloadReps {
+  return {
+    sessionId: "local-1",
+    exerciseId: "ex-1",
+    exerciseNameSnapshot: "Push",
+    setNumber: 1,
+    repsLogged: "10",
+    weightLogged: 0,
+    estimatedOneRM: 0,
+    wasPr: false,
+    loggedAt: 1,
+    ...overrides,
+  }
+}
+
+function makeSetLog(overrides: Partial<SetLog> = {}): SetLog {
+  return {
+    id: "log-1",
+    session_id: "s1",
+    exercise_id: "e1",
+    block_exercise_id: null,
+    workout_exercise_id: null,
+    exercise_name_snapshot: "Push",
+    set_number: 1,
+    reps_logged: "10",
+    duration_seconds: null,
+    weight_logged: 0,
+    estimated_1rm: null,
+    was_pr: false,
+    logged_at: "2026-01-01T00:00:00Z",
+    rir: null,
+    rest_seconds: null,
+    prescribed_reps: null,
+    prescribed_weight: null,
+    prescribed_sets: null,
+    prescribed_duration_seconds: null,
+    ...overrides,
+  }
+}
+
+function makeBlock(
+  overrides: Partial<ExerciseBlockWithExercises> = {},
+): ExerciseBlockWithExercises {
+  return {
+    id: "blk-cindy",
+    workout_day_id: "day-1",
+    label: "Cindy",
+    rounds: 1,
+    rest_seconds: 0,
+    transition_seconds: 0,
+    mode: "amrap",
+    cap_seconds: 1200,
+    sort_order: 0,
+    created_at: "2026-01-01",
+    exercises: [
+      {
+        id: "be-1",
+        block_id: "blk-cindy",
+        exercise_id: "e1",
+        name_snapshot: "Pull-up",
+        muscle_snapshot: "back",
+        emoji_snapshot: "🏋️",
+        position: 0,
+        per_round: [],
+        exercise: null,
+      },
+      {
+        id: "be-2",
+        block_id: "blk-cindy",
+        exercise_id: "e2",
+        name_snapshot: "Push-up",
+        muscle_snapshot: "chest",
+        emoji_snapshot: "💪",
+        position: 1,
+        per_round: [],
+        exercise: null,
+      },
+    ],
+    ...overrides,
+  }
+}
 
 const solo = (overrides: Partial<WorkoutExercise> = {}): WorkoutExercise => ({
   id: "x",
@@ -29,157 +114,152 @@ const solo = (overrides: Partial<WorkoutExercise> = {}): WorkoutExercise => ({
   ...overrides,
 })
 
-describe("sessionFinishStats", () => {
-  it("counts solo sets from setsData", () => {
-    expect(
-      countSoloSetsDone([solo({ id: "a" })], {
+function hold(done: boolean): SessionSetRow {
+  return {
+    kind: "duration",
+    targetSeconds: 45,
+    weight: "0",
+    done,
+    timerStartedAt: null,
+  }
+}
+
+describe("sessionProgress", () => {
+  it("counts AMRAP setsDone as unique logged cells, not rounds × exercises", () => {
+    const cindy = makeBlock()
+    const progress = sessionProgress({
+      exercises: [],
+      setsData: {},
+      blocks: [cindy],
+      completedBlockIds: new Set([cindy.id]),
+      persistedLogs: [],
+      queuedPayloads: [
+        makeQueued({ blockExerciseId: "be-1", setNumber: 1, loggedAt: 1 }),
+        makeQueued({
+          blockExerciseId: "be-2",
+          setNumber: 1,
+          exerciseId: "ex-2",
+          loggedAt: 2,
+        }),
+        makeQueued({ blockExerciseId: "be-1", setNumber: 2, loggedAt: 3 }),
+        makeQueued({
+          blockExerciseId: "be-2",
+          setNumber: 2,
+          exerciseId: "ex-2",
+          loggedAt: 4,
+        }),
+        makeQueued({ blockExerciseId: "be-1", setNumber: 3, loggedAt: 5 }),
+      ],
+    })
+    expect(progress.setsDone).toBe(5)
+    expect(cindy.rounds * cindy.exercises.length).toBe(2)
+  })
+
+  it("counts done solo rows toward setsDone", () => {
+    const progress = sessionProgress({
+      exercises: [solo({ id: "a" })],
+      setsData: {
         a: [
           { kind: "reps", done: true, reps: "10", weight: "0" },
           { kind: "reps", done: false, reps: "10", weight: "0" },
         ],
-      }),
-    ).toBe(1)
+      },
+      blocks: [],
+      completedBlockIds: new Set(),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.setsDone).toBe(1)
   })
 
   it("dedupes block cells across persisted logs and the offline queue", () => {
-    const logs = [
-      {
-        block_exercise_id: "be-1",
-        set_number: 1,
-      },
-    ] as SetLog[]
-    const queued = [
-      {
-        sessionId: "local-1",
-        exerciseId: "ex-1",
-        blockExerciseId: "be-1",
-        setNumber: 1,
-        exerciseNameSnapshot: "Push",
-        repsLogged: "10",
-        weightLogged: 0,
-        estimatedOneRM: 0,
-        wasPr: false,
-        loggedAt: 1,
-      },
-      {
-        sessionId: "local-1",
-        exerciseId: "ex-2",
-        blockExerciseId: "be-2",
-        setNumber: 1,
-        exerciseNameSnapshot: "Pull",
-        repsLogged: "10",
-        weightLogged: 0,
-        estimatedOneRM: 0,
-        wasPr: false,
-        loggedAt: 2,
-      },
-    ]
-    expect(countBlockSetsDone(logs, queued)).toBe(2)
+    const progress = sessionProgress({
+      exercises: [],
+      setsData: {},
+      blocks: [makeBlock()],
+      completedBlockIds: new Set(),
+      persistedLogs: [
+        makeSetLog({
+          id: "log-be-1",
+          block_exercise_id: "be-1",
+          set_number: 1,
+        }),
+      ],
+      queuedPayloads: [
+        makeQueued({ blockExerciseId: "be-1", setNumber: 1, loggedAt: 1 }),
+        makeQueued({
+          blockExerciseId: "be-2",
+          setNumber: 1,
+          exerciseId: "ex-2",
+          loggedAt: 2,
+        }),
+      ],
+    })
+    expect(progress.setsDone).toBe(2)
   })
 
-  it("counts session slots as solos plus blocks", () => {
-    expect(
-      countSessionSlots([solo({ id: "a" })], [
-        {
-          id: "blk-1",
-          workout_day_id: "day-1",
-          label: null,
-          rounds: 2,
-          rest_seconds: 0,
-          transition_seconds: 0,
-          mode: "rounds",
-          cap_seconds: null,
-          sort_order: 1,
-          created_at: "2026-01-01",
-          exercises: [],
-        },
-      ]),
-    ).toBe(2)
-  })
-
-  // Repro: circuit → plank → circuit. All solo plank sets done, trailing
-  // Finisher never started → sessions.has_skipped_sets must be true.
-  it("is true when all solo sets are done but a circuit remains incomplete", () => {
+  it("marks unfinished circuit as skipped even when every solo set is done", () => {
     const plank = solo({ id: "plank" })
-    expect(
-      sessionHasSkippedSets(
-        [plank],
-        {
-          plank: [
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: true,
-              timerStartedAt: null,
-            },
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: true,
-              timerStartedAt: null,
-            },
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: true,
-              timerStartedAt: null,
-            },
-          ],
-        },
-        1,
-      ),
-    ).toBe(true)
+    const progress = sessionProgress({
+      exercises: [plank],
+      setsData: { plank: [hold(true)] },
+      blocks: [makeBlock()],
+      completedBlockIds: new Set(),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.hasSkipped).toBe(true)
   })
 
-  it("is false when every solo set is done and no circuit is incomplete", () => {
+  it("is not skipped when every solo set is done and no circuit is incomplete", () => {
     const plank = solo({ id: "plank" })
-    expect(
-      sessionHasSkippedSets(
-        [plank],
-        {
-          plank: [
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: true,
-              timerStartedAt: null,
-            },
-          ],
-        },
-        0,
-      ),
-    ).toBe(false)
+    const progress = sessionProgress({
+      exercises: [plank],
+      setsData: { plank: [hold(true)] },
+      blocks: [],
+      completedBlockIds: new Set(),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.hasSkipped).toBe(false)
   })
 
-  it("is true when a solo set is left undone", () => {
+  it("is skipped when a solo set is left undone", () => {
     const plank = solo({ id: "plank" })
-    expect(
-      sessionHasSkippedSets(
-        [plank],
-        {
-          plank: [
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: true,
-              timerStartedAt: null,
-            },
-            {
-              kind: "duration",
-              targetSeconds: 45,
-              weight: "0",
-              done: false,
-              timerStartedAt: null,
-            },
-          ],
-        },
-        0,
-      ),
-    ).toBe(true)
+    const progress = sessionProgress({
+      exercises: [plank],
+      setsData: { plank: [hold(true), hold(false)] },
+      blocks: [],
+      completedBlockIds: new Set(),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.hasSkipped).toBe(true)
+  })
+
+  it("counts totalSlots as solos plus blocks", () => {
+    const progress = sessionProgress({
+      exercises: [solo({ id: "a" })],
+      setsData: {},
+      blocks: [makeBlock()],
+      completedBlockIds: new Set(),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.totalSlots).toBe(2)
+  })
+
+  it("counts slotsCompleted as finished solos plus completed circuits", () => {
+    const plank = solo({ id: "plank" })
+    const cindy = makeBlock()
+    const progress = sessionProgress({
+      exercises: [plank],
+      setsData: { plank: [hold(true)] },
+      blocks: [cindy],
+      completedBlockIds: new Set([cindy.id]),
+      persistedLogs: [],
+      queuedPayloads: [],
+    })
+    expect(progress.slotsCompleted).toBe(2)
   })
 })
