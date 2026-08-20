@@ -859,6 +859,13 @@ describe("SyncService", () => {
       expect(mockRpc).toHaveBeenCalledWith("check_and_grant_achievements", {
         p_user_id: USER_ID,
       })
+      expect(
+        mockStore.set.mock.calls.some(
+          ([atom]) =>
+            atom === ACHIEVEMENT_UNLOCK_QUEUE_ATOM ||
+            atom === LAST_SESSION_BADGES_ATOM,
+        ),
+      ).toBe(false)
     })
 
     it("returns true even when achievement RPC fails", async () => {
@@ -906,6 +913,11 @@ describe("SyncService", () => {
         .map(([, val]) => val)
       expect(statusCalls).toContain("synced")
       expect(statusCalls).not.toContain("failed")
+      expect(
+        mockStore.set.mock.calls.some(
+          ([atom]) => atom === LAST_SESSION_BADGES_ATOM,
+        ),
+      ).toBe(false)
     })
 
     it("pushes RPC response into achievement queue and lastSessionBadgesAtom", async () => {
@@ -918,6 +930,15 @@ describe("SyncService", () => {
           title_fr: "Apprenti Courbaturé",
           icon_asset_url: null,
           threshold_value: 3,
+        },
+        {
+          tier_id: "tier-push-bronze",
+          group_slug: "push_ups",
+          rank: "bronze",
+          title_en: "Nose to Floor",
+          title_fr: "Nez au sol",
+          icon_asset_url: null,
+          threshold_value: 100,
         },
       ]
       mockRpc.mockImplementationOnce(() =>
@@ -934,13 +955,17 @@ describe("SyncService", () => {
       const queued = queueSetCall?.[1]
       expect(Array.isArray(queued)).toBe(true)
       if (!Array.isArray(queued)) return
-      expect(queued).toHaveLength(1)
-      expect(queued[0]).toEqual(
+      expect(queued).toHaveLength(2)
+      expect(queued).toEqual([
         expect.objectContaining({
           ...mockBadges[0],
           granted_at: expect.any(String),
         }),
-      )
+        expect.objectContaining({
+          ...mockBadges[1],
+          granted_at: expect.any(String),
+        }),
+      ])
 
       const badgesSetCall = mockStore.set.mock.calls.find(
         ([atom]) => atom === LAST_SESSION_BADGES_ATOM,

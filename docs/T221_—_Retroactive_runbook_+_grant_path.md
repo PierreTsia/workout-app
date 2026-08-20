@@ -27,6 +27,12 @@ T220 (RPCs must expose the new metrics before retroactive grant is meaningful).
 | Behavior | Silent `user_achievements` inserts; overlay not required for catch-up (Realtime gate). **Live chain:** a broken historical 100-day island does **not** grant `hundred_a_day` diamond — that is the Tech Plan lock, not a script bug |
 | Ticket/PR note | One-line runbook: migrate T220 → run script (service role / trusted) → optional next finish for overlay |
 
+### Ops runbook (post-migrate)
+
+After applying the **Bodyweight Trinity** migration (T220), run `file:scripts/retroactive-badge-grant.sql` once (SQL Editor / service role). Same script as **#482**; do not invent a second file. Idempotent; silent grants. Overlay not required for catch-up — optional next session finish still grants remaining tiers via the normal RPC path.
+
+Live chain: a broken historical 100-day island does **not** grant `hundred_a_day` diamond — that is the Tech Plan lock, not a script bug.
+
 ### Grant path regression
 
 | File | Change |
@@ -43,11 +49,11 @@ T220 (RPCs must expose the new metrics before retroactive grant is meaningful).
 
 ## Acceptance Criteria
 
-- [ ] `scripts/retroactive-badge-grant.sql` header documents #509 (and still #482)
-- [ ] PR description or ticket checklist includes: run that script after applying the Bodyweight Trinity migration
-- [ ] `syncService` tests still assert RPC-on-finish, non-critical failure, and queue/`lastSessionBadgesAtom` push
-- [ ] No change that makes badge RPC failure fail `processSessionFinish`
-- [ ] Vitest for syncService green with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
+- [x] `scripts/retroactive-badge-grant.sql` header documents #509 (and still #482)
+- [x] PR description or ticket checklist includes: run that script after applying the Bodyweight Trinity migration
+- [x] `syncService` tests still assert RPC-on-finish, non-critical failure, and queue/`lastSessionBadgesAtom` push
+- [x] No change that makes badge RPC failure fail `processSessionFinish`
+- [x] Vitest for syncService green with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
 
 ## References
 
