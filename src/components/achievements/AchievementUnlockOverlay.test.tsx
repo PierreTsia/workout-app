@@ -111,6 +111,18 @@ describe("AchievementUnlockOverlay", () => {
     expect(screen.getByRole("dialog").textContent).not.toContain("🏆")
   })
 
+  it("still shows the threshold hint when PostgREST sends NUMERIC as a string", () => {
+    renderCeremony([
+      makeUnlock({
+        // PostgREST NUMERIC arrives as a string even though UnlockedAchievement says number.
+        // @ts-expect-error — simulating the wire payload, not a type-level grant.
+        threshold_value: "5000",
+      }),
+    ])
+
+    expect(screen.getByText("Lift 5,000 kg total")).toBeInTheDocument()
+  })
+
   it("paints the threshold hint in the grant's rank metal color", () => {
     renderCeremony([
       makeUnlock({
