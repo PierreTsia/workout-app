@@ -125,7 +125,20 @@ The **Embedded Agent**-backed AI generation path triggered from `QuickWorkoutShe
 
 ---
 
+## Programs & cycles
+
+**Cycle**:
+One pass through every day of a **Program**. The open **Cycle** is the `cycles` row with `finished_at` null; a **workout day** is done in that **Cycle** when a finished **Session** for that day carries this `cycle_id`. Distinct from a **Session** (one execution) and from the **Program** (the live template).
+→ `file:src/hooks/useCycle.ts`
+
+---
+
 ## Workout execution
+
+**Last Session Recap**:
+Home-only surface for a **workout day** that is already done in the current **Cycle**: two tabs under the day card — **Dernière séance** (default) vs **Programme**. **Dernière séance** is the last finished **Session** on that day, grouped like history (a **Circuit** stays a **Circuit**, score **AMRAP** `4+0` / **Tours**; solos stay solos), plus a fact line when **Benchmark Circuit** / solo `exercise_id` identities differ from the live **Unified Day Sequence**. **Programme** is that sequence, read-only, no kg. Hidden when `set_logs` are empty. The hero card stays today's identity (sequence item count, body map) — not last-session duration or set count.
+_Avoid_: Last Performance, preview, flattening a Circuit into `sets × reps`
+→ `file:src/pages/WorkoutPage.tsx`
 
 **Duration Set Timer**:
 The in-session timer for duration-based exercises (planks, hollow holds, dead hangs) — distinct from the rest timer. Renders inside `SetsTable` as a two-cell unit (live MM:SS countdown + Play/Stop button). Fires audio + vibration at T=0 and auto-logs the set; the user does not tap a separate Log button. **Pre-existing limitation:** `elapsedSec` is **not pause-aware** (uses raw wall-clock vs **`useRestTimer`**'s `accumulatedPause`); resuming after a long pause insta-fires the alarm. Tracked separately from #374.
