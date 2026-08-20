@@ -285,6 +285,10 @@ Group `heroes` (accordion *Le tour des Héros* / *Heroes’ Tour*). **Cast Clear
 **Pantheoniste**:
 Achievement group `pantheoniste` (accordion *Le Pantheoniste* / *Pantheoniste*). **Cast Clearing** over all eight Greek Pantheon seeds (Cindy excluded). Same thresholds as **Olympians** / **Heroes**. A single seed run can feed **Circuit runner** plus the matching quatuor plus this capstone.
 
+**Bodyweight Trinity**:
+Three hardcoded catalog **families** (not a `movement_family` column) that feed the cumulative-rep achievement tracks and **100 jours ferme**. Canonical cores: **Pompes**, **Tractions**, **Squat au poids du corps**. Harder / grip variants count (diamond, déficit, pike, pistol, sumo bodyweight, chin-up, archer, … — lists locked in `file:docs/Epic_Brief_—_Bodyweight_Trinity_achievement_tracks_#509.md`). Regressions and loaded work do not (knee / incline / assisted / inverted row / **Squat barre**). Duration rows such as **Squats sautés** are out of the rep sum. **Circuit** station reps on family rows count 1:1 in `set_logs` (same rule as Volume King / Leg Day). Distinct from **Cindy** the **Benchmark Circuit**, even though Cindy Rx is the three cores.
+→ `file:docs/Epic_Brief_—_Bodyweight_Trinity_achievement_tracks_#509.md`
+
 **Grant Batch**:
 Every newly unlocked achievement tier from one finish (RPC return + any Realtime inserts that landed before the overlay opened), frozen as the ceremony opens. Late grants wait for the next ceremony. The unit of the unlock overlay.
 _Avoid_: slot machine, serial queue, one-medal-at-a-time ceremony
