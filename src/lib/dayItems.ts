@@ -1,26 +1,25 @@
 import { arrayMove } from "@dnd-kit/sortable"
-import type {
-  DayItem,
-  ExerciseBlockWithExercises,
-  WorkoutExerciseWithExercise,
-} from "@/types/database"
+import type { DayItem, ExerciseBlockWithExercises } from "@/types/database"
 
 /**
  * Merge a day's solo exercises and blocks into a single ordered sequence
  * (Unified Day Sequence, #351). Both sources share one `sort_order` namespace
  * per day.
  */
-export function buildDayItems(
-  exercises: WorkoutExerciseWithExercise[],
+export function buildDayItems<E extends { sort_order: number }>(
+  exercises: E[],
   blocks: ExerciseBlockWithExercises[],
-): DayItem[] {
-  const soloItems: DayItem[] = exercises.map((exercise) => ({
-    kind: "solo",
+): Array<
+  | { kind: "solo"; sort_order: number; exercise: E }
+  | { kind: "block"; sort_order: number; block: ExerciseBlockWithExercises }
+> {
+  const soloItems = exercises.map((exercise) => ({
+    kind: "solo" as const,
     sort_order: exercise.sort_order,
     exercise,
   }))
-  const blockItems: DayItem[] = blocks.map((block) => ({
-    kind: "block",
+  const blockItems = blocks.map((block) => ({
+    kind: "block" as const,
     sort_order: block.sort_order,
     block: {
       ...block,

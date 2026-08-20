@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import type { TFunction } from "i18next"
 import { CheckCircle2, Dumbbell, Layers, Timer } from "lucide-react"
 import type { WorkoutDay } from "@/types/database"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
@@ -13,6 +14,29 @@ import {
   formatRelativeDate,
   formatSessionDurationForDisplay,
 } from "@/lib/formatters"
+import {
+  sequenceItemBadge,
+  type SequenceItemBadge,
+} from "@/lib/sequenceItemBadge"
+
+function sequenceBadgeLabel(
+  t: TFunction<"workout">,
+  badge: SequenceItemBadge,
+): string | null {
+  switch (badge.kind) {
+    case "empty":
+      return null
+    case "circuits":
+      return t("sequenceBadgeCircuits", { count: badge.circuits })
+    case "mixed":
+      return t("sequenceBadgeMixed", {
+        circuits: badge.circuits,
+        solos: badge.solos,
+      })
+    case "solos":
+      return t("exerciseCount", { count: badge.solos })
+  }
+}
 
 interface WorkoutDayCardProps {
   day: WorkoutDay
@@ -31,14 +55,15 @@ export function WorkoutDayCard({
   const { data: exercises } = useWorkoutExercises(shouldFetch ? day.id : null)
   const { data: blocks = [] } = useExerciseBlocks(shouldFetch ? day.id : null)
   const heatmapData = useAggregatedMuscles(exercises ?? [], blocks)
-  const { data: lastSession } = useLastSessionForDay(shouldFetch ? day.id : null)
-
-  const blockExerciseCount = useMemo(
-    () => blocks.reduce((sum, b) => sum + b.exercises.length, 0),
-    [blocks],
+  const { data: lastSession } = useLastSessionForDay(
+    shouldFetch && !isCycleDone ? day.id : null,
   )
 
-  const totalExerciseCount = (exercises?.length ?? 0) + blockExerciseCount
+  const sequenceBadge = sequenceItemBadge(
+    exercises?.length ?? 0,
+    blocks.length,
+  )
+  const sequenceLabel = sequenceBadgeLabel(t, sequenceBadge)
 
   const estimatedTotalSets = useMemo(
     () =>
@@ -47,11 +72,12 @@ export function WorkoutDayCard({
     [exercises, blocks],
   )
 
-  const lastSessionDateLabel = lastSession
-    ? t("lastSession", {
-        date: formatRelativeDate(lastSession.finished_at, i18n.language),
-      })
-    : null
+  const lastSessionDateLabel =
+    !isCycleDone && lastSession
+      ? t("lastSession", {
+          date: formatRelativeDate(lastSession.finished_at, i18n.language),
+        })
+      : null
 
   return (
     <div
@@ -60,13 +86,8 @@ export function WorkoutDayCard({
         isActive ? "border-primary/60" : "border-border",
       )}
     >
-      {/* Header: date badge + cycle done */}
       <div className="mb-1 flex items-center justify-between">
-        {isCycleDone && lastSessionDateLabel ? (
-          <Badge variant="secondary" className="text-[11px] font-medium">
-            {lastSessionDateLabel}
-          </Badge>
-        ) : !isCycleDone && lastSessionDateLabel ? (
+        {!isCycleDone && lastSessionDateLabel ? (
           <span className="text-[11px] text-muted-foreground">
             {lastSessionDateLabel}
           </span>
@@ -86,7 +107,7 @@ export function WorkoutDayCard({
 
       {/* Body map (centered hero) — min-h reserves space so the fetch → map swap doesn't trigger CLS */}
       <div className="flex min-h-[280px] items-center justify-center">
-        {exercises && totalExerciseCount > 0 ? (
+        {exercises && sequenceBadge.kind !== "empty" ? (
           <BodyMap data={heatmapData} />
         ) : exercises ? null : (
           <div className="flex gap-3 py-6">
@@ -98,7 +119,7 @@ export function WorkoutDayCard({
 
       {/* Badges row below body map */}
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-        {exercises && (
+        {exercises && sequenceLabel && (
           <Badge
             variant={isCycleDone ? "secondary" : "outline"}
             className={cn(
@@ -107,25 +128,10 @@ export function WorkoutDayCard({
             )}
           >
             <Dumbbell className="h-3 w-3" />
-            {t("exerciseCount", { count: totalExerciseCount })}
+            {sequenceLabel}
           </Badge>
         )}
-        {isCycleDone && lastSession ? (
-          <>
-            <Badge variant="secondary" className="gap-1.5">
-              <Layers className="h-3 w-3" />
-              {t("setCount", { count: lastSession.total_sets_done })}
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5">
-              <Timer className="h-3 w-3" />
-              {formatSessionDurationForDisplay(
-                lastSession.started_at,
-                lastSession.finished_at,
-                lastSession.active_duration_ms,
-              )}
-            </Badge>
-          </>
-        ) : !isCycleDone && exercises ? (
+        {!isCycleDone && exercises && (
           <>
             <Badge variant="outline" className="gap-1.5 text-muted-foreground">
               <Layers className="h-3 w-3" />
@@ -144,7 +150,7 @@ export function WorkoutDayCard({
               </Badge>
             )}
           </>
-        ) : null}
+        )}
       </div>
     </div>
   )

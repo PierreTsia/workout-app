@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 
-interface LastSessionInfo {
+export interface LastSessionInfo {
   id: string
   started_at: string
   finished_at: string
