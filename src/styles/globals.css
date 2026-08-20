@@ -268,6 +268,11 @@
   100% { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes supporting-slide-in {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
 .achievement-badge-reveal {
   animation: badge-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -285,6 +290,49 @@
 
 .achievement-text-entrance {
   animation: text-slide-up 0.4s 0.35s ease-out both;
+}
+
+.achievement-supporting-entrance {
+  animation: supporting-slide-in 0.3s 0.12s ease-out both;
+}
+
+@keyframes sparkle-burst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(45deg) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.achievement-rank-sparkles {
+  pointer-events: none;
+  overflow: visible;
+}
+
+.achievement-sparkle {
+  position: absolute;
+  border-radius: 1px;
+  pointer-events: none;
+  box-shadow: 0 0 5px 1px currentColor;
+  animation: sparkle-burst 0.9s ease-out forwards;
+}
+
+@keyframes tap-continue-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+.achievement-tap-continue-pulse {
+  animation: tap-continue-pulse 1.8s ease-in-out infinite;
 }
 
 /* ===== Badge Frame Classes ===== */

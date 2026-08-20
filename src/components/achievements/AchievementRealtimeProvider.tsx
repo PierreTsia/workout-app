@@ -3,8 +3,9 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
+import { coerceNumeric } from "@/lib/achievementUtils"
 import { pushAchievementsToQueue } from "@/lib/syncService"
-import type { UnlockedAchievement, AchievementRank } from "@/types/achievements"
+import type { UnlockedAchievement } from "@/types/achievements"
 
 /**
  * Global Realtime subscription for `user_achievements` INSERT events.
@@ -33,20 +34,24 @@ export function AchievementRealtimeProvider({ children }: { children: React.Reac
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const grantedAt = payload.new.granted_at as string
+          const grantedAt = payload.new.granted_at
+          if (typeof grantedAt !== "string") return
           if (new Date(grantedAt).getTime() < subscriptionStartedAt) return
 
-          const tierId = payload.new.tier_id as string
+          const tierId = payload.new.tier_id
+          if (typeof tierId !== "string") return
           const match = badgeRows.find((r) => r.tier_id === tierId)
           if (!match) return
 
           const unlocked: UnlockedAchievement = {
             tier_id: match.tier_id,
             group_slug: match.group_slug,
-            rank: match.rank as AchievementRank,
+            rank: match.rank,
             title_en: match.title_en,
             title_fr: match.title_fr,
             icon_asset_url: match.icon_asset_url,
+            threshold_value: coerceNumeric(match.threshold_value),
+            granted_at: grantedAt,
           }
           pushAchievementsToQueue([unlocked])
         },

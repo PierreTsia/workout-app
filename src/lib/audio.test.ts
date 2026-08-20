@@ -107,11 +107,13 @@ describe("audio.ts", () => {
       }),
     )
 
-    const { primeAudio, playBeep, playFinishBeeps } = await importAudio()
+    const { primeAudio, playBeep, playFinishBeeps, playAchievementFanfare } =
+      await importAudio()
 
     expect(() => primeAudio()).not.toThrow()
     expect(() => playBeep(440, 100)).not.toThrow()
     expect(() => playFinishBeeps()).not.toThrow()
+    expect(() => playAchievementFanfare()).not.toThrow()
   })
 
   it("plays the finish chime as two oscillators at 880 Hz and 1100 Hz, 250 ms apart", async () => {
@@ -131,5 +133,33 @@ describe("audio.ts", () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it("plays a rising fanfare, not a two-beep chime", async () => {
+    const { playAchievementFanfare } = await importAudio()
+
+    playAchievementFanfare("gold")
+
+    expect(currentCtx.oscillators.length).toBeGreaterThan(4)
+    expect(currentCtx.oscillators[0]?.frequency.value).toBeCloseTo(261.63)
+    expect(currentCtx.oscillators.some((osc) => osc.frequency.value === 1046.5)).toBe(
+      true,
+    )
+    expect(
+      currentCtx.oscillators.some((osc) => osc.type === "triangle"),
+    ).toBe(true)
+  })
+
+  it("adds a higher sparkle for Diamond", async () => {
+    const { playAchievementFanfare } = await importAudio()
+
+    playAchievementFanfare("gold")
+    const goldCount = currentCtx.oscillators.length
+
+    playAchievementFanfare("diamond")
+    expect(currentCtx.oscillators.length).toBeGreaterThan(goldCount)
+    expect(currentCtx.oscillators.some((osc) => osc.frequency.value === 2093)).toBe(
+      true,
+    )
   })
 })

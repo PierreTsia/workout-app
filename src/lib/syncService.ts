@@ -12,6 +12,7 @@ import {
   achievementShownIdsAtom,
   lastSessionBadgesAtom,
 } from "@/store/atoms"
+import { coerceNumeric } from "@/lib/achievementUtils"
 import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
 
@@ -964,11 +965,18 @@ async function processSessionFinish(
     }
 
     try {
-      const { data, error } = await supabase.rpc("check_and_grant_achievements", {
-        p_user_id: userId,
-      })
+      const { data, error } = await supabase
+        .rpc("check_and_grant_achievements", {
+          p_user_id: userId,
+        })
+        .returns<UnlockedAchievement[]>()
       if (error) throw error
-      const unlocked = (data ?? []) as UnlockedAchievement[]
+      const grantedAt = new Date().toISOString()
+      const unlocked = (Array.isArray(data) ? data : []).map((row) => ({
+        ...row,
+        threshold_value: coerceNumeric(row.threshold_value),
+        granted_at: row.granted_at ?? grantedAt,
+      }))
       if (unlocked.length > 0) {
         pushAchievementsToQueue(unlocked)
         store.set(lastSessionBadgesAtom, unlocked)

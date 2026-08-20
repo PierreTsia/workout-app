@@ -67,6 +67,10 @@
     "heroes": "Min. runs across Heracles / Theseus / Atlas / Achilles",
     "pantheoniste": "Min. runs across the eight Greek seeds"
   },
+  "ceremonyEyebrow": "Unlocked",
+  "ceremonyEyebrowCount": "{{count}} unlocked",
+  "ceremonyOverflow": "+{{count}}",
+  "ceremonyTapToContinue": "Tap to continue",
   "thresholdHint": {
     "consistency_streak": "Complete {{target}} sessions",
     "volume_king": "Lift {{target}} kg total",
