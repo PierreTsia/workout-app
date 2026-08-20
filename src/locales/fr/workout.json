@@ -246,5 +246,6 @@
   "blockRunner.increment": "Augmenter",
   "blockRunner.amrapScoreGloss": "{{rounds}} tours · {{leftover}} {{name}}",
   "recap.tabLastSession": "Dernière séance",
-  "recap.tabProgram": "Programme"
+  "recap.tabProgram": "Programme",
+  "recap.coverage": "{{logged}} loggé(s) · {{program}} au programme"
 }

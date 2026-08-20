@@ -157,6 +157,7 @@ function makeProgramBlock(
   id: string,
   label: string,
   sort_order: number,
+  catalogId?: string | null,
 ): ExerciseBlockWithExercises {
   return {
     id,
@@ -170,6 +171,7 @@ function makeProgramBlock(
     sort_order,
     created_at: "2026-01-01T00:00:00.000Z",
     exercises: [],
+    ...(catalogId === undefined ? {} : { benchmark_circuit_id: catalogId }),
   }
 }
 
@@ -249,5 +251,46 @@ describe("LastSessionRecap", () => {
     expect(screen.getByText("Zeus")).toBeInTheDocument()
     expect(screen.getByText("Heracles")).toBeInTheDocument()
     expect(screen.getByText("Ares")).toBeInTheDocument()
+  })
+
+  it("shows a coverage fact line when last session identities differ from the program", () => {
+    mockTheseusHistory()
+    const blocks = [
+      makeProgramBlock("b-1", "Theseus", 0, "theseus-catalog"),
+      makeProgramBlock("b-2", "Zeus", 1, "zeus-catalog"),
+      makeProgramBlock("b-3", "Heracles", 2, "heracles-catalog"),
+      makeProgramBlock("b-4", "Ares", 3, "ares-catalog"),
+    ]
+
+    renderWithProviders(
+      <LastSessionRecap
+        lastSession={lastSession}
+        exercises={[]}
+        blocks={blocks}
+      />,
+    )
+
+    expect(
+      screen.getByText("1 logged · 4 in the program"),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/chang(é|ed)/i)).not.toBeInTheDocument()
+  })
+
+  it("hides the coverage fact line when last session identities match the program", () => {
+    mockTheseusHistory()
+    const blocks = [
+      makeProgramBlock("block-theseus", "Theseus", 0, "theseus-catalog"),
+    ]
+
+    renderWithProviders(
+      <LastSessionRecap
+        lastSession={lastSession}
+        exercises={[]}
+        blocks={blocks}
+      />,
+    )
+
+    expect(screen.queryByText(/logged ·/)).not.toBeInTheDocument()
+    expect(screen.getByText("4+0")).toBeInTheDocument()
   })
 })

@@ -246,5 +246,6 @@
   "blockRunner.increment": "Increase",
   "blockRunner.amrapScoreGloss": "{{rounds}} rounds · {{leftover}} {{name}}",
   "recap.tabLastSession": "Last session",
-  "recap.tabProgram": "Program"
+  "recap.tabProgram": "Program",
+  "recap.coverage": "{{logged}} logged · {{program}} in the program"
 }
