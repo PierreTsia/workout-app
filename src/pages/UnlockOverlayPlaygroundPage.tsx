@@ -23,9 +23,9 @@ const BODYWEIGHT_BUTTONS = [
   "BW mixed",
 ] as const
 
-const FIXTURE_BUTTONS = [...CEREMONY_BUTTONS, ...BODYWEIGHT_BUTTONS] as const
-
-type FixtureName = (typeof FIXTURE_BUTTONS)[number]
+type FixtureName =
+  | (typeof CEREMONY_BUTTONS)[number]
+  | (typeof BODYWEIGHT_BUTTONS)[number]
 
 const ICON_BASE =
   "https://favusepjqwpcroiolvaz.supabase.co/storage/v1/object/public/badge-icons"
