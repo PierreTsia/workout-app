@@ -8,7 +8,7 @@ import { useEquipTitle } from "./useEquipTitle"
 
 const mockEq = vi.fn()
 const mockUpdate = vi.fn(() => ({ eq: mockEq }))
-const mockFrom = vi.fn((_table: string) => ({ update: mockUpdate }))
+const mockFrom = vi.fn(() => ({ update: mockUpdate }))
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
