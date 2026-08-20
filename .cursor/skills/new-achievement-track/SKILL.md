@@ -57,7 +57,7 @@ Accordion `/achievements` is data-driven from `get_badge_status`. No React inser
 
 1. Write the manifest (product lock). Schema: [reference.md](reference.md). Golden replay: `scripts/fixtures/bodyweight-trinity-509.manifest.json` — `renderSeedSql` must match T220 INSERTs.
 2. `scaffold` → seed migration (groups/tiers only), i18n merge, arch stub, prompt doc, playground snippet, prints retro stanza.
-3. `prepare-rpc` → copies **latest** `CREATE OR REPLACE` of both functions into that seed file, injects `-- APPEND CTEs` / `-- APPEND UNION ALL`, re-GRANTs EXECUTE. Excludes the dest file so it does not copy from itself.
+3. `prepare-rpc` → copies **latest** `CREATE OR REPLACE` of both functions into that seed file, injects `-- APPEND CTEs` / `-- APPEND UNION ALL`, re-GRANTs EXECUTE. Excludes the dest file so it does not copy from itself. **Refuses** if the seed already has RPC bodies (`--force` recopies and **drops** hand-written metric SQL).
 4. **You** write the metric branches at those markers. Identical in grant and status. No `DROP FUNCTION`. `now()` not `clock_timestamp()`.
 5. Arch test stub pins IN/OUT UUIDs, last-wins slugs, i18n keys. Add metric-class asserts by hand (live chain, min-of-families, …).
 6. Paste playground snippet into `UnlockOverlayPlaygroundPage.tsx`. Keep the ceremony row. Do not add `/_achievements`.

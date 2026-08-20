@@ -10,7 +10,7 @@ HITL — generation and visual QA need a human to pick among model outputs; uplo
 
 ## Slice
 
-prompts → 25 PNG → `scripts/optimize-badge-icons.ts` → Supabase `badge-icons` bucket → follow-up `UPDATE` migration → `/_unlock-overlay` + `/achievements` eyeball
+prompts → 25 PNG → `npx tsx scripts/achievement-track.ts icons --from=dir --slugs=…` → follow-up `UPDATE` migration → `/_unlock-overlay` + `/achievements` eyeball
 
 ## Dependencies
 
@@ -22,7 +22,7 @@ T220 (tiers must exist to UPDATE). T222 can ship with `icon_asset_url` NULL; thi
 
 25 icons, recipe identical to `file:docs/done/badge-icon-prompts.md`. **Copy-paste prompts:** `file:docs/badge-icon-prompts-bodyweight-tracks-509.md`.
 
-Naming: `{group_slug}_{rank}.png` then Storage `badge-icons/{group_slug}/{rank}.webp` (or `.png`) after optimize — same as #482 circuit icons.
+Naming: `{group_slug}_{rank}.png` then Storage **FLAT** `badge-icons/{group_slug}_{rank}.webp` — same as #482 circuit icons. Not nested `{slug}/{rank}` folders.
 
 | Slug | Ranks |
 |---|---|
@@ -34,9 +34,10 @@ Naming: `{group_slug}_{rank}.png` then Storage `badge-icons/{group_slug}/{rank}.
 
 ### Optimize + upload
 
-- `scripts/optimize-badge-icons.ts --apply` (existing circuit path)
-- Public bucket `badge-icons` (already exists from #129 / #482)
+- `npx tsx scripts/achievement-track.ts icons --from=<png-dir> --slugs=push_ups,pull_ups,bw_squats,bw_expert,hundred_a_day --apply`
+- Public bucket `badge-icons` (already exists from #129 / #482), **flat** `{slug}_{rank}.webp`
 - Do not recreate the bucket
+- Do **not** use `scripts/optimize-badge-icons.ts` (root-only listing, PNG-URL-only UPDATE)
 
 ### Backfill
 
@@ -62,7 +63,7 @@ Follow-up migration `UPDATE achievement_tiers SET icon_asset_url = '…'` keyed 
 
 ## Acceptance Criteria
 
-- [ ] 25 optimized assets in `badge-icons/{slug}/{rank}`
+- [ ] 25 optimized assets in `badge-icons/{slug}_{rank}.webp`
 - [ ] `icon_asset_url` non-null for all 25 new tiers
 - [ ] Existing groups’ URLs untouched
 - [ ] HITL QA table completed on `/_unlock-overlay` + `/achievements`
@@ -73,6 +74,6 @@ Follow-up migration `UPDATE achievement_tiers SET icon_asset_url = '…'` keyed 
 - Prompts: `file:docs/badge-icon-prompts-bodyweight-tracks-509.md`
 - Recipe: `file:docs/done/badge-icon-prompts.md`
 - Circuit precedent: `file:docs/done/badge-icon-prompts-circuit-tracks-482.md`
-- Optimize: `file:scripts/optimize-badge-icons.ts`
+- Upload: `file:scripts/achievement-track.ts` (`icons`)
 - Epic story 21, 22
 - Tech Plan: icons NULL at seed, art later

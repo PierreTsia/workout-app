@@ -177,6 +177,34 @@ $$;`
     expect(prepared).not.toMatch(/DROP\s+FUNCTION/i)
     expect(prepared).not.toContain("SELECT 1 $$")
   })
+
+  it("refuses to recopy over a seed that already has RPC bodies", () => {
+    const seed = `${renderSeedSql(load509())}\n${grantSql}`
+    expect(() =>
+      prepareRpcSeed(
+        seed,
+        [
+          { path: "supabase/migrations/20260101000000_grant.sql", sql: grantSql },
+          { path: "supabase/migrations/20260101000001_status.sql", sql: statusSql },
+        ],
+        "supabase/migrations/20260820220000_bodyweight_trinity_achievement_tracks.sql",
+      ),
+    ).toThrow(/already has RPC bodies/)
+  })
+
+  it("recopies when force is set", () => {
+    const seed = `${renderSeedSql(load509())}\n${grantSql}`
+    const prepared = prepareRpcSeed(
+      seed,
+      [
+        { path: "supabase/migrations/20260101000000_grant.sql", sql: grantSql },
+        { path: "supabase/migrations/20260101000001_status.sql", sql: statusSql },
+      ],
+      "supabase/migrations/20260820220000_bodyweight_trinity_achievement_tracks.sql",
+      { force: true },
+    )
+    expect(prepared).toContain("-- APPEND CTEs")
+  })
 })
 
 describe("renderIconUrlMigration", () => {

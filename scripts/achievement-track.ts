@@ -36,7 +36,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 const USAGE = `Usage:
   npx tsx scripts/achievement-track.ts scaffold <manifest.json> [--dry-run] [--force]
-  npx tsx scripts/achievement-track.ts prepare-rpc --stem=<stem> [--dry-run]
+  npx tsx scripts/achievement-track.ts prepare-rpc --stem=<stem> [--dry-run] [--force]
   npx tsx scripts/achievement-track.ts icons --from=<dir> (--slugs=a,b | --manifest=<json>) [--apply] [--dry-run]
 
 scaffold writes seed SQL + i18n + arch stub + prompt doc + playground snippet.
@@ -199,7 +199,9 @@ const runPrepareRpc = async (): Promise<void> => {
   const destPath = path.join(dir, destName)
   const seedSql = await readFile(destPath, "utf8")
   const files = await readMigrationFiles()
-  const prepared = prepareRpcSeed(seedSql, files, destPath)
+  const prepared = prepareRpcSeed(seedSql, files, destPath, {
+    force: hasFlag("force"),
+  })
   await writeText(destPath, prepared, dryRun)
   console.log(
     "\nNow append metric SQL at -- APPEND CTEs and -- APPEND UNION ALL. Keep grant/status identical. No DROP.",

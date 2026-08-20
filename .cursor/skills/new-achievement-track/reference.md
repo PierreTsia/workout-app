@@ -117,6 +117,6 @@ Public URLs always point at **prod** Storage (`favusepjqwpcroiolvaz`), even when
 ## CLI notes
 
 - `scaffold --force` required to overwrite existing outputs.
-- `prepare-rpc --stem=` must match the seed filename `*_ <stem>.sql`.
+- `prepare-rpc --stem=` must match the seed filename `*_<stem>.sql`. Refuses if that file already has RPC bodies; `--force` recopies and drops metric SQL.
 - `icons --apply` uploads; it does **not** `UPDATE achievement_tiers` via the JS client. The SQL file is the backfill.
 - `--no-env-local` (via `load-env.ts`) when uploading to prod while `.env.local` points at 127.0.0.1.

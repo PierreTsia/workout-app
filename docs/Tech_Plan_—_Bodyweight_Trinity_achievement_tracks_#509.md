@@ -311,7 +311,7 @@ graph TD
 
 No new React components. No changes to `file:src/lib/syncService.ts`, `file:src/types/achievements.ts` (`group_slug` is already `string`), accordion, overlay, drawer, or router. Post-migrate ops: run `file:scripts/retroactive-badge-grant.sql` (same script as #482; comment the #509 migrate in the ticket, not a new file unless the header comment needs a one-line update).
 
-Later (art ticket, after SQL ships): 25 PNGs from `file:docs/badge-icon-prompts-bodyweight-tracks-509.md` → `badge-icons/{group_slug}/{rank}.png` → `scripts/optimize-badge-icons.ts --apply` → follow-up `UPDATE achievement_tiers SET icon_asset_url = …`. Playground and accordion already tolerate `icon_asset_url` NULL.
+Later (art ticket, after SQL ships): 25 PNGs from `file:docs/badge-icon-prompts-bodyweight-tracks-509.md` → flat `badge-icons/{group_slug}_{rank}.webp` via `npx tsx scripts/achievement-track.ts icons` → follow-up `UPDATE achievement_tiers SET icon_asset_url = …`. Playground and accordion already tolerate `icon_asset_url` NULL.
 
 ### Component Responsibilities
 

@@ -1,7 +1,8 @@
 # Badge Icon Prompts — Bodyweight Trinity tracks (#509 / #510)
 
-**Naming:** `{group_slug}_{rank}.png` → Storage `badge-icons/{group_slug}/{rank}.webp` (after optimize)
-**Size:** 512×512 PNG then optimize via `scripts/optimize-badge-icons.ts`
+**Naming:** `{group_slug}_{rank}.png` → Storage `badge-icons/{group_slug}_{rank}.webp`
+**Layout:** FLAT in the `badge-icons` bucket — never nested folders.
+**Size:** 512×512 PNG then `npx tsx scripts/achievement-track.ts icons --from=dir --slugs=…`
 **Same recipe as** `file:docs/done/badge-icon-prompts.md`
 
 HITL of these icons in the ceremony: hidden route **`/_unlock-overlay`** (`file:src/pages/UnlockOverlayPlaygroundPage.tsx`). Do not add a gallery route.

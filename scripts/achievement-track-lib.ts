@@ -596,7 +596,18 @@ export const prepareRpcSeed = (
   seedSql: string,
   files: readonly MigrationFile[],
   destPath: string,
+  options: { force?: boolean } = {},
 ): string => {
+  const alreadyHasRpc =
+    /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+check_and_grant_achievements/i.test(
+      seedSql,
+    )
+  if (alreadyHasRpc && !options.force) {
+    throw new Error(
+      "seed already has RPC bodies; pass --force to recopy from the previous latest (this DROPS hand-written metric SQL)",
+    )
+  }
+
   const grantSrc = latestFunctionSource(
     files,
     "check_and_grant_achievements",
