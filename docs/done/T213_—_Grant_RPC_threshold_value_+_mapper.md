@@ -68,6 +68,6 @@ Keep `SECURITY DEFINER`, `SET search_path = public`, `#variable_conflict use_col
 
 ## References
 
-- Epic Brief: `file:docs/Epic_Brief_—_Grant_Overlay_—_One_Ceremony_per_Batch_#491.md`
+- Epic Brief: `file:docs/done/Epic_Brief_—_Grant_Overlay_—_One_Ceremony_per_Batch_#491.md`
 - Tech Plan: Data Model + Critical Constraints (RPC copy rule)
 - Current grant function: `file:supabase/migrations/20260819114837_quick_sessions_exclude_detached_days.sql`

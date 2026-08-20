@@ -36,7 +36,7 @@ The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC
 
 **Personal Access Tokens (PATs)** — `glp_…` bearer tokens, full-account scope, lifetimes 30 / 90 / 365 days or never, manual revocation. Create and manage them at **Account → Security & access → API tokens**. PATs are the recommended path for Cursor and any headless agent; OAuth remains the default for Claude Desktop and Le Chat.
 
-> See the [Epic Brief](docs/Epic_Brief_—_MCP-First_Architecture_%23231.md), the [Phase 1 tech plan (as built)](docs/Tech_Plan_—_MCP-First_Architecture_%23231.md), the [agent → save → gym tech plan](docs/Tech_Plan_—_MCP-First_Architecture_%23231_Phase_2_and_3.md), and the [Personal Access Tokens tech plan](docs/Tech_Plan_—_Long-Lived_MCP_Auth_via_Personal_Access_Tokens.md) for architecture details.
+> See the [Epic Brief](docs/done/Epic_Brief_—_MCP-First_Architecture_%23231.md), the [Phase 1 tech plan (as built)](docs/done/Tech_Plan_—_MCP-First_Architecture_%23231.md), the [agent → save → gym tech plan](docs/done/Tech_Plan_—_MCP-First_Architecture_%23231_Phase_2_and_3.md), and the [Personal Access Tokens tech plan](docs/done/Tech_Plan_—_Long-Lived_MCP_Auth_via_Personal_Access_Tokens.md) for architecture details.
 
 ---
 

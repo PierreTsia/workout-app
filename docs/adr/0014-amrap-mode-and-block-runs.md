@@ -24,7 +24,7 @@ We will:
 
 - **Positive:** Kill-app restores remaining cap. Cap edits don't rewrite past PBs. Tours Zeus behavior is byte-identical. MCP can add `mode` / `cap_minutes` without a new tool.
 - **Negative:** New table + queue type; session may be minted at GO rather than first set_log. Rollback is lossy (AMRAP rows with `rounds=1` would look like 1-round Tours).
-- **Follow-ups:** Epic Brief / Tech Plan `file:docs/Epic_Brief_—_Circuit_AMRAP_#474.md`, `file:docs/Tech_Plan_—_Circuit_AMRAP_#474.md`. **Benchmark Circuit** (#398) still separate.
+- **Follow-ups:** Epic Brief / Tech Plan `file:docs/done/Epic_Brief_—_Circuit_AMRAP_#474.md`, `file:docs/done/Tech_Plan_—_Circuit_AMRAP_#474.md`. **Benchmark Circuit** (#398) still separate.
 
 ## Alternatives considered
 

@@ -302,7 +302,7 @@ _Avoid_: second hero, 2×2 grid, carousel, app-icon row
 ## Marketing site
 
 **Product Tour**:
-The capability journey page on the Astro mini-site at `/tour` (nav label **Tour**). Six scenes of dry-fun product facts with a desktop **Tour Split Stage** (sticky rail + device stage) and dual doors (**Open the app** → gymlogic.me, **Connect your agent** → `/connect/claude`). Quick Workout is folded into scene 1. Distinct from the agentic/MCP homepage pitch at `/`. EN-only in v1. See Epic Brief `file:docs/Epic_Brief_—_Product_Tour_(tour)_#466.md`, ADR `file:docs/adr/0013-product-tour-separate-from-homepage.md`.
+The capability journey page on the Astro mini-site at `/tour` (nav label **Tour**). Six scenes of dry-fun product facts with a desktop **Tour Split Stage** (sticky rail + device stage) and dual doors (**Open the app** → gymlogic.me, **Connect your agent** → `/connect/claude`). Quick Workout is folded into scene 1. Distinct from the agentic/MCP homepage pitch at `/`. EN-only in v1. See Epic Brief `file:docs/done/Epic_Brief_—_Product_Tour_(tour)_#466.md`, ADR `file:docs/adr/0013-product-tour-separate-from-homepage.md`.
 → `file:web/src/pages/tour.astro`
 
 **Tour Split Stage**:

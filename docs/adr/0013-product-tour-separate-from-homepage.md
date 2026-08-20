@@ -23,7 +23,7 @@ We will:
 
 - **Positive:** Two honest jobs — homepage = agentic pitch; Tour = product capability. Demoable narrative without rewriting `/`.
 - **Negative:** One more nav item and route to maintain; copy can drift from the live app if captures lag.
-- **Follow-ups:** Epic Brief `file:docs/Epic_Brief_—_Product_Tour_(tour)_#466.md`; Tech Plan for Astro architecture + **Prime Mover** capture pipeline; glossary term **Product Tour**.
+- **Follow-ups:** Epic Brief `file:docs/done/Epic_Brief_—_Product_Tour_(tour)_#466.md`; Tech Plan for Astro architecture + **Prime Mover** capture pipeline; glossary term **Product Tour**.
 
 ## Alternatives considered
 
