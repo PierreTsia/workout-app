@@ -6,6 +6,7 @@ import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
+import { PulseBlock } from "@/components/profile/PulseBlock"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -21,7 +22,6 @@ import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import {
   ProfilePulseGrid,
   ProfileStatCard,
-  ProfileStatCardSkeleton,
 } from "@/components/profile/ProfileStatCard"
 import {
   ProfileWindowProvider,
@@ -46,7 +46,6 @@ import {
   MIX_CATEGORIES,
   PIERRE_SUCCES,
   pierreMixSeries,
-  pierrePulse,
   pierreRecordsPulse,
   pierreRecordsSeries,
   pierreRhythmHits,
@@ -362,62 +361,6 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
       </ProfileSection>
       <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
     </>
-  )
-}
-
-function PulseBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind, includeDeltas } = useProfileWindow()
-  const pulse = pierrePulse(kind)
-
-  if (mode === "loading") {
-    return (
-      <ProfilePulseGrid>
-        <ProfileStatCardSkeleton />
-        <ProfileStatCardSkeleton />
-        <ProfileStatCardSkeleton />
-      </ProfilePulseGrid>
-    )
-  }
-
-  if (mode === "empty") {
-    return (
-      <ProfileSection title={t("pulse.sessions")} status="empty" empty={t("pulse.empty")} />
-    )
-  }
-
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
-  return (
-    <ProfilePulseGrid>
-      <ProfileStatCard
-        title={t("pulse.sessions")}
-        value={pulse.sessions}
-        delta={includeDeltas ? vsPrior(pulse.sessionDelta, pulse.sessionDelta) : undefined}
-      />
-      <ProfileStatCard
-        title={t("pulse.sessionTime")}
-        value={pulse.timeUnderBar}
-        delta={includeDeltas ? vsPrior(pulse.timeDeltaN, pulse.timeDelta) : undefined}
-      />
-      <ProfileStatCard
-        title={t("pulse.avgDuration")}
-        value={`${pulse.avgMinutes} min`}
-        hint={
-          <Link to="/account" className="text-primary underline-offset-4 hover:underline">
-            {t("pulse.vsPrescribed", { n: 60 })}
-          </Link>
-        }
-      />
-    </ProfilePulseGrid>
   )
 }
 
