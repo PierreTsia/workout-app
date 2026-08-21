@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 
 export type ProfileStatDelta = { value: number; label: string }
 
+export type ProfileStatSize = "big" | "small"
+
 export const PULSE_GRID_CLASS =
   "grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3"
 
@@ -18,7 +20,7 @@ function VsPriorDelta({ value, label }: ProfileStatDelta) {
   return (
     <p
       className={cn(
-        "mt-1 flex items-center gap-1 text-xs font-medium",
+        "mt-1 flex items-center justify-center gap-1 text-xs font-medium",
         value > 0 && "text-emerald-600 dark:text-emerald-400",
         value < 0 && "text-destructive",
         value === 0 && "text-muted-foreground",
@@ -30,9 +32,20 @@ function VsPriorDelta({ value, label }: ProfileStatDelta) {
   )
 }
 
-function StatBody({ children }: { children: ReactNode }) {
+function StatBody({
+  size,
+  children,
+}: {
+  size: ProfileStatSize
+  children: ReactNode
+}) {
   return (
-    <CardContent className="flex flex-1 flex-col justify-center p-6">
+    <CardContent
+      className={cn(
+        "flex flex-1 flex-col items-center justify-center text-center",
+        size === "small" ? "p-3" : "p-6",
+      )}
+    >
       {children}
     </CardContent>
   )
@@ -43,17 +56,33 @@ export function ProfileStatCard({
   value,
   hint,
   delta,
+  size = "big",
 }: {
   title: string
   value: ReactNode
   hint?: ReactNode
   delta?: ProfileStatDelta
+  size?: ProfileStatSize
 }) {
   return (
     <Card className="flex h-full flex-col">
-      <StatBody>
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <p className="text-5xl font-bold tracking-tight tabular-nums">{value}</p>
+      <StatBody size={size}>
+        <CardTitle
+          className={cn(
+            "text-center font-medium",
+            size === "small" ? "text-xs" : "text-sm",
+          )}
+        >
+          {title}
+        </CardTitle>
+        <p
+          className={cn(
+            "font-bold tracking-tight tabular-nums",
+            size === "small" ? "text-3xl" : "text-5xl",
+          )}
+        >
+          {value}
+        </p>
         {delta ? <VsPriorDelta value={delta.value} label={delta.label} /> : null}
         {hint ? (
           <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
@@ -63,13 +92,17 @@ export function ProfileStatCard({
   )
 }
 
-export function ProfileStatCardSkeleton() {
+export function ProfileStatCardSkeleton({
+  size = "big",
+}: {
+  size?: ProfileStatSize
+}) {
   return (
     <Card className="flex h-full flex-col">
-      <StatBody>
+      <StatBody size={size}>
         <Skeleton className="h-4 w-24" />
-        <Skeleton className="mt-2 h-12 w-24" />
-        <Skeleton className="mt-1 h-3 w-32" />
+        <Skeleton className={cn("mt-2 w-16", size === "small" ? "h-8" : "h-12")} />
+        <Skeleton className="mt-1 h-3 w-24" />
       </StatBody>
     </Card>
   )

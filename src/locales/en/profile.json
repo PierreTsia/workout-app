@@ -63,10 +63,6 @@
     "weekCurrent": "W",
     "weekAgo": "W-{{n}}",
     "deload": "{{week}} = deload ({{n}} sessions)",
-    "heatmapRest": "Rest",
-    "heatmapGoal": "Goal",
-    "heatmapTooltipShort": "{{n}} / {{target}} d — short of target",
-    "heatmapTooltipGoal": "Goal hit · {{n}} d",
     "empty": "No sessions in this window.",
     "weekday": {
       "mon": "Mon",
@@ -101,10 +97,19 @@
     "prs": "PRs",
     "exercises": "Exercises",
     "sinceLast": "Since last",
+    "deltaSooner": "{{n}} sooner vs prior",
+    "deltaLater": "{{n}} later vs prior",
     "empty": "No PRs in this window."
   },
   "balance": {
     "title": "Balance",
+    "score": "{{score}} / 100",
+    "band": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "attention": "Needs attention",
+      "imbalanced": "Imbalanced"
+    },
     "empty": "Not enough sessions for a score."
   },
   "tonnage": {

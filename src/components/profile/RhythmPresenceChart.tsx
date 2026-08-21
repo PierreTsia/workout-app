@@ -1,17 +1,29 @@
 import { useTranslation } from "react-i18next"
-import { RhythmHeatmap } from "@/components/profile/RhythmHeatmap"
-import { type ProfileWindowKind } from "@/lib/profile/window"
-import {
-  encodeRhythmGoalDays,
-  pierreRhythmSessionDays,
-  PROFILE_RHYTHM_END,
-  rhythmHeatmapRangeDays,
-} from "@/lib/profile/rhythmHeatmap"
+import { RhythmBarChart } from "@/components/profile/charts/RhythmBarChart"
+import { MIX_CATEGORIES, type ProfileWindowKind } from "@/lib/profile/window"
 import { cn } from "@/lib/utils"
 
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
+const MONTHS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+] as const
 
 const DEFAULT_TARGET = 4
+
+function usesFrequencyBars(kind: ProfileWindowKind): boolean {
+  return kind === "100" || kind === "365" || kind === "all"
+}
 
 function clusterSlots(kind: ProfileWindowKind, target: number, hit: number): number {
   if (kind === "7") return 1
@@ -27,6 +39,13 @@ function clusterLabel(
   if (kind === "7") {
     const day = WEEKDAYS[index]
     return day === undefined ? "" : translate(`rhythm.weekday.${day}`)
+  }
+  if (kind === "365") {
+    const month = MONTHS[index]
+    return month === undefined ? "" : translate(`rhythm.month.${month}`)
+  }
+  if (kind === "all") {
+    return MIX_CATEGORIES.all[index] ?? ""
   }
   const ago = count - 1 - index
   return ago === 0
@@ -46,22 +65,24 @@ export function RhythmPresenceChart({
   deloadAt?: number
 }) {
   const { t } = useTranslation("profile")
-  const heatmapDays = rhythmHeatmapRangeDays(kind)
-
-  if (heatmapDays != null) {
-    return (
-      <RhythmHeatmap
-        data={encodeRhythmGoalDays(pierreRhythmSessionDays(kind), target)}
-        rangeDays={heatmapDays}
-        endDate={PROFILE_RHYTHM_END}
-        target={target}
-      />
-    )
-  }
-
   const labels = hits.map((_, i) =>
     clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
   )
+
+  if (usesFrequencyBars(kind)) {
+    const deloadLabel = deloadAt == null ? undefined : labels[deloadAt]
+    const deloadHit = deloadAt == null ? undefined : hits[deloadAt]
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        <RhythmBarChart categories={labels} series={hits} target={target} />
+        {deloadLabel != null && deloadHit != null ? (
+          <p className="text-xs text-muted-foreground">
+            {t("rhythm.deload", { week: deloadLabel, n: deloadHit })}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
 
   const clusters = hits.map((hit, i) => {
     const filled = Math.max(hit, 0)
@@ -98,7 +119,7 @@ export function RhythmPresenceChart({
                   data-rhythm-dot={on ? "on" : "off"}
                   className={cn(
                     "shrink-0 rounded-full",
-                    kind === "7" ? "size-2.5" : "size-2 sm:size-2.5",
+                    kind === "7" ? "size-6" : "size-2 sm:size-2.5",
                     on
                       ? i >= target
                         ? "bg-primary ring-1 ring-primary/40"

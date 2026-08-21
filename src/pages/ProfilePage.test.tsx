@@ -19,6 +19,20 @@ function withinRhythm() {
   return within(card)
 }
 
+function withinRecords() {
+  const heading = screen.getByRole("heading", { name: "Records" })
+  const card = heading.parentElement?.parentElement
+  if (!card) throw new Error("expected Records card")
+  return within(card)
+}
+
+function withinBalance() {
+  const heading = screen.getByRole("heading", { name: "Balance" })
+  const card = heading.parentElement?.parentElement
+  if (!card) throw new Error("expected Balance card")
+  return within(card)
+}
+
 const routerSources = import.meta.glob("../router/index.tsx", {
   query: "?raw",
   eager: true,
@@ -82,6 +96,41 @@ describe("ProfilePage T0 fixtures", () => {
       expect(rhythm.getByText(day)).toBeInTheDocument()
     }
     expect(rhythm.getAllByRole("listitem")).toHaveLength(7)
+    const dots = rhythm.getByRole("list", { name: "Rhythm" }).querySelectorAll("[data-rhythm-dot]")
+    expect(dots).toHaveLength(7)
+    expect([...dots].every((dot) => /\bsize-(5|6|7|8)\b/.test(dot.className))).toBe(true)
+  })
+
+  it("promotes Records KPIs to pulse cards with vs-prior deltas", () => {
+    renderWithProviders(<ProfilePage />)
+
+    const records = withinRecords()
+    const prs = records.getByText("11")
+    expect(prs.className).toMatch(/text-(4|5)xl/)
+    expect(records.getByText("8").className).toMatch(/text-(4|5)xl/)
+    expect(records.getByText("2d").className).toMatch(/text-(4|5)xl/)
+
+    const prDelta = records.getByText("+3 vs prior")
+    expect(prDelta.closest("p")?.className).toMatch(/emerald/)
+    expect(records.getByText("+2 vs prior")).toBeInTheDocument()
+    expect(records.getByText("3d sooner vs prior")).toBeInTheDocument()
+  })
+
+  it("promotes Circuits KPIs to pulse cards with vs-prior deltas", () => {
+    renderWithProviders(<ProfilePage />)
+
+    const heading = screen.getByRole("heading", { name: "Circuits" })
+    const card = heading.parentElement?.parentElement
+    if (!card) throw new Error("expected Circuits card")
+    const circuits = within(card)
+
+    expect(circuits.getByText("11").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("2").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("1").className).toMatch(/text-3xl/)
+
+    const up = circuits.getByText("+4 vs prior")
+    expect(up.closest("p")?.className).toMatch(/emerald/)
+    expect(circuits.getAllByText("even vs prior")).toHaveLength(2)
   })
 
   it("renders Mix and Rhythm above Records on the Pierre fixture", () => {
@@ -99,19 +148,20 @@ describe("ProfilePage T0 fixtures", () => {
     ).toBeTruthy()
   })
 
-  it("lets Rhythm span both columns of the Mix row", () => {
+  it("puts Mix and Rhythm side by side on the large row", () => {
     renderWithProviders(<ProfilePage />)
 
     const mix = screen.getByRole("heading", { name: "Mix" })
     const rhythm = screen.getByRole("heading", { name: "Rhythm" })
-    const mixCell = mix.closest("[class*='col-span']")
-    const rhythmCell = rhythm.closest("[class*='col-span']")
+    const mixCell = mix.closest(".min-w-0")
+    const rhythmCell = rhythm.closest(".min-w-0")
     const grid = mixCell?.parentElement
 
     expect(grid?.className).toMatch(/lg:grid-cols-2/)
-    expect(mixCell?.className).toMatch(/lg:col-span-2/)
-    expect(rhythmCell?.className).toMatch(/lg:col-span-2/)
+    expect(mixCell?.parentElement).toBe(rhythmCell?.parentElement)
     expect(mixCell).not.toBe(rhythmCell)
+    expect(mixCell?.className).not.toMatch(/col-span-2/)
+    expect(rhythmCell?.className).not.toMatch(/col-span-2/)
   })
 
   it("exposes five window crans and hides vs-prior on All time", async () => {
@@ -126,7 +176,11 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByText("+1 vs prior")).toBeInTheDocument()
     await user.click(screen.getByRole("radio", { name: "All time" }))
     expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("+3 vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("+4 vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
+    expect(withinBalance().getByText("67 / 100")).toBeInTheDocument()
+    expect(withinBalance().queryByText("+4 vs prior")).not.toBeInTheDocument()
   })
 
   it("shows signed pulse vs-prior deltas and keeps prescribed comparison neutral", async () => {
@@ -165,28 +219,26 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByText("Last 7 days · target 4 d / wk")).not.toBeInTheDocument()
   })
 
-  it("lays out 100d Rhythm as a goal heatmap, not week-dot clusters", async () => {
+  it("lays out 100d Rhythm as frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
     await user.click(screen.getByRole("radio", { name: "100d" }))
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythm.queryByText("W-11")).not.toBeInTheDocument()
     expect(rhythm.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
-    expect(rhythm.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
-    expect(rhythm.getByText(/Goal/)).toBeInTheDocument()
-    expect(rhythm.getByText(/Rest/)).toBeInTheDocument()
-    const cells = rhythm.getAllByRole("gridcell")
-    expect(cells.some((cell) => (cell.getAttribute("aria-label") ?? "").endsWith(": 2"))).toBe(
-      true,
-    )
-    expect(cells.some((cell) => (cell.getAttribute("aria-label") ?? "").endsWith(": 1"))).toBe(
-      true,
-    )
+    expect(rhythm.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
+    const chart = await rhythm.findByRole("img", { name: "Rhythm" })
+    await waitFor(() => {
+      expect(chart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+    })
+    expect(rhythm.getByText("W-11")).toBeInTheDocument()
+    expect(rhythm.getByText("W")).toBeInTheDocument()
+    expect(chart.querySelector(".recharts-reference-line")).not.toBeNull()
+    expect(rhythm.getByText("W-8 = deload (2 sessions)")).toBeInTheDocument()
   })
 
-  it("renders French 100d Rhythm heatmap with an Objectif legend", async () => {
+  it("renders French 100d Rhythm bars with a cible meta", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />, { locale: "fr" })
     await user.click(screen.getByRole("radio", { name: "100j" }))
@@ -197,9 +249,13 @@ describe("ProfilePage T0 fixtures", () => {
     const rhythm = within(card)
 
     expect(rhythm.getByText("12 semaines · cible 4 j / sem")).toBeInTheDocument()
-    expect(rhythm.queryByText("S-11")).not.toBeInTheDocument()
-    expect(rhythm.getByText(/Objectif/)).toBeInTheDocument()
-    expect(rhythm.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
+    expect(rhythm.queryByRole("list", { name: "Rythme" })).not.toBeInTheDocument()
+    const chart = await rhythm.findByRole("img", { name: "Rythme" })
+    await waitFor(() => {
+      expect(chart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+    })
+    expect(rhythm.getByText("S-11")).toBeInTheDocument()
+    expect(rhythm.getByText("S-8 = deload (2 séances)")).toBeInTheDocument()
   })
 
   it("keeps target-dot clusters on 30d Rhythm", async () => {
@@ -215,7 +271,7 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("switches 1y and all-time Rhythm to the same goal heatmap", async () => {
+  it("switches 1y and all-time Rhythm to frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -223,13 +279,25 @@ describe("ProfilePage T0 fixtures", () => {
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
-    expect(rhythmYear.queryByRole("img", { name: "Rhythm" })).not.toBeInTheDocument()
-    expect(rhythmYear.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
+    expect(rhythmYear.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
+    const yearChart = await rhythmYear.findByRole("img", { name: "Rhythm" })
+    await waitFor(() => {
+      expect(yearChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+    })
+    expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
+    expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
+    expect(yearChart.querySelector(".recharts-reference-line")).not.toBeNull()
 
     await user.click(screen.getByRole("radio", { name: "All time" }))
     const rhythmAll = withinRhythm()
     expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythmAll.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
+    expect(rhythmAll.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
+    const allChart = await rhythmAll.findByRole("img", { name: "Rhythm" })
+    await waitFor(() => {
+      expect(allChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(3)
+    })
+    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
+    expect(allChart.querySelector(".recharts-reference-line")).not.toBeNull()
   })
 
   it("hides the Rhythm chart on the empty fixture", async () => {
@@ -295,6 +363,20 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Balance" })).toBeInTheDocument()
     expect(screen.getByText("18.4 t")).toBeInTheDocument()
+
+    const balance = withinBalance()
+    expect(balance.getByText("67 / 100")).toBeInTheDocument()
+    expect(balance.getByText("Needs attention")).toBeInTheDocument()
+    const bar = balance.getByRole("progressbar", { name: "67 / 100" })
+    expect(bar).toHaveAttribute("aria-valuenow", "67")
+    const delta = balance.getByText("+4 vs prior")
+    expect(delta.className).toMatch(/emerald/)
+
+    const tonnageHeading = screen.getByRole("heading", { name: "Tonnage" })
+    const tonnageCard = tonnageHeading.parentElement?.parentElement
+    if (!tonnageCard) throw new Error("expected Tonnage card")
+    const tonnageDelta = within(tonnageCard).getByText("+1.2 t vs prior")
+    expect(tonnageDelta.className).toMatch(/emerald/)
   })
 
   it("renders a Tonnage bar chart on the Pierre fixture", async () => {
@@ -338,6 +420,28 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
+  it("treats Circuits as last AmrapScore plus a rounds sparkline, not a leftover string", async () => {
+    renderWithProviders(<ProfilePage />)
+
+    const heading = screen.getByRole("heading", { name: "Circuits" })
+    const card = heading.parentElement?.parentElement
+    if (!card) throw new Error("expected Circuits card")
+    const circuits = within(card)
+
+    expect(circuits.queryByText("8+2 · 9+0 · 10+1")).not.toBeInTheDocument()
+    expect(circuits.getByText("10+1")).toBeInTheDocument()
+    expect(circuits.getByText("5+4")).toBeInTheDocument()
+    expect(circuits.getByText("AMRAP 20 min")).toBeInTheDocument()
+    expect(circuits.getByText("AMRAP 12 min")).toBeInTheDocument()
+    expect(await circuits.findByRole("img", { name: "Cindy score" })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: "Athena score" })).toBeInTheDocument()
+    expect(
+      circuits
+        .getAllByRole("listitem")
+        .every((row) => row.className.includes("grid-cols-")),
+    ).toBe(true)
+  })
+
   it("treats empty and loading as distinct fixture modes", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
@@ -346,6 +450,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(
       screen.getByText("Not enough sessions for a score."),
     ).toBeInTheDocument()
+    expect(screen.queryByText("67 / 100")).not.toBeInTheDocument()
     expect(screen.queryByRole("img", { name: "Baby Spidey" })).not.toBeInTheDocument()
     expect(screen.queryByText("Cindy bronze")).not.toBeInTheDocument()
 

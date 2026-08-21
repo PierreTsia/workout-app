@@ -1,4 +1,8 @@
-import type { MuscleTaxonomy } from "@/lib/trainingBalance"
+import {
+  computeBalanceScore,
+  MUSCLE_TAXONOMY,
+  type MuscleTaxonomy,
+} from "@/lib/trainingBalance"
 import type {
   MixSeries,
   MuscleRadarValues,
@@ -64,3 +68,7 @@ export const RADAR_SERIES = {
   current: RADAR_CURRENT,
   prior: RADAR_PRIOR,
 } satisfies { current: MuscleRadarValues; prior: MuscleRadarValues }
+
+export function radarBalanceScore(values: MuscleRadarValues): number {
+  return computeBalanceScore(MUSCLE_TAXONOMY.map((muscle) => values[muscle]))
+}

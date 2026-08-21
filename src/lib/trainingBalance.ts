@@ -34,6 +34,13 @@ export const AGONIST_PAIRS = [
 
 export type BalanceBand = "excellent" | "good" | "attention" | "imbalanced"
 
+export const BALANCE_BAND_COLOR = {
+  excellent: "hsl(142 71% 45%)",
+  good: "hsl(84 81% 44%)",
+  attention: "hsl(38 92% 50%)",
+  imbalanced: "hsl(0 72% 71%)",
+} as const satisfies Record<BalanceBand, string>
+
 export function balanceBandFromScore(score: number): BalanceBand {
   if (score >= 85) return "excellent"
   if (score >= 70) return "good"

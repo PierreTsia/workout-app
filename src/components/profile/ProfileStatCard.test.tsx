@@ -61,7 +61,14 @@ describe("ProfileStatCard", () => {
     expect(hero.className).toMatch(/text-(4|5)xl/)
   })
 
-  it("vertically centers the card body instead of top-stacking", () => {
+  it("renders a small count when the card sits in a half column", () => {
+    renderWithProviders(<ProfileStatCard size="small" title="Runs" value={11} />)
+
+    expect(screen.getByText("11").className).toMatch(/text-3xl/)
+    expect(screen.getByText("11").className).not.toMatch(/text-5xl/)
+  })
+
+  it("centers the card body on both axes instead of top-stacking", () => {
     const { container } = renderWithProviders(
       <ProfileStatCard title="Sessions" value={5} />,
     )
@@ -74,5 +81,7 @@ describe("ProfileStatCard", () => {
     const body = screen.getByText("5").parentElement
     expect(body?.className).toMatch(/flex-1/)
     expect(body?.className).toMatch(/justify-center/)
+    expect(body?.className).toMatch(/items-center/)
+    expect(body?.className).toMatch(/text-center/)
   })
 })

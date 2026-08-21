@@ -27,7 +27,7 @@ export function ProfileSection({
       >
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
         {meta != null ? (
-          <p className="text-right text-sm text-muted-foreground">{meta}</p>
+          <div className="text-right text-sm">{meta}</div>
         ) : null}
       </CardHeader>
       <CardContent>

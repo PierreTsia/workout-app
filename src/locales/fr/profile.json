@@ -63,10 +63,6 @@
     "weekCurrent": "S",
     "weekAgo": "S-{{n}}",
     "deload": "{{week}} = deload ({{n}} séances)",
-    "heatmapRest": "Repos",
-    "heatmapGoal": "Objectif",
-    "heatmapTooltipShort": "{{n}} / {{target}} j — sous l’objectif",
-    "heatmapTooltipGoal": "Objectif atteint · {{n}} j",
     "empty": "Aucune séance dans cette fenêtre.",
     "weekday": {
       "mon": "Lun",
@@ -101,10 +97,19 @@
     "prs": "PRs",
     "exercises": "Exercices",
     "sinceLast": "Depuis le dernier",
+    "deltaSooner": "{{n}} plus tôt vs préc.",
+    "deltaLater": "{{n}} plus tard vs préc.",
     "empty": "Pas de PR dans cette fenêtre."
   },
   "balance": {
     "title": "Équilibre",
+    "score": "{{score}} / 100",
+    "band": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "attention": "À surveiller",
+      "imbalanced": "Déséquilibré"
+    },
     "empty": "Pas assez de séances pour un score."
   },
   "tonnage": {

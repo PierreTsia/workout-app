@@ -46,7 +46,7 @@ export function pierreRhythmHits(kind: ProfileWindowKind): RhythmHits {
     return { hits: [4, 4, 2, 4, 4] }
   }
   if (kind === "100") {
-    return { hits: [4, 3, 4, 2, 4, 4, 5, 4, 3, 4, 4, 4], deloadAt: 3 }
+    return { hits: [4, 3, 4, 2, 4, 6, 5, 4, 3, 4, 4, 7], deloadAt: 3 }
   }
   if (kind === "365") {
     return { hits: [3, 4, 4, 3, 4, 2, 5, 4, 3, 4, 4, 4] }
@@ -139,6 +139,67 @@ export function pierreRecordsSeries(kind: ProfileWindowKind): {
   return { prs, rir0 }
 }
 
+export type RecordsPulseFixture = {
+  prs: number
+  prsDelta: number
+  exercises: number
+  exercisesDelta: number
+  sinceLast: string
+  sinceDelta: number
+  sinceDeltaN: string
+}
+
+export function pierreRecordsPulse(kind: ProfileWindowKind): RecordsPulseFixture {
+  const byKind: Record<ProfileWindowKind, RecordsPulseFixture> = {
+    "7": {
+      prs: 11,
+      prsDelta: 3,
+      exercises: 8,
+      exercisesDelta: 2,
+      sinceLast: "2d",
+      sinceDelta: 3,
+      sinceDeltaN: "3d",
+    },
+    "30": {
+      prs: 28,
+      prsDelta: 5,
+      exercises: 14,
+      exercisesDelta: 2,
+      sinceLast: "2d",
+      sinceDelta: 1,
+      sinceDeltaN: "1d",
+    },
+    "100": {
+      prs: 61,
+      prsDelta: 8,
+      exercises: 19,
+      exercisesDelta: 3,
+      sinceLast: "2d",
+      sinceDelta: 4,
+      sinceDeltaN: "4d",
+    },
+    "365": {
+      prs: 94,
+      prsDelta: 12,
+      exercises: 22,
+      exercisesDelta: 1,
+      sinceLast: "2d",
+      sinceDelta: -2,
+      sinceDeltaN: "2d",
+    },
+    all: {
+      prs: 140,
+      prsDelta: 0,
+      exercises: 24,
+      exercisesDelta: 0,
+      sinceLast: "2d",
+      sinceDelta: 0,
+      sinceDeltaN: "",
+    },
+  }
+  return byKind[kind]
+}
+
 export type PulseFixture = {
   sessions: number
   sessionDelta: number
@@ -195,10 +256,96 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
 }
 
 
-export const PIERRE_CIRCUITS = [
-  { name: "Cindy", mode: "AMRAP 20", scores: "8+2 · 9+0 · 10+1", pb: true },
-  { name: "Athena", mode: "AMRAP 12", scores: "4+6 · 5+1 · 5+4", pb: false },
-] as const
+export type CircuitsPulseFixture = {
+  runs: number
+  runsDelta: number
+  distinct: number
+  distinctDelta: number
+  pbs: number
+  pbsDelta: number
+}
+
+export function pierreCircuitsPulse(kind: ProfileWindowKind): CircuitsPulseFixture {
+  const byKind: Record<ProfileWindowKind, CircuitsPulseFixture> = {
+    "7": {
+      runs: 11,
+      runsDelta: 4,
+      distinct: 2,
+      distinctDelta: 0,
+      pbs: 1,
+      pbsDelta: 0,
+    },
+    "30": {
+      runs: 24,
+      runsDelta: 6,
+      distinct: 2,
+      distinctDelta: 0,
+      pbs: 2,
+      pbsDelta: 1,
+    },
+    "100": {
+      runs: 41,
+      runsDelta: 7,
+      distinct: 3,
+      distinctDelta: 1,
+      pbs: 3,
+      pbsDelta: 1,
+    },
+    "365": {
+      runs: 68,
+      runsDelta: 9,
+      distinct: 4,
+      distinctDelta: 1,
+      pbs: 5,
+      pbsDelta: 2,
+    },
+    all: {
+      runs: 88,
+      runsDelta: 0,
+      distinct: 4,
+      distinctDelta: 0,
+      pbs: 6,
+      pbsDelta: 0,
+    },
+  }
+  return byKind[kind]
+}
+
+export type CircuitRunFixture = {
+  fullRounds: number
+  leftover: number
+  leftoverName: string
+}
+
+export type CircuitRowFixture = {
+  name: string
+  minutes: number
+  pb: boolean
+  runs: readonly CircuitRunFixture[]
+}
+
+export const PIERRE_CIRCUITS: readonly CircuitRowFixture[] = [
+  {
+    name: "Cindy",
+    minutes: 20,
+    pb: true,
+    runs: [
+      { fullRounds: 8, leftover: 2, leftoverName: "pull-ups" },
+      { fullRounds: 9, leftover: 0, leftoverName: "pull-ups" },
+      { fullRounds: 10, leftover: 1, leftoverName: "pull-ups" },
+    ],
+  },
+  {
+    name: "Athena",
+    minutes: 12,
+    pb: false,
+    runs: [
+      { fullRounds: 4, leftover: 6, leftoverName: "sit-ups" },
+      { fullRounds: 5, leftover: 1, leftoverName: "sit-ups" },
+      { fullRounds: 5, leftover: 4, leftoverName: "sit-ups" },
+    ],
+  },
+]
 
 const BADGE_ICON_BASE =
   "https://favusepjqwpcroiolvaz.supabase.co/storage/v1/object/public/badge-icons"

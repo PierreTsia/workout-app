@@ -1,14 +1,20 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { CircuitScoreSparkline } from "@/components/profile/charts/CircuitScoreSparkline"
 import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
+import { AmrapLabel } from "@/components/circuit/AmrapLabel"
+import { AmrapScore } from "@/components/circuit/AmrapScore"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
+  radarBalanceScore,
 } from "@/components/profile/charts/fixtures"
+import { cn } from "@/lib/utils"
+import { BalanceScoreBar } from "@/components/profile/BalanceScoreBar"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
@@ -33,7 +39,9 @@ import {
   PIERRE_CIRCUITS,
   PIERRE_SUCCES,
   pierreMixSeries,
+  pierreCircuitsPulse,
   pierrePulse,
+  pierreRecordsPulse,
   pierreRecordsSeries,
   pierreRhythmHits,
   PIERRE_WEEKLY_TARGET,
@@ -41,6 +49,7 @@ import {
   type ProfileWindowKind,
 } from "@/lib/profile/window"
 import { pierreTonnageBars } from "@/lib/profile/tonnage"
+import { balanceBandFromScore } from "@/lib/trainingBalance"
 import { localDateFromIsoDay, tenureSpan, tenureSpanKey } from "@/lib/profile/tenure"
 import type { BadgeStatusRow } from "@/types/achievements"
 
@@ -384,12 +393,14 @@ function RhythmBlock({ mode }: { mode: FixtureMode }) {
     <ProfileSection
       title={t("rhythm.title")}
       meta={
-        status === "ok"
-          ? t("rhythm.meta", {
+        status === "ok" ? (
+          <span className="text-muted-foreground">
+            {t("rhythm.meta", {
               window: t(`rhythm.caption.${kind}`),
               target: t("rhythm.target", { n: target }),
-            })
-          : undefined
+            })}
+          </span>
+        ) : undefined
       }
       status={status}
       empty={t("rhythm.empty")}
@@ -419,28 +430,58 @@ function MixBlock({ mode }: { mode: FixtureMode }) {
 
 function RecordsBlock({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
-  const { kind } = useProfileWindow()
+  const { kind, includeDeltas } = useProfileWindow()
   const status = blockStatus(mode, "ok")
   const categories = MIX_CATEGORIES[kind]
   const series = pierreRecordsSeries(kind)
+  const pulse = pierreRecordsPulse(kind)
+
+  const vsPrior = (n: string | number, value: number) => ({
+    value,
+    label:
+      value === 0
+        ? t("pulse.deltaEven")
+        : value < 0
+          ? t("pulse.deltaDown", { n })
+          : t("pulse.delta", { n }),
+  })
+
+  const vsFreshness = (n: string, value: number) => ({
+    value,
+    label:
+      value === 0
+        ? t("pulse.deltaEven")
+        : value < 0
+          ? t("records.deltaLater", { n })
+          : t("records.deltaSooner", { n }),
+  })
 
   return (
     <ProfileSection title={t("records.title")} status={status} empty={t("records.empty")}>
-      <div className="mb-3 grid grid-cols-3 gap-3 text-sm">
-        <div>
-          <p className="text-xs text-muted-foreground">{t("records.prs")}</p>
-          <p className="font-semibold">11</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("records.exercises")}</p>
-          <p className="font-semibold">8</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("records.sinceLast")}</p>
-          <p className="font-semibold">2d</p>
-        </div>
+      <ProfilePulseGrid>
+        <ProfileStatCard
+          title={t("records.prs")}
+          value={pulse.prs}
+          delta={includeDeltas ? vsPrior(pulse.prsDelta, pulse.prsDelta) : undefined}
+        />
+        <ProfileStatCard
+          title={t("records.exercises")}
+          value={pulse.exercises}
+          delta={
+            includeDeltas ? vsPrior(pulse.exercisesDelta, pulse.exercisesDelta) : undefined
+          }
+        />
+        <ProfileStatCard
+          title={t("records.sinceLast")}
+          value={pulse.sinceLast}
+          delta={
+            includeDeltas ? vsFreshness(pulse.sinceDeltaN, pulse.sinceDelta) : undefined
+          }
+        />
+      </ProfilePulseGrid>
+      <div className="mt-4">
+        <RecordsComboChart categories={categories} series={series} />
       </div>
-      <RecordsComboChart categories={categories} series={series} />
     </ProfileSection>
   )
 }
@@ -450,14 +491,44 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
   const { kind, includeDeltas } = useProfileWindow()
   const status = blockStatus(mode, "ok")
   const bars = pierreTonnageBars(kind)
+  const tonnageDelta: number = 1.2
+  const score = radarBalanceScore(RADAR_CURRENT)
+  const band = balanceBandFromScore(score)
+  const priorScore = radarBalanceScore(RADAR_PRIOR)
+  const scoreDelta = score - priorScore
+  const scoreDeltaLabel =
+    scoreDelta === 0
+      ? t("pulse.deltaEven")
+      : scoreDelta < 0
+        ? t("pulse.deltaDown", { n: Math.abs(scoreDelta) })
+        : t("pulse.delta", { n: scoreDelta })
 
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
       <ProfileSection
         title={t("balance.title")}
+        meta={
+          status === "ok" && includeDeltas ? (
+            <span
+              className={cn(
+                "font-medium",
+                scoreDelta > 0 && "text-emerald-600 dark:text-emerald-400",
+                scoreDelta < 0 && "text-destructive",
+                scoreDelta === 0 && "text-muted-foreground",
+              )}
+            >
+              {scoreDeltaLabel}
+            </span>
+          ) : undefined
+        }
         status={status}
         empty={t("balance.empty")}
       >
+        <BalanceScoreBar
+          score={score}
+          label={t("balance.score", { score })}
+          bandLabel={t(`balance.band.${band}`)}
+        />
         <MuscleRadarChart
           series={{
             current: RADAR_CURRENT,
@@ -472,7 +543,14 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
       >
         <p className="text-3xl font-bold tracking-tight">18.4 t</p>
         {includeDeltas ? (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p
+            className={cn(
+              "mt-1 text-xs font-medium",
+              tonnageDelta > 0 && "text-emerald-600 dark:text-emerald-400",
+              tonnageDelta < 0 && "text-destructive",
+              tonnageDelta === 0 && "text-muted-foreground",
+            )}
+          >
             {t("pulse.delta", { n: "1.2 t" })}
           </p>
         ) : null}
@@ -485,7 +563,19 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
 
 function CircuitsBlock({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
+  const { kind, includeDeltas } = useProfileWindow()
   const status = blockStatus(mode, "ok")
+  const pulse = pierreCircuitsPulse(kind)
+
+  const vsPrior = (n: string | number, value: number) => ({
+    value,
+    label:
+      value === 0
+        ? t("pulse.deltaEven")
+        : value < 0
+          ? t("pulse.deltaDown", { n })
+          : t("pulse.delta", { n }),
+  })
 
   return (
     <ProfileSection
@@ -493,29 +583,61 @@ function CircuitsBlock({ mode }: { mode: FixtureMode }) {
       status={status}
       empty={t("circuits.empty")}
     >
-      <div className="mb-4 grid grid-cols-3 gap-3 text-sm">
-        <div>
-          <p className="text-xs text-muted-foreground">{t("circuits.runs")}</p>
-          <p className="font-semibold">11</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("circuits.distinct")}</p>
-          <p className="font-semibold">2</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("circuits.pbs")}</p>
-          <p className="font-semibold">1</p>
-        </div>
+      <div className="mb-4">
+        <ProfilePulseGrid>
+          <ProfileStatCard
+            size="small"
+            title={t("circuits.runs")}
+            value={pulse.runs}
+            delta={includeDeltas ? vsPrior(pulse.runsDelta, pulse.runsDelta) : undefined}
+          />
+          <ProfileStatCard
+            size="small"
+            title={t("circuits.distinct")}
+            value={pulse.distinct}
+            delta={
+              includeDeltas
+                ? vsPrior(pulse.distinctDelta, pulse.distinctDelta)
+                : undefined
+            }
+          />
+          <ProfileStatCard
+            size="small"
+            title={t("circuits.pbs")}
+            value={pulse.pbs}
+            delta={includeDeltas ? vsPrior(pulse.pbsDelta, pulse.pbsDelta) : undefined}
+          />
+        </ProfilePulseGrid>
       </div>
       <ul className="flex flex-col gap-3">
-        {PIERRE_CIRCUITS.map((row) => (
-          <li key={row.name} className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{row.name}</span>
-              <span className="text-xs text-muted-foreground">{row.mode}</span>
-              {row.pb ? <Badge>{t("circuits.pbs")}</Badge> : null}
+        {PIERRE_CIRCUITS.flatMap((row) => {
+          const latest = row.runs.at(-1)
+          return latest == null ? [] : [{ row, latest }]
+        }).map(({ row, latest }) => (
+          <li
+            key={row.name}
+            className="grid grid-cols-[minmax(0,1fr)_auto_6rem] items-center gap-3"
+          >
+            <div className="min-w-0">
+              <div className="flex min-h-5 items-center gap-2">
+                <span className="truncate font-medium">{row.name}</span>
+                <AmrapLabel minutes={row.minutes} variant="inline" />
+                <span className="inline-flex h-5 min-w-8 shrink-0 items-center">
+                  {row.pb ? <Badge>{t("circuits.pbs")}</Badge> : null}
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">{row.scores}</p>
+            <AmrapScore
+              fullRounds={latest.fullRounds}
+              leftover={latest.leftover}
+              leftoverName={latest.leftoverName}
+              size="compact"
+              align="start"
+            />
+            <CircuitScoreSparkline
+              name={row.name}
+              rounds={row.runs.map((run) => run.fullRounds)}
+            />
           </li>
         ))}
       </ul>
@@ -529,11 +651,11 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
       <HeroBlock mode={mode} />
       <SuccesBlock mode={mode} />
       <PulseBlock mode={mode} />
-      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
-        <div className="min-w-0 lg:col-span-2">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
+        <div className="min-w-0">
           <MixBlock mode={mode} />
         </div>
-        <div className="min-w-0 lg:col-span-2">
+        <div className="min-w-0">
           <RhythmBlock mode={mode} />
         </div>
       </div>

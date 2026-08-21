@@ -5,6 +5,8 @@ import {
   MIX_CATEGORIES,
   pierreMixSeries,
   pierrePulse,
+  pierreCircuitsPulse,
+  pierreRecordsPulse,
   pierreRhythmHits,
   PIERRE_WEEKLY_TARGET,
   PROFILE_WINDOW_KINDS,
@@ -25,6 +27,24 @@ describe("profile window", () => {
 
   it("gives Pierre 7d a negative time-under-bar delta", () => {
     expect(pierrePulse("7").timeDelta).toBeLessThan(0)
+  })
+
+  it("gives Pierre 7d Circuits a vs-prior on runs", () => {
+    const circuits = pierreCircuitsPulse("7")
+    expect(circuits.runs).toBe(11)
+    expect(circuits.runsDelta).toBeGreaterThan(0)
+    expect(circuits.distinct).toBe(2)
+    expect(circuits.pbs).toBe(1)
+  })
+
+  it("gives Pierre 7d Records a vs-prior on PRs, exercises, and freshness", () => {
+    const records = pierreRecordsPulse("7")
+    expect(records.prs).toBe(11)
+    expect(records.prsDelta).toBeGreaterThan(0)
+    expect(records.exercises).toBe(8)
+    expect(records.exercisesDelta).toBeGreaterThan(0)
+    expect(records.sinceLast).toBe("2d")
+    expect(records.sinceDelta).toBeGreaterThan(0)
   })
 
   it("caps 1y Mix grain at 12 months", () => {
@@ -54,11 +74,13 @@ describe("profile window", () => {
     expect(typesOnTick(series, sun)).toBe(0)
   })
 
-  it("gives Pierre 100d Rhythm 12 weeks with a deload and an over-target week", () => {
+  it("gives Pierre 100d Rhythm 12 weeks with a deload and weeks at 5, 6, and 7", () => {
     const fixture = pierreRhythmHits("100")
     expect(PIERRE_WEEKLY_TARGET).toBe(4)
     expect(fixture.hits).toHaveLength(12)
-    expect(fixture.hits.some((n) => n > PIERRE_WEEKLY_TARGET)).toBe(true)
+    expect(fixture.hits).toContain(5)
+    expect(fixture.hits).toContain(6)
+    expect(fixture.hits).toContain(7)
     expect(fixture.hits.some((n) => n === PIERRE_WEEKLY_TARGET)).toBe(true)
     expect(fixture.hits.some((n) => n > 0 && n < PIERRE_WEEKLY_TARGET)).toBe(true)
     expect(fixture.deloadAt).toBe(3)

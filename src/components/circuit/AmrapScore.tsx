@@ -7,6 +7,8 @@ interface AmrapScoreProps {
   leftoverName: string
   /** `hero` = Round Screen done. `compact` = history card/sheet (sits with Circuit, not over it). */
   size?: "hero" | "compact"
+  /** Compact defaults to `end` (history). Profile rows use `start`. */
+  align?: "start" | "end"
 }
 
 /** Sole renderer of an AMRAP score — `27+3` plus named leftover gloss. */
@@ -15,14 +17,18 @@ export function AmrapScore({
   leftover,
   leftoverName,
   size = "hero",
+  align,
 }: AmrapScoreProps) {
   const { t } = useTranslation("workout")
   const compact = size === "compact"
+  const edge = align ?? (compact ? "end" : "center")
   return (
     <div
       className={cn(
         "flex flex-col gap-0.5",
-        compact ? "items-end" : "items-center gap-1",
+        edge === "end" && "items-end",
+        edge === "start" && "items-start",
+        edge === "center" && "items-center gap-1",
       )}
     >
       <p
@@ -36,7 +42,10 @@ export function AmrapScore({
       <p
         className={cn(
           "text-muted-foreground",
-          compact ? "max-w-[11rem] truncate text-right text-[10px]" : "text-sm",
+          compact && "max-w-[11rem] truncate text-[10px]",
+          compact && edge === "end" && "text-right",
+          compact && edge === "start" && "text-left",
+          !compact && "text-sm",
         )}
       >
         {t("blockRunner.amrapScoreGloss", {
