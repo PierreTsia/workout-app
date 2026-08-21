@@ -1,5 +1,7 @@
 # T237 — HITL T0 mocked fold
 
+**Status:** **passed 2026-08-21**. Comment on [#512](https://github.com/PierreTsia/workout-app/issues/512). No longer gates T227 / T233.
+
 ## Goal
 
 Eyeball `/profile` on **fixtures only** (Pierre data, empty, loading) before any live RPC. This is the mocked-screen review: density, act order, empties vs skeletons, five-window chrome. Wiring (T227+) waits on a pass. Addresses Epic stories 17, 20 (visual), 21 (charts in situ).
@@ -14,7 +16,7 @@ T225 `/profile` (admin) → fixture switch Pierre / empty / loading → checklis
 
 ## Dependencies
 
-T225 (and thus T224). **Gates T227 and T233.** T226 / T235 may continue in parallel.
+T225 (and thus T224). **Gated T227 and T233 — gate lifted.** T226 is already done; T235 is leftover editorial (copy deck), not the frontier.
 
 ## Scope
 
@@ -28,19 +30,19 @@ T225 (and thus T224). **Gates T227 and T233.** T226 / T235 may continue in paral
 
 | Check | Pass |
 |---|---|
-| Three acts in order; Mix + Rythme **above** Records | |
-| Five toggles readable; wrap on mobile, not a clipped 5th cran | |
-| Toujours: no vs-préc. pills on the fixture VM | |
-| Pierre fixture: charts look like *a* dashboard (stacked Mix, dual-axis combo, 13-axis radar) — not pixel-canvas | |
-| Combo: no green/red; a missing RIR point is a gap, not `0%` | |
-| Empty switch: empties are copy, not skeletons, not fake series | |
-| Loading switch: skeletons, not `"–"` | |
-| 2-session / not-enough fixture: Équilibre empty; pulse/Mix may still show | |
-| Cindy fixture: Mix **Circuits**, Tonnage empty or 0 t | |
-| Tonnage sits beside radar on desktop, stacked under on mobile | |
-| Récurrents / Circuits / Succès don’t feel like a fourth product | |
-| Identity card in the drawer still goes to `/account` | |
-| Non-admin still has no nav row (spot-check) | |
+| Three acts in order; Mix + Rythme **above** Records | ✓ |
+| Five toggles readable; wrap on mobile, not a clipped 5th cran | ✓ |
+| Toujours: no vs-préc. pills on the fixture VM | ✓ |
+| Pierre fixture: charts look like *a* dashboard (stacked Mix, dual-axis combo, 13-axis radar) — not pixel-canvas | ✓ |
+| Combo: no green/red; a missing RIR point is a gap, not `0%` | ✓ |
+| Empty switch: empties are copy, not skeletons, not fake series | ✓ |
+| Loading switch: skeletons, not `"–"` | ✓ |
+| 2-session / not-enough fixture: Équilibre empty; pulse/Mix may still show | ✓ |
+| Cindy fixture: Mix **Circuits**, Tonnage empty or 0 t | ✓ |
+| Tonnage sits beside radar on desktop, stacked under on mobile | ✓ |
+| Récurrents / Circuits / Succès don’t feel like a fourth product | ✓ |
+| Identity card in the drawer still goes to `/account` | ✓ |
+| Non-admin still has no nav row (spot-check) | ✓ |
 
 File follow-ups only for real layout/copy bugs. Do not reopen Mix precedence or metric definitions here.
 
@@ -49,31 +51,31 @@ File follow-ups only for real layout/copy bugs. Do not reopen Mix precedence or 
 The mocked fold **is** the target. Wiring copies this fold, it does not restore revoked locks.
 
 - **Hero** = **Profil tenure**, not a Training streak.
-- **Pulse** label = **Session time** (`SUM(active_duration_ms)`).
+- **Pulse** label = **Session time** (`SUM(active_duration_ms)`). UI: **Temps de séance** / **Session time**.
 - **Récurrents** follow the window. Rank = numeric reps. No Program pin. The “100d always” lock is dead.
 - **Circuits** rows: name + small PB, type below (AMRAP / Tours), run count, **best in the window** (not last), last-8 sparkline. `Force` is a T0 stand-in — T233 does not mint a catalog seed.
 - Copy: `file:src/locales/{en,fr}/profile.json` (validated hints / hovers), not the old copy-deck sentences.
 
 ### Outcome
 
-- Comment on [#512](https://github.com/PierreTsia/workout-app/issues/512) or the T225 PR: pass, or blockers with screenshots.
-- T227 must not start until this is **pass** or blockers are filed as separate tickets (not silent “fix while wiring”).
+- **Pass** recorded on [#512](https://github.com/PierreTsia/workout-app/issues/512#issuecomment-5374390418) (2026-08-21).
+- T227 / T233 may start. T236 is a second HITL on **real** data — do not confuse the two.
 
 ## Out of Scope
 
 - Live snapshot / wiring (T227+)
-- Ungate (T236) — that’s a second HITL on **real** data
+- Ungate (T236)
 - Rewriting chart atoms unless a checklist row fails (then a patch on T224/T225)
 
 ## Acceptance Criteria
 
-- [ ] Checklist completed on mobile-width and desktop
-- [ ] Pierre + empty + loading each signed off (or blockers listed)
-- [ ] #512 / PR updated: HITL done or blockers filed
-- [ ] No wiring PR opened until this ticket is pass or explicitly waived in the comment
+- [x] Checklist completed on mobile-width and desktop
+- [x] Pierre + empty + loading each signed off (or blockers listed)
+- [x] #512 / PR updated: HITL done or blockers filed
+- [x] No wiring PR opened until this ticket is pass or explicitly waived in the comment
 
 ## References
 
 - Epic Brief stories 17, 20–21
 - T225 fixtures; Tech Plan T0 admin switch
-- Copy: `file:docs/visions/profile-copy-deck.canvas.tsx`
+- Copy: `file:src/locales/{en,fr}/profile.json` (SSOT). Canvas `file:docs/visions/profile-copy-deck.canvas.tsx` is stale until T235.

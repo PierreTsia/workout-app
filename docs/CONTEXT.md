@@ -172,7 +172,7 @@ Per-graph floor below which Profil shows an empty / not-enough-data state, not a
 → `file:src/lib/volumeByMuscleGroup.ts`
 
 **Profil PR**:
-Unit on the Records block: a distinct `(session_id, exercise_id)` pair that has ≥1 `set_logs.was_pr` in the window, including duration PRs. Not a set count. Not `get_cycle_stats` (that COUNT drops `duration_seconds IS NOT NULL`). **Circuit** stations use the same `was_pr` / `prDetection` as solos — today's `blockSetLog` writes `wasPr: false`, so a deadlift Circuit will not appear until that finish path is fixed; that fix is a prerequisite of the Records wiring ticket, not a second PR type. **Circuit** score PBs (AMRAP / Tours) stay in the Circuits block.
+Unit on the Records block: a distinct `(session_id, exercise_id)` pair that has ≥1 `set_logs.was_pr` in the window, including duration PRs. Not a set count. Not `get_cycle_stats` (that COUNT drops `duration_seconds IS NOT NULL`). **Circuit** stations use the same `was_pr` / `prDetection` as solos (`file:src/lib/blockSetLog.ts` — T226 done). A loaded deadlift in a Circuit shares the solo PR stream. Historical rows need `scripts/backfill-was-pr.ts` before T236; new finishes are already correct. **Circuit** score PBs (AMRAP / Tours) stay in the Circuits block. Not a second PR type.
 → `file:src/lib/prDetection.ts`
 
 **Profil Circuit PB**:

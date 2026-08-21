@@ -14,7 +14,9 @@ migration `get_profile_snapshot` → `useProfileSnapshot` → `lib/profile` puls
 
 ## Dependencies
 
-T225 (shell + fixture adapter to replace for pulse only). **T237** (mocked-fold HITL pass — do not start wiring on a fold that failed eyeball).
+T225 (shell + fixture adapter to replace for pulse only) — **done**. **T237 passed 2026-08-21** — gate lifted. T226 is done and is **not** required here (it blocks T229 only).
+
+**Status:** ready — first live slice. Parallel with T233.
 
 ## Scope
 
@@ -53,7 +55,7 @@ Replace the T225 pulse fixture adapter with live VMs. Zero sessions in window �
 - [ ] Toggle **1 an** triggers 730d fetch; 7/30/100 stay on the 200d cache
 - [ ] Pulse numbers match `SUM(active_duration_ms)` (+ fallback); tests fail if wired to `minutes` from activity-by-day
 - [ ] 0 sessions in window: empty strip, not vs-prescribed zeros
-- [ ] Demoable: admin on real data sees Séances / Temps sous barre / Durée moy. move with 7j vs 30j
+- [ ] Demoable: admin on real data sees Séances / Temps de séance / Durée moy. move with 7j vs 30j
 - [ ] Env-stripped vitest + `npx tsc -p tsconfig.app.json --noEmit`
 
 ## References

@@ -14,7 +14,7 @@ AFK — window follow and reps ranking are HITL-locked.
 
 ## Dependencies
 
-T227 (200d snapshot covers 7 / 30 / 100 + prior). Kind **365** uses the 730d fetch. Kind **all** waits on T234 career logs — do not invent a 100d list when the cran is Toujours. T225 shell.
+T227 (200d snapshot covers 7 / 30 / 100 + prior) — **not started**. Kind **365** uses the 730d fetch. Kind **all** waits on T234 career logs — do not invent a 100d list when the cran is Toujours. T225 **done**. Do not start until T227 is committed.
 
 ## Scope
 

@@ -25,8 +25,8 @@ GymLogic gets a first-category **Profil** at `/profile`: a 7j / 30j / 100j / 1 a
 |---|---|
 | Identity surface is a form | No reason to open Account between sessions |
 | History is the carnet *and* the only pulse | Hevy-shaped glance; GL objects buried |
-| Wiring the nearest RPC under a Profil label | “Temps sous barre” silently includes rest |
-| `blockSetLog` writes `wasPr: false` | A loaded deadlift in a Circuit never becomes a **Profil PR** |
+| Wiring the nearest RPC under a Profil label | Pulse minutes silently include rest (`get_training_activity_by_day`) |
+| Circuit stations used to skip `prDetection` | Fixed (T226). Old rows still need the backfill before T236 |
 | Last-8 `isPb` | A career Circuit PB outside the slice is invisible |
 
 ---
@@ -44,14 +44,14 @@ GymLogic gets a first-category **Profil** at `/profile`: a 7j / 30j / 100j / 1 a
 9. As an **athlete**, I want **Rythme** as presence (empty rings are the story; no min floor). Skip-vs-plan rings only if a single **Program** dominates the window (numeric “dominates” → Tech Plan).
 10. As an **athlete**, I want **Mix** stacked 100% with **Mix slice** precedence: **Benchmark Circuit** on the workout day (`benchmark_circuit_id`) > **Quick Workout** (`program_id` null) > **Programme**. Jetable Circuits never take the Circuits slice.
 11. As an **athlete**, I want **Records**: **Profil PR** count (distinct `(session_id, exercise_id)` with `was_pr`, duration included — not `get_cycle_stats`), distinct exercises, days since last, combo bars (PRs) + **RIR 0 rate** line (dual axis, no green/red). Line needs ≥2 declared-RIR buckets; no imputed drawer-default 2; no fake `0 %`.
-12. As an **athlete**, I want Circuit station sets to participate in `was_pr` via the same `prDetection` as solos, so that a loaded deadlift in a Circuit can be a **Profil PR**. Today `file:src/lib/blockSetLog.ts` writes `wasPr: false` — this epic fixes that write path before or with Records wiring.
+12. As an **athlete**, I want Circuit station sets to participate in `was_pr` via the same `prDetection` as solos, so that a loaded deadlift in a Circuit can be a **Profil PR**. **T226 done** (`file:src/lib/blockSetLog.ts`). Records wiring (T229) consumes it.
 13. As an **athlete**, I want **Équilibre**: score pill + band + delta vs the same-length shifted window, radar 13 `MUSCLE_TAXONOMY` groups (**sets**, not kg). Score/radar require ≥3 sessions (`hasEnoughBalanceData`). Body map and agonist pairs stay in History.
 14. As an **athlete**, I want **Tonnage** in the second desktop column (mobile stacked): `weight_logged > 0` × numeric reps, Circuit loaded sets **in**, bodyweight at 0 kg and duration **out**, not the sum of radar axes. ≥1 loaded set or empty. A Cindy Friday can be Mix **Circuits** and **0 t**.
 15. As an **athlete**, I want **Regulars** to follow the same window as the rest of the fold: total numeric reps per catalog `exercise_id` in that window, tie-break `max(logged_at)`, ≥2 sessions to appear, top ~8, Circuit stations count. No Program pin.
 16. As an **athlete**, I want **Circuits**: catalog only, type-aware **AMRAP** and **Tours** (name + type below, small **PB** on the name), per-row **run count** + **best run in the window** (not last), sparkline last-8 (≥2 runs for a line), **Profil Circuit PB** = career-best `template_fingerprint` in this window (full ledger, not `RUN_LIMIT 8`). First complete run is not a PB. Jetable stay in History. Olympians `{n}/4` is a pill, not a fourth stat.
 17. As an **athlete with not enough data**, I want per-graph empty states per **Profil not-enough-data** (not loading, not a fake series), so that a 7d radar is not a score on two sessions.
 18. As an **athlete with zero sessions in the window**, I want the pulse strip empty (not “0 min vs 60 prescrits”) and Mix empty; Rythme all-empty is valid.
-19. As an **athlete**, I want FR/EN copies from `file:docs/visions/profile-copy-deck.canvas.tsx` (product names untranslated: Quick Workout, RIR, PR, PB, AMRAP).
+19. As an **athlete**, I want FR/EN copies from `file:src/locales/{en,fr}/profile.json` (HITL-validated; product names untranslated: Quick Workout, RIR, PR, PB, AMRAP). The copy-deck canvas is leftover editorial (T235).
 20. As an **admin during T0**, I want every block on fixtures (Pierre data + admin empty/loading switch), so that adding a block is a thin `ProfileSection` + children, not a new page layout. Not a `<ProfileWidget<T>>` registry.
 21. As an **admin**, I want chart atoms (stacked Mix, dual-axis combo, 13-axis radar) proven against `file:src/components/ui/chart.tsx` / Recharts **before** assembling the page shell, so that T0 is assembly, not a Recharts debug.
 22. As a **returning athlete on RPC error**, I want the block to fail visibly, not silently reuse a wrong nearby aggregate. No new offline cache in this epic.

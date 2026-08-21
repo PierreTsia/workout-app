@@ -1,5 +1,7 @@
 # T224 — Profil chart atoms
 
+**Status:** done on `feat/512/profil-first-class-dashboard`.
+
 ## Goal
 
 Prove the three Recharts atoms (stacked Mix, dual-axis Records combo, 13-axis radar) against shadcn `ChartContainer` with fixtures, so T0 is assembly not a Recharts debug. Addresses Epic stories 21.
@@ -30,7 +32,7 @@ Wrap each in `file:src/components/ui/chart.tsx` `ChartContainer`. If dual-axis f
 
 ### Playground
 
-A throwaway admin-only mount (route fragment or existing admin surface) that renders the three atoms with **fixed fixture series**: 7 day Mix, combo with a missing RIR point (gap, not `0%`), radar with 13 keys. Delete or keep behind admin until T225 absorbs the atoms into `ProfileSection`.
+Absorbed into T225 `ProfilePage`. Charts live under `file:src/components/profile/charts/`.
 
 ### Tests
 
@@ -46,11 +48,11 @@ A throwaway admin-only mount (route fragment or existing admin surface) that ren
 
 ## Acceptance Criteria
 
-- [ ] Three presentational components take `categories` / `series` only — no `useQuery`
-- [ ] Combo has two Y axes; RIR null is a gap, not a zero
-- [ ] Radar has 13 axes from `MUSCLE_TAXONOMY`
-- [ ] Demoable: an admin can see all three charts with fixtures in one view
-- [ ] `npx tsc -p tsconfig.app.json --noEmit` and vitest for the new files pass with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
+- [x] Three presentational components take `categories` / `series` only — no `useQuery`
+- [x] Combo has two Y axes; RIR null is a gap, not a zero
+- [x] Radar has 13 axes from `MUSCLE_TAXONOMY`
+- [x] Demoable: an admin can see all three charts with fixtures in one view
+- [x] `npx tsc -p tsconfig.app.json --noEmit` and vitest for the new files pass with `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY=`
 
 ## References
 

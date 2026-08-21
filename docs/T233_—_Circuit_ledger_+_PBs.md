@@ -14,7 +14,7 @@ migration `get_profile_circuit_ledger` → hook → `lib/profile` career PB + wi
 
 ## Dependencies
 
-T225 (shell). **T237** (mocked-fold HITL pass). Window from `ProfileWindowContext`. Can land in parallel with T227 (ledger is not the session snapshot).
+T225 (shell) — **done**. **T237 passed 2026-08-21** — gate lifted. Window from `ProfileWindowContext`. **Ready now**, parallel with T227 (ledger is not the session snapshot). Do not mint a `Force` catalog seed.
 
 ## Scope
 

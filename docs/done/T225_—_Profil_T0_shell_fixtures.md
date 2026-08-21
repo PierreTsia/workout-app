@@ -1,5 +1,7 @@
 # T225 — Profil T0 shell + fixtures
 
+**Status:** done on `feat/512/profil-first-class-dashboard`.
+
 ## Goal
 
 Ship `/profile` as a first-category, **admin-gated** fold: five-window toggle, thin `ProfileSection`, three acts on fixtures (Pierre data + empty/loading switch), FR/EN from the copy deck. Wiring later replaces the adapter, not the layout. Addresses Epic stories 1, 2, 4 (toggle UI), 5, 17, 19, 20.
@@ -42,27 +44,27 @@ Honor **Profil not-enough-data** in fixture sets (2 sessions → Équilibre empt
 
 ### i18n
 
-`file:src/locales/en/profile.json` + FR from `file:docs/visions/profile-copy-deck.canvas.tsx`. Product names untranslated: Quick Workout, RIR, PR, PB, AMRAP.
+`file:src/locales/{en,fr}/profile.json` (HITL-validated). Product names untranslated: Quick Workout, RIR, PR, PB, AMRAP. The copy-deck canvas is leftover editorial (T235) — do not restore its old sentences.
 
 ## Out of Scope
 
 - Live RPCs / `useProfileSnapshot` (T227+)
-- Human eyeball of the mocked fold (T237) — this ticket ships the switch; T237 is the HITL pass
+- Human eyeball of the mocked fold — **T237 passed 2026-08-21**
 - Removing the admin gate (T236)
 - Skip-vs-plan rings
-- Updating Vision / GitHub #512 body (T235)
+- Updating Vision / GitHub #512 body (T235 leftover: copy-deck canvas)
 
 ## Acceptance Criteria
 
-- [ ] Admin: Profil in drawer; `/profile` shows three acts in locked order with fixture data
-- [ ] Non-admin: no nav row; `/profile` redirects home
-- [ ] Toggle has five values; Toujours hides vs-préc. pills in the fixture VM (`includeDeltas: false`)
-- [ ] Admin switch: empty ≠ loading; 2-session fixture leaves Équilibre empty
-- [ ] Mix + Rythme sit above Records
-- [ ] Tonnage is the second desktop column next to the radar (stacked on mobile)
-- [ ] FR/EN keys exist; no raw i18n keys on the fold
-- [ ] Demoable: toggle 7j → 30j restyles fixture grain (day vs week labels) without a network call
-- [ ] `npx tsc -p tsconfig.app.json --noEmit` and gated-route tests pass with env-stripped vitest
+- [x] Admin: Profil in drawer; `/profile` shows three acts in locked order with fixture data
+- [x] Non-admin: no nav row; `/profile` redirects home
+- [x] Toggle has five values; Toujours hides vs-préc. pills in the fixture VM (`includeDeltas: false`)
+- [x] Admin switch: empty ≠ loading; 2-session fixture leaves Équilibre empty
+- [x] Mix + Rythme sit above Records
+- [x] Tonnage is the second desktop column next to the radar (stacked on mobile)
+- [x] FR/EN keys exist; no raw i18n keys on the fold
+- [x] Demoable: toggle 7j → 30j restyles fixture grain (day vs week labels) without a network call
+- [x] `npx tsc -p tsconfig.app.json --noEmit` and gated-route tests pass with env-stripped vitest
 
 ## References
 

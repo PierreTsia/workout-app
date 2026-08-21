@@ -14,7 +14,7 @@ AFK — floors and tonnage formula are locked.
 
 ## Dependencies
 
-T227 (snapshot for Tonnage). T224 / T225 (radar atom + layout). Bounded volume RPC already exists — do not wait on T234.
+T227 (snapshot for Tonnage) — **not started**. T224 / T225 **done**. Bounded volume RPC already exists — do not wait on T234. Do not start until T227 is committed.
 
 ## Scope
 

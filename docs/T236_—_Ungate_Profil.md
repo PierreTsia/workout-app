@@ -6,7 +6,7 @@ Remove `AdminOnly` / `AdminGuard` call sites whose **only** job is hiding Profil
 
 ## Mode
 
-HITL — second eyeball: **wired** fold on real data (honest empties, no fixture switch, no forbidden RPC bindings) before the guard comes off. Mocked screens are T237, not this ticket.
+HITL — second eyeball: **wired** fold on real data (honest empties, no fixture switch, no forbidden RPC bindings) before the guard comes off. Mocked screens were T237 (**passed**). This ticket is not a second T237.
 
 ## Slice
 
@@ -14,7 +14,7 @@ HITL dogfood checklist → delete Profil `AdminOnly` / `AdminGuard` → drawer v
 
 ## Dependencies
 
-T224–T234 (all blocks wired, including Toujours). T235 does not block ungate. T226 must be in production (or accepted lag: old Circuit rows without backfill) — **backfill should have been run** before this ticket.
+T227–T234 (all blocks wired, including Toujours). T224–T226 and T237 are already done. T235 (copy-deck canvas) does not block ungate. T226 write path is shipped; **run `scripts/backfill-was-pr.ts --apply` on production** (or accept lag on old Circuit rows) before this ticket.
 
 ## Scope
 

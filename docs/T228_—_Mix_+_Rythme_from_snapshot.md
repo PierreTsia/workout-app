@@ -14,7 +14,7 @@ AFK — slice precedence and grains are locked.
 
 ## Dependencies
 
-T227 (snapshot + session facts with `program_id` / `has_catalog_circuit`). T224 / T225 for chart + section.
+T227 (snapshot + session facts with `program_id` / `has_catalog_circuit`) — **not started**. T224 / T225 **done**. Do not start until T227 is committed.
 
 ## Scope
 

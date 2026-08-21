@@ -14,7 +14,7 @@ AFK — PR unit and RIR denominator are glossary-locked.
 
 ## Dependencies
 
-T227 (snapshot sets). **T226** (`was_pr` on Circuit stations). T224 / T225.
+T227 (snapshot sets) — **not started**. **T226 done** (`file:docs/done/T226_—_Circuit_station_was_pr.md`) — Circuit `was_pr` write path + tests + backfill script. T224 / T225 done. Do not start this ticket until T227 is committed. Production backfill `--apply` can wait until T236.
 
 ## Scope
 

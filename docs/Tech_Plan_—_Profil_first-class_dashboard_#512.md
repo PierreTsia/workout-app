@@ -44,7 +44,7 @@ First paint prefetches **200d** (covers 7 / 30 / 100 + prior). Toggle **1 an** f
 - Bounded Équilibre keeps `get_volume_by_muscle_group(p_days, p_offset_days)`. All-time uses the unbounded twin. Do **not** raise History’s 365 clamp.
 - Dual-axis combo: if Recharts 3 + `file:src/components/ui/chart.tsx` fails T-1, escape hatch is custom SVG (canvas already did). Do not block T0 fold.
 - Drawer identity card stays on `/account` (`file:src/components/SideDrawer.tsx`). New **Profil** row is first-category, same rank as History.
-- `file:src/lib/blockSetLog.ts` currently writes `wasPr: false`. Records wiring must not ship until that finish path (and a backfill) uses `file:src/lib/prDetection.ts`.
+- T226 is **done**: `file:src/lib/blockSetLog.ts` uses `file:src/lib/prDetection.ts`. Records (T229) may wire Circuit stations. Historical rows still need `scripts/backfill-was-pr.ts --apply` before T236.
 
 ---
 
@@ -202,16 +202,39 @@ graph TD
 
 ---
 
-## Delivery order (ticket spine)
+## Delivery status (2026-08-21)
 
-1. T-1 chart atoms (fixtures)
-2. T0 `/profile` shell, admin-gated, all blocks on fixtures
-3. `was_pr` on Circuit stations (write + backfill)
-4. Snapshot RPC + wire pulse / Rythme / Mix
-5. Wire Records + RIR
-6. Wire Équilibre (bounded RPC) + Tonnage
-7. Wire Regulars (same window), Succès, tenure, hop
-8. Circuit ledger + PBs
+Orchestrator SSOT. Do not re-grill. Do not treat an open T237 file as a gate — it is in `docs/done/`.
+
+| Ticket | Mode | Status |
+|---|---|---|
+| T224 chart atoms | AFK | **done** — `file:docs/done/T224_—_Profil_chart_atoms.md` |
+| T225 T0 shell | AFK | **done** — `file:docs/done/T225_—_Profil_T0_shell_fixtures.md` |
+| T226 Circuit `was_pr` | AFK | **done** — write path + tests + backfill script. Prod `--apply` before T236. Hard dep of T229, **not** of T227 |
+| T237 mocked-fold HITL | HITL | **passed 2026-08-21** — `file:docs/done/T237_—_HITL_T0_mocked_fold.md` + #512 comment. Gate lifted |
+| **T227** snapshot + pulse | AFK | **ready** — first live slice |
+| **T233** circuit ledger | AFK | **ready** — parallel with T227 |
+| T228 Mix + Rythme | AFK | waits T227 |
+| T229 Records + RIR | AFK | waits T227 (T226 already done) |
+| T230 Équilibre + Tonnage | AFK | waits T227 |
+| T231 Hero tenure + hop | AFK | waits T227 |
+| T232 Regulars follow window | AFK | waits T227 |
+| T234 all-time rollups | AFK | waits T227–T230 |
+| T235 copy-deck canvas | AFK | leftover editorial. **Not the frontier** |
+| T236 ungate | HITL | last. Do not start |
+
+**Frontier:** T227 ∥ T233. Then T228–T232 (after T227). Then T234. T235 anytime after, never first. T236 last.
+
+### Delivery order (original spine, for history)
+
+1. T-1 chart atoms (fixtures) — done
+2. T0 `/profile` shell — done
+3. `was_pr` on Circuit stations — done (prod backfill still open)
+4. Snapshot RPC + wire pulse — **next (T227)**; Mix/Rythme = T228 after
+5. Wire Records + RIR (T229, after T227)
+6. Wire Équilibre + Tonnage (T230)
+7. Wire Regulars, Succès, tenure, hop (T232 / T231)
+8. Circuit ledger + PBs (T233, parallel with T227)
 9. All-time rollups + unbounded volume
-10. Docs: vision / copy deck / #512 for 5 windows
+10. Docs leftover: copy-deck canvas (T235)
 11. Ungate `isAdmin` wrappers

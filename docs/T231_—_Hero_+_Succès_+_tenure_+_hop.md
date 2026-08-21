@@ -14,7 +14,7 @@ user profile + `get_badge_status` → Hero / Succès strip → `file:src/lib/pro
 
 ## Dependencies
 
-T227 (snapshot for hop + recently-earned window; tenure from `MIN(sessions.started_at)`, fallback `profiles.created_at`). T225 shell.
+T227 (snapshot for hop + recently-earned window; tenure from `MIN(sessions.started_at)`, fallback `profiles.created_at`) — **not started**. T225 **done**. Do not start until T227 is committed.
 
 ## Scope
 
