@@ -10,6 +10,11 @@ import {
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
+const lgUp = vi.fn(() => true)
+vi.mock("@/hooks/useMediaQuery", () => ({
+  useMediaQuery: () => lgUp(),
+}))
+
 const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
 function withinRhythm() {
@@ -27,6 +32,7 @@ const routerSources = import.meta.glob("../router/index.tsx", {
 
 describe("ProfilePage T0 fixtures", () => {
   beforeEach(() => {
+    lgUp.mockReturnValue(true)
     stubChartLayout()
   })
 
@@ -102,6 +108,23 @@ describe("ProfilePage T0 fixtures", () => {
     expect(mixCell?.className).toMatch(/lg:col-span-2/)
     expect(rhythmCell?.className).toMatch(/lg:col-span-2/)
     expect(mixCell).not.toBe(rhythmCell)
+  })
+
+  it("tabs Mix and Rhythm on a narrow viewport", async () => {
+    lgUp.mockReturnValue(false)
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByRole("tab", { name: "Mix" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: "Rhythm" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Mix" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Rhythm" })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("tab", { name: "Rhythm" }))
+
+    expect(screen.getByRole("heading", { name: "Rhythm" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Mix" })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Records" })).toBeInTheDocument()
   })
 
   it("exposes five window crans and hides vs-prior on All time", async () => {

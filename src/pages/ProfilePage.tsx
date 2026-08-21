@@ -25,8 +25,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
 import {
   emptyMixSeries,
   MIX_CATEGORIES,
@@ -523,12 +525,12 @@ function CircuitsBlock({ mode }: { mode: FixtureMode }) {
   )
 }
 
-function ProfileFold({ mode }: { mode: FixtureMode }) {
-  return (
-    <div className="flex flex-col gap-4">
-      <HeroBlock mode={mode} />
-      <SuccesBlock mode={mode} />
-      <PulseBlock mode={mode} />
+function MixRhythmRow({ mode }: { mode: FixtureMode }) {
+  const { t } = useTranslation("profile")
+  const desktop = useMediaQuery("(min-width: 1024px)")
+
+  if (desktop) {
+    return (
       <div className="grid min-w-0 gap-4 lg:grid-cols-2">
         <div className="min-w-0 lg:col-span-2">
           <MixBlock mode={mode} />
@@ -537,6 +539,32 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
           <RhythmBlock mode={mode} />
         </div>
       </div>
+    )
+  }
+
+  return (
+    <Tabs defaultValue="mix" className="min-w-0">
+      <TabsList className="grid h-auto w-full grid-cols-2">
+        <TabsTrigger value="mix">{t("mix.title")}</TabsTrigger>
+        <TabsTrigger value="rhythm">{t("rhythm.title")}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="mix" className="mt-4">
+        <MixBlock mode={mode} />
+      </TabsContent>
+      <TabsContent value="rhythm" className="mt-4">
+        <RhythmBlock mode={mode} />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+function ProfileFold({ mode }: { mode: FixtureMode }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <HeroBlock mode={mode} />
+      <SuccesBlock mode={mode} />
+      <PulseBlock mode={mode} />
+      <MixRhythmRow mode={mode} />
       <RecordsBlock mode={mode} />
       <BalanceTonnageRow mode={mode} />
       <div className="grid min-w-0 gap-4 lg:grid-cols-2">
