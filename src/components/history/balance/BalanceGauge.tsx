@@ -8,15 +8,8 @@ import {
 } from "recharts"
 
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart"
-import type { BalanceBand } from "@/lib/trainingBalance"
+import { BALANCE_BAND_COLOR, type BalanceBand } from "@/lib/trainingBalance"
 import { cn } from "@/lib/utils"
-
-const BAND_COLOR: Record<BalanceBand, string> = {
-  excellent: "hsl(142 71% 45%)",
-  good: "hsl(84 81% 44%)",
-  attention: "hsl(38 92% 50%)",
-  imbalanced: "hsl(0 72% 71%)",
-}
 
 /** Semicircle filling a 2:1 box. Center on the bottom edge, radius = half width. */
 function gaugeLayout(width: number, height: number) {
@@ -148,7 +141,7 @@ export function BalanceGauge({
     score: { label: "Score" },
     balance: {
       label: bandLabel,
-      color: BAND_COLOR[band],
+      color: BALANCE_BAND_COLOR[band],
     },
   } satisfies ChartConfig
 

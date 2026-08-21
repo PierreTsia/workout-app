@@ -79,3 +79,24 @@ export function scoreLiveDurationSet(durationSeconds: number): number {
 export function isPositivePrScore(score: number): boolean {
   return score > 0
 }
+
+/** Same gate SetsTable uses: history must be in, a prior session exists, strict beat. */
+export type WasPrContext = {
+  currentScore: number
+  historicalBest: number
+  sessionBest: number
+  hasPriorSession: boolean
+  historyFetched: boolean
+}
+
+export function computeWasPr({
+  currentScore,
+  historicalBest,
+  sessionBest,
+  hasPriorSession,
+  historyFetched,
+}: WasPrContext): boolean {
+  if (!historyFetched || !hasPriorSession) return false
+  const runningBest = Math.max(historicalBest, sessionBest)
+  return currentScore > runningBest && isPositivePrScore(currentScore)
+}

@@ -109,6 +109,14 @@ const UnlockOverlayPlaygroundPage = lazyWithRecover(() =>
     default: m.UnlockOverlayPlaygroundPage,
   })),
 )
+const ProfileChartsPlaygroundPage = lazyWithRecover(() =>
+  import("@/pages/ProfileChartsPlaygroundPage").then((m) => ({
+    default: m.ProfileChartsPlaygroundPage,
+  })),
+)
+const ProfilePage = lazyWithRecover(() =>
+  import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage })),
+)
 const PrivacyPage = lazyWithRecover(() =>
   import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
 )
@@ -216,6 +224,10 @@ export const router = createBrowserRouter([
                 element: <AchievementsPage />,
               },
               {
+                path: "/profile",
+                element: <ProfilePage />,
+              },
+              {
                 path: "/_unlock-overlay",
                 element: <UnlockOverlayPlaygroundPage />,
               },
@@ -253,6 +265,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/admin/feedback",
                     element: <AdminFeedbackPage />,
+                  },
+                  {
+                    path: "/_profile-charts",
+                    element: <ProfileChartsPlaygroundPage />,
                   },
                 ],
               },

@@ -3,6 +3,12 @@ import {
   templateCell,
   type BlockTerminationMode,
 } from "@/lib/blockTemplate"
+import {
+  computeWasPr,
+  getPrModality,
+  scoreLiveDurationSet,
+  scoreLiveRepSet,
+} from "@/lib/prDetection"
 import type { BlockExerciseWithExercise, SetLog } from "@/types/database"
 
 /** Block rounds are 0-based internally; set_logs.set_number is 1-based. */
@@ -15,6 +21,14 @@ export function blockCellKey(blockExerciseId: string, setNumber: number): string
   return `${blockExerciseId}#${setNumber}`
 }
 
+/** Prior-best inputs mirroring SetsTable's write-time PR gate. */
+export type BlockSetPrContext = {
+  historicalBest: number
+  sessionBest: number
+  hasPriorSession: boolean
+  historyFetched: boolean
+}
+
 interface BuildArgs {
   sessionId: string
   blockExercise: BlockExerciseWithExercise
@@ -24,13 +38,15 @@ interface BuildArgs {
   mode?: BlockTerminationMode
   /** Leftover actual (reps or seconds). Prescribed amount when omitted. */
   actual?: number
+  /** Omit to stay conservative (`wasPr: false`) until history is in. */
+  pr?: BlockSetPrContext
 }
 
 /**
  * Build the set_logs payload for one block cell (exercise × round). Block work
- * is frozen-prescription and out of the progression engine (ADR 0007): no
- * prescribed_* snapshot, no PR / 1RM / RIR — just the logged actuals tagged
- * with block_exercise_id so it never collides with the solo exercise.
+ * stays out of the progression engine (ADR 0007): no prescribed_* snapshot,
+ * no 1RM / RIR. `was_pr` is the exception — a loaded Circuit station uses the
+ * same `prDetection` as solos so it can mint a Profil PR.
  */
 export function buildBlockSetLogPayload({
   sessionId,
@@ -39,9 +55,25 @@ export function buildBlockSetLogPayload({
   now,
   mode,
   actual,
+  pr,
 }: BuildArgs): SetLogPayload {
   const cell = templateCell(blockExercise, round, mode ?? "rounds")
   const amount = actual ?? cell.amount
+  const modality = getPrModality({
+    measurement_type: blockExercise.exercise?.measurement_type,
+    equipment: blockExercise.exercise?.equipment,
+  })
+  const currentScore =
+    modality === "duration"
+      ? scoreLiveDurationSet(amount)
+      : scoreLiveRepSet(cell.weight, amount, modality)
+  const wasPr = computeWasPr({
+    currentScore,
+    historicalBest: pr?.historicalBest ?? 0,
+    sessionBest: pr?.sessionBest ?? 0,
+    hasPriorSession: pr?.hasPriorSession ?? false,
+    historyFetched: pr?.historyFetched ?? false,
+  })
   const base = {
     sessionId,
     exerciseId: blockExercise.exercise_id,
@@ -49,7 +81,7 @@ export function buildBlockSetLogPayload({
     exerciseNameSnapshot: blockExercise.name_snapshot,
     setNumber: blockSetNumber(round),
     weightLogged: cell.weight,
-    wasPr: false,
+    wasPr,
     loggedAt: now,
   }
 

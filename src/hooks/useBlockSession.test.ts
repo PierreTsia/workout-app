@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest"
-import { act } from "@testing-library/react"
+import { act, waitFor } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
 import { authAtom } from "@/store/atoms"
 import { useBlockSession } from "@/hooks/useBlockSession"
@@ -10,6 +10,7 @@ import {
 } from "@/lib/syncService"
 import type {
   BlockExerciseWithExercise,
+  Exercise,
   ExerciseBlockWithExercises,
 } from "@/types/database"
 import type { SetLogPayloadReps } from "@/lib/syncService"
@@ -32,6 +33,36 @@ vi.mock("@/lib/syncService", () => ({
   discardBlockSetLogs: vi.fn().mockResolvedValue(undefined),
 }))
 
+const fetchBestPerformance = vi.fn(async () => ({
+  bestValue: 200,
+  hasPriorSession: true,
+  modality: "weighted_reps" as const,
+}))
+
+vi.mock("@/hooks/useBestPerformance", () => ({
+  bestPerformanceQueryKey: (
+    userId: string,
+    args: {
+      exerciseId?: string
+      localSessionId: string
+      measurementType?: string
+      equipment?: string
+      sessionStartedAtMs?: number | null
+    },
+  ) => [
+    "best-performance",
+    userId,
+    args.exerciseId,
+    args.localSessionId,
+    args.measurementType ?? "reps",
+    args.equipment ?? "",
+    args.sessionStartedAtMs ?? 0,
+  ],
+  fetchBestPerformance: () => fetchBestPerformance(),
+  prefetchBestPerformance: vi.fn(),
+  useBestPerformance: vi.fn(),
+}))
+
 function makeQueuedLog(
   over: Partial<SetLogPayloadReps> = {},
 ): SetLogPayloadReps {
@@ -49,6 +80,26 @@ function makeQueuedLog(
     ...over,
   }
 }
+
+const exercise = (over: Partial<Exercise> = {}): Exercise => ({
+  id: "ex-1",
+  name: "Push-ups",
+  muscle_group: "chest",
+  emoji: "💪",
+  is_system: true,
+  created_at: "2026-01-01",
+  youtube_url: null,
+  instructions: null,
+  image_url: null,
+  equipment: "bodyweight",
+  difficulty_level: null,
+  name_en: null,
+  source: null,
+  secondary_muscles: null,
+  reviewed_at: null,
+  reviewed_by: null,
+  ...over,
+})
 
 const blockExercise = (
   over: Partial<BlockExerciseWithExercise> = {},
@@ -88,6 +139,7 @@ const block = (
 describe("useBlockSession", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(queuedSetLogPayloadsForSession).mockReturnValue([])
   })
 
   it("enqueues a block-tagged set_log for the logged cell", () => {
@@ -146,5 +198,44 @@ describe("useBlockSession", () => {
     })
 
     expect(discardBlockRun).toHaveBeenCalledWith("real-1", "blk-1")
+  })
+
+  it("flags wasPr on the queued payload when a weighted station beats prior scores", async () => {
+    const { result, store } = renderHookWithProviders(() =>
+      useBlockSession(
+        block({
+          rounds: 1,
+          exercises: [
+            blockExercise({
+              id: "be-deadlift",
+              exercise_id: "ex-deadlift",
+              name_snapshot: "Deadlift",
+              per_round: [{ amount: 5, weight: 180 }],
+              exercise: exercise({
+                id: "ex-deadlift",
+                name: "Deadlift",
+                equipment: "barbell",
+                measurement_type: "reps",
+              }),
+            }),
+          ],
+        }),
+        "local-1",
+      ),
+    )
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(fetchBestPerformance).toHaveBeenCalled())
+
+    act(() => result.current.logAndAdvance())
+
+    expect(enqueueSetLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exerciseId: "ex-deadlift",
+        wasPr: true,
+      }),
+    )
   })
 })

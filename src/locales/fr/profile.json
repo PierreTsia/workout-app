@@ -1,0 +1,176 @@
+{
+  "nav": "Profil",
+  "back": "Retour",
+  "windowToggle": "Fenêtre",
+  "about": "À propos — {{section}}",
+  "windowHint": "Tout le profil suit cette période. Sur Toujours, pas de comparaison avec avant.",
+  "window": {
+    "7": "Cette semaine",
+    "30": "Ce mois-ci",
+    "100": "Ce trimestre",
+    "365": "Cette année",
+    "all": "Toujours"
+  },
+  "hero": {
+    "activeProgram": "Actif · {{program}}",
+    "hop": "Aussi {{other}} cette semaine",
+    "activeSince": "Actif depuis {{span}}",
+    "tenureDays_one": "{{count}} jour",
+    "tenureDays_other": "{{count}} jours",
+    "tenureMonths_one": "{{count}} mois",
+    "tenureMonths_other": "{{count}} mois",
+    "tenureYears_one": "{{count}} an",
+    "tenureYears_other": "{{count}} ans",
+    "tenureYearsHalf_one": "{{count}} an et demi",
+    "tenureYearsHalf_other": "{{count}} ans et demi"
+  },
+  "achievements": {
+    "hint": "Le dernier badge, le plus haut palier, et ceux gagnés sur la période. La liste complète est dans Succès.",
+    "title": "Succès",
+    "count": "{{n}} / {{total}}",
+    "byRank": "Par rang",
+    "rankCount": "{{rank}} {{n}}",
+    "seeAll": "Voir tout",
+    "latest": "Plus récent",
+    "highest": "Plus haut",
+    "recent": "Derniers reçus",
+    "listToggle": "Liste des succès",
+    "listRecent": "Récents",
+    "listHighest": "Plus haut",
+    "andMore": "et {{n}} de plus…",
+    "empty": "Aucun succès pour l’instant."
+  },
+  "pulse": {
+    "sessions": "Séances",
+    "delta": "+{{n}} vs préc.",
+    "deltaDown": "-{{n}} vs préc.",
+    "deltaEven": "stable vs préc.",
+    "sessionTime": "Temps de séance",
+    "avgDuration": "Durée moy.",
+    "vsPrescribed": "vs {{n}} min prescrits",
+    "empty": "Aucune séance dans cette fenêtre."
+  },
+  "rhythm": {
+    "title": "Rythme",
+    "caption": {
+      "7": "7 derniers jours",
+      "30": "5 semaines",
+      "100": "12 semaines",
+      "365": "12 mois",
+      "all": "Par année"
+    },
+    "meta": "{{window}} · {{target}}",
+    "target": "cible {{n}} j / sem",
+    "session": "Séance",
+    "none": "Pas de séance",
+    "hits": "{{filled}} sur {{slots}}",
+    "bar": "j / sem",
+    "week": "S{{n}}",
+    "weekCurrent": "S",
+    "weekAgo": "S-{{n}}",
+    "deload": "{{week}} = deload ({{n}} séances)",
+    "empty": "Aucune séance dans cette fenêtre.",
+    "hint": "Combien de jours tu t’es entraîné. La ligne pointillée = 4 jours par semaine.",
+    "tooltip": {
+      "days": "{{n}} j",
+      "empty": "Pas d’entraînement ici.",
+      "short": "{{n}} jours. Objectif : {{target}} / semaine.",
+      "onTarget": "{{n}} jours. Objectif tenu.",
+      "over": "{{n}} jours. Au-dessus de l’objectif ({{target}} / semaine)."
+    },
+    "weekday": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam",
+      "sun": "Dim"
+    },
+    "month": {
+      "jan": "Janv",
+      "feb": "Févr",
+      "mar": "Mars",
+      "apr": "Avr",
+      "may": "Mai",
+      "jun": "Juin",
+      "jul": "Juil",
+      "aug": "Août",
+      "sep": "Sept",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Déc"
+    }
+  },
+  "mix": {
+    "title": "Mix",
+    "empty": "Aucune séance dans cette fenêtre.",
+    "hint": "Programme, Quick Workout ou Circuit — parfois le même jour. Les barres se cumulent.",
+    "tooltip": {
+      "rest": "Jour off.",
+      "circuits": "Circuit ce jour-là — il passe avant le Programme.",
+      "quickWorkout": "Séance hors programme.",
+      "programme": "Séance du programme."
+    }
+  },
+  "records": {
+    "title": "Records",
+    "prs": "PRs",
+    "exercises": "Exercices",
+    "sinceLast": "Depuis le dernier",
+    "deltaSooner": "{{n}} plus tôt vs préc.",
+    "deltaLater": "{{n}} plus tard vs préc.",
+    "empty": "Pas de PR dans cette fenêtre.",
+    "hint": "Combien de records (PR) et quelle part des séries sont allées à fond (RIR 0). Les exercices en temps ne sont pas dans ce %.",
+    "tooltip": {
+      "none": "Rien ici.",
+      "noRir": "{{prs}} PR. Pas de RIR noté — la ligne s’arrête, ce n’est pas 0 %.",
+      "combo": "{{prs}} PR. {{rir0}} % des séries avec RIR sont allées à fond (RIR 0)."
+    }
+  },
+  "balance": {
+    "title": "Équilibre",
+    "score": "{{score}} / 100",
+    "band": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "attention": "À surveiller",
+      "imbalanced": "Déséquilibré"
+    },
+    "rankLegend": "Séries · 1 / 0.5",
+    "empty": "Pas assez de séances pour un score.",
+    "hint": "Est-ce que tu travailles tes muscles de façon équilibrée. On compte les séries, pas les kilos. Il faut 3 séances. Le poids soulevé est dans Tonnage.",
+    "tooltip": {
+      "sets": "{{n}} séries",
+      "idle": "Survole un axe.",
+      "muscle": "{{muscle}} : {{sets}} séries.",
+      "up": "{{muscle}} : {{sets}} séries ({{prior}} la période d’avant).",
+      "down": "{{muscle}} : {{sets}} séries ({{prior}} la période d’avant).",
+      "even": "{{muscle}} : {{sets}} séries, comme avant."
+    }
+  },
+  "tonnage": {
+    "title": "Tonnage",
+    "legend": "Sets chargés · poids × reps",
+    "empty": "Aucun set chargé dans cette fenêtre.",
+    "hint": "Poids × reps, seulement si tu as mis un poids. 0 kg et les tenues chronométrées : pas dedans.",
+    "tooltip": "Poids chargé × reps. Ce n’est pas le total du radar."
+  },
+  "regulars": {
+    "title": "Récurrents",
+    "subtitle": "Les plus loggés · {{window}}",
+    "unranked": "—",
+    "empty": "Pas assez de logs sur cette période.",
+    "hint": "Tes mouvements les plus faits sur cette période."
+  },
+  "circuits": {
+    "title": "Circuits",
+    "runs": "Runs",
+    "distinct": "Circuits distincts",
+    "pbs": "PBs",
+    "pb": "PB",
+    "empty": "Aucun circuit dans cette fenêtre.",
+    "hint": "Tes épreuves nommées. Le score est le meilleur run de la période — AMRAP en tours, Tours en temps. Un PB, c’est un record."
+  },
+  "error": "Impossible de charger ce bloc."
+}

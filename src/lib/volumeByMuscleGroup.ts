@@ -17,6 +17,48 @@ export interface VolumeByMuscleResult {
   muscles: VolumeByMuscleRow[]
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function asFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+function parseVolumeRow(raw: unknown): VolumeByMuscleRow | null {
+  if (!isRecord(raw)) return null
+  const muscle_group = typeof raw.muscle_group === "string" ? raw.muscle_group : null
+  const total_sets = asFiniteNumber(raw.total_sets)
+  const total_volume_kg = asFiniteNumber(raw.total_volume_kg)
+  const exercise_count = asFiniteNumber(raw.exercise_count)
+  if (
+    muscle_group == null ||
+    total_sets == null ||
+    total_volume_kg == null ||
+    exercise_count == null
+  ) {
+    return null
+  }
+  return { muscle_group, total_sets, total_volume_kg, exercise_count }
+}
+
+export function parseVolumeByMuscleResult(data: unknown): VolumeByMuscleResult {
+  if (!isRecord(data) || !Array.isArray(data.muscles)) {
+    return { finished_sessions: 0, muscles: [] }
+  }
+  return {
+    finished_sessions: asFiniteNumber(data.finished_sessions) ?? 0,
+    muscles: data.muscles
+      .map(parseVolumeRow)
+      .filter((row): row is VolumeByMuscleRow => row != null),
+  }
+}
+
 export async function fetchVolumeByMuscleGroup(
   client: SupabaseClient,
   userId: string,
@@ -30,21 +72,18 @@ export async function fetchVolumeByMuscleGroup(
   })
 
   if (error) throw error
+  return parseVolumeByMuscleResult(data)
+}
 
-  const raw = data as unknown as VolumeByMuscleResult | null
-  if (!raw || !Array.isArray(raw.muscles)) {
-    return { finished_sessions: 0, muscles: [] }
-  }
-
-  return {
-    finished_sessions: Number(raw.finished_sessions) || 0,
-    muscles: raw.muscles.map((m) => ({
-      muscle_group: String(m.muscle_group),
-      total_sets: Number(m.total_sets) || 0,
-      total_volume_kg: Number(m.total_volume_kg) || 0,
-      exercise_count: Number(m.exercise_count) || 0,
-    })),
-  }
+export async function fetchVolumeByMuscleGroupAllTime(
+  client: SupabaseClient,
+  userId: string,
+): Promise<VolumeByMuscleResult> {
+  const { data, error } = await client.rpc("get_volume_by_muscle_group_all_time", {
+    p_user_id: userId,
+  })
+  if (error) throw error
+  return parseVolumeByMuscleResult(data)
 }
 
 export function hasEnoughBalanceData(result: VolumeByMuscleResult): boolean {

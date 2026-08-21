@@ -119,15 +119,17 @@ describe("clearUserState", () => {
     expect(mockClear).toHaveBeenCalledOnce()
   })
 
-  it("preserves device preferences (locale, weightUnit, theme)", () => {
+  it("preserves device preferences (locale, weightUnit, theme, profile window)", () => {
     localStorage.setItem("locale", '"en"')
     localStorage.setItem("weightUnit", '"lbs"')
     localStorage.setItem("workout-app-theme", "dark")
+    localStorage.setItem("profileWindow", "365")
 
     clearUserState()
 
     expect(localStorage.getItem("locale")).toBe('"en"')
     expect(localStorage.getItem("weightUnit")).toBe('"lbs"')
     expect(localStorage.getItem("workout-app-theme")).toBe("dark")
+    expect(localStorage.getItem("profileWindow")).toBe("365")
   })
 })

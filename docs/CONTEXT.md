@@ -135,6 +135,54 @@ One pass through every day of a **Program**. The open **Cycle** is the `cycles` 
 
 ## Workout execution
 
+**Session time** (UI: FR **Temps de séance** / EN **Session time**):
+Sum of `sessions.active_duration_ms` over finished **Sessions** in the current Profil window (7j / 30j / 100j / 1 an / depuis toujours). When `active_duration_ms` is null, fall back to wall-clock `(finished_at − started_at)` — same rule as `get_cycle_stats`. Pause-excluded when the finish path wrote the column. **Not** `get_training_activity_by_day.minutes`, which is always wall-clock including pauses; the Profil pulse must not bind that field. The UI used to say “time under the bar”; the metric did not change. All-time has no vs-préc. delta.
+→ `file:supabase/migrations/20260324140000_sessions_active_duration_ms.sql`, `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql`
+
+**RIR 0 rate** (UI: **% RIR 0**):
+Share of **declared** sets taken to **muscular failure** — the athlete explicitly tapped `rir = 0` in the drawer (not the default 2, not a missing value). Job on the Records combo: how often you went to failure, next to PR bars. Denominator is `set_logs.rir IS NOT NULL` only (duration sets and pre-RIR logs out). Null is **not** imputed as 2. A bucket with no declared RIR has **no point** (not `0 %`). Not mean RIR, not a count of failure sets (that would rise with volume).
+→ `file:src/components/workout/RirDrawer.tsx`
+
+**Tonnage** (UI: FR / EN **Tonnage**):
+Iron that moved in a sliding window: `Σ weight_logged × numeric reps` on finished **Session** sets where `weight_logged > 0` and `duration_seconds` is null. **Exercise Block** / **Circuit** sets count when they carry load (a deadlift station is still iron). Bodyweight at 0 kg and duration holds are out — Cindy is 0 t because nothing was loaded, not because it is a Circuit. Do not filter on `block_exercise_id` or `equipment`. Do not `SUM` the 13 **Équilibre** axes (secondary muscles are 0.5-credited). Same grain as Mix / Rythme; delta vs the equal prior window except **depuis toujours** (no vs-préc.).
+→ `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql`
+
+**Mix slice**:
+Exclusive label of a finished **Session** on the Profil stacked Mix (one session, one stack). Precedence: **(1) Circuits** if that session's **workout day** has an **Exercise Block** with `benchmark_circuit_id` not null (**Benchmark Circuit**, including a programmed Athena / Cindy day); **(2)** else **Quick Workout** if `workout_days.program_id` is null; **(3)** else **Programme**. Jetable Circuits (`benchmark_circuit_id` null) never take slice (1) — they fall through to QW or Programme. Same grain as Rythme. Overlay / double-count is out — a stacked 100 % bar cannot tell two truths.
+→ `file:docs/Vision_—_Profil_dashboard.md`
+
+**Regulars** (UI: FR **Récurrents** / EN **Regulars**):
+The movements you actually repeat **in the current Profil window** (7j / 30j / 100j / 1 an / Toujours) — the toggle applies, same as Mix. Rank = total numeric reps in that window (duration-only last); tie-break `max(logged_at)`. Top ~8. An exercise needs ≥2 distinct finished **Sessions** in the window to appear (once is not a habit). **Circuit** station logs count (Cindy pull-ups can be a Regular). No Program pin — `Sur le programme` / `Hors plan` are out of the fold. Not a fixed 100d habit list.
+→ `file:docs/Vision_—_Profil_dashboard.md`
+
+**Profil tenure** (UI: FR **Actif depuis {{span}}** / EN **Active since {{span}}**):
+Human duration since the first finished **Session** (`MIN(sessions.started_at)`), falling back to `profiles.created_at` when there are none. Days / months / years-and-a-half (`file:src/lib/profile/tenure.ts`). This is the Profil Hero caption. Not a **Training streak**. Not `consistency_streak`.
+→ `file:src/lib/profile/tenure.ts`
+
+**Training streak** (UI: FR **Série · {n} j** / EN **Streak · {n} d**):
+Live chain of local calendar days with ≥1 finished **Session**. Grace: the chain may end **yesterday** (same idea as `hundred_a_day`). Not on the Profil Hero — Hero shows **Profil tenure**. Not the `consistency_streak` badge (lifetime `session_count`). Not **Streak King**. `0` is a real value, not an empty state.
+→ `file:src/hooks/useTrainingActivityByDay.ts`
+
+**Hero hop line** (UI: FR **Aussi {other} cette semaine** / EN **Also {other} this week**):
+Shown only when ≥2 distinct `workout_days.program_id` (non-null) produced a finished **Session** in the **current Profil window** (7j / 30j / 100j / 1 an / depuis toujours), not a calendar ISO week when the toggle is 100d. **Quick Workout** (`program_id` null) does not count as a hop. One **Program** + QW / Circuits → no line.
+→ `file:docs/Vision_—_Profil_dashboard.md`
+
+**Profil not-enough-data**:
+Per-graph floor below which Profil shows an empty / not-enough-data state, not a fake series. Distinct from loading and from an honest zero (e.g. **Rythme** all-empty days). Floors: pulse stats ≥1 finished **Session** in the window (else the whole strip); Mix ≥1 session; Records combo **line** ≥2 buckets with a declared **RIR 0 rate** (bars may render from 1); Équilibre score + radar ≥3 sessions (`hasEnoughBalanceData`); **Tonnage** ≥1 loaded set (`weight_logged > 0`); **Regulars** an exercise needs ≥2 distinct sessions **in the current window** to appear; Circuits sparkline ≥2 runs, **best** score + run count from 1. Rythme has no floor — empty rings *are* the story.
+→ `file:src/lib/volumeByMuscleGroup.ts`
+
+**Profil PR**:
+Unit on the Records block: a distinct `(session_id, exercise_id)` pair that has ≥1 `set_logs.was_pr` in the window, including duration PRs. Not a set count. Not `get_cycle_stats` (that COUNT drops `duration_seconds IS NOT NULL`). **Circuit** stations use the same `was_pr` / `prDetection` as solos (`file:src/lib/blockSetLog.ts` — T226 done). A loaded deadlift in a Circuit shares the solo PR stream. Historical rows need `scripts/backfill-was-pr.ts` before T236; new finishes are already correct. **Circuit** score PBs (AMRAP / Tours) stay in the Circuits block. Not a second PR type.
+→ `file:src/lib/prDetection.ts`
+
+**Profil Circuit PB**:
+A finished **Benchmark Circuit** run in the current window whose type-aware score (AMRAP = max rounds then leftover; Tours = min completion time) beats **all** prior complete runs of the same `template_fingerprint` (career), not the last-8 History slice. `annotateAmrapRuns.isPb` on `RUN_LIMIT 8` is the wrong function. The first complete run is not a PB (nothing to beat). The Circuits **PBs** stat is the count of such runs in the window. The row **score** is the best run **in the window** (may or may not be a PB). The row **run count** is complete catalog runs of that fingerprint in the window. Sparklines stay last-8 chronological. Jetable Circuits stay in History.
+→ `file:src/lib/amrapScore.ts`
+
+**Prescribed session duration**:
+`users.session_duration_minutes` from the onboarding / Account questionnaire — the minutes the athlete told the app a session should last. Profil pulse **Durée moy.** is the mean **Session time** per finished **Session** in the window, compared to this field. Weak if stale; the stat links to the form that edits it (`/account` today, Settings later). Not a per-**workout day** template duration (that column does not exist).
+→ `file:src/components/onboarding/QuestionnaireTrainingFields.tsx`
+
 **Last Session Recap**:
 Home-only surface for a **workout day** that is already done in the current **Cycle**: two tabs under the day card — **Dernière séance** (default) vs **Programme**. **Dernière séance** is the last finished **Session** on that day, grouped like history (a **Circuit** stays a **Circuit**, score **AMRAP** `4+0` / **Tours**; solos stay solos), plus a fact line when **Benchmark Circuit** / solo `exercise_id` identities differ from the live **Unified Day Sequence**. **Programme** is that sequence, read-only, no kg. Hidden when `set_logs` are empty. The hero card stays today's identity (sequence item count, body map) — not last-session duration or set count.
 _Avoid_: Last Performance, preview, flattening a Circuit into `sets × reps`
@@ -261,6 +309,10 @@ The `set_logs` rows from the most recent session that logged a given **Exercise 
 ---
 
 ## Achievements
+
+**Profil achievements strip** (UI: **Succès** / **Achievements**):
+Three jobs on Profil, not Account's top-3-by-`tier_level`. **Plus récent** / **Latest** = max `granted_at` over the career. **Plus haut** / **Highest** = max rank / `tier_level` over the career (often the equipped title). Neither is window-scoped. **Derniers reçus** / **Recently earned** = `granted_at` inside the current Profil window — a date filter, not a new metric. Count `{n}/{total}` is career. CTA **Voir tout** → `/achievements`.
+→ `file:src/types/achievements.ts`
 
 **Circuit Achievement Run**:
 One finished **Block Run** on a GymLogic **Benchmark Circuit** seed (`owner_id` NULL) whose AMRAP score has `fullRounds ≥ 1`. TIME-empty closes (`0+0`) and **Circuit Fork** / jetable Circuits do not qualify. Each qualifying run increments that seed's ledger by one. Shared unit for **Circuit runner**, **Cast Clearing**, and the collection tracks below.

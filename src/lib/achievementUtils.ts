@@ -13,6 +13,14 @@ export const rankColorText: Record<AchievementRank, string> = {
   diamond: "text-purple-400",
 }
 
+export const rankColorRing: Record<AchievementRank, string> = {
+  bronze: "ring-amber-600",
+  silver: "ring-slate-300",
+  gold: "ring-yellow-400",
+  platinum: "ring-blue-300",
+  diamond: "ring-purple-400",
+}
+
 const RANK_ORDER: Record<AchievementRank, number> = {
   bronze: 0,
   silver: 1,

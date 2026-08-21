@@ -1,0 +1,148 @@
+import { useTranslation } from "react-i18next"
+import { RhythmBarChart } from "@/components/profile/charts/RhythmBarChart"
+import { MIX_CATEGORIES, type ProfileWindowKind } from "@/lib/profile/window"
+import { cn } from "@/lib/utils"
+
+const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
+const MONTHS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+] as const
+
+const DEFAULT_TARGET = 4
+
+function usesFrequencyBars(kind: ProfileWindowKind): boolean {
+  return kind === "100" || kind === "365" || kind === "all"
+}
+
+function clusterSlots(kind: ProfileWindowKind, target: number, hit: number): number {
+  if (kind === "7") return 1
+  return Math.max(target, Math.max(hit, 0))
+}
+
+function clusterLabel(
+  kind: ProfileWindowKind,
+  index: number,
+  count: number,
+  translate: (key: string, options?: { n: number }) => string,
+): string {
+  if (kind === "7") {
+    const day = WEEKDAYS[index]
+    return day === undefined ? "" : translate(`rhythm.weekday.${day}`)
+  }
+  if (kind === "365") {
+    const month = MONTHS[index]
+    return month === undefined ? "" : translate(`rhythm.month.${month}`)
+  }
+  if (kind === "all") {
+    return MIX_CATEGORIES.all[index] ?? ""
+  }
+  const ago = count - 1 - index
+  return ago === 0
+    ? translate("rhythm.weekCurrent")
+    : translate("rhythm.weekAgo", { n: ago })
+}
+
+export function RhythmPresenceChart({
+  kind,
+  hits,
+  target = DEFAULT_TARGET,
+  deloadAt,
+  categories,
+}: {
+  kind: ProfileWindowKind
+  hits: readonly number[]
+  target?: number
+  deloadAt?: number
+  categories?: readonly string[]
+}) {
+  const { t } = useTranslation("profile")
+  const labels = hits.map((_, i) =>
+    categories?.[i] ??
+    clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
+  )
+
+  if (usesFrequencyBars(kind)) {
+    const deloadLabel = deloadAt == null ? undefined : labels[deloadAt]
+    const deloadHit = deloadAt == null ? undefined : hits[deloadAt]
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        <RhythmBarChart categories={labels} series={hits} target={target} />
+        {deloadLabel != null && deloadHit != null ? (
+          <p className="text-xs text-muted-foreground">
+            {t("rhythm.deload", { week: deloadLabel, n: deloadHit })}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
+  const clusters = hits.map((hit, i) => {
+    const filled = Math.max(hit, 0)
+    const slots = clusterSlots(kind, target, filled)
+    return {
+      label: labels[i] ?? "",
+      filled: Math.min(filled, slots),
+      slots,
+      deload: i === deloadAt,
+    }
+  })
+
+  return (
+    <ol
+      aria-label={t("rhythm.title")}
+      className="flex w-full justify-between gap-1 overflow-x-auto"
+    >
+      {clusters.map((cluster) => {
+        const status = t("rhythm.hits", {
+          filled: cluster.filled,
+          slots: target,
+        })
+        const dots = Array.from({ length: cluster.slots }, (_, i) => i < cluster.filled)
+        return (
+          <li
+            key={cluster.label}
+            aria-label={`${cluster.label}, ${status}`}
+            className="flex min-w-0 flex-col items-center gap-1"
+          >
+            <span className="flex gap-px" aria-hidden="true">
+              {dots.map((on, i) => (
+                <span
+                  key={i}
+                  data-rhythm-dot={on ? "on" : "off"}
+                  className={cn(
+                    "shrink-0 rounded-full",
+                    kind === "7" ? "size-6" : "size-2 sm:size-2.5",
+                    on
+                      ? i >= target
+                        ? "bg-primary ring-1 ring-primary/40"
+                        : "bg-primary"
+                      : "bg-muted-foreground/30",
+                  )}
+                />
+              ))}
+            </span>
+            <span className="max-w-full truncate text-[10px] leading-none text-muted-foreground">
+              {cluster.label}
+            </span>
+            {cluster.deload ? (
+              <span className="max-w-20 text-center text-[9px] leading-tight text-muted-foreground">
+                {t("rhythm.deload", { week: cluster.label, n: cluster.filled })}
+              </span>
+            ) : null}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}

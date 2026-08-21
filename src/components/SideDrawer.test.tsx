@@ -93,6 +93,23 @@ function renderDrawer(
   return result
 }
 
+describe("SideDrawer Profil nav", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("shows Profile next to History for a signed-in non-admin", async () => {
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    const profile = within(dialog).getByRole("link", { name: /^Profile$/i })
+    const history = within(dialog).getByRole("link", { name: /^History$/i })
+    expect(profile).toHaveAttribute("href", "/profile")
+    expect(
+      profile.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+})
+
 describe("SideDrawer library navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks()

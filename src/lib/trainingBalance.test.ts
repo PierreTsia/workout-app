@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   AGONIST_PAIRS,
+  BALANCE_BAND_COLOR,
   balanceBandFromScore,
   computeBalanceScore,
   computePairInsights,
@@ -55,6 +56,15 @@ describe("balanceBandFromScore", () => {
     expect(balanceBandFromScore(50)).toBe("attention")
     expect(balanceBandFromScore(49)).toBe("imbalanced")
     expect(balanceBandFromScore(0)).toBe("imbalanced")
+  })
+
+  it("keeps one color per band", () => {
+    expect(Object.keys(BALANCE_BAND_COLOR)).toEqual([
+      "excellent",
+      "good",
+      "attention",
+      "imbalanced",
+    ])
   })
 })
 

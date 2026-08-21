@@ -48,13 +48,17 @@ export function AppShell() {
         <InstallBanner />
         <AchievementUnlockOverlay />
 
-        <main className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-y-auto">
-          {/* Single Suspense boundary for all lazy routes nested under AppShell.
-              Keeps header + side drawer + chips stable while the next chunk
-              downloads (`RouteSkeleton` only swaps inside `<main>`). */}
-          <Suspense fallback={<RouteSkeleton />}>
-            <Outlet />
-          </Suspense>
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin">
+          {/* Column is centered; scrolling stays on full-bleed <main> so the
+              bar sits on the viewport edge, not inset at max-w-5xl. */}
+          <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
+            {/* Single Suspense boundary for all lazy routes nested under AppShell.
+                Keeps header + side drawer + chips stable while the next chunk
+                downloads (`RouteSkeleton` only swaps inside `<main>`). */}
+            <Suspense fallback={<RouteSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
       </div>
     </AchievementRealtimeProvider>
