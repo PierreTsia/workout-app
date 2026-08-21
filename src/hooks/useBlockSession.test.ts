@@ -58,8 +58,7 @@ vi.mock("@/hooks/useBestPerformance", () => ({
     args.equipment ?? "",
     args.sessionStartedAtMs ?? 0,
   ],
-  fetchBestPerformance: (userId: string, args: unknown) =>
-    fetchBestPerformance(userId, args),
+  fetchBestPerformance: () => fetchBestPerformance(),
   prefetchBestPerformance: vi.fn(),
   useBestPerformance: vi.fn(),
 }))
