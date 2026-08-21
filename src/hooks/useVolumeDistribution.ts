@@ -27,10 +27,16 @@ export function useVolumeDistribution(
     queryKey: ["volume-distribution", user?.id, boundedDays, includePrevious],
     queryFn: async () => {
       const uid = user!.id
-      const current = await fetchVolumeByMuscleGroup(supabase, uid, boundedDays, 0)
-      const previous = includePrevious
-        ? await fetchVolumeByMuscleGroup(supabase, uid, boundedDays, boundedDays)
-        : { finished_sessions: 0, muscles: [] }
+      const emptyPrevious = { finished_sessions: 0, muscles: [] }
+      const [current, previous] = includePrevious
+        ? await Promise.all([
+            fetchVolumeByMuscleGroup(supabase, uid, boundedDays, 0),
+            fetchVolumeByMuscleGroup(supabase, uid, boundedDays, boundedDays),
+          ])
+        : [
+            await fetchVolumeByMuscleGroup(supabase, uid, boundedDays, 0),
+            emptyPrevious,
+          ]
       return { current, previous, days: boundedDays }
     },
     enabled: Boolean(user) && (options?.enabled ?? true),

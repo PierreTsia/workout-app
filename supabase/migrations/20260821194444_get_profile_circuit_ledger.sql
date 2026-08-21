@@ -34,12 +34,15 @@ AS $$
                     'reps_logged', sl.reps_logged,
                     'duration_seconds', sl.duration_seconds,
                     'logged_at', sl.logged_at,
-                    'exercise_name', sl.exercise_name_snapshot
+                    'exercise_name', sl.exercise_name_snapshot,
+                    'name', e.name,
+                    'name_en', e.name_en
                   )
                   ORDER BY sl.logged_at
                 )
                 FROM set_logs sl
                 JOIN block_exercises be ON be.id = sl.block_exercise_id
+                LEFT JOIN exercises e ON e.id = sl.exercise_id
                 WHERE sl.session_id = br.session_id
                   AND br.block_id IS NOT NULL
                   AND be.block_id = br.block_id
@@ -59,4 +62,5 @@ AS $$
   );
 $$;
 
+REVOKE ALL ON FUNCTION public.get_profile_circuit_ledger() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_profile_circuit_ledger() TO authenticated;

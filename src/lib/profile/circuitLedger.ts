@@ -1,4 +1,5 @@
 import { amrapScore, type AmrapScoreCell, type AmrapScoreValue } from "@/lib/amrapScore"
+import { resolveExerciseName } from "@/lib/catalogLabels"
 import {
   circuitBestAmrap,
   circuitBestTours,
@@ -378,13 +379,25 @@ function asFiniteNumber(value: unknown): number | null {
   return null
 }
 
-function parseCell(raw: unknown): AmrapScoreCell | null {
+function parseCell(raw: unknown, locale: string): AmrapScoreCell | null {
   if (!isRecord(raw)) return null
   const sessionId = asIsoString(raw.session_id)
   const setNumber = asFiniteNumber(raw.set_number)
   const loggedAt = asIsoString(raw.logged_at)
-  const exerciseName = asIsoString(raw.exercise_name)
-  if (sessionId == null || setNumber == null || loggedAt == null || exerciseName == null) {
+  const snapshot = asIsoString(raw.exercise_name)
+  const catalogName = stringOrNull(raw.name)
+  const catalogNameEn = stringOrNull(raw.name_en)
+  const exerciseName = resolveExerciseName(
+    {
+      exercise:
+        catalogName != null || catalogNameEn != null
+          ? { name: catalogName, name_en: catalogNameEn }
+          : null,
+      exercise_name_snapshot: snapshot,
+    },
+    locale,
+  )
+  if (sessionId == null || setNumber == null || loggedAt == null || exerciseName === "") {
     return null
   }
   const duration = raw.duration_seconds
@@ -399,7 +412,10 @@ function parseCell(raw: unknown): AmrapScoreCell | null {
   }
 }
 
-function parseAmrapRun(raw: Record<string, unknown>): CircuitLedgerRun | null {
+function parseAmrapRun(
+  raw: Record<string, unknown>,
+  locale: string,
+): CircuitLedgerRun | null {
   const sessionId = asIsoString(raw.session_id)
   const startedAt = asIsoString(raw.started_at)
   const fingerprint = asIsoString(raw.template_fingerprint)
@@ -418,7 +434,9 @@ function parseAmrapRun(raw: Record<string, unknown>): CircuitLedgerRun | null {
   }
   const cellsRaw = raw.cells
   const cells = Array.isArray(cellsRaw)
-    ? cellsRaw.map(parseCell).filter((cell): cell is AmrapScoreCell => cell != null)
+    ? cellsRaw
+        .map((cell) => parseCell(cell, locale))
+        .filter((cell): cell is AmrapScoreCell => cell != null)
     : []
   return {
     mode: "amrap",
@@ -465,7 +483,10 @@ function parseToursRun(raw: Record<string, unknown>): CircuitLedgerRun | null {
   }
 }
 
-export function parseCircuitLedgerPayload(data: unknown): CircuitLedgerRun[] {
+export function parseCircuitLedgerPayload(
+  data: unknown,
+  locale = "fr",
+): CircuitLedgerRun[] {
   if (!Array.isArray(data)) return []
   return data.flatMap((row) => {
     if (!isRecord(row)) return []
@@ -473,7 +494,7 @@ export function parseCircuitLedgerPayload(data: unknown): CircuitLedgerRun[] {
       const parsed = parseToursRun(row)
       return parsed == null ? [] : [parsed]
     }
-    const parsed = parseAmrapRun(row)
+    const parsed = parseAmrapRun(row, locale)
     return parsed == null ? [] : [parsed]
   })
 }

@@ -353,6 +353,43 @@ describe("parseCircuitLedgerPayload", () => {
       ],
     })
   })
+
+  it("resolves leftover names from the catalog at display locale, snapshot last", () => {
+    const payload = [
+      {
+        session_id: "s1",
+        started_at: "2026-08-20T09:00:00.000Z",
+        finished_at: "2026-08-20T09:20:00.000Z",
+        template_fingerprint: "amrap|1200|cindy",
+        benchmark_circuit_id: "cindy-id",
+        mode: "amrap",
+        cap_seconds: 1200,
+        label: "Cindy",
+        cells: [
+          {
+            session_id: "s1",
+            set_number: 11,
+            reps_logged: "1",
+            duration_seconds: null,
+            logged_at: "2026-08-20T09:19:50.000Z",
+            exercise_name: "tractions",
+            name: "Tractions",
+            name_en: "Pull-up",
+          },
+        ],
+      },
+    ]
+
+    const english = parseCircuitLedgerPayload(payload, "en")
+    expect(english[0]?.mode === "amrap" && english[0].cells[0]?.exercise_name).toBe(
+      "Pull-up",
+    )
+
+    const french = parseCircuitLedgerPayload(payload, "fr")
+    expect(french[0]?.mode === "amrap" && french[0].cells[0]?.exercise_name).toBe(
+      "Tractions",
+    )
+  })
 })
 
 const ledgerMigrations: Record<string, string> = import.meta.glob(
@@ -369,5 +406,8 @@ describe("get_profile_circuit_ledger migration", () => {
     expect(sql).toMatch(/benchmark_circuit_id\s+IS\s+NOT\s+NULL/i)
     expect(sql).not.toMatch(/LIMIT\s+8/i)
     expect(sql).not.toMatch(/RUN_LIMIT/i)
+    expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+.*get_profile_circuit_ledger/i)
+    expect(sql).toMatch(/LEFT\s+JOIN\s+exercises/i)
+    expect(sql).toMatch(/name_en/)
   })
 })
