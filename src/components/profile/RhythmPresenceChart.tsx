@@ -18,68 +18,96 @@ const MONTHS = [
   "dec",
 ] as const
 
-const GRID_COLS: Record<ProfileWindowKind, string> = {
-  "7": "grid-cols-7",
-  "30": "grid-cols-5",
-  "100": "grid-cols-4",
-  "365": "grid-cols-4",
-  all: "grid-cols-3",
+const DEFAULT_TARGET = 4
+
+function clusterSlots(kind: ProfileWindowKind, target: number): number {
+  return kind === "7" ? 1 : target
 }
 
-function periodLabels(
+function clusterLabel(
   kind: ProfileWindowKind,
+  index: number,
+  count: number,
   translate: (key: string, options?: { n: number }) => string,
-): readonly string[] {
+): string {
   if (kind === "7") {
-    return WEEKDAYS.map((day) => translate(`rhythm.weekday.${day}`))
-  }
-  if (kind === "30" || kind === "100") {
-    return MIX_CATEGORIES[kind].map((_, i) => translate("rhythm.week", { n: i + 1 }))
+    const day = WEEKDAYS[index]
+    return day === undefined ? "" : translate(`rhythm.weekday.${day}`)
   }
   if (kind === "365") {
-    return MONTHS.map((month) => translate(`rhythm.month.${month}`))
+    const month = MONTHS[index]
+    return month === undefined ? "" : translate(`rhythm.month.${month}`)
   }
-  return MIX_CATEGORIES.all
+  if (kind === "all") {
+    return MIX_CATEGORIES.all[index] ?? ""
+  }
+  const ago = count - 1 - index
+  return ago === 0
+    ? translate("rhythm.weekCurrent")
+    : translate("rhythm.weekAgo", { n: ago })
 }
 
 export function RhythmPresenceChart({
   kind,
-  presence,
+  hits,
+  target = DEFAULT_TARGET,
+  deloadAt,
 }: {
   kind: ProfileWindowKind
-  presence: readonly boolean[]
+  hits: readonly number[]
+  target?: number
+  deloadAt?: number
 }) {
   const { t } = useTranslation("profile")
-  const labels = periodLabels(kind, (key, options) => t(key, options))
-  const cells = labels.map((label, i) => ({
-    label,
-    on: presence[i] === true,
-  }))
+  const slots = clusterSlots(kind, target)
+  const clusters = hits.map((hit, i) => {
+    const filled = Math.min(Math.max(hit, 0), slots)
+    return {
+      label: clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
+      filled,
+      slots,
+      deload: i === deloadAt,
+    }
+  })
 
   return (
     <ol
       aria-label={t("rhythm.title")}
-      className={cn("grid justify-items-center gap-x-2 gap-y-3", GRID_COLS[kind])}
+      className="flex w-full justify-between gap-1 overflow-x-auto"
     >
-      {cells.map((cell) => {
-        const status = cell.on ? t("rhythm.session") : t("rhythm.none")
+      {clusters.map((cluster) => {
+        const status = t("rhythm.hits", {
+          filled: cluster.filled,
+          slots: cluster.slots,
+        })
+        const dots = Array.from({ length: cluster.slots }, (_, i) => i < cluster.filled)
         return (
           <li
-            key={cell.label}
-            aria-label={`${cell.label}, ${status}`}
+            key={cluster.label}
+            aria-label={`${cluster.label}, ${status}`}
             className="flex min-w-0 flex-col items-center gap-1"
           >
-            <span
-              aria-hidden="true"
-              className={
-                cell.on
-                  ? "size-5 rounded-full bg-primary"
-                  : "size-5 rounded-full border border-border bg-transparent"
-              }
-            />
-            <span className="max-w-full truncate text-[10px] leading-none text-muted-foreground">
-              {cell.label}
+            <span className="flex gap-px" aria-hidden="true">
+              {dots.map((on, i) => (
+                <span
+                  key={i}
+                  data-rhythm-dot={on ? "on" : "off"}
+                  className={cn(
+                    "shrink-0 rounded-full",
+                    kind === "7" ? "size-2.5" : "size-1.5 sm:size-2",
+                    on ? "bg-primary" : "bg-muted-foreground/30",
+                  )}
+                />
+              ))}
             </span>
+            <span className="max-w-full truncate text-[10px] leading-none text-muted-foreground">
+              {cluster.label}
+            </span>
+            {cluster.deload ? (
+              <span className="max-w-20 text-center text-[9px] leading-tight text-muted-foreground">
+                {t("rhythm.deload", { week: cluster.label, n: cluster.filled })}
+              </span>
+            ) : null}
           </li>
         )
       })}

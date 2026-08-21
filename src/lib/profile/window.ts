@@ -29,6 +29,31 @@ export const MIX_CATEGORIES: Record<ProfileWindowKind, readonly string[]> = {
   all: ["2024", "2025", "2026"],
 }
 
+/** Pierre's prescribed training days / week (account questionnaire). */
+export const PIERRE_WEEKLY_TARGET = 4
+
+export type RhythmHits = {
+  hits: readonly number[]
+  deloadAt?: number
+}
+
+/** Sessions per cluster, oldest first. Capped at the weekly target when rendered. */
+export function pierreRhythmHits(kind: ProfileWindowKind): RhythmHits {
+  if (kind === "7") {
+    return { hits: [1, 1, 1, 1, 1, 0, 0] }
+  }
+  if (kind === "30") {
+    return { hits: [4, 4, 2, 4, 4] }
+  }
+  if (kind === "100") {
+    return { hits: [4, 3, 4, 2, 4, 4, 4, 4, 3, 4, 4, 4], deloadAt: 3 }
+  }
+  if (kind === "365") {
+    return { hits: [3, 4, 4, 3, 4, 2, 4, 4, 3, 4, 4, 4] }
+  }
+  return { hits: [3, 4, 4] }
+}
+
 export type MixSeries = {
   programme: number[]
   quickWorkout: number[]

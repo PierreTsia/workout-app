@@ -45,9 +45,16 @@
       "365": "12 mois",
       "all": "Par année"
     },
+    "meta": "{{window}} · {{target}}",
+    "target": "cible {{n}} j / sem",
     "session": "Séance",
     "none": "Pas de séance",
+    "hits": "{{filled}} sur {{slots}}",
     "week": "S{{n}}",
+    "weekCurrent": "S",
+    "weekAgo": "S-{{n}}",
+    "deload": "{{week}} = deload ({{n}} séances)",
+    "empty": "Aucune séance dans cette fenêtre.",
     "weekday": {
       "mon": "Lun",
       "tue": "Mar",

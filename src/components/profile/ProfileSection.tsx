@@ -1,17 +1,20 @@
 import type { ReactNode } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 export type ProfileSectionStatus = "ok" | "empty" | "loading" | "error"
 
 export function ProfileSection({
   title,
+  meta,
   status,
   empty,
   error,
   children,
 }: {
   title: string
+  meta?: ReactNode
   status: ProfileSectionStatus
   empty: ReactNode
   error?: ReactNode
@@ -19,8 +22,13 @@ export function ProfileSection({
 }) {
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader
+        className={cn("pb-2", meta != null && "flex-row items-baseline justify-between gap-3")}
+      >
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        {meta != null ? (
+          <p className="text-right text-sm text-muted-foreground">{meta}</p>
+        ) : null}
       </CardHeader>
       <CardContent>
         {status === "loading" ? (

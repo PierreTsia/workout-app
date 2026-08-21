@@ -45,9 +45,16 @@
       "365": "12 months",
       "all": "By year"
     },
+    "meta": "{{window}} · {{target}}",
+    "target": "target {{n}} d / wk",
     "session": "Session",
     "none": "No session",
+    "hits": "{{filled}} of {{slots}}",
     "week": "W{{n}}",
+    "weekCurrent": "W",
+    "weekAgo": "W-{{n}}",
+    "deload": "{{week}} = deload ({{n}} sessions)",
+    "empty": "No sessions in this window.",
     "weekday": {
       "mon": "Mon",
       "tue": "Tue",

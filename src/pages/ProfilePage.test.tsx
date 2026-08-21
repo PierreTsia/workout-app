@@ -128,43 +128,109 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    expect(screen.getByText("Last 7 days")).toBeInTheDocument()
+    expect(screen.getByText("Last 7 days · target 4 d / wk")).toBeInTheDocument()
     await user.click(screen.getByRole("radio", { name: "30d" }))
-    expect(screen.getByText("5 weeks")).toBeInTheDocument()
-    expect(screen.queryByText("Last 7 days")).not.toBeInTheDocument()
+    expect(screen.getByText("5 weeks · target 4 d / wk")).toBeInTheDocument()
+    expect(screen.queryByText("Last 7 days · target 4 d / wk")).not.toBeInTheDocument()
   })
 
-  it("lays out 100d Rhythm as a labeled week grid, not wrapping dots", async () => {
+  it("lays out 100d Rhythm as 12 target-dot week clusters, not a weekday grid", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
     await user.click(screen.getByRole("radio", { name: "100d" }))
 
     const rhythm = withinRhythm()
-    expect(rhythm.getByText("12 weeks")).toBeInTheDocument()
-    for (let n = 1; n <= 12; n++) {
-      expect(rhythm.getByText(`W${n}`)).toBeInTheDocument()
-    }
-    expect(rhythm.getAllByRole("listitem")).toHaveLength(12)
+    expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
+    expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
+    expect(rhythm.queryByText("W1")).not.toBeInTheDocument()
+    expect(rhythm.getByText("W-11")).toBeInTheDocument()
+    expect(rhythm.getByText("W-8 = deload (2 sessions)")).toBeInTheDocument()
+    expect(rhythm.getByText("W")).toBeInTheDocument()
+
+    const groups = rhythm.getAllByRole("listitem")
+    expect(groups).toHaveLength(12)
+
+    const filledCounts = groups.map(
+      (group) => group.querySelectorAll("[data-rhythm-dot='on']").length,
+    )
+    const emptyCounts = groups.map(
+      (group) => group.querySelectorAll("[data-rhythm-dot='off']").length,
+    )
+    groups.forEach((group, i) => {
+      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+      expect(filledCounts[i]! + emptyCounts[i]!).toBe(4)
+    })
+    expect(filledCounts.some((n) => n === 4)).toBe(true)
+    expect(filledCounts.some((n) => n > 0 && n < 4)).toBe(true)
+    expect(filledCounts.every((n) => n !== 7)).toBe(true)
 
     const list = rhythm.getByRole("list", { name: "Rhythm" })
-    const colMatch = list.className.match(/grid-cols-(\d+)/)
-    expect(colMatch).not.toBeNull()
-    const cols = Number(colMatch?.[1])
-    expect(12 / cols).toBeGreaterThan(1)
+    expect(list.className).toMatch(/flex/)
+    expect(list.className).not.toMatch(/grid-cols/)
     expect(list.className).not.toMatch(/flex-wrap/)
   })
 
-  it("keeps labeled empty rings on the empty fixture", async () => {
+  it("renders French 100d Rhythm as S- week clusters with a cible meta", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />, { locale: "fr" })
+    await user.click(screen.getByRole("radio", { name: "100j" }))
+
+    const heading = screen.getByRole("heading", { name: "Rythme" })
+    const card = heading.parentElement?.parentElement
+    if (!card) throw new Error("expected Rythme card")
+    const rhythm = within(card)
+
+    expect(rhythm.getByText("12 semaines · cible 4 j / sem")).toBeInTheDocument()
+    expect(rhythm.getByText("S-11")).toBeInTheDocument()
+    expect(rhythm.getByText("S-8 = deload (2 séances)")).toBeInTheDocument()
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(12)
+    rhythm.getAllByRole("listitem").forEach((group) => {
+      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    })
+  })
+
+  it("keeps target-dot clusters on 30d, 1y, and all-time Rhythm", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    await user.click(screen.getByRole("radio", { name: "30d" }))
+    const rhythm30 = withinRhythm()
+    expect(rhythm30.getAllByRole("listitem")).toHaveLength(5)
+    expect(rhythm30.getByText("W-4")).toBeInTheDocument()
+    rhythm30.getAllByRole("listitem").forEach((group) => {
+      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    })
+
+    await user.click(screen.getByRole("radio", { name: "1y" }))
+    const rhythmYear = withinRhythm()
+    expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
+    expect(rhythmYear.getAllByRole("listitem")).toHaveLength(12)
+    expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
+    expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
+    rhythmYear.getAllByRole("listitem").forEach((group) => {
+      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    })
+
+    await user.click(screen.getByRole("radio", { name: "All time" }))
+    const rhythmAll = withinRhythm()
+    expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
+    expect(rhythmAll.getAllByRole("listitem")).toHaveLength(3)
+    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
+    rhythmAll.getAllByRole("listitem").forEach((group) => {
+      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    })
+  })
+
+  it("hides the Rhythm chart on the empty fixture", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
     await user.click(screen.getByRole("radio", { name: "Empty" }))
 
     const rhythm = withinRhythm()
-    for (const day of WEEKDAYS_EN) {
-      expect(
-        rhythm.getByRole("listitem", { name: `${day}, No session` }),
-      ).toBeInTheDocument()
-    }
+    expect(rhythm.getByText("No sessions in this window.")).toBeInTheDocument()
+    expect(rhythm.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
+    expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
+    expect(rhythm.queryByText("W-11")).not.toBeInTheDocument()
   })
 
   it("renders Latest, Highest, and recently earned as illustrated badges", () => {

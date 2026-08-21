@@ -35,7 +35,8 @@ import {
   pierreMixSeries,
   pierrePulse,
   pierreRecordsSeries,
-  pierreRhythmPresence,
+  pierreRhythmHits,
+  PIERRE_WEEKLY_TARGET,
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
@@ -364,14 +365,30 @@ function PulseBlock({ mode }: { mode: FixtureMode }) {
 function RhythmBlock({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
   const { kind } = useProfileWindow()
-  const status = mode === "loading" ? "loading" : "ok"
-  const presence =
-    mode === "pierre" ? pierreRhythmPresence(kind) : MIX_CATEGORIES[kind].map(() => false)
+  const status = blockStatus(mode, "ok")
+  const target = PIERRE_WEEKLY_TARGET
+  const fixture = pierreRhythmHits(kind)
 
   return (
-    <ProfileSection title={t("rhythm.title")} status={status} empty={null}>
-      <p className="mb-3 text-sm text-muted-foreground">{t(`rhythm.caption.${kind}`)}</p>
-      <RhythmPresenceChart kind={kind} presence={presence} />
+    <ProfileSection
+      title={t("rhythm.title")}
+      meta={
+        status === "ok"
+          ? t("rhythm.meta", {
+              window: t(`rhythm.caption.${kind}`),
+              target: t("rhythm.target", { n: target }),
+            })
+          : undefined
+      }
+      status={status}
+      empty={t("rhythm.empty")}
+    >
+      <RhythmPresenceChart
+        kind={kind}
+        hits={fixture.hits}
+        target={target}
+        deloadAt={fixture.deloadAt}
+      />
     </ProfileSection>
   )
 }
