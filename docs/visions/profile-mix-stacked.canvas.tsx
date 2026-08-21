@@ -9,6 +9,7 @@ import {
   Grid,
   H1,
   H2,
+  H3,
   LineChart,
   Pill,
   Row,
@@ -130,6 +131,9 @@ type BalanceWindow = {
   band: string
   current: number[]
   previous: number[]
+  tonnes: number
+  tonnesPrev: number
+  tonneBars: number[]
 }
 
 const BALANCE: Record<WindowKey, BalanceWindow> = {
@@ -139,6 +143,9 @@ const BALANCE: Record<WindowKey, BalanceWindow> = {
     band: "Bon",
     current: [0.9, 0.85, 0.5, 0.4, 0.45, 0.8, 0.55, 0.5, 0.25, 0.3, 0.45, 0.35, 0.3],
     previous: [0.8, 0.7, 0.45, 0.35, 0.5, 0.9, 0.4, 0.4, 0.2, 0.25, 0.55, 0.3, 0.25],
+    tonnes: 14.3,
+    tonnesPrev: 15.1,
+    tonneBars: [8.2, 0, 6.1, 0, 0, 0, 0],
   },
   "30": {
     score: 72,
@@ -146,6 +153,9 @@ const BALANCE: Record<WindowKey, BalanceWindow> = {
     band: "Bon",
     current: [1, 0.9, 0.55, 0.45, 0.5, 0.95, 0.6, 0.5, 0.2, 0.3, 0.4, 0.35, 0.25],
     previous: [0.85, 0.7, 0.5, 0.4, 0.55, 1, 0.45, 0.4, 0.15, 0.25, 0.5, 0.3, 0.2],
+    tonnes: 84.4,
+    tonnesPrev: 76.2,
+    tonneBars: [19, 14, 18, 20.4, 13],
   },
   "100": {
     score: 70,
@@ -153,6 +163,9 @@ const BALANCE: Record<WindowKey, BalanceWindow> = {
     band: "Bon",
     current: [0.95, 0.88, 0.52, 0.42, 0.48, 0.92, 0.58, 0.48, 0.18, 0.28, 0.38, 0.32, 0.22],
     previous: [0.9, 0.92, 0.58, 0.5, 0.52, 0.85, 0.62, 0.55, 0.28, 0.35, 0.42, 0.4, 0.3],
+    tonnes: 268,
+    tonnesPrev: 281,
+    tonneBars: [24.8, 18.6, 24.8, 12.4, 24.8, 24.8, 18.6, 24.8, 18.6, 24.8, 24.8, 26.2],
   },
 }
 
@@ -1171,6 +1184,19 @@ function MuscleRadar({
   )
 }
 
+function formatTonnes(n: number): string {
+  return `${n.toFixed(1).replace(".", ",")} t`
+}
+
+function volumeBars(windowKey: WindowKey): { categories: string[]; bars: number[] } {
+  const b = BALANCE[windowKey]
+  if (windowKey === "7") {
+    return { categories: DAYS_7.map((d) => d.label), bars: b.tonneBars }
+  }
+  const from = windowKey === "30" ? WEEK_LABELS.length - 5 : 0
+  return { categories: WEEK_LABELS.slice(from), bars: b.tonneBars }
+}
+
 function BalanceSection({
   compact,
   windowKey,
@@ -1179,11 +1205,17 @@ function BalanceSection({
   windowKey: WindowKey
 }) {
   const b = BALANCE[windowKey]
-  const delta = b.score - b.prev
-  const deltaLabel =
-    delta === 0
+  const scoreDelta = b.score - b.prev
+  const scoreDeltaLabel =
+    scoreDelta === 0
       ? `stable vs ${windowKey}j préc.`
-      : `${delta > 0 ? "+" : ""}${delta} vs ${windowKey}j préc.`
+      : `${scoreDelta > 0 ? "+" : ""}${scoreDelta} vs ${windowKey}j préc.`
+  const tonneDelta = Math.round((b.tonnes - b.tonnesPrev) * 10) / 10
+  const tonneDeltaLabel =
+    tonneDelta === 0
+      ? "stable vs préc."
+      : `${tonneDelta > 0 ? "+" : ""}${formatTonnes(Math.abs(tonneDelta)).replace(" t", "")} t vs préc.`
+  const chart = volumeBars(windowKey)
 
   return (
     <Stack gap={12}>
@@ -1194,10 +1226,10 @@ function BalanceSection({
           <Pill active>
             {b.score} · {b.band}
           </Pill>
-          <Pill size="sm">{deltaLabel}</Pill>
+          <Pill size="sm">{scoreDeltaLabel}</Pill>
         </Row>
       </Row>
-      <Grid columns={compact ? 1 : "auto 1fr"} gap={compact ? 12 : 24}>
+      <Grid columns={compact ? 1 : 2} gap={compact ? 16 : 24} align="start">
         <Stack gap={8} style={{ alignItems: compact ? "center" : "flex-start" }}>
           <MuscleRadar current={b.current} previous={b.previous} compact={compact} />
           <Row gap={12}>
@@ -1209,15 +1241,29 @@ function BalanceSection({
             </Text>
           </Row>
         </Stack>
-        <Stack gap={8}>
-          <Text size="small" tone="secondary">
-            {b.score} · Bon. Adducteurs et Lombaires tirent le polygone.
-          </Text>
+        <Stack gap={10}>
+          <H3>Tonnage</H3>
+          <Stat
+            value={formatTonnes(b.tonnes)}
+            label={tonneDeltaLabel}
+            tone={deltaTone(tonneDelta)}
+          />
+          <BarChart
+            categories={chart.categories}
+            series={[{ name: "Tonnage (t)", data: chart.bars, tone: "info" }]}
+            height={compact ? 120 : 160}
+            beginAtZero
+            valueSuffix=" t"
+          />
           <Text size="small" tone="tertiary">
-            Body map et paires restent dans History.
+            Sets chargés · poids × reps. Vendredi Circuit = 0 t (Cindy). BW, durée,
+            Circuits hors compte. Ne pas sommer le radar.
           </Text>
         </Stack>
       </Grid>
+      <Text size="small" tone="tertiary">
+        Body map et paires restent dans History.
+      </Text>
     </Stack>
   )
 }

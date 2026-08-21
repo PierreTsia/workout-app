@@ -80,7 +80,12 @@ Hero unit = **session × exercise** (at least one `set_logs.was_pr`). Stats: PR 
 
 ### Équilibre
 
-Not “Strength Balance”. Same word as History: **Équilibre** / **Balance**. Pill `{score} · {band}` + delta vs the **same-length shifted** window. Radar of the 13 `MUSCLE_TAXONOMY` groups (current fill, previous dashed). Body map and agonist pairs stay in History.
+Not “Strength Balance”. Same word as History: **Équilibre** / **Balance**.
+
+Pill `{score} · {band}` + delta vs the **same-length shifted** window. Desktop: **two equal columns** — radar | tonnage. Mobile: stacked (radar, then tonnage).
+
+- **Radar** — 13 `MUSCLE_TAXONOMY` groups (current fill, previous dashed). Body map and agonist pairs stay in History.
+- **Tonnage** — scalar of iron moved in the window (`weight_logged × numeric reps`, once per set). Same grain as Rythme / Mix. Delta vs prior equal window. **Not** `SUM` of the 13 radar axes (secondary muscles are credited 0.5 — that would double-count). Bodyweight, duration, and Circuit sets are **out**. A Friday Cindy session can be a bar in Mix and `0 t` here. Not a 4th pulse stat.
 
 ### Récurrents / Regulars
 
@@ -105,6 +110,7 @@ See `file:docs/visions/profile-copy-deck.canvas.tsx` for slot-by-slot strings. H
 | Mix | Mix | Mix |
 | Records | Records | Records |
 | Équilibre | Équilibre | Balance |
+| Tonnage *(col 2)* | Tonnage | Tonnage |
 | Récurrents | Récurrents | Regulars |
 | Circuits | Circuits | Circuits |
 
