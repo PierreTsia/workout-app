@@ -197,7 +197,7 @@ graph TD
 | 0 declared RIR in bucket | Bars ok; no line point |
 | 0 loaded sets | Tonnage empty |
 | Legacy Circuit `was_pr` false | Records omit until backfill; new finishes correct |
-| Non-admin `/profile` | `AdminGuard` → `/` |
+| Non-admin `/profile` | Signed-in AppShell route (T236). `/_profile-charts` still `AdminGuard` |
 | 365 grain bug | Test: `categories.length <= 13` on 1 an Mix |
 
 ---
@@ -212,18 +212,22 @@ Orchestrator SSOT. Do not re-grill. Do not treat an open T237 file as a gate —
 | T225 T0 shell | AFK | **done** — `file:docs/done/T225_—_Profil_T0_shell_fixtures.md` |
 | T226 Circuit `was_pr` | AFK | **done** — write path + tests + backfill script. Prod `--apply` before T236. Hard dep of T229, **not** of T227 |
 | T237 mocked-fold HITL | HITL | **passed 2026-08-21** — `file:docs/done/T237_—_HITL_T0_mocked_fold.md` + #512 comment. Gate lifted |
-| **T227** snapshot + pulse | AFK | **ready** — first live slice |
-| **T233** circuit ledger | AFK | **ready** — parallel with T227 |
-| T228 Mix + Rythme | AFK | waits T227 |
-| T229 Records + RIR | AFK | waits T227 (T226 already done) |
-| T230 Équilibre + Tonnage | AFK | waits T227 |
-| T231 Hero tenure + hop | AFK | waits T227 |
-| T232 Regulars follow window | AFK | waits T227 |
-| T234 all-time rollups | AFK | waits T227–T230 |
-| T235 copy-deck canvas | AFK | leftover editorial. **Not the frontier** |
-| T236 ungate | HITL | last. Do not start |
+| **T227** snapshot + pulse | AFK | **done** `16b1b07` — RPC not applied to remote yet |
+| **T233** circuit ledger | AFK | **done** `4ab19b1` — RPC not applied to remote yet |
+| T228 Mix + Rythme | AFK | **done** `ca218b3` |
+| T229 Records + RIR | AFK | **done** `dfa7ee1` |
+| T230 Équilibre + Tonnage | AFK | **done** `5c7d55b` |
+| T231 Hero tenure + hop | AFK | **done** `9159733` |
+| T232 Regulars follow window | AFK | **done** `3a1966c` |
+| T234 all-time rollups | AFK | **done** `6b2c836` — RPC not applied to remote yet |
+| T235 copy-deck canvas | AFK | leftover editorial. **Not a gate** |
+| T236 ungate | HITL | **done** — `file:docs/done/T236_—_Ungate_Profil.md` |
 
-**Frontier:** T227 ∥ T233. Then T228–T232 (after T227). Then T234. T235 anytime after, never first. T236 last.
+**Frontier:** none for #512. T235 leftover editorial. Prod still needs snapshot / ledger / all-time RPCs + optional `was_pr` backfill before merge.
+
+### Parked (not a ticket, not a derail)
+
+- **`ProfileSection` error slot** is a one-liner (`profile.error`). Honest, but thin. A retry / why-it-failed line is nice-to-have after ungate. Do not block T228–T236 on it. Today Pulse shows it when `get_profile_snapshot` is missing on the remote.
 
 ### Delivery order (original spine, for history)
 

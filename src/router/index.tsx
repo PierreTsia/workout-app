@@ -224,6 +224,10 @@ export const router = createBrowserRouter([
                 element: <AchievementsPage />,
               },
               {
+                path: "/profile",
+                element: <ProfilePage />,
+              },
+              {
                 path: "/_unlock-overlay",
                 element: <UnlockOverlayPlaygroundPage />,
               },
@@ -265,10 +269,6 @@ export const router = createBrowserRouter([
                   {
                     path: "/_profile-charts",
                     element: <ProfileChartsPlaygroundPage />,
-                  },
-                  {
-                    path: "/profile",
-                    element: <ProfilePage />,
                   },
                 ],
               },

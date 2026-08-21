@@ -137,7 +137,7 @@ function Fold() {
   return (
     <ProfileWindowProvider kind={kind} setKind={setKind}>
       <button type="button" onClick={() => setKind("100")}>
-        100d
+        This quarter
       </button>
       <HeroBlock mode="pierre" />
       <SuccesBlock mode="pierre" />
@@ -253,7 +253,7 @@ describe("profile hero tenure, hop, and Succès", () => {
     expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
     expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "100d" }))
+    await user.click(screen.getByRole("button", { name: "This quarter" }))
 
     await waitFor(() => {
       expect(screen.getByText("Also PPL this week")).toBeInTheDocument()

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { ProfilePage } from "./ProfilePage"
+import { ProfileDashboard, ProfilePage } from "./ProfilePage"
 import {
   restoreChartLayout,
   stubChartLayout,
@@ -87,10 +87,8 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByText("Active since 2½ years")).toBeInTheDocument()
   })
 
-  it("hides tenure on the empty fixture", async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ProfilePage />)
-    await user.click(screen.getByRole("radio", { name: "Empty" }))
+  it("hides tenure on the empty fixture", () => {
+    renderWithProviders(<ProfileDashboard mode="empty" />)
 
     expect(screen.queryByText(/Streak/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Active since/)).not.toBeInTheDocument()
@@ -116,8 +114,22 @@ describe("ProfilePage T0 fixtures", () => {
     expect(hero.getByText("PT").closest("[class*='ring-purple']")).not.toBeNull()
   })
 
-  it("shows seven labeled weekdays on the 7d Rhythm chart", () => {
+  it("opens on This month and keeps five week clusters on Rhythm", () => {
     renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
+      "This month",
+    )
+    const rhythm = withinRhythm()
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(5)
+    expect(rhythm.getByText("W-4")).toBeInTheDocument()
+    expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
+  })
+
+  it("shows seven labeled weekdays after switching to This week", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+    await chooseWindow(user, "This week")
 
     const rhythm = withinRhythm()
     for (const day of WEEKDAYS_EN) {
@@ -133,15 +145,15 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     const records = withinRecords()
-    const prs = records.getByText("11")
+    const prs = records.getByText("28")
     expect(prs.className).toMatch(/text-(4|5)xl/)
-    expect(records.getByText("8").className).toMatch(/text-(4|5)xl/)
+    expect(records.getByText("14").className).toMatch(/text-(4|5)xl/)
     expect(records.getByText("2d").className).toMatch(/text-(4|5)xl/)
 
-    const prDelta = records.getByText("+3 vs prior")
+    const prDelta = records.getByText("+5 vs prior")
     expect(prDelta.closest("p")?.className).toMatch(/emerald/)
     expect(records.getByText("+2 vs prior")).toBeInTheDocument()
-    expect(records.getByText("3d sooner vs prior")).toBeInTheDocument()
+    expect(records.getByText("1d sooner vs prior")).toBeInTheDocument()
   })
 
   it("promotes Circuits KPIs to pulse cards with vs-prior deltas", () => {
@@ -149,15 +161,17 @@ describe("ProfilePage T0 fixtures", () => {
 
     const circuits = within(sectionCard("Circuits"))
 
-    expect(circuits.getByText("11").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("24").className).toMatch(/text-3xl/)
     expect(circuits.getByText("3", { selector: ".text-3xl" }).className).toMatch(
       /text-3xl/,
     )
-    expect(circuits.getByText("1").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("2").className).toMatch(/text-3xl/)
 
-    const up = circuits.getByText("+4 vs prior")
+    const up = circuits.getByText("+6 vs prior")
     expect(up.closest("p")?.className).toMatch(/emerald/)
-    expect(circuits.getAllByText("even vs prior")).toHaveLength(2)
+    const pbDelta = circuits.getByText("+1 vs prior")
+    expect(pbDelta.closest("p")?.className).toMatch(/emerald/)
+    expect(circuits.getAllByText("even vs prior")).toHaveLength(1)
   })
 
   it("renders Mix and Rhythm above Records on the Pierre fixture", () => {
@@ -196,9 +210,15 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByText("+1 vs prior")).toBeInTheDocument()
 
     const windowSelect = screen.getByRole("combobox", { name: "Window" })
-    expect(windowSelect).toHaveTextContent("7d")
+    expect(windowSelect).toHaveTextContent("This month")
     await user.click(windowSelect)
-    for (const label of ["7d", "30d", "100d", "1y", "All time"]) {
+    for (const label of [
+      "This week",
+      "This month",
+      "This quarter",
+      "This year",
+      "All time",
+    ]) {
       expect(screen.getByRole("option", { name: label })).toBeInTheDocument()
     }
     await user.click(screen.getByRole("option", { name: "All time" }))
@@ -216,43 +236,43 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(
-      screen.getByText("5", { selector: ".text-5xl" }),
+      screen.getByText("18", { selector: ".text-5xl" }),
     ).toBeInTheDocument()
-    expect(screen.getByText("3h 20")).toBeInTheDocument()
-    expect(screen.getByText("40 min")).toBeInTheDocument()
+    expect(screen.getByText("12h 10")).toBeInTheDocument()
+    expect(screen.getByText("41 min")).toBeInTheDocument()
 
-    const up = screen.getByText("+1 vs prior")
+    const up = screen.getByText("+3 vs prior")
     expect(up.closest("p")?.className).toMatch(/emerald/)
     expect(up.closest("p")?.querySelector(".lucide-arrow-up")).not.toBeNull()
 
-    const down = screen.getByText("-40 min vs prior")
-    expect(down.closest("p")?.className).toMatch(/destructive/)
-    expect(down.closest("p")?.querySelector(".lucide-arrow-down")).not.toBeNull()
+    const timeUp = screen.getByText("+1h 20 vs prior")
+    expect(timeUp.closest("p")?.className).toMatch(/emerald/)
+    expect(timeUp.closest("p")?.querySelector(".lucide-arrow-up")).not.toBeNull()
 
     const prescribed = screen.getByRole("link", { name: /vs 60 min prescribed/i })
     expect(prescribed).toHaveAttribute("href", "/account")
     expect(prescribed.closest("p")?.className).not.toMatch(/emerald|destructive/)
 
     await chooseWindow(user, "All time")
-    expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText("-40 min vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("+3 vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("+1h 20 vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText("even vs prior")).not.toBeInTheDocument()
   })
 
-  it("restyles Mix/Rhythm grain when toggling 7d to 30d", async () => {
+  it("restyles Mix/Rhythm grain when toggling This month to This week", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    expect(screen.getByText("Last 7 days · target 4 d / wk")).toBeInTheDocument()
-    await chooseWindow(user, "30d")
     expect(screen.getByText("5 weeks · target 4 d / wk")).toBeInTheDocument()
-    expect(screen.queryByText("Last 7 days · target 4 d / wk")).not.toBeInTheDocument()
+    await chooseWindow(user, "This week")
+    expect(screen.getByText("Last 7 days · target 4 d / wk")).toBeInTheDocument()
+    expect(screen.queryByText("5 weeks · target 4 d / wk")).not.toBeInTheDocument()
   })
 
   it("lays out 100d Rhythm as frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
-    await chooseWindow(user, "100d")
+    await chooseWindow(user, "This quarter")
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
@@ -271,7 +291,7 @@ describe("ProfilePage T0 fixtures", () => {
   it("renders French 100d Rhythm bars with a cible meta", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />, { locale: "fr" })
-    await chooseWindow(user, "100j")
+    await chooseWindow(user, "Ce trimestre")
 
     const rhythm = within(sectionCard("Rythme"))
 
@@ -289,7 +309,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await chooseWindow(user, "30d")
+    await chooseWindow(user, "This month")
     const rhythm30 = withinRhythm()
     expect(rhythm30.getAllByRole("listitem")).toHaveLength(5)
     expect(rhythm30.getByText("W-4")).toBeInTheDocument()
@@ -302,7 +322,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await chooseWindow(user, "1y")
+    await chooseWindow(user, "This year")
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
@@ -327,10 +347,8 @@ describe("ProfilePage T0 fixtures", () => {
     expect(allChart.querySelector(".recharts-reference-line")).not.toBeNull()
   })
 
-  it("hides the Rhythm chart on the empty fixture", async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ProfilePage />)
-    await user.click(screen.getByRole("radio", { name: "Empty" }))
+  it("hides the Rhythm chart on the empty fixture", () => {
+    renderWithProviders(<ProfileDashboard mode="empty" />)
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("No sessions in this window.")).toBeInTheDocument()
@@ -429,29 +447,26 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("hides the Tonnage bar chart on the empty fixture", async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ProfilePage />)
-
-    await user.click(screen.getByRole("radio", { name: "Empty" }))
+  it("hides the Tonnage bar chart on the empty fixture", () => {
+    renderWithProviders(<ProfileDashboard mode="empty" />)
 
     expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
     expect(screen.getByText("No loaded sets in this window.")).toBeInTheDocument()
     expect(screen.queryByRole("img", { name: /Tonnage/ })).not.toBeInTheDocument()
   })
 
-  it("matches Tonnage bar categories to the Mix grain when toggling 7d to 1y", async () => {
+  it("matches Tonnage bar categories to the Mix grain when toggling This month to This year", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    const weekChart = await screen.findByRole("img", { name: /Tonnage/ })
+    const monthChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
       expect(
-        weekChart.querySelectorAll(".recharts-cartesian-axis-tick"),
-      ).toHaveLength(7)
+        monthChart.querySelectorAll(".recharts-cartesian-axis-tick"),
+      ).toHaveLength(5)
     })
 
-    await chooseWindow(user, "1y")
+    await chooseWindow(user, "This year")
 
     const yearChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
@@ -478,7 +493,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(circuits.getByText("7:58")).toBeInTheDocument()
     expect(circuits.queryByText("9+0")).not.toBeInTheDocument()
     expect(circuits.queryByText("8:18")).not.toBeInTheDocument()
-    expect(within(circuits.getAllByRole("listitem")[0]).getByText("5")).toBeInTheDocument()
+    expect(within(circuits.getAllByRole("listitem")[0]).getByText("12")).toBeInTheDocument()
     expect(within(circuits.getAllByRole("listitem")[0]).getByText("PB")).toBeInTheDocument()
     expect(circuits.queryByText("AMRAP 4 min")).not.toBeInTheDocument()
     expect(await circuits.findByRole("img", { name: "Cindy score" })).toBeInTheDocument()
@@ -498,23 +513,20 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     const regulars = within(sectionCard("Regulars"))
-    expect(regulars.getByText("Most logged · 7d")).toBeInTheDocument()
-    expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Squat")
-    expect(regulars.getByText("48")).toBeInTheDocument()
+    expect(regulars.getByText("Most logged · This month")).toBeInTheDocument()
+    expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Pull-up")
+    expect(regulars.getByText("140")).toBeInTheDocument()
     expect(regulars.queryByText("400")).not.toBeInTheDocument()
 
-    await chooseWindow(user, "100d")
+    await chooseWindow(user, "This quarter")
 
-    expect(regulars.getByText("Most logged · 100d")).toBeInTheDocument()
+    expect(regulars.getByText("Most logged · This quarter")).toBeInTheDocument()
     expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Pull-up")
     expect(regulars.getByText("400")).toBeInTheDocument()
   })
 
-  it("treats empty and loading as distinct fixture modes", async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ProfilePage />)
-
-    await user.click(screen.getByRole("radio", { name: "Empty" }))
+  it("treats empty and loading as distinct fixture modes", () => {
+    const empty = renderWithProviders(<ProfileDashboard mode="empty" />)
     expect(
       screen.getByText("Not enough sessions for a score."),
     ).toBeInTheDocument()
@@ -524,8 +536,9 @@ describe("ProfilePage T0 fixtures", () => {
     ).not.toBeInTheDocument()
     expect(screen.queryByRole("img", { name: "Baby Spidey" })).not.toBeInTheDocument()
     expect(screen.queryByText("Cindy bronze")).not.toBeInTheDocument()
+    empty.unmount()
 
-    await user.click(screen.getByRole("radio", { name: "Loading" }))
+    renderWithProviders(<ProfileDashboard mode="loading" />)
     expect(
       screen.queryByText("Not enough sessions for a score."),
     ).not.toBeInTheDocument()
@@ -534,36 +547,56 @@ describe("ProfilePage T0 fixtures", () => {
     )
   })
 
-  it("does not render hero Succès medals on empty or loading", async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ProfilePage />)
-
-    await user.click(screen.getByRole("radio", { name: "Empty" }))
+  it("does not render hero Succès medals on empty or loading", () => {
+    const empty = renderWithProviders(<ProfileDashboard mode="empty" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
     expect(document.querySelector(".badge-frame.h-36")).toBeNull()
+    empty.unmount()
 
-    await user.click(screen.getByRole("radio", { name: "Loading" }))
+    renderWithProviders(<ProfileDashboard mode="loading" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
     expect(document.querySelector(".badge-frame.h-36")).toBeNull()
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
       0,
     )
   })
+
+  it("remembers the last window after a remount", async () => {
+    const user = userEvent.setup()
+    const first = renderWithProviders(<ProfilePage />)
+    await chooseWindow(user, "This year")
+    expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
+      "This year",
+    )
+    first.unmount()
+
+    renderWithProviders(<ProfilePage />)
+    expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
+      "This year",
+    )
+    expect(withinRhythm().getByText("12 months · target 4 d / wk")).toBeInTheDocument()
+  })
+
+  it("does not ship the T0 fixture switch", () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.queryByRole("radiogroup", { name: "Fixtures" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("radio", { name: "Empty" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("radio", { name: "Loading" })).not.toBeInTheDocument()
+  })
 })
 
 describe("/profile route", () => {
-  it("is nested under AdminGuard", () => {
+  it("is a signed-in AppShell route, not nested under AdminGuard", () => {
     const [routerSource] = Object.values(routerSources)
     if (typeof routerSource !== "string") {
       throw new Error("expected router source")
     }
 
-    expect(routerSource).toMatch(
-      /element: <AdminGuard \/>[\s\S]*path: "\/profile"/,
-    )
+    expect(routerSource).toMatch(/path: "\/profile"/)
     expect(routerSource).not.toMatch(
-      /path: "\/profile"[\s\S]*element: <AdminGuard \/>/,
+      /element: <AdminGuard \/>[\s\S]*path: "\/profile"/,
     )
   })
 })

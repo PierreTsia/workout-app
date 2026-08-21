@@ -23,24 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   PROFILE_WINDOW_KINDS,
+  isProfileWindowKind,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
+import {
+  resolveProfileWindow,
+  writePersistedProfileWindow,
+} from "@/lib/profile/persistedWindow"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
-
-const FIXTURE_MODES: readonly FixtureMode[] = ["pierre", "empty", "loading"]
-
-function isWindowKind(value: string): value is ProfileWindowKind {
-  return PROFILE_WINDOW_KINDS.some((kind) => kind === value)
-}
-
-function isFixtureMode(value: string): value is FixtureMode {
-  return FIXTURE_MODES.some((mode) => mode === value)
-}
 
 function WindowSelect() {
   const { t } = useTranslation("profile")
@@ -50,11 +44,14 @@ function WindowSelect() {
     <Select
       value={kind}
       onValueChange={(value) => {
-        if (isWindowKind(value)) setKind(value)
+        if (isProfileWindowKind(value)) setKind(value)
       }}
     >
-      <div className="flex items-center gap-1.5">
-        <SelectTrigger className="w-40" aria-label={t("windowToggle")}>
+      <div className="flex items-center gap-2">
+        <SelectTrigger
+          aria-label={t("windowToggle")}
+          className="h-11 min-w-[12rem] text-base font-semibold shadow-xs sm:min-w-[15rem]"
+        >
           <SelectValue />
         </SelectTrigger>
         <ProfileHint label={t("about", { section: t("windowToggle") })}>
@@ -69,34 +66,6 @@ function WindowSelect() {
         ))}
       </SelectContent>
     </Select>
-  )
-}
-
-function FixtureSwitch({
-  mode,
-  onMode,
-}: {
-  mode: FixtureMode
-  onMode: (mode: FixtureMode) => void
-}) {
-  const { t } = useTranslation("profile")
-
-  return (
-    <ToggleGroup
-      type="single"
-      value={mode}
-      onValueChange={(value) => {
-        if (isFixtureMode(value)) onMode(value)
-      }}
-      variant="outline"
-      size="sm"
-      className="flex flex-wrap justify-start"
-      aria-label={t("fixtures")}
-    >
-      <ToggleGroupItem value="pierre">{t("fixturePierre")}</ToggleGroupItem>
-      <ToggleGroupItem value="empty">{t("fixtureEmpty")}</ToggleGroupItem>
-      <ToggleGroupItem value="loading">{t("fixtureLoading")}</ToggleGroupItem>
-    </ToggleGroup>
   )
 }
 
@@ -124,36 +93,43 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
   )
 }
 
-export function ProfilePage() {
+export function ProfileDashboard({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
   const navigate = useNavigate()
-  const [kind, setKind] = useState<ProfileWindowKind>("7")
-  const [mode, setMode] = useState<FixtureMode>("pierre")
+  const [kind, setKind] = useState<ProfileWindowKind>(() =>
+    resolveProfileWindow(window.localStorage),
+  )
+
+  const persistKind = (next: ProfileWindowKind) => {
+    writePersistedProfileWindow(window.localStorage, next)
+    setKind(next)
+  }
 
   return (
-    <ProfileWindowProvider kind={kind} setKind={setKind}>
+    <ProfileWindowProvider kind={kind} setKind={persistKind}>
     <TooltipProvider delayDuration={200}>
       <div className="flex w-full flex-col gap-6 p-4 md:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={t("back")}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
-            </div>
-            <WindowSelect />
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={t("back")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
           </div>
-          <FixtureSwitch mode={mode} onMode={setMode} />
+          <WindowSelect />
         </div>
         <ProfileFold mode={mode} />
       </div>
     </TooltipProvider>
     </ProfileWindowProvider>
   )
+}
+
+export function ProfilePage() {
+  return <ProfileDashboard mode="pierre" />
 }

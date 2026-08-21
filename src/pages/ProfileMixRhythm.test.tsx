@@ -123,9 +123,9 @@ describe("profile Mix and Rhythm from snapshot", () => {
 
     const rhythm = within(sectionCard("Rhythm"))
     expect(rhythm.queryByText("No sessions in this window.")).not.toBeInTheDocument()
-    expect(rhythm.getAllByRole("listitem")).toHaveLength(7)
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(5)
     const dots = rhythm.getByRole("list", { name: "Rhythm" }).querySelectorAll("[data-rhythm-dot]")
-    expect(dots).toHaveLength(7)
+    expect(dots).toHaveLength(20)
     expect([...dots].every((dot) => dot.getAttribute("data-rhythm-dot") === "off")).toBe(true)
   })
 

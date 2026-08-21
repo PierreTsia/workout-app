@@ -4,15 +4,11 @@
   "windowToggle": "Window",
   "about": "About {{section}}",
   "windowHint": "The whole profile uses this period. All time has no “vs prior”.",
-  "fixtures": "Fixtures",
-  "fixturePierre": "Pierre",
-  "fixtureEmpty": "Empty",
-  "fixtureLoading": "Loading",
   "window": {
-    "7": "7d",
-    "30": "30d",
-    "100": "100d",
-    "365": "1y",
+    "7": "This week",
+    "30": "This month",
+    "100": "This quarter",
+    "365": "This year",
     "all": "All time"
   },
   "hero": {

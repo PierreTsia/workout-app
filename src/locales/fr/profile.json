@@ -4,15 +4,11 @@
   "windowToggle": "Fenêtre",
   "about": "À propos — {{section}}",
   "windowHint": "Tout le profil suit cette période. Sur Toujours, pas de comparaison avec avant.",
-  "fixtures": "Fixtures",
-  "fixturePierre": "Pierre",
-  "fixtureEmpty": "Vide",
-  "fixtureLoading": "Chargement",
   "window": {
-    "7": "7j",
-    "30": "30j",
-    "100": "100j",
-    "365": "1 an",
+    "7": "Cette semaine",
+    "30": "Ce mois-ci",
+    "100": "Ce trimestre",
+    "365": "Cette année",
     "all": "Toujours"
   },
   "hero": {

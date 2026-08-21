@@ -4,6 +4,10 @@ export const PROFILE_WINDOW_KINDS = ["7", "30", "100", "365", "all"] as const
 
 export type ProfileWindowKind = (typeof PROFILE_WINDOW_KINDS)[number]
 
+export function isProfileWindowKind(value: string): value is ProfileWindowKind {
+  return PROFILE_WINDOW_KINDS.some((kind) => kind === value)
+}
+
 export function includeDeltas(kind: ProfileWindowKind): boolean {
   return kind !== "all"
 }

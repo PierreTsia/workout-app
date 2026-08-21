@@ -10,6 +10,7 @@ const ALWAYS_KEEP = new Set([
   "theme",
   "installPrompt",
   "notification_permission_granted",
+  "profileWindow",
 ])
 
 /** Keys to preserve only when a workout session is in progress. */

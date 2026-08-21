@@ -32,7 +32,7 @@ export function RecordsComboChart({
   return (
     <ChartContainer
       config={comboChartConfig}
-      className="aspect-video w-full"
+      className="aspect-[5/2] w-full min-h-[180px]"
       role="img"
       aria-label="PRs and RIR 0 rate"
     >
