@@ -15,7 +15,7 @@
   "hero": {
     "activeProgram": "Active · {{program}}",
     "hop": "Also {{other}} this week",
-    "streak": "Streak · {{n}} d"
+    "activeSince": "Active since {{date}}"
   },
   "achievements": {
     "title": "Achievements",

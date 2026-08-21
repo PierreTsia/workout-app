@@ -24,7 +24,7 @@ describe("ProfileStatCard", () => {
   it("paints a negative vs-prior delta destructive with a down arrow", () => {
     const { container } = renderWithProviders(
       <ProfileStatCard
-        title="Time under the bar"
+        title="Session time"
         value="3h 20"
         delta={{ value: -40, label: "-40 min vs prior" }}
       />,
@@ -67,8 +67,12 @@ describe("ProfileStatCard", () => {
     )
 
     const card = container.firstElementChild
-    expect(card?.className).toMatch(/flex/)
     expect(card?.className).toMatch(/h-full/)
-    expect(card?.className).toMatch(/justify-center/)
+    expect(card?.className).toMatch(/flex/)
+    expect(card?.className).toMatch(/flex-col/)
+
+    const body = screen.getByText("5").parentElement
+    expect(body?.className).toMatch(/flex-1/)
+    expect(body?.className).toMatch(/justify-center/)
   })
 })

@@ -68,7 +68,7 @@ CTA **Voir tout** → `/achievements`. Count `{n} / {total}`.
 
 ### Cette fenêtre (pulse)
 
-Three stats, not four: **Séances** (delta vs prior equal window — **omitted on Toujours**), **Temps sous barre** (`sessions.active_duration_ms`), **Durée moy.** vs prescribed minutes. Drop “séances / sem” — Rythme owns presence.
+Three stats, not four: **Séances** (delta vs prior equal window — **omitted on Toujours**), **Temps de séance** (`sessions.active_duration_ms`), **Durée moy.** vs prescribed minutes. Drop “séances / sem” — Rythme owns presence.
 
 ### Rythme
 

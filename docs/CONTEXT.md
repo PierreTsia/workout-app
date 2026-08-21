@@ -135,8 +135,8 @@ One pass through every day of a **Program**. The open **Cycle** is the `cycles` 
 
 ## Workout execution
 
-**Time under the bar** (UI: FR **Temps sous barre** / EN **Time under the bar**):
-Sum of `sessions.active_duration_ms` over finished **Sessions** in the current Profil window (7j / 30j / 100j / 1 an / depuis toujours). When `active_duration_ms` is null, fall back to wall-clock `(finished_at − started_at)` — same rule as `get_cycle_stats`. Pause-excluded when the finish path wrote the column. **Not** `get_training_activity_by_day.minutes`, which is always wall-clock including pauses; the Profil pulse must not bind that field. All-time has no vs-préc. delta.
+**Session time** (UI: FR **Temps de séance** / EN **Session time**):
+Sum of `sessions.active_duration_ms` over finished **Sessions** in the current Profil window (7j / 30j / 100j / 1 an / depuis toujours). When `active_duration_ms` is null, fall back to wall-clock `(finished_at − started_at)` — same rule as `get_cycle_stats`. Pause-excluded when the finish path wrote the column. **Not** `get_training_activity_by_day.minutes`, which is always wall-clock including pauses; the Profil pulse must not bind that field. The UI used to say “time under the bar”; the metric did not change. All-time has no vs-préc. delta.
 → `file:supabase/migrations/20260324140000_sessions_active_duration_ms.sql`, `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql`
 
 **RIR 0 rate** (UI: **% RIR 0**):
@@ -176,7 +176,7 @@ A finished **Benchmark Circuit** run in the current window whose AMRAP (or type-
 → `file:src/lib/amrapScore.ts`
 
 **Prescribed session duration**:
-`users.session_duration_minutes` from the onboarding / Account questionnaire — the minutes the athlete told the app a session should last. Profil pulse **Durée moy.** is the mean **Time under the bar** per finished **Session** in the window, compared to this field. Weak if stale; the stat links to the form that edits it (`/account` today, Settings later). Not a per-**workout day** template duration (that column does not exist).
+`users.session_duration_minutes` from the onboarding / Account questionnaire — the minutes the athlete told the app a session should last. Profil pulse **Durée moy.** is the mean **Session time** per finished **Session** in the window, compared to this field. Weak if stale; the stat links to the form that edits it (`/account` today, Settings later). Not a per-**workout day** template duration (that column does not exist).
 → `file:src/components/onboarding/QuestionnaireTrainingFields.tsx`
 
 **Last Session Recap**:

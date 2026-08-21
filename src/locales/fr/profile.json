@@ -15,7 +15,7 @@
   "hero": {
     "activeProgram": "Actif · {{program}}",
     "hop": "Aussi {{other}} cette semaine",
-    "streak": "Série · {{n}} j"
+    "activeSince": "Actif depuis {{date}}"
   },
   "achievements": {
     "title": "Succès",

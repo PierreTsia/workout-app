@@ -76,7 +76,7 @@ const SECTIONS: Section[] = [
     verdict: "keep",
     job: "Est-ce que ce bloc de 7j / 30j / 100j / 1 an avance — comparable à la fenêtre d’avant. Toujours = carrière, pas de vs-préc.",
     challenge:
-      "Quatre stats, c’est trop. « Séances / sem » double le Rythme. Trois : séances, temps sous barre, durée moy. vs prescrit. Sur Toujours : pas de pastille +{n} vs préc., pas de « stable vs préc. ».",
+      "Quatre stats, c’est trop. « Séances / sem » double le Rythme. Trois : séances, temps de séance, durée moy. vs prescrit. Sur Toujours : pas de pastille +{n} vs préc., pas de « stable vs préc. ».",
     rows: [
       { slot: "H2", fr: "(pas de titre)", en: "(no heading)" },
       { slot: "Toggle", fr: "7j · 30j · 100j · 1 an · Toujours", en: "7d · 30d · 100d · 1y · All time" },
@@ -84,7 +84,7 @@ const SECTIONS: Section[] = [
       { slot: "Delta", fr: "+{n} vs préc.", en: "+{n} vs prior" },
       { slot: "Delta 0", fr: "stable vs préc.", en: "even vs prior" },
       { slot: "Delta Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
-      { slot: "Stat 2", fr: "Temps sous barre", en: "Time under the bar" },
+      { slot: "Stat 2", fr: "Temps de séance", en: "Session time" },
       { slot: "Stat 3", fr: "Durée moy.", en: "Avg duration" },
       { slot: "Vs prescrit", fr: "vs {n} min prescrits", en: "vs {n} min prescribed" },
     ],

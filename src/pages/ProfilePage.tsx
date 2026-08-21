@@ -13,6 +13,7 @@ import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import {
+  ProfilePulseGrid,
   ProfileStatCard,
   ProfileStatCardSkeleton,
 } from "@/components/profile/ProfileStatCard"
@@ -284,11 +285,11 @@ function PulseBlock({ mode }: { mode: FixtureMode }) {
 
   if (mode === "loading") {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ProfilePulseGrid>
         <ProfileStatCardSkeleton />
         <ProfileStatCardSkeleton />
         <ProfileStatCardSkeleton />
-      </div>
+      </ProfilePulseGrid>
     )
   }
 
@@ -309,14 +310,14 @@ function PulseBlock({ mode }: { mode: FixtureMode }) {
   })
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ProfilePulseGrid>
       <ProfileStatCard
         title={t("pulse.sessions")}
         value={pulse.sessions}
         delta={includeDeltas ? vsPrior(pulse.sessionDelta, pulse.sessionDelta) : undefined}
       />
       <ProfileStatCard
-        title={t("pulse.timeUnderBar")}
+        title={t("pulse.sessionTime")}
         value={pulse.timeUnderBar}
         delta={includeDeltas ? vsPrior(pulse.timeDeltaN, pulse.timeDelta) : undefined}
       />
@@ -329,7 +330,7 @@ function PulseBlock({ mode }: { mode: FixtureMode }) {
           </Link>
         }
       />
-    </div>
+    </ProfilePulseGrid>
   )
 }
 
