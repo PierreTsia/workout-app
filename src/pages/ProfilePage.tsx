@@ -298,24 +298,27 @@ function PulseBlock({ mode }: { mode: FixtureMode }) {
     )
   }
 
-  const sessionHint = includeDeltas
-    ? t("pulse.delta", { n: pulse.sessionDelta })
-    : undefined
-  const timeHint = includeDeltas
-    ? t("pulse.delta", { n: pulse.timeDeltaN })
-    : undefined
+  const vsPrior = (n: string | number, value: number) => ({
+    value,
+    label:
+      value === 0
+        ? t("pulse.deltaEven")
+        : value < 0
+          ? t("pulse.deltaDown", { n })
+          : t("pulse.delta", { n }),
+  })
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <ProfileStatCard
         title={t("pulse.sessions")}
         value={pulse.sessions}
-        hint={sessionHint}
+        delta={includeDeltas ? vsPrior(pulse.sessionDelta, pulse.sessionDelta) : undefined}
       />
       <ProfileStatCard
         title={t("pulse.timeUnderBar")}
         value={pulse.timeUnderBar}
-        hint={timeHint}
+        delta={includeDeltas ? vsPrior(pulse.timeDeltaN, pulse.timeDelta) : undefined}
       />
       <ProfileStatCard
         title={t("pulse.avgDuration")}

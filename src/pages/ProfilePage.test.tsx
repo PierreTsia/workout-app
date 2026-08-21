@@ -74,6 +74,32 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
   })
 
+  it("shows signed pulse vs-prior deltas and keeps prescribed comparison neutral", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByText("5")).toBeInTheDocument()
+    expect(screen.getByText("3h 20")).toBeInTheDocument()
+    expect(screen.getByText("40 min")).toBeInTheDocument()
+
+    const up = screen.getByText("+1 vs prior")
+    expect(up.closest("p")?.className).toMatch(/emerald/)
+    expect(up.closest("p")?.querySelector(".lucide-arrow-up")).not.toBeNull()
+
+    const down = screen.getByText("-40 min vs prior")
+    expect(down.closest("p")?.className).toMatch(/destructive/)
+    expect(down.closest("p")?.querySelector(".lucide-arrow-down")).not.toBeNull()
+
+    const prescribed = screen.getByRole("link", { name: /vs 60 min prescribed/i })
+    expect(prescribed).toHaveAttribute("href", "/account")
+    expect(prescribed.closest("p")?.className).not.toMatch(/emerald|destructive/)
+
+    await user.click(screen.getByRole("radio", { name: "All time" }))
+    expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("-40 min vs prior")).not.toBeInTheDocument()
+    expect(screen.queryByText("even vs prior")).not.toBeInTheDocument()
+  })
+
   it("restyles Mix/Rhythm grain when toggling 7d to 30d", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)

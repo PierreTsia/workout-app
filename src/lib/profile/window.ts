@@ -96,6 +96,7 @@ export type PulseFixture = {
   sessionDelta: number
   timeUnderBar: string
   timeDeltaN: string
+  timeDelta: number
   avgMinutes: number
 }
 
@@ -106,6 +107,7 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
       sessionDelta: 1,
       timeUnderBar: "3h 20",
       timeDeltaN: "40 min",
+      timeDelta: -40,
       avgMinutes: 40,
     },
     "30": {
@@ -113,6 +115,7 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
       sessionDelta: 3,
       timeUnderBar: "12h 10",
       timeDeltaN: "1h 20",
+      timeDelta: 80,
       avgMinutes: 41,
     },
     "100": {
@@ -120,6 +123,7 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
       sessionDelta: 4,
       timeUnderBar: "36h",
       timeDeltaN: "2h",
+      timeDelta: 120,
       avgMinutes: 42,
     },
     "365": {
@@ -127,6 +131,7 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
       sessionDelta: 12,
       timeUnderBar: "98h",
       timeDeltaN: "8h",
+      timeDelta: 480,
       avgMinutes: 40,
     },
     all: {
@@ -134,6 +139,7 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
       sessionDelta: 0,
       timeUnderBar: "210h",
       timeDeltaN: "",
+      timeDelta: 0,
       avgMinutes: 41,
     },
   }

@@ -29,6 +29,7 @@
   "pulse": {
     "sessions": "Sessions",
     "delta": "+{{n}} vs prior",
+    "deltaDown": "-{{n}} vs prior",
     "deltaEven": "even vs prior",
     "timeUnderBar": "Time under the bar",
     "avgDuration": "Avg duration",
