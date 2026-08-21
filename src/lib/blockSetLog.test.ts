@@ -161,6 +161,106 @@ describe("buildBlockSetLogPayload", () => {
     expect(payload).toHaveProperty("repsLogged", "20")
     expect(payload).not.toHaveProperty("durationSeconds")
   })
+
+  it("sets wasPr when a weighted Circuit station beats prior scores", () => {
+    // Epley(180, 5) = 210 — beats a prior best of 200.
+    const payload = buildBlockSetLogPayload({
+      sessionId: "sess-2",
+      blockExercise: blockExercise({
+        id: "be-deadlift",
+        exercise_id: "ex-deadlift",
+        name_snapshot: "Deadlift",
+        per_round: [{ amount: 5, weight: 180 }],
+        exercise: exercise({
+          id: "ex-deadlift",
+          name: "Deadlift",
+          equipment: "barbell",
+          measurement_type: "reps",
+        }),
+      }),
+      round: 0,
+      now: 1000,
+      pr: {
+        historicalBest: 200,
+        sessionBest: 0,
+        hasPriorSession: true,
+        historyFetched: true,
+      },
+    })
+
+    expect(payload.wasPr).toBe(true)
+  })
+
+  it("sets wasPr when a duration Circuit station beats the prior best", () => {
+    const payload = buildBlockSetLogPayload({
+      sessionId: "sess-2",
+      blockExercise: blockExercise({
+        id: "be-plank",
+        exercise_id: "ex-plank",
+        name_snapshot: "Plank",
+        per_round: [{ amount: 90, weight: 0 }],
+        exercise: exercise({
+          id: "ex-plank",
+          name: "Plank",
+          equipment: "bodyweight",
+          measurement_type: "duration",
+        }),
+      }),
+      round: 0,
+      now: 2000,
+      pr: {
+        historicalBest: 60,
+        sessionBest: 0,
+        hasPriorSession: true,
+        historyFetched: true,
+      },
+    })
+
+    expect(payload.wasPr).toBe(true)
+  })
+
+  it("keys Profil PR on catalog exercise_id, not which Circuit the station sits in", () => {
+    const deadliftStation = (blockExerciseId: string) =>
+      blockExercise({
+        id: blockExerciseId,
+        exercise_id: "ex-deadlift",
+        name_snapshot: "Deadlift",
+        per_round: [{ amount: 5, weight: 180 }],
+        exercise: exercise({
+          id: "ex-deadlift",
+          name: "Deadlift",
+          equipment: "barbell",
+          measurement_type: "reps",
+        }),
+      })
+    const prior = {
+      historicalBest: 200,
+      sessionBest: 0,
+      hasPriorSession: true,
+      historyFetched: true,
+    }
+
+    const jetable = buildBlockSetLogPayload({
+      sessionId: "sess-2",
+      blockExercise: deadliftStation("be-jetable"),
+      round: 0,
+      now: 1000,
+      pr: prior,
+    })
+    const catalog = buildBlockSetLogPayload({
+      sessionId: "sess-2",
+      blockExercise: deadliftStation("be-cindy"),
+      round: 0,
+      now: 1000,
+      pr: prior,
+    })
+
+    expect(jetable.exerciseId).toBe("ex-deadlift")
+    expect(catalog.exerciseId).toBe("ex-deadlift")
+    expect(jetable.blockExerciseId).not.toBe(catalog.blockExerciseId)
+    expect(jetable.wasPr).toBe(true)
+    expect(catalog.wasPr).toBe(true)
+  })
 })
 
 describe("loggedBlockCells", () => {

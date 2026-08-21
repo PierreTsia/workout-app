@@ -2,13 +2,19 @@
  * Recompute set_logs.was_pr using the same rules as file:src/lib/prDetection.ts
  * (first session per user+exercise = baseline; then strict PR by modality).
  *
+ * Groups by `user_id::exercise_id` across ALL finished set_logs — including
+ * Circuit stations (`block_exercise_id` set). Do not filter those out: a loaded
+ * deadlift in a Circuit shares the same Profil PR stream as solo deadlifts.
+ *
  * Requires SUPABASE_SERVICE_ROLE_KEY + VITE_SUPABASE_URL in .env
  *
- *   npx tsx scripts/backfill-was-pr.ts           # dry-run stats only
+ *   npm run backfill:was-pr                      # dry-run stats only
  *   npx tsx scripts/backfill-was-pr.ts --apply   # write was_pr + optional re-grant
  *
  * Production (ignore .env.local so local Supabase does not win):
  *   npx tsx scripts/backfill-was-pr.ts --no-env-local --apply
+ *
+ * Do not run --apply against production from the Circuit was_pr ticket.
  *
  * Run migration 20260403100000_pr_record_hunter_reset.sql (or let supabase db push)
  * before --apply if you want Record Hunter cleared first.
