@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ProfilePage } from "./ProfilePage"
@@ -156,6 +156,47 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Balance" })).toBeInTheDocument()
     expect(screen.getByText("18.4 t")).toBeInTheDocument()
+  })
+
+  it("renders a Tonnage bar chart on the Pierre fixture", async () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole("img", { name: /Tonnage/ })).toBeInTheDocument()
+    })
+  })
+
+  it("hides the Tonnage bar chart on the empty fixture", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    await user.click(screen.getByRole("radio", { name: "Empty" }))
+
+    expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
+    expect(screen.getByText("No loaded sets in this window.")).toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: /Tonnage/ })).not.toBeInTheDocument()
+  })
+
+  it("matches Tonnage bar categories to the Mix grain when toggling 7d to 1y", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    const weekChart = await screen.findByRole("img", { name: /Tonnage/ })
+    await waitFor(() => {
+      expect(
+        weekChart.querySelectorAll(".recharts-cartesian-axis-tick"),
+      ).toHaveLength(7)
+    })
+
+    await user.click(screen.getByRole("radio", { name: "1y" }))
+
+    const yearChart = await screen.findByRole("img", { name: /Tonnage/ })
+    await waitFor(() => {
+      expect(
+        yearChart.querySelectorAll(".recharts-cartesian-axis-tick"),
+      ).toHaveLength(12)
+    })
   })
 
   it("treats empty and loading as distinct fixture modes", async () => {

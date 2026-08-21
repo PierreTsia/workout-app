@@ -8,6 +8,7 @@ import {
   RADAR_CURRENT,
   RADAR_PRIOR,
 } from "@/components/profile/charts/fixtures"
+import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import {
@@ -28,7 +29,6 @@ import {
   emptyMixSeries,
   MIX_CATEGORIES,
   PIERRE_CIRCUITS,
-  PIERRE_REGULARS,
   PIERRE_SUCCES,
   pierreMixSeries,
   pierrePulse,
@@ -417,31 +417,6 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
         <p className="mt-2 text-xs text-muted-foreground">{t("tonnage.legend")}</p>
       </ProfileSection>
     </div>
-  )
-}
-
-function RegularsBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const status = blockStatus(mode, "ok")
-
-  return (
-    <ProfileSection
-      title={t("regulars.title")}
-      status={status}
-      empty={t("regulars.empty")}
-    >
-      <p className="mb-3 text-xs text-muted-foreground">{t("regulars.subtitle")}</p>
-      <ul className="flex flex-col gap-2 text-sm">
-        {PIERRE_REGULARS.map((row) => (
-          <li key={row.name} className="flex items-center justify-between gap-2">
-            <span>{row.name}</span>
-            <Badge variant={row.onProgram ? "secondary" : "outline"}>
-              {row.onProgram ? t("regulars.onProgram") : t("regulars.offProgram")}
-            </Badge>
-          </li>
-        ))}
-      </ul>
-    </ProfileSection>
   )
 }
 
