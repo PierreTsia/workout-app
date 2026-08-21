@@ -45,7 +45,31 @@
       "all": "Par année"
     },
     "session": "Séance",
-    "none": "Pas de séance"
+    "none": "Pas de séance",
+    "week": "S{{n}}",
+    "weekday": {
+      "mon": "Lun",
+      "tue": "Mar",
+      "wed": "Mer",
+      "thu": "Jeu",
+      "fri": "Ven",
+      "sat": "Sam",
+      "sun": "Dim"
+    },
+    "month": {
+      "jan": "Janv",
+      "feb": "Févr",
+      "mar": "Mars",
+      "apr": "Avr",
+      "may": "Mai",
+      "jun": "Juin",
+      "jul": "Juil",
+      "aug": "Août",
+      "sep": "Sept",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Déc"
+    }
   },
   "mix": {
     "title": "Mix",
@@ -70,8 +94,7 @@
   "regulars": {
     "title": "Récurrents",
     "subtitle": "Les plus loggés · 100 jours",
-    "onProgram": "Sur le programme",
-    "offProgram": "Hors plan",
+    "unranked": "—",
     "empty": "Pas assez de logs sur 100 jours."
   },
   "circuits": {

@@ -45,7 +45,31 @@
       "all": "By year"
     },
     "session": "Session",
-    "none": "No session"
+    "none": "No session",
+    "week": "W{{n}}",
+    "weekday": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "month": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    }
   },
   "mix": {
     "title": "Mix",
@@ -70,8 +94,7 @@
   "regulars": {
     "title": "Regulars",
     "subtitle": "Most logged · 100 days",
-    "onProgram": "On program",
-    "offProgram": "Off program",
+    "unranked": "—",
     "empty": "Not enough logs in 100 days."
   },
   "circuits": {

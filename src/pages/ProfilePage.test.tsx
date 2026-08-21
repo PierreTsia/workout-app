@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ProfilePage } from "./ProfilePage"
@@ -9,6 +9,15 @@ import {
 } from "@/components/profile/charts/chartTestLayout"
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
+
+const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
+
+function withinRhythm() {
+  const heading = screen.getByRole("heading", { name: "Rhythm" })
+  const card = heading.parentElement?.parentElement
+  if (!card) throw new Error("expected Rhythm card")
+  return within(card)
+}
 
 const routerSources = import.meta.glob("../router/index.tsx", {
   query: "?raw",
@@ -23,6 +32,16 @@ describe("ProfilePage T0 fixtures", () => {
 
   afterEach(() => {
     restoreChartLayout()
+  })
+
+  it("shows seven labeled weekdays on the 7d Rhythm chart", () => {
+    renderWithProviders(<ProfilePage />)
+
+    const rhythm = withinRhythm()
+    for (const day of WEEKDAYS_EN) {
+      expect(rhythm.getByText(day)).toBeInTheDocument()
+    }
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(7)
   })
 
   it("renders Mix and Rhythm above Records on the Pierre fixture", () => {
@@ -63,6 +82,39 @@ describe("ProfilePage T0 fixtures", () => {
     await user.click(screen.getByRole("radio", { name: "30d" }))
     expect(screen.getByText("5 weeks")).toBeInTheDocument()
     expect(screen.queryByText("Last 7 days")).not.toBeInTheDocument()
+  })
+
+  it("lays out 100d Rhythm as a labeled week grid, not wrapping dots", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+    await user.click(screen.getByRole("radio", { name: "100d" }))
+
+    const rhythm = withinRhythm()
+    expect(rhythm.getByText("12 weeks")).toBeInTheDocument()
+    for (let n = 1; n <= 12; n++) {
+      expect(rhythm.getByText(`W${n}`)).toBeInTheDocument()
+    }
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(12)
+
+    const list = rhythm.getByRole("list", { name: "Rhythm" })
+    const colMatch = list.className.match(/grid-cols-(\d+)/)
+    expect(colMatch).not.toBeNull()
+    const cols = Number(colMatch?.[1])
+    expect(12 / cols).toBeGreaterThan(1)
+    expect(list.className).not.toMatch(/flex-wrap/)
+  })
+
+  it("keeps labeled empty rings on the empty fixture", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+    await user.click(screen.getByRole("radio", { name: "Empty" }))
+
+    const rhythm = withinRhythm()
+    for (const day of WEEKDAYS_EN) {
+      expect(
+        rhythm.getByRole("listitem", { name: `${day}, No session` }),
+      ).toBeInTheDocument()
+    }
   })
 
   it("renders Latest, Highest, and recently earned as illustrated badges", () => {
@@ -142,4 +194,3 @@ describe("/profile route", () => {
     )
   })
 })
-

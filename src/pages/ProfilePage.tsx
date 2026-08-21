@@ -9,6 +9,7 @@ import {
   RADAR_PRIOR,
 } from "@/components/profile/charts/fixtures"
 import { ProfileSection } from "@/components/profile/ProfileSection"
+import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import {
   ProfileStatCard,
   ProfileStatCardSkeleton,
@@ -337,22 +338,7 @@ function RhythmBlock({ mode }: { mode: FixtureMode }) {
   return (
     <ProfileSection title={t("rhythm.title")} status={status} empty={null}>
       <p className="mb-3 text-sm text-muted-foreground">{t(`rhythm.caption.${kind}`)}</p>
-      <ol className="flex flex-wrap gap-2">
-        {MIX_CATEGORIES[kind].map((label, i) => {
-          const on = presence[i] === true
-          return (
-            <li
-              key={label}
-              aria-label={on ? t("rhythm.session") : t("rhythm.none")}
-              className={
-                on
-                  ? "size-7 rounded-full bg-primary"
-                  : "size-7 rounded-full border border-border bg-transparent"
-              }
-            />
-          )
-        })}
-      </ol>
+      <RhythmPresenceChart kind={kind} presence={presence} />
     </ProfileSection>
   )
 }
