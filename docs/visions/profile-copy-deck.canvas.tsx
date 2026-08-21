@@ -248,7 +248,8 @@ export default function ProfileCopyDeck() {
       <Callout tone="neutral" title="Trois actes, pas onze widgets">
         1 · Cette fenêtre : Hero, Succès compact, stats, Rythme, Mix. 2 · Preuve :
         Records (barres PRs + ligne % RIR 0, axe droit), Équilibre. 3 · Pratique :
-        Récurrents, Circuits. Couper le mensuel. Mix : precedence Circuits > Quick Workout > Programme.
+        Récurrents, Circuits. Couper le mensuel. Mix : precedence Circuits
+        {" > "}Quick Workout{" > "}Programme.
       </Callout>
       <Callout tone="warning" title="Le fold">
         Mix + Rythme au-dessus de Records. Si Records remonte, on a le dashboard

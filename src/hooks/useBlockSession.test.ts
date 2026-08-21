@@ -33,13 +33,11 @@ vi.mock("@/lib/syncService", () => ({
   discardBlockSetLogs: vi.fn().mockResolvedValue(undefined),
 }))
 
-const fetchBestPerformance = vi.fn(
-  async (_userId: string, _args: unknown) => ({
-    bestValue: 200,
-    hasPriorSession: true,
-    modality: "weighted_reps" as const,
-  }),
-)
+const fetchBestPerformance = vi.fn(async () => ({
+  bestValue: 200,
+  hasPriorSession: true,
+  modality: "weighted_reps" as const,
+}))
 
 vi.mock("@/hooks/useBestPerformance", () => ({
   bestPerformanceQueryKey: (
