@@ -41,7 +41,7 @@ import {
   type ProfileWindowKind,
 } from "@/lib/profile/window"
 import { pierreTonnageBars } from "@/lib/profile/tonnage"
-import { formatDate } from "@/lib/formatters"
+import { localDateFromIsoDay, tenureSpan, tenureSpanKey } from "@/lib/profile/tenure"
 import type { BadgeStatusRow } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
@@ -125,17 +125,6 @@ function FixtureSwitch({
  */
 const PIERRE_FIRST_SESSION_AT = "2024-03-12"
 
-const TENURE_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-}
-
-function localDateFromIsoDay(isoDay: string): Date {
-  const [year, month, day] = isoDay.split("-").map(Number)
-  return new Date(year, month - 1, day)
-}
-
 function HeroBlock({ mode }: { mode: FixtureMode }) {
   const { t, i18n } = useTranslation("profile")
   const { includeDeltas } = useProfileWindow()
@@ -151,6 +140,8 @@ function HeroBlock({ mode }: { mode: FixtureMode }) {
       </div>
     )
   }
+
+  const span = tenureSpan(localDateFromIsoDay(PIERRE_FIRST_SESSION_AT), new Date())
 
   return (
     <div className="flex items-start gap-4">
@@ -175,11 +166,7 @@ function HeroBlock({ mode }: { mode: FixtureMode }) {
         {mode === "pierre" ? (
           <p className="text-sm">
             {t("hero.activeSince", {
-              date: formatDate(
-                localDateFromIsoDay(PIERRE_FIRST_SESSION_AT),
-                i18n.language,
-                TENURE_DATE_OPTIONS,
-              ),
+              span: t(tenureSpanKey(span), { count: span.n }),
             })}
           </p>
         ) : null}
@@ -202,7 +189,7 @@ function SuccesMedalButton({
   onSelect,
 }: {
   badge: BadgeStatusRow
-  size: "sm" | "md"
+  size: "sm" | "lg"
   titleClassName: string
   onSelect: (badge: BadgeStatusRow) => void
 }) {
@@ -214,7 +201,7 @@ function SuccesMedalButton({
       type="button"
       aria-label={title}
       className={
-        size === "md"
+        size === "lg"
           ? "flex flex-col items-center gap-1.5 transition-transform active:scale-95"
           : "flex flex-col items-center gap-1 transition-transform active:scale-95"
       }
@@ -236,12 +223,12 @@ function FeaturedBadge({
   onSelect: (badge: BadgeStatusRow) => void
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-2">
       <p className="text-xs text-muted-foreground">{label}</p>
       <SuccesMedalButton
         badge={badge}
-        size="md"
-        titleClassName="max-w-24 truncate text-center text-[11px] font-medium leading-tight"
+        size="lg"
+        titleClassName="max-w-28 truncate text-center text-sm font-medium leading-tight"
         onSelect={onSelect}
       />
     </div>

@@ -15,7 +15,15 @@
   "hero": {
     "activeProgram": "Actif · {{program}}",
     "hop": "Aussi {{other}} cette semaine",
-    "activeSince": "Actif depuis {{date}}"
+    "activeSince": "Actif depuis {{span}}",
+    "tenureDays_one": "{{count}} jour",
+    "tenureDays_other": "{{count}} jours",
+    "tenureMonths_one": "{{count}} mois",
+    "tenureMonths_other": "{{count}} mois",
+    "tenureYears_one": "{{count}} an",
+    "tenureYears_other": "{{count}} ans",
+    "tenureYearsHalf_one": "{{count}} an et demi",
+    "tenureYearsHalf_other": "{{count}} ans et demi"
   },
   "achievements": {
     "title": "Succès",
