@@ -260,6 +260,17 @@ describe("ProfilePage T0 fixtures", () => {
     expect(document.querySelectorAll(".badge-frame-bronze").length).toBe(3)
   })
 
+  it("shows date and description on the two hero badges, not the recent strip", () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getAllByText(/Unlocked on/)).toHaveLength(2)
+    expect(
+      screen.getAllByText("GymLogic circuit runs (1+ round)"),
+    ).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.h-36")).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.h-10")).toHaveLength(3)
+  })
+
   it("opens the achievement detail drawer when a Succès medal is clicked", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
@@ -348,11 +359,11 @@ describe("ProfilePage T0 fixtures", () => {
     await user.click(screen.getByRole("radio", { name: "Empty" }))
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-28")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
 
     await user.click(screen.getByRole("radio", { name: "Loading" }))
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-28")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
       0,
     )

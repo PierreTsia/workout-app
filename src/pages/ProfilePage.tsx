@@ -222,16 +222,40 @@ function FeaturedBadge({
   badge: BadgeStatusRow
   onSelect: (badge: BadgeStatusRow) => void
 }) {
+  const { t, i18n } = useTranslation("achievements")
+  const title = badgeTitle(badge, i18n.language)
+  const unlockedDate = badge.granted_at
+    ? new Date(badge.granted_at).toLocaleDateString(i18n.language, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <SuccesMedalButton
-        badge={badge}
-        size="lg"
-        titleClassName="max-w-28 truncate text-center text-sm font-medium leading-tight"
-        onSelect={onSelect}
+    <button
+      type="button"
+      aria-label={title}
+      className="flex w-full min-w-0 flex-col items-center gap-2 transition-transform active:scale-95"
+      onClick={() => onSelect(badge)}
+    >
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <BadgeIcon
+        rank={badge.rank}
+        iconUrl={badge.icon_asset_url}
+        size="xl"
+        alt={title}
       />
-    </div>
+      <span className="text-center text-sm font-medium leading-tight">{title}</span>
+      {unlockedDate ? (
+        <span className="text-xs text-muted-foreground">
+          {t("unlockedOn", { date: unlockedDate })}
+        </span>
+      ) : null}
+      <span className="max-w-48 text-center text-xs leading-snug text-muted-foreground/70">
+        {t(`groupDescriptions.${badge.group_slug}`)}
+      </span>
+    </button>
   )
 }
 

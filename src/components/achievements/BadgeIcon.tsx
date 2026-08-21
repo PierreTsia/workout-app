@@ -7,18 +7,20 @@ const sizeClasses = {
   sm: "h-10 w-10",
   md: "h-16 w-16",
   lg: "h-28 w-28",
+  xl: "h-36 w-36",
 } as const
 
 const placeholderSize = {
   sm: "text-base",
   md: "text-2xl",
   lg: "text-4xl",
+  xl: "text-5xl",
 } as const
 
 interface BadgeIconProps {
   rank: AchievementRank
   iconUrl: string | null
-  size?: "sm" | "md" | "lg"
+  size?: "sm" | "md" | "lg" | "xl"
   locked?: boolean
   className?: string
   alt?: string
