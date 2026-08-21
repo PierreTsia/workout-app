@@ -8,8 +8,8 @@ import { enqueueSetLog, scheduleImmediateDrain } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
+  computeWasPr,
   getPrModality,
-  isPositivePrScore,
   scoreLiveDurationSet,
   scoreLiveRepSet,
 } from "@/lib/prDetection"
@@ -412,16 +412,13 @@ export function SetsTable({
       const reps = parseInt(currentSet.reps, 10)
       const estimatedOneRM = computeEpley1RM(weightKg, reps)
       const currentScore = scoreLiveRepSet(weightKg, reps, modality)
-
-      const runningBest = Math.max(
+      const wasPr = computeWasPr({
+        currentScore,
         historicalBest,
-        sessionBest[exercise.exercise_id] ?? 0,
-      )
-      const wasPr =
-        perfFetched &&
-        hasPriorSession &&
-        currentScore > runningBest &&
-        isPositivePrScore(currentScore)
+        sessionBest: sessionBest[exercise.exercise_id] ?? 0,
+        hasPriorSession,
+        historyFetched: perfFetched,
+      })
 
       if (wasPr) {
         setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))
@@ -589,15 +586,13 @@ export function SetsTable({
         const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
 
         const currentScore = scoreLiveDurationSet(durationSeconds)
-        const runningBest = Math.max(
+        const wasPr = computeWasPr({
+          currentScore,
           historicalBest,
-          sessionBest[exercise.exercise_id] ?? 0,
-        )
-        const wasPr =
-          perfFetched &&
-          hasPriorSession &&
-          currentScore > runningBest &&
-          currentScore > 0
+          sessionBest: sessionBest[exercise.exercise_id] ?? 0,
+          hasPriorSession,
+          historyFetched: perfFetched,
+        })
 
         if (wasPr) {
           setPrFlags((prev) => ({ ...prev, [exercise.exercise_id]: true }))

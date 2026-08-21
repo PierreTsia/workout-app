@@ -1,10 +1,23 @@
 import { useCallback, useMemo, useState } from "react"
-import { useAtomValue } from "jotai"
-import { useQueryClient } from "@tanstack/react-query"
-import { authAtom } from "@/store/atoms"
+import { useAtom, useAtomValue } from "jotai"
+import { useQueries, useQueryClient } from "@tanstack/react-query"
+import {
+  authAtom,
+  sessionAtom,
+  sessionBestPerformanceAtom,
+} from "@/store/atoms"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
 import { useBlockRunner, type UseBlockRunner } from "@/hooks/useBlockRunner"
 import { useBlockRun } from "@/hooks/useBlockRun"
+import {
+  bestPerformanceQueryKey,
+  fetchBestPerformance,
+} from "@/hooks/useBestPerformance"
+import {
+  getPrModality,
+  scoreLiveDurationSet,
+  scoreLiveRepSet,
+} from "@/lib/prDetection"
 import {
   discardBlockSetLogs,
   enqueueSetLog,
@@ -19,13 +32,17 @@ import {
   blockSetNumber,
   buildBlockSetLogPayload,
   loggedBlockCells,
+  type BlockSetPrContext,
 } from "@/lib/blockSetLog"
 import {
   runnerStateFromLogs,
   type BlockRunnerContext,
   type Cursor,
 } from "@/lib/blockRunner"
-import type { ExerciseBlockWithExercises } from "@/types/database"
+import type {
+  BlockExerciseWithExercise,
+  ExerciseBlockWithExercises,
+} from "@/types/database"
 
 export interface AmrapDisplayScore {
   fullRounds: number
@@ -59,6 +76,8 @@ export function useBlockSession(
   localSessionId: string,
 ): UseBlockSession {
   const userId = useAtomValue(authAtom)?.id ?? null
+  const session = useAtomValue(sessionAtom)
+  const [sessionBest, setSessionBest] = useAtom(sessionBestPerformanceAtom)
   const queryClient = useQueryClient()
   // peek (not getSessionRealId) so we don't mint session meta on render; the
   // id appears once the first log is enqueued, which re-renders via runner state.
@@ -91,6 +110,35 @@ export function useBlockSession(
     [persistedCells, queuedCells, optimisticCells],
   )
 
+  const prTargets = useMemo(
+    () => [...new Map(block.exercises.map((ex) => [ex.exercise_id, ex])).values()],
+    [block.exercises],
+  )
+
+  const perfQueries = useQueries({
+    queries: prTargets.map((ex) => {
+      const args = {
+        exerciseId: ex.exercise_id,
+        localSessionId,
+        sessionStartedAtMs: session.startedAt,
+        measurementType: ex.exercise?.measurement_type,
+        equipment: ex.exercise?.equipment,
+      }
+      return {
+        queryKey: userId
+          ? bestPerformanceQueryKey(userId, args)
+          : ["best-performance", "disabled", ex.exercise_id],
+        queryFn: () => {
+          if (userId == null) {
+            throw new Error("best-performance query ran without a user")
+          }
+          return fetchBestPerformance(userId, args)
+        },
+        enabled: userId != null,
+      }
+    }),
+  })
+
   const ctx: BlockRunnerContext = useMemo(
     () => ({
       rounds: block.rounds,
@@ -112,22 +160,47 @@ export function useBlockSession(
       if (loggedCells.has(key)) return
       if (actual != null) setLeftoverActual(actual)
       setOptimisticCells((prev) => new Set(prev).add(key))
-      enqueueSetLog(
-        buildBlockSetLogPayload({
-          sessionId: localSessionId,
+      const payload = buildBlockSetLogPayload({
+        sessionId: localSessionId,
+        blockExercise,
+        round: cursor.round,
+        now: Date.now(),
+        mode: block.mode,
+        actual,
+        pr: prContextForStation(
           blockExercise,
-          round: cursor.round,
-          now: Date.now(),
-          mode: block.mode,
-          actual,
-        }),
-      )
+          prTargets,
+          perfQueries,
+          sessionBest,
+        ),
+      })
+      enqueueSetLog(payload)
+      setSessionBest((prev) => ({
+        ...prev,
+        [blockExercise.exercise_id]: Math.max(
+          prev[blockExercise.exercise_id] ?? 0,
+          liveScoreFromPayload(payload, {
+            measurement_type: blockExercise.exercise?.measurement_type,
+            equipment: blockExercise.exercise?.equipment,
+          }),
+        ),
+      }))
       scheduleImmediateDrain()
       if (realId) {
         queryClient.invalidateQueries({ queryKey: ["session-set-logs", realId] })
       }
     },
-    [block, localSessionId, realId, queryClient, loggedCells],
+    [
+      block,
+      localSessionId,
+      realId,
+      queryClient,
+      loggedCells,
+      prTargets,
+      perfQueries,
+      sessionBest,
+      setSessionBest,
+    ],
   )
 
   const {
@@ -219,4 +292,42 @@ function actualFromSetLog(log: SetLog): number {
   if (log.duration_seconds != null) return log.duration_seconds
   if (log.reps_logged == null) return 0
   return Number.parseInt(log.reps_logged, 10) || 0
+}
+
+type PerfQuery = {
+  data?: { bestValue: number; hasPriorSession: boolean }
+  isFetched: boolean
+}
+
+function prContextForStation(
+  blockExercise: BlockExerciseWithExercise,
+  prTargets: BlockExerciseWithExercise[],
+  perfQueries: PerfQuery[],
+  sessionBest: Record<string, number>,
+): BlockSetPrContext {
+  const idx = prTargets.findIndex(
+    (ex) => ex.exercise_id === blockExercise.exercise_id,
+  )
+  const query = idx >= 0 ? perfQueries[idx] : undefined
+  return {
+    historicalBest: query?.data?.bestValue ?? 0,
+    sessionBest: sessionBest[blockExercise.exercise_id] ?? 0,
+    hasPriorSession: query?.data?.hasPriorSession ?? false,
+    historyFetched: query?.isFetched ?? false,
+  }
+}
+
+function liveScoreFromPayload(
+  payload: SetLogPayload,
+  meta: { measurement_type?: "reps" | "duration"; equipment?: string | null },
+): number {
+  const modality = getPrModality(meta)
+  if ("durationSeconds" in payload) {
+    return scoreLiveDurationSet(payload.durationSeconds)
+  }
+  return scoreLiveRepSet(
+    payload.weightLogged,
+    Number.parseInt(payload.repsLogged, 10),
+    modality,
+  )
 }
