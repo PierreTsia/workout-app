@@ -1,5 +1,6 @@
 {
   "nav": "Profil",
+  "back": "Retour",
   "windowToggle": "Fenêtre",
   "about": "À propos — {{section}}",
   "windowHint": "Tout le profil suit cette période. Sur Toujours, pas de comparaison avec avant.",
@@ -31,10 +32,16 @@
     "hint": "Le dernier badge, le plus haut palier, et ceux gagnés sur la période. La liste complète est dans Succès.",
     "title": "Succès",
     "count": "{{n}} / {{total}}",
+    "byRank": "Par rang",
+    "rankCount": "{{rank}} {{n}}",
     "seeAll": "Voir tout",
     "latest": "Plus récent",
     "highest": "Plus haut",
     "recent": "Derniers reçus",
+    "listToggle": "Liste des succès",
+    "listRecent": "Récents",
+    "listHighest": "Plus haut",
+    "andMore": "et {{n}} de plus…",
     "empty": "Aucun succès pour l’instant."
   },
   "pulse": {

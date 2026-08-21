@@ -1,5 +1,6 @@
 {
   "nav": "Profile",
+  "back": "Back",
   "windowToggle": "Window",
   "about": "About {{section}}",
   "windowHint": "The whole profile uses this period. All time has no “vs prior”.",
@@ -31,10 +32,16 @@
     "hint": "Latest badge, highest rank, and what you earned in this period. Full list is on Achievements.",
     "title": "Achievements",
     "count": "{{n}} / {{total}}",
+    "byRank": "By rank",
+    "rankCount": "{{rank}} {{n}}",
     "seeAll": "See all",
     "latest": "Latest",
     "highest": "Highest",
     "recent": "Recently earned",
+    "listToggle": "Achievement list",
+    "listRecent": "Recent",
+    "listHighest": "Highest",
+    "andMore": "and {{n}} more…",
     "empty": "No achievements yet."
   },
   "pulse": {

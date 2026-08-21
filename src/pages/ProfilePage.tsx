@@ -1,5 +1,7 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { ArrowLeft } from "lucide-react"
 import { BalanceTonnageRow } from "@/components/profile/BalanceTonnageRow"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
 import { HeroBlock } from "@/components/profile/HeroBlock"
@@ -124,6 +126,7 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
 
 export function ProfilePage() {
   const { t } = useTranslation("profile")
+  const navigate = useNavigate()
   const [kind, setKind] = useState<ProfileWindowKind>("7")
   const [mode, setMode] = useState<FixtureMode>("pierre")
 
@@ -133,7 +136,17 @@ export function ProfilePage() {
       <div className="flex w-full flex-col gap-6 p-4 md:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={t("back")}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
+            </div>
             <WindowSelect />
           </div>
           <FixtureSwitch mode={mode} onMode={setMode} />

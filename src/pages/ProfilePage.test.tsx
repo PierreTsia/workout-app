@@ -71,6 +71,12 @@ describe("ProfilePage T0 fixtures", () => {
     vi.useRealTimers()
   })
 
+  it("exposes a back control so the page is not a dead end", () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument()
+  })
+
   it("shows Pierre tenure from first session instead of a fake streak", () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 7, 21))
@@ -355,15 +361,17 @@ describe("ProfilePage T0 fixtures", () => {
     expect(document.querySelectorAll(".badge-frame-bronze").length).toBe(3)
   })
 
-  it("shows date and description on the two hero badges, not the recent strip", () => {
+  it("shows Unlocked-on copy on the two hero badges; recent rows carry date and description", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getAllByText(/Unlocked on/)).toHaveLength(2)
-    expect(
-      screen.getAllByText("GymLogic circuit runs (1+ round)"),
-    ).toHaveLength(2)
     expect(document.querySelectorAll(".badge-frame.h-36")).toHaveLength(2)
     expect(document.querySelectorAll(".badge-frame.h-10")).toHaveLength(3)
+    const recent = screen.getByRole("list", { name: "Recent" })
+    expect(recent?.textContent).toMatch(/Aug 10/)
+    expect(recent?.textContent).toContain("Best Cindy score in rounds")
+    expect(recent?.textContent).toContain("GymLogic circuit runs (1+ round)")
+    expect(recent?.textContent).toContain("Cumulative Pompes-family reps")
   })
 
   it("opens the achievement detail drawer when a Succès medal is clicked", async () => {

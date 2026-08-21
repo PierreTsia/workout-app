@@ -250,7 +250,7 @@ describe("profile hero tenure, hop, and Succès", () => {
       expect(screen.getByText("2 / 2")).toBeInTheDocument()
     })
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
-    expect(screen.getByText("Highest").closest("button")).toHaveAccessibleName("Circuit Star")
+    expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
     expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "100d" }))
@@ -259,7 +259,6 @@ describe("profile hero tenure, hop, and Succès", () => {
       expect(screen.getByText("Also PPL this week")).toBeInTheDocument()
     })
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
-    expect(screen.getByText("Highest").closest("button")).toHaveAccessibleName("Circuit Star")
     expect(screen.getByRole("link", { name: "See all" })).toHaveAttribute(
       "href",
       "/achievements",
@@ -267,15 +266,100 @@ describe("profile hero tenure, hop, and Succès", () => {
   })
 
   it("keeps Recently earned inside the window and does not copy Account top-3-by-tier", async () => {
+    state.badges = [
+      ...CAREER_BADGES,
+      badge({
+        tier_id: "mid-window",
+        title_en: "Squat Survivor",
+        rank: "bronze",
+        tier_level: 1,
+        granted_at: "2026-08-17T12:00:00.000Z",
+      }),
+    ]
     renderFold()
 
     await waitFor(() => {
-      expect(screen.getByText("Recently earned")).toBeInTheDocument()
+      expect(screen.getByRole("list", { name: "Recent" })).toBeInTheDocument()
     })
-    const recent = screen.getByText("Recently earned").parentElement
-    expect(recent?.textContent).toContain("Baby Spidey")
-    expect(recent?.textContent).not.toContain("Circuit Star")
+    const recent = screen.getByRole("list", { name: "Recent" })
+    expect(recent.textContent).toContain("Squat Survivor")
+    expect(recent.textContent).not.toContain("Baby Spidey")
+    expect(recent.textContent).not.toContain("Circuit Star")
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
-    expect(screen.getByText("Highest").closest("button")).toHaveAccessibleName("Circuit Star")
+    expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
+  })
+
+  it("shows three recently earned rows with rank badges and an and-more remainder", async () => {
+    state.badges = [
+      badge({
+        tier_id: "r1",
+        title_en: "Alpha",
+        rank: "gold",
+        tier_level: 3,
+        granted_at: "2026-08-20T12:00:00.000Z",
+      }),
+      badge({
+        tier_id: "r2",
+        title_en: "Bravo",
+        rank: "silver",
+        tier_level: 2,
+        granted_at: "2026-08-19T12:00:00.000Z",
+      }),
+      badge({
+        tier_id: "r3",
+        title_en: "Charlie",
+        rank: "bronze",
+        tier_level: 1,
+        granted_at: "2026-08-18T12:00:00.000Z",
+      }),
+      badge({
+        tier_id: "r4",
+        title_en: "Delta",
+        rank: "bronze",
+        tier_level: 1,
+        granted_at: "2026-08-17T12:00:00.000Z",
+      }),
+      badge({
+        tier_id: "r5",
+        title_en: "Echo",
+        rank: "platinum",
+        tier_level: 4,
+        granted_at: "2026-08-16T12:00:00.000Z",
+      }),
+    ]
+    renderFold()
+
+    await waitFor(() => {
+      expect(screen.getByRole("list", { name: "Recent" })).toBeInTheDocument()
+    })
+    const recent = screen.getByRole("list", { name: "Recent" })
+    expect(recent.textContent).not.toContain("Alpha")
+    expect(recent.textContent).toContain("Bravo")
+    expect(recent.textContent).toContain("Silver")
+    expect(recent.textContent).toMatch(/Aug 19/)
+    expect(recent.textContent).toContain("GymLogic circuit runs (1+ round)")
+    expect(recent.textContent).toContain("Charlie")
+    expect(recent.textContent).toContain("Delta")
+    expect(recent.textContent).not.toContain("Echo")
+    expect(screen.getByRole("link", { name: "and 1 more…" })).toHaveAttribute(
+      "href",
+      "/achievements",
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("radio", { name: "Highest" }))
+    const top = screen.getByRole("list", { name: "Highest" })
+    expect(top.textContent).toContain("Alpha")
+    expect(top.textContent).toContain("Gold")
+    expect(top.textContent).toContain("Bravo")
+    expect(top.textContent).toContain("Charlie")
+    expect(top.textContent).not.toContain("Echo")
+    expect(top.textContent).not.toContain("Delta")
+    const byRank = screen.getByRole("list", { name: "By rank" })
+    expect(byRank.textContent).toContain("Bronze 2")
+    expect(byRank.textContent).toContain("Silver 1")
+    expect(byRank.textContent).toContain("Gold 1")
+    expect(byRank.textContent).toContain("Platinum 1")
+    expect(byRank.textContent).not.toContain("Diamond")
   })
 })

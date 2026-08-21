@@ -9,7 +9,17 @@ import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { PIERRE_SUCCES } from "@/lib/profile/window"
-import { buildSuccesVm } from "@/lib/profile/succes"
+import {
+  buildSuccesVm,
+  isSuccesListKind,
+  succesListPreview,
+  type SuccesListKind,
+  type SuccesRankCount,
+} from "@/lib/profile/succes"
+import { Badge } from "@/components/ui/badge"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { cn } from "@/lib/utils"
+import { rankColorText } from "@/lib/achievementUtils"
 import {
   isoDayInTimeZone,
   profileWindowRange,
@@ -36,33 +46,50 @@ function badgeTitle(
   return language === "fr" ? spot.title_fr : spot.title_en
 }
 
-function SuccesMedalButton({
+function grantedDateLabel(grantedAt: string | null, language: string): string | null {
+  if (grantedAt == null) return null
+  return new Date(grantedAt).toLocaleDateString(language, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+function SuccesRecentRow({
   badge,
-  size,
-  titleClassName,
   onSelect,
 }: {
   badge: BadgeStatusRow
-  size: "sm" | "lg"
-  titleClassName: string
   onSelect: (badge: BadgeStatusRow) => void
 }) {
+  const { t } = useTranslation("achievements")
   const { i18n } = useTranslation()
   const title = badgeTitle(badge, i18n.language)
+  const date = grantedDateLabel(badge.granted_at, i18n.language)
 
   return (
     <button
       type="button"
       aria-label={title}
-      className={
-        size === "lg"
-          ? "flex flex-col items-center gap-1.5 transition-transform active:scale-95"
-          : "flex flex-col items-center gap-1 transition-transform active:scale-95"
-      }
+      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-transform active:scale-[0.99]"
       onClick={() => onSelect(badge)}
     >
-      <BadgeIcon rank={badge.rank} iconUrl={badge.icon_asset_url} size={size} alt={title} />
-      <span className={titleClassName}>{title}</span>
+      <BadgeIcon rank={badge.rank} iconUrl={badge.icon_asset_url} size="sm" alt={title} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm">{title}</span>
+        {date ? (
+          <span className="block text-xs text-muted-foreground">{date}</span>
+        ) : null}
+        <span className="block truncate text-xs leading-snug text-muted-foreground/70">
+          {t(`groupDescriptions.${badge.group_slug}`)}
+        </span>
+      </span>
+      <Badge
+        variant="outline"
+        className={cn("shrink-0 capitalize", rankColorText[badge.rank])}
+      >
+        {t(`ranks.${badge.rank}`)}
+      </Badge>
     </button>
   )
 }
@@ -78,13 +105,7 @@ function FeaturedBadge({
 }) {
   const { t, i18n } = useTranslation("achievements")
   const title = badgeTitle(badge, i18n.language)
-  const unlockedDate = badge.granted_at
-    ? new Date(badge.granted_at).toLocaleDateString(i18n.language, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : null
+  const unlockedDate = grantedDateLabel(badge.granted_at, i18n.language)
 
   return (
     <button
@@ -113,12 +134,41 @@ function FeaturedBadge({
   )
 }
 
+function SuccesRankCounts({ counts }: { counts: readonly SuccesRankCount[] }) {
+  const { t } = useTranslation("profile")
+  const { t: ta } = useTranslation("achievements")
+
+  if (counts.length === 0) return null
+
+  return (
+    <ul
+      aria-label={t("achievements.byRank")}
+      className="flex flex-wrap gap-1.5"
+    >
+      {counts.map(({ rank, count }) => (
+        <li key={rank}>
+          <Badge
+            variant="outline"
+            className={cn("capitalize", rankColorText[rank])}
+          >
+            {t("achievements.rankCount", {
+              rank: ta(`ranks.${rank}`),
+              n: count,
+            })}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
   const { t } = useTranslation("profile")
   const { kind } = useProfileWindow()
   const user = useAtomValue(authAtom)
   const badgeQuery = useBadgeStatus()
   const [selected, setSelected] = useState<BadgeStatusRow | null>(null)
+  const [listKind, setListKind] = useState<SuccesListKind>("recent")
   const live = mode === "pierre" && user != null
 
   if (mode === "loading" || (live && badgeQuery.isPending)) {
@@ -177,10 +227,22 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
           latest: PIERRE_SUCCES.latest,
           highest: PIERRE_SUCCES.highest,
           recent: PIERRE_SUCCES.recent,
+          nextHighest: PIERRE_SUCCES.nextHighest,
+          byRank: PIERRE_SUCCES.byRank,
         }
       : { status: "empty" as const })
 
   const status = blockStatus(mode, vm.status === "ok" ? "ok" : "empty")
+  const listRows =
+    vm.status === "ok"
+      ? listKind === "recent"
+        ? vm.recent
+        : vm.nextHighest
+      : []
+  const listPreview = succesListPreview(listRows)
+  const showList = vm.status === "ok" && (vm.recent.length > 0 || vm.nextHighest.length > 0)
+  const listLabel =
+    listKind === "recent" ? t("achievements.listRecent") : t("achievements.listHighest")
 
   return (
     <>
@@ -196,12 +258,15 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
       >
         {vm.status === "ok" ? (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">
-              {t("achievements.count", {
-                n: vm.unlocked,
-                total: vm.total,
-              })}
-            </p>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">
+                {t("achievements.count", {
+                  n: vm.unlocked,
+                  total: vm.total,
+                })}
+              </p>
+              <SuccesRankCounts counts={vm.byRank} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <FeaturedBadge
                 label={t("achievements.latest")}
@@ -214,20 +279,43 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
                 onSelect={setSelected}
               />
             </div>
-            {vm.recent.length > 0 ? (
+            {showList ? (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground">{t("achievements.recent")}</p>
-                <div className="flex flex-wrap gap-3">
-                  {vm.recent.map((spot) => (
-                    <SuccesMedalButton
-                      key={spot.tier_id}
-                      badge={spot}
-                      size="sm"
-                      titleClassName="max-w-16 truncate text-center text-[10px] text-muted-foreground"
-                      onSelect={setSelected}
-                    />
-                  ))}
-                </div>
+                <ToggleGroup
+                  type="single"
+                  value={listKind}
+                  onValueChange={(value) => {
+                    if (isSuccesListKind(value)) setListKind(value)
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="justify-start"
+                  aria-label={t("achievements.listToggle")}
+                >
+                  <ToggleGroupItem value="recent">
+                    {t("achievements.listRecent")}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="highest">
+                    {t("achievements.listHighest")}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                {listPreview.shown.length > 0 ? (
+                  <ul aria-label={listLabel} className="flex flex-col gap-2">
+                    {listPreview.shown.map((spot) => (
+                      <li key={spot.tier_id}>
+                        <SuccesRecentRow badge={spot} onSelect={setSelected} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {listPreview.more > 0 ? (
+                  <Link
+                    to="/achievements"
+                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    {t("achievements.andMore", { n: listPreview.more })}
+                  </Link>
+                ) : null}
               </div>
             ) : null}
             <Link

@@ -466,58 +466,70 @@ const CIRCUIT_RUNNER = {
   group_name_fr: "Circuit runner",
 } as const
 
+const PIERRE_LATEST = pierreBadge({
+  ...CIRCUIT_RUNNER,
+  rank: "gold",
+  title_en: "No Break",
+  title_fr: "Sans relâche",
+  tier_level: 3,
+  threshold_value: 15,
+  granted_at: "2026-08-18",
+})
+
+const PIERRE_HIGHEST = pierreBadge({
+  ...CIRCUIT_RUNNER,
+  rank: "diamond",
+  title_en: "Circuit Star",
+  title_fr: "Star des circuits",
+  tier_level: 5,
+  threshold_value: 100,
+  granted_at: "2026-06-01",
+})
+
+const PIERRE_RECENT = [
+  pierreBadge({
+    group_slug: "spidey",
+    group_name_en: "Spidey",
+    group_name_fr: "L'Araignée",
+    rank: "bronze",
+    title_en: "Baby Spidey",
+    title_fr: "Baby Spidey",
+    tier_level: 1,
+    threshold_value: 1,
+    granted_at: "2026-08-10",
+  }),
+  pierreBadge({
+    ...CIRCUIT_RUNNER,
+    rank: "bronze",
+    title_en: "First Lap",
+    title_fr: "Premier tour",
+    tier_level: 1,
+    threshold_value: 1,
+    granted_at: "2026-08-04",
+  }),
+  pierreBadge({
+    group_slug: "push_ups",
+    group_name_en: "Push-ups",
+    group_name_fr: "Pompes",
+    rank: "bronze",
+    title_en: "Nose to Floor",
+    title_fr: "Nez au sol",
+    tier_level: 1,
+    threshold_value: 100,
+    granted_at: "2026-08-01",
+  }),
+]
+
 export const PIERRE_SUCCES = {
   unlocked: 12,
   total: 40,
-  latest: pierreBadge({
-    ...CIRCUIT_RUNNER,
-    rank: "gold",
-    title_en: "No Break",
-    title_fr: "Sans relâche",
-    tier_level: 3,
-    threshold_value: 15,
-    granted_at: "2026-08-18",
-  }),
-  highest: pierreBadge({
-    ...CIRCUIT_RUNNER,
-    rank: "diamond",
-    title_en: "Circuit Star",
-    title_fr: "Star des circuits",
-    tier_level: 5,
-    threshold_value: 100,
-    granted_at: "2026-06-01",
-  }),
-  recent: [
-    pierreBadge({
-      group_slug: "spidey",
-      group_name_en: "Spidey",
-      group_name_fr: "L'Araignée",
-      rank: "bronze",
-      title_en: "Baby Spidey",
-      title_fr: "Baby Spidey",
-      tier_level: 1,
-      threshold_value: 1,
-      granted_at: "2026-08-10",
-    }),
-    pierreBadge({
-      ...CIRCUIT_RUNNER,
-      rank: "bronze",
-      title_en: "First Lap",
-      title_fr: "Premier tour",
-      tier_level: 1,
-      threshold_value: 1,
-      granted_at: "2026-08-04",
-    }),
-    pierreBadge({
-      group_slug: "push_ups",
-      group_name_en: "Push-ups",
-      group_name_fr: "Pompes",
-      rank: "bronze",
-      title_en: "Nose to Floor",
-      title_fr: "Nez au sol",
-      tier_level: 1,
-      threshold_value: 100,
-      granted_at: "2026-08-01",
-    }),
-  ],
+  byRank: [
+    { rank: "bronze", count: 8 },
+    { rank: "gold", count: 3 },
+    { rank: "diamond", count: 1 },
+  ] as const,
+  latest: PIERRE_LATEST,
+  highest: PIERRE_HIGHEST,
+  recent: PIERRE_RECENT,
+  nextHighest: [PIERRE_LATEST, ...PIERRE_RECENT],
 }
