@@ -34,3 +34,22 @@ export type PulseVm =
       avgMinutes: number
       prescribedMinutes: number | null
     }
+
+export type MixSeries = {
+  programme: number[]
+  quickWorkout: number[]
+  circuits: number[]
+}
+
+export type MixVm =
+  | { status: "empty" }
+  | {
+      status: "ok"
+      categories: string[]
+      series: MixSeries
+    }
+
+export type RhythmVm = {
+  categories: string[]
+  hits: number[]
+}

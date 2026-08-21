@@ -66,7 +66,13 @@ export function priorWindowRange(from: string, to: string): { from: string; to: 
   return inclusiveRangeEndingOn(priorTo, days)
 }
 
-function isoDayDiff(from: string, to: string): number {
+export function isoDaysInclusive(from: string, to: string): string[] {
+  const count = isoDayDiff(from, to) + 1
+  if (count <= 0) return []
+  return Array.from({ length: count }, (_, i) => addIsoDays(from, i))
+}
+
+export function isoDayDiff(from: string, to: string): number {
   const [fy, fm, fd] = from.split("-").map(Number)
   const [ty, tm, td] = to.split("-").map(Number)
   const start = Date.UTC(fy, fm - 1, fd)

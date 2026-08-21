@@ -58,14 +58,17 @@ export function RhythmPresenceChart({
   hits,
   target = DEFAULT_TARGET,
   deloadAt,
+  categories,
 }: {
   kind: ProfileWindowKind
   hits: readonly number[]
   target?: number
   deloadAt?: number
+  categories?: readonly string[]
 }) {
   const { t } = useTranslation("profile")
   const labels = hits.map((_, i) =>
+    categories?.[i] ??
     clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
   )
 

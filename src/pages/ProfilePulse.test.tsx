@@ -72,7 +72,9 @@ describe("profile pulse tiles", () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText("No sessions in this window.")).toBeInTheDocument()
+      expect(
+        screen.getAllByText("No sessions in this window.").length,
+      ).toBeGreaterThan(0)
     })
     expect(screen.queryByText(/vs 60 min prescribed/i)).not.toBeInTheDocument()
     expect(screen.queryByText("0 min")).not.toBeInTheDocument()
@@ -89,7 +91,10 @@ describe("profile pulse tiles", () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load this block.")
+      const pulse = screen.getByRole("heading", { name: "Sessions" }).closest(".bg-card")
+      expect(pulse?.querySelector("[role='alert']")).toHaveTextContent(
+        "Couldn't load this block.",
+      )
     })
     expect(screen.queryByText(/vs 60 min prescribed/i)).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Mix" })).toBeInTheDocument()

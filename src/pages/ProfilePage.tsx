@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
+import { MixBlock } from "@/components/profile/MixBlock"
 import { PulseBlock } from "@/components/profile/PulseBlock"
+import { RhythmBlock } from "@/components/profile/RhythmBlock"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -18,7 +19,6 @@ import { MuscleSetRanks } from "@/components/profile/MuscleSetRanks"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
-import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import {
   ProfilePulseGrid,
   ProfileStatCard,
@@ -42,14 +42,10 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
-  emptyMixSeries,
   MIX_CATEGORIES,
   PIERRE_SUCCES,
-  pierreMixSeries,
   pierreRecordsPulse,
   pierreRecordsSeries,
-  pierreRhythmHits,
-  PIERRE_WEEKLY_TARGET,
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
@@ -361,66 +357,6 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
       </ProfileSection>
       <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
     </>
-  )
-}
-
-function RhythmBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
-  const target = PIERRE_WEEKLY_TARGET
-  const fixture = pierreRhythmHits(kind)
-
-  return (
-    <ProfileSection
-      title={t("rhythm.title")}
-      hint={
-        <ProfileHint label={t("about", { section: t("rhythm.title") })}>
-          {t("rhythm.hint")}
-        </ProfileHint>
-      }
-      meta={
-        status === "ok" ? (
-          <span className="text-muted-foreground">
-            {t("rhythm.meta", {
-              window: t(`rhythm.caption.${kind}`),
-              target: t("rhythm.target", { n: target }),
-            })}
-          </span>
-        ) : undefined
-      }
-      status={status}
-      empty={t("rhythm.empty")}
-    >
-      <RhythmPresenceChart
-        kind={kind}
-        hits={fixture.hits}
-        target={target}
-        deloadAt={fixture.deloadAt}
-      />
-    </ProfileSection>
-  )
-}
-
-function MixBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
-  const series = mode === "pierre" ? pierreMixSeries(kind) : emptyMixSeries(kind)
-
-  return (
-    <ProfileSection
-      title={t("mix.title")}
-      hint={
-        <ProfileHint label={t("about", { section: t("mix.title") })}>
-          {t("mix.hint")}
-        </ProfileHint>
-      }
-      status={status}
-      empty={t("mix.empty")}
-    >
-      <MixStackedChart categories={MIX_CATEGORIES[kind]} series={series} />
-    </ProfileSection>
   )
 }
 
