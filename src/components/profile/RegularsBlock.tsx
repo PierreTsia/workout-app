@@ -1,16 +1,27 @@
 import { Dumbbell, TrendingUp } from "lucide-react"
+import { useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
+import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
+import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { formatNumber } from "@/lib/formatters"
 import {
   pierreRegulars,
   rankRegulars,
+  regularsFromSnapshot,
   type RegularEvolution,
 } from "@/lib/profile/regulars"
+import {
+  isoDayInTimeZone,
+  profileWindowRange,
+} from "@/lib/profile/windowRange"
+import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { cn } from "@/lib/utils"
+import { authAtom } from "@/store/atoms"
 
 export type RegularsFixtureMode = "pierre" | "empty" | "loading"
 
@@ -47,19 +58,46 @@ function RegularEvolutionMark({
   )
 }
 
-function blockStatus(mode: RegularsFixtureMode): "ok" | "empty" | "loading" {
-  if (mode === "loading") return "loading"
-  if (mode === "empty") return "empty"
-  return "ok"
-}
-
 export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
   const { t, i18n } = useTranslation("profile")
   const { formatWeight } = useWeightUnit()
   const { kind } = useProfileWindow()
-  const status = blockStatus(mode)
-  const rows = rankRegulars(pierreRegulars(kind))
+  const user = useAtomValue(authAtom)
+  const snapshotQuery = useProfileSnapshot(kind)
+  const library = useExerciseLibrary()
+  const { catalogName } = useCatalogLabels()
+  const boundedKind = kind === "all" ? null : kind
+  const live = mode === "pierre" && boundedKind != null && user != null
+  const timeZone = getResolvedIANATimeZone()
   const windowLabel = t(`window.${kind}`)
+  const names = Object.fromEntries(
+    (library.data ?? []).map((row) => [row.id, catalogName(row)]),
+  )
+
+  const liveRows =
+    live && snapshotQuery.data != null && boundedKind != null
+      ? regularsFromSnapshot(snapshotQuery.data, {
+          ...profileWindowRange(
+            boundedKind,
+            isoDayInTimeZone(new Date(), timeZone),
+          ),
+          timeZone,
+          names,
+        })
+      : null
+
+  const status =
+    mode === "loading" || (live && snapshotQuery.isPending)
+      ? "loading"
+      : mode === "empty"
+        ? "empty"
+        : live && snapshotQuery.isError
+          ? "error"
+          : liveRows != null && liveRows.length === 0
+            ? "empty"
+            : "ok"
+
+  const rows = liveRows ?? rankRegulars(pierreRegulars(kind))
 
   return (
     <ProfileSection
@@ -71,6 +109,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
       }
       status={status}
       empty={t("regulars.empty")}
+      error={t("error")}
     >
       <p className="mb-3 text-xs text-muted-foreground">
         {t("regulars.subtitle", { window: windowLabel })}
@@ -79,13 +118,20 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
         {rows.map((row) => (
           <li
             key={row.name}
-            className="grid grid-cols-[minmax(0,1fr)_auto_4.5rem] items-center gap-2"
+            className={cn(
+              "grid items-center gap-2",
+              row.evolution != null
+                ? "grid-cols-[minmax(0,1fr)_auto_4.5rem]"
+                : "grid-cols-[minmax(0,1fr)_4.5rem]",
+            )}
           >
             <span className="truncate">{row.name}</span>
-            <RegularEvolutionMark
-              evolution={row.evolution}
-              formatWeight={formatWeight}
-            />
+            {row.evolution != null ? (
+              <RegularEvolutionMark
+                evolution={row.evolution}
+                formatWeight={formatWeight}
+              />
+            ) : null}
             <span className="text-right tabular-nums text-muted-foreground">
               {row.reps == null
                 ? t("regulars.unranked")

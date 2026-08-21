@@ -1,3 +1,5 @@
+import { isoDayInTimeZone } from "@/lib/profile/windowRange"
+import type { ProfileSnapshot, SessionFact } from "@/lib/profile/types"
 import type { ProfileWindowKind } from "@/lib/profile/window"
 
 export type RegularEvolution =
@@ -6,20 +8,103 @@ export type RegularEvolution =
 
 export type RegularRow = {
   name: string
-  evolution: RegularEvolution
+  evolution?: RegularEvolution
   /** Total numeric reps in the selected window. Null = duration-only. */
   reps: number | null
 }
 
-export function rankRegulars<T extends { reps: number | null }>(
+function laterLoggedAt(
+  a: { lastLoggedAt?: string },
+  b: { lastLoggedAt?: string },
+): number {
+  if (a.lastLoggedAt == null || b.lastLoggedAt == null) return 0
+  if (a.lastLoggedAt === b.lastLoggedAt) return 0
+  return a.lastLoggedAt < b.lastLoggedAt ? 1 : -1
+}
+
+export function rankRegulars<T extends { reps: number | null; lastLoggedAt?: string }>(
   rows: readonly T[],
 ): T[] {
   return [...rows].sort((a, b) => {
-    if (a.reps == null && b.reps == null) return 0
+    if (a.reps == null && b.reps == null) return laterLoggedAt(a, b)
     if (a.reps == null) return 1
     if (b.reps == null) return -1
-    return b.reps - a.reps
+    if (a.reps !== b.reps) return b.reps - a.reps
+    return laterLoggedAt(a, b)
   })
+}
+
+const REGULARS_MIN_SESSIONS = 2
+const REGULARS_LIMIT = 8
+
+function numericReps(reps: string | null): number | null {
+  if (reps == null || reps.trim() === "") return null
+  const n = Number(reps)
+  return Number.isFinite(n) ? n : null
+}
+
+function sessionsInRange(
+  sessions: readonly SessionFact[],
+  from: string,
+  to: string,
+  timeZone: string,
+): SessionFact[] {
+  return sessions.filter((session) => {
+    const day = isoDayInTimeZone(new Date(session.finished_at), timeZone)
+    return day >= from && day <= to
+  })
+}
+
+function latestFinishedAt(
+  sets: readonly { session_id: string }[],
+  sessionById: ReadonlyMap<string, SessionFact>,
+): string | null {
+  const [first, ...rest] = sets.flatMap((set) => {
+    const session = sessionById.get(set.session_id)
+    return session == null ? [] : [session.finished_at]
+  })
+  if (first == null) return null
+  return rest.reduce((max, at) => (at > max ? at : max), first)
+}
+
+export function regularsFromSnapshot(
+  snapshot: ProfileSnapshot,
+  input: {
+    from: string
+    to: string
+    timeZone: string
+    names?: Readonly<Record<string, string>>
+  },
+): RegularRow[] {
+  const sessionById = new Map(
+    sessionsInRange(snapshot.sessions, input.from, input.to, input.timeZone).map(
+      (session) => [session.id, session] as const,
+    ),
+  )
+  const setsInWindow = snapshot.sets.filter((set) => sessionById.has(set.session_id))
+  const exerciseIds = [...new Set(setsInWindow.map((set) => set.exercise_id))]
+
+  return rankRegulars(
+    exerciseIds.flatMap((exerciseId) => {
+      const sets = setsInWindow.filter((set) => set.exercise_id === exerciseId)
+      const sessionIds = [...new Set(sets.map((set) => set.session_id))]
+      if (sessionIds.length < REGULARS_MIN_SESSIONS) return []
+      const numeric = sets
+        .map((set) => numericReps(set.reps))
+        .filter((n): n is number => n != null)
+      const lastLoggedAt = latestFinishedAt(sets, sessionById)
+      if (lastLoggedAt == null) return []
+      return [
+        {
+          name: input.names?.[exerciseId] ?? exerciseId,
+          reps: numeric.length > 0 ? numeric.reduce((sum, n) => sum + n, 0) : null,
+          lastLoggedAt,
+        },
+      ]
+    }),
+  )
+    .slice(0, REGULARS_LIMIT)
+    .map((row) => ({ name: row.name, reps: row.reps }))
 }
 
 const BY_KIND: Record<ProfileWindowKind, readonly RegularRow[]> = {
