@@ -34,6 +34,30 @@ describe("ProfilePage T0 fixtures", () => {
     restoreChartLayout()
   })
 
+  it("shows Pierre tenure from first session instead of a fake streak", () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.queryByText(/Streak/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/12 d/)).not.toBeInTheDocument()
+    expect(screen.getByText("Active since Mar 12, 2024")).toBeInTheDocument()
+  })
+
+  it("hides tenure on the empty fixture", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+    await user.click(screen.getByRole("radio", { name: "Empty" }))
+
+    expect(screen.queryByText(/Streak/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Active since/)).not.toBeInTheDocument()
+  })
+
+  it("formats Pierre tenure in French", () => {
+    renderWithProviders(<ProfilePage />, { locale: "fr" })
+
+    expect(screen.queryByText(/Série ·/)).not.toBeInTheDocument()
+    expect(screen.getByText("Actif depuis 12 mars 2024")).toBeInTheDocument()
+  })
+
   it("shows seven labeled weekdays on the 7d Rhythm chart", () => {
     renderWithProviders(<ProfilePage />)
 

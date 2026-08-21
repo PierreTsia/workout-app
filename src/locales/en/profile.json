@@ -31,7 +31,7 @@
     "delta": "+{{n}} vs prior",
     "deltaDown": "-{{n}} vs prior",
     "deltaEven": "even vs prior",
-    "timeUnderBar": "Time under the bar",
+    "sessionTime": "Session time",
     "avgDuration": "Avg duration",
     "vsPrescribed": "vs {{n}} min prescribed",
     "empty": "No sessions in this window."

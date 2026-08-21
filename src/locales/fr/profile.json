@@ -31,7 +31,7 @@
     "delta": "+{{n}} vs préc.",
     "deltaDown": "-{{n}} vs préc.",
     "deltaEven": "stable vs préc.",
-    "timeUnderBar": "Temps sous barre",
+    "sessionTime": "Temps de séance",
     "avgDuration": "Durée moy.",
     "vsPrescribed": "vs {{n}} min prescrits",
     "empty": "Aucune séance dans cette fenêtre."

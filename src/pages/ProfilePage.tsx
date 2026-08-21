@@ -40,6 +40,7 @@ import {
   type ProfileWindowKind,
 } from "@/lib/profile/window"
 import { pierreTonnageBars } from "@/lib/profile/tonnage"
+import { formatDate } from "@/lib/formatters"
 import type { BadgeStatusRow } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
@@ -116,6 +117,24 @@ function FixtureSwitch({
   )
 }
 
+/**
+ * T0 mock: Pierre's first session (Mix all-time grain starts 2024).
+ * T227 should replace this with MIN(sessions.started_at), falling back to
+ * profiles.created_at when the user has no sessions.
+ */
+const PIERRE_FIRST_SESSION_AT = "2024-03-12"
+
+const TENURE_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+}
+
+function localDateFromIsoDay(isoDay: string): Date {
+  const [year, month, day] = isoDay.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
+
 function HeroBlock({ mode }: { mode: FixtureMode }) {
   const { t, i18n } = useTranslation("profile")
   const { includeDeltas } = useProfileWindow()
@@ -131,8 +150,6 @@ function HeroBlock({ mode }: { mode: FixtureMode }) {
       </div>
     )
   }
-
-  const streak = mode === "empty" ? 0 : 12
 
   return (
     <div className="flex items-start gap-4">
@@ -154,7 +171,17 @@ function HeroBlock({ mode }: { mode: FixtureMode }) {
         {mode === "pierre" && includeDeltas ? (
           <p className="text-sm">{t("hero.hop", { other: "PPL" })}</p>
         ) : null}
-        <p className="text-sm">{t("hero.streak", { n: streak })}</p>
+        {mode === "pierre" ? (
+          <p className="text-sm">
+            {t("hero.activeSince", {
+              date: formatDate(
+                localDateFromIsoDay(PIERRE_FIRST_SESSION_AT),
+                i18n.language,
+                TENURE_DATE_OPTIONS,
+              ),
+            })}
+          </p>
+        ) : null}
       </div>
     </div>
   )
