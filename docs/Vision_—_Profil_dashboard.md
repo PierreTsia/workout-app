@@ -36,7 +36,7 @@ Someone already in GymLogic opens **Profil** between sessions and feels whether 
 
 **Cut:** monthly “Régularité / séances par mois” (cousin of History → Activity).
 
-Window toggle **7j / 30j / 100j / 1 an / Toujours** is global for pulse, rythme, mix, records, équilibre, succès strip. **Récurrents / Regulars always rank on 100d** (ignore the toggle). Circuit sparklines stay last-8-runs of the fingerprint. **Toujours has no vs-préc. deltas** (a career has no equal prior).
+Window toggle **7j / 30j / 100j / 1 an / Toujours** is global — pulse, rythme, mix, records, équilibre, succès strip, **and Récurrents**. Circuit sparklines stay last-8-runs of the fingerprint; the row score is the **best run in the window**. **Toujours has no vs-préc. deltas** (a career has no equal prior).
 
 | Cran | Grain | Notes |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ Prefetch: **200d** on first paint (covers 7 / 30 / 100 + prior window). Toggle *
 
 ### Hero
 
-Avatar, display name, **equipped title**, active Programme. Hopper line `Aussi {other} cette semaine` only if ≥2 programs produced sessions in the window. No Cycle `11/16` hero.
+Avatar, display name, **equipped title**, active Programme, **Profil tenure** (not a streak). Hopper line `Aussi {other} cette semaine` only if ≥2 programs produced sessions in the window. No Cycle `11/16` hero.
 
 ### Succès
 
@@ -97,11 +97,11 @@ Pill `{score} · {band}` + delta vs the **same-length shifted** window (**omitte
 
 ### Récurrents / Regulars
 
-Not “Staples”, not “top volume”. Ranking: **frequency × recency over 100d always** (ignore the toggle), top ~8, all finished logs. Programme **annotates** (`Sur le programme` / `Hors plan`), does not filter. Type-aware metric + sparkline. Cindy may appear here (habit) **and** under Circuits (score).
+Not “Staples”. Same window as the fold — not a frozen 100d list. Ranking: **total numeric reps in the window**, tie-break recency, top ~8, ≥2 sessions to appear. Circuit stations count. No Program pin. Cindy may appear here (habit) **and** under Circuits (score).
 
 ### Circuits
 
-Named catalog benchmarks only (slug / fingerprint). Score type-aware: AMRAP = `{rounds}+{leftover}`. Jetable Tours completion-time stays in History. Stats: runs in window, distinct circuits, PBs in window. Olympians `{n} / 4` is a pill, not a fourth stat.
+Named catalog benchmarks only (slug / fingerprint). Type-aware: **AMRAP** = `{rounds}+{leftover}`; **Tours** = completion time. Per row: run count in the window, **best run in the window**, last-8 sparkline. **PB** chip = career-best of that fingerprint that landed in the window. Jetable stay in History. Stats: runs, distinct circuits, PBs. Olympians `{n} / 4` is a pill, not a fourth stat.
 
 ---
 

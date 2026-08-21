@@ -1,27 +1,27 @@
-# T231 — Hero + Succès + streak + hop
+# T231 — Hero + Succès + tenure + hop
 
 ## Goal
 
-Wire Hero (avatar, name, equipped title, active Program, **Training streak**, **Hero hop line**) and Succès (Latest + Highest career, Recently earned in window, `{n}/{total}`, Voir tout → `/achievements`) from profile + `get_badge_status` + snapshot days. Addresses Epic stories 6, 7.
+Wire Hero (avatar, name, equipped title, active Program, **Profil tenure**, **Hero hop line**) and Succès (Latest + Highest career, Recently earned in window, `{n}/{total}`, Voir tout → `/achievements`) from profile + `get_badge_status` + first-session date. Addresses Epic stories 6, 7. **Training streak** is not on this Hero.
 
 ## Mode
 
-AFK — streak vs `consistency_streak`, hop vs QW, and the three Succès jobs are locked.
+AFK — tenure vs streak, hop vs QW, and the three Succès jobs are HITL-locked.
 
 ## Slice
 
-user profile + `get_badge_status` → Hero / Succès strip → `lib/profile` streak + hop from snapshot → vitest (yesterday grace, hop ≥2 program_id, badges not top-3-by-tier)
+user profile + `get_badge_status` → Hero / Succès strip → `file:src/lib/profile/tenure.ts` + hop from snapshot → vitest (first session, hop ≥2 program_id, badges not top-3-by-tier)
 
 ## Dependencies
 
-T227 (snapshot for hop + recently-earned window; streak from finished session days). T225 shell.
+T227 (snapshot for hop + recently-earned window; tenure from `MIN(sessions.started_at)`, fallback `profiles.created_at`). T225 shell.
 
 ## Scope
 
 ### Hero
 
 - Avatar, name, equipped title, active **Program** from existing profile/program reads (no new RPC if already loaded).
-- **Training streak**: consecutive **local** days with ≥1 finished session; yesterday grace; `0` is a real number, not empty. Not `consistency_streak`.
+- **Profil tenure**: human duration since first finished session (`file:src/lib/profile/tenure.ts`). Not a day-chain streak. Not `consistency_streak`.
 - **Hero hop line**: only if ≥2 distinct non-null `program_id` produced a session **in the current window**. QW does not count. Copy may still say “cette semaine” in FR — use the copy deck; do not switch the predicate to ISO week on 100d.
 
 ### Succès
@@ -37,8 +37,8 @@ First-paint budget: `get_badge_status` is the extra RT allowed beside snapshot (
 
 ### Tests
 
-- Streak 0 vs missing data
-- Yesterday-only chain is not 0
+- Tenure uses first finished session, not `created_at`, when sessions exist
+- No-session user falls back to `profiles.created_at`
 - One Program + QW → no hop line
 - Two programs in window → hop line
 - Recently earned ignores career-only grants outside the window
@@ -48,18 +48,19 @@ First-paint budget: `get_badge_status` is the extra RT allowed beside snapshot (
 - Regulars (T232)
 - Ungate (T236)
 - Redesigning `/achievements`
+- Putting **Training streak** back on the Hero
 
 ## Acceptance Criteria
 
-- [ ] Streak uses local-day chain + yesterday grace; `0` renders as 0
+- [ ] Hero caption is **Profil tenure**, not a streak
 - [ ] Hop line hidden unless ≥2 distinct `program_id` in **this** window
 - [ ] Succès Latest/Highest are career; Recently earned is window-filtered
 - [ ] Voir tout navigates to `/achievements`
-- [ ] Demoable: admin Hero shows live streak; toggling 7j vs 100j can show/hide hop without changing Latest badge
+- [ ] Demoable: admin Hero shows live tenure; toggling 7j vs 100j can show/hide hop without changing Latest badge
 - [ ] Env-stripped vitest + `tsc -p tsconfig.app.json --noEmit`
 
 ## References
 
 - Epic Brief stories 6–7
 - Tech Plan: first-paint badge RT, window context
-- Glossary: **Training streak**, **Hero hop line**, **Profil achievements strip**
+- Glossary: **Profil tenure**, **Hero hop line**

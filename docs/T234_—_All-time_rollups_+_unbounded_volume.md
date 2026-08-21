@@ -33,7 +33,7 @@ Separate react-query key from 200d/730d. Switching to Toujours does not fetch al
 
 ### UI
 
-`includeDeltas: false`: hide vs-préc. on pulse, Mix, Records, Tonnage, Équilibre score. Grain = year (Mix categories = years, not 52 weeks). Regulars still 100d (T232). Hero hop uses all-time distinct programs in career if `kind === all` (glossary: current window).
+`includeDeltas: false`: hide vs-préc. on pulse, Mix, Records, Tonnage, Équilibre score. Grain = year (Mix categories = years, not 52 weeks). Regulars on Toujours slice career logs (T232 — same window, not a frozen 100d). Hero hop uses all-time distinct programs in career if `kind === all` (glossary: current window).
 
 ### Tests
 

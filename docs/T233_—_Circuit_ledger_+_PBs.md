@@ -2,7 +2,7 @@
 
 ## Goal
 
-Wire the Circuits block: catalog only, type-aware AMRAP, last-8 sparkline (≥2 runs for a line), **Profil Circuit PB** = career-best `template_fingerprint` **in this window**, not last-8 `annotateAmrapRuns.isPb`. First complete run is not a PB. Addresses Epic story 16.
+Wire the Circuits block to the HITL fold: catalog only, type-aware **AMRAP** and **Tours**, per-row **run count** + **best run in the window** (not last), last-8 sparkline (≥2 runs for a line), **Profil Circuit PB** = career-best `template_fingerprint` **in this window**, not last-8 `annotateAmrapRuns.isPb`. First complete run is not a PB. Addresses Epic story 16. The T0 `Force` row is a fixture stand-in — do not persist a fake catalog seed.
 
 ## Mode
 
@@ -10,7 +10,7 @@ AFK — ledger vs `RUN_LIMIT 8` is locked.
 
 ## Slice
 
-migration `get_profile_circuit_ledger` → hook → `lib/profile` career PB in window → Circuits block + sparkline → vitest (first run ≠ PB, jetable out, last-8 line only)
+migration `get_profile_circuit_ledger` → hook → `lib/profile` career PB + window best + run count → Circuits block + sparkline → vitest (first run ≠ PB, jetable out, best ≠ last)
 
 ## Dependencies
 
@@ -26,20 +26,23 @@ T225 (shell). **T237** (mocked-fold HITL pass). Window from `ProfileWindowContex
 
 - Career PB: best complete run of that fingerprint across the **full ledger**; a window run is a **Profil Circuit PB** if it equals that career best **and** there is a prior complete run to beat.
 - PBs stat = count of such runs with `started_at` in the current window.
-- Sparkline: last 8 still fine for the line; ≥2 runs to draw.
-- Type-aware AMRAP scoring: reuse `file:src/lib/amrapScore.ts`.
+- Sparkline: last 8 chronological; ≥2 runs to draw. The line is not the score.
+- Type-aware scoring: AMRAP via `file:src/lib/amrapScore.ts` (max rounds, then leftover); Tours via min completion time. Never hardcode `AmrapScore` on a Tours row.
+- Row **score** = best complete run of that fingerprint **in the window**.
+- Row **run count** = complete catalog runs of that fingerprint in the window.
 - Olympians `{n}/4` pill if already available from achievements — not a fourth stat invented here.
 
 ### UI
 
-Replace Circuits fixture adapter. Jetable Tours stay in History — do not list them.
+Replace Circuits fixture adapter (`file:src/components/profile/CircuitLedgerRow.tsx`). Keep the HITL layout: name + small PB on the name, type below (`AMRAP N min` / `N tours`), run count, best score, sparkline. Jetable stay in History — do not list them. If the athlete has no catalog Tours, the list is AMRAP-only; the renderer must still accept both modes.
 
 ### Tests
 
 - First complete Cindy is not a PB; second faster/higher is
 - A PB outside last-8 still counts if the **window** contains that run
-- Jetable run absent from ledger
-- Sparkline hidden with a single run; last score still shown
+- Score column is the window best, not `runs.at(-1)`
+- Jetable run absent from the ledger
+- Sparkline hidden with a single run; best score + run count still shown
 
 ## Out of Scope
 
@@ -51,7 +54,7 @@ Replace Circuits fixture adapter. Jetable Tours stay in History — do not list 
 
 - [ ] Ledger RPC returns catalog runs without `RUN_LIMIT 8`
 - [ ] First complete run is not a PB; a later career-best in-window is
-- [ ] Sparkline requires ≥2 runs; PB count uses full history
+- [ ] Sparkline requires ≥2 runs; score is window best; PB count uses full history
 - [ ] Demoable: a Cindy PB older than 8 runs still increments PBs when the window includes that day
 - [ ] Env-stripped vitest + `tsc -p tsconfig.app.json --noEmit`
 

@@ -11,7 +11,7 @@ Window all-time            →  SQL year rollups                   → same VM s
 
 T0 paints the same VMs from fixtures. Wiring replaces the adapter, not the fold.
 
-First paint prefetches **200d** (covers 7 / 30 / 100 + prior). Toggle **1 an** fetches 730d. **Toujours** hits the rollup RPC. Récurrents always rank on **100d**.
+First paint prefetches **200d** (covers 7 / 30 / 100 + prior). Toggle **1 an** fetches 730d. **Toujours** hits the rollup RPC. Récurrents slice the **same window** as the rest of the fold.
 
 ### Key Decisions
 
@@ -24,7 +24,7 @@ First paint prefetches **200d** (covers 7 / 30 / 100 + prior). Toggle **1 an** f
 | Charts | Dumb Recharts atoms inside `ChartContainer` | T-1 proves Mix stacked, dual `YAxis`, `RadarChart` |
 | Shell | `ProfileSection` = Card + title + skeleton / error / empty / children | Copy `BalanceTab`, not `StatsDashboard` `"–"` |
 | Window | React context on `ProfilePage`, not Jotai | Jotai = auth; react-query = data |
-| Récurrents | Always **100d** | Habit ≠ saison |
+| Récurrents | Same window as the fold | HITL: a block that ignores the cran is a second product |
 | Équilibre all-time | New unbounded volume RPC (same 13 axes, 1 / 0.5 credits) | `get_volume_by_muscle_group` clamps `p_days` at 365 |
 | Rythme skip-vs-plan | **Out of v1** | “Dominates” unquantified; presence rings are the story |
 | First paint | Snapshot + `get_badge_status` + volume×2 (unbounded on all-time) + circuit ledger. Not 1 RT per block | Epic constraint |
@@ -32,7 +32,7 @@ First paint prefetches **200d** (covers 7 / 30 / 100 + prior). Toggle **1 an** f
 
 ### Critical Constraints
 
-- Do **not** bind pulse **Time under the bar** to `get_training_activity_by_day.minutes` (`file:src/hooks/useTrainingActivityByDay.ts`). Rythme `session_count` by local day comes from the snapshot. Fallback for null `active_duration_ms` matches `get_cycle_stats`.
+- Do **not** bind pulse **Session time** to `get_training_activity_by_day.minutes` (`file:src/hooks/useTrainingActivityByDay.ts`). Rythme `session_count` by local day comes from the snapshot. Fallback for null `active_duration_ms` matches `get_cycle_stats`.
 - Do **not** bind Records to `get_cycle_stats.pr_count` (set-level, drops duration).
 - Do **not** bind Circuit PBs to `useBenchmarkCompletionHistory` last-8 `isPb`.
 - Do **not** `SUM` radar `total_volume_kg` for **Tonnage**.
@@ -181,7 +181,7 @@ graph TD
 - Blocks derive VMs with `useMemo` from the snapshot (+ volume RPC, badges, circuit ledger). They do not each `useQuery` the session list.
 
 **lib/profile**
-- Glossary SSOT: `mixSlice`, tonnage, rir0, regulars (always 100d slice), streak, hop, prPairs, circuitPbs, `notEnoughData`.
+- Glossary SSOT: `mixSlice`, tonnage, rir0, regulars (current window), tenure, hop, prPairs, circuitPbs, `notEnoughData`.
 - Vitest + shared Mix vectors consumed by the SQL rollup tests.
 
 **Admin gate**
@@ -210,7 +210,7 @@ graph TD
 4. Snapshot RPC + wire pulse / Rythme / Mix
 5. Wire Records + RIR
 6. Wire Équilibre (bounded RPC) + Tonnage
-7. Wire Regulars, Succès, streak, hop
+7. Wire Regulars (same window), Succès, tenure, hop
 8. Circuit ledger + PBs
 9. All-time rollups + unbounded volume
 10. Docs: vision / copy deck / #512 for 5 windows

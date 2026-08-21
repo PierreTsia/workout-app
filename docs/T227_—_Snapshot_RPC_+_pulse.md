@@ -2,7 +2,7 @@
 
 ## Goal
 
-First live vertical slice: `get_profile_snapshot` + `useProfileSnapshot` (200d first paint, 730d on 1 an) and the pulse strip (Séances, **Time under the bar**, Durée moy. vs prescribed) derived from that snapshot. Other blocks may stay on T225 fixtures. Addresses Epic stories 8, 18, 22, 23 (pulse).
+First live vertical slice: `get_profile_snapshot` + `useProfileSnapshot` (200d first paint, 730d on 1 an) and the pulse strip (Séances, **Session time**, Durée moy. vs prescribed) derived from that snapshot. Other blocks may stay on T225 fixtures. Addresses Epic stories 8, 18, 22, 23 (pulse).
 
 ## Mode
 
@@ -60,4 +60,4 @@ Replace the T225 pulse fixture adapter with live VMs. Zero sessions in window �
 
 - Epic Brief stories 8, 18, 22–23
 - Tech Plan: snapshot RPC, prefetch, pulse constraints
-- Glossary: **Time under the bar**, **Prescribed session duration**
+- Glossary: **Session time**, **Prescribed session duration**

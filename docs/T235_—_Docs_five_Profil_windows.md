@@ -20,7 +20,7 @@ None. Can land anytime; ideally after T225 so UI labels match docs.
 
 ### Vision
 
-`file:docs/Vision_—_Profil_dashboard.md`: replace 7/30/100-only toggle tables with five crans, grains (day / ISO week / ISO week / month / year), all-time **no deltas**, Regulars always 100d, prefetch 200d / 730d.
+`file:docs/Vision_—_Profil_dashboard.md`: replace 7/30/100-only toggle tables with five crans, grains (day / ISO week / ISO week / month / year), all-time **no deltas**, Regulars **follow the window**, prefetch 200d / 730d.
 
 ### Copy deck
 

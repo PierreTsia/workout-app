@@ -44,6 +44,16 @@ T225 (and thus T224). **Gates T227 and T233.** T226 / T235 may continue in paral
 
 File follow-ups only for real layout/copy bugs. Do not reopen Mix precedence or metric definitions here.
 
+### HITL locks (supersede the brief)
+
+The mocked fold **is** the target. Wiring copies this fold, it does not restore revoked locks.
+
+- **Hero** = **Profil tenure**, not a Training streak.
+- **Pulse** label = **Session time** (`SUM(active_duration_ms)`).
+- **Récurrents** follow the window. Rank = numeric reps. No Program pin. The “100d always” lock is dead.
+- **Circuits** rows: name + small PB, type below (AMRAP / Tours), run count, **best in the window** (not last), last-8 sparkline. `Force` is a T0 stand-in — T233 does not mint a catalog seed.
+- Copy: `file:src/locales/{en,fr}/profile.json` (validated hints / hovers), not the old copy-deck sentences.
+
 ### Outcome
 
 - Comment on [#512](https://github.com/PierreTsia/workout-app/issues/512) or the T225 PR: pass, or blockers with screenshots.

@@ -152,11 +152,15 @@ Exclusive label of a finished **Session** on the Profil stacked Mix (one session
 → `file:docs/Vision_—_Profil_dashboard.md`
 
 **Regulars** (UI: FR **Récurrents** / EN **Regulars**):
-The movements you actually repeat. Rank = count of distinct finished **Sessions** that logged the catalog `exercise_id` in the last 100 days; tie-break `max(logged_at)`. Top ~8. Set count and **Tonnage** do not rank. **Circuit** station logs count (Cindy pull-ups can be a Regular). The active **Program** only annotates (`Sur le programme` / `Hors plan`); it does not filter.
+The movements you actually repeat **in the current Profil window** (7j / 30j / 100j / 1 an / Toujours) — the toggle applies, same as Mix. Rank = total numeric reps in that window (duration-only last); tie-break `max(logged_at)`. Top ~8. An exercise needs ≥2 distinct finished **Sessions** in the window to appear (once is not a habit). **Circuit** station logs count (Cindy pull-ups can be a Regular). No Program pin — `Sur le programme` / `Hors plan` are out of the fold. Not a fixed 100d habit list.
 → `file:docs/Vision_—_Profil_dashboard.md`
 
+**Profil tenure** (UI: FR **Actif depuis {{span}}** / EN **Active since {{span}}**):
+Human duration since the first finished **Session** (`MIN(sessions.started_at)`), falling back to `profiles.created_at` when there are none. Days / months / years-and-a-half (`file:src/lib/profile/tenure.ts`). This is the Profil Hero caption. Not a **Training streak**. Not `consistency_streak`.
+→ `file:src/lib/profile/tenure.ts`
+
 **Training streak** (UI: FR **Série · {n} j** / EN **Streak · {n} d**):
-Live chain of local calendar days with ≥1 finished **Session**, shown on the Profil Hero. Grace: the chain may end **yesterday** (same idea as `hundred_a_day`) so 08:00 before today's session is not 0. Not the `consistency_streak` badge (that group's metric is **lifetime `session_count`**). Not **Streak King** (weeks with a session). The *n* is the *n* — it is not a Succès. `0` is a real value, not an empty state.
+Live chain of local calendar days with ≥1 finished **Session**. Grace: the chain may end **yesterday** (same idea as `hundred_a_day`). Not on the Profil Hero — Hero shows **Profil tenure**. Not the `consistency_streak` badge (lifetime `session_count`). Not **Streak King**. `0` is a real value, not an empty state.
 → `file:src/hooks/useTrainingActivityByDay.ts`
 
 **Hero hop line** (UI: FR **Aussi {other} cette semaine** / EN **Also {other} this week**):
@@ -164,7 +168,7 @@ Shown only when ≥2 distinct `workout_days.program_id` (non-null) produced a fi
 → `file:docs/Vision_—_Profil_dashboard.md`
 
 **Profil not-enough-data**:
-Per-graph floor below which Profil shows an empty / not-enough-data state, not a fake series. Distinct from loading and from an honest zero (e.g. **Training streak** `0`, **Rythme** all-empty days). Floors: pulse stats ≥1 finished **Session** in the window (else the whole strip); Mix ≥1 session; Records combo **line** ≥2 buckets with a declared **RIR 0 rate** (bars may render from 1); Équilibre score + radar ≥3 sessions (`hasEnoughBalanceData`); **Tonnage** ≥1 loaded set (`weight_logged > 0`); **Regulars** an exercise needs ≥2 distinct sessions in 100d to appear (once is not a habit); Circuits sparkline ≥2 runs, last score + PB from 1. Rythme has no floor — empty rings *are* the story.
+Per-graph floor below which Profil shows an empty / not-enough-data state, not a fake series. Distinct from loading and from an honest zero (e.g. **Rythme** all-empty days). Floors: pulse stats ≥1 finished **Session** in the window (else the whole strip); Mix ≥1 session; Records combo **line** ≥2 buckets with a declared **RIR 0 rate** (bars may render from 1); Équilibre score + radar ≥3 sessions (`hasEnoughBalanceData`); **Tonnage** ≥1 loaded set (`weight_logged > 0`); **Regulars** an exercise needs ≥2 distinct sessions **in the current window** to appear; Circuits sparkline ≥2 runs, **best** score + run count from 1. Rythme has no floor — empty rings *are* the story.
 → `file:src/lib/volumeByMuscleGroup.ts`
 
 **Profil PR**:
@@ -172,7 +176,7 @@ Unit on the Records block: a distinct `(session_id, exercise_id)` pair that has 
 → `file:src/lib/prDetection.ts`
 
 **Profil Circuit PB**:
-A finished **Benchmark Circuit** run in the current window whose AMRAP (or type-aware) score beats **all** prior complete runs of the same `template_fingerprint` (career), not the last-8 History slice. `annotateAmrapRuns.isPb` on `RUN_LIMIT 8` is the wrong function. The first complete run is not a PB (nothing to beat). The Circuits **PBs** stat is the count of such runs in the window. Sparklines may still be last-8.
+A finished **Benchmark Circuit** run in the current window whose type-aware score (AMRAP = max rounds then leftover; Tours = min completion time) beats **all** prior complete runs of the same `template_fingerprint` (career), not the last-8 History slice. `annotateAmrapRuns.isPb` on `RUN_LIMIT 8` is the wrong function. The first complete run is not a PB (nothing to beat). The Circuits **PBs** stat is the count of such runs in the window. The row **score** is the best run **in the window** (may or may not be a PB). The row **run count** is complete catalog runs of that fingerprint in the window. Sparklines stay last-8 chronological. Jetable Circuits stay in History.
 → `file:src/lib/amrapScore.ts`
 
 **Prescribed session duration**:
