@@ -1,6 +1,11 @@
 import { useTranslation } from "react-i18next"
+import { RhythmBarChart } from "@/components/profile/charts/RhythmBarChart"
 import { MIX_CATEGORIES, type ProfileWindowKind } from "@/lib/profile/window"
 import { cn } from "@/lib/utils"
+
+function usesFrequencyBars(kind: ProfileWindowKind): boolean {
+  return kind === "365" || kind === "all"
+}
 
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
 const MONTHS = [
@@ -59,11 +64,21 @@ export function RhythmPresenceChart({
   deloadAt?: number
 }) {
   const { t } = useTranslation("profile")
+  const labels = hits.map((_, i) =>
+    clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
+  )
+
+  if (usesFrequencyBars(kind)) {
+    return (
+      <RhythmBarChart categories={labels} series={hits} target={target} />
+    )
+  }
+
   const slots = clusterSlots(kind, target)
   const clusters = hits.map((hit, i) => {
     const filled = Math.min(Math.max(hit, 0), slots)
     return {
-      label: clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
+      label: labels[i] ?? "",
       filled,
       slots,
       deload: i === deloadAt,

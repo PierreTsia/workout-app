@@ -58,6 +58,7 @@
     "session": "Session",
     "none": "No session",
     "hits": "{{filled}} of {{slots}}",
+    "bar": "d / wk",
     "week": "W{{n}}",
     "weekCurrent": "W",
     "weekAgo": "W-{{n}}",

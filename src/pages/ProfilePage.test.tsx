@@ -195,7 +195,7 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("keeps target-dot clusters on 30d, 1y, and all-time Rhythm", async () => {
+  it("keeps target-dot clusters on 30d Rhythm", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -206,25 +206,34 @@ describe("ProfilePage T0 fixtures", () => {
     rhythm30.getAllByRole("listitem").forEach((group) => {
       expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
     })
+  })
+
+  it("switches 1y and all-time Rhythm from dots to frequency bars", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
 
     await user.click(screen.getByRole("radio", { name: "1y" }))
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythmYear.getAllByRole("listitem")).toHaveLength(12)
+    expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
+    const yearChart = await rhythmYear.findByRole("img", { name: "Rhythm" })
+    await waitFor(() => {
+      expect(yearChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(
+        12,
+      )
+    })
     expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
     expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
-    rhythmYear.getAllByRole("listitem").forEach((group) => {
-      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
-    })
 
     await user.click(screen.getByRole("radio", { name: "All time" }))
     const rhythmAll = withinRhythm()
     expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythmAll.getAllByRole("listitem")).toHaveLength(3)
-    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
-    rhythmAll.getAllByRole("listitem").forEach((group) => {
-      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    expect(rhythmAll.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
+    const allChart = await rhythmAll.findByRole("img", { name: "Rhythm" })
+    await waitFor(() => {
+      expect(allChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(3)
     })
+    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
   })
 
   it("hides the Rhythm chart on the empty fixture", async () => {

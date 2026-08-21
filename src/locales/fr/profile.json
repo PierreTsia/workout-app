@@ -58,6 +58,7 @@
     "session": "Séance",
     "none": "Pas de séance",
     "hits": "{{filled}} sur {{slots}}",
+    "bar": "j / sem",
     "week": "S{{n}}",
     "weekCurrent": "S",
     "weekAgo": "S-{{n}}",
