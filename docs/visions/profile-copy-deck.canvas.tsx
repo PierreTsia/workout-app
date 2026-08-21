@@ -42,12 +42,13 @@ const SECTIONS: Section[] = [
     verdict: "keep",
     job: "Qui s’entraîne, sous quel titre, sur quel plan — maintenant.",
     challenge:
-      "La ligne « aussi PPL cette semaine » est honnête pour un hopper. Si un seul Programme est actif, elle disparaît — ne pas afficher Cycle 2 / 11/16 ici.",
+      "La ligne « aussi PPL cette semaine » est honnête pour un hopper (≥2 program_id dans la fenêtre, y compris Toujours). Si un seul Programme a produit des séances, elle disparaît — ne pas afficher Cycle 2 / 11/16 ici. Ce n’est pas un vs-préc. : les deltas vs fenêtre d’avant restent absents sur Toujours.",
     rows: [
       { slot: "H2", fr: "(pas de titre)", en: "(no heading)" },
       { slot: "Titre équipé", fr: "{title}", en: "{title}" },
       { slot: "Plan", fr: "Actif · {program}", en: "Active · {program}" },
       { slot: "Hop", fr: "Aussi {other} cette semaine", en: "Also {other} this week" },
+      { slot: "Hop vs préc. · Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
       { slot: "Streak", fr: "Série · {n} j", en: "Streak · {n} d" },
     ],
   },
@@ -73,15 +74,16 @@ const SECTIONS: Section[] = [
     order: "1.3",
     name: "Cette fenêtre",
     verdict: "keep",
-    job: "Est-ce que ce bloc de 7 / 30 / 100 jours avance — comparable à la fenêtre d’avant.",
+    job: "Est-ce que ce bloc de 7j / 30j / 100j / 1 an avance — comparable à la fenêtre d’avant. Toujours = carrière, pas de vs-préc.",
     challenge:
-      "Quatre stats, c’est trop. « Séances / sem » double le Rythme. Trois : séances, temps sous barre, durée moy. vs prescrit.",
+      "Quatre stats, c’est trop. « Séances / sem » double le Rythme. Trois : séances, temps sous barre, durée moy. vs prescrit. Sur Toujours : pas de pastille +{n} vs préc., pas de « stable vs préc. ».",
     rows: [
       { slot: "H2", fr: "(pas de titre)", en: "(no heading)" },
-      { slot: "Toggle", fr: "7j · 30j · 100j", en: "7d · 30d · 100d" },
+      { slot: "Toggle", fr: "7j · 30j · 100j · 1 an · Toujours", en: "7d · 30d · 100d · 1y · All time" },
       { slot: "Stat 1", fr: "Séances", en: "Sessions" },
       { slot: "Delta", fr: "+{n} vs préc.", en: "+{n} vs prior" },
       { slot: "Delta 0", fr: "stable vs préc.", en: "even vs prior" },
+      { slot: "Delta Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
       { slot: "Stat 2", fr: "Temps sous barre", en: "Time under the bar" },
       { slot: "Stat 3", fr: "Durée moy.", en: "Avg duration" },
       { slot: "Vs prescrit", fr: "vs {n} min prescrits", en: "vs {n} min prescribed" },
@@ -91,7 +93,7 @@ const SECTIONS: Section[] = [
     order: "1.4",
     name: "Rythme",
     verdict: "keep",
-    job: "Quand tu t’es présenté. Grain = jour (7j) ou semaine ISO (30 / 100).",
+    job: "Quand tu t’es présenté. Grain = jour (7j) / semaine ISO (30j, 100j) / mois (1 an) / année (Toujours).",
     challenge:
       "Les anneaux « skip vs plan » seulement si un seul Programme a assez de séances dans la fenêtre. Sinon : présence, pas fidélité.",
     rows: [
@@ -99,6 +101,8 @@ const SECTIONS: Section[] = [
       { slot: "7j", fr: "7 derniers jours", en: "Last 7 days" },
       { slot: "30j", fr: "5 semaines", en: "5 weeks" },
       { slot: "100j", fr: "12 semaines", en: "12 weeks" },
+      { slot: "1 an", fr: "12 mois", en: "12 months" },
+      { slot: "Toujours", fr: "Par année", en: "By year" },
       { slot: "Légende séance", fr: "Séance", en: "Session" },
       { slot: "Légende vide", fr: "Pas de séance", en: "No session" },
       { slot: "Cible", fr: "Cible · {n} j / sem", en: "Target · {n} days / week" },
@@ -107,10 +111,10 @@ const SECTIONS: Section[] = [
   {
     order: "1.5",
     name: "Mix",
-    verdict: "caler",
+    verdict: "keep",
     job: "D’où viennent les séances de la fenêtre — même grain que le Rythme.",
     challenge:
-      "Pgm / QW / Circuits en stacked exclusif : un jour Upper A avec Cindy, tu dois choisir une part. Origine (program_id) et forme (Circuit) ne sont pas orthogonales. À trancher au brief, pas dans la légende.",
+      "Stacked 100 %, une séance = une part. Precedence figée : Benchmark Circuit (benchmark_circuit_id) > Quick Workout (program_id null) > Programme. Jetable Tours ne prennent jamais la part Circuits.",
     rows: [
       { slot: "H2", fr: "Mix", en: "Mix" },
       { slot: "Série A", fr: "Programme", en: "Program" },
@@ -143,21 +147,24 @@ const SECTIONS: Section[] = [
     order: "2.2",
     name: "Équilibre",
     verdict: "keep",
-    job: "Le fer est-il réparti — et combien a bougé, vs la même fenêtre décalée.",
+    job: "Le fer est-il réparti — et combien a bougé, vs la même fenêtre décalée (sauf Toujours).",
     challenge:
-      "Desktop : 2 colonnes égales (radar | tonnage). Mobile : empilé. Tonnage = sets chargés only (poids × reps), pas la somme des 13 axes. BW / durée / Circuits hors compte. Pas une 4e puce pulse.",
+      "Desktop : 2 colonnes égales (radar | tonnage). Mobile : empilé. Tonnage = sets chargés (poids × reps), y compris stations Circuit chargées. Pas la somme des 13 axes. BW / durée hors compte — Cindy = 0 t parce que rien n’est chargé. Pas une 4e puce pulse. Toujours : pas de +{n} vs préc. ni de radar pointillé « fenêtre d’avant ».",
     rows: [
       { slot: "H2", fr: "Équilibre", en: "Balance" },
       { slot: "Pill", fr: "{score} · {bande}", en: "{score} · {band}" },
       { slot: "Bandes", fr: "Excellent · Bon · À surveiller · Déséquilibré", en: "Excellent · Good · Needs work · Imbalanced" },
       { slot: "Delta score", fr: "+{n} vs {fenêtre} préc.", en: "+{n} vs prior {window}" },
+      { slot: "Delta Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
       { slot: "Radar plein", fr: "Fenêtre", en: "Window" },
       { slot: "Radar pointillé", fr: "Même durée, décalée", en: "Same length, shifted" },
+      { slot: "Radar Toujours", fr: "(pas de pointillé vs préc.)", en: "(no prior dashed series)" },
       { slot: "Colonne 2", fr: "Tonnage", en: "Tonnage" },
       { slot: "Valeur", fr: "{n,1} t", en: "{n.1} t" },
       { slot: "Delta fer", fr: "+{n,1} t vs préc.", en: "+{n.1} t vs prior" },
+      { slot: "Delta fer Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
       { slot: "Légende", fr: "Sets chargés · poids × reps", en: "Loaded sets · weight × reps" },
-      { slot: "Hors compte", fr: "BW, durée, Circuits hors compte", en: "Bodyweight, duration, Circuits excluded" },
+      { slot: "Hors compte", fr: "BW et durée hors compte · Circuit chargé compte", en: "Bodyweight and duration excluded · loaded Circuit counts" },
       { slot: "Vide", fr: "Pas assez de séances pour un score.", en: "Not enough sessions for a score." },
     ],
   },
@@ -192,6 +199,7 @@ const SECTIONS: Section[] = [
       { slot: "Pill PB", fr: "PB fenêtre", en: "PB this window" },
       { slot: "Mode", fr: "AMRAP {n}", en: "AMRAP {n}" },
       { slot: "Delta AMRAP", fr: "+{n} vs préc.", en: "+{n} vs prior" },
+      { slot: "Delta AMRAP Toujours", fr: "(pas de vs préc.)", en: "(no vs prior)" },
       { slot: "Cast", fr: "Olympiens {n} / 4", en: "Olympians {n} / 4" },
       { slot: "Vide", fr: "Aucun circuit dans cette fenêtre.", en: "No circuits in this window." },
     ],
@@ -240,7 +248,7 @@ export default function ProfileCopyDeck() {
       <Callout tone="neutral" title="Trois actes, pas onze widgets">
         1 · Cette fenêtre : Hero, Succès compact, stats, Rythme, Mix. 2 · Preuve :
         Records (barres PRs + ligne % RIR 0, axe droit), Équilibre. 3 · Pratique :
-        Récurrents, Circuits. Couper le mensuel. Caler le Mix exclusif au brief.
+        Récurrents, Circuits. Couper le mensuel. Mix : precedence Circuits > Quick Workout > Programme.
       </Callout>
       <Callout tone="warning" title="Le fold">
         Mix + Rythme au-dessus de Records. Si Records remonte, on a le dashboard
