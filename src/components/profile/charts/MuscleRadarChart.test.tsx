@@ -57,4 +57,21 @@ describe("MuscleRadarChart", () => {
     })
     expect(withPrior.querySelector("[stroke-dasharray]")).not.toBeNull()
   })
+
+  it("translates polar-axis ticks for an English reader", async () => {
+    renderWithProviders(
+      <MuscleRadarChart series={{ current: RADAR_CURRENT }} />,
+      { locale: "en" },
+    )
+
+    const radar = screen.getByRole("img", { name: /Muscle balance/i })
+    await waitFor(() => {
+      expect(
+        radar.querySelectorAll(".recharts-polar-angle-axis-tick"),
+      ).toHaveLength(MUSCLE_TAXONOMY.length)
+    })
+
+    expect(radar).not.toHaveTextContent("Pectoraux")
+    expect(radar).toHaveTextContent("Chest")
+  })
 })

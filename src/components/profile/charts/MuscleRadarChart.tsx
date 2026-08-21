@@ -13,6 +13,7 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { radarLesson, readRadarRow } from "./chartLessons"
 import { ProfileChartTooltip } from "./ProfileChartTooltip"
 import {
@@ -32,8 +33,17 @@ const radarChartConfig = {
   prior: { label: "Prior", color: "hsl(240 10% 55%)" },
 } satisfies ChartConfig
 
+function displayRadarRow(
+  payload: unknown,
+  labelOf: (muscle: string) => string,
+) {
+  const row = readRadarRow(payload)
+  return row == null ? undefined : { ...row, muscle: labelOf(row.muscle) }
+}
+
 export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
   const { t } = useTranslation("profile")
+  const { muscleLabel } = useCatalogLabels()
   const data = toRadarRows(series)
   const hasPrior = series.prior !== undefined
 
@@ -46,22 +56,33 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
     >
       <RadarChart data={data} accessibilityLayer>
         <PolarGrid />
-        <PolarAngleAxis dataKey="muscle" />
+        <PolarAngleAxis
+          dataKey="muscle"
+          tickFormatter={(value) =>
+            muscleLabel(typeof value === "string" ? value : undefined)
+          }
+        />
         <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
         <ChartTooltip
-          content={(props) => (
-            <ProfileChartTooltip
-              active={props.active}
-              payload={props.payload}
-              label={readRadarRow(props.payload?.[0]?.payload)?.muscle}
-              lesson={radarLesson(readRadarRow(props.payload?.[0]?.payload), t)}
-              formatValue={(value) =>
-                t("balance.tooltip.sets", {
-                  n: Math.round(value * PIERRE_SET_CREDIT_SCALE),
-                })
-              }
-            />
-          )}
+          content={(props) => {
+            const display = displayRadarRow(
+              props.payload?.[0]?.payload,
+              muscleLabel,
+            )
+            return (
+              <ProfileChartTooltip
+                active={props.active}
+                payload={props.payload}
+                label={display?.muscle}
+                lesson={radarLesson(display, t)}
+                formatValue={(value) =>
+                  t("balance.tooltip.sets", {
+                    n: Math.round(value * PIERRE_SET_CREDIT_SCALE),
+                  })
+                }
+              />
+            )
+          }}
         />
         {hasPrior ? <ChartLegend content={<ChartLegendContent />} /> : null}
         <Radar

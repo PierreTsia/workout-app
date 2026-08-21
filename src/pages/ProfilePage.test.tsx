@@ -397,10 +397,10 @@ describe("ProfilePage T0 fixtures", () => {
     expect(delta.className).toMatch(/emerald/)
 
     const ranks = balance.getByRole("list", { name: "Sets · 1 / 0.5" })
-    expect(within(ranks).getAllByRole("listitem")[0]).toHaveTextContent("Pectoraux")
+    expect(within(ranks).getAllByRole("listitem")[0]).toHaveTextContent("Chest")
     expect(within(ranks).getAllByRole("listitem")[0]).toHaveTextContent("18")
     expect(within(ranks).getAllByRole("listitem").at(-1)).toHaveTextContent(
-      "Adducteurs",
+      "Adductors",
     )
     expect(balance.queryByText(/kg/i)).not.toBeInTheDocument()
     expect(
