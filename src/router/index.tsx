@@ -109,6 +109,11 @@ const UnlockOverlayPlaygroundPage = lazyWithRecover(() =>
     default: m.UnlockOverlayPlaygroundPage,
   })),
 )
+const ProfileChartsPlaygroundPage = lazyWithRecover(() =>
+  import("@/pages/ProfileChartsPlaygroundPage").then((m) => ({
+    default: m.ProfileChartsPlaygroundPage,
+  })),
+)
 const PrivacyPage = lazyWithRecover(() =>
   import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
 )
@@ -253,6 +258,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/admin/feedback",
                     element: <AdminFeedbackPage />,
+                  },
+                  {
+                    path: "/_profile-charts",
+                    element: <ProfileChartsPlaygroundPage />,
                   },
                 ],
               },
