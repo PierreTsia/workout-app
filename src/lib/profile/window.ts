@@ -27,33 +27,50 @@ export const MIX_CATEGORIES: Record<ProfileWindowKind, readonly string[]> = {
   all: ["2024", "2025", "2026"],
 }
 
+export type MixSeries = {
+  programme: number[]
+  quickWorkout: number[]
+  circuits: number[]
+}
+
 function zeros(n: number): number[] {
   return Array.from({ length: n }, () => 0)
 }
 
-function oneAt(n: number, index: number): number[] {
-  return zeros(n).map((v, i) => (i === index ? 1 : v))
-}
-
-export function pierreMixSeries(kind: ProfileWindowKind): {
-  programme: number[]
-  quickWorkout: number[]
-  circuits: number[]
-} {
+/** Dense ~100d athlete: most grains on, Sunday / every 5th off. */
+export function pierreRhythmPresence(kind: ProfileWindowKind): boolean[] {
   const n = MIX_CATEGORIES[kind].length
-  const circuitIdx = Math.min(4, n - 1)
-  return {
-    programme: zeros(n),
-    quickWorkout: zeros(n),
-    circuits: oneAt(n, circuitIdx),
+  if (kind === "7") {
+    return [true, true, true, true, true, true, false]
   }
+  return Array.from({ length: n }, (_, i) => i % 5 !== 4)
 }
 
-export function emptyMixSeries(kind: ProfileWindowKind): {
-  programme: number[]
-  quickWorkout: number[]
-  circuits: number[]
-} {
+export function pierreMixSeries(kind: ProfileWindowKind): MixSeries {
+  const presence = pierreRhythmPresence(kind)
+  const programme = zeros(presence.length)
+  const quickWorkout = zeros(presence.length)
+  const circuits = zeros(presence.length)
+
+  const filled = presence
+    .map((on, i) => ({ on, i }))
+    .filter(({ on }) => on)
+
+  const stacked = filled.map(({ i }, j) => {
+    const slot = j % 4
+    return { i, slot }
+  })
+
+  stacked.forEach(({ i, slot }) => {
+    if (slot === 0 || slot === 1) programme[i] = 1
+    else if (slot === 2) quickWorkout[i] = 1
+    else circuits[i] = 1
+  })
+
+  return { programme, quickWorkout, circuits }
+}
+
+export function emptyMixSeries(kind: ProfileWindowKind): MixSeries {
   const n = MIX_CATEGORIES[kind].length
   return {
     programme: zeros(n),
@@ -62,7 +79,121 @@ export function emptyMixSeries(kind: ProfileWindowKind): {
   }
 }
 
-export function pierreRhythmPresence(kind: ProfileWindowKind): boolean[] {
+export function pierreRecordsSeries(kind: ProfileWindowKind): {
+  prs: number[]
+  rir0: (number | null)[]
+} {
   const n = MIX_CATEGORIES[kind].length
-  return Array.from({ length: n }, (_, i) => i === Math.min(4, n - 1))
+  const prs = Array.from({ length: n }, (_, i) => (i % 3 === 0 ? 2 : i % 2 === 0 ? 1 : 0))
+  const rir0 = Array.from({ length: n }, (_, i) => (i % 4 === 3 ? null : 12 + i * 3))
+  return { prs, rir0 }
 }
+
+export type PulseFixture = {
+  sessions: number
+  sessionDelta: number
+  timeUnderBar: string
+  timeDeltaN: string
+  avgMinutes: number
+}
+
+export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
+  const byKind: Record<ProfileWindowKind, PulseFixture> = {
+    "7": {
+      sessions: 5,
+      sessionDelta: 1,
+      timeUnderBar: "3h 20",
+      timeDeltaN: "40 min",
+      avgMinutes: 40,
+    },
+    "30": {
+      sessions: 18,
+      sessionDelta: 3,
+      timeUnderBar: "12h 10",
+      timeDeltaN: "1h 20",
+      avgMinutes: 41,
+    },
+    "100": {
+      sessions: 52,
+      sessionDelta: 4,
+      timeUnderBar: "36h",
+      timeDeltaN: "2h",
+      avgMinutes: 42,
+    },
+    "365": {
+      sessions: 148,
+      sessionDelta: 12,
+      timeUnderBar: "98h",
+      timeDeltaN: "8h",
+      avgMinutes: 40,
+    },
+    all: {
+      sessions: 312,
+      sessionDelta: 0,
+      timeUnderBar: "210h",
+      timeDeltaN: "",
+      avgMinutes: 41,
+    },
+  }
+  return byKind[kind]
+}
+
+export const PIERRE_REGULARS = [
+  { name: "Squat", onProgram: true },
+  { name: "Bench press", onProgram: true },
+  { name: "Deadlift", onProgram: true },
+  { name: "Pull-up", onProgram: false },
+  { name: "Overhead press", onProgram: true },
+  { name: "Row", onProgram: true },
+  { name: "Hip thrust", onProgram: false },
+  { name: "Walking lunge", onProgram: false },
+] as const
+
+export const PIERRE_CIRCUITS = [
+  { name: "Cindy", mode: "AMRAP 20", scores: "8+2 · 9+0 · 10+1", pb: true },
+  { name: "Athena", mode: "AMRAP 12", scores: "4+6 · 5+1 · 5+4", pb: false },
+] as const
+
+const BADGE_ICON_BASE =
+  "https://favusepjqwpcroiolvaz.supabase.co/storage/v1/object/public/badge-icons"
+
+function badgeIconUrl(groupSlug: string, rank: string): string {
+  return `${BADGE_ICON_BASE}/${groupSlug}_${rank}.webp`
+}
+
+export const PIERRE_SUCCES = {
+  unlocked: 12,
+  total: 40,
+  latest: {
+    rank: "gold",
+    title_en: "No Break",
+    title_fr: "Sans relâche",
+    icon_asset_url: badgeIconUrl("circuit_runner", "gold"),
+  },
+  highest: {
+    rank: "diamond",
+    title_en: "Circuit Star",
+    title_fr: "Star des circuits",
+    icon_asset_url: badgeIconUrl("circuit_runner", "diamond"),
+  },
+  recent: [
+    {
+      rank: "bronze",
+      title_en: "Baby Spidey",
+      title_fr: "Baby Spidey",
+      icon_asset_url: badgeIconUrl("spidey", "bronze"),
+    },
+    {
+      rank: "bronze",
+      title_en: "First Lap",
+      title_fr: "Premier tour",
+      icon_asset_url: badgeIconUrl("circuit_runner", "bronze"),
+    },
+    {
+      rank: "bronze",
+      title_en: "Nose to Floor",
+      title_fr: "Nez au sol",
+      icon_asset_url: badgeIconUrl("push_ups", "bronze"),
+    },
+  ],
+} as const

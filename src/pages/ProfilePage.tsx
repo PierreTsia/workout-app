@@ -4,22 +4,38 @@ import { useTranslation } from "react-i18next"
 import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
-import { RADAR_CURRENT } from "@/components/profile/charts/fixtures"
+import {
+  RADAR_CURRENT,
+  RADAR_PRIOR,
+} from "@/components/profile/charts/fixtures"
 import { ProfileSection } from "@/components/profile/ProfileSection"
+import {
+  ProfileStatCard,
+  ProfileStatCardSkeleton,
+} from "@/components/profile/ProfileStatCard"
 import {
   ProfileWindowProvider,
   useProfileWindow,
 } from "@/components/profile/ProfileWindowContext"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
   emptyMixSeries,
   MIX_CATEGORIES,
+  PIERRE_CIRCUITS,
+  PIERRE_REGULARS,
+  PIERRE_SUCCES,
   pierreMixSeries,
+  pierrePulse,
+  pierreRecordsSeries,
   pierreRhythmPresence,
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
+import type { AchievementRank } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
 
@@ -96,48 +112,83 @@ function FixtureSwitch({
 }
 
 function HeroBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
+  const { t, i18n } = useTranslation("profile")
   const { includeDeltas } = useProfileWindow()
 
   if (mode === "loading") {
     return (
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-4 w-48" />
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-14 rounded-full" />
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </div>
       </div>
     )
   }
 
-  if (mode === "empty") {
-    return (
-      <div className="flex flex-col gap-1">
-        <p className="text-lg font-semibold">Pierre</p>
+  const streak = mode === "empty" ? 0 : 12
+
+  return (
+    <div className="flex items-start gap-4">
+      <Avatar className="size-14">
+        <AvatarFallback>PT</AvatarFallback>
+      </Avatar>
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-xl font-semibold tracking-tight">Pierre</p>
+        {mode === "pierre" ? (
+          <p className="text-sm text-muted-foreground">
+            {i18n.language === "fr"
+              ? PIERRE_SUCCES.highest.title_fr
+              : PIERRE_SUCCES.highest.title_en}
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           {t("hero.activeProgram", { program: "Upper/Lower" })}
         </p>
-        <p className="text-sm">{t("hero.streak", { n: 0 })}</p>
+        {mode === "pierre" && includeDeltas ? (
+          <p className="text-sm">{t("hero.hop", { other: "PPL" })}</p>
+        ) : null}
+        <p className="text-sm">{t("hero.streak", { n: streak })}</p>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
+function badgeTitle(spot: {
+  title_en: string
+  title_fr: string
+}, language: string): string {
+  return language === "fr" ? spot.title_fr : spot.title_en
+}
+
+function FeaturedBadge({
+  label,
+  rank,
+  iconUrl,
+  title,
+}: {
+  label: string
+  rank: AchievementRank
+  iconUrl: string | null
+  title: string
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-lg font-semibold">Pierre</p>
-      <p className="text-sm text-muted-foreground">Castor</p>
-      <p className="text-sm text-muted-foreground">
-        {t("hero.activeProgram", { program: "Upper/Lower" })}
-      </p>
-      {includeDeltas ? (
-        <p className="text-sm">{t("hero.hop", { other: "PPL" })}</p>
-      ) : null}
-      <p className="text-sm">{t("hero.streak", { n: 4 })}</p>
+    <div className="flex flex-col items-center gap-1.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <BadgeIcon rank={rank} iconUrl={iconUrl} size="md" alt={title} />
+      <span className="max-w-24 truncate text-center text-[11px] font-medium leading-tight">
+        {title}
+      </span>
     </div>
   )
 }
 
 function SuccesBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
+  const { t, i18n } = useTranslation("profile")
   const status = blockStatus(mode, "ok")
+  const latestTitle = badgeTitle(PIERRE_SUCCES.latest, i18n.language)
+  const highestTitle = badgeTitle(PIERRE_SUCCES.highest, i18n.language)
 
   return (
     <ProfileSection
@@ -145,25 +196,52 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
       status={status}
       empty={t("achievements.empty")}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
-          {t("achievements.count", { n: 12, total: 40 })}
+          {t("achievements.count", {
+            n: PIERRE_SUCCES.unlocked,
+            total: PIERRE_SUCCES.total,
+          })}
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground">{t("achievements.latest")}</p>
-            <p className="font-medium">Castor</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">{t("achievements.highest")}</p>
-            <p className="font-medium">Castor</p>
-          </div>
+          <FeaturedBadge
+            label={t("achievements.latest")}
+            rank={PIERRE_SUCCES.latest.rank}
+            iconUrl={PIERRE_SUCCES.latest.icon_asset_url}
+            title={latestTitle}
+          />
+          <FeaturedBadge
+            label={t("achievements.highest")}
+            rank={PIERRE_SUCCES.highest.rank}
+            iconUrl={PIERRE_SUCCES.highest.icon_asset_url}
+            title={highestTitle}
+          />
         </div>
-        <div>
+        <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground">{t("achievements.recent")}</p>
-          <p className="text-sm">Cindy bronze</p>
+          <div className="flex flex-wrap gap-3">
+            {PIERRE_SUCCES.recent.map((spot) => {
+              const title = badgeTitle(spot, i18n.language)
+              return (
+                <div key={spot.title_en} className="flex flex-col items-center gap-1">
+                  <BadgeIcon
+                    rank={spot.rank}
+                    iconUrl={spot.icon_asset_url}
+                    size="sm"
+                    alt={title}
+                  />
+                  <span className="max-w-16 truncate text-center text-[10px] text-muted-foreground">
+                    {title}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <Link to="/achievements" className="text-sm text-primary underline-offset-4 hover:underline">
+        <Link
+          to="/achievements"
+          className="text-sm text-primary underline-offset-4 hover:underline"
+        >
           {t("achievements.seeAll")}
         </Link>
       </div>
@@ -173,32 +251,54 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
 
 function PulseBlock({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
-  const { includeDeltas } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
+  const { kind, includeDeltas } = useProfileWindow()
+  const pulse = pierrePulse(kind)
+
+  if (mode === "loading") {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ProfileStatCardSkeleton />
+        <ProfileStatCardSkeleton />
+        <ProfileStatCardSkeleton />
+      </div>
+    )
+  }
+
+  if (mode === "empty") {
+    return (
+      <ProfileSection title={t("pulse.sessions")} status="empty" empty={t("pulse.empty")} />
+    )
+  }
+
+  const sessionHint = includeDeltas
+    ? t("pulse.delta", { n: pulse.sessionDelta })
+    : undefined
+  const timeHint = includeDeltas
+    ? t("pulse.delta", { n: pulse.timeDeltaN })
+    : undefined
 
   return (
-    <ProfileSection title={t("pulse.sessions")} status={status} empty={t("pulse.empty")}>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">{t("pulse.sessions")}</p>
-          <p className="text-lg font-semibold">2</p>
-          {includeDeltas ? (
-            <p className="text-xs text-muted-foreground">{t("pulse.delta", { n: 1 })}</p>
-          ) : null}
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("pulse.timeUnderBar")}</p>
-          <p className="text-lg font-semibold">1h 12</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{t("pulse.avgDuration")}</p>
-          <p className="text-lg font-semibold">36 min</p>
-          <Link to="/account" className="text-xs text-primary underline-offset-4 hover:underline">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ProfileStatCard
+        title={t("pulse.sessions")}
+        value={pulse.sessions}
+        hint={sessionHint}
+      />
+      <ProfileStatCard
+        title={t("pulse.timeUnderBar")}
+        value={pulse.timeUnderBar}
+        hint={timeHint}
+      />
+      <ProfileStatCard
+        title={t("pulse.avgDuration")}
+        value={`${pulse.avgMinutes} min`}
+        hint={
+          <Link to="/account" className="text-primary underline-offset-4 hover:underline">
             {t("pulse.vsPrescribed", { n: 60 })}
           </Link>
-        </div>
-      </div>
-    </ProfileSection>
+        }
+      />
+    </div>
   )
 }
 
@@ -250,53 +350,60 @@ function RecordsBlock({ mode }: { mode: FixtureMode }) {
   const { kind } = useProfileWindow()
   const status = blockStatus(mode, "ok")
   const categories = MIX_CATEGORIES[kind]
-  const rir0 = categories.map((_, i) => (i === 0 ? 18 : null))
+  const series = pierreRecordsSeries(kind)
 
   return (
     <ProfileSection title={t("records.title")} status={status} empty={t("records.empty")}>
       <div className="mb-3 grid grid-cols-3 gap-3 text-sm">
         <div>
           <p className="text-xs text-muted-foreground">{t("records.prs")}</p>
-          <p className="font-semibold">1</p>
+          <p className="font-semibold">11</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{t("records.exercises")}</p>
-          <p className="font-semibold">1</p>
+          <p className="font-semibold">8</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{t("records.sinceLast")}</p>
-          <p className="font-semibold">3d</p>
+          <p className="font-semibold">2d</p>
         </div>
       </div>
-      <RecordsComboChart
-        categories={categories}
-        series={{ prs: categories.map((_, i) => (i === 0 ? 1 : 0)), rir0 }}
-      />
+      <RecordsComboChart categories={categories} series={series} />
     </ProfileSection>
   )
 }
 
 function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
-  const balanceStatus = blockStatus(mode, "empty")
-  const tonnageStatus = blockStatus(mode, "empty")
+  const { includeDeltas } = useProfileWindow()
+  const status = blockStatus(mode, "ok")
 
   return (
-    <div className="grid min-w-0 gap-4 md:grid-cols-2 md:items-start">
+    <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
       <ProfileSection
         title={t("balance.title")}
-        status={balanceStatus}
+        status={status}
         empty={t("balance.empty")}
       >
-        <MuscleRadarChart series={{ current: RADAR_CURRENT }} />
+        <MuscleRadarChart
+          series={{
+            current: RADAR_CURRENT,
+            prior: includeDeltas ? RADAR_PRIOR : undefined,
+          }}
+        />
       </ProfileSection>
       <ProfileSection
         title={t("tonnage.title")}
-        status={tonnageStatus}
+        status={status}
         empty={t("tonnage.empty")}
       >
-        <p className="text-2xl font-semibold">2.4 t</p>
-        <p className="text-xs text-muted-foreground">{t("tonnage.legend")}</p>
+        <p className="text-3xl font-bold tracking-tight">18.4 t</p>
+        {includeDeltas ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("pulse.delta", { n: "1.2 t" })}
+          </p>
+        ) : null}
+        <p className="mt-2 text-xs text-muted-foreground">{t("tonnage.legend")}</p>
       </ProfileSection>
     </div>
   )
@@ -312,16 +419,16 @@ function RegularsBlock({ mode }: { mode: FixtureMode }) {
       status={status}
       empty={t("regulars.empty")}
     >
-      <p className="mb-2 text-xs text-muted-foreground">{t("regulars.subtitle")}</p>
+      <p className="mb-3 text-xs text-muted-foreground">{t("regulars.subtitle")}</p>
       <ul className="flex flex-col gap-2 text-sm">
-        <li className="flex justify-between gap-2">
-          <span>Pull-up</span>
-          <span className="text-muted-foreground">{t("regulars.onProgram")}</span>
-        </li>
-        <li className="flex justify-between gap-2">
-          <span>Squat</span>
-          <span className="text-muted-foreground">{t("regulars.offProgram")}</span>
-        </li>
+        {PIERRE_REGULARS.map((row) => (
+          <li key={row.name} className="flex items-center justify-between gap-2">
+            <span>{row.name}</span>
+            <Badge variant={row.onProgram ? "secondary" : "outline"}>
+              {row.onProgram ? t("regulars.onProgram") : t("regulars.offProgram")}
+            </Badge>
+          </li>
+        ))}
       </ul>
     </ProfileSection>
   )
@@ -337,21 +444,32 @@ function CircuitsBlock({ mode }: { mode: FixtureMode }) {
       status={status}
       empty={t("circuits.empty")}
     >
-      <div className="grid grid-cols-3 gap-3 text-sm">
+      <div className="mb-4 grid grid-cols-3 gap-3 text-sm">
         <div>
           <p className="text-xs text-muted-foreground">{t("circuits.runs")}</p>
-          <p className="font-semibold">3</p>
+          <p className="font-semibold">11</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{t("circuits.distinct")}</p>
-          <p className="font-semibold">1</p>
+          <p className="font-semibold">2</p>
         </div>
         <div>
           <p className="text-xs text-muted-foreground">{t("circuits.pbs")}</p>
           <p className="font-semibold">1</p>
         </div>
       </div>
-      <p className="mt-3 text-sm">Cindy · AMRAP 20</p>
+      <ul className="flex flex-col gap-3">
+        {PIERRE_CIRCUITS.map((row) => (
+          <li key={row.name} className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{row.name}</span>
+              <span className="text-xs text-muted-foreground">{row.mode}</span>
+              {row.pb ? <Badge>{t("circuits.pbs")}</Badge> : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{row.scores}</p>
+          </li>
+        ))}
+      </ul>
     </ProfileSection>
   )
 }
@@ -362,12 +480,20 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
       <HeroBlock mode={mode} />
       <SuccesBlock mode={mode} />
       <PulseBlock mode={mode} />
-      <RhythmBlock mode={mode} />
-      <MixBlock mode={mode} />
+      <div className="grid min-w-0 gap-4 lg:grid-cols-7">
+        <div className="min-w-0 lg:col-span-4">
+          <MixBlock mode={mode} />
+        </div>
+        <div className="min-w-0 lg:col-span-3">
+          <RhythmBlock mode={mode} />
+        </div>
+      </div>
       <RecordsBlock mode={mode} />
       <BalanceTonnageRow mode={mode} />
-      <RegularsBlock mode={mode} />
-      <CircuitsBlock mode={mode} />
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <RegularsBlock mode={mode} />
+        <CircuitsBlock mode={mode} />
+      </div>
     </div>
   )
 }
@@ -379,11 +505,13 @@ export function ProfilePage() {
 
   return (
     <ProfileWindowProvider kind={kind} setKind={setKind}>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
-        <div className="flex flex-col gap-3">
-          <h1 className="text-2xl font-bold">{t("nav")}</h1>
-          <WindowToggle />
-          <FixtureSwitch mode={mode} onMode={setMode} />
+      <div className="flex w-full flex-col gap-6 p-4 md:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <WindowToggle />
+            <FixtureSwitch mode={mode} onMode={setMode} />
+          </div>
         </div>
         <ProfileFold mode={mode} />
       </div>

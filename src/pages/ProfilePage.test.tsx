@@ -65,14 +65,31 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByText("Last 7 days")).not.toBeInTheDocument()
   })
 
-  it("keeps Équilibre empty on the 2-session Pierre fixture", () => {
+  it("renders Latest, Highest, and recently earned as illustrated badges", () => {
+    renderWithProviders(<ProfilePage />)
+
+    expect(screen.getByRole("img", { name: "No Break" })).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: "Circuit Star" })).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: "Baby Spidey" })).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: "First Lap" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "See all" })).toHaveAttribute(
+      "href",
+      "/achievements",
+    )
+    expect(document.querySelectorAll(".badge-frame-gold").length).toBeGreaterThan(0)
+    expect(document.querySelectorAll(".badge-frame-diamond").length).toBeGreaterThan(0)
+    expect(document.querySelectorAll(".badge-frame-bronze").length).toBe(3)
+  })
+
+  it("fills Équilibre and Tonnage on the Pierre ~100d fixture", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(
-      screen.getByText("Not enough sessions for a score."),
-    ).toBeInTheDocument()
+      screen.queryByText("Not enough sessions for a score."),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Balance" })).toBeInTheDocument()
+    expect(screen.getByText("18.4 t")).toBeInTheDocument()
   })
 
   it("treats empty and loading as distinct fixture modes", async () => {
@@ -83,6 +100,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(
       screen.getByText("Not enough sessions for a score."),
     ).toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: "Baby Spidey" })).not.toBeInTheDocument()
     expect(screen.queryByText("Cindy bronze")).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("radio", { name: "Loading" }))
