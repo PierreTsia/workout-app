@@ -1,5 +1,12 @@
 import { MUSCLE_TAXONOMY, type MuscleTaxonomy } from "@/lib/trainingBalance"
 
+/** Force every tick on short grains; drop overlaps on 100d / year. */
+export function profileTickInterval(
+  categoryCount: number,
+): 0 | "preserveStartEnd" {
+  return categoryCount > 8 ? "preserveStartEnd" : 0
+}
+
 export type MixSeries = {
   programme: readonly number[]
   quickWorkout: readonly number[]

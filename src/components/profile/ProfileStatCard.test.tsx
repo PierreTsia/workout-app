@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { screen } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
-import { ProfileStatCard } from "./ProfileStatCard"
+import { PULSE_GRID_CLASS, ProfilePulseGrid, ProfileStatCard } from "./ProfileStatCard"
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
@@ -83,6 +83,22 @@ describe("ProfileStatCard", () => {
     expect(body?.className).toMatch(/justify-center/)
     expect(body?.className).toMatch(/items-center/)
     expect(body?.className).toMatch(/text-center/)
+  })
+
+  it("keeps three pulse columns on a phone-width grid", () => {
+    expect(PULSE_GRID_CLASS).toMatch(/grid-cols-3/)
+    expect(PULSE_GRID_CLASS).not.toMatch(/sm:grid-cols/)
+    expect(PULSE_GRID_CLASS).not.toMatch(/lg:grid-cols/)
+
+    const { container } = renderWithProviders(
+      <ProfilePulseGrid>
+        <ProfileStatCard title="A" value={1} />
+        <ProfileStatCard title="B" value={2} />
+        <ProfileStatCard title="C" value={3} />
+      </ProfilePulseGrid>,
+    )
+
+    expect(container.firstElementChild).toHaveClass("grid-cols-3")
   })
 
   it("drops nested card chrome so stats sit as type on the section", () => {

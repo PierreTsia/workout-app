@@ -9,7 +9,7 @@ export type ProfileStatDelta = { value: number; label: string }
 export type ProfileStatSize = "big" | "small"
 
 export const PULSE_GRID_CLASS =
-  "grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3"
+  "grid grid-cols-3 items-stretch gap-2 sm:gap-4"
 
 /** Nested inside ProfileSection's Card — no second frame. */
 const INNER_STAT_CLASS = "flex h-full flex-col border-0 bg-transparent shadow-none"

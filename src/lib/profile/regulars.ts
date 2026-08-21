@@ -67,6 +67,40 @@ function latestFinishedAt(
   return rest.reduce((max, at) => (at > max ? at : max), first)
 }
 
+type SessionCharge =
+  | { kind: "weight"; value: number }
+  | { kind: "reps"; value: number }
+
+function sessionCharge(
+  sets: readonly { weight_logged: number; reps: string | null }[],
+): SessionCharge | null {
+  const weights = sets.map((set) => set.weight_logged).filter((kg) => kg > 0)
+  if (weights.length > 0) {
+    return { kind: "weight", value: Math.max(...weights) }
+  }
+  const reps = sets
+    .map((set) => numericReps(set.reps))
+    .filter((n): n is number => n != null)
+  if (reps.length > 0) {
+    return { kind: "reps", value: Math.max(...reps) }
+  }
+  return null
+}
+
+function evolutionBetween(
+  later: SessionCharge | null,
+  earlier: SessionCharge | null,
+): RegularEvolution | undefined {
+  if (later == null || earlier == null || later.kind !== earlier.kind) {
+    return undefined
+  }
+  const delta = later.value - earlier.value
+  if (delta === 0) return undefined
+  return later.kind === "weight"
+    ? { kind: "weight", kg: delta }
+    : { kind: "reps", n: delta }
+}
+
 export function regularsFromSnapshot(
   snapshot: ProfileSnapshot,
   input: {
@@ -87,24 +121,41 @@ export function regularsFromSnapshot(
   return rankRegulars(
     exerciseIds.flatMap((exerciseId) => {
       const sets = setsInWindow.filter((set) => set.exercise_id === exerciseId)
-      const sessionIds = [...new Set(sets.map((set) => set.session_id))]
-      if (sessionIds.length < REGULARS_MIN_SESSIONS) return []
+      const sessions = [...new Set(sets.map((set) => set.session_id))]
+        .flatMap((id) => {
+          const session = sessionById.get(id)
+          return session == null ? [] : [session]
+        })
+        .sort((a, b) => a.finished_at.localeCompare(b.finished_at))
+      if (sessions.length < REGULARS_MIN_SESSIONS) return []
       const numeric = sets
         .map((set) => numericReps(set.reps))
         .filter((n): n is number => n != null)
       const lastLoggedAt = latestFinishedAt(sets, sessionById)
       if (lastLoggedAt == null) return []
+      const previous = sessions[sessions.length - 2]
+      const last = sessions[sessions.length - 1]
+      const evolution =
+        previous == null || last == null
+          ? undefined
+          : evolutionBetween(
+              sessionCharge(sets.filter((set) => set.session_id === last.id)),
+              sessionCharge(sets.filter((set) => set.session_id === previous.id)),
+            )
       return [
         {
           name: input.names?.[exerciseId] ?? exerciseId,
           reps: numeric.length > 0 ? numeric.reduce((sum, n) => sum + n, 0) : null,
           lastLoggedAt,
+          evolution,
         },
       ]
     }),
   )
     .slice(0, REGULARS_LIMIT)
-    .map((row) => ({ name: row.name, reps: row.reps }))
+    .map(({ name, reps, evolution }) =>
+      evolution == null ? { name, reps } : { name, reps, evolution },
+    )
 }
 
 const BY_KIND: Record<ProfileWindowKind, readonly RegularRow[]> = {

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/chart"
 import { mixLesson, readMixRow } from "./chartLessons"
 import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { toMixPercentRows, type MixSeries } from "./profileChartData"
+import { profileTickInterval, toMixPercentRows, type MixSeries } from "./profileChartData"
 
 export type { MixSeries, MixPercentRow } from "./profileChartData"
 
@@ -44,7 +44,8 @@ export function MixStackedChart({
           dataKey="category"
           tickLine={false}
           axisLine={false}
-          interval={0}
+          interval={profileTickInterval(categories.length)}
+          minTickGap={16}
         />
         <ChartTooltip
           content={(props) => (

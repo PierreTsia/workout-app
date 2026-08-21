@@ -125,7 +125,9 @@ describe("regularsFromSnapshot", () => {
       WEEK,
     )
 
-    expect(rows).toEqual([{ name: "pull-up", reps: 11 }])
+    expect(rows).toEqual([
+      { name: "pull-up", reps: 11, evolution: { kind: "reps", n: 1 } },
+    ])
   })
 
   it("ranks 7d and 100d differently from the same snapshot", () => {
@@ -271,5 +273,100 @@ describe("regularsFromSnapshot", () => {
       ["pull-up", 16],
       ["plank", null],
     ])
+  })
+
+  it("shows last-session load vs the previous session of the same move", () => {
+    const rows = regularsFromSnapshot(
+      snapshot(
+        [
+          makeSession({
+            id: "prev",
+            started_at: "2026-08-16T10:00:00.000Z",
+            finished_at: "2026-08-16T11:00:00.000Z",
+          }),
+          makeSession({
+            id: "last",
+            started_at: "2026-08-20T10:00:00.000Z",
+            finished_at: "2026-08-20T11:00:00.000Z",
+          }),
+        ],
+        [
+          makeSet({ session_id: "prev", exercise_id: "squat", weight_logged: 100, reps: "5" }),
+          makeSet({ session_id: "last", exercise_id: "squat", weight_logged: 102, reps: "5" }),
+        ],
+      ),
+      WEEK,
+    )
+
+    expect(rows).toEqual([
+      { name: "squat", reps: 10, evolution: { kind: "weight", kg: 2 } },
+    ])
+  })
+
+  it("uses heaviest set of each session, not session volume", () => {
+    const rows = regularsFromSnapshot(
+      snapshot(
+        [
+          makeSession({
+            id: "prev",
+            started_at: "2026-08-16T10:00:00.000Z",
+            finished_at: "2026-08-16T11:00:00.000Z",
+          }),
+          makeSession({
+            id: "last",
+            started_at: "2026-08-20T10:00:00.000Z",
+            finished_at: "2026-08-20T11:00:00.000Z",
+          }),
+        ],
+        [
+          makeSet({ session_id: "prev", exercise_id: "bench", weight_logged: 80, reps: "8" }),
+          makeSet({ session_id: "prev", exercise_id: "bench", weight_logged: 90, reps: "5" }),
+          makeSet({ session_id: "last", exercise_id: "bench", weight_logged: 85, reps: "8" }),
+          makeSet({ session_id: "last", exercise_id: "bench", weight_logged: 92.5, reps: "3" }),
+        ],
+      ),
+      WEEK,
+    )
+
+    expect(rows[0]?.evolution).toEqual({ kind: "weight", kg: 2.5 })
+  })
+
+  it("omits a flat or incomparable last-vs-prev charge", () => {
+    const rows = regularsFromSnapshot(
+      snapshot(
+        [
+          makeSession({
+            id: "prev",
+            started_at: "2026-08-16T10:00:00.000Z",
+            finished_at: "2026-08-16T11:00:00.000Z",
+          }),
+          makeSession({
+            id: "last",
+            started_at: "2026-08-20T10:00:00.000Z",
+            finished_at: "2026-08-20T11:00:00.000Z",
+          }),
+        ],
+        [
+          makeSet({ session_id: "prev", exercise_id: "row", weight_logged: 40, reps: "10" }),
+          makeSet({ session_id: "last", exercise_id: "row", weight_logged: 40, reps: "10" }),
+          makeSet({
+            session_id: "prev",
+            exercise_id: "lunge",
+            weight_logged: 20,
+            reps: "12",
+          }),
+          makeSet({
+            session_id: "last",
+            exercise_id: "lunge",
+            weight_logged: 0,
+            reps: "14",
+          }),
+        ],
+      ),
+      WEEK,
+    )
+
+    expect(rows.find((row) => row.name === "row")?.evolution).toBeUndefined()
+    expect(rows.find((row) => row.name === "lunge")?.evolution).toBeUndefined()
   })
 })

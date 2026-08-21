@@ -122,12 +122,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
         {rows.map((row) => (
           <li
             key={row.name}
-            className={cn(
-              "grid items-center gap-2",
-              row.evolution != null
-                ? "grid-cols-[minmax(0,1fr)_auto_4.5rem]"
-                : "grid-cols-[minmax(0,1fr)_4.5rem]",
-            )}
+            className="grid grid-cols-[minmax(0,1fr)_auto_4.5rem] items-center gap-2"
           >
             <span className="truncate">{row.name}</span>
             {row.evolution != null ? (
@@ -135,7 +130,9 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
                 evolution={row.evolution}
                 formatWeight={formatWeight}
               />
-            ) : null}
+            ) : (
+              <span />
+            )}
             <span className="text-right tabular-nums text-muted-foreground">
               {row.reps == null
                 ? t("regulars.unranked")
