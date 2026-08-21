@@ -11,6 +11,9 @@ export type ProfileStatSize = "big" | "small"
 export const PULSE_GRID_CLASS =
   "grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3"
 
+/** Nested inside ProfileSection's Card — no second frame. */
+const INNER_STAT_CLASS = "flex h-full flex-col border-0 bg-transparent shadow-none"
+
 export function ProfilePulseGrid({ children }: { children: ReactNode }) {
   return <div className={PULSE_GRID_CLASS}>{children}</div>
 }
@@ -65,7 +68,7 @@ export function ProfileStatCard({
   size?: ProfileStatSize
 }) {
   return (
-    <Card className="flex h-full flex-col">
+    <Card className={INNER_STAT_CLASS}>
       <StatBody size={size}>
         <CardTitle
           className={cn(
@@ -98,7 +101,7 @@ export function ProfileStatCardSkeleton({
   size?: ProfileStatSize
 }) {
   return (
-    <Card className="flex h-full flex-col">
+    <Card className={INNER_STAT_CLASS}>
       <StatBody size={size}>
         <Skeleton className="h-4 w-24" />
         <Skeleton className={cn("mt-2 w-16", size === "small" ? "h-8" : "h-12")} />

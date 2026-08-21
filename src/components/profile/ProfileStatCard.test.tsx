@@ -84,4 +84,18 @@ describe("ProfileStatCard", () => {
     expect(body?.className).toMatch(/items-center/)
     expect(body?.className).toMatch(/text-center/)
   })
+
+  it("drops nested card chrome so stats sit as type on the section", () => {
+    const { container } = renderWithProviders(
+      <ProfileStatCard title="Sessions" value={5} />,
+    )
+
+    const card = container.firstElementChild
+    expect(card).toHaveClass("border-0")
+    expect(card).toHaveClass("shadow-none")
+    expect(card).toHaveClass("bg-transparent")
+    expect(card).not.toHaveClass("border")
+    expect(card).not.toHaveClass("shadow-xs")
+    expect(card).not.toHaveAttribute("role")
+  })
 })
