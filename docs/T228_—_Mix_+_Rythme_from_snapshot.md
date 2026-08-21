@@ -2,7 +2,7 @@
 
 ## Goal
 
-Wire Mix (exclusive **Mix slice** stacked 100%) and Rythme (presence rings, no min floor) from `useProfileSnapshot`. Skip-vs-plan rings stay out. Addresses Epic stories 9 (presence only), 10.
+Wire Mix (exclusive **Mix slice** stacked by session count) and Rythme (presence rings, no min floor) from `useProfileSnapshot`. Skip-vs-plan rings stay out. Addresses Epic stories 9 (presence only), 10.
 
 ## Mode
 

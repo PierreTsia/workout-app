@@ -105,12 +105,15 @@
   "mix": {
     "title": "Mix",
     "empty": "Aucune séance dans cette fenêtre.",
-    "hint": "Programme, Quick Workout ou Circuit — parfois le même jour. Les barres se cumulent.",
+    "hint": "La hauteur, c’est le nombre de séances. La couleur : Programme, Quick Workout ou Circuit — une séance, une part.",
+    "slice": {
+      "programme": "Programme",
+      "quickWorkout": "Quick Workout",
+      "circuits": "Circuits"
+    },
     "tooltip": {
       "rest": "Jour off.",
-      "circuits": "Circuit ce jour-là — il passe avant le Programme.",
-      "quickWorkout": "Séance hors programme.",
-      "programme": "Séance du programme."
+      "slice": "{{n}} {{slice}}"
     }
   },
   "records": {

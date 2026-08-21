@@ -148,7 +148,7 @@ Iron that moved in a sliding window: `Σ weight_logged × numeric reps` on finis
 → `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql`
 
 **Mix slice**:
-Exclusive label of a finished **Session** on the Profil stacked Mix (one session, one stack). Precedence: **(1) Circuits** if that session's **workout day** has an **Exercise Block** with `benchmark_circuit_id` not null (**Benchmark Circuit**, including a programmed Athena / Cindy day); **(2)** else **Quick Workout** if `workout_days.program_id` is null; **(3)** else **Programme**. Jetable Circuits (`benchmark_circuit_id` null) never take slice (1) — they fall through to QW or Programme. Same grain as Rythme. Overlay / double-count is out — a stacked 100 % bar cannot tell two truths.
+Exclusive label of a finished **Session** on the Profil stacked Mix (one session, one stack). Bar height is the session count in that grain bucket, not a 100% share. Precedence: **(1) Circuits** if that session's **workout day** has an **Exercise Block** with `benchmark_circuit_id` not null (**Benchmark Circuit**, including a programmed Athena / Cindy day); **(2)** else **Quick Workout** if `workout_days.program_id` is null; **(3)** else **Programme**. Jetable Circuits (`benchmark_circuit_id` null) never take slice (1) — they fall through to QW or Programme. Same grain as Rythme. Overlay / double-count is out.
 → `file:docs/Vision_—_Profil_dashboard.md`
 
 **Regulars** (UI: FR **Récurrents** / EN **Regulars**):

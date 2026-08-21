@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { RADAR_CURRENT } from "./fixtures"
+import { MIX_7_CATEGORIES, MIX_7_SERIES, RADAR_CURRENT } from "./fixtures"
 import {
   profileTickInterval,
   scaleRadarCredits,
+  toMixCountRows,
   toMuscleSetRanks,
 } from "./profileChartData"
 
@@ -11,6 +12,31 @@ describe("profileTickInterval", () => {
     expect(profileTickInterval(7)).toBe(0)
     expect(profileTickInterval(8)).toBe(0)
     expect(profileTickInterval(14)).toBe("preserveStartEnd")
+  })
+})
+
+describe("toMixCountRows", () => {
+  it("keeps session counts instead of stretching every day to 100%", () => {
+    const rows = toMixCountRows(MIX_7_CATEGORIES, MIX_7_SERIES)
+    expect(rows[0]).toEqual({
+      category: "Lun",
+      programme: 1,
+      quickWorkout: 0,
+      circuits: 1,
+    })
+    expect(rows[2]).toEqual({
+      category: "Mer",
+      programme: 2,
+      quickWorkout: 1,
+      circuits: 0,
+    })
+    expect(rows[2]?.programme + rows[2]?.quickWorkout + rows[2]?.circuits).toBe(3)
+    expect(rows[1]).toEqual({
+      category: "Mar",
+      programme: 0,
+      quickWorkout: 0,
+      circuits: 0,
+    })
   })
 })
 

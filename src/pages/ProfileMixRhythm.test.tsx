@@ -223,14 +223,18 @@ describe("profile Mix and Rhythm from snapshot", () => {
     const mix = within(sectionCard("Mix"))
     const chart = await waitFor(() => {
       const img = mix.getByRole("img", { name: "Mix" })
-      expect(img.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(2)
+      expect(
+        img.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+      ).toHaveLength(2)
       return img
     })
     expect(mix.getByText("2023")).toBeInTheDocument()
     expect(mix.getByText("2026")).toBeInTheDocument()
     expect(mix.queryByText("2024")).not.toBeInTheDocument()
     expect(mix.queryByText("No sessions in this window.")).not.toBeInTheDocument()
-    expect(chart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(2)
+    expect(
+      chart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+    ).toHaveLength(2)
     expect(
       mockRpc.mock.calls.some((call) => call[0] === "get_profile_all_time_rollups"),
     ).toBe(true)

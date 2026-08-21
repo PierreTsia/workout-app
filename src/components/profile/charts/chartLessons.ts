@@ -12,16 +12,19 @@ export function mixLesson(
   t: LessonT,
 ): string {
   if (row == null) return t("mix.tooltip.rest")
-  const slices = [
-    { key: "circuits" as const, n: row.circuits },
-    { key: "quickWorkout" as const, n: row.quickWorkout },
-    { key: "programme" as const, n: row.programme },
-  ]
-  const total = slices.reduce((sum, slice) => sum + slice.n, 0)
-  if (total === 0) return t("mix.tooltip.rest")
-  const winner = [...slices].sort((a, b) => b.n - a.n)[0]
-  if (winner == null) return t("mix.tooltip.rest")
-  return t(`mix.tooltip.${winner.key}`)
+  const parts = (
+    [
+      { key: "programme" as const, n: row.programme },
+      { key: "quickWorkout" as const, n: row.quickWorkout },
+      { key: "circuits" as const, n: row.circuits },
+    ] as const
+  )
+    .filter((slice) => slice.n > 0)
+    .map((slice) =>
+      t("mix.tooltip.slice", { n: slice.n, slice: t(`mix.slice.${slice.key}`) }),
+    )
+  if (parts.length === 0) return t("mix.tooltip.rest")
+  return parts.join(" · ")
 }
 
 export function rhythmLesson(

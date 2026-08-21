@@ -13,32 +13,24 @@ export type MixSeries = {
   circuits: readonly number[]
 }
 
-export type MixPercentRow = {
+export type MixCountRow = {
   category: string
   programme: number
   quickWorkout: number
   circuits: number
 }
 
-export function toMixPercentRows(
+/** One session, one stack. Height is the session count, not a 100% share. */
+export function toMixCountRows(
   categories: readonly string[],
   series: MixSeries,
-): MixPercentRow[] {
-  return categories.map((category, i) => {
-    const programme = series.programme[i] ?? 0
-    const quickWorkout = series.quickWorkout[i] ?? 0
-    const circuits = series.circuits[i] ?? 0
-    const total = programme + quickWorkout + circuits
-    if (total === 0) {
-      return { category, programme: 0, quickWorkout: 0, circuits: 0 }
-    }
-    return {
-      category,
-      programme: (programme / total) * 100,
-      quickWorkout: (quickWorkout / total) * 100,
-      circuits: (circuits / total) * 100,
-    }
-  })
+): MixCountRow[] {
+  return categories.map((category, i) => ({
+    category,
+    programme: series.programme[i] ?? 0,
+    quickWorkout: series.quickWorkout[i] ?? 0,
+    circuits: series.circuits[i] ?? 0,
+  }))
 }
 
 export type RecordsComboSeries = {

@@ -19,12 +19,14 @@ export function ProfileChartTooltip({
   label,
   lesson,
   formatValue,
+  hideZeros = false,
 }: {
   active?: boolean
   payload?: ReadonlyArray<unknown>
   label?: ReactNode
   lesson?: string
   formatValue?: (value: number, dataKey: string) => string
+  hideZeros?: boolean
 }) {
   const { config } = useChart()
   if (!active || payload == null || payload.length === 0) return null
@@ -32,6 +34,7 @@ export function ProfileChartTooltip({
   const rows = payload.flatMap((item, index) => {
     const fields = tooltipFields(item)
     if (fields == null || typeof fields.value !== "number") return []
+    if (hideZeros && fields.value === 0) return []
     const name =
       (fields.dataKey !== "" ? config[fields.dataKey]?.label : undefined) ??
       (fields.name == null ? fields.dataKey : String(fields.name))

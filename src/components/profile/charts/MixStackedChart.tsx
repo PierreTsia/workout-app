@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/chart"
 import { mixLesson, readMixRow } from "./chartLessons"
 import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { profileTickInterval, toMixPercentRows, type MixSeries } from "./profileChartData"
+import { profileTickInterval, toMixCountRows, type MixSeries } from "./profileChartData"
 
-export type { MixSeries, MixPercentRow } from "./profileChartData"
+export type { MixSeries, MixCountRow } from "./profileChartData"
 
 const mixChartConfig = {
   programme: { label: "Programme", color: "hsl(174 100% 39%)" },
@@ -29,7 +29,7 @@ export function MixStackedChart({
   series: MixSeries
 }) {
   const { t } = useTranslation("profile")
-  const data = toMixPercentRows(categories, series)
+  const data = toMixCountRows(categories, series)
 
   return (
     <ChartContainer
@@ -47,6 +47,12 @@ export function MixStackedChart({
           interval={profileTickInterval(categories.length)}
           minTickGap={16}
         />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false}
+          width={24}
+        />
         <ChartTooltip
           content={(props) => (
             <ProfileChartTooltip
@@ -54,7 +60,8 @@ export function MixStackedChart({
               payload={props.payload}
               label={props.label}
               lesson={mixLesson(readMixRow(props.payload?.[0]?.payload), t)}
-              formatValue={(value) => `${Math.round(value)}%`}
+              formatValue={(value) => String(value)}
+              hideZeros
             />
           )}
         />

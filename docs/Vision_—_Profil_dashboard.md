@@ -76,7 +76,7 @@ Presence strip. Skip-vs-plan rings **only** if a single Programme produced enoug
 
 ### Mix
 
-Stacked 100% share, same grain as Rythme. Series: **Programme** · **Quick Workout** · **Circuits**. Exclusive — one session, one slice.
+Stacked session counts, same grain as Rythme. Bar height = séances that bucket. Series: **Programme** · **Quick Workout** · **Circuits**. Exclusive — one session, one slice. Not a 100% share — a 1-session week is a short bar.
 
 **Mix slice precedence (frozen):** **(1) Circuits** if the workout day has an Exercise Block with `benchmark_circuit_id` not null (Benchmark Circuit, including a programmed Athena / Cindy day); **(2)** else **Quick Workout** if `workout_days.program_id` is null; **(3)** else **Programme**. Jetable Circuits (`benchmark_circuit_id` null) never take slice (1). Overlay / double-count is out.
 
