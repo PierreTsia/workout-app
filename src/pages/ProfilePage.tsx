@@ -1,21 +1,13 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
-import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
+import { BalanceTonnageRow } from "@/components/profile/BalanceTonnageRow"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
 import { MixBlock } from "@/components/profile/MixBlock"
 import { PulseBlock } from "@/components/profile/PulseBlock"
 import { RhythmBlock } from "@/components/profile/RhythmBlock"
 import { RecordsBlock } from "@/components/profile/RecordsBlock"
-import {
-  RADAR_CURRENT,
-  RADAR_PRIOR,
-  radarBalanceScore,
-} from "@/components/profile/charts/fixtures"
 import { cn } from "@/lib/utils"
-import { BalanceScoreBar } from "@/components/profile/BalanceScoreBar"
-import { MuscleSetRanks } from "@/components/profile/MuscleSetRanks"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
@@ -43,9 +35,7 @@ import {
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
-import { pierreTonnageBars } from "@/lib/profile/tonnage"
 import { rankColorRing, rankColorText } from "@/lib/achievementUtils"
-import { balanceBandFromScore } from "@/lib/trainingBalance"
 import { localDateFromIsoDay, tenureSpan, tenureSpanKey } from "@/lib/profile/tenure"
 import type { BadgeStatusRow } from "@/types/achievements"
 
@@ -351,96 +341,6 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
       </ProfileSection>
       <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
     </>
-  )
-}
-
-function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind, includeDeltas } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
-  const bars = pierreTonnageBars(kind)
-  const tonnageDelta: number = 1.2
-  const score = radarBalanceScore(RADAR_CURRENT)
-  const band = balanceBandFromScore(score)
-  const priorScore = radarBalanceScore(RADAR_PRIOR)
-  const scoreDelta = score - priorScore
-  const scoreDeltaLabel =
-    scoreDelta === 0
-      ? t("pulse.deltaEven")
-      : scoreDelta < 0
-        ? t("pulse.deltaDown", { n: Math.abs(scoreDelta) })
-        : t("pulse.delta", { n: scoreDelta })
-
-  return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
-      <ProfileSection
-        title={t("balance.title")}
-        hint={
-          <ProfileHint label={t("about", { section: t("balance.title") })}>
-            {t("balance.hint")}
-          </ProfileHint>
-        }
-        meta={
-          status === "ok" && includeDeltas ? (
-            <span
-              className={cn(
-                "font-medium",
-                scoreDelta > 0 && "text-emerald-600 dark:text-emerald-400",
-                scoreDelta < 0 && "text-destructive",
-                scoreDelta === 0 && "text-muted-foreground",
-              )}
-            >
-              {scoreDeltaLabel}
-            </span>
-          ) : undefined
-        }
-        status={status}
-        empty={t("balance.empty")}
-      >
-        <BalanceScoreBar
-          score={score}
-          label={t("balance.score", { score })}
-          bandLabel={t(`balance.band.${band}`)}
-        />
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_10.5rem] items-center gap-3">
-          <div className="min-w-0">
-            <MuscleRadarChart
-              series={{
-                current: RADAR_CURRENT,
-                prior: includeDeltas ? RADAR_PRIOR : undefined,
-              }}
-            />
-          </div>
-          <MuscleSetRanks values={RADAR_CURRENT} />
-        </div>
-      </ProfileSection>
-      <ProfileSection
-        title={t("tonnage.title")}
-        hint={
-          <ProfileHint label={t("about", { section: t("tonnage.title") })}>
-            {t("tonnage.hint")}
-          </ProfileHint>
-        }
-        status={status}
-        empty={t("tonnage.empty")}
-      >
-        <p className="text-3xl font-bold tracking-tight">18.4 t</p>
-        {includeDeltas ? (
-          <p
-            className={cn(
-              "mt-1 text-xs font-medium",
-              tonnageDelta > 0 && "text-emerald-600 dark:text-emerald-400",
-              tonnageDelta < 0 && "text-destructive",
-              tonnageDelta === 0 && "text-muted-foreground",
-            )}
-          >
-            {t("pulse.delta", { n: "1.2 t" })}
-          </p>
-        ) : null}
-        <p className="mt-2 mb-3 text-xs text-muted-foreground">{t("tonnage.legend")}</p>
-        <TonnageBarChart categories={MIX_CATEGORIES[kind]} series={bars} />
-      </ProfileSection>
-    </div>
   )
 }
 

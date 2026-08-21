@@ -12,10 +12,10 @@ vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
 const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
-function sectionCard(name: string) {
+function sectionCard(name: string): HTMLElement {
   const heading = screen.getByRole("heading", { name })
   const card = heading.closest(".bg-card")
-  if (!card) throw new Error(`expected ${name} card`)
+  if (!(card instanceof HTMLElement)) throw new Error(`expected ${name} card`)
   return card
 }
 

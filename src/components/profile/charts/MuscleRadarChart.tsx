@@ -77,7 +77,9 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
                 lesson={radarLesson(display, t)}
                 formatValue={(value) =>
                   t("balance.tooltip.sets", {
-                    n: Math.round(value * PIERRE_SET_CREDIT_SCALE),
+                    n: Math.round(
+                      display?.currentSets ?? value * PIERRE_SET_CREDIT_SCALE,
+                    ),
                   })
                 }
               />

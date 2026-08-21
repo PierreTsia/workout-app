@@ -15,19 +15,24 @@ export interface VolumeDistributionData {
   days: number
 }
 
-export function useVolumeDistribution(days: number = DEFAULT_DAYS) {
+export function useVolumeDistribution(
+  days: number = DEFAULT_DAYS,
+  options?: { includePrevious?: boolean; enabled?: boolean },
+) {
   const user = useAtomValue(authAtom)
+  const includePrevious = options?.includePrevious ?? true
+  const boundedDays = Math.min(Math.max(days, 1), 365)
 
   return useQuery<VolumeDistributionData>({
-    queryKey: ["volume-distribution", user?.id, days],
+    queryKey: ["volume-distribution", user?.id, boundedDays, includePrevious],
     queryFn: async () => {
       const uid = user!.id
-      const [current, previous] = await Promise.all([
-        fetchVolumeByMuscleGroup(supabase, uid, days, 0),
-        fetchVolumeByMuscleGroup(supabase, uid, days, days),
-      ])
-      return { current, previous, days }
+      const current = await fetchVolumeByMuscleGroup(supabase, uid, boundedDays, 0)
+      const previous = includePrevious
+        ? await fetchVolumeByMuscleGroup(supabase, uid, boundedDays, boundedDays)
+        : { finished_sessions: 0, muscles: [] }
+      return { current, previous, days: boundedDays }
     },
-    enabled: !!user,
+    enabled: Boolean(user) && (options?.enabled ?? true),
   })
 }

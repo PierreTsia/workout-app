@@ -67,19 +67,52 @@ export type MuscleRadarRow = {
   muscle: MuscleTaxonomy
   current: number
   prior?: number
+  currentSets: number
+  priorSets?: number
+}
+
+export function scaleRadarCredits(values: MuscleRadarValues): MuscleRadarValues {
+  return {
+    Pectoraux: values.Pectoraux * PIERRE_SET_CREDIT_SCALE,
+    Dos: values.Dos * PIERRE_SET_CREDIT_SCALE,
+    Épaules: values.Épaules * PIERRE_SET_CREDIT_SCALE,
+    Biceps: values.Biceps * PIERRE_SET_CREDIT_SCALE,
+    Triceps: values.Triceps * PIERRE_SET_CREDIT_SCALE,
+    Quadriceps: values.Quadriceps * PIERRE_SET_CREDIT_SCALE,
+    Ischios: values.Ischios * PIERRE_SET_CREDIT_SCALE,
+    Fessiers: values.Fessiers * PIERRE_SET_CREDIT_SCALE,
+    Adducteurs: values.Adducteurs * PIERRE_SET_CREDIT_SCALE,
+    Mollets: values.Mollets * PIERRE_SET_CREDIT_SCALE,
+    Abdos: values.Abdos * PIERRE_SET_CREDIT_SCALE,
+    Trapèzes: values.Trapèzes * PIERRE_SET_CREDIT_SCALE,
+    Lombaires: values.Lombaires * PIERRE_SET_CREDIT_SCALE,
+  }
 }
 
 export function toRadarRows(series: MuscleRadarSeries): MuscleRadarRow[] {
+  const prior = series.prior
+  const peak = Math.max(
+    1,
+    ...MUSCLE_TAXONOMY.map((muscle) => series.current[muscle]),
+    ...(prior == null ? [] : MUSCLE_TAXONOMY.map((muscle) => prior[muscle])),
+  )
   return MUSCLE_TAXONOMY.map((muscle) => {
-    const current = series.current[muscle]
-    if (series.prior === undefined) {
-      return { muscle, current }
+    const currentSets = series.current[muscle]
+    if (prior === undefined) {
+      return { muscle, current: currentSets / peak, currentSets }
     }
-    return { muscle, current, prior: series.prior[muscle] }
+    const priorSets = prior[muscle]
+    return {
+      muscle,
+      current: currentSets / peak,
+      prior: priorSets / peak,
+      currentSets,
+      priorSets,
+    }
   })
 }
 
-/** T0: radar fixture is 0–1. Scale to credited-set integers until T230 wires RPC sets. */
+/** T0 fixture is 0–1. Multiply to credited sets before the radar/ranks consume a VM. */
 export const PIERRE_SET_CREDIT_SCALE = 20
 
 export type MuscleSetRank = {
@@ -89,9 +122,14 @@ export type MuscleSetRank = {
 }
 
 export function toMuscleSetRanks(values: MuscleRadarValues): MuscleSetRank[] {
+  const peakRaw = MUSCLE_TAXONOMY.reduce(
+    (max, muscle) => Math.max(max, values[muscle]),
+    0,
+  )
+  const unit = peakRaw > 0 && peakRaw <= 1 ? PIERRE_SET_CREDIT_SCALE : 1
   const rows = MUSCLE_TAXONOMY.map((muscle) => ({
     muscle,
-    sets: Math.round(values[muscle] * PIERRE_SET_CREDIT_SCALE),
+    sets: Math.round(values[muscle] * unit),
   }))
   const peak = rows.reduce((max, row) => Math.max(max, row.sets), 0)
   const ranked = rows.map((row) => ({

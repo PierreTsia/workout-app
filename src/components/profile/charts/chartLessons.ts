@@ -46,15 +46,25 @@ export function recordsLesson(
 }
 
 export function radarLesson(
-  row: { muscle: string; current: number; prior?: number } | undefined,
+  row:
+    | {
+        muscle: string
+        current: number
+        prior?: number
+        currentSets?: number
+        priorSets?: number
+      }
+    | undefined,
   t: LessonT,
 ): string {
   if (row == null) return t("balance.tooltip.idle")
-  const sets = Math.round(row.current * PIERRE_SET_CREDIT_SCALE)
-  if (row.prior === undefined) {
+  const sets = Math.round(row.currentSets ?? row.current * PIERRE_SET_CREDIT_SCALE)
+  if (row.prior === undefined && row.priorSets === undefined) {
     return t("balance.tooltip.muscle", { muscle: row.muscle, sets })
   }
-  const prior = Math.round(row.prior * PIERRE_SET_CREDIT_SCALE)
+  const prior = Math.round(
+    row.priorSets ?? (row.prior ?? 0) * PIERRE_SET_CREDIT_SCALE,
+  )
   if (sets > prior) {
     return t("balance.tooltip.up", { muscle: row.muscle, sets, prior })
   }
@@ -106,5 +116,7 @@ export function readRadarRow(value: unknown) {
     muscle: row.muscle,
     current: row.current,
     prior: typeof row.prior === "number" ? row.prior : undefined,
+    currentSets: typeof row.currentSets === "number" ? row.currentSets : undefined,
+    priorSets: typeof row.priorSets === "number" ? row.priorSets : undefined,
   }
 }
