@@ -76,9 +76,23 @@ describe("ProfilePage T0 fixtures", () => {
       "href",
       "/achievements",
     )
+    expect(screen.getByRole("button", { name: "No Break" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Baby Spidey" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "First Lap" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Nose to Floor" })).toBeInTheDocument()
     expect(document.querySelectorAll(".badge-frame-gold").length).toBeGreaterThan(0)
     expect(document.querySelectorAll(".badge-frame-diamond").length).toBeGreaterThan(0)
     expect(document.querySelectorAll(".badge-frame-bronze").length).toBe(3)
+  })
+
+  it("opens the achievement detail drawer when a Succès medal is clicked", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    await user.click(screen.getByRole("button", { name: "No Break" }))
+
+    expect(screen.getByRole("heading", { name: "No Break" })).toBeInTheDocument()
   })
 
   it("fills Équilibre and Tonnage on the Pierre ~100d fixture", () => {

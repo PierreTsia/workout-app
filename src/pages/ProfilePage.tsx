@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
   emptyMixSeries,
@@ -35,7 +36,7 @@ import {
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
-import type { AchievementRank } from "@/types/achievements"
+import type { BadgeStatusRow } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
 
@@ -162,90 +163,114 @@ function badgeTitle(spot: {
   return language === "fr" ? spot.title_fr : spot.title_en
 }
 
+function SuccesMedalButton({
+  badge,
+  size,
+  titleClassName,
+  onSelect,
+}: {
+  badge: BadgeStatusRow
+  size: "sm" | "md"
+  titleClassName: string
+  onSelect: (badge: BadgeStatusRow) => void
+}) {
+  const { i18n } = useTranslation()
+  const title = badgeTitle(badge, i18n.language)
+
+  return (
+    <button
+      type="button"
+      aria-label={title}
+      className={
+        size === "md"
+          ? "flex flex-col items-center gap-1.5 transition-transform active:scale-95"
+          : "flex flex-col items-center gap-1 transition-transform active:scale-95"
+      }
+      onClick={() => onSelect(badge)}
+    >
+      <BadgeIcon rank={badge.rank} iconUrl={badge.icon_asset_url} size={size} alt={title} />
+      <span className={titleClassName}>{title}</span>
+    </button>
+  )
+}
+
 function FeaturedBadge({
   label,
-  rank,
-  iconUrl,
-  title,
+  badge,
+  onSelect,
 }: {
   label: string
-  rank: AchievementRank
-  iconUrl: string | null
-  title: string
+  badge: BadgeStatusRow
+  onSelect: (badge: BadgeStatusRow) => void
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <BadgeIcon rank={rank} iconUrl={iconUrl} size="md" alt={title} />
-      <span className="max-w-24 truncate text-center text-[11px] font-medium leading-tight">
-        {title}
-      </span>
+      <SuccesMedalButton
+        badge={badge}
+        size="md"
+        titleClassName="max-w-24 truncate text-center text-[11px] font-medium leading-tight"
+        onSelect={onSelect}
+      />
     </div>
   )
 }
 
 function SuccesBlock({ mode }: { mode: FixtureMode }) {
-  const { t, i18n } = useTranslation("profile")
+  const { t } = useTranslation("profile")
+  const [selected, setSelected] = useState<BadgeStatusRow | null>(null)
   const status = blockStatus(mode, "ok")
-  const latestTitle = badgeTitle(PIERRE_SUCCES.latest, i18n.language)
-  const highestTitle = badgeTitle(PIERRE_SUCCES.highest, i18n.language)
 
   return (
-    <ProfileSection
-      title={t("achievements.title")}
-      status={status}
-      empty={t("achievements.empty")}
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          {t("achievements.count", {
-            n: PIERRE_SUCCES.unlocked,
-            total: PIERRE_SUCCES.total,
-          })}
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <FeaturedBadge
-            label={t("achievements.latest")}
-            rank={PIERRE_SUCCES.latest.rank}
-            iconUrl={PIERRE_SUCCES.latest.icon_asset_url}
-            title={latestTitle}
-          />
-          <FeaturedBadge
-            label={t("achievements.highest")}
-            rank={PIERRE_SUCCES.highest.rank}
-            iconUrl={PIERRE_SUCCES.highest.icon_asset_url}
-            title={highestTitle}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">{t("achievements.recent")}</p>
-          <div className="flex flex-wrap gap-3">
-            {PIERRE_SUCCES.recent.map((spot) => {
-              const title = badgeTitle(spot, i18n.language)
-              return (
-                <div key={spot.title_en} className="flex flex-col items-center gap-1">
-                  <BadgeIcon
-                    rank={spot.rank}
-                    iconUrl={spot.icon_asset_url}
-                    size="sm"
-                    alt={title}
-                  />
-                  <span className="max-w-16 truncate text-center text-[10px] text-muted-foreground">
-                    {title}
-                  </span>
-                </div>
-              )
+    <>
+      <ProfileSection
+        title={t("achievements.title")}
+        status={status}
+        empty={t("achievements.empty")}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            {t("achievements.count", {
+              n: PIERRE_SUCCES.unlocked,
+              total: PIERRE_SUCCES.total,
             })}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <FeaturedBadge
+              label={t("achievements.latest")}
+              badge={PIERRE_SUCCES.latest}
+              onSelect={setSelected}
+            />
+            <FeaturedBadge
+              label={t("achievements.highest")}
+              badge={PIERRE_SUCCES.highest}
+              onSelect={setSelected}
+            />
           </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">{t("achievements.recent")}</p>
+            <div className="flex flex-wrap gap-3">
+              {PIERRE_SUCCES.recent.map((spot) => (
+                <SuccesMedalButton
+                  key={spot.tier_id}
+                  badge={spot}
+                  size="sm"
+                  titleClassName="max-w-16 truncate text-center text-[10px] text-muted-foreground"
+                  onSelect={setSelected}
+                />
+              ))}
+            </div>
+          </div>
+          <Link
+            to="/achievements"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
+            {t("achievements.seeAll")}
+          </Link>
         </div>
-        <Link
-          to="/achievements"
-          className="text-sm text-primary underline-offset-4 hover:underline"
-        >
-          {t("achievements.seeAll")}
-        </Link>
-      </div>
-    </ProfileSection>
+      </ProfileSection>
+      <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
+    </>
   )
 }
 
