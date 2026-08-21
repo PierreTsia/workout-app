@@ -16,9 +16,9 @@ export const MIX_7_CATEGORIES = [
 ] as const
 
 export const MIX_7_SERIES: MixSeries = {
-  programme: [1, 0, 0, 0, 0, 0, 0],
-  quickWorkout: [0, 0, 1, 0, 0, 0, 0],
-  circuits: [0, 0, 0, 0, 1, 0, 0],
+  programme: [1, 0, 2, 0, 1, 0, 0],
+  quickWorkout: [0, 0, 1, 0, 1, 0, 0],
+  circuits: [1, 0, 0, 0, 1, 0, 0],
 }
 
 export const COMBO_CATEGORIES = ["Lun", "Mer", "Ven"] as const

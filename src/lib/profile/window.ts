@@ -48,28 +48,51 @@ export function pierreRhythmPresence(kind: ProfileWindowKind): boolean[] {
   return Array.from({ length: n }, (_, i) => i % 5 !== 4)
 }
 
+/** Session counts per type. Several patterns stack 2–3 types on one tick. */
+const MIX_DAY_PATTERNS = [
+  { programme: 1, quickWorkout: 0, circuits: 1 },
+  { programme: 1, quickWorkout: 0, circuits: 0 },
+  { programme: 2, quickWorkout: 1, circuits: 0 },
+  { programme: 0, quickWorkout: 1, circuits: 0 },
+  { programme: 1, quickWorkout: 1, circuits: 1 },
+] as const
+
+function mixDayPattern(filledIndex: number): {
+  programme: number
+  quickWorkout: number
+  circuits: number
+} {
+  const pattern = MIX_DAY_PATTERNS[filledIndex % MIX_DAY_PATTERNS.length]
+  if (pattern === undefined) {
+    return { programme: 0, quickWorkout: 0, circuits: 0 }
+  }
+  return pattern
+}
+
 export function pierreMixSeries(kind: ProfileWindowKind): MixSeries {
   const presence = pierreRhythmPresence(kind)
-  const programme = zeros(presence.length)
-  const quickWorkout = zeros(presence.length)
-  const circuits = zeros(presence.length)
+  const rankByIndex = new Map(
+    presence
+      .map((on, i) => ({ on, i }))
+      .filter(({ on }) => on)
+      .map(({ i }, j) => [i, j]),
+  )
 
-  const filled = presence
-    .map((on, i) => ({ on, i }))
-    .filter(({ on }) => on)
+  const tick = (i: number) => {
+    const rank = rankByIndex.get(i)
+    if (rank === undefined) {
+      return { programme: 0, quickWorkout: 0, circuits: 0 }
+    }
+    return mixDayPattern(rank)
+  }
 
-  const stacked = filled.map(({ i }, j) => {
-    const slot = j % 4
-    return { i, slot }
-  })
+  const ticks = presence.map((_, i) => tick(i))
 
-  stacked.forEach(({ i, slot }) => {
-    if (slot === 0 || slot === 1) programme[i] = 1
-    else if (slot === 2) quickWorkout[i] = 1
-    else circuits[i] = 1
-  })
-
-  return { programme, quickWorkout, circuits }
+  return {
+    programme: ticks.map((t) => t.programme),
+    quickWorkout: ticks.map((t) => t.quickWorkout),
+    circuits: ticks.map((t) => t.circuits),
+  }
 }
 
 export function emptyMixSeries(kind: ProfileWindowKind): MixSeries {

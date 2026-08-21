@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  emptyMixSeries,
   includeDeltas,
   MIX_CATEGORIES,
   pierreMixSeries,
@@ -39,8 +40,22 @@ describe("profile window", () => {
     "puts two Mix types on the same Pierre %s tick",
     (kind) => {
       const series = pierreMixSeries(kind)
+      expect(series.programme).toHaveLength(MIX_CATEGORIES[kind].length)
       const stacked = series.programme.some((_, i) => typesOnTick(series, i) >= 2)
       expect(stacked).toBe(true)
     },
   )
-}))
+
+  it("leaves Pierre 7d Sunday empty on Mix", () => {
+    const series = pierreMixSeries("7")
+    const sun = MIX_CATEGORIES["7"].indexOf("Sun")
+    expect(typesOnTick(series, sun)).toBe(0)
+  })
+
+  it("keeps the empty Mix series at zero", () => {
+    const series = emptyMixSeries("7")
+    expect(series.programme.every((n) => n === 0)).toBe(true)
+    expect(series.quickWorkout.every((n) => n === 0)).toBe(true)
+    expect(series.circuits.every((n) => n === 0)).toBe(true)
+  })
+})

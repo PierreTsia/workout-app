@@ -21,12 +21,22 @@ describe("MixStackedChart", () => {
     const rows = toMixPercentRows(MIX_7_CATEGORIES, MIX_7_SERIES)
     expect(rows).toHaveLength(MIX_7_CATEGORIES.length)
 
+    const mixedDays = MIX_7_CATEGORIES.filter((_, i) => {
+      const types = [
+        MIX_7_SERIES.programme[i],
+        MIX_7_SERIES.quickWorkout[i],
+        MIX_7_SERIES.circuits[i],
+      ].filter((n) => n > 0)
+      return types.length >= 2
+    })
+    expect(mixedDays.length).toBeGreaterThan(0)
+
     const sessionDays = rows.filter(
       (row) => row.programme + row.quickWorkout + row.circuits > 0,
     )
     expect(sessionDays).toHaveLength(3)
     sessionDays.forEach((row) => {
-      expect(row.programme + row.quickWorkout + row.circuits).toBe(100)
+      expect(row.programme + row.quickWorkout + row.circuits).toBeCloseTo(100)
     })
     const restDays = rows.filter(
       (row) => row.programme + row.quickWorkout + row.circuits === 0,
@@ -44,6 +54,7 @@ describe("MixStackedChart", () => {
         mix.querySelectorAll(".recharts-cartesian-axis-tick"),
       ).toHaveLength(MIX_7_CATEGORIES.length)
     })
+    expect(mix.querySelectorAll(".recharts-bar")).toHaveLength(3)
     expect(screen.getByText("Programme")).toBeInTheDocument()
     expect(screen.getByText("Quick Workout")).toBeInTheDocument()
     expect(screen.getByText("Circuits")).toBeInTheDocument()
