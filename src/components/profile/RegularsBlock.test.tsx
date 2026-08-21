@@ -157,6 +157,7 @@ describe("RegularsBlock", () => {
     expect(items).toHaveLength(1)
     expect(within(items[0]).getByText("33")).toBeInTheDocument()
     expect(within(items[0]).getByText("+2 kg")).toBeInTheDocument()
+    expect(items[0].className).toMatch(/auto_4\.5rem/)
     expect(within(card).getByText("Most logged · This week")).toBeInTheDocument()
     expect(screen.queryByText("Squat")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
@@ -227,6 +228,10 @@ describe("RegularsBlock", () => {
     })
     expect(screen.getByText("1,240")).toBeInTheDocument()
     expect(screen.getByText("Most logged · All time")).toBeInTheDocument()
+    expect(regularsCard().querySelector("li")?.className).toMatch(
+      /grid-cols-\[minmax\(0,1fr\)_4\.5rem\]/,
+    )
+    expect(regularsCard().querySelector("li")?.className).not.toMatch(/auto_4\.5rem/)
     expect(screen.queryByText("Walking lunge")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
     expect(screen.queryByText("777")).not.toBeInTheDocument()
