@@ -109,7 +109,7 @@ export function RhythmPresenceChart({
                   data-rhythm-dot={on ? "on" : "off"}
                   className={cn(
                     "shrink-0 rounded-full",
-                    kind === "7" ? "size-2.5" : "size-1.5 sm:size-2",
+                    kind === "7" ? "size-2.5" : "size-2 sm:size-2.5",
                     on ? "bg-primary" : "bg-muted-foreground/30",
                   )}
                 />

@@ -89,6 +89,21 @@ describe("ProfilePage T0 fixtures", () => {
     ).toBeTruthy()
   })
 
+  it("lets Rhythm span both columns of the Mix row", () => {
+    renderWithProviders(<ProfilePage />)
+
+    const mix = screen.getByRole("heading", { name: "Mix" })
+    const rhythm = screen.getByRole("heading", { name: "Rhythm" })
+    const mixCell = mix.closest("[class*='col-span']")
+    const rhythmCell = rhythm.closest("[class*='col-span']")
+    const grid = mixCell?.parentElement
+
+    expect(grid?.className).toMatch(/lg:grid-cols-2/)
+    expect(mixCell?.className).toMatch(/lg:col-span-2/)
+    expect(rhythmCell?.className).toMatch(/lg:col-span-2/)
+    expect(mixCell).not.toBe(rhythmCell)
+  })
+
   it("exposes five window crans and hides vs-prior on All time", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)

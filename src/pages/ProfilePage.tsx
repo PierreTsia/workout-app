@@ -529,11 +529,11 @@ function ProfileFold({ mode }: { mode: FixtureMode }) {
       <HeroBlock mode={mode} />
       <SuccesBlock mode={mode} />
       <PulseBlock mode={mode} />
-      <div className="grid min-w-0 gap-4 lg:grid-cols-7">
-        <div className="min-w-0 lg:col-span-4">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+        <div className="min-w-0 lg:col-span-2">
           <MixBlock mode={mode} />
         </div>
-        <div className="min-w-0 lg:col-span-3">
+        <div className="min-w-0 lg:col-span-2">
           <RhythmBlock mode={mode} />
         </div>
       </div>
