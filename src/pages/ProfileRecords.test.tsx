@@ -37,6 +37,15 @@ vi.mock("@/hooks/useProfileCircuitLedger", () => ({
   }),
 }))
 
+vi.mock("@/hooks/useBadgeStatus", () => ({
+  useBadgeStatus: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+    isSuccess: true,
+  }),
+}))
+
 function withinRecords() {
   const heading = screen.getByRole("heading", { name: "Records" })
   const card = heading.closest(".bg-card")

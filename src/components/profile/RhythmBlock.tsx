@@ -4,7 +4,8 @@ import { ProfileHint } from "@/components/profile/ProfileHint"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
+import { buildRhythmVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildRhythmVm } from "@/lib/profile/rythme"
 import { pierreRhythmHits, PIERRE_WEEKLY_TARGET } from "@/lib/profile/window"
 import {
@@ -20,9 +21,8 @@ export function RhythmBlock({ mode }: { mode: RhythmFixtureMode }) {
   const { t } = useTranslation("profile")
   const { kind } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const snapshotQuery = useProfileSnapshot(kind)
-  const boundedKind = kind === "all" ? null : kind
-  const live = mode === "pierre" && boundedKind != null && user != null
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, mode === "pierre" && user != null)
   const target = PIERRE_WEEKLY_TARGET
 
   const hint = (
@@ -31,7 +31,11 @@ export function RhythmBlock({ mode }: { mode: RhythmFixtureMode }) {
     </ProfileHint>
   )
 
-  if (mode === "loading" || (live && snapshotQuery.isPending)) {
+  if (
+    mode === "loading" ||
+    (liveBounded && snapshotQuery.isPending) ||
+    (liveAll && rollupsQuery.isPending)
+  ) {
     return (
       <ProfileSection
         title={t("rhythm.title")}
@@ -53,7 +57,7 @@ export function RhythmBlock({ mode }: { mode: RhythmFixtureMode }) {
     )
   }
 
-  if (live && snapshotQuery.isError) {
+  if ((liveBounded && snapshotQuery.isError) || (liveAll && rollupsQuery.isError)) {
     return (
       <ProfileSection
         title={t("rhythm.title")}
@@ -67,7 +71,7 @@ export function RhythmBlock({ mode }: { mode: RhythmFixtureMode }) {
 
   const timeZone = getResolvedIANATimeZone()
   const liveVm =
-    live && snapshotQuery.data != null && boundedKind != null
+    liveBounded && snapshotQuery.data != null && boundedKind != null
       ? buildRhythmVm(snapshotQuery.data, {
           kind: boundedKind,
           ...profileWindowRange(
@@ -76,7 +80,9 @@ export function RhythmBlock({ mode }: { mode: RhythmFixtureMode }) {
           ),
           timeZone,
         })
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? buildRhythmVmFromRollups(rollupsQuery.data)
+        : null
 
   const fixture = pierreRhythmHits(kind)
   const hits = liveVm?.hits ?? fixture.hits

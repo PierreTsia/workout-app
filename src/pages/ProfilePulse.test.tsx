@@ -71,6 +71,15 @@ vi.mock("@/hooks/useProfileCircuitLedger", () => ({
   }),
 }))
 
+vi.mock("@/hooks/useBadgeStatus", () => ({
+  useBadgeStatus: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+    isSuccess: true,
+  }),
+}))
+
 describe("profile pulse tiles", () => {
   beforeEach(() => {
     stubChartLayout()

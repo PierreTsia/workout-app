@@ -8,11 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useActiveProgram } from "@/hooks/useActiveProgram"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { useFirstFinishedSessionAt } from "@/hooks/useFirstFinishedSessionAt"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useUserPrograms } from "@/hooks/useUserPrograms"
 import { rankColorRing, rankColorText, resolveActiveTitle } from "@/lib/achievementUtils"
-import { hopOtherProgramId } from "@/lib/profile/hop"
+import { hopOtherProgramId, hopOtherProgramIdFromIds } from "@/lib/profile/hop"
 import {
   localDateFromIsoDay,
   tenureSpan,
@@ -42,9 +42,9 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
   const { data: activeProgram } = useActiveProgram()
   const { data: programs } = useUserPrograms()
   const { data: badges } = useBadgeStatus()
-  const snapshotQuery = useProfileSnapshot(kind)
   const live = mode === "pierre" && user != null
-  const boundedKind = kind === "all" ? null : kind
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, live)
 
   if (mode === "loading") {
     return (
@@ -88,7 +88,7 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
 
   const timeZone = getResolvedIANATimeZone()
   const hopId =
-    live && boundedKind != null && snapshotQuery.data != null
+    liveBounded && boundedKind != null && snapshotQuery.data != null
       ? hopOtherProgramId(
           snapshotQuery.data.sessions,
           {
@@ -97,7 +97,12 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
           },
           activeProgram?.id ?? null,
         )
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? hopOtherProgramIdFromIds(
+            rollupsQuery.data.program_ids,
+            activeProgram?.id ?? null,
+          )
+        : null
   const hopName = hopId
     ? (programs ?? []).find((program) => program.id === hopId)?.name
     : null

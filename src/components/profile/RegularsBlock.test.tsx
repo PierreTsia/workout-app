@@ -184,17 +184,55 @@ describe("RegularsBlock", () => {
   })
 
   it("does not invent a 100d Regulars list on Toujours", async () => {
-    mockRpc.mockResolvedValue({ data: liveSnapshot(), error: null })
+    mockRpc.mockImplementation((name: string) => {
+      if (name === "get_profile_all_time_rollups") {
+        return Promise.resolve({
+          data: {
+            years: [
+              {
+                year: 2024,
+                mix: { programme: 1, quickWorkout: 0, circuits: 0 },
+                tonnage_kg: 0,
+                pr_pairs: 0,
+                rir0_num: 0,
+                rir0_den: 0,
+                session_count: 2,
+                duration_ms: 80 * 60_000,
+              },
+            ],
+            program_ids: [],
+            regulars: [
+              {
+                exercise_id: "career-squat",
+                reps: 1240,
+                last_logged_at: "2024-01-01T11:00:00.000Z",
+              },
+            ],
+          },
+          error: null,
+        })
+      }
+      return Promise.resolve({ data: liveSnapshot(), error: null })
+    })
     const { store } = renderRegulars("pierre", "all")
     act(() => {
       store.set(authAtom, { id: "user-1" } as never)
     })
 
-    expect(screen.getByText("Walking lunge")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("career-squat")).toBeInTheDocument()
+    })
+    expect(screen.getByText("1,240")).toBeInTheDocument()
     expect(screen.getByText("Most logged · All time")).toBeInTheDocument()
+    expect(screen.queryByText("Walking lunge")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
     expect(screen.queryByText("777")).not.toBeInTheDocument()
-    expect(mockRpc).not.toHaveBeenCalled()
+    expect(mockRpc).toHaveBeenCalledWith("get_profile_all_time_rollups", {
+      p_tz: "UTC",
+    })
+    expect(
+      mockRpc.mock.calls.some((call) => call[0] === "get_profile_snapshot"),
+    ).toBe(false)
   })
 
   it("shows empty when the live window has no habit, not a fake top-8", async () => {

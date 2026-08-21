@@ -23,6 +23,37 @@ export type ProfileSnapshot = {
   sets: SetFact[]
 }
 
+export type YearMixCounts = {
+  programme: number
+  quickWorkout: number
+  circuits: number
+}
+
+export type YearRollup = {
+  year: number
+  mix: YearMixCounts
+  tonnage_kg: number
+  pr_pairs: number
+  rir0_num: number
+  rir0_den: number
+  session_count: number
+  duration_ms: number
+}
+
+export type AllTimeRegular = {
+  exercise_id: string
+  reps: number | null
+  last_logged_at: string
+}
+
+export type ProfileAllTimeRollups = {
+  years: YearRollup[]
+  program_ids: string[]
+  regulars: AllTimeRegular[]
+  pr_exercise_count: number
+  last_pr_day: string | null
+}
+
 export type PulseVm =
   | { status: "empty" }
   | {

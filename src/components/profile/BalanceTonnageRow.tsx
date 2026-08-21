@@ -13,8 +13,10 @@ import {
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { scaleRadarCredits } from "@/components/profile/charts/profileChartData"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
+import { useVolumeByMuscleGroupAllTime } from "@/hooks/useVolumeByMuscleGroupAllTime"
 import { useVolumeDistribution } from "@/hooks/useVolumeDistribution"
+import { buildTonnageVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildBalanceVm } from "@/lib/profile/balance"
 import { buildTonnageVm, formatTonnes, pierreTonnageBars } from "@/lib/profile/tonnage"
 import { MIX_CATEGORIES } from "@/lib/profile/window"
@@ -50,32 +52,36 @@ export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode })
   const { t } = useTranslation("profile")
   const { kind, includeDeltas } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const snapshotQuery = useProfileSnapshot(kind)
-  const boundedKind = kind === "all" ? null : kind
-  const live = mode === "pierre" && boundedKind != null && user != null
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, mode === "pierre" && user != null)
   const volumeQuery = useVolumeDistribution(
     boundedKind == null ? 30 : VOLUME_DAYS[boundedKind],
-    { includePrevious: includeDeltas, enabled: live },
+    { includePrevious: includeDeltas, enabled: liveBounded },
   )
+  const volumeAllQuery = useVolumeByMuscleGroupAllTime({ enabled: liveAll })
 
   const timeZone = getResolvedIANATimeZone()
   const liveBalance =
-    live && volumeQuery.data != null
+    liveBounded && volumeQuery.data != null
       ? buildBalanceVm(
           volumeQuery.data.current,
           includeDeltas ? volumeQuery.data.previous : null,
           includeDeltas,
         )
-      : null
+      : liveAll && volumeAllQuery.data != null
+        ? buildBalanceVm(volumeAllQuery.data, null, false)
+        : null
   const liveTonnage =
-    live && snapshotQuery.data != null && boundedKind != null
+    liveBounded && snapshotQuery.data != null && boundedKind != null
       ? buildTonnageVm(snapshotQuery.data, {
           kind: boundedKind,
           ...profileWindowRange(boundedKind, isoDayInTimeZone(new Date(), timeZone)),
           includeDeltas,
           timeZone,
         })
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? buildTonnageVmFromRollups(rollupsQuery.data)
+        : null
 
   const fixtureScore = radarBalanceScore(RADAR_CURRENT)
   const fixtureScoreDelta = fixtureScore - radarBalanceScore(RADAR_PRIOR)
@@ -83,22 +89,26 @@ export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode })
   const fixturePrior = scaleRadarCredits(RADAR_PRIOR)
 
   const balanceStatus =
-    mode === "loading" || (live && volumeQuery.isPending)
+    mode === "loading" ||
+    (liveBounded && volumeQuery.isPending) ||
+    (liveAll && volumeAllQuery.isPending)
       ? "loading"
       : mode === "empty"
         ? "empty"
-        : live && volumeQuery.isError
+        : (liveBounded && volumeQuery.isError) || (liveAll && volumeAllQuery.isError)
           ? "error"
           : liveBalance != null
             ? liveBalance.status
             : "ok"
 
   const tonnageStatus =
-    mode === "loading" || (live && snapshotQuery.isPending)
+    mode === "loading" ||
+    (liveBounded && snapshotQuery.isPending) ||
+    (liveAll && rollupsQuery.isPending)
       ? "loading"
       : mode === "empty"
         ? "empty"
-        : live && snapshotQuery.isError
+        : (liveBounded && snapshotQuery.isError) || (liveAll && rollupsQuery.isError)
           ? "error"
           : liveTonnage != null
             ? liveTonnage.status

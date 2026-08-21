@@ -14,14 +14,16 @@ describe("profile Équilibre + Tonnage sources", () => {
     const files = Object.entries(sources)
     expect(files.length).toBe(5)
 
-    const offenders = files.filter(([, source]) => {
+    const offenders = files.filter(([path, source]) => {
       if (typeof source !== "string") return true
-      return (
+      const historyLeak =
         source.includes("BalanceTab") ||
-        source.includes("get_volume_by_muscle_group_all_time") ||
         source.includes("p_days: 366") ||
         source.includes("p_days: 730")
-      )
+      const unboundedInHistoryHook =
+        path.includes("useVolumeDistribution.ts") &&
+        source.includes("get_volume_by_muscle_group_all_time")
+      return historyLeak || unboundedInHistoryHook
     })
     expect(offenders.map(([path]) => path)).toEqual([])
 
@@ -29,6 +31,12 @@ describe("profile Équilibre + Tonnage sources", () => {
     expect(typeof hook?.[1]).toBe("string")
     if (typeof hook?.[1] !== "string") return
     expect(hook[1]).toContain("Math.min(Math.max(days, 1), 365)")
+    expect(hook[1]).not.toContain("get_volume_by_muscle_group_all_time")
+
+    const row = files.find(([path]) => path.includes("BalanceTonnageRow.tsx"))
+    expect(typeof row?.[1]).toBe("string")
+    if (typeof row?.[1] !== "string") return
+    expect(row[1]).toContain("useVolumeByMuscleGroupAllTime")
   })
 
   it("does not sum radar kg for Tonnage", () => {

@@ -8,8 +8,9 @@ import {
   ProfileStatCardSkeleton,
 } from "@/components/profile/ProfileStatCard"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
 import { useUserProfile } from "@/hooks/useUserProfile"
+import { buildPulseVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildPulseVm, formatPulseDuration } from "@/lib/profile/pulse"
 import { pierrePulse } from "@/lib/profile/window"
 import {
@@ -25,12 +26,15 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
   const { t } = useTranslation("profile")
   const { kind, includeDeltas } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const snapshotQuery = useProfileSnapshot(kind)
   const { data: profile } = useUserProfile()
-  const boundedKind = kind === "all" ? null : kind
-  const live = mode === "pierre" && boundedKind != null && user != null
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, mode === "pierre" && user != null)
 
-  if (mode === "loading" || (live && snapshotQuery.isPending)) {
+  if (
+    mode === "loading" ||
+    (liveBounded && snapshotQuery.isPending) ||
+    (liveAll && rollupsQuery.isPending)
+  ) {
     return (
       <ProfilePulseGrid>
         <ProfileStatCardSkeleton />
@@ -46,7 +50,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
     )
   }
 
-  if (live && snapshotQuery.isError) {
+  if ((liveBounded && snapshotQuery.isError) || (liveAll && rollupsQuery.isError)) {
     return (
       <ProfileSection
         title={t("pulse.sessions")}
@@ -58,15 +62,18 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
   }
 
   const timeZone = getResolvedIANATimeZone()
+  const prescribedMinutes = profile?.session_duration_minutes ?? null
   const liveVm =
-    live && snapshotQuery.data != null && boundedKind != null
+    liveBounded && snapshotQuery.data != null && boundedKind != null
       ? buildPulseVm(snapshotQuery.data, {
           ...profileWindowRange(boundedKind, isoDayInTimeZone(new Date(), timeZone)),
           includeDeltas,
           timeZone,
-          prescribedMinutes: profile?.session_duration_minutes ?? null,
+          prescribedMinutes,
         })
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? buildPulseVmFromRollups(rollupsQuery.data, prescribedMinutes)
+        : null
 
   if (liveVm?.status === "empty") {
     return (

@@ -8,7 +8,8 @@ import {
   ProfileStatCard,
 } from "@/components/profile/ProfileStatCard"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
+import { buildRecordsVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildRecordsVm, recordsGrain } from "@/lib/profile/records"
 import {
   MIX_CATEGORIES,
@@ -28,16 +29,19 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
   const { t } = useTranslation("profile")
   const { kind, includeDeltas } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const snapshotQuery = useProfileSnapshot(kind)
-  const boundedKind = kind === "all" ? null : kind
-  const live = mode === "pierre" && boundedKind != null && user != null
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, mode === "pierre" && user != null)
   const hint = (
     <ProfileHint label={t("about", { section: t("records.title") })}>
       {t("records.hint")}
     </ProfileHint>
   )
 
-  if (mode === "loading" || (live && snapshotQuery.isPending)) {
+  if (
+    mode === "loading" ||
+    (liveBounded && snapshotQuery.isPending) ||
+    (liveAll && rollupsQuery.isPending)
+  ) {
     return (
       <ProfileSection
         title={t("records.title")}
@@ -59,7 +63,7 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
     )
   }
 
-  if (live && snapshotQuery.isError) {
+  if ((liveBounded && snapshotQuery.isError) || (liveAll && rollupsQuery.isError)) {
     return (
       <ProfileSection
         title={t("records.title")}
@@ -73,14 +77,19 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
 
   const timeZone = getResolvedIANATimeZone()
   const liveVm =
-    live && snapshotQuery.data != null && boundedKind != null
+    liveBounded && snapshotQuery.data != null && boundedKind != null
       ? buildRecordsVm(snapshotQuery.data, {
           ...profileWindowRange(boundedKind, isoDayInTimeZone(new Date(), timeZone)),
           includeDeltas,
           timeZone,
           grain: recordsGrain(boundedKind),
         })
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? buildRecordsVmFromRollups(
+            rollupsQuery.data,
+            isoDayInTimeZone(new Date(), timeZone),
+          )
+        : null
 
   if (liveVm?.status === "empty") {
     return (

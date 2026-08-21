@@ -6,7 +6,8 @@ import { ProfileSection } from "@/components/profile/ProfileSection"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
-import { useProfileSnapshot } from "@/hooks/useProfileSnapshot"
+import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
+import { regularsFromRollups } from "@/lib/profile/allTimeRollups"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { formatNumber } from "@/lib/formatters"
 import {
@@ -63,11 +64,10 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
   const { formatWeight } = useWeightUnit()
   const { kind } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const snapshotQuery = useProfileSnapshot(kind)
   const library = useExerciseLibrary()
   const { catalogName } = useCatalogLabels()
-  const boundedKind = kind === "all" ? null : kind
-  const live = mode === "pierre" && boundedKind != null && user != null
+  const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
+    useProfileLiveQueries(kind, mode === "pierre" && user != null)
   const timeZone = getResolvedIANATimeZone()
   const windowLabel = t(`window.${kind}`)
   const names = Object.fromEntries(
@@ -75,7 +75,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
   )
 
   const liveRows =
-    live && snapshotQuery.data != null && boundedKind != null
+    liveBounded && snapshotQuery.data != null && boundedKind != null
       ? regularsFromSnapshot(snapshotQuery.data, {
           ...profileWindowRange(
             boundedKind,
@@ -84,14 +84,18 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
           timeZone,
           names,
         })
-      : null
+      : liveAll && rollupsQuery.data != null
+        ? regularsFromRollups(rollupsQuery.data, names)
+        : null
 
   const status =
-    mode === "loading" || (live && snapshotQuery.isPending)
+    mode === "loading" ||
+    (liveBounded && snapshotQuery.isPending) ||
+    (liveAll && rollupsQuery.isPending)
       ? "loading"
       : mode === "empty"
         ? "empty"
-        : live && snapshotQuery.isError
+        : (liveBounded && snapshotQuery.isError) || (liveAll && rollupsQuery.isError)
           ? "error"
           : liveRows != null && liveRows.length === 0
             ? "empty"

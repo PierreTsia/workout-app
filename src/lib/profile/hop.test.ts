@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { hopOtherProgramId } from "./hop"
+import { hopOtherProgramId, hopOtherProgramIdFromIds } from "./hop"
 import type { SessionFact } from "./types"
 
 function makeSession(overrides: Partial<SessionFact> = {}): SessionFact {
@@ -70,5 +70,15 @@ describe("hopOtherProgramId", () => {
         "upper-lower",
       ),
     ).toBeNull()
+  })
+})
+
+describe("hopOtherProgramIdFromIds", () => {
+  it("treats career program_ids as the All time window", () => {
+    expect(hopOtherProgramIdFromIds(["upper-lower"], "upper-lower")).toBeNull()
+    expect(hopOtherProgramIdFromIds(["upper-lower", null], "upper-lower")).toBeNull()
+    expect(hopOtherProgramIdFromIds(["upper-lower", "ppl"], "upper-lower")).toBe(
+      "ppl",
+    )
   })
 })
