@@ -27,6 +27,40 @@ vi.mock("@/hooks/useUserProfile", () => ({
   }),
 }))
 
+vi.mock("@/hooks/useFirstFinishedSessionAt", () => ({
+  useFirstFinishedSessionAt: () => ({
+    data: "2024-03-12T08:00:00.000Z",
+    isPending: false,
+    isError: false,
+    isSuccess: true,
+  }),
+}))
+
+vi.mock("@/hooks/useActiveProgram", () => ({
+  useActiveProgram: () => ({
+    data: { id: "upper-lower", name: "Upper/Lower" },
+    isPending: false,
+    isError: false,
+  }),
+}))
+
+vi.mock("@/hooks/useUserPrograms", () => ({
+  useUserPrograms: () => ({
+    data: [{ id: "upper-lower", name: "Upper/Lower" }],
+    isPending: false,
+    isError: false,
+  }),
+}))
+
+vi.mock("@/hooks/useBadgeStatus", () => ({
+  useBadgeStatus: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+    isSuccess: true,
+  }),
+}))
+
 vi.mock("@/hooks/useProfileCircuitLedger", () => ({
   useProfileCircuitLedger: () => ({
     data: [],

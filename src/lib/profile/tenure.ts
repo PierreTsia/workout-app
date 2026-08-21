@@ -48,6 +48,18 @@ export function tenureSpan(from: Date, now: Date): TenureSpan {
   return { kind: "years", n, half }
 }
 
+/** Career tenure origin: first finished session, else profile created_at. */
+export function tenureStartAt(
+  firstFinishedStartedAt: string | null,
+  profileCreatedAt: string | null,
+): Date | null {
+  const iso = firstFinishedStartedAt ?? profileCreatedAt
+  if (iso == null || iso === "") return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date
+}
+
 export function tenureSpanKey(
   span: TenureSpan,
 ): "hero.tenureDays" | "hero.tenureMonths" | "hero.tenureYears" | "hero.tenureYearsHalf" {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { localDateFromIsoDay, tenureSpan } from "./tenure"
+import { localDateFromIsoDay, tenureSpan, tenureStartAt } from "./tenure"
 
 const NOW = new Date(2026, 7, 21)
 
@@ -42,5 +42,19 @@ describe("tenureSpan", () => {
       n: 2,
       half: true,
     })
+  })
+})
+
+describe("tenureStartAt", () => {
+  it("uses the first finished session, not profile created_at, when a session exists", () => {
+    expect(
+      tenureStartAt("2024-03-12T08:00:00.000Z", "2023-01-01T00:00:00.000Z"),
+    ).toEqual(new Date("2024-03-12T08:00:00.000Z"))
+  })
+
+  it("falls back to profile created_at when the athlete has no finished sessions", () => {
+    expect(tenureStartAt(null, "2025-12-01T00:00:00.000Z")).toEqual(
+      new Date("2025-12-01T00:00:00.000Z"),
+    )
   })
 })

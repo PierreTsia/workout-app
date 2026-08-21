@@ -1,22 +1,19 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { BalanceTonnageRow } from "@/components/profile/BalanceTonnageRow"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
+import { HeroBlock } from "@/components/profile/HeroBlock"
 import { MixBlock } from "@/components/profile/MixBlock"
 import { PulseBlock } from "@/components/profile/PulseBlock"
-import { RhythmBlock } from "@/components/profile/RhythmBlock"
 import { RecordsBlock } from "@/components/profile/RecordsBlock"
-import { cn } from "@/lib/utils"
+import { RhythmBlock } from "@/components/profile/RhythmBlock"
+import { SuccesBlock } from "@/components/profile/SuccesBlock"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
-import { ProfileSection } from "@/components/profile/ProfileSection"
 import {
   ProfileWindowProvider,
   useProfileWindow,
 } from "@/components/profile/ProfileWindowContext"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -24,20 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
-import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
-  MIX_CATEGORIES,
-  PIERRE_SUCCES,
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
-import { rankColorRing, rankColorText } from "@/lib/achievementUtils"
-import { localDateFromIsoDay, tenureSpan, tenureSpanKey } from "@/lib/profile/tenure"
-import type { BadgeStatusRow } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
 
@@ -49,15 +38,6 @@ function isWindowKind(value: string): value is ProfileWindowKind {
 
 function isFixtureMode(value: string): value is FixtureMode {
   return FIXTURE_MODES.some((mode) => mode === value)
-}
-
-function blockStatus(
-  mode: FixtureMode,
-  pierreStatus: "ok" | "empty",
-): "ok" | "empty" | "loading" {
-  if (mode === "loading") return "loading"
-  if (mode === "empty") return "empty"
-  return pierreStatus
 }
 
 function WindowSelect() {
@@ -115,232 +95,6 @@ function FixtureSwitch({
       <ToggleGroupItem value="empty">{t("fixtureEmpty")}</ToggleGroupItem>
       <ToggleGroupItem value="loading">{t("fixtureLoading")}</ToggleGroupItem>
     </ToggleGroup>
-  )
-}
-
-/**
- * T0 mock: Pierre's first session (Mix all-time grain starts 2024).
- * T227 should replace this with MIN(sessions.started_at), falling back to
- * profiles.created_at when the user has no sessions.
- */
-const PIERRE_FIRST_SESSION_AT = "2024-03-12"
-
-function HeroBlock({ mode }: { mode: FixtureMode }) {
-  const { t, i18n } = useTranslation("profile")
-  const { includeDeltas } = useProfileWindow()
-
-  if (mode === "loading") {
-    return (
-      <div className="flex items-center gap-5">
-        <Skeleton className="size-20 rounded-full" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-36" />
-          <Skeleton className="h-4 w-44" />
-          <Skeleton className="h-5 w-56" />
-        </div>
-      </div>
-    )
-  }
-
-  const span = tenureSpan(localDateFromIsoDay(PIERRE_FIRST_SESSION_AT), new Date())
-  const equipped = mode === "pierre" ? PIERRE_SUCCES.highest : null
-  const title = equipped
-    ? i18n.language === "fr"
-      ? equipped.title_fr
-      : equipped.title_en
-    : null
-
-  return (
-    <section aria-labelledby="profile-hero-name" className="flex items-center gap-5">
-      <Avatar
-        className={cn(
-          "size-20 ring-2 ring-offset-2 ring-offset-background",
-          equipped ? rankColorRing[equipped.rank] : "ring-border",
-        )}
-      >
-        <AvatarFallback>PT</AvatarFallback>
-      </Avatar>
-      <div className="min-w-0 flex-1">
-        <p
-          id="profile-hero-name"
-          className="text-2xl font-bold tracking-tight"
-        >
-          Pierre
-        </p>
-        {title && equipped ? (
-          <p
-            className={cn(
-              "text-sm font-semibold italic",
-              rankColorText[equipped.rank],
-            )}
-          >
-            {title}
-          </p>
-        ) : null}
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">
-            {t("hero.activeProgram", { program: "Upper/Lower" })}
-          </Badge>
-          {mode === "pierre" && includeDeltas ? (
-            <Badge variant="outline">{t("hero.hop", { other: "PPL" })}</Badge>
-          ) : null}
-        </div>
-        {mode === "pierre" ? (
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            {t("hero.activeSince", {
-              span: t(tenureSpanKey(span), { count: span.n }),
-            })}
-          </p>
-        ) : null}
-      </div>
-    </section>
-  )
-}
-
-function badgeTitle(spot: {
-  title_en: string
-  title_fr: string
-}, language: string): string {
-  return language === "fr" ? spot.title_fr : spot.title_en
-}
-
-function SuccesMedalButton({
-  badge,
-  size,
-  titleClassName,
-  onSelect,
-}: {
-  badge: BadgeStatusRow
-  size: "sm" | "lg"
-  titleClassName: string
-  onSelect: (badge: BadgeStatusRow) => void
-}) {
-  const { i18n } = useTranslation()
-  const title = badgeTitle(badge, i18n.language)
-
-  return (
-    <button
-      type="button"
-      aria-label={title}
-      className={
-        size === "lg"
-          ? "flex flex-col items-center gap-1.5 transition-transform active:scale-95"
-          : "flex flex-col items-center gap-1 transition-transform active:scale-95"
-      }
-      onClick={() => onSelect(badge)}
-    >
-      <BadgeIcon rank={badge.rank} iconUrl={badge.icon_asset_url} size={size} alt={title} />
-      <span className={titleClassName}>{title}</span>
-    </button>
-  )
-}
-
-function FeaturedBadge({
-  label,
-  badge,
-  onSelect,
-}: {
-  label: string
-  badge: BadgeStatusRow
-  onSelect: (badge: BadgeStatusRow) => void
-}) {
-  const { t, i18n } = useTranslation("achievements")
-  const title = badgeTitle(badge, i18n.language)
-  const unlockedDate = badge.granted_at
-    ? new Date(badge.granted_at).toLocaleDateString(i18n.language, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : null
-
-  return (
-    <button
-      type="button"
-      aria-label={title}
-      className="flex w-full min-w-0 flex-col items-center gap-2 transition-transform active:scale-95"
-      onClick={() => onSelect(badge)}
-    >
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <BadgeIcon
-        rank={badge.rank}
-        iconUrl={badge.icon_asset_url}
-        size="xl"
-        alt={title}
-      />
-      <span className="text-center text-sm font-medium leading-tight">{title}</span>
-      {unlockedDate ? (
-        <span className="text-xs text-muted-foreground">
-          {t("unlockedOn", { date: unlockedDate })}
-        </span>
-      ) : null}
-      <span className="max-w-48 text-center text-xs leading-snug text-muted-foreground/70">
-        {t(`groupDescriptions.${badge.group_slug}`)}
-      </span>
-    </button>
-  )
-}
-
-function SuccesBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const [selected, setSelected] = useState<BadgeStatusRow | null>(null)
-  const status = blockStatus(mode, "ok")
-
-  return (
-    <>
-      <ProfileSection
-        title={t("achievements.title")}
-        hint={
-          <ProfileHint label={t("about", { section: t("achievements.title") })}>
-            {t("achievements.hint")}
-          </ProfileHint>
-        }
-        status={status}
-        empty={t("achievements.empty")}
-      >
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            {t("achievements.count", {
-              n: PIERRE_SUCCES.unlocked,
-              total: PIERRE_SUCCES.total,
-            })}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <FeaturedBadge
-              label={t("achievements.latest")}
-              badge={PIERRE_SUCCES.latest}
-              onSelect={setSelected}
-            />
-            <FeaturedBadge
-              label={t("achievements.highest")}
-              badge={PIERRE_SUCCES.highest}
-              onSelect={setSelected}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">{t("achievements.recent")}</p>
-            <div className="flex flex-wrap gap-3">
-              {PIERRE_SUCCES.recent.map((spot) => (
-                <SuccesMedalButton
-                  key={spot.tier_id}
-                  badge={spot}
-                  size="sm"
-                  titleClassName="max-w-16 truncate text-center text-[10px] text-muted-foreground"
-                  onSelect={setSelected}
-                />
-              ))}
-            </div>
-          </div>
-          <Link
-            to="/achievements"
-            className="text-sm text-primary underline-offset-4 hover:underline"
-          >
-            {t("achievements.seeAll")}
-          </Link>
-        </div>
-      </ProfileSection>
-      <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
-    </>
   )
 }
 
