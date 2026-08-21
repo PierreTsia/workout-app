@@ -33,4 +33,20 @@ describe("RecordsComboChart", () => {
     })
     expect(combo.querySelectorAll(".recharts-dot")).toHaveLength(2)
   })
+
+  it("hides the RIR line when fewer than two buckets declare a rate", async () => {
+    renderWithProviders(
+      <RecordsComboChart
+        categories={["Mon", "Tue"]}
+        series={{ prs: [1, 0], rir0: [20, null] }}
+      />,
+    )
+
+    const combo = screen.getByRole("img", { name: /PRs and RIR 0/i })
+    await waitFor(() => {
+      expect(combo.querySelectorAll(".recharts-yAxis")).toHaveLength(2)
+    })
+    expect(combo.querySelectorAll(".recharts-line")).toHaveLength(0)
+    expect(combo.querySelectorAll(".recharts-dot")).toHaveLength(0)
+  })
 })

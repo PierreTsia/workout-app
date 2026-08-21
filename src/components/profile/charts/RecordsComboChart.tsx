@@ -27,6 +27,7 @@ export function RecordsComboChart({
 }) {
   const { t } = useTranslation("profile")
   const data = toRecordsComboRows(categories, series)
+  const rirPointCount = series.rir0.filter((value) => value != null).length
 
   return (
     <ChartContainer
@@ -79,15 +80,17 @@ export function RecordsComboChart({
           fill="var(--color-prs)"
           maxBarSize={28}
         />
-        <Line
-          yAxisId="rir0"
-          dataKey="rir0"
-          type="monotone"
-          stroke="var(--color-rir0)"
-          strokeWidth={2}
-          connectNulls={false}
-          dot={{ r: 3, fill: "var(--color-rir0)" }}
-        />
+        {rirPointCount >= 2 ? (
+          <Line
+            yAxisId="rir0"
+            dataKey="rir0"
+            type="monotone"
+            stroke="var(--color-rir0)"
+            strokeWidth={2}
+            connectNulls={false}
+            dot={{ r: 3, fill: "var(--color-rir0)" }}
+          />
+        ) : null}
       </ComposedChart>
     </ChartContainer>
   )

@@ -2,12 +2,12 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
-import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
 import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
 import { MixBlock } from "@/components/profile/MixBlock"
 import { PulseBlock } from "@/components/profile/PulseBlock"
 import { RhythmBlock } from "@/components/profile/RhythmBlock"
+import { RecordsBlock } from "@/components/profile/RecordsBlock"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -19,10 +19,6 @@ import { MuscleSetRanks } from "@/components/profile/MuscleSetRanks"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
-import {
-  ProfilePulseGrid,
-  ProfileStatCard,
-} from "@/components/profile/ProfileStatCard"
 import {
   ProfileWindowProvider,
   useProfileWindow,
@@ -44,8 +40,6 @@ import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
   MIX_CATEGORIES,
   PIERRE_SUCCES,
-  pierreRecordsPulse,
-  pierreRecordsSeries,
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
@@ -357,73 +351,6 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
       </ProfileSection>
       <BadgeDetailDrawer badge={selected} onClose={() => setSelected(null)} />
     </>
-  )
-}
-
-function RecordsBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind, includeDeltas } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
-  const categories = MIX_CATEGORIES[kind]
-  const series = pierreRecordsSeries(kind)
-  const pulse = pierreRecordsPulse(kind)
-
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
-  const vsFreshness = (n: string, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("records.deltaLater", { n })
-          : t("records.deltaSooner", { n }),
-  })
-
-  return (
-    <ProfileSection
-      title={t("records.title")}
-      hint={
-        <ProfileHint label={t("about", { section: t("records.title") })}>
-          {t("records.hint")}
-        </ProfileHint>
-      }
-      status={status}
-      empty={t("records.empty")}
-    >
-      <ProfilePulseGrid>
-        <ProfileStatCard
-          title={t("records.prs")}
-          value={pulse.prs}
-          delta={includeDeltas ? vsPrior(pulse.prsDelta, pulse.prsDelta) : undefined}
-        />
-        <ProfileStatCard
-          title={t("records.exercises")}
-          value={pulse.exercises}
-          delta={
-            includeDeltas ? vsPrior(pulse.exercisesDelta, pulse.exercisesDelta) : undefined
-          }
-        />
-        <ProfileStatCard
-          title={t("records.sinceLast")}
-          value={pulse.sinceLast}
-          delta={
-            includeDeltas ? vsFreshness(pulse.sinceDeltaN, pulse.sinceDelta) : undefined
-          }
-        />
-      </ProfilePulseGrid>
-      <div className="mt-4">
-        <RecordsComboChart categories={categories} series={series} />
-      </div>
-    </ProfileSection>
   )
 }
 
