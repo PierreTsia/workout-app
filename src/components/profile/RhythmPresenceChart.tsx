@@ -25,8 +25,9 @@ const MONTHS = [
 
 const DEFAULT_TARGET = 4
 
-function clusterSlots(kind: ProfileWindowKind, target: number): number {
-  return kind === "7" ? 1 : target
+function clusterSlots(kind: ProfileWindowKind, target: number, hit: number): number {
+  if (kind === "7") return 1
+  return Math.max(target, Math.max(hit, 0))
 }
 
 function clusterLabel(
@@ -74,12 +75,12 @@ export function RhythmPresenceChart({
     )
   }
 
-  const slots = clusterSlots(kind, target)
   const clusters = hits.map((hit, i) => {
-    const filled = Math.min(Math.max(hit, 0), slots)
+    const filled = Math.max(hit, 0)
+    const slots = clusterSlots(kind, target, filled)
     return {
       label: labels[i] ?? "",
-      filled,
+      filled: Math.min(filled, slots),
       slots,
       deload: i === deloadAt,
     }
@@ -93,7 +94,7 @@ export function RhythmPresenceChart({
       {clusters.map((cluster) => {
         const status = t("rhythm.hits", {
           filled: cluster.filled,
-          slots: cluster.slots,
+          slots: target,
         })
         const dots = Array.from({ length: cluster.slots }, (_, i) => i < cluster.filled)
         return (
@@ -110,7 +111,11 @@ export function RhythmPresenceChart({
                   className={cn(
                     "shrink-0 rounded-full",
                     kind === "7" ? "size-2.5" : "size-2 sm:size-2.5",
-                    on ? "bg-primary" : "bg-muted-foreground/30",
+                    on
+                      ? i >= target
+                        ? "bg-primary ring-1 ring-primary/40"
+                        : "bg-primary"
+                      : "bg-muted-foreground/30",
                   )}
                 />
               ))}

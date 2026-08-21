@@ -37,7 +37,7 @@ export type RhythmHits = {
   deloadAt?: number
 }
 
-/** Sessions per cluster, oldest first. Capped at the weekly target when rendered. */
+/** Sessions per cluster, oldest first. Weeks over the target keep the extra sessions. */
 export function pierreRhythmHits(kind: ProfileWindowKind): RhythmHits {
   if (kind === "7") {
     return { hits: [1, 1, 1, 1, 1, 0, 0] }
@@ -46,10 +46,10 @@ export function pierreRhythmHits(kind: ProfileWindowKind): RhythmHits {
     return { hits: [4, 4, 2, 4, 4] }
   }
   if (kind === "100") {
-    return { hits: [4, 3, 4, 2, 4, 4, 4, 4, 3, 4, 4, 4], deloadAt: 3 }
+    return { hits: [4, 3, 4, 2, 4, 4, 5, 4, 3, 4, 4, 4], deloadAt: 3 }
   }
   if (kind === "365") {
-    return { hits: [3, 4, 4, 3, 4, 2, 4, 4, 3, 4, 4, 4] }
+    return { hits: [3, 4, 4, 3, 4, 2, 5, 4, 3, 4, 4, 4] }
   }
   return { hits: [3, 4, 4] }
 }

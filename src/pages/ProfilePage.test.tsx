@@ -178,10 +178,12 @@ describe("ProfilePage T0 fixtures", () => {
       (group) => group.querySelectorAll("[data-rhythm-dot='off']").length,
     )
     groups.forEach((group, i) => {
-      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
-      expect(filledCounts[i]! + emptyCounts[i]!).toBe(4)
+      const dots = group.querySelectorAll("[data-rhythm-dot]").length
+      expect(dots).toBe(Math.max(4, filledCounts[i]!))
+      expect(filledCounts[i]! + emptyCounts[i]!).toBe(dots)
     })
     expect(filledCounts.some((n) => n === 4)).toBe(true)
+    expect(filledCounts.some((n) => n > 4)).toBe(true)
     expect(filledCounts.some((n) => n > 0 && n < 4)).toBe(true)
     expect(filledCounts.every((n) => n !== 7)).toBe(true)
 
@@ -205,8 +207,13 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythm.getByText("S-11")).toBeInTheDocument()
     expect(rhythm.getByText("S-8 = deload (2 séances)")).toBeInTheDocument()
     expect(rhythm.getAllByRole("listitem")).toHaveLength(12)
-    rhythm.getAllByRole("listitem").forEach((group) => {
-      expect(group.querySelectorAll("[data-rhythm-dot]")).toHaveLength(4)
+    const frFilled = rhythm.getAllByRole("listitem").map(
+      (group) => group.querySelectorAll("[data-rhythm-dot='on']").length,
+    )
+    expect(frFilled.some((n) => n > 4)).toBe(true)
+    rhythm.getAllByRole("listitem").forEach((group, i) => {
+      const dots = group.querySelectorAll("[data-rhythm-dot]").length
+      expect(dots).toBe(Math.max(4, frFilled[i]!))
     })
   })
 

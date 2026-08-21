@@ -54,11 +54,11 @@ describe("profile window", () => {
     expect(typesOnTick(series, sun)).toBe(0)
   })
 
-  it("gives Pierre 100d Rhythm 12 weeks of target-capped hits with a deload", () => {
+  it("gives Pierre 100d Rhythm 12 weeks with a deload and an over-target week", () => {
     const fixture = pierreRhythmHits("100")
     expect(PIERRE_WEEKLY_TARGET).toBe(4)
     expect(fixture.hits).toHaveLength(12)
-    expect(fixture.hits.every((n) => n <= PIERRE_WEEKLY_TARGET)).toBe(true)
+    expect(fixture.hits.some((n) => n > PIERRE_WEEKLY_TARGET)).toBe(true)
     expect(fixture.hits.some((n) => n === PIERRE_WEEKLY_TARGET)).toBe(true)
     expect(fixture.hits.some((n) => n > 0 && n < PIERRE_WEEKLY_TARGET)).toBe(true)
     expect(fixture.deloadAt).toBe(3)

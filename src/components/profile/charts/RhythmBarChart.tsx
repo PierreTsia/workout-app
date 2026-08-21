@@ -28,6 +28,7 @@ export function RhythmBarChart({
 }) {
   const { t } = useTranslation("profile")
   const data = toRhythmRows(categories, series)
+  const yMax = Math.max(target, ...series)
   const rhythmChartConfig = {
     hits: { label: t("rhythm.bar"), color: "hsl(174 100% 39%)" },
   } satisfies ChartConfig
@@ -47,7 +48,7 @@ export function RhythmBarChart({
           axisLine={false}
           interval={0}
         />
-        <YAxis hide domain={[0, target]} allowDecimals={false} />
+        <YAxis hide domain={[0, yMax]} allowDecimals={false} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="hits" fill="var(--color-hits)" radius={[4, 4, 0, 0]} />
       </BarChart>
