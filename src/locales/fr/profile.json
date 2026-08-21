@@ -1,0 +1,85 @@
+{
+  "nav": "Profil",
+  "windowToggle": "Fenêtre",
+  "fixtures": "Fixtures",
+  "fixturePierre": "Pierre",
+  "fixtureEmpty": "Vide",
+  "fixtureLoading": "Chargement",
+  "window": {
+    "7": "7j",
+    "30": "30j",
+    "100": "100j",
+    "365": "1 an",
+    "all": "Toujours"
+  },
+  "hero": {
+    "activeProgram": "Actif · {{program}}",
+    "hop": "Aussi {{other}} cette semaine",
+    "streak": "Série · {{n}} j"
+  },
+  "achievements": {
+    "title": "Succès",
+    "count": "{{n}} / {{total}}",
+    "seeAll": "Voir tout",
+    "latest": "Plus récent",
+    "highest": "Plus haut",
+    "recent": "Derniers reçus",
+    "empty": "Aucun succès pour l’instant."
+  },
+  "pulse": {
+    "sessions": "Séances",
+    "delta": "+{{n}} vs préc.",
+    "deltaEven": "stable vs préc.",
+    "timeUnderBar": "Temps sous barre",
+    "avgDuration": "Durée moy.",
+    "vsPrescribed": "vs {{n}} min prescrits",
+    "empty": "Aucune séance dans cette fenêtre."
+  },
+  "rhythm": {
+    "title": "Rythme",
+    "caption": {
+      "7": "7 derniers jours",
+      "30": "5 semaines",
+      "100": "12 semaines",
+      "365": "12 mois",
+      "all": "Par année"
+    },
+    "session": "Séance",
+    "none": "Pas de séance"
+  },
+  "mix": {
+    "title": "Mix",
+    "empty": "Aucune séance dans cette fenêtre."
+  },
+  "records": {
+    "title": "Records",
+    "prs": "PRs",
+    "exercises": "Exercices",
+    "sinceLast": "Depuis le dernier",
+    "empty": "Pas de PR dans cette fenêtre."
+  },
+  "balance": {
+    "title": "Équilibre",
+    "empty": "Pas assez de séances pour un score."
+  },
+  "tonnage": {
+    "title": "Tonnage",
+    "legend": "Sets chargés · poids × reps",
+    "empty": "Aucun set chargé dans cette fenêtre."
+  },
+  "regulars": {
+    "title": "Récurrents",
+    "subtitle": "Les plus loggés · 100 jours",
+    "onProgram": "Sur le programme",
+    "offProgram": "Hors plan",
+    "empty": "Pas assez de logs sur 100 jours."
+  },
+  "circuits": {
+    "title": "Circuits",
+    "runs": "Runs",
+    "distinct": "Circuits distincts",
+    "pbs": "PBs",
+    "empty": "Aucun circuit dans cette fenêtre."
+  },
+  "error": "Impossible de charger ce bloc."
+}

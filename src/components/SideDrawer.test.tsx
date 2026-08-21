@@ -8,6 +8,7 @@ import {
   sessionAtom,
   defaultSessionState,
   queueSyncMetaAtom,
+  isAdminAtom,
 } from "@/store/atoms"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useBadgeStatus } from "@/hooks/useBadgeStatus"
@@ -92,6 +93,37 @@ function renderDrawer(
 
   return result
 }
+
+describe("SideDrawer Profil nav", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("shows Profile next to History for an admin", async () => {
+    const { store } = renderDrawer()
+    act(() => {
+      store.set(isAdminAtom, true)
+    })
+    const dialog = await screen.findByRole("dialog")
+    const profile = within(dialog).getByRole("link", { name: /^Profile$/i })
+    const history = within(dialog).getByRole("link", { name: /^History$/i })
+    expect(profile).toHaveAttribute("href", "/profile")
+    expect(
+      profile.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it("hides Profile for a non-admin", async () => {
+    renderDrawer()
+    const dialog = await screen.findByRole("dialog")
+    expect(
+      within(dialog).queryByRole("link", { name: /^Profile$/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(dialog).getByRole("link", { name: /^History$/i }),
+    ).toBeInTheDocument()
+  })
+})
 
 describe("SideDrawer library navigation", () => {
   beforeEach(() => {

@@ -29,6 +29,7 @@ import type { UseQueryResult } from "@tanstack/react-query"
 import enAchievements from "@/locales/en/achievements.json"
 import enApiTokens from "@/locales/en/api-tokens.json"
 import enCatalog from "@/locales/en/catalog.json"
+import enProfile from "@/locales/en/profile.json"
 
 // Keep this list ordered identically to the `en` imports above: the two
 // drifting apart is this file's obvious failure mode.
@@ -52,6 +53,7 @@ import frAdmin from "@/locales/fr/admin.json"
 import frAchievements from "@/locales/fr/achievements.json"
 import frApiTokens from "@/locales/fr/api-tokens.json"
 import frCatalog from "@/locales/fr/catalog.json"
+import frProfile from "@/locales/fr/profile.json"
 
 const testResources = {
   en: {
@@ -75,6 +77,7 @@ const testResources = {
     achievements: enAchievements,
     "api-tokens": enApiTokens,
     catalog: enCatalog,
+    profile: enProfile,
   },
   fr: {
     common: frCommon,
@@ -97,6 +100,7 @@ const testResources = {
     achievements: frAchievements,
     "api-tokens": frApiTokens,
     catalog: frCatalog,
+    profile: frProfile,
   },
 }
 

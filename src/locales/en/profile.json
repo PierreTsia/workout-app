@@ -1,0 +1,85 @@
+{
+  "nav": "Profile",
+  "windowToggle": "Window",
+  "fixtures": "Fixtures",
+  "fixturePierre": "Pierre",
+  "fixtureEmpty": "Empty",
+  "fixtureLoading": "Loading",
+  "window": {
+    "7": "7d",
+    "30": "30d",
+    "100": "100d",
+    "365": "1y",
+    "all": "All time"
+  },
+  "hero": {
+    "activeProgram": "Active · {{program}}",
+    "hop": "Also {{other}} this week",
+    "streak": "Streak · {{n}} d"
+  },
+  "achievements": {
+    "title": "Achievements",
+    "count": "{{n}} / {{total}}",
+    "seeAll": "See all",
+    "latest": "Latest",
+    "highest": "Highest",
+    "recent": "Recently earned",
+    "empty": "No achievements yet."
+  },
+  "pulse": {
+    "sessions": "Sessions",
+    "delta": "+{{n}} vs prior",
+    "deltaEven": "even vs prior",
+    "timeUnderBar": "Time under the bar",
+    "avgDuration": "Avg duration",
+    "vsPrescribed": "vs {{n}} min prescribed",
+    "empty": "No sessions in this window."
+  },
+  "rhythm": {
+    "title": "Rhythm",
+    "caption": {
+      "7": "Last 7 days",
+      "30": "5 weeks",
+      "100": "12 weeks",
+      "365": "12 months",
+      "all": "By year"
+    },
+    "session": "Session",
+    "none": "No session"
+  },
+  "mix": {
+    "title": "Mix",
+    "empty": "No sessions in this window."
+  },
+  "records": {
+    "title": "Records",
+    "prs": "PRs",
+    "exercises": "Exercises",
+    "sinceLast": "Since last",
+    "empty": "No PRs in this window."
+  },
+  "balance": {
+    "title": "Balance",
+    "empty": "Not enough sessions for a score."
+  },
+  "tonnage": {
+    "title": "Tonnage",
+    "legend": "Loaded sets · weight × reps",
+    "empty": "No loaded sets in this window."
+  },
+  "regulars": {
+    "title": "Regulars",
+    "subtitle": "Most logged · 100 days",
+    "onProgram": "On program",
+    "offProgram": "Off program",
+    "empty": "Not enough logs in 100 days."
+  },
+  "circuits": {
+    "title": "Circuits",
+    "runs": "Runs",
+    "distinct": "Distinct circuits",
+    "pbs": "PBs",
+    "empty": "No circuits in this window."
+  },
+  "error": "Couldn't load this block."
+}

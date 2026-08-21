@@ -29,6 +29,7 @@ import {
   Settings,
   Trophy,
   Globe,
+  CircleUser,
 } from "lucide-react"
 import {
   Collapsible,
@@ -232,6 +233,14 @@ export function SideDrawer() {
           <Separator className="my-2 bg-border/50" />
 
           <nav className="flex flex-col gap-0.5 py-0.5" aria-label={t("common:menu")}>
+            <AdminOnly>
+              <Button variant="ghost" className={navRowClass} asChild>
+                <Link to="/profile" onClick={closeDrawer} className="flex items-center">
+                  <CircleUser className={navIconClass} strokeWidth={1.75} />
+                  {t("common:profile")}
+                </Link>
+              </Button>
+            </AdminOnly>
             <Button variant="ghost" className={navRowClass} asChild>
               <Link to="/history" onClick={closeDrawer} className="flex items-center">
                 <History className={navIconClass} strokeWidth={1.75} />

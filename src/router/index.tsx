@@ -114,6 +114,9 @@ const ProfileChartsPlaygroundPage = lazyWithRecover(() =>
     default: m.ProfileChartsPlaygroundPage,
   })),
 )
+const ProfilePage = lazyWithRecover(() =>
+  import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage })),
+)
 const PrivacyPage = lazyWithRecover(() =>
   import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
 )
@@ -262,6 +265,10 @@ export const router = createBrowserRouter([
                   {
                     path: "/_profile-charts",
                     element: <ProfileChartsPlaygroundPage />,
+                  },
+                  {
+                    path: "/profile",
+                    element: <ProfilePage />,
                   },
                 ],
               },
