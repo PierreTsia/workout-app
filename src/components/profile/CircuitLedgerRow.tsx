@@ -4,14 +4,9 @@ import { AmrapScore } from "@/components/circuit/AmrapScore"
 import { CircuitScoreSparkline } from "@/components/profile/charts/CircuitScoreSparkline"
 import { Badge } from "@/components/ui/badge"
 import { formatSecondsMMSS } from "@/lib/formatters"
-import {
-  circuitBestAmrap,
-  circuitBestTours,
-  circuitSparkValues,
-  type CircuitRowFixture,
-} from "@/lib/profile/window"
+import type { CircuitLedgerRowVm } from "@/lib/profile/circuitLedger"
 
-function CircuitModeLabel({ row }: { row: CircuitRowFixture }) {
+function CircuitModeLabel({ row }: { row: CircuitLedgerRowVm }) {
   const { t } = useTranslation("builder")
   if (row.mode === "amrap") {
     return <AmrapLabel minutes={row.minutes} variant="inline" />
@@ -35,32 +30,30 @@ function CircuitRunCount({ n }: { n: number }) {
   )
 }
 
-function CircuitBestScore({ row }: { row: CircuitRowFixture }) {
+function CircuitBestScore({ row }: { row: CircuitLedgerRowVm }) {
   if (row.mode === "amrap") {
-    const best = circuitBestAmrap(row.runs)
-    return best == null ? null : (
+    return (
       <div className={STACK_COL}>
         <AmrapScore
-          fullRounds={best.fullRounds}
-          leftover={best.leftover}
-          leftoverName={best.leftoverName}
+          fullRounds={row.best.fullRounds}
+          leftover={row.best.leftover}
+          leftoverName={row.best.leftoverName}
           size="compact"
           align="start"
         />
       </div>
     )
   }
-  const best = circuitBestTours(row.runs)
-  return best == null ? null : (
+  return (
     <div className={STACK_COL}>
       <p className="text-sm font-semibold tabular-nums">
-        {formatSecondsMMSS(best.seconds)}
+        {formatSecondsMMSS(row.best.seconds)}
       </p>
     </div>
   )
 }
 
-export function CircuitLedgerRow({ row }: { row: CircuitRowFixture }) {
+export function CircuitLedgerRow({ row }: { row: CircuitLedgerRowVm }) {
   const { t } = useTranslation("profile")
 
   return (
@@ -78,7 +71,7 @@ export function CircuitLedgerRow({ row }: { row: CircuitRowFixture }) {
       </div>
       <CircuitRunCount n={row.runCount} />
       <CircuitBestScore row={row} />
-      <CircuitScoreSparkline name={row.name} values={circuitSparkValues(row)} />
+      <CircuitScoreSparkline name={row.name} values={row.sparkValues} />
     </li>
   )
 }

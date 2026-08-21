@@ -5,7 +5,7 @@ import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
-import { CircuitLedgerRow } from "@/components/profile/CircuitLedgerRow"
+import { CircuitsBlock } from "@/components/profile/CircuitsBlock"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -44,10 +44,8 @@ import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
   emptyMixSeries,
   MIX_CATEGORIES,
-  pierreCircuits,
   PIERRE_SUCCES,
   pierreMixSeries,
-  pierreCircuitsPulse,
   pierrePulse,
   pierreRecordsPulse,
   pierreRecordsSeries,
@@ -637,70 +635,6 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
         <TonnageBarChart categories={MIX_CATEGORIES[kind]} series={bars} />
       </ProfileSection>
     </div>
-  )
-}
-
-function CircuitsBlock({ mode }: { mode: FixtureMode }) {
-  const { t } = useTranslation("profile")
-  const { kind, includeDeltas } = useProfileWindow()
-  const status = blockStatus(mode, "ok")
-  const pulse = pierreCircuitsPulse(kind)
-
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
-  return (
-    <ProfileSection
-      title={t("circuits.title")}
-      hint={
-        <ProfileHint label={t("about", { section: t("circuits.title") })}>
-          {t("circuits.hint")}
-        </ProfileHint>
-      }
-      status={status}
-      empty={t("circuits.empty")}
-    >
-      <div className="mb-4">
-        <ProfilePulseGrid>
-          <ProfileStatCard
-            size="small"
-            title={t("circuits.runs")}
-            value={pulse.runs}
-            delta={includeDeltas ? vsPrior(pulse.runsDelta, pulse.runsDelta) : undefined}
-          />
-          <ProfileStatCard
-            size="small"
-            title={t("circuits.distinct")}
-            value={pulse.distinct}
-            delta={
-              includeDeltas
-                ? vsPrior(pulse.distinctDelta, pulse.distinctDelta)
-                : undefined
-            }
-          />
-          <ProfileStatCard
-            size="small"
-            title={t("circuits.pbs")}
-            value={pulse.pbs}
-            delta={includeDeltas ? vsPrior(pulse.pbsDelta, pulse.pbsDelta) : undefined}
-          />
-        </ProfilePulseGrid>
-      </div>
-      <ul className="flex flex-col gap-3">
-        {pierreCircuits(kind)
-          .filter((row) => row.runs.length > 0)
-          .map((row) => (
-            <CircuitLedgerRow key={row.name} row={row} />
-          ))}
-      </ul>
-    </ProfileSection>
   )
 }
 
