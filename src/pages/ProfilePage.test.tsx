@@ -33,6 +33,14 @@ function withinBalance() {
   return within(card)
 }
 
+async function chooseWindow(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+) {
+  await user.click(screen.getByRole("combobox", { name: /^(Window|Fenêtre)$/ }))
+  await user.click(await screen.findByRole("option", { name: label }))
+}
+
 const routerSources = import.meta.glob("../router/index.tsx", {
   query: "?raw",
   eager: true,
@@ -42,6 +50,12 @@ const routerSources = import.meta.glob("../router/index.tsx", {
 describe("ProfilePage T0 fixtures", () => {
   beforeEach(() => {
     stubChartLayout()
+    Object.assign(Element.prototype, {
+      hasPointerCapture: () => false,
+      setPointerCapture: () => undefined,
+      releasePointerCapture: () => undefined,
+      scrollIntoView: () => undefined,
+    })
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
@@ -86,6 +100,16 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByText(/Série ·/)).not.toBeInTheDocument()
     expect(screen.queryByText(/12 mars 2024/)).not.toBeInTheDocument()
     expect(screen.getByText("Actif depuis 2 ans et demi")).toBeInTheDocument()
+  })
+
+  it("paints the equipped title in the highest-finish rank color", () => {
+    renderWithProviders(<ProfilePage />)
+
+    const hero = within(screen.getByRole("region", { name: "Pierre" }))
+    const title = hero.getByText("Circuit Star")
+    expect(title.className).toMatch(/italic/)
+    expect(title.className).toMatch(/purple/)
+    expect(hero.getByText("PT").closest("[class*='ring-purple']")).not.toBeNull()
   })
 
   it("shows seven labeled weekdays on the 7d Rhythm chart", () => {
@@ -168,13 +192,16 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    const windowGroup = screen.getByRole("radiogroup", { name: "Window" })
-    for (const label of ["7d", "30d", "100d", "1y", "All time"]) {
-      expect(windowGroup).toHaveTextContent(label)
-    }
-
     expect(screen.getByText("+1 vs prior")).toBeInTheDocument()
-    await user.click(screen.getByRole("radio", { name: "All time" }))
+
+    const windowSelect = screen.getByRole("combobox", { name: "Window" })
+    expect(windowSelect).toHaveTextContent("7d")
+    await user.click(windowSelect)
+    for (const label of ["7d", "30d", "100d", "1y", "All time"]) {
+      expect(screen.getByRole("option", { name: label })).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole("option", { name: "All time" }))
+
     expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText("+3 vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText("+4 vs prior")).not.toBeInTheDocument()
@@ -187,7 +214,9 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    expect(screen.getByText("5")).toBeInTheDocument()
+    expect(
+      screen.getByText("5", { selector: ".text-5xl" }),
+    ).toBeInTheDocument()
     expect(screen.getByText("3h 20")).toBeInTheDocument()
     expect(screen.getByText("40 min")).toBeInTheDocument()
 
@@ -203,7 +232,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(prescribed).toHaveAttribute("href", "/account")
     expect(prescribed.closest("p")?.className).not.toMatch(/emerald|destructive/)
 
-    await user.click(screen.getByRole("radio", { name: "All time" }))
+    await chooseWindow(user, "All time")
     expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText("-40 min vs prior")).not.toBeInTheDocument()
     expect(screen.queryByText("even vs prior")).not.toBeInTheDocument()
@@ -214,7 +243,7 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getByText("Last 7 days · target 4 d / wk")).toBeInTheDocument()
-    await user.click(screen.getByRole("radio", { name: "30d" }))
+    await chooseWindow(user, "30d")
     expect(screen.getByText("5 weeks · target 4 d / wk")).toBeInTheDocument()
     expect(screen.queryByText("Last 7 days · target 4 d / wk")).not.toBeInTheDocument()
   })
@@ -222,7 +251,7 @@ describe("ProfilePage T0 fixtures", () => {
   it("lays out 100d Rhythm as frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
-    await user.click(screen.getByRole("radio", { name: "100d" }))
+    await chooseWindow(user, "100d")
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
@@ -241,7 +270,7 @@ describe("ProfilePage T0 fixtures", () => {
   it("renders French 100d Rhythm bars with a cible meta", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />, { locale: "fr" })
-    await user.click(screen.getByRole("radio", { name: "100j" }))
+    await chooseWindow(user, "100j")
 
     const heading = screen.getByRole("heading", { name: "Rythme" })
     const card = heading.parentElement?.parentElement
@@ -262,7 +291,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await user.click(screen.getByRole("radio", { name: "30d" }))
+    await chooseWindow(user, "30d")
     const rhythm30 = withinRhythm()
     expect(rhythm30.getAllByRole("listitem")).toHaveLength(5)
     expect(rhythm30.getByText("W-4")).toBeInTheDocument()
@@ -275,7 +304,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await user.click(screen.getByRole("radio", { name: "1y" }))
+    await chooseWindow(user, "1y")
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
@@ -288,7 +317,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
     expect(yearChart.querySelector(".recharts-reference-line")).not.toBeNull()
 
-    await user.click(screen.getByRole("radio", { name: "All time" }))
+    await chooseWindow(user, "All time")
     const rhythmAll = withinRhythm()
     expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmAll.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
@@ -372,6 +401,18 @@ describe("ProfilePage T0 fixtures", () => {
     const delta = balance.getByText("+4 vs prior")
     expect(delta.className).toMatch(/emerald/)
 
+    const ranks = balance.getByRole("list", { name: "Sets · 1 / 0.5" })
+    expect(within(ranks).getAllByRole("listitem")[0]).toHaveTextContent("Pectoraux")
+    expect(within(ranks).getAllByRole("listitem")[0]).toHaveTextContent("18")
+    expect(within(ranks).getAllByRole("listitem").at(-1)).toHaveTextContent(
+      "Adducteurs",
+    )
+    expect(balance.queryByText(/kg/i)).not.toBeInTheDocument()
+    expect(
+      balance.getByRole("img", { name: /Muscle balance/ }).parentElement
+        ?.parentElement?.className,
+    ).toMatch(/grid-cols-\[minmax/)
+
     const tonnageHeading = screen.getByRole("heading", { name: "Tonnage" })
     const tonnageCard = tonnageHeading.parentElement?.parentElement
     if (!tonnageCard) throw new Error("expected Tonnage card")
@@ -410,7 +451,7 @@ describe("ProfilePage T0 fixtures", () => {
       ).toHaveLength(7)
     })
 
-    await user.click(screen.getByRole("radio", { name: "1y" }))
+    await chooseWindow(user, "1y")
 
     const yearChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
@@ -451,6 +492,9 @@ describe("ProfilePage T0 fixtures", () => {
       screen.getByText("Not enough sessions for a score."),
     ).toBeInTheDocument()
     expect(screen.queryByText("67 / 100")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("list", { name: /sets · 1 \/ 0\.5/i }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByRole("img", { name: "Baby Spidey" })).not.toBeInTheDocument()
     expect(screen.queryByText("Cindy bronze")).not.toBeInTheDocument()
 

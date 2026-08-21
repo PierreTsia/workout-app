@@ -78,3 +78,27 @@ export function toRadarRows(series: MuscleRadarSeries): MuscleRadarRow[] {
     return { muscle, current, prior: series.prior[muscle] }
   })
 }
+
+/** T0: radar fixture is 0–1. Scale to credited-set integers until T230 wires RPC sets. */
+export const PIERRE_SET_CREDIT_SCALE = 20
+
+export type MuscleSetRank = {
+  muscle: MuscleTaxonomy
+  sets: number
+  fill: number
+}
+
+export function toMuscleSetRanks(values: MuscleRadarValues): MuscleSetRank[] {
+  const rows = MUSCLE_TAXONOMY.map((muscle) => ({
+    muscle,
+    sets: Math.round(values[muscle] * PIERRE_SET_CREDIT_SCALE),
+  }))
+  const peak = rows.reduce((max, row) => Math.max(max, row.sets), 0)
+  const ranked = rows.map((row) => ({
+    ...row,
+    fill: peak === 0 ? 0 : row.sets / peak,
+  }))
+  return [...ranked].sort(
+    (a, b) => b.sets - a.sets || a.muscle.localeCompare(b.muscle),
+  )
+}

@@ -15,6 +15,7 @@ import {
 } from "@/components/profile/charts/fixtures"
 import { cn } from "@/lib/utils"
 import { BalanceScoreBar } from "@/components/profile/BalanceScoreBar"
+import { MuscleSetRanks } from "@/components/profile/MuscleSetRanks"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
@@ -29,6 +30,13 @@ import {
 } from "@/components/profile/ProfileWindowContext"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
@@ -49,6 +57,7 @@ import {
   type ProfileWindowKind,
 } from "@/lib/profile/window"
 import { pierreTonnageBars } from "@/lib/profile/tonnage"
+import { rankColorRing, rankColorText } from "@/lib/achievementUtils"
 import { balanceBandFromScore } from "@/lib/trainingBalance"
 import { localDateFromIsoDay, tenureSpan, tenureSpanKey } from "@/lib/profile/tenure"
 import type { BadgeStatusRow } from "@/types/achievements"
@@ -74,28 +83,28 @@ function blockStatus(
   return pierreStatus
 }
 
-function WindowToggle() {
+function WindowSelect() {
   const { t } = useTranslation("profile")
   const { kind, setKind } = useProfileWindow()
 
   return (
-    <ToggleGroup
-      type="single"
+    <Select
       value={kind}
       onValueChange={(value) => {
         if (isWindowKind(value)) setKind(value)
       }}
-      variant="outline"
-      size="sm"
-      className="flex flex-wrap justify-start"
-      aria-label={t("windowToggle")}
     >
-      {PROFILE_WINDOW_KINDS.map((windowKind) => (
-        <ToggleGroupItem key={windowKind} value={windowKind} className="px-2.5">
-          {t(`window.${windowKind}`)}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+      <SelectTrigger className="w-40" aria-label={t("windowToggle")}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {PROFILE_WINDOW_KINDS.map((windowKind) => (
+          <SelectItem key={windowKind} value={windowKind}>
+            {t(`window.${windowKind}`)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -140,47 +149,69 @@ function HeroBlock({ mode }: { mode: FixtureMode }) {
 
   if (mode === "loading") {
     return (
-      <div className="flex items-center gap-4">
-        <Skeleton className="size-14 rounded-full" />
+      <div className="flex items-center gap-5">
+        <Skeleton className="size-20 rounded-full" />
         <div className="flex flex-col gap-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-7 w-36" />
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-5 w-56" />
         </div>
       </div>
     )
   }
 
   const span = tenureSpan(localDateFromIsoDay(PIERRE_FIRST_SESSION_AT), new Date())
+  const equipped = mode === "pierre" ? PIERRE_SUCCES.highest : null
+  const title = equipped
+    ? i18n.language === "fr"
+      ? equipped.title_fr
+      : equipped.title_en
+    : null
 
   return (
-    <div className="flex items-start gap-4">
-      <Avatar className="size-14">
+    <section aria-labelledby="profile-hero-name" className="flex items-center gap-5">
+      <Avatar
+        className={cn(
+          "size-20 ring-2 ring-offset-2 ring-offset-background",
+          equipped ? rankColorRing[equipped.rank] : "ring-border",
+        )}
+      >
         <AvatarFallback>PT</AvatarFallback>
       </Avatar>
-      <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-xl font-semibold tracking-tight">Pierre</p>
-        {mode === "pierre" ? (
-          <p className="text-sm text-muted-foreground">
-            {i18n.language === "fr"
-              ? PIERRE_SUCCES.highest.title_fr
-              : PIERRE_SUCCES.highest.title_en}
+      <div className="min-w-0 flex-1">
+        <p
+          id="profile-hero-name"
+          className="text-2xl font-bold tracking-tight"
+        >
+          Pierre
+        </p>
+        {title && equipped ? (
+          <p
+            className={cn(
+              "text-sm font-semibold italic",
+              rankColorText[equipped.rank],
+            )}
+          >
+            {title}
           </p>
         ) : null}
-        <p className="text-sm text-muted-foreground">
-          {t("hero.activeProgram", { program: "Upper/Lower" })}
-        </p>
-        {mode === "pierre" && includeDeltas ? (
-          <p className="text-sm">{t("hero.hop", { other: "PPL" })}</p>
-        ) : null}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">
+            {t("hero.activeProgram", { program: "Upper/Lower" })}
+          </Badge>
+          {mode === "pierre" && includeDeltas ? (
+            <Badge variant="outline">{t("hero.hop", { other: "PPL" })}</Badge>
+          ) : null}
+        </div>
         {mode === "pierre" ? (
-          <p className="text-sm">
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {t("hero.activeSince", {
               span: t(tenureSpanKey(span), { count: span.n }),
             })}
           </p>
         ) : null}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -529,12 +560,17 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
           label={t("balance.score", { score })}
           bandLabel={t(`balance.band.${band}`)}
         />
-        <MuscleRadarChart
-          series={{
-            current: RADAR_CURRENT,
-            prior: includeDeltas ? RADAR_PRIOR : undefined,
-          }}
-        />
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_10.5rem] items-center gap-3">
+          <div className="min-w-0">
+            <MuscleRadarChart
+              series={{
+                current: RADAR_CURRENT,
+                prior: includeDeltas ? RADAR_PRIOR : undefined,
+              }}
+            />
+          </div>
+          <MuscleSetRanks values={RADAR_CURRENT} />
+        </div>
       </ProfileSection>
       <ProfileSection
         title={t("tonnage.title")}
@@ -678,11 +714,11 @@ export function ProfilePage() {
     <ProfileWindowProvider kind={kind} setKind={setKind}>
       <div className="flex w-full flex-col gap-6 p-4 md:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <WindowToggle />
-            <FixtureSwitch mode={mode} onMode={setMode} />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <h1 className="text-2xl font-bold tracking-tight">{t("nav")}</h1>
+            <WindowSelect />
           </div>
+          <FixtureSwitch mode={mode} onMode={setMode} />
         </div>
         <ProfileFold mode={mode} />
       </div>

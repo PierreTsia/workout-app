@@ -110,6 +110,7 @@
       "attention": "Needs attention",
       "imbalanced": "Imbalanced"
     },
+    "rankLegend": "Sets · 1 / 0.5",
     "empty": "Not enough sessions for a score."
   },
   "tonnage": {
