@@ -140,16 +140,6 @@ export function pierrePulse(kind: ProfileWindowKind): PulseFixture {
   return byKind[kind]
 }
 
-export const PIERRE_REGULARS = [
-  { name: "Squat", onProgram: true },
-  { name: "Bench press", onProgram: true },
-  { name: "Deadlift", onProgram: true },
-  { name: "Pull-up", onProgram: false },
-  { name: "Overhead press", onProgram: true },
-  { name: "Row", onProgram: true },
-  { name: "Hip thrust", onProgram: false },
-  { name: "Walking lunge", onProgram: false },
-] as const
 
 export const PIERRE_CIRCUITS = [
   { name: "Cindy", mode: "AMRAP 20", scores: "8+2 · 9+0 · 10+1", pb: true },
