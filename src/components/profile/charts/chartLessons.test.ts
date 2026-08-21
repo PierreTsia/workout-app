@@ -17,10 +17,10 @@ describe("chartLessons", () => {
       "mix.tooltip.rest",
     )
     expect(mixLesson({ programme: 2, quickWorkout: 1, circuits: 0 }, t)).toBe(
-      'mix.tooltip.slice:{"n":2,"slice":"mix.slice.programme"} · mix.tooltip.slice:{"n":1,"slice":"mix.slice.quickWorkout"}',
+      'mix.tooltip.slice:{"n":2,"slice":"mix.slice.programme:{\\"count\\":2}"} · mix.tooltip.slice:{"n":1,"slice":"mix.slice.quickWorkout:{\\"count\\":1}"}',
     )
     expect(mixLesson({ programme: 0, quickWorkout: 0, circuits: 1 }, t)).toBe(
-      'mix.tooltip.slice:{"n":1,"slice":"mix.slice.circuits"}',
+      'mix.tooltip.slice:{"n":1,"slice":"mix.slice.circuits:{\\"count\\":1}"}',
     )
   })
 

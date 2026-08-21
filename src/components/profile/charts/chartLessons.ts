@@ -21,7 +21,10 @@ export function mixLesson(
   )
     .filter((slice) => slice.n > 0)
     .map((slice) =>
-      t("mix.tooltip.slice", { n: slice.n, slice: t(`mix.slice.${slice.key}`) }),
+      t("mix.tooltip.slice", {
+        n: slice.n,
+        slice: t(`mix.slice.${slice.key}`, { count: slice.n }),
+      }),
     )
   if (parts.length === 0) return t("mix.tooltip.rest")
   return parts.join(" · ")
