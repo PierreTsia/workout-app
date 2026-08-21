@@ -1,12 +1,14 @@
 import { Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from "recharts"
+import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { readRecordsRow, recordsLesson } from "./chartLessons"
+import { ProfileChartTooltip } from "./ProfileChartTooltip"
 import { toRecordsComboRows, type RecordsComboSeries } from "./profileChartData"
 
 export type { RecordsComboSeries, RecordsComboRow } from "./profileChartData"
@@ -23,6 +25,7 @@ export function RecordsComboChart({
   categories: readonly string[]
   series: RecordsComboSeries
 }) {
+  const { t } = useTranslation("profile")
   const data = toRecordsComboRows(categories, series)
 
   return (
@@ -56,7 +59,19 @@ export function RecordsComboChart({
           width={36}
           tickFormatter={(value) => `${value}%`}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={(props) => (
+            <ProfileChartTooltip
+              active={props.active}
+              payload={props.payload}
+              label={props.label}
+              lesson={recordsLesson(readRecordsRow(props.payload?.[0]?.payload), t)}
+              formatValue={(value, dataKey) =>
+                dataKey === "rir0" ? `${value}%` : String(value)
+              }
+            />
+          )}
+        />
         <ChartLegend content={<ChartLegendContent />} />
         <Bar
           yAxisId="prs"

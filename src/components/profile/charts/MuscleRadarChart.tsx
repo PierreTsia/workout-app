@@ -5,15 +5,21 @@ import {
   Radar,
   RadarChart,
 } from "recharts"
+import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { toRadarRows, type MuscleRadarSeries } from "./profileChartData"
+import { radarLesson, readRadarRow } from "./chartLessons"
+import { ProfileChartTooltip } from "./ProfileChartTooltip"
+import {
+  PIERRE_SET_CREDIT_SCALE,
+  toRadarRows,
+  type MuscleRadarSeries,
+} from "./profileChartData"
 
 export type {
   MuscleRadarSeries,
@@ -27,6 +33,7 @@ const radarChartConfig = {
 } satisfies ChartConfig
 
 export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
+  const { t } = useTranslation("profile")
   const data = toRadarRows(series)
   const hasPrior = series.prior !== undefined
 
@@ -41,7 +48,21 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
         <PolarGrid />
         <PolarAngleAxis dataKey="muscle" />
         <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={(props) => (
+            <ProfileChartTooltip
+              active={props.active}
+              payload={props.payload}
+              label={readRadarRow(props.payload?.[0]?.payload)?.muscle}
+              lesson={radarLesson(readRadarRow(props.payload?.[0]?.payload), t)}
+              formatValue={(value) =>
+                t("balance.tooltip.sets", {
+                  n: Math.round(value * PIERRE_SET_CREDIT_SCALE),
+                })
+              }
+            />
+          )}
+        />
         {hasPrior ? <ChartLegend content={<ChartLegendContent />} /> : null}
         <Radar
           dataKey="current"

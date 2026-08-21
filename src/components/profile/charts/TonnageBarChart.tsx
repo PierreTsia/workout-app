@@ -1,10 +1,11 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { ProfileChartTooltip } from "./ProfileChartTooltip"
 
 const tonnageChartConfig = {
   tonnage: { label: "Tonnage", color: "hsl(174 100% 39%)" },
@@ -27,6 +28,7 @@ export function TonnageBarChart({
   categories: readonly string[]
   series: readonly number[]
 }) {
+  const { t } = useTranslation("profile")
   const data = toTonnageRows(categories, series)
 
   return (
@@ -44,7 +46,17 @@ export function TonnageBarChart({
           axisLine={false}
           interval={0}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={(props) => (
+            <ProfileChartTooltip
+              active={props.active}
+              payload={props.payload}
+              label={props.label}
+              lesson={t("tonnage.tooltip")}
+              formatValue={(value) => `${value} t`}
+            />
+          )}
+        />
         <Bar dataKey="tonnage" fill="var(--color-tonnage)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ChartContainer>

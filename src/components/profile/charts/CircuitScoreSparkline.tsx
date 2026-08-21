@@ -5,19 +5,19 @@ import {
 } from "@/components/ui/chart"
 
 const sparkConfig = {
-  rounds: { label: "Rounds", color: "hsl(174 100% 39%)" },
+  score: { label: "Score", color: "hsl(174 100% 39%)" },
 } satisfies ChartConfig
 
 export function CircuitScoreSparkline({
   name,
-  rounds,
+  values,
 }: {
   name: string
-  rounds: readonly number[]
+  values: readonly number[]
 }) {
-  if (rounds.length < 2) return null
+  if (values.length < 2) return null
 
-  const data = rounds.map((value, i) => ({ i, rounds: value }))
+  const data = values.map((value, i) => ({ i, score: value }))
 
   return (
     <ChartContainer
@@ -28,9 +28,9 @@ export function CircuitScoreSparkline({
     >
       <LineChart data={data}>
         <Line
-          dataKey="rounds"
+          dataKey="score"
           type="monotone"
-          stroke="var(--color-rounds)"
+          stroke="var(--color-score)"
           strokeWidth={2}
           dot={false}
         />

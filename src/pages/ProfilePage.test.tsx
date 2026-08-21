@@ -12,25 +12,23 @@ vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
 const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
+function sectionCard(name: string) {
+  const heading = screen.getByRole("heading", { name })
+  const card = heading.closest(".bg-card")
+  if (!card) throw new Error(`expected ${name} card`)
+  return card
+}
+
 function withinRhythm() {
-  const heading = screen.getByRole("heading", { name: "Rhythm" })
-  const card = heading.parentElement?.parentElement
-  if (!card) throw new Error("expected Rhythm card")
-  return within(card)
+  return within(sectionCard("Rhythm"))
 }
 
 function withinRecords() {
-  const heading = screen.getByRole("heading", { name: "Records" })
-  const card = heading.parentElement?.parentElement
-  if (!card) throw new Error("expected Records card")
-  return within(card)
+  return within(sectionCard("Records"))
 }
 
 function withinBalance() {
-  const heading = screen.getByRole("heading", { name: "Balance" })
-  const card = heading.parentElement?.parentElement
-  if (!card) throw new Error("expected Balance card")
-  return within(card)
+  return within(sectionCard("Balance"))
 }
 
 async function chooseWindow(
@@ -143,13 +141,12 @@ describe("ProfilePage T0 fixtures", () => {
   it("promotes Circuits KPIs to pulse cards with vs-prior deltas", () => {
     renderWithProviders(<ProfilePage />)
 
-    const heading = screen.getByRole("heading", { name: "Circuits" })
-    const card = heading.parentElement?.parentElement
-    if (!card) throw new Error("expected Circuits card")
-    const circuits = within(card)
+    const circuits = within(sectionCard("Circuits"))
 
     expect(circuits.getByText("11").className).toMatch(/text-3xl/)
-    expect(circuits.getByText("2").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("3", { selector: ".text-3xl" }).className).toMatch(
+      /text-3xl/,
+    )
     expect(circuits.getByText("1").className).toMatch(/text-3xl/)
 
     const up = circuits.getByText("+4 vs prior")
@@ -175,10 +172,8 @@ describe("ProfilePage T0 fixtures", () => {
   it("puts Mix and Rhythm side by side on the large row", () => {
     renderWithProviders(<ProfilePage />)
 
-    const mix = screen.getByRole("heading", { name: "Mix" })
-    const rhythm = screen.getByRole("heading", { name: "Rhythm" })
-    const mixCell = mix.closest(".min-w-0")
-    const rhythmCell = rhythm.closest(".min-w-0")
+    const mixCell = sectionCard("Mix").parentElement
+    const rhythmCell = sectionCard("Rhythm").parentElement
     const grid = mixCell?.parentElement
 
     expect(grid?.className).toMatch(/lg:grid-cols-2/)
@@ -272,10 +267,7 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />, { locale: "fr" })
     await chooseWindow(user, "100j")
 
-    const heading = screen.getByRole("heading", { name: "Rythme" })
-    const card = heading.parentElement?.parentElement
-    if (!card) throw new Error("expected Rythme card")
-    const rhythm = within(card)
+    const rhythm = within(sectionCard("Rythme"))
 
     expect(rhythm.getByText("12 semaines · cible 4 j / sem")).toBeInTheDocument()
     expect(rhythm.queryByRole("list", { name: "Rythme" })).not.toBeInTheDocument()
@@ -391,6 +383,9 @@ describe("ProfilePage T0 fixtures", () => {
     ).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Tonnage" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Balance" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "About Mix" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "About Balance" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "About Window" })).toBeInTheDocument()
     expect(screen.getByText("18.4 t")).toBeInTheDocument()
 
     const balance = withinBalance()
@@ -413,10 +408,7 @@ describe("ProfilePage T0 fixtures", () => {
         ?.parentElement?.className,
     ).toMatch(/grid-cols-\[minmax/)
 
-    const tonnageHeading = screen.getByRole("heading", { name: "Tonnage" })
-    const tonnageCard = tonnageHeading.parentElement?.parentElement
-    if (!tonnageCard) throw new Error("expected Tonnage card")
-    const tonnageDelta = within(tonnageCard).getByText("+1.2 t vs prior")
+    const tonnageDelta = within(sectionCard("Tonnage")).getByText("+1.2 t vs prior")
     expect(tonnageDelta.className).toMatch(/emerald/)
   })
 
@@ -461,26 +453,53 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("treats Circuits as last AmrapScore plus a rounds sparkline, not a leftover string", async () => {
+  it("scores Circuits by mode, with run count and window best — not last run", async () => {
     renderWithProviders(<ProfilePage />)
 
-    const heading = screen.getByRole("heading", { name: "Circuits" })
-    const card = heading.parentElement?.parentElement
-    if (!card) throw new Error("expected Circuits card")
-    const circuits = within(card)
+    const circuits = within(sectionCard("Circuits"))
 
     expect(circuits.queryByText("8+2 · 9+0 · 10+1")).not.toBeInTheDocument()
+    expect(circuits.getByText("Cindy")).toBeInTheDocument()
+    expect(circuits.getByText("Athena")).toBeInTheDocument()
+    expect(circuits.getByText("Force")).toBeInTheDocument()
     expect(circuits.getByText("10+1")).toBeInTheDocument()
     expect(circuits.getByText("5+4")).toBeInTheDocument()
     expect(circuits.getByText("AMRAP 20 min")).toBeInTheDocument()
     expect(circuits.getByText("AMRAP 12 min")).toBeInTheDocument()
+    expect(circuits.getByText("4 rounds")).toBeInTheDocument()
+    expect(circuits.getByText("7:58")).toBeInTheDocument()
+    expect(circuits.queryByText("9+0")).not.toBeInTheDocument()
+    expect(circuits.queryByText("8:18")).not.toBeInTheDocument()
+    expect(within(circuits.getAllByRole("listitem")[0]).getByText("5")).toBeInTheDocument()
+    expect(within(circuits.getAllByRole("listitem")[0]).getByText("PB")).toBeInTheDocument()
+    expect(circuits.queryByText("AMRAP 4 min")).not.toBeInTheDocument()
     expect(await circuits.findByRole("img", { name: "Cindy score" })).toBeInTheDocument()
     expect(circuits.getByRole("img", { name: "Athena score" })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: "Force score" })).toBeInTheDocument()
     expect(
       circuits
         .getAllByRole("listitem")
-        .every((row) => row.className.includes("grid-cols-")),
+        .every((row) =>
+          row.className.includes("grid-cols-[minmax(0,1fr)_3.25rem_8rem_6rem]"),
+        ),
     ).toBe(true)
+  })
+
+  it("lets the window selector rank Regulars", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ProfilePage />)
+
+    const regulars = within(sectionCard("Regulars"))
+    expect(regulars.getByText("Most logged · 7d")).toBeInTheDocument()
+    expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Squat")
+    expect(regulars.getByText("48")).toBeInTheDocument()
+    expect(regulars.queryByText("400")).not.toBeInTheDocument()
+
+    await chooseWindow(user, "100d")
+
+    expect(regulars.getByText("Most logged · 100d")).toBeInTheDocument()
+    expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Pull-up")
+    expect(regulars.getByText("400")).toBeInTheDocument()
   })
 
   it("treats empty and loading as distinct fixture modes", async () => {

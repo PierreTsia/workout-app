@@ -1,12 +1,14 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { mixLesson, readMixRow } from "./chartLessons"
+import { ProfileChartTooltip } from "./ProfileChartTooltip"
 import { toMixPercentRows, type MixSeries } from "./profileChartData"
 
 export type { MixSeries, MixPercentRow } from "./profileChartData"
@@ -26,6 +28,7 @@ export function MixStackedChart({
   categories: readonly string[]
   series: MixSeries
 }) {
+  const { t } = useTranslation("profile")
   const data = toMixPercentRows(categories, series)
 
   return (
@@ -43,7 +46,17 @@ export function MixStackedChart({
           axisLine={false}
           interval={0}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={(props) => (
+            <ProfileChartTooltip
+              active={props.active}
+              payload={props.payload}
+              label={props.label}
+              lesson={mixLesson(readMixRow(props.payload?.[0]?.payload), t)}
+              formatValue={(value) => `${Math.round(value)}%`}
+            />
+          )}
+        />
         <ChartLegend content={<ChartLegendContent />} />
         {MIX_STACKS.map((key, i) => (
           <Bar

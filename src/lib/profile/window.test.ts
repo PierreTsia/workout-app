@@ -5,7 +5,12 @@ import {
   MIX_CATEGORIES,
   pierreMixSeries,
   pierrePulse,
+  circuitBestAmrap,
+  circuitBestTours,
+  circuitSparkValues,
+  pierreCircuits,
   pierreCircuitsPulse,
+  PIERRE_CIRCUITS,
   pierreRecordsPulse,
   pierreRhythmHits,
   PIERRE_WEEKLY_TARGET,
@@ -33,7 +38,7 @@ describe("profile window", () => {
     const circuits = pierreCircuitsPulse("7")
     expect(circuits.runs).toBe(11)
     expect(circuits.runsDelta).toBeGreaterThan(0)
-    expect(circuits.distinct).toBe(2)
+    expect(circuits.distinct).toBe(3)
     expect(circuits.pbs).toBe(1)
   })
 
@@ -92,5 +97,38 @@ describe("profile window", () => {
     expect(series.programme.every((n) => n === 0)).toBe(true)
     expect(series.quickWorkout.every((n) => n === 0)).toBe(true)
     expect(series.circuits.every((n) => n === 0)).toBe(true)
+  })
+
+  it("sparks AMRAP as rounds and Tours as seconds", () => {
+    const amrap = PIERRE_CIRCUITS.find((row) => row.mode === "amrap")
+    const tours = PIERRE_CIRCUITS.find((row) => row.mode === "rounds")
+    expect(amrap && circuitSparkValues(amrap)).toEqual([8, 10, 9])
+    expect(tours && circuitSparkValues(tours)).toEqual([520, 478, 498])
+  })
+
+  it("picks the window best run, not the last", () => {
+    const cindy = PIERRE_CIRCUITS.find((row) => row.name === "Cindy")
+    const athena = PIERRE_CIRCUITS.find((row) => row.name === "Athena")
+    const force = PIERRE_CIRCUITS.find((row) => row.name === "Force")
+    expect(cindy?.mode === "amrap" && circuitBestAmrap(cindy.runs)).toEqual({
+      fullRounds: 10,
+      leftover: 1,
+      leftoverName: "pull-ups",
+    })
+    expect(athena?.mode === "amrap" && circuitBestAmrap(athena.runs)).toEqual({
+      fullRounds: 5,
+      leftover: 4,
+      leftoverName: "sit-ups",
+    })
+    expect(force?.mode === "rounds" && circuitBestTours(force.runs)).toEqual({
+      seconds: 478,
+    })
+  })
+
+  it("scales per-circuit run counts with the window", () => {
+    expect(pierreCircuits("7").map((row) => row.runCount)).toEqual([5, 3, 3])
+    expect(pierreCircuits("100").map((row) => row.runCount)).toEqual([
+      22, 11, 8,
+    ])
   })
 })

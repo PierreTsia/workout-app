@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
+import { readRhythmHits, rhythmLesson } from "./chartLessons"
+import { ProfileChartTooltip } from "./ProfileChartTooltip"
 
 function toRhythmRows(
   categories: readonly string[],
@@ -50,7 +51,21 @@ export function RhythmBarChart({
         />
         <YAxis hide domain={[0, yMax]} allowDecimals={false} />
         <ReferenceLine y={target} stroke="hsl(174 100% 39% / 0.55)" strokeDasharray="4 4" />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={(props) => (
+            <ProfileChartTooltip
+              active={props.active}
+              payload={props.payload}
+              label={props.label}
+              lesson={rhythmLesson(
+                readRhythmHits(props.payload?.[0]?.payload),
+                target,
+                t,
+              )}
+              formatValue={(value) => t("rhythm.tooltip.days", { n: value })}
+            />
+          )}
+        />
         <Bar dataKey="hits" fill="var(--color-hits)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ChartContainer>

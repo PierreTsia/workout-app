@@ -7,6 +7,7 @@ export type ProfileSectionStatus = "ok" | "empty" | "loading" | "error"
 
 export function ProfileSection({
   title,
+  hint,
   meta,
   status,
   empty,
@@ -14,6 +15,7 @@ export function ProfileSection({
   children,
 }: {
   title: string
+  hint?: ReactNode
   meta?: ReactNode
   status: ProfileSectionStatus
   empty: ReactNode
@@ -25,7 +27,10 @@ export function ProfileSection({
       <CardHeader
         className={cn("pb-2", meta != null && "flex-row items-baseline justify-between gap-3")}
       >
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          {hint}
+        </div>
         {meta != null ? (
           <div className="text-right text-sm">{meta}</div>
         ) : null}

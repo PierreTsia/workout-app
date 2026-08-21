@@ -270,7 +270,7 @@ export function pierreCircuitsPulse(kind: ProfileWindowKind): CircuitsPulseFixtu
     "7": {
       runs: 11,
       runsDelta: 4,
-      distinct: 2,
+      distinct: 3,
       distinctDelta: 0,
       pbs: 1,
       pbsDelta: 0,
@@ -278,7 +278,7 @@ export function pierreCircuitsPulse(kind: ProfileWindowKind): CircuitsPulseFixtu
     "30": {
       runs: 24,
       runsDelta: 6,
-      distinct: 2,
+      distinct: 3,
       distinctDelta: 0,
       pbs: 2,
       pbsDelta: 1,
@@ -311,41 +311,122 @@ export function pierreCircuitsPulse(kind: ProfileWindowKind): CircuitsPulseFixtu
   return byKind[kind]
 }
 
-export type CircuitRunFixture = {
+export type CircuitAmrapRunFixture = {
   fullRounds: number
   leftover: number
   leftoverName: string
 }
 
-export type CircuitRowFixture = {
-  name: string
-  minutes: number
-  pb: boolean
-  runs: readonly CircuitRunFixture[]
+export type CircuitToursRunFixture = {
+  seconds: number
+}
+
+export type CircuitRowFixture =
+  | {
+      mode: "amrap"
+      name: string
+      minutes: number
+      pb: boolean
+      runCount: number
+      runs: readonly CircuitAmrapRunFixture[]
+    }
+  | {
+      mode: "rounds"
+      name: string
+      rounds: number
+      pb: boolean
+      runCount: number
+      runs: readonly CircuitToursRunFixture[]
+    }
+
+export function circuitSparkValues(row: CircuitRowFixture): readonly number[] {
+  return row.mode === "amrap"
+    ? row.runs.map((run) => run.fullRounds)
+    : row.runs.map((run) => run.seconds)
+}
+
+function amrapBeats(
+  candidate: CircuitAmrapRunFixture,
+  best: CircuitAmrapRunFixture,
+): boolean {
+  if (candidate.fullRounds !== best.fullRounds) {
+    return candidate.fullRounds > best.fullRounds
+  }
+  return candidate.leftover > best.leftover
+}
+
+export function circuitBestAmrap(
+  runs: readonly CircuitAmrapRunFixture[],
+): CircuitAmrapRunFixture | undefined {
+  const [first, ...rest] = runs
+  if (first == null) return undefined
+  return rest.reduce((best, run) => (amrapBeats(run, best) ? run : best), first)
+}
+
+export function circuitBestTours(
+  runs: readonly CircuitToursRunFixture[],
+): CircuitToursRunFixture | undefined {
+  const [first, ...rest] = runs
+  if (first == null) return undefined
+  return rest.reduce(
+    (best, run) => (run.seconds < best.seconds ? run : best),
+    first,
+  )
+}
+
+const PIERRE_CIRCUIT_RUNS: Record<
+  ProfileWindowKind,
+  readonly [number, number, number]
+> = {
+  "7": [5, 3, 3],
+  "30": [12, 7, 5],
+  "100": [22, 11, 8],
+  "365": [32, 20, 16],
+  all: [40, 28, 20],
 }
 
 export const PIERRE_CIRCUITS: readonly CircuitRowFixture[] = [
   {
+    mode: "amrap",
     name: "Cindy",
     minutes: 20,
     pb: true,
+    runCount: 22,
     runs: [
       { fullRounds: 8, leftover: 2, leftoverName: "pull-ups" },
-      { fullRounds: 9, leftover: 0, leftoverName: "pull-ups" },
       { fullRounds: 10, leftover: 1, leftoverName: "pull-ups" },
+      { fullRounds: 9, leftover: 0, leftoverName: "pull-ups" },
     ],
   },
   {
+    mode: "amrap",
     name: "Athena",
     minutes: 12,
     pb: false,
+    runCount: 11,
     runs: [
       { fullRounds: 4, leftover: 6, leftoverName: "sit-ups" },
-      { fullRounds: 5, leftover: 1, leftoverName: "sit-ups" },
       { fullRounds: 5, leftover: 4, leftoverName: "sit-ups" },
+      { fullRounds: 5, leftover: 1, leftoverName: "sit-ups" },
     ],
   },
+  {
+    mode: "rounds",
+    name: "Force",
+    rounds: 4,
+    pb: false,
+    runCount: 8,
+    runs: [{ seconds: 520 }, { seconds: 478 }, { seconds: 498 }],
+  },
 ]
+
+export function pierreCircuits(kind: ProfileWindowKind): CircuitRowFixture[] {
+  const counts = PIERRE_CIRCUIT_RUNS[kind]
+  return PIERRE_CIRCUITS.map((row, i) => ({
+    ...row,
+    runCount: counts[i] ?? row.runCount,
+  }))
+}
 
 const BADGE_ICON_BASE =
   "https://favusepjqwpcroiolvaz.supabase.co/storage/v1/object/public/badge-icons"

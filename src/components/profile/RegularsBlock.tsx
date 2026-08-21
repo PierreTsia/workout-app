@@ -1,10 +1,12 @@
 import { Dumbbell, TrendingUp } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { ProfileHint } from "@/components/profile/ProfileHint"
 import { ProfileSection } from "@/components/profile/ProfileSection"
+import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { formatNumber } from "@/lib/formatters"
 import {
-  PIERRE_REGULARS,
+  pierreRegulars,
   rankRegulars,
   type RegularEvolution,
 } from "@/lib/profile/regulars"
@@ -54,16 +56,25 @@ function blockStatus(mode: RegularsFixtureMode): "ok" | "empty" | "loading" {
 export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
   const { t, i18n } = useTranslation("profile")
   const { formatWeight } = useWeightUnit()
+  const { kind } = useProfileWindow()
   const status = blockStatus(mode)
-  const rows = rankRegulars(PIERRE_REGULARS)
+  const rows = rankRegulars(pierreRegulars(kind))
+  const windowLabel = t(`window.${kind}`)
 
   return (
     <ProfileSection
       title={t("regulars.title")}
+      hint={
+        <ProfileHint label={t("about", { section: t("regulars.title") })}>
+          {t("regulars.hint")}
+        </ProfileHint>
+      }
       status={status}
       empty={t("regulars.empty")}
     >
-      <p className="mb-3 text-xs text-muted-foreground">{t("regulars.subtitle")}</p>
+      <p className="mb-3 text-xs text-muted-foreground">
+        {t("regulars.subtitle", { window: windowLabel })}
+      </p>
       <ul className="flex flex-col gap-2 text-sm">
         {rows.map((row) => (
           <li

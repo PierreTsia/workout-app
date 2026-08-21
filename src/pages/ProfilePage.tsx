@@ -1,13 +1,11 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { CircuitScoreSparkline } from "@/components/profile/charts/CircuitScoreSparkline"
 import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
 import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
-import { AmrapLabel } from "@/components/circuit/AmrapLabel"
-import { AmrapScore } from "@/components/circuit/AmrapScore"
+import { CircuitLedgerRow } from "@/components/profile/CircuitLedgerRow"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -16,6 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 import { BalanceScoreBar } from "@/components/profile/BalanceScoreBar"
 import { MuscleSetRanks } from "@/components/profile/MuscleSetRanks"
+import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { RhythmPresenceChart } from "@/components/profile/RhythmPresenceChart"
@@ -39,12 +38,13 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { BadgeDetailDrawer } from "@/components/achievements/BadgeDetailDrawer"
 import { BadgeIcon } from "@/components/achievements/BadgeIcon"
 import {
   emptyMixSeries,
   MIX_CATEGORIES,
-  PIERRE_CIRCUITS,
+  pierreCircuits,
   PIERRE_SUCCES,
   pierreMixSeries,
   pierreCircuitsPulse,
@@ -94,9 +94,14 @@ function WindowSelect() {
         if (isWindowKind(value)) setKind(value)
       }}
     >
-      <SelectTrigger className="w-40" aria-label={t("windowToggle")}>
-        <SelectValue />
-      </SelectTrigger>
+      <div className="flex items-center gap-1.5">
+        <SelectTrigger className="w-40" aria-label={t("windowToggle")}>
+          <SelectValue />
+        </SelectTrigger>
+        <ProfileHint label={t("about", { section: t("windowToggle") })}>
+          {t("windowHint")}
+        </ProfileHint>
+      </div>
       <SelectContent>
         {PROFILE_WINDOW_KINDS.map((windowKind) => (
           <SelectItem key={windowKind} value={windowKind}>
@@ -308,6 +313,11 @@ function SuccesBlock({ mode }: { mode: FixtureMode }) {
     <>
       <ProfileSection
         title={t("achievements.title")}
+        hint={
+          <ProfileHint label={t("about", { section: t("achievements.title") })}>
+            {t("achievements.hint")}
+          </ProfileHint>
+        }
         status={status}
         empty={t("achievements.empty")}
       >
@@ -423,6 +433,11 @@ function RhythmBlock({ mode }: { mode: FixtureMode }) {
   return (
     <ProfileSection
       title={t("rhythm.title")}
+      hint={
+        <ProfileHint label={t("about", { section: t("rhythm.title") })}>
+          {t("rhythm.hint")}
+        </ProfileHint>
+      }
       meta={
         status === "ok" ? (
           <span className="text-muted-foreground">
@@ -453,7 +468,16 @@ function MixBlock({ mode }: { mode: FixtureMode }) {
   const series = mode === "pierre" ? pierreMixSeries(kind) : emptyMixSeries(kind)
 
   return (
-    <ProfileSection title={t("mix.title")} status={status} empty={t("mix.empty")}>
+    <ProfileSection
+      title={t("mix.title")}
+      hint={
+        <ProfileHint label={t("about", { section: t("mix.title") })}>
+          {t("mix.hint")}
+        </ProfileHint>
+      }
+      status={status}
+      empty={t("mix.empty")}
+    >
       <MixStackedChart categories={MIX_CATEGORIES[kind]} series={series} />
     </ProfileSection>
   )
@@ -488,7 +512,16 @@ function RecordsBlock({ mode }: { mode: FixtureMode }) {
   })
 
   return (
-    <ProfileSection title={t("records.title")} status={status} empty={t("records.empty")}>
+    <ProfileSection
+      title={t("records.title")}
+      hint={
+        <ProfileHint label={t("about", { section: t("records.title") })}>
+          {t("records.hint")}
+        </ProfileHint>
+      }
+      status={status}
+      empty={t("records.empty")}
+    >
       <ProfilePulseGrid>
         <ProfileStatCard
           title={t("records.prs")}
@@ -538,6 +571,11 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
     <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
       <ProfileSection
         title={t("balance.title")}
+        hint={
+          <ProfileHint label={t("about", { section: t("balance.title") })}>
+            {t("balance.hint")}
+          </ProfileHint>
+        }
         meta={
           status === "ok" && includeDeltas ? (
             <span
@@ -574,6 +612,11 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
       </ProfileSection>
       <ProfileSection
         title={t("tonnage.title")}
+        hint={
+          <ProfileHint label={t("about", { section: t("tonnage.title") })}>
+            {t("tonnage.hint")}
+          </ProfileHint>
+        }
         status={status}
         empty={t("tonnage.empty")}
       >
@@ -616,6 +659,11 @@ function CircuitsBlock({ mode }: { mode: FixtureMode }) {
   return (
     <ProfileSection
       title={t("circuits.title")}
+      hint={
+        <ProfileHint label={t("about", { section: t("circuits.title") })}>
+          {t("circuits.hint")}
+        </ProfileHint>
+      }
       status={status}
       empty={t("circuits.empty")}
     >
@@ -646,36 +694,11 @@ function CircuitsBlock({ mode }: { mode: FixtureMode }) {
         </ProfilePulseGrid>
       </div>
       <ul className="flex flex-col gap-3">
-        {PIERRE_CIRCUITS.flatMap((row) => {
-          const latest = row.runs.at(-1)
-          return latest == null ? [] : [{ row, latest }]
-        }).map(({ row, latest }) => (
-          <li
-            key={row.name}
-            className="grid grid-cols-[minmax(0,1fr)_auto_6rem] items-center gap-3"
-          >
-            <div className="min-w-0">
-              <div className="flex min-h-5 items-center gap-2">
-                <span className="truncate font-medium">{row.name}</span>
-                <AmrapLabel minutes={row.minutes} variant="inline" />
-                <span className="inline-flex h-5 min-w-8 shrink-0 items-center">
-                  {row.pb ? <Badge>{t("circuits.pbs")}</Badge> : null}
-                </span>
-              </div>
-            </div>
-            <AmrapScore
-              fullRounds={latest.fullRounds}
-              leftover={latest.leftover}
-              leftoverName={latest.leftoverName}
-              size="compact"
-              align="start"
-            />
-            <CircuitScoreSparkline
-              name={row.name}
-              rounds={row.runs.map((run) => run.fullRounds)}
-            />
-          </li>
-        ))}
+        {pierreCircuits(kind)
+          .filter((row) => row.runs.length > 0)
+          .map((row) => (
+            <CircuitLedgerRow key={row.name} row={row} />
+          ))}
       </ul>
     </ProfileSection>
   )
@@ -712,6 +735,7 @@ export function ProfilePage() {
 
   return (
     <ProfileWindowProvider kind={kind} setKind={setKind}>
+    <TooltipProvider delayDuration={200}>
       <div className="flex w-full flex-col gap-6 p-4 md:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -722,6 +746,7 @@ export function ProfilePage() {
         </div>
         <ProfileFold mode={mode} />
       </div>
+    </TooltipProvider>
     </ProfileWindowProvider>
   )
 }
