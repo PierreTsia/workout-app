@@ -63,6 +63,10 @@
     "weekCurrent": "W",
     "weekAgo": "W-{{n}}",
     "deload": "{{week}} = deload ({{n}} sessions)",
+    "heatmapRest": "Rest",
+    "heatmapGoal": "Goal",
+    "heatmapTooltipShort": "{{n}} / {{target}} d — short of target",
+    "heatmapTooltipGoal": "Goal hit · {{n}} d",
     "empty": "No sessions in this window.",
     "weekday": {
       "mon": "Mon",

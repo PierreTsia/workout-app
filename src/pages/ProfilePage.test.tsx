@@ -28,6 +28,16 @@ const routerSources = import.meta.glob("../router/index.tsx", {
 describe("ProfilePage T0 fixtures", () => {
   beforeEach(() => {
     stubChartLayout()
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
   })
 
   afterEach(() => {
@@ -155,45 +165,28 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByText("Last 7 days · target 4 d / wk")).not.toBeInTheDocument()
   })
 
-  it("lays out 100d Rhythm as 12 target-dot week clusters, not a weekday grid", async () => {
+  it("lays out 100d Rhythm as a goal heatmap, not week-dot clusters", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
     await user.click(screen.getByRole("radio", { name: "100d" }))
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
-    expect(rhythm.queryByText("W1")).not.toBeInTheDocument()
-    expect(rhythm.getByText("W-11")).toBeInTheDocument()
-    expect(rhythm.getByText("W-8 = deload (2 sessions)")).toBeInTheDocument()
-    expect(rhythm.getByText("W")).toBeInTheDocument()
-
-    const groups = rhythm.getAllByRole("listitem")
-    expect(groups).toHaveLength(12)
-
-    const filledCounts = groups.map(
-      (group) => group.querySelectorAll("[data-rhythm-dot='on']").length,
+    expect(rhythm.queryByText("W-11")).not.toBeInTheDocument()
+    expect(rhythm.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
+    expect(rhythm.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
+    expect(rhythm.getByText(/Goal/)).toBeInTheDocument()
+    expect(rhythm.getByText(/Rest/)).toBeInTheDocument()
+    const cells = rhythm.getAllByRole("gridcell")
+    expect(cells.some((cell) => (cell.getAttribute("aria-label") ?? "").endsWith(": 2"))).toBe(
+      true,
     )
-    const emptyCounts = groups.map(
-      (group) => group.querySelectorAll("[data-rhythm-dot='off']").length,
+    expect(cells.some((cell) => (cell.getAttribute("aria-label") ?? "").endsWith(": 1"))).toBe(
+      true,
     )
-    groups.forEach((group, i) => {
-      const dots = group.querySelectorAll("[data-rhythm-dot]").length
-      expect(dots).toBe(Math.max(4, filledCounts[i]!))
-      expect(filledCounts[i]! + emptyCounts[i]!).toBe(dots)
-    })
-    expect(filledCounts.some((n) => n === 4)).toBe(true)
-    expect(filledCounts.some((n) => n > 4)).toBe(true)
-    expect(filledCounts.some((n) => n > 0 && n < 4)).toBe(true)
-    expect(filledCounts.every((n) => n !== 7)).toBe(true)
-
-    const list = rhythm.getByRole("list", { name: "Rhythm" })
-    expect(list.className).toMatch(/flex/)
-    expect(list.className).not.toMatch(/grid-cols/)
-    expect(list.className).not.toMatch(/flex-wrap/)
   })
 
-  it("renders French 100d Rhythm as S- week clusters with a cible meta", async () => {
+  it("renders French 100d Rhythm heatmap with an Objectif legend", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />, { locale: "fr" })
     await user.click(screen.getByRole("radio", { name: "100j" }))
@@ -204,17 +197,9 @@ describe("ProfilePage T0 fixtures", () => {
     const rhythm = within(card)
 
     expect(rhythm.getByText("12 semaines · cible 4 j / sem")).toBeInTheDocument()
-    expect(rhythm.getByText("S-11")).toBeInTheDocument()
-    expect(rhythm.getByText("S-8 = deload (2 séances)")).toBeInTheDocument()
-    expect(rhythm.getAllByRole("listitem")).toHaveLength(12)
-    const frFilled = rhythm.getAllByRole("listitem").map(
-      (group) => group.querySelectorAll("[data-rhythm-dot='on']").length,
-    )
-    expect(frFilled.some((n) => n > 4)).toBe(true)
-    rhythm.getAllByRole("listitem").forEach((group, i) => {
-      const dots = group.querySelectorAll("[data-rhythm-dot]").length
-      expect(dots).toBe(Math.max(4, frFilled[i]!))
-    })
+    expect(rhythm.queryByText("S-11")).not.toBeInTheDocument()
+    expect(rhythm.getByText(/Objectif/)).toBeInTheDocument()
+    expect(rhythm.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
   })
 
   it("keeps target-dot clusters on 30d Rhythm", async () => {
@@ -230,7 +215,7 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("switches 1y and all-time Rhythm from dots to frequency bars", async () => {
+  it("switches 1y and all-time Rhythm to the same goal heatmap", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -238,24 +223,13 @@ describe("ProfilePage T0 fixtures", () => {
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
-    const yearChart = await rhythmYear.findByRole("img", { name: "Rhythm" })
-    await waitFor(() => {
-      expect(yearChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(
-        12,
-      )
-    })
-    expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
-    expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
+    expect(rhythmYear.queryByRole("img", { name: "Rhythm" })).not.toBeInTheDocument()
+    expect(rhythmYear.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole("radio", { name: "All time" }))
     const rhythmAll = withinRhythm()
     expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythmAll.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
-    const allChart = await rhythmAll.findByRole("img", { name: "Rhythm" })
-    await waitFor(() => {
-      expect(allChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(3)
-    })
-    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
+    expect(rhythmAll.getByRole("grid", { name: /heatmap calendar/i })).toBeInTheDocument()
   })
 
   it("hides the Rhythm chart on the empty fixture", async () => {
@@ -266,6 +240,7 @@ describe("ProfilePage T0 fixtures", () => {
     const rhythm = withinRhythm()
     expect(rhythm.getByText("No sessions in this window.")).toBeInTheDocument()
     expect(rhythm.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
+    expect(rhythm.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
     expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
     expect(rhythm.queryByText("W-11")).not.toBeInTheDocument()
   })

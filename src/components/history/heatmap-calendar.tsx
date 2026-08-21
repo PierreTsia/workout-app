@@ -71,6 +71,8 @@ export type HeatmapCalendarProps = {
   }) => React.ReactNode
   renderTooltip?: (cell: HeatmapCell) => React.ReactNode
   className?: string
+  /** Skip the outer Card when nested in another section. */
+  framed?: boolean
   /** Map aggregated cell value → intensity level (0 = empty). Defaults to session-count tiers. */
   getLevelForValue?: (value: number) => number
 }
@@ -164,6 +166,7 @@ export function HeatmapCalendar({
   renderLegend,
   renderTooltip,
   className,
+  framed = true,
   getLevelForValue,
 }: HeatmapCalendarProps) {
   const levels = levelClassNames ?? [
@@ -331,13 +334,7 @@ export function HeatmapCalendar({
   const coarsePointer = useMediaQuery("(pointer: coarse)")
   const useTouchPopover = narrowViewport || coarsePointer
 
-  return (
-    <Card className={cn(className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-      </CardHeader>
-
-      <CardContent>
+  const chart = (
         <TooltipProvider delayDuration={useTouchPopover ? 0 : 220} skipDelayDuration={0}>
           <div
             className={cn(
@@ -497,7 +494,18 @@ export function HeatmapCalendar({
             ) : null}
           </div>
         </TooltipProvider>
-      </CardContent>
+  )
+
+  if (!framed) {
+    return <div className={className}>{chart}</div>
+  }
+
+  return (
+    <Card className={cn(className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{chart}</CardContent>
     </Card>
   )
 }

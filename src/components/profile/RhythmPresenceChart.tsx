@@ -1,27 +1,15 @@
 import { useTranslation } from "react-i18next"
-import { RhythmBarChart } from "@/components/profile/charts/RhythmBarChart"
-import { MIX_CATEGORIES, type ProfileWindowKind } from "@/lib/profile/window"
+import { RhythmHeatmap } from "@/components/profile/RhythmHeatmap"
+import { type ProfileWindowKind } from "@/lib/profile/window"
+import {
+  encodeRhythmGoalDays,
+  pierreRhythmSessionDays,
+  PROFILE_RHYTHM_END,
+  rhythmHeatmapRangeDays,
+} from "@/lib/profile/rhythmHeatmap"
 import { cn } from "@/lib/utils"
 
-function usesFrequencyBars(kind: ProfileWindowKind): boolean {
-  return kind === "365" || kind === "all"
-}
-
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
-const MONTHS = [
-  "jan",
-  "feb",
-  "mar",
-  "apr",
-  "may",
-  "jun",
-  "jul",
-  "aug",
-  "sep",
-  "oct",
-  "nov",
-  "dec",
-] as const
 
 const DEFAULT_TARGET = 4
 
@@ -39,13 +27,6 @@ function clusterLabel(
   if (kind === "7") {
     const day = WEEKDAYS[index]
     return day === undefined ? "" : translate(`rhythm.weekday.${day}`)
-  }
-  if (kind === "365") {
-    const month = MONTHS[index]
-    return month === undefined ? "" : translate(`rhythm.month.${month}`)
-  }
-  if (kind === "all") {
-    return MIX_CATEGORIES.all[index] ?? ""
   }
   const ago = count - 1 - index
   return ago === 0
@@ -65,15 +46,22 @@ export function RhythmPresenceChart({
   deloadAt?: number
 }) {
   const { t } = useTranslation("profile")
+  const heatmapDays = rhythmHeatmapRangeDays(kind)
+
+  if (heatmapDays != null) {
+    return (
+      <RhythmHeatmap
+        data={encodeRhythmGoalDays(pierreRhythmSessionDays(kind), target)}
+        rangeDays={heatmapDays}
+        endDate={PROFILE_RHYTHM_END}
+        target={target}
+      />
+    )
+  }
+
   const labels = hits.map((_, i) =>
     clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
   )
-
-  if (usesFrequencyBars(kind)) {
-    return (
-      <RhythmBarChart categories={labels} series={hits} target={target} />
-    )
-  }
 
   const clusters = hits.map((hit, i) => {
     const filled = Math.max(hit, 0)
