@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { MixStackedChart } from "@/components/profile/charts/MixStackedChart"
 import { MuscleRadarChart } from "@/components/profile/charts/MuscleRadarChart"
 import { RecordsComboChart } from "@/components/profile/charts/RecordsComboChart"
+import { TonnageBarChart } from "@/components/profile/charts/TonnageBarChart"
 import {
   RADAR_CURRENT,
   RADAR_PRIOR,
@@ -37,6 +38,7 @@ import {
   PROFILE_WINDOW_KINDS,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
+import { pierreTonnageBars } from "@/lib/profile/tonnage"
 import type { BadgeStatusRow } from "@/types/achievements"
 
 export type FixtureMode = "pierre" | "empty" | "loading"
@@ -386,8 +388,9 @@ function RecordsBlock({ mode }: { mode: FixtureMode }) {
 
 function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
   const { t } = useTranslation("profile")
-  const { includeDeltas } = useProfileWindow()
+  const { kind, includeDeltas } = useProfileWindow()
   const status = blockStatus(mode, "ok")
+  const bars = pierreTonnageBars(kind)
 
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
@@ -414,7 +417,8 @@ function BalanceTonnageRow({ mode }: { mode: FixtureMode }) {
             {t("pulse.delta", { n: "1.2 t" })}
           </p>
         ) : null}
-        <p className="mt-2 text-xs text-muted-foreground">{t("tonnage.legend")}</p>
+        <p className="mt-2 mb-3 text-xs text-muted-foreground">{t("tonnage.legend")}</p>
+        <TonnageBarChart categories={MIX_CATEGORIES[kind]} series={bars} />
       </ProfileSection>
     </div>
   )
