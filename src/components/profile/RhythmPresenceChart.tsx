@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { RhythmBarChart } from "@/components/profile/charts/RhythmBarChart"
+import { localizeProfileTick } from "@/components/profile/charts/profileChartData"
 import { MIX_CATEGORIES, type ProfileWindowKind } from "@/lib/profile/window"
 import { cn } from "@/lib/utils"
 
@@ -67,10 +68,11 @@ export function RhythmPresenceChart({
   categories?: readonly string[]
 }) {
   const { t } = useTranslation("profile")
-  const labels = hits.map((_, i) =>
-    categories?.[i] ??
-    clusterLabel(kind, i, hits.length, (key, options) => t(key, options)),
-  )
+  const labels = hits.map((_, i) => {
+    const raw = categories?.[i]
+    if (raw != null) return localizeProfileTick(raw, t)
+    return clusterLabel(kind, i, hits.length, (key, options) => t(key, options))
+  })
 
   if (usesFrequencyBars(kind)) {
     const deloadLabel = deloadAt == null ? undefined : labels[deloadAt]

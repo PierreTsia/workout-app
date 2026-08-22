@@ -1,3 +1,4 @@
+import { grainKey } from "@/lib/profile/grain"
 import { prPairs } from "@/lib/profile/prPairs"
 import { rir0Rate } from "@/lib/profile/rir0"
 import type { ProfileSnapshot, SessionFact, SetFact } from "@/lib/profile/types"
@@ -27,22 +28,6 @@ export type RecordsVm =
       }
     }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const
-
 export function recordsGrain(
   kind: Exclude<ProfileWindowKind, "all">,
 ): RecordsGrain {
@@ -64,43 +49,8 @@ function eachIsoDay(from: string, to: string): string[] {
   return Array.from({ length: n }, (_, i) => addIsoDays(from, i))
 }
 
-function utcWeekday(isoDay: string): number {
-  const [year, month, day] = isoDay.split("-").map(Number)
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
-}
-
-function isoWeekMonday(isoDay: string): string {
-  const dow = utcWeekday(isoDay)
-  const offset = dow === 0 ? -6 : 1 - dow
-  return addIsoDays(isoDay, offset)
-}
-
-function isoWeekLabel(monday: string): string {
-  const thursday = addIsoDays(monday, 3)
-  const [year, month, day] = thursday.split("-").map(Number)
-  const thu = new Date(Date.UTC(year, month - 1, day))
-  const yearStart = new Date(Date.UTC(thu.getUTCFullYear(), 0, 1))
-  const week = Math.ceil(
-    ((thu.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7,
-  )
-  return `W${week}`
-}
-
 function bucketKey(day: string, grain: RecordsGrain): string {
-  if (grain === "day") return day
-  if (grain === "isoWeek") return isoWeekMonday(day)
-  return day.slice(0, 7)
-}
-
-function bucketLabel(key: string, grain: RecordsGrain): string {
-  if (grain === "day") {
-    const name = WEEKDAYS[utcWeekday(key)]
-    return name ?? key
-  }
-  if (grain === "isoWeek") return isoWeekLabel(key)
-  const month = Number(key.slice(5, 7))
-  const name = MONTHS[month - 1]
-  return name ?? key
+  return grainKey(day, grain)
 }
 
 function distinctExercises(pairs: readonly { exerciseId: string }[]): number {
@@ -171,7 +121,7 @@ export function buildRecordsVm(
       exercisesDelta: null,
       daysSinceLast,
       daysSinceLastDelta: null,
-      categories: keys.map((key) => bucketLabel(key, input.grain)),
+      categories: keys,
       series: { prs: prsSeries, rir0 },
     }
   }
@@ -191,7 +141,7 @@ export function buildRecordsVm(
     exercisesDelta: exercises - distinctExercises(priorPairs),
     daysSinceLast,
     daysSinceLastDelta,
-    categories: keys.map((key) => bucketLabel(key, input.grain)),
+    categories: keys,
     series: { prs: prsSeries, rir0 },
   }
 }

@@ -32,5 +32,10 @@ export function writePersistedProfileWindow(
 }
 
 export function resolveProfileWindow(storage: Storage): ProfileWindowKind {
-  return readPersistedProfileWindow(storage) ?? DEFAULT_PROFILE_WINDOW
+  const stored = readPersistedProfileWindow(storage)
+  if (stored === "all") {
+    writePersistedProfileWindow(storage, DEFAULT_PROFILE_WINDOW)
+    return DEFAULT_PROFILE_WINDOW
+  }
+  return stored ?? DEFAULT_PROFILE_WINDOW
 }

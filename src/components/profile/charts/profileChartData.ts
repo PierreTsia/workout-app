@@ -1,4 +1,46 @@
+import { addDays, format } from "date-fns"
+import { enUS, fr } from "date-fns/locale"
+import {
+  isoWeekMonday,
+  parseGrainKey,
+} from "@/lib/profile/grain"
 import { MUSCLE_TAXONOMY, type MuscleTaxonomy } from "@/lib/trainingBalance"
+
+type Translate = (
+  key: string,
+  options?: Record<string, string | number>,
+) => string
+
+const WEEKDAY_I18N: Record<string, string> = {
+  Sun: "sun",
+  Mon: "mon",
+  Tue: "tue",
+  Wed: "wed",
+  Thu: "thu",
+  Fri: "fri",
+  Sat: "sat",
+}
+
+const MONTH_I18N = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+] as const
+
+const DATE_LOCALE = { fr, en: enUS } as const
+
+function dateLocale(language: string) {
+  return language.startsWith("fr") ? DATE_LOCALE.fr : DATE_LOCALE.en
+}
 
 /** Shared Y gutters so Mix / Rhythm / Tonnage / Records plot the same width. */
 export const PROFILE_Y_LEFT = 28
@@ -11,19 +53,67 @@ export function profileTickInterval(
   return categoryCount > 8 ? "preserveStartEnd" : 0
 }
 
-/** W / W-14 / W3 / 2026-W34 → locale week marks (S / S-14 / S3 / S34 in FR). */
-export function localizeProfileTick(
-  label: string,
-  t: (key: string, options?: Record<string, string | number>) => string,
-): string {
+/** W / W-14 / W3 / 2026-W34 / 2026-08-17 → short axis marks (S34, Lun, août 26). */
+export function localizeProfileTick(label: string, t: Translate): string {
+  const parsed = parseGrainKey(label)
+  if (parsed.kind === "isoWeek") return t("rhythm.week", { n: parsed.week })
+  if (parsed.kind === "day") {
+    const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+      new Date(`${parsed.day}T12:00:00Z`).getUTCDay()
+    ]
+    return weekday == null ? label : localizeProfileTick(weekday, t)
+  }
+  if (parsed.kind === "month") {
+    const monthKey = MONTH_I18N[parsed.month - 1]
+    return monthKey == null ? label : t(`rhythm.month.${monthKey}`)
+  }
+  if (parsed.kind === "year") return String(parsed.year)
   if (label === "W") return t("rhythm.weekCurrent")
   const offset = /^W-(\d+)$/.exec(label)
   if (offset) return t("rhythm.weekAgo", { n: offset[1] })
   const sequential = /^W(\d+)$/.exec(label)
   if (sequential) return t("rhythm.week", { n: sequential[1] })
-  const iso = /^(\d{4})-W(\d{1,2})$/.exec(label)
-  if (iso) return t("rhythm.week", { n: Number(iso[2]) })
+  const weekdayKey = WEEKDAY_I18N[label]
+  if (weekdayKey) return t(`rhythm.weekday.${weekdayKey}`)
   return label
+}
+
+function weekSpan(year: number, week: number, language: string): string {
+  const monday = isoWeekMonday(year, week)
+  const sunday = addDays(monday, 6)
+  const locale = dateLocale(language)
+  if (monday.getMonth() === sunday.getMonth()) {
+    return `${format(monday, "d", { locale })}–${format(sunday, "d MMM", { locale })}`
+  }
+  return `${format(monday, "d MMM", { locale })}–${format(sunday, "d MMM", { locale })}`
+}
+
+/** Axis mark plus the calendar span, for tooltips. */
+export function formatProfileTooltipLabel(
+  key: string,
+  t: Translate,
+  language: string,
+): string {
+  const tick = localizeProfileTick(key, t)
+  const parsed = parseGrainKey(key)
+  if (parsed.kind === "isoWeek") {
+    return t("rhythm.tooltip.weekCaption", {
+      week: tick,
+      span: weekSpan(parsed.year, parsed.week, language),
+    })
+  }
+  if (parsed.kind === "day") {
+    const date = new Date(`${parsed.day}T12:00:00Z`)
+    return t("rhythm.tooltip.dayCaption", {
+      weekday: tick,
+      date: format(date, "d MMM", { locale: dateLocale(language) }),
+    })
+  }
+  if (parsed.kind === "month") {
+    const date = new Date(parsed.year, parsed.month - 1, 1)
+    return format(date, "MMMM yyyy", { locale: dateLocale(language) })
+  }
+  return tick
 }
 
 export type MixSeries = {

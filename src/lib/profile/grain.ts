@@ -1,4 +1,10 @@
-import { getISOWeek, getISOWeekYear } from "date-fns"
+import {
+  getISOWeek,
+  getISOWeekYear,
+  setISOWeek,
+  setISOWeekYear,
+  startOfISOWeek,
+} from "date-fns"
 import { isoDayInTimeZone, isoDaysInclusive } from "@/lib/profile/windowRange"
 import type { ProfileWindowKind } from "@/lib/profile/window"
 import type { SessionFact } from "@/lib/profile/types"
@@ -87,14 +93,35 @@ function isoWeekKey(isoDay: string): string {
   return `${getISOWeekYear(date)}-W${week}`
 }
 
-function weekOffsetLabel(offset: number): string {
-  return offset === 0 ? "W" : `W-${offset}`
-}
-
 export function grainKey(isoDay: string, grain: ProfileGrain): string {
   if (grain === "day") return isoDay
   if (grain === "month") return isoDay.slice(0, 7)
   return isoWeekKey(isoDay)
+}
+
+export type ParsedGrainKey =
+  | { kind: "day"; day: string }
+  | { kind: "isoWeek"; year: number; week: number }
+  | { kind: "month"; year: number; month: number }
+  | { kind: "year"; year: number }
+  | { kind: "legacy"; raw: string }
+
+export function parseGrainKey(key: string): ParsedGrainKey {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(key)) return { kind: "day", day: key }
+  const week = /^(\d{4})-W(\d{2})$/.exec(key)
+  if (week) {
+    return { kind: "isoWeek", year: Number(week[1]), week: Number(week[2]) }
+  }
+  const month = /^(\d{4})-(\d{2})$/.exec(key)
+  if (month) {
+    return { kind: "month", year: Number(month[1]), month: Number(month[2]) }
+  }
+  if (/^\d{4}$/.test(key)) return { kind: "year", year: Number(key) }
+  return { kind: "legacy", raw: key }
+}
+
+export function isoWeekMonday(year: number, week: number): Date {
+  return startOfISOWeek(setISOWeek(setISOWeekYear(new Date(year, 0, 4), year), week))
 }
 
 export function profileBuckets(
@@ -112,10 +139,11 @@ export function profileBuckets(
     return keys.map((key) => ({ key, label: monthLabel(key) }))
   }
   const keys = [...new Set(days.map((day) => grainKey(day, "isoWeek")))]
-  return keys.map((key, i) => ({
-    key,
-    label: weekOffsetLabel(keys.length - 1 - i),
-  }))
+  return keys.map((key) => {
+    const parsed = parseGrainKey(key)
+    const week = parsed.kind === "isoWeek" ? parsed.week : key
+    return { key, label: `W${week}` }
+  })
 }
 
 export function localFinishedDay(session: SessionFact, timeZone: string): string {

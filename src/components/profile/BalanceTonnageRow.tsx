@@ -19,6 +19,7 @@ import { useVolumeDistribution } from "@/hooks/useVolumeDistribution"
 import { buildTonnageVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildBalanceVm } from "@/lib/profile/balance"
 import { buildTonnageVm, formatTonnes, pierreTonnageBars } from "@/lib/profile/tonnage"
+import { vsPriorDelta } from "@/lib/profile/vsPrior"
 import { MIX_CATEGORIES } from "@/lib/profile/window"
 import {
   isoDayInTimeZone,
@@ -37,16 +38,6 @@ const VOLUME_DAYS = {
   "100": 100,
   "365": 365,
 } as const
-
-function fixtureDeltaLabel(
-  t: (key: string, opts?: Record<string, string | number>) => string,
-  delta: number,
-  formatted: string | number,
-) {
-  if (delta === 0) return t("pulse.deltaEven")
-  if (delta < 0) return t("pulse.deltaDown", { n: formatted })
-  return t("pulse.delta", { n: formatted })
-}
 
 export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode }) {
   const { t } = useTranslation("profile")
@@ -149,7 +140,7 @@ export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode })
                 scoreDelta === 0 && "text-muted-foreground",
               )}
             >
-              {fixtureDeltaLabel(t, scoreDelta, Math.abs(scoreDelta))}
+              {vsPriorDelta(t, scoreDelta).label}
             </span>
           ) : undefined
         }
@@ -195,7 +186,7 @@ export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode })
               tonnesDelta === 0 && "text-muted-foreground",
             )}
           >
-            {fixtureDeltaLabel(t, tonnesDelta, formatTonnes(Math.abs(tonnesDelta)))}
+            {vsPriorDelta(t, tonnesDelta, formatTonnes(Math.abs(tonnesDelta))).label}
           </p>
         ) : null}
         <p className="mt-2 mb-3 text-xs text-muted-foreground">{t("tonnage.legend")}</p>

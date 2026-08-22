@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ProfilePage } from "@/pages/ProfilePage"
@@ -87,13 +87,6 @@ function testUser(): User {
     user_metadata: {},
     created_at: "2026-01-01T00:00:00.000Z",
   }
-}
-
-function sectionCard(name: string): HTMLElement {
-  const heading = screen.getByRole("heading", { name })
-  const card = heading.closest(".bg-card")
-  if (!(card instanceof HTMLElement)) throw new Error(`expected ${name} card`)
-  return card
 }
 
 function volume(sessions: number) {
@@ -185,7 +178,7 @@ describe("profile Toujours rollups", () => {
     restoreChartLayout()
   })
 
-  it("loads year rollups and unbounded volume on Toujours with no vs-prior pills", async () => {
+  it("hides the broken Toujours cran and stays on a snapshot window", async () => {
     const user = userEvent.setup()
     const { store } = renderWithProviders(<ProfilePage />)
     act(() => {
@@ -203,28 +196,12 @@ describe("profile Toujours rollups", () => {
     ).toBe(false)
 
     await user.click(screen.getByRole("combobox", { name: "Window" }))
-    await user.click(await screen.findByRole("option", { name: "All time" }))
-
-    await waitFor(() => {
-      expect(mockRpc).toHaveBeenCalledWith("get_profile_all_time_rollups", {
-        p_tz: "UTC",
-      })
-    })
-    await waitFor(() => {
-      expect(mockRpc).toHaveBeenCalledWith("get_volume_by_muscle_group_all_time", {
-        p_user_id: "user-1",
-      })
-    })
-
-    expect(within(sectionCard("Mix")).getByText("2023")).toBeInTheDocument()
-    expect(within(sectionCard("Mix")).getByText("2026")).toBeInTheDocument()
-    expect(screen.getByText("career-squat")).toBeInTheDocument()
-    expect(screen.queryByText(/vs prior/i)).not.toBeInTheDocument()
     expect(
-      mockRpc.mock.calls.filter((call) => call[0] === "get_profile_snapshot"),
-    ).toHaveLength(1)
+      screen.queryByRole("option", { name: "All time" }),
+    ).not.toBeInTheDocument()
     expect(
-      mockRpc.mock.calls.some((call) => call[0] === "get_volume_by_muscle_group"),
-    ).toBe(true)
+      mockRpc.mock.calls.some((call) => call[0] === "get_profile_all_time_rollups"),
+    ).toBe(false)
+    expect(screen.getAllByText(/vs prior/i).length).toBeGreaterThan(0)
   })
 })

@@ -173,81 +173,12 @@ describe("profile Mix and Rhythm from snapshot", () => {
     expect(within(sectionCard("Mix")).getByText("Circuits")).toBeInTheDocument()
   })
 
-  it("renders Toujours Mix as year buckets from rollups, not a snapshot dump", async () => {
+  it("does not offer the broken Toujours Mix cran", async () => {
     const user = userEvent.setup()
-    mockRpc.mockImplementation((name: string) => {
-      if (name === "get_profile_all_time_rollups") {
-        return Promise.resolve({
-          data: {
-            years: [
-              {
-                year: 2023,
-                mix: { programme: 10, quickWorkout: 2, circuits: 1 },
-                tonnage_kg: 1000,
-                pr_pairs: 4,
-                rir0_num: 1,
-                rir0_den: 8,
-                session_count: 13,
-                duration_ms: 13 * 40 * 60_000,
-              },
-              {
-                year: 2026,
-                mix: { programme: 4, quickWorkout: 1, circuits: 0 },
-                tonnage_kg: 400,
-                pr_pairs: 2,
-                rir0_num: 0,
-                rir0_den: 4,
-                session_count: 5,
-                duration_ms: 5 * 40 * 60_000,
-              },
-            ],
-            program_ids: [],
-            regulars: [],
-          },
-          error: null,
-        })
-      }
-      if (name === "get_profile_snapshot") {
-        return Promise.resolve({ data: { sessions: [], sets: [] }, error: null })
-      }
-      return Promise.resolve({ data: [], error: null })
-    })
-    const { store } = renderWithProviders(<ProfilePage />)
-    act(() => {
-      store.set(authAtom, testUser())
-    })
-
+    renderWithProviders(<ProfilePage />)
     await user.click(screen.getByRole("combobox", { name: "Window" }))
-    await user.click(await screen.findByRole("option", { name: "All time" }))
-
-    const mix = within(sectionCard("Mix"))
-    const chart = await waitFor(() => {
-      const img = mix.getByRole("img", { name: "Mix" })
-      expect(
-        img.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
-      ).toHaveLength(2)
-      return img
-    })
-    expect(mix.getByText("2023")).toBeInTheDocument()
-    expect(mix.getByText("2026")).toBeInTheDocument()
-    expect(mix.queryByText("2024")).not.toBeInTheDocument()
-    expect(mix.queryByText("No sessions in this window.")).not.toBeInTheDocument()
     expect(
-      chart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
-    ).toHaveLength(2)
-    expect(
-      mockRpc.mock.calls.some((call) => call[0] === "get_profile_all_time_rollups"),
-    ).toBe(true)
-    expect(
-      mockRpc.mock.calls.some(
-        (call) =>
-          call[0] === "get_profile_snapshot" &&
-          typeof call[1] === "object" &&
-          call[1] != null &&
-          "p_from" in call[1] &&
-          typeof call[1].p_from === "string" &&
-          call[1].p_from < "2020-01-01",
-      ),
-    ).toBe(false)
+      screen.queryByRole("option", { name: "All time" }),
+    ).not.toBeInTheDocument()
   })
 })

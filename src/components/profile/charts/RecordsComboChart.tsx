@@ -11,6 +11,7 @@ import {
   ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
+  formatProfileTooltipLabel,
   localizeProfileTick,
   PROFILE_Y_LEFT,
   PROFILE_Y_RIGHT,
@@ -33,9 +34,11 @@ export function RecordsComboChart({
   categories: readonly string[]
   series: RecordsComboSeries
 }) {
-  const { t } = useTranslation("profile")
+  const { t, i18n } = useTranslation("profile")
   const data = toRecordsComboRows(categories, series)
   const tick = (value: string | number) => localizeProfileTick(String(value), t)
+  const caption = (value: string | number) =>
+    formatProfileTooltipLabel(String(value), t, i18n.language)
   const rirPointCount = series.rir0.filter((value) => value != null).length
 
   return (
@@ -77,7 +80,7 @@ export function RecordsComboChart({
               active={props.active}
               payload={props.payload}
               label={
-                props.label == null ? undefined : tick(String(props.label))
+                props.label == null ? undefined : caption(String(props.label))
               }
               formatValue={(value, dataKey) =>
                 dataKey === "rir0" ? `${value}%` : String(value)
@@ -91,6 +94,7 @@ export function RecordsComboChart({
           dataKey="prs"
           fill="var(--color-prs)"
           maxBarSize={28}
+          activeBar={false}
         />
         {rirPointCount >= 2 ? (
           <Line
@@ -100,7 +104,12 @@ export function RecordsComboChart({
             stroke="var(--color-rir0)"
             strokeWidth={2}
             connectNulls={false}
-            dot={{ r: 3, fill: "var(--color-rir0)" }}
+            dot={{ r: 3, fill: "var(--color-rir0)", stroke: "transparent" }}
+            activeDot={{
+              r: 3.5,
+              fill: "var(--color-rir0)",
+              stroke: "transparent",
+            }}
           />
         ) : null}
       </ComposedChart>

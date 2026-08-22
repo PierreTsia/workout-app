@@ -25,7 +25,7 @@ export function buildRhythmVm(snapshot: ProfileSnapshot, input: MixWindow): Rhyt
   ]
 
   return {
-    categories: buckets.map((bucket) => bucket.label),
+    categories: buckets.map((bucket) => bucket.key),
     hits: buckets.map((bucket) => {
       const trained = trainedDays.filter(
         (day) => grainKey(day, grain) === bucket.key,

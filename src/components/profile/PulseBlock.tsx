@@ -12,6 +12,7 @@ import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { buildPulseVmFromRollups } from "@/lib/profile/allTimeRollups"
 import { buildPulseVm, formatPulseDuration } from "@/lib/profile/pulse"
+import { vsPriorDelta } from "@/lib/profile/vsPrior"
 import { pierrePulse } from "@/lib/profile/window"
 import {
   isoDayInTimeZone,
@@ -103,16 +104,6 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
           prescribedMinutes: 60,
         }
 
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
   return (
     <ProfilePulseGrid>
       <ProfileStatCard
@@ -121,7 +112,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
         value={pulse.sessions}
         delta={
           includeDeltas && pulse.sessionDelta != null
-            ? vsPrior(pulse.sessionDelta, pulse.sessionDelta)
+            ? vsPriorDelta(t, pulse.sessionDelta)
             : undefined
         }
       />
@@ -131,7 +122,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
         value={pulse.timeLabel}
         delta={
           includeDeltas && pulse.sessionDelta != null
-            ? vsPrior(pulse.timeDeltaN, pulse.timeDelta)
+            ? vsPriorDelta(t, pulse.timeDelta, pulse.timeDeltaN)
             : undefined
         }
       />

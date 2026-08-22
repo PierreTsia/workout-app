@@ -63,7 +63,7 @@ export function buildMixVm(snapshot: ProfileSnapshot, input: MixWindow): MixVm {
 
   return {
     status: "ok",
-    categories: buckets.map((bucket) => bucket.label),
+    categories: buckets.map((bucket) => bucket.key),
     series,
   }
 }

@@ -102,6 +102,8 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
             stroke="var(--color-current)"
             fill="var(--color-current)"
             fillOpacity={0.25}
+            dot={false}
+            activeDot={false}
           />
           {hasPrior ? (
             <Radar
@@ -109,6 +111,8 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
               stroke="var(--color-prior)"
               fill="none"
               strokeDasharray="4 4"
+              dot={false}
+              activeDot={false}
             />
           ) : null}
         </RadarChart>

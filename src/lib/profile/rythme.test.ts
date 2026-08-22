@@ -70,7 +70,7 @@ describe("buildRhythmVm", () => {
       timeZone: "UTC",
     })
 
-    const janIndex = vm.categories.findIndex((label) => label.startsWith("Jan 26"))
+    const janIndex = vm.categories.findIndex((key) => key === "2026-01")
     expect(janIndex).toBeGreaterThanOrEqual(0)
     expect(vm.hits[janIndex]).toBe(4)
     expect(vm.hits[janIndex]).toBeLessThanOrEqual(7)

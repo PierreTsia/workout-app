@@ -20,6 +20,7 @@ import {
   isoDayInTimeZone,
   profileWindowRange,
 } from "@/lib/profile/windowRange"
+import { vsPriorDelta } from "@/lib/profile/vsPrior"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { authAtom } from "@/store/atoms"
 
@@ -123,16 +124,6 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
     liveVm?.status === "ok" ? liveVm.categories : MIX_CATEGORIES[kind]
   const series = liveVm?.status === "ok" ? liveVm.series : fixtureSeries
 
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
   const vsFreshness = (n: string, value: number) => ({
     value,
     label:
@@ -156,7 +147,7 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
           value={pulse.prs}
           delta={
             includeDeltas && pulse.prsDelta != null
-              ? vsPrior(pulse.prsDelta, pulse.prsDelta)
+              ? vsPriorDelta(t, pulse.prsDelta)
               : undefined
           }
         />
@@ -165,7 +156,7 @@ export function RecordsBlock({ mode }: { mode: RecordsFixtureMode }) {
           value={pulse.exercises}
           delta={
             includeDeltas && pulse.exercisesDelta != null
-              ? vsPrior(pulse.exercisesDelta, pulse.exercisesDelta)
+              ? vsPriorDelta(t, pulse.exercisesDelta)
               : undefined
           }
         />

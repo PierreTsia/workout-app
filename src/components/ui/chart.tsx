@@ -24,6 +24,13 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
+/** Recharts `accessibilityLayer` focuses bars / dots / radar polygons on tap.
+ *  A `focus-visible:ring` on the wrapper then paints that node's bounding box. */
+export const CHART_SURFACE_CLASS =
+  "flex aspect-video justify-center text-xs outline-none [-webkit-tap-highlight-color:transparent] [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper]:[-webkit-tap-highlight-color:transparent] [&_.recharts-surface]:outline-none [&_.recharts-wrapper:focus]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus-visible]:outline-none [&_.recharts-surface:focus-visible]:outline-none [&_.recharts-wrapper_*]:outline-none [&_.recharts-wrapper_*]:[-webkit-tap-highlight-color:transparent] [&_.recharts-wrapper_*:focus]:outline-none [&_.recharts-wrapper_*:focus-visible]:outline-none [&_.recharts-wrapper_*:focus]:ring-0 [&_.recharts-wrapper_*:focus-visible]:ring-0"
+
+
+
 function useChart() {
   const context = React.useContext(ChartContext)
 
@@ -51,10 +58,7 @@ const ChartContainer = React.forwardRef<
       <div
         data-chart={chartId}
         ref={ref}
-        className={cn(
-          "flex aspect-video justify-center text-xs outline-none [-webkit-tap-highlight-color:transparent] [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden [&_.recharts-wrapper]:outline-none [&_.recharts-wrapper]:[-webkit-tap-highlight-color:transparent] [&_.recharts-surface]:outline-none [&_.recharts-wrapper:focus]:outline-none [&_.recharts-surface:focus]:outline-none [&_.recharts-wrapper:focus-visible]:outline-hidden [&_.recharts-wrapper:focus-visible]:ring-2 [&_.recharts-wrapper:focus-visible]:ring-ring [&_.recharts-surface:focus-visible]:outline-hidden [&_.recharts-surface:focus-visible]:ring-2 [&_.recharts-surface:focus-visible]:ring-ring",
-          className
-        )}
+        className={cn(CHART_SURFACE_CLASS, className)}
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
