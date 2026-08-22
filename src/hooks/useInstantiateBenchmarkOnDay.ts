@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { authAtom } from "@/store/atoms"
 import { fetchExercisesByIds } from "@/lib/fetchExercisesByIds"
 import {
@@ -60,6 +61,7 @@ export function useInstantiateBenchmarkOnDay() {
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }

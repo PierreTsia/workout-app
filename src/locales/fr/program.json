@@ -1,0 +1,16 @@
+{
+  "track": {
+    "hypertrophy": "Prise de masse",
+    "strength": "Force",
+    "endurance": "Endurance",
+    "balance": "Répartition"
+  },
+  "band": {
+    "short": "Faible",
+    "ok": "Dans le viseur",
+    "high": "Élevé"
+  },
+  "facts": {
+    "line": "{{days}} j · {{sets}} séries · {{circuits}} circuits"
+  }
+}

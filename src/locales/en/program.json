@@ -1,0 +1,16 @@
+{
+  "track": {
+    "hypertrophy": "Muscle growth",
+    "strength": "Strength",
+    "endurance": "Endurance",
+    "balance": "Balance"
+  },
+  "band": {
+    "short": "Low",
+    "ok": "On target",
+    "high": "High"
+  },
+  "facts": {
+    "line": "{{days}} days · {{sets}} sets · {{circuits}} circuits"
+  }
+}

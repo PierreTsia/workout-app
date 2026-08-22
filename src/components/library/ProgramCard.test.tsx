@@ -4,6 +4,24 @@ import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ProgramCard } from "./ProgramCard"
 import type { Program } from "@/types/onboarding"
+import type { ProgramScore } from "@/lib/programScore/types"
+
+function makeScore(overrides: Partial<ProgramScore> = {}): ProgramScore {
+  return {
+    hypertrophy: { band: "ok", volume: "ok", frequency: "ok" },
+    strength: { band: "short" },
+    endurance: { band: "high" },
+    balance: { kind: "score", value: 42 },
+    facts: {
+      dayCount: 3,
+      setCount: 24,
+      circuitCount: 1,
+      circuitModes: { amrap: 1, rounds: 0 },
+      mix: { free: 20, machine: 4, bodyweight: 0, other: 0 },
+    },
+    ...overrides,
+  }
+}
 
 const BASE_PROGRAM: Program = {
   id: "p-1",
@@ -34,6 +52,71 @@ describe("ProgramCard", () => {
   it("renders program name", () => {
     renderCard()
     expect(screen.getByText("Test Program")).toBeInTheDocument()
+  })
+
+  it("shows score chips and the fact line under the name", () => {
+    renderCard({ score: makeScore() })
+
+    expect(screen.getByText("Test Program")).toBeInTheDocument()
+    expect(screen.getByText("Muscle growth · On target")).toBeInTheDocument()
+    expect(screen.getByText("Strength · Low")).toBeInTheDocument()
+    expect(screen.getByText("Endurance · High")).toBeInTheDocument()
+    expect(screen.getByText("Balance 42")).toBeInTheDocument()
+    expect(screen.getByText("3 days · 24 sets · 1 circuits")).toBeInTheDocument()
+  })
+
+  it("does not fabricate On target chips for an empty program", () => {
+    renderCard({
+      score: makeScore({
+        hypertrophy: { band: "empty", volume: "empty", frequency: "empty" },
+        strength: { band: "empty" },
+        endurance: { band: "empty" },
+        balance: { kind: "empty" },
+        facts: {
+          dayCount: 0,
+          setCount: 0,
+          circuitCount: 0,
+          circuitModes: { amrap: 0, rounds: 0 },
+          mix: { free: 0, machine: 0, bodyweight: 0, other: 0 },
+        },
+      }),
+    })
+
+    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Muscle growth/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Low")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Balance/)).not.toBeInTheDocument()
+  })
+
+  it("shows skeleton chips while intent is loading — not Low", () => {
+    renderCard({ intentLoading: true })
+
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
+      0,
+    )
+    expect(screen.queryByText("Low")).not.toBeInTheDocument()
+    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+  })
+
+  it("uses the FR contract for chips and the fact line", () => {
+    const defaultProps = {
+      program: BASE_PROGRAM,
+      isActive: false,
+      isSessionActive: false,
+      onActivate: vi.fn(),
+      onArchive: vi.fn(),
+      onEdit: vi.fn(),
+      onDetails: vi.fn(),
+      score: makeScore(),
+    }
+    renderWithProviders(<ProgramCard {...defaultProps} />, { locale: "fr" })
+
+    expect(screen.getByText("Prise de masse · Dans le viseur")).toBeInTheDocument()
+    expect(screen.getByText("Force · Faible")).toBeInTheDocument()
+    expect(screen.getByText("Endurance · Élevé")).toBeInTheDocument()
+    expect(screen.getByText("Répartition 42")).toBeInTheDocument()
+    expect(screen.queryByText(/Équilibre/)).not.toBeInTheDocument()
+    expect(screen.getByText("3 j · 24 séries · 1 circuits")).toBeInTheDocument()
   })
 
   it("shows Active badge when active", () => {

@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { sessionAtom } from "@/store/atoms"
 import { useUserPrograms } from "@/hooks/useUserPrograms"
+import { useProgramsIntent } from "@/hooks/useProgramsIntent"
 import { useActivateProgram } from "@/hooks/useActivateProgram"
 import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
@@ -31,6 +32,9 @@ export function MyWorkoutsTab() {
     if (showArchived) return true
     return p.archived_at === null
   })
+  const visibleIds = visiblePrograms.map((program) => program.id)
+  const { data: scoresByProgram, isLoading: intentLoading } =
+    useProgramsIntent(visibleIds)
 
   function handleEdit(programId: string) {
     navigate(`/builder/${programId}`, { state: { from: "/library/programs" } })
@@ -114,6 +118,8 @@ export function MyWorkoutsTab() {
           onArchive={() => handleArchive(program.id, program.archived_at === null)}
           onDetails={() => setDetailProgram(program)}
           onEdit={() => handleEdit(program.id)}
+          score={scoresByProgram?.[program.id]}
+          intentLoading={intentLoading}
         />
       ))}
 

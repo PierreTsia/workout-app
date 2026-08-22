@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { buildBlockInsertRows } from "@/lib/blockPersistence"
 import { resizePerRound } from "@/lib/perRound"
 import type { PerRoundCell, ExerciseListItem } from "@/types/database"
@@ -57,6 +58,7 @@ export function useCreateBlock() {
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -142,6 +144,7 @@ export function useUpdateBlockMeta() {
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -167,6 +170,7 @@ export function useUpdatePerRound() {
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -191,6 +195,7 @@ export function useDeleteBlock() {
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -222,6 +227,7 @@ export function useReorderBlocks() {
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }

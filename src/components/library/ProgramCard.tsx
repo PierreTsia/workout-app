@@ -2,7 +2,9 @@ import { useTranslation } from "react-i18next"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ProgramScoreChips } from "@/components/program/ProgramScoreChips"
 import { cn } from "@/lib/utils"
+import type { ProgramScore } from "@/lib/programScore/types"
 import type { Program } from "@/types/onboarding"
 
 interface ProgramCardProps {
@@ -13,6 +15,8 @@ interface ProgramCardProps {
   onArchive: () => void
   onDetails: () => void
   onEdit: () => void
+  score?: ProgramScore
+  intentLoading?: boolean
 }
 
 export function ProgramCard({
@@ -23,6 +27,8 @@ export function ProgramCard({
   onArchive,
   onDetails,
   onEdit,
+  score,
+  intentLoading,
 }: ProgramCardProps) {
   const { t } = useTranslation("library")
 
@@ -46,6 +52,7 @@ export function ProgramCard({
             {t("details")}
           </button>
         </div>
+        <ProgramScoreChips score={score} isLoading={intentLoading} />
         <Badge variant="outline" className="w-fit text-[10px]">
           {t("generatedOn", { date: formattedDate })}
         </Badge>

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { deriveDurationRangeMax } from "@/lib/progression"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { authAtom } from "@/store/atoms"
 import type {
   Exercise,
@@ -35,6 +36,7 @@ export function useCreateDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -64,6 +66,7 @@ export function useUpdateDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -82,6 +85,7 @@ export function useDeleteDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -134,6 +138,7 @@ export function useAddExerciseToDay() {
       })
       // Refresh the embedded `exerciseCount` on `useWorkoutDays` (DayList badge).
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -185,6 +190,7 @@ export function useAddExercisesToDay() {
         queryKey: ["workout-exercises", variables.dayId],
       })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -222,6 +228,7 @@ export function useUpdateExercise() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -242,6 +249,7 @@ export function useDeleteExercise() {
         queryKey: ["workout-exercises", variables.dayId],
       })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -273,6 +281,7 @@ export function useSwapExerciseInDay() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -295,6 +304,7 @@ export function useReorderDays(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -323,6 +333,7 @@ export function useReorderExercises() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }

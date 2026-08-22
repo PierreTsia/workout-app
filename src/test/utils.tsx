@@ -30,6 +30,7 @@ import enAchievements from "@/locales/en/achievements.json"
 import enApiTokens from "@/locales/en/api-tokens.json"
 import enCatalog from "@/locales/en/catalog.json"
 import enProfile from "@/locales/en/profile.json"
+import enProgram from "@/locales/en/program.json"
 
 // Keep this list ordered identically to the `en` imports above: the two
 // drifting apart is this file's obvious failure mode.
@@ -54,6 +55,7 @@ import frAchievements from "@/locales/fr/achievements.json"
 import frApiTokens from "@/locales/fr/api-tokens.json"
 import frCatalog from "@/locales/fr/catalog.json"
 import frProfile from "@/locales/fr/profile.json"
+import frProgram from "@/locales/fr/program.json"
 
 const testResources = {
   en: {
@@ -78,6 +80,7 @@ const testResources = {
     "api-tokens": enApiTokens,
     catalog: enCatalog,
     profile: enProfile,
+    program: enProgram,
   },
   fr: {
     common: frCommon,
@@ -101,6 +104,7 @@ const testResources = {
     "api-tokens": frApiTokens,
     catalog: frCatalog,
     profile: frProfile,
+    program: frProgram,
   },
 }
 
