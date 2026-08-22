@@ -174,7 +174,8 @@
     "subtitle": "Les plus loggés · {{window}}",
     "unranked": "—",
     "empty": "Pas assez de logs sur cette période.",
-    "hint": "Tes mouvements les plus faits sur cette période. Le delta, c’est dernière séance moins première, dans la fenêtre.",
+    "hint": "Tes mouvements les plus faits sur cette période.",
+    "hintWithDelta": "Tes mouvements les plus faits sur cette période. Le delta, c’est la dernière séance moins la première, dans la fenêtre.",
     "evolution": {
       "weight": "{{signed}} par rapport à la première séance de la fenêtre",
       "reps_one": "{{signed}} répétition par rapport à la première séance de la fenêtre",

@@ -65,8 +65,9 @@ describe("ProfileStatCard", () => {
   it("renders a small count when the card sits in a half column", () => {
     renderWithProviders(<ProfileStatCard size="small" title="Runs" value={11} />)
 
-    expect(screen.getByText("11").className).toMatch(/text-2xl/)
-    expect(screen.getByText("11").className).toMatch(/sm:text-3xl/)
+    expect(screen.getByText("11").className).toMatch(/text-xl/)
+    expect(screen.getByText("11").className).toMatch(/sm:text-2xl/)
+    expect(screen.getByText("11").className).toMatch(/md:text-3xl/)
     expect(screen.getByText("11").className).not.toMatch(/text-5xl/)
   })
 

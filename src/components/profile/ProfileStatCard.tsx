@@ -81,7 +81,7 @@ export function ProfileStatCard({
         <p
           className={cn(
             "whitespace-nowrap font-bold tracking-tight tabular-nums",
-            size === "small" ? "text-2xl sm:text-3xl" : "text-5xl",
+            size === "small" ? "text-xl sm:text-2xl md:text-3xl" : "text-5xl",
           )}
         >
           {value}

@@ -131,7 +131,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
       title={t("regulars.title")}
       hint={
         <ProfileHint label={t("about", { section: t("regulars.title") })}>
-          {t("regulars.hint")}
+          {showEvolution ? t("regulars.hintWithDelta") : t("regulars.hint")}
         </ProfileHint>
       }
       status={status}

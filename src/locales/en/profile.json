@@ -174,7 +174,8 @@
     "subtitle": "Most logged · {{window}}",
     "unranked": "—",
     "empty": "Not enough logs in this period.",
-    "hint": "Your most-logged moves in this period. The delta is last session minus first, in this window.",
+    "hint": "Your most-logged moves in this period.",
+    "hintWithDelta": "Your most-logged moves in this period. The delta is last session minus first, in this window.",
     "evolution": {
       "weight": "{{signed}} vs the first log in this window",
       "reps_one": "{{signed}} rep vs the first log in this window",
