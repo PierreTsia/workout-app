@@ -127,6 +127,54 @@ The **Embedded Agent**-backed AI generation path triggered from `QuickWorkoutShe
 
 ## Programs & cycles
 
+**Program**:
+The live training plan the user owns: a named set of **workout days**, each a **Unified Day Sequence** of **Exercise Slots** (and optional **Exercise Blocks**) carrying a **Template Prescription**. Distinct from a **ProgramTemplate** (catalog recipe used at creation) and from a **Cycle** (one pass through the days). The row itself is identity-thin: name, `template_id`, active / archived, `created_at` — no goal, level, or location. Those live on **UserProfile** / **ProgramTemplate**, not on the **Program**.
+→ `file:src/types/onboarding.ts`
+
+**Program Page**:
+First-class identity route `/programs/:id`. Shows the week as written and the program's raison d'être: **Goal Tracks**, **Program Balance**, **Program Facts**, **Program Score Rubric**. Replaces `ProgramDetailSheet` — the sheet is **removed**, not kept as a peek. Card tap on **Library Programs** goes here. A day row is read-only on this page (the week as written). **Edit** goes to the existing **Builder** (`/builder/:programId`) — no Hevy-floor chrome and no live score banner in v1. No « Commencer » here; launching a **Session** stays on Home. Activate / archive live on the card and on this page. Character sheet is *equal* — no pin, gold, or filter on `profile.goal`.
+→ `file:src/components/library/ProgramDetailSheet.tsx`
+
+**Program Identity v1**:
+The first shippable slice: **Program** scoring + **Library Programs** cards + **Program Page** ([#504](https://github.com/PierreTsia/workout-app/issues/504)). Out: live-while-editing banner ([#519](https://github.com/PierreTsia/workout-app/issues/519)); **Builder** restyle / body map / insight ([#503](https://github.com/PierreTsia/workout-app/issues/503)); clone / import / export. Edit is an exit to today's Builder, not a new authoring surface.
+→ `file:src/pages/BuilderPage.tsx`
+
+**Goal Track**:
+A published scoring axis of the **Program** as written (days + **Template Prescription**), not of last month's **Sessions**. Catalog v1: `hypertrophy` | `strength` | `endurance` — three tracks, not four. Same words as `UserGoal` minus `general_fitness` (a residual, not a score). Weight loss is not a track — it is a caloric deficit, not a reading of the iron. Display is a **published band** (`short` / `ok` / `high`) plus the facts that produced it — not a 0–100. Distinct from **Équilibre** and from **Program Balance**.
+→ `file:src/types/onboarding.ts`
+
+**Circuit in Program Scores**:
+Same math for **AMRAP** and **Tours**. A **Circuit** is a unit; stations are muscle identities, not sets. **Program Facts**: count (label the mode), never fold into the solo set integer. **Endurance**: +1 per **Circuit** — mode is prose, not extra weight (an AMRAP does not score higher than 3 Tours). **Hypertrophy** volume and **strength**: 0. **Hypertrophy** frequency: a station hitting a muscle that day is one hit. **Program Balance**: presence 1 / 0.5 once per station per **Circuit** on the full 13-axis vector (zeros kept). Do not explode `rounds ×` stations; an AMRAP has no N.
+→ `file:src/types/database.ts`
+
+**Hypertrophy (Goal Track)**:
+Grades only muscles that appear in the week: ≥1 solo set (primary 1 / secondary 0.5) or a **Circuit** station frequency hit. Volume band 8–20 weekly sets; frequency band 2–3 distinct days. Track rollup = share of *those* muscles in **both** bands: `short` < ⅓, `ok` ⅓–⅔, `high` ≥ ⅔ (draft). Zeros on `MUSCLE_TAXONOMY` are **Program Balance**, not a hypertrophy fail.
+→ `file:src/lib/trainingBalance.ts`
+
+**Strength (Goal Track)**:
+Share of solo sets that are strength-shaped: `rep_range_max` (or parsed `reps`) ≤ 6 and `rest_seconds` ≥ 150. No compound gate. **Circuits** add no volume. Bands (draft): `short` < 20 %, `ok` 20–40 %, `high` ≥ 40 %. A week with no such sets is `short`, not an error.
+→ `file:src/types/database.ts`
+
+**Endurance (Goal Track)**:
+**Circuit** count is the primary input. A solo set is dense if reps ≥ 12 (or duration exercise) and `rest_seconds` ≤ 60. Bands (draft): `short` = 0 Circuit and < 20 % dense sets; `ok` = 1 Circuit or ≥ 20 % dense; `high` = ≥ 2 Circuits, or 1 Circuit and ≥ 20 % dense.
+→ `file:src/types/database.ts`
+
+**Program Balance**:
+A first-class score of the **Program** as written: `computeBalanceScore` on the 13-axis intended vector (zeros kept). Solo sets credit primary 1 / secondary 0.5. Each **Circuit** station adds a *presence* credit (1 / 0.5) once per block — same for **AMRAP** and **Tours**, never `rounds ×`. A Cindy-only week scores **low**, not empty and not "excellent". Same formula as **Équilibre**, different grain (intent vs executed **Sessions**). Fourth number on the **Program Page**, not a **Goal Track**. The only 0–100 on the character sheet. UI: EN **Balance** / FR **Répartition** — never **Équilibre** (that's executed volume on Profil).
+→ `file:src/lib/trainingBalance.ts`
+
+**Program Facts**:
+Deterministic readouts of the **Program** as written — no rubric, not stored columns. V1: day count; solo set count (`Σ workout_exercises.sets` on **Exercise Slots** only); **Circuit** count (first-class units, mode labeled, never folded into the set integer); equipment *mix* in four buckets — free weights (`barbell`, `dumbbell`, `ez_bar`, `kettlebell`), machines (`machine`, `cable`), bodyweight, other (`band`, `bench`, `other`). Mix grain matches **Program Balance**: solo sets + one presence per **Circuit** station. No estimated clock. Not a « salle » tag.
+→ `file:src/lib/catalogTaxonomy.ts`
+
+**Program Score Rubric**:
+The published house rules behind **Goal Tracks** and **Program Balance**. In-app and pedagogical — a beginner can read *why* a band is `short` / `ok` / `high`. Thresholds are a product claim we will defend (cite or admit house), not a hidden heuristic. The **Program Page** is the defense surface; `docs/` / an ADR back it. Empty ≠ `short`: 0 days / 0 items → no scores (not a fail). Circuit-only week → **endurance** and **Program Balance** may show; hypertrophy volume / **strength** stay empty (no solo sets); hypertrophy frequency may still hit. A 1-day solo week may legitimately band hypertrophy `short` on frequency.
+→ `file:docs/CONTEXT.md`
+
+**Program Score Copy**:
+User-facing FR/EN for **Goal Tracks**, **Program Balance**, **Program Facts**, and the **Program Score Rubric**. Density: one rule-sentence always visible on the **Program Page**; worked example on tap; **Library Programs** card = 4 compact scores + one fact line (`Nj · N séries · N circuits`) — equipment mix stays on the **Program Page**. Live Builder banner is out of **Program Identity v1**. A dedicated copy pass is in-epic (HITL) — do not ship glossary voice. Forbidden in UI: **Exercise Slot**, **Template Prescription**, **Goal Track**, `CV`, `log1p`, `MUSCLE_TAXONOMY`, `rep_range_max`, internal file paths. Speak like a coach to a beginner (muscles, séries, jours, repos), not like the schema.
+→ `file:src/locales/`
+
 **Cycle**:
 One pass through every day of a **Program**. The open **Cycle** is the `cycles` row with `finished_at` null; a **workout day** is done in that **Cycle** when a finished **Session** for that day carries this `cycle_id`. Distinct from a **Session** (one execution) and from the **Program** (the live template).
 → `file:src/hooks/useCycle.ts`
