@@ -65,7 +65,9 @@ export function CircuitLedgerRow({ row }: { row: CircuitLedgerRowVm }) {
     <li className={CIRCUIT_LEDGER_ROW_CLASS}>
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-medium">{row.name}</span>
+          <span className="min-w-0 truncate font-medium" title={row.name}>
+            {row.name}
+          </span>
           {row.pb ? (
             <Badge className="h-4 shrink-0 px-1.5 py-0 text-[10px] leading-none">
               {t("circuits.pb")}
