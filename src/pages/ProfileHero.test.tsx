@@ -137,7 +137,7 @@ function Fold() {
   return (
     <ProfileWindowProvider kind={kind} setKind={setKind}>
       <button type="button" onClick={() => setKind("100")}>
-        This quarter
+        Last 100 days
       </button>
       <HeroBlock mode="pierre" />
       <SuccesBlock mode="pierre" />
@@ -230,11 +230,13 @@ describe("profile hero tenure, hop, and Succès", () => {
     renderFold()
 
     await waitFor(() => {
-      expect(screen.getByText("Also PPL this week")).toBeInTheDocument()
+      expect(screen.getByText("Also PPL · Last 7 days")).toBeInTheDocument()
     })
   })
 
-  it("toggles hop with 7d vs 100d without changing the career Latest badge", async () => {
+  it("toggles hop with 7d vs 100d and scopes Succès to the window", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date(2026, 7, 21))
     state.sessions = [
       session({ id: "ul", program_id: "upper-lower" }),
       session({
@@ -247,18 +249,22 @@ describe("profile hero tenure, hop, and Succès", () => {
     renderFold()
 
     await waitFor(() => {
-      expect(screen.getByText("2 / 2")).toBeInTheDocument()
+      expect(screen.getByText("1 / 2")).toBeInTheDocument()
     })
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
-    expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
     expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "This quarter" }))
+    await user.click(screen.getByRole("button", { name: "Last 100 days" }))
 
     await waitFor(() => {
-      expect(screen.getByText("Also PPL this week")).toBeInTheDocument()
+      expect(screen.getByText("Also PPL · Last 100 days")).toBeInTheDocument()
     })
+    expect(screen.getByText("2 / 2")).toBeInTheDocument()
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
+    expect(
+      screen.getAllByRole("button", { name: "Circuit Star" }).length,
+    ).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: "See all" })).toHaveAttribute(
       "href",
       "/achievements",
@@ -266,6 +272,8 @@ describe("profile hero tenure, hop, and Succès", () => {
   })
 
   it("keeps Recently earned inside the window and does not copy Account top-3-by-tier", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date(2026, 7, 21))
     state.badges = [
       ...CAREER_BADGES,
       badge({
@@ -286,10 +294,15 @@ describe("profile hero tenure, hop, and Succès", () => {
     expect(recent.textContent).not.toContain("Baby Spidey")
     expect(recent.textContent).not.toContain("Circuit Star")
     expect(screen.getByText("Latest").closest("button")).toHaveAccessibleName("Baby Spidey")
-    expect(screen.getByRole("button", { name: "Circuit Star" })).toBeInTheDocument()
+    expect(
+      screen.getAllByText("Highest").find((el) => el.tagName === "SPAN")?.closest("button"),
+    ).toHaveAccessibleName("Baby Spidey")
+    expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
   })
 
   it("shows three recently earned rows with rank badges and an and-more remainder", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date(2026, 7, 21))
     state.badges = [
       badge({
         tier_id: "r1",
@@ -364,6 +377,8 @@ describe("profile hero tenure, hop, and Succès", () => {
   })
 
   it("shows the unlocking performance on featured badges and list rows", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date(2026, 7, 21))
     state.badges = [
       badge({
         tier_id: "volume",

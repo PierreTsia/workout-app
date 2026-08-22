@@ -5,15 +5,15 @@
   "about": "À propos — {{section}}",
   "windowHint": "Tout le profil suit cette période.",
   "window": {
-    "7": "Cette semaine",
-    "30": "Ce mois-ci",
-    "100": "Ce trimestre",
-    "365": "Cette année",
+    "7": "7 derniers jours",
+    "30": "30 derniers jours",
+    "100": "100 derniers jours",
+    "365": "365 derniers jours",
     "all": "Toujours"
   },
   "hero": {
     "activeProgram": "Actif · {{program}}",
-    "hop": "Aussi {{other}} cette semaine",
+    "hop": "Aussi {{other}} · {{window}}",
     "openProgram": "Ouvrir le programme",
     "moreExercises": "+{{n}} de plus",
     "previewEmpty": "Aucun exercice dans ce programme.",
@@ -43,7 +43,7 @@
     "listRecent": "Récents",
     "listHighest": "Plus haut",
     "andMore": "et {{n}} de plus…",
-    "empty": "Aucun succès pour l’instant."
+    "empty": "Aucun succès dans cette fenêtre."
   },
   "pulse": {
     "sessions": "Séances",

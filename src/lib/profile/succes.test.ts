@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   buildSuccesVm,
   formatBadgePerformance,
+  grantedInWindow,
   PERFORMANCE_MAX_CHARS,
   succesListPreview,
 } from "./succes"
@@ -32,8 +33,45 @@ function makeBadge(
 
 const WINDOW = { from: "2026-08-15", to: "2026-08-21", timeZone: "UTC" }
 
+describe("grantedInWindow", () => {
+  const rows = [
+    makeBadge({
+      tier_id: "in-window",
+      title_en: "Baby Spidey",
+      granted_at: "2026-08-18T12:00:00.000Z",
+    }),
+    makeBadge({
+      tier_id: "before-window",
+      title_en: "Circuit Star",
+      granted_at: "2026-06-01T12:00:00.000Z",
+    }),
+    makeBadge({
+      tier_id: "locked",
+      title_en: "Locked",
+      is_unlocked: false,
+      granted_at: null,
+    }),
+  ]
+
+  it("keeps grants whose local day sits inside the window", () => {
+    expect(grantedInWindow(rows, WINDOW).map((badge) => badge.title_en)).toEqual([
+      "Baby Spidey",
+    ])
+  })
+
+  it("returns empty when nothing was earned in the window", () => {
+    expect(
+      grantedInWindow(rows, {
+        from: "2026-07-01",
+        to: "2026-07-07",
+        timeZone: "UTC",
+      }),
+    ).toEqual([])
+  })
+})
+
 describe("buildSuccesVm", () => {
-  it("keeps Recently earned to grants inside the window, not career-only badges", () => {
+  it("scopes Latest, Highest, and ranks to grants inside the window", () => {
     const vm = buildSuccesVm(
       [
         makeBadge({
@@ -57,8 +95,29 @@ describe("buildSuccesVm", () => {
     expect(vm.status).toBe("ok")
     if (vm.status !== "ok") return
     expect(vm.latest.title_en).toBe("Baby Spidey")
+    expect(vm.highest.title_en).toBe("Baby Spidey")
+    expect(vm.unlocked).toBe(1)
     expect(vm.recent.map((badge) => badge.title_en)).toEqual([])
     expect(vm.recent.map((badge) => badge.title_en)).not.toContain("Circuit Star")
+    expect(vm.nextHighest.map((badge) => badge.title_en)).not.toContain("Circuit Star")
+    expect(vm.byRank).toEqual([{ rank: "bronze", count: 1 }])
+  })
+
+  it("is empty when the career has badges but none in this window", () => {
+    const vm = buildSuccesVm(
+      [
+        makeBadge({
+          tier_id: "old-diamond",
+          title_en: "Circuit Star",
+          granted_at: "2026-06-01T12:00:00.000Z",
+          rank: "diamond",
+          tier_level: 5,
+        }),
+      ],
+      WINDOW,
+    )
+
+    expect(vm).toEqual({ status: "empty" })
   })
 
   it("drops Latest from Recently earned so the next grant can take the slot", () => {
@@ -116,7 +175,7 @@ describe("buildSuccesVm", () => {
         makeBadge({
           tier_id: "mid-gold",
           title_en: "No Break",
-          granted_at: "2026-08-10T12:00:00.000Z",
+          granted_at: "2026-08-16T12:00:00.000Z",
           rank: "gold",
           tier_level: 3,
         }),
@@ -134,18 +193,18 @@ describe("buildSuccesVm", () => {
     expect(vm.status).toBe("ok")
     if (vm.status !== "ok") return
     expect(vm.latest.title_en).toBe("Baby Spidey")
-    expect(vm.highest.title_en).toBe("Circuit Star")
-    expect(vm.nextHighest.map((badge) => badge.title_en)).toEqual(["No Break", "Baby Spidey"])
-    expect(vm.unlocked).toBe(3)
+    expect(vm.highest.title_en).toBe("No Break")
+    expect(vm.recent.map((badge) => badge.title_en)).toEqual(["No Break"])
+    expect(vm.nextHighest.map((badge) => badge.title_en)).toEqual(["Baby Spidey"])
+    expect(vm.unlocked).toBe(2)
     expect(vm.total).toBe(3)
     expect(vm.byRank).toEqual([
       { rank: "bronze", count: 1 },
       { rank: "gold", count: 1 },
-      { rank: "diamond", count: 1 },
     ])
   })
 
-  it("counts career ranks and skips empty ladders", () => {
+  it("counts window ranks and skips empty ladders", () => {
     const vm = buildSuccesVm(
       [
         makeBadge({
@@ -158,13 +217,13 @@ describe("buildSuccesVm", () => {
           tier_id: "b2",
           title_en: "Bronze B",
           rank: "bronze",
-          granted_at: "2026-08-10T12:00:00.000Z",
+          granted_at: "2026-08-16T12:00:00.000Z",
         }),
         makeBadge({
           tier_id: "g1",
           title_en: "Gold A",
           rank: "gold",
-          granted_at: "2026-06-01T12:00:00.000Z",
+          granted_at: "2026-08-17T12:00:00.000Z",
         }),
         makeBadge({
           tier_id: "locked",

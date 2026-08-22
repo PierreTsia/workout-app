@@ -39,12 +39,14 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
   const { t, i18n } = useTranslation("profile")
   const { kind, includeDeltas } = useProfileWindow()
   const user = useAtomValue(authAtom)
-  const { data: profile } = useUserProfile()
+  const profileQuery = useUserProfile()
+  const profile = profileQuery.data
   const { data: firstFinishedAt } = useFirstFinishedSessionAt()
   const { data: activeProgram } = useActiveProgram()
   const { data: programs } = useUserPrograms()
   const { data: badges } = useBadgeStatus()
   const live = mode === "pierre" && user != null
+  const identityPending = live && profileQuery.isPending
   const { snapshotQuery, rollupsQuery, boundedKind, liveBounded, liveAll } =
     useProfileLiveQueries(kind, live)
 
@@ -61,8 +63,16 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
     )
   }
 
-  const displayName = live ? resolveDisplayName(user, profile) : "Pierre"
-  const avatarSrc = live ? resolveAvatarUrl(user, profile) : undefined
+  const displayName = identityPending
+    ? ""
+    : live
+      ? resolveDisplayName(user, profile)
+      : "Pierre"
+  const avatarSrc = identityPending
+    ? undefined
+    : live
+      ? resolveAvatarUrl(user, profile)
+      : undefined
   const fallback = live ? undefined : "PT"
 
   const liveStart = live
@@ -110,24 +120,36 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
     : null
   const showFixtureHop = !live && mode === "pierre" && includeDeltas
   const hopLabel = hopName ?? (showFixtureHop ? "PPL" : null)
+  const hopCopy =
+    hopLabel != null
+      ? t("hero.hop", { other: hopLabel, window: t(`window.${kind}`) })
+      : null
 
   return (
     <section aria-labelledby="profile-hero-name" className="flex items-center gap-5">
-      <Avatar
-        className={cn(
-          "size-20 ring-2 ring-offset-2 ring-offset-background",
-          equipped ? rankColorRing[equipped.rank] : "ring-border",
-        )}
-      >
-        {avatarSrc ? (
-          <AvatarImage src={avatarSrc} alt="" referrerPolicy="no-referrer" />
-        ) : null}
-        <AvatarFallback>{fallback ?? <UserRound className="size-8 text-muted-foreground" />}</AvatarFallback>
-      </Avatar>
+      {identityPending ? (
+        <Skeleton className="size-20 shrink-0 rounded-full" />
+      ) : (
+        <Avatar
+          className={cn(
+            "size-20 ring-2 ring-offset-2 ring-offset-background",
+            equipped ? rankColorRing[equipped.rank] : "ring-border",
+          )}
+        >
+          {avatarSrc ? (
+            <AvatarImage src={avatarSrc} alt="" referrerPolicy="no-referrer" />
+          ) : null}
+          <AvatarFallback>{fallback ?? <UserRound className="size-8 text-muted-foreground" />}</AvatarFallback>
+        </Avatar>
+      )}
       <div className="min-w-0 flex-1">
-        <p id="profile-hero-name" className="text-2xl font-bold tracking-tight">
-          {displayName}
-        </p>
+        {identityPending ? (
+          <Skeleton id="profile-hero-name" className="h-7 w-36" />
+        ) : (
+          <p id="profile-hero-name" className="text-2xl font-bold tracking-tight">
+            {displayName}
+          </p>
+        )}
         {title && equipped ? (
           <FeaturedBadgePicker title={title} equipped={equipped} />
         ) : null}
@@ -146,16 +168,16 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
               </Badge>
             )
           ) : null}
-          {hopLabel ? (
+          {hopCopy != null && hopLabel != null ? (
             live && hopId ? (
               <ProgramBadgePopover
                 programId={hopId}
                 programName={hopName ?? hopLabel}
-                label={t("hero.hop", { other: hopLabel })}
+                label={hopCopy}
                 variant="outline"
               />
             ) : (
-              <Badge variant="outline">{t("hero.hop", { other: hopLabel })}</Badge>
+              <Badge variant="outline">{hopCopy}</Badge>
             )
           ) : null}
         </div>

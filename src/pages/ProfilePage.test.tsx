@@ -114,11 +114,11 @@ describe("ProfilePage T0 fixtures", () => {
     expect(hero.getByText("PT").closest("[class*='ring-purple']")).not.toBeNull()
   })
 
-  it("opens on This month and keeps five week clusters on Rhythm", () => {
+  it("opens on Last 30 days and keeps five week clusters on Rhythm", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
-      "This month",
+      "Last 30 days",
     )
     const rhythm = withinRhythm()
     expect(rhythm.getAllByRole("listitem")).toHaveLength(5)
@@ -126,10 +126,10 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythm.queryByText("Mon")).not.toBeInTheDocument()
   })
 
-  it("shows seven labeled weekdays after switching to This week", async () => {
+  it("shows seven labeled weekdays after switching to Last 7 days", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
-    await chooseWindow(user, "This week")
+    await chooseWindow(user, "Last 7 days")
 
     const rhythm = withinRhythm()
     for (const day of WEEKDAYS_EN) {
@@ -210,13 +210,13 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.getByText("+1 vs prior")).toBeInTheDocument()
 
     const windowSelect = screen.getByRole("combobox", { name: "Window" })
-    expect(windowSelect).toHaveTextContent("This month")
+    expect(windowSelect).toHaveTextContent("Last 30 days")
     await user.click(windowSelect)
     for (const label of [
-      "This week",
-      "This month",
-      "This quarter",
-      "This year",
+      "Last 7 days",
+      "Last 30 days",
+      "Last 100 days",
+      "Last 365 days",
     ]) {
       expect(screen.getByRole("option", { name: label })).toBeInTheDocument()
     }
@@ -248,12 +248,12 @@ describe("ProfilePage T0 fixtures", () => {
 
   })
 
-  it("restyles Mix/Rhythm grain when toggling This month to This week", async () => {
+  it("restyles Mix/Rhythm grain when toggling Last 30 days to Last 7 days", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getByText("5 weeks · target 4 d / wk")).toBeInTheDocument()
-    await chooseWindow(user, "This week")
+    await chooseWindow(user, "Last 7 days")
     expect(screen.getByText("Last 7 days · target 4 d / wk")).toBeInTheDocument()
     expect(screen.queryByText("5 weeks · target 4 d / wk")).not.toBeInTheDocument()
   })
@@ -261,7 +261,7 @@ describe("ProfilePage T0 fixtures", () => {
   it("lays out 100d Rhythm as frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
-    await chooseWindow(user, "This quarter")
+    await chooseWindow(user, "Last 100 days")
 
     const rhythm = withinRhythm()
     expect(rhythm.getByText("12 weeks · target 4 d / wk")).toBeInTheDocument()
@@ -283,7 +283,7 @@ describe("ProfilePage T0 fixtures", () => {
   it("renders French 100d Rhythm bars with a cible meta", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />, { locale: "fr" })
-    await chooseWindow(user, "Ce trimestre")
+    await chooseWindow(user, "100 derniers jours")
 
     const rhythm = within(sectionCard("Rythme"))
 
@@ -303,7 +303,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await chooseWindow(user, "This month")
+    await chooseWindow(user, "Last 30 days")
     const rhythm30 = withinRhythm()
     expect(rhythm30.getAllByRole("listitem")).toHaveLength(5)
     expect(rhythm30.getByText("W-4")).toBeInTheDocument()
@@ -316,7 +316,7 @@ describe("ProfilePage T0 fixtures", () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
-    await chooseWindow(user, "This year")
+    await chooseWindow(user, "Last 365 days")
     const rhythmYear = withinRhythm()
     expect(rhythmYear.getByText("12 months · target 4 d / wk")).toBeInTheDocument()
     expect(rhythmYear.queryByRole("list", { name: "Rhythm" })).not.toBeInTheDocument()
@@ -448,7 +448,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(screen.queryByRole("img", { name: /Tonnage/ })).not.toBeInTheDocument()
   })
 
-  it("matches Tonnage bar categories to the Mix grain when toggling This month to This year", async () => {
+  it("matches Tonnage bar categories to the Mix grain when toggling Last 30 days to Last 365 days", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -460,7 +460,7 @@ describe("ProfilePage T0 fixtures", () => {
       expect(monthChart.querySelector(".recharts-yAxis")).not.toBeNull()
     })
 
-    await chooseWindow(user, "This year")
+    await chooseWindow(user, "Last 365 days")
 
     const yearChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
@@ -510,14 +510,14 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     const regulars = within(sectionCard("Regulars"))
-    expect(regulars.getByText("Most logged · This month")).toBeInTheDocument()
+    expect(regulars.getByText("Most logged · Last 30 days")).toBeInTheDocument()
     expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Pull-up")
     expect(regulars.getByText("140")).toBeInTheDocument()
     expect(regulars.queryByText("400")).not.toBeInTheDocument()
 
-    await chooseWindow(user, "This quarter")
+    await chooseWindow(user, "Last 100 days")
 
-    expect(regulars.getByText("Most logged · This quarter")).toBeInTheDocument()
+    expect(regulars.getByText("Most logged · Last 100 days")).toBeInTheDocument()
     expect(regulars.getAllByRole("listitem")[0]).toHaveTextContent("Pull-up")
     expect(regulars.getByText("400")).toBeInTheDocument()
   })
@@ -562,15 +562,15 @@ describe("ProfilePage T0 fixtures", () => {
   it("remembers the last window after a remount", async () => {
     const user = userEvent.setup()
     const first = renderWithProviders(<ProfilePage />)
-    await chooseWindow(user, "This year")
+    await chooseWindow(user, "Last 365 days")
     expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
-      "This year",
+      "Last 365 days",
     )
     first.unmount()
 
     renderWithProviders(<ProfilePage />)
     expect(screen.getByRole("combobox", { name: "Window" })).toHaveTextContent(
-      "This year",
+      "Last 365 days",
     )
     expect(withinRhythm().getByText("12 months · target 4 d / wk")).toBeInTheDocument()
   })

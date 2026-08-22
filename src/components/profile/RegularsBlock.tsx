@@ -5,11 +5,10 @@ import { ProfileHint } from "@/components/profile/ProfileHint"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
@@ -56,28 +55,31 @@ function RegularEvolutionMark({
       : t("regulars.evolution.reps", { signed, count: Math.abs(delta) })
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1 tabular-nums",
-              delta >= 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-amber-600 dark:text-amber-400",
-            )}
-            aria-label={explanation}
-          >
-            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {signed}
-          </button>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-64 text-xs leading-snug">
-          {explanation}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1 tabular-nums",
+            delta >= 0
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400",
+          )}
+          aria-label={explanation}
+        >
+          <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {signed}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="end"
+        collisionPadding={16}
+        className="w-auto max-w-64 p-2.5 text-xs leading-snug"
+      >
+        {explanation}
+      </PopoverContent>
+    </Popover>
   )
 }
 
