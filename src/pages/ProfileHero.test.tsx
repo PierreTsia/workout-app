@@ -362,4 +362,45 @@ describe("profile hero tenure, hop, and Succès", () => {
     expect(byRank.textContent).toContain("Platinum 1")
     expect(byRank.textContent).not.toContain("Diamond")
   })
+
+  it("shows the unlocking performance on featured badges and list rows", async () => {
+    state.badges = [
+      badge({
+        tier_id: "volume",
+        title_en: "Is That All You Got?",
+        group_slug: "volume_king",
+        rank: "bronze",
+        tier_level: 1,
+        threshold_value: 1000,
+        granted_at: "2026-08-20T12:00:00.000Z",
+      }),
+      badge({
+        tier_id: "streak",
+        title_en: "Iron Routine",
+        group_slug: "consistency_streak",
+        rank: "silver",
+        tier_level: 2,
+        threshold_value: 13,
+        granted_at: "2026-08-18T12:00:00.000Z",
+      }),
+    ]
+    renderFold()
+
+    await waitFor(() => {
+      expect(screen.getByRole("list", { name: "Recent" })).toBeInTheDocument()
+    })
+    expect(screen.getByText("Latest").closest("button")).toHaveTextContent("1 t")
+    screen.getAllByRole("button", { name: "Iron Routine" }).forEach((row) => {
+      expect(row).toHaveTextContent("13")
+    })
+    const recent = screen.getByRole("list", { name: "Recent" })
+    expect(recent.textContent).toContain("Iron Routine")
+    expect(recent.textContent).toContain("13")
+    expect(recent.textContent).not.toContain("1 t")
+    const byRank = screen.getByRole("list", { name: "By rank" })
+    expect(byRank.textContent).toContain("Bronze 1")
+    expect(byRank.textContent).toContain("Silver 1")
+    expect(byRank.textContent).not.toContain("1 t")
+    expect(byRank.textContent).not.toContain("13")
+  })
 })

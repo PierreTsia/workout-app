@@ -161,11 +161,11 @@ describe("ProfilePage T0 fixtures", () => {
 
     const circuits = within(sectionCard("Circuits"))
 
-    expect(circuits.getByText("24").className).toMatch(/text-3xl/)
-    expect(circuits.getByText("3", { selector: ".text-3xl" }).className).toMatch(
-      /text-3xl/,
+    expect(circuits.getByText("24").className).toMatch(/text-2xl/)
+    expect(circuits.getByText("3", { selector: ".text-2xl" }).className).toMatch(
+      /sm:text-3xl/,
     )
-    expect(circuits.getByText("2").className).toMatch(/text-3xl/)
+    expect(circuits.getByText("2").className).toMatch(/text-2xl/)
 
     const up = circuits.getByText("+6 vs prior")
     expect(up.closest("p")?.className).toMatch(/emerald/)
@@ -236,7 +236,7 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(
-      screen.getByText("18", { selector: ".text-5xl" }),
+      screen.getByText("18", { selector: ".text-2xl" }),
     ).toBeInTheDocument()
     expect(screen.getByText("12h 10")).toBeInTheDocument()
     expect(screen.getByText("41 min")).toBeInTheDocument()
@@ -280,7 +280,10 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythm.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
     const chart = await rhythm.findByRole("img", { name: "Rhythm" })
     await waitFor(() => {
-      expect(chart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+      expect(
+        chart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+      ).toHaveLength(12)
+      expect(chart.querySelector(".recharts-yAxis")).not.toBeNull()
     })
     expect(rhythm.getByText("W-11")).toBeInTheDocument()
     expect(rhythm.getByText("W")).toBeInTheDocument()
@@ -299,7 +302,9 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythm.queryByRole("list", { name: "Rythme" })).not.toBeInTheDocument()
     const chart = await rhythm.findByRole("img", { name: "Rythme" })
     await waitFor(() => {
-      expect(chart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+      expect(
+        chart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+      ).toHaveLength(12)
     })
     expect(rhythm.getByText("S-11")).toBeInTheDocument()
     expect(rhythm.getByText("S-8 = deload (2 séances)")).toBeInTheDocument()
@@ -329,7 +334,9 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythmYear.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
     const yearChart = await rhythmYear.findByRole("img", { name: "Rhythm" })
     await waitFor(() => {
-      expect(yearChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(12)
+      expect(
+        yearChart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+      ).toHaveLength(12)
     })
     expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
     expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
@@ -341,7 +348,9 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythmAll.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
     const allChart = await rhythmAll.findByRole("img", { name: "Rhythm" })
     await waitFor(() => {
-      expect(allChart.querySelectorAll(".recharts-cartesian-axis-tick")).toHaveLength(3)
+      expect(
+        allChart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
+      ).toHaveLength(3)
     })
     expect(rhythmAll.getByText("2024")).toBeInTheDocument()
     expect(allChart.querySelector(".recharts-reference-line")).not.toBeNull()
@@ -383,13 +392,21 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getAllByText(/Unlocked on/)).toHaveLength(2)
-    expect(document.querySelectorAll(".badge-frame.h-36")).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.h-20")).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.sm\\:h-36")).toHaveLength(2)
     expect(document.querySelectorAll(".badge-frame.h-10")).toHaveLength(3)
+    expect(screen.getByText("No Break").className).toMatch(/min-w-0/)
+    expect(screen.getByText("No Break").className).toMatch(/line-clamp-2/)
     const recent = screen.getByRole("list", { name: "Recent" })
     expect(recent?.textContent).toMatch(/Aug 10/)
     expect(recent?.textContent).toContain("Best Cindy score in rounds")
     expect(recent?.textContent).toContain("GymLogic circuit runs (1+ round)")
     expect(recent?.textContent).toContain("Cumulative Pompes-family reps")
+    const listRow = screen.getByRole("button", { name: "Baby Spidey" })
+    expect(listRow.className).toMatch(/minmax\(0,1fr\)/)
+    expect(listRow.className).toMatch(/min-w-0/)
+    expect(screen.getByText("Baby Spidey").className).toMatch(/min-w-0/)
+    expect(screen.getByText("Baby Spidey").className).toMatch(/truncate/)
   })
 
   it("opens the achievement detail drawer when a Succès medal is clicked", async () => {
@@ -462,8 +479,9 @@ describe("ProfilePage T0 fixtures", () => {
     const monthChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
       expect(
-        monthChart.querySelectorAll(".recharts-cartesian-axis-tick"),
+        monthChart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
       ).toHaveLength(5)
+      expect(monthChart.querySelector(".recharts-yAxis")).not.toBeNull()
     })
 
     await chooseWindow(user, "This year")
@@ -471,7 +489,7 @@ describe("ProfilePage T0 fixtures", () => {
     const yearChart = await screen.findByRole("img", { name: /Tonnage/ })
     await waitFor(() => {
       expect(
-        yearChart.querySelectorAll(".recharts-cartesian-axis-tick"),
+        yearChart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
       ).toHaveLength(12)
     })
   })
@@ -487,23 +505,26 @@ describe("ProfilePage T0 fixtures", () => {
     expect(circuits.getByText("Force")).toBeInTheDocument()
     expect(circuits.getByText("10+1")).toBeInTheDocument()
     expect(circuits.getByText("5+4")).toBeInTheDocument()
-    expect(circuits.getByText("AMRAP 20 min")).toBeInTheDocument()
-    expect(circuits.getByText("AMRAP 12 min")).toBeInTheDocument()
+    expect(circuits.getAllByText("AMRAP")).toHaveLength(2)
+    expect(circuits.getByText("20 min")).toBeInTheDocument()
+    expect(circuits.getByText("12 min")).toBeInTheDocument()
     expect(circuits.getByText("4 rounds")).toBeInTheDocument()
     expect(circuits.getByText("7:58")).toBeInTheDocument()
     expect(circuits.queryByText("9+0")).not.toBeInTheDocument()
     expect(circuits.queryByText("8:18")).not.toBeInTheDocument()
     expect(within(circuits.getAllByRole("listitem")[0]).getByText("12")).toBeInTheDocument()
     expect(within(circuits.getAllByRole("listitem")[0]).getByText("PB")).toBeInTheDocument()
-    expect(circuits.queryByText("AMRAP 4 min")).not.toBeInTheDocument()
-    expect(await circuits.findByRole("img", { name: "Cindy score" })).toBeInTheDocument()
-    expect(circuits.getByRole("img", { name: "Athena score" })).toBeInTheDocument()
-    expect(circuits.getByRole("img", { name: "Force score" })).toBeInTheDocument()
+    expect(circuits.queryByText("4 min")).not.toBeInTheDocument()
+    expect(await circuits.findByRole("img", { name: /Cindy score/ })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: /Athena score/ })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: /Force score/ })).toBeInTheDocument()
     expect(
       circuits
         .getAllByRole("listitem")
         .every((row) =>
-          row.className.includes("grid-cols-[minmax(0,1fr)_3.25rem_8rem_6rem]"),
+          row.className.includes(
+            "grid-cols-[minmax(0,1.2fr)_2.5rem_minmax(0,1fr)_3.5rem]",
+          ),
         ),
     ).toBe(true)
   })
@@ -551,12 +572,12 @@ describe("ProfilePage T0 fixtures", () => {
     const empty = renderWithProviders(<ProfileDashboard mode="empty" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-20")).toBeNull()
     empty.unmount()
 
     renderWithProviders(<ProfileDashboard mode="loading" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-20")).toBeNull()
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
       0,
     )

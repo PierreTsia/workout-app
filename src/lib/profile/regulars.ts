@@ -133,14 +133,14 @@ export function regularsFromSnapshot(
         .filter((n): n is number => n != null)
       const lastLoggedAt = latestFinishedAt(sets, sessionById)
       if (lastLoggedAt == null) return []
-      const previous = sessions[sessions.length - 2]
+      const first = sessions[0]
       const last = sessions[sessions.length - 1]
       const evolution =
-        previous == null || last == null
+        first == null || last == null
           ? undefined
           : evolutionBetween(
               sessionCharge(sets.filter((set) => set.session_id === last.id)),
-              sessionCharge(sets.filter((set) => set.session_id === previous.id)),
+              sessionCharge(sets.filter((set) => set.session_id === first.id)),
             )
       return [
         {

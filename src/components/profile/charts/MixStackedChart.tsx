@@ -4,12 +4,20 @@ import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { mixLesson, readMixRow } from "./chartLessons"
-import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { profileTickInterval, toMixCountRows, type MixSeries } from "./profileChartData"
+import {
+  ProfileChartTooltip,
+  ProfileChartTooltipLayer,
+} from "./ProfileChartTooltip"
+import {
+  localizeProfileTick,
+  PROFILE_Y_LEFT,
+  PROFILE_Y_RIGHT,
+  profileTickInterval,
+  toMixCountRows,
+  type MixSeries,
+} from "./profileChartData"
 
 export type { MixSeries, MixCountRow } from "./profileChartData"
 
@@ -30,6 +38,7 @@ export function MixStackedChart({
 }) {
   const { t } = useTranslation("profile")
   const data = toMixCountRows(categories, series)
+  const tick = (value: string | number) => localizeProfileTick(String(value), t)
 
   return (
     <ChartContainer
@@ -46,33 +55,41 @@ export function MixStackedChart({
           axisLine={false}
           interval={profileTickInterval(categories.length)}
           minTickGap={16}
+          tickFormatter={tick}
         />
         <YAxis
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
-          width={24}
+          width={PROFILE_Y_LEFT}
         />
-        <ChartTooltip
+        <YAxis
+          orientation="right"
+          width={PROFILE_Y_RIGHT}
+          tick={false}
+          axisLine={false}
+          tickLine={false}
+        />
+        <ProfileChartTooltipLayer
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}
               payload={props.payload}
-              label={props.label}
-              lesson={mixLesson(readMixRow(props.payload?.[0]?.payload), t)}
+              label={
+                props.label == null ? undefined : tick(String(props.label))
+              }
               formatValue={(value) => String(value)}
               hideZeros
             />
           )}
         />
         <ChartLegend content={<ChartLegendContent />} />
-        {MIX_STACKS.map((key, i) => (
+        {MIX_STACKS.map((key) => (
           <Bar
             key={key}
             dataKey={key}
             stackId="mix"
             fill={`var(--color-${key})`}
-            radius={i === MIX_STACKS.length - 1 ? [4, 4, 0, 0] : 0}
           />
         ))}
       </BarChart>

@@ -56,6 +56,9 @@ describe("MuscleRadarChart", () => {
       expect(withPrior.querySelectorAll(".recharts-radar")).toHaveLength(2)
     })
     expect(withPrior.querySelector("[stroke-dasharray]")).not.toBeNull()
+    expect(screen.getByText("Current")).toBeInTheDocument()
+    expect(screen.getByText("Prior")).toBeInTheDocument()
+    expect(withPrior.querySelector(".recharts-legend-wrapper")).toBeNull()
   })
 
   it("translates polar-axis ticks for an English reader", async () => {

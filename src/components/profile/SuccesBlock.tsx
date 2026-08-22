@@ -11,6 +11,7 @@ import { useBadgeStatus } from "@/hooks/useBadgeStatus"
 import { PIERRE_SUCCES } from "@/lib/profile/window"
 import {
   buildSuccesVm,
+  formatBadgePerformance,
   isSuccesListKind,
   succesListPreview,
   type SuccesListKind,
@@ -55,6 +56,23 @@ function grantedDateLabel(grantedAt: string | null, language: string): string | 
   })
 }
 
+function SuccesPerformance({
+  badge,
+  className,
+}: {
+  badge: BadgeStatusRow
+  className?: string
+}) {
+  const { i18n } = useTranslation()
+  const label = formatBadgePerformance(badge, i18n.language)
+  if (label == null) return null
+  return (
+    <span className={cn("shrink-0 tabular-nums", className)}>
+      {label}
+    </span>
+  )
+}
+
 function SuccesRecentRow({
   badge,
   onSelect,
@@ -71,25 +89,31 @@ function SuccesRecentRow({
     <button
       type="button"
       aria-label={title}
-      className="flex w-full min-w-0 items-center gap-2.5 text-left transition-transform active:scale-[0.99]"
+      className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 text-left [&>*]:min-w-0 transition-transform active:scale-[0.99]"
       onClick={() => onSelect(badge)}
     >
       <BadgeIcon rank={badge.rank} iconUrl={badge.icon_asset_url} size="sm" alt={title} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm">{title}</span>
+      <span className="flex min-w-0 w-full flex-col overflow-hidden">
+        <span className="min-w-0 truncate text-sm">{title}</span>
         {date ? (
-          <span className="block text-xs text-muted-foreground">{date}</span>
+          <span className="min-w-0 truncate text-xs text-muted-foreground">{date}</span>
         ) : null}
-        <span className="block truncate text-xs leading-snug text-muted-foreground/70">
+        <span className="min-w-0 truncate text-xs leading-snug text-muted-foreground/70">
           {t(`groupDescriptions.${badge.group_slug}`)}
         </span>
       </span>
-      <Badge
-        variant="outline"
-        className={cn("shrink-0 capitalize", rankColorText[badge.rank])}
-      >
-        {t(`ranks.${badge.rank}`)}
-      </Badge>
+      <span className="flex shrink-0 items-center gap-2">
+        <SuccesPerformance
+          badge={badge}
+          className={cn("text-sm", rankColorText[badge.rank])}
+        />
+        <Badge
+          variant="outline"
+          className={cn("shrink-0 capitalize", rankColorText[badge.rank])}
+        >
+          {t(`ranks.${badge.rank}`)}
+        </Badge>
+      </span>
     </button>
   )
 }
@@ -111,7 +135,7 @@ function FeaturedBadge({
     <button
       type="button"
       aria-label={title}
-      className="flex w-full min-w-0 flex-col items-center gap-2 transition-transform active:scale-95"
+      className="flex w-full min-w-0 flex-col items-center gap-2 [&>*]:min-w-0 transition-transform active:scale-95"
       onClick={() => onSelect(badge)}
     >
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -121,13 +145,19 @@ function FeaturedBadge({
         size="xl"
         alt={title}
       />
-      <span className="text-center text-sm font-medium leading-tight">{title}</span>
+      <span className="min-w-0 w-full line-clamp-2 text-center text-sm font-medium leading-tight">
+        {title}
+      </span>
+      <SuccesPerformance
+        badge={badge}
+        className={cn("text-base font-semibold leading-none", rankColorText[badge.rank])}
+      />
       {unlockedDate ? (
-        <span className="text-xs text-muted-foreground">
+        <span className="min-w-0 w-full truncate text-center text-xs text-muted-foreground">
           {t("unlockedOn", { date: unlockedDate })}
         </span>
       ) : null}
-      <span className="max-w-48 text-center text-xs leading-snug text-muted-foreground/70">
+      <span className="min-w-0 w-full line-clamp-2 text-center text-xs leading-snug text-muted-foreground/70">
         {t(`groupDescriptions.${badge.group_slug}`)}
       </span>
     </button>
@@ -149,7 +179,7 @@ function SuccesRankCounts({ counts }: { counts: readonly SuccesRankCount[] }) {
         <li key={rank}>
           <Badge
             variant="outline"
-            className={cn("capitalize", rankColorText[rank])}
+            className={cn("capitalize border-current", rankColorText[rank])}
           >
             {t("achievements.rankCount", {
               rank: ta(`ranks.${rank}`),
@@ -257,7 +287,7 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
         empty={t("achievements.empty")}
       >
         {vm.status === "ok" ? (
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted-foreground">
                 {t("achievements.count", {
@@ -267,7 +297,7 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
               </p>
               <SuccesRankCounts counts={vm.byRank} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid min-w-0 grid-cols-2 gap-3 [&>*]:min-w-0">
               <FeaturedBadge
                 label={t("achievements.latest")}
                 badge={vm.latest}
@@ -280,7 +310,7 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
               />
             </div>
             {showList ? (
-              <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 flex-col gap-2">
                 <ToggleGroup
                   type="single"
                   value={listKind}
@@ -300,9 +330,9 @@ export function SuccesBlock({ mode }: { mode: SuccesFixtureMode }) {
                   </ToggleGroupItem>
                 </ToggleGroup>
                 {listPreview.shown.length > 0 ? (
-                  <ul aria-label={listLabel} className="flex flex-col gap-2">
+                  <ul aria-label={listLabel} className="flex min-w-0 flex-col gap-2">
                     {listPreview.shown.map((spot) => (
-                      <li key={spot.tier_id}>
+                      <li key={spot.tier_id} className="min-w-0">
                         <SuccesRecentRow badge={spot} onSelect={setSelected} />
                       </li>
                     ))}

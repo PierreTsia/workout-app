@@ -14,6 +14,9 @@
   "hero": {
     "activeProgram": "Active · {{program}}",
     "hop": "Also {{other}} this week",
+    "openProgram": "Open program",
+    "moreExercises": "+{{n}} more",
+    "previewEmpty": "No exercises in this program.",
     "activeSince": "Active since {{span}}",
     "tenureDays_one": "{{count}} day",
     "tenureDays_other": "{{count}} days",
@@ -22,7 +25,9 @@
     "tenureYears_one": "{{count}} year",
     "tenureYears_other": "{{count}} years",
     "tenureYearsHalf_one": "{{count}}½ years",
-    "tenureYearsHalf_other": "{{count}}½ years"
+    "tenureYearsHalf_other": "{{count}}½ years",
+    "changeFeaturedBadge": "Change featured badge",
+    "featuredBadgeList": "Unlocked badges"
   },
   "achievements": {
     "hint": "Latest badge, highest rank, and what you earned in this period. Full list is on Achievements.",
@@ -143,6 +148,8 @@
       "attention": "Needs attention",
       "imbalanced": "Imbalanced"
     },
+    "current": "Current",
+    "prior": "Prior",
     "rankLegend": "Sets · 1 / 0.5",
     "empty": "Not enough sessions for a score.",
     "hint": "How evenly you work your muscles. Counts sets, not kilos. Needs 3 sessions. Weight moved is in Tonnage.",
@@ -167,7 +174,12 @@
     "subtitle": "Most logged · {{window}}",
     "unranked": "—",
     "empty": "Not enough logs in this period.",
-    "hint": "Your most-logged moves in this period."
+    "hint": "Your most-logged moves in this period. The delta is last session minus first, in this window.",
+    "evolution": {
+      "weight": "{{signed}} vs the first log in this window",
+      "reps_one": "{{signed}} rep vs the first log in this window",
+      "reps_other": "{{signed}} reps vs the first log in this window"
+    }
   },
   "circuits": {
     "title": "Circuits",
@@ -175,8 +187,13 @@
     "distinct": "Distinct circuits",
     "pbs": "PBs",
     "pb": "PB",
+    "score": "Score",
     "empty": "No circuits in this window.",
-    "hint": "Named workouts. The score is the best run in this period — AMRAP in rounds, Tours in time. A PB is a record."
+    "hint": "Named workouts. The score is the best run in this period — AMRAP in rounds, Tours in time. A PB is a record.",
+    "tooltip": {
+      "amrap_one": "{{count}} round",
+      "amrap_other": "{{count}} rounds"
+    }
   },
   "error": "Couldn't load this block."
 }

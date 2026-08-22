@@ -1,10 +1,29 @@
 import { MUSCLE_TAXONOMY, type MuscleTaxonomy } from "@/lib/trainingBalance"
 
+/** Shared Y gutters so Mix / Rhythm / Tonnage / Records plot the same width. */
+export const PROFILE_Y_LEFT = 28
+export const PROFILE_Y_RIGHT = 36
+
 /** Force every tick on short grains; drop overlaps on 100d / year. */
 export function profileTickInterval(
   categoryCount: number,
 ): 0 | "preserveStartEnd" {
   return categoryCount > 8 ? "preserveStartEnd" : 0
+}
+
+/** W / W-14 / W3 / 2026-W34 → locale week marks (S / S-14 / S3 / S34 in FR). */
+export function localizeProfileTick(
+  label: string,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (label === "W") return t("rhythm.weekCurrent")
+  const offset = /^W-(\d+)$/.exec(label)
+  if (offset) return t("rhythm.weekAgo", { n: offset[1] })
+  const sequential = /^W(\d+)$/.exec(label)
+  if (sequential) return t("rhythm.week", { n: sequential[1] })
+  const iso = /^(\d{4})-W(\d{1,2})$/.exec(label)
+  if (iso) return t("rhythm.week", { n: Number(iso[2]) })
+  return label
 }
 
 export type MixSeries = {

@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next"
 import { useAtomValue } from "jotai"
 import { UserRound } from "lucide-react"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
+import { FeaturedBadgePicker } from "@/components/profile/FeaturedBadgePicker"
+import { ProgramBadgePopover } from "@/components/profile/ProgramBadgePopover"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -11,7 +13,7 @@ import { useFirstFinishedSessionAt } from "@/hooks/useFirstFinishedSessionAt"
 import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { useUserPrograms } from "@/hooks/useUserPrograms"
-import { rankColorRing, rankColorText, resolveActiveTitle } from "@/lib/achievementUtils"
+import { rankColorRing, resolveActiveTitle } from "@/lib/achievementUtils"
 import { hopOtherProgramId, hopOtherProgramIdFromIds } from "@/lib/profile/hop"
 import {
   localDateFromIsoDay,
@@ -127,23 +129,34 @@ export function HeroBlock({ mode }: { mode: HeroFixtureMode }) {
           {displayName}
         </p>
         {title && equipped ? (
-          <p
-            className={cn(
-              "text-sm font-semibold italic",
-              rankColorText[equipped.rank],
-            )}
-          >
-            {title}
-          </p>
+          <FeaturedBadgePicker title={title} equipped={equipped} />
         ) : null}
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {programName ? (
-            <Badge variant="secondary">
-              {t("hero.activeProgram", { program: programName })}
-            </Badge>
+            live && activeProgram?.id ? (
+              <ProgramBadgePopover
+                programId={activeProgram.id}
+                programName={programName}
+                label={t("hero.activeProgram", { program: programName })}
+                variant="secondary"
+              />
+            ) : (
+              <Badge variant="secondary">
+                {t("hero.activeProgram", { program: programName })}
+              </Badge>
+            )
           ) : null}
           {hopLabel ? (
-            <Badge variant="outline">{t("hero.hop", { other: hopLabel })}</Badge>
+            live && hopId ? (
+              <ProgramBadgePopover
+                programId={hopId}
+                programName={hopName ?? hopLabel}
+                label={t("hero.hop", { other: hopLabel })}
+                variant="outline"
+              />
+            ) : (
+              <Badge variant="outline">{t("hero.hop", { other: hopLabel })}</Badge>
+            )
           ) : null}
         </div>
         {span != null && (live || mode === "pierre") ? (

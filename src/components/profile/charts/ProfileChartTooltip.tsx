@@ -1,5 +1,10 @@
-import type { ReactNode } from "react"
-import { useChart } from "@/components/ui/chart"
+import type { CSSProperties, ReactNode } from "react"
+import {
+  useActiveTooltipCoordinate,
+  usePlotArea,
+  type TooltipProps,
+} from "recharts"
+import { ChartTooltip, useChart } from "@/components/ui/chart"
 
 function tooltipFields(item: unknown) {
   if (item == null || typeof item !== "object") return undefined
@@ -13,18 +18,96 @@ function tooltipFields(item: unknown) {
   }
 }
 
+const CLEAR_BOX: CSSProperties = {
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+  outline: "none",
+  padding: 0,
+}
+
+export type TooltipFlipPoint = {
+  readonly x: number
+  readonly y: number
+}
+
+export type TooltipFlipBox = {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * Prefer the opposite side of the cursor when the active point is in the far
+ * half of the plot. Recharts then places the box at `coordinate − size − offset`.
+ */
+export function profileTooltipReverseDirection(
+  coordinate: TooltipFlipPoint | undefined,
+  plot: TooltipFlipBox | undefined,
+): { x: boolean; y: boolean } {
+  if (
+    coordinate == null ||
+    plot == null ||
+    plot.width <= 0 ||
+    plot.height <= 0
+  ) {
+    return { x: false, y: false }
+  }
+  return {
+    x: coordinate.x >= plot.x + plot.width / 2,
+    y: coordinate.y >= plot.y + plot.height / 2,
+  }
+}
+
+/**
+ * Stay inside the plot so Recharts can flip when the preferred side still
+ * overflows. `allowEscapeViewBox: true` is what clipped the last Mix bar.
+ */
+export const PROFILE_CHART_TOOLTIP_PROPS = {
+  cursor: false,
+  allowEscapeViewBox: { x: false, y: false },
+  offset: 8,
+  contentStyle: CLEAR_BOX,
+  wrapperStyle: { ...CLEAR_BOX, pointerEvents: "none" },
+} as const
+
+/** Shared Tooltip: half-plot flip + in-plot clamp. Use on every profile chart. */
+export function ProfileChartTooltipLayer({
+  content,
+  allowEscapeViewBox,
+  reverseDirection,
+}: {
+  content: TooltipProps["content"]
+  allowEscapeViewBox?: TooltipProps["allowEscapeViewBox"]
+  reverseDirection?: { x: boolean; y: boolean }
+}) {
+  const coordinate = useActiveTooltipCoordinate()
+  const plot = usePlotArea()
+  return (
+    <ChartTooltip
+      {...PROFILE_CHART_TOOLTIP_PROPS}
+      allowEscapeViewBox={
+        allowEscapeViewBox ?? PROFILE_CHART_TOOLTIP_PROPS.allowEscapeViewBox
+      }
+      reverseDirection={
+        reverseDirection ?? profileTooltipReverseDirection(coordinate, plot)
+      }
+      content={content}
+    />
+  )
+}
+
 export function ProfileChartTooltip({
   active,
   payload,
   label,
-  lesson,
   formatValue,
   hideZeros = false,
 }: {
   active?: boolean
   payload?: ReadonlyArray<unknown>
   label?: ReactNode
-  lesson?: string
   formatValue?: (value: number, dataKey: string) => string
   hideZeros?: boolean
 }) {
@@ -51,18 +134,20 @@ export function ProfileChartTooltip({
     ]
   })
 
+  if (rows.length === 0 && (label == null || label === "")) return null
+
   return (
-    <div className="grid max-w-64 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid max-w-40 gap-1 rounded-md border border-border/50 bg-background px-2 py-1 text-[11px] shadow-md">
       {label != null && label !== "" ? (
         <p className="font-medium">{label}</p>
       ) : null}
       {rows.length > 0 ? (
-        <ul className="grid gap-1">
+        <ul className="grid gap-0.5">
           {rows.map((row) => (
-            <li key={row.key} className="flex items-center justify-between gap-3">
+            <li key={row.key} className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <span
-                  className="size-2 shrink-0 rounded-[2px]"
+                  className="size-1.5 shrink-0 rounded-[2px]"
                   style={{ backgroundColor: row.color }}
                 />
                 {row.name}
@@ -71,9 +156,6 @@ export function ProfileChartTooltip({
             </li>
           ))}
         </ul>
-      ) : null}
-      {lesson ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">{lesson}</p>
       ) : null}
     </div>
   )

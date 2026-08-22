@@ -98,13 +98,46 @@ describe("RegularsBlock", () => {
     mockRpc.mockResolvedValue({ data: { sessions: [], sets: [] }, error: null })
   })
 
-  it("shows name and last evolution, not program pills", () => {
+  it("shows name and window evolution, not program pills", () => {
     renderRegulars("pierre")
 
     expect(screen.getByText("Squat")).toBeInTheDocument()
+    expect(screen.getByText("Squat").className).toMatch(/truncate/)
+    expect(screen.getByText("Squat").className).toMatch(/min-w-0/)
     expect(screen.getAllByText("+2 kg").length).toBeGreaterThan(0)
     expect(screen.queryByText("On program")).not.toBeInTheDocument()
     expect(screen.queryByText("Off program")).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", {
+        name: "+2 kg vs the first log in this window",
+      }).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it("labels weight and reps marks against the first log in the window", () => {
+    renderRegulars("pierre", "100")
+
+    const card = regularsCard()
+    expect(
+      within(card).getAllByRole("button", {
+        name: "+2 kg vs the first log in this window",
+      }).length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(card).getByRole("button", {
+        name: "+2.5 kg vs the first log in this window",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(card).getByRole("button", {
+        name: "−2 kg vs the first log in this window",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(card).getAllByRole("button", {
+        name: "+2 reps vs the first log in this window",
+      }).length,
+    ).toBeGreaterThan(0)
   })
 
   it("shows empty copy when there are not enough logs", () => {

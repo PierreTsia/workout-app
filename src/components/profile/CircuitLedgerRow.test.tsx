@@ -36,9 +36,12 @@ describe("CircuitLedgerRow", () => {
     )
 
     expect(screen.getByText("Cindy")).toBeInTheDocument()
+    expect(screen.getByText("Cindy").className).toMatch(/min-w-0/)
+    expect(screen.getByText("Cindy").className).toMatch(/truncate/)
+    expect(screen.getByRole("listitem").className).toMatch(/minmax\(0,1fr\)/)
     expect(screen.getByText("10+1")).toBeInTheDocument()
     expect(screen.getByText("1")).toBeInTheDocument()
-    expect(screen.queryByRole("img", { name: "Cindy score" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: /Cindy score/ })).not.toBeInTheDocument()
   })
 
   it("scores Tours as completion time, not an AMRAP leftover", () => {
@@ -63,6 +66,35 @@ describe("CircuitLedgerRow", () => {
     expect(screen.getByText("PB")).toBeInTheDocument()
     expect(screen.getByText("7:58")).toBeInTheDocument()
     expect(screen.queryByText("10+1")).not.toBeInTheDocument()
-    expect(screen.getByRole("img", { name: "Force score" })).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: /Force score/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("img", { name: /Force score: 8:40, 7:58, 8:18/ }),
+    ).toBeInTheDocument()
+  })
+
+  it("labels AMRAP spark points as rounds, not a For Time clock", () => {
+    renderWithProviders(
+      <ul>
+        <CircuitLedgerRow
+          row={{
+            mode: "amrap",
+            fingerprint: "amrap|1200|cindy",
+            name: "Cindy",
+            minutes: 20,
+            pb: false,
+            runCount: 3,
+            best: { fullRounds: 10, leftover: 1, leftoverName: "pull-ups" },
+            sparkValues: [8, 10, 9],
+          }}
+        />
+      </ul>,
+      { locale: "fr" },
+    )
+
+    expect(
+      screen.getByRole("img", { name: /Cindy score: 8 tours, 10 tours, 9 tours/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("img", { name: /8:00/ })).not.toBeInTheDocument()
   })
 })
+

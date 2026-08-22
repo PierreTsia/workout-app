@@ -80,8 +80,8 @@ export function ProfileStatCard({
         </CardTitle>
         <p
           className={cn(
-            "font-bold tracking-tight tabular-nums",
-            size === "small" ? "text-3xl" : "text-5xl",
+            "whitespace-nowrap font-bold tracking-tight tabular-nums",
+            size === "small" ? "text-2xl sm:text-3xl" : "text-5xl",
           )}
         >
           {value}

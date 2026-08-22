@@ -59,12 +59,14 @@ describe("ProfileStatCard", () => {
 
     const hero = screen.getByText("5")
     expect(hero.className).toMatch(/text-(4|5)xl/)
+    expect(hero.className).toMatch(/whitespace-nowrap/)
   })
 
   it("renders a small count when the card sits in a half column", () => {
     renderWithProviders(<ProfileStatCard size="small" title="Runs" value={11} />)
 
-    expect(screen.getByText("11").className).toMatch(/text-3xl/)
+    expect(screen.getByText("11").className).toMatch(/text-2xl/)
+    expect(screen.getByText("11").className).toMatch(/sm:text-3xl/)
     expect(screen.getByText("11").className).not.toMatch(/text-5xl/)
   })
 

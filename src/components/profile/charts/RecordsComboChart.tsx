@@ -4,12 +4,16 @@ import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { readRecordsRow, recordsLesson } from "./chartLessons"
-import { ProfileChartTooltip } from "./ProfileChartTooltip"
 import {
+  ProfileChartTooltip,
+  ProfileChartTooltipLayer,
+} from "./ProfileChartTooltip"
+import {
+  localizeProfileTick,
+  PROFILE_Y_LEFT,
+  PROFILE_Y_RIGHT,
   profileTickInterval,
   toRecordsComboRows,
   type RecordsComboSeries,
@@ -31,6 +35,7 @@ export function RecordsComboChart({
 }) {
   const { t } = useTranslation("profile")
   const data = toRecordsComboRows(categories, series)
+  const tick = (value: string | number) => localizeProfileTick(String(value), t)
   const rirPointCount = series.rir0.filter((value) => value != null).length
 
   return (
@@ -48,13 +53,14 @@ export function RecordsComboChart({
           axisLine={false}
           interval={profileTickInterval(categories.length)}
           minTickGap={16}
+          tickFormatter={tick}
         />
         <YAxis
           yAxisId="prs"
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
-          width={28}
+          width={PROFILE_Y_LEFT}
         />
         <YAxis
           yAxisId="rir0"
@@ -62,16 +68,17 @@ export function RecordsComboChart({
           tickLine={false}
           axisLine={false}
           domain={[0, 100]}
-          width={36}
+          width={PROFILE_Y_RIGHT}
           tickFormatter={(value) => `${value}%`}
         />
-        <ChartTooltip
+        <ProfileChartTooltipLayer
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}
               payload={props.payload}
-              label={props.label}
-              lesson={recordsLesson(readRecordsRow(props.payload?.[0]?.payload), t)}
+              label={
+                props.label == null ? undefined : tick(String(props.label))
+              }
               formatValue={(value, dataKey) =>
                 dataKey === "rir0" ? `${value}%` : String(value)
               }

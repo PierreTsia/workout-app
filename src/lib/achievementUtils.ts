@@ -66,3 +66,14 @@ export function resolveActiveTitle(
   if (!profile?.active_title_tier_id) return null
   return rows.find((r) => r.tier_id === profile.active_title_tier_id) ?? null
 }
+
+/** Won badges only, higher rank first (diamond → bronze), then higher tier. */
+export function sortWonBadgesByRankDesc(
+  rows: readonly BadgeStatusRow[],
+): BadgeStatusRow[] {
+  return [...rows.filter((row) => row.is_unlocked)].sort((a, b) => {
+    const rankDelta = RANK_ORDER[b.rank] - RANK_ORDER[a.rank]
+    if (rankDelta !== 0) return rankDelta
+    return b.tier_level - a.tier_level
+  })
+}

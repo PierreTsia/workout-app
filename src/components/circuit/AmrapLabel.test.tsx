@@ -24,4 +24,19 @@ describe("AmrapLabel", () => {
       screen.getByLabelText(/AMRAP 10 min.*as many rounds as possible/i),
     ).toBeInTheDocument()
   })
+
+  it("badge variant keeps AMRAP and minutes on one line, gloss in the tooltip", () => {
+    renderWithProviders(<AmrapLabel minutes={10} variant="badge" />)
+
+    expect(screen.getByText("AMRAP")).toBeInTheDocument()
+    expect(screen.getByText("10 min")).toBeInTheDocument()
+    expect(screen.queryByText("AMRAP 10 min")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/as many rounds as possible/i),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText(/AMRAP 10 min.*as many rounds as possible/i),
+    ).toBeInTheDocument()
+    expect(screen.getByText("10 min").className).toMatch(/truncate/)
+  })
 })

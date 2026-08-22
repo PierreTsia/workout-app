@@ -261,6 +261,11 @@ describe("circuitLedger Tours scoring", () => {
       seconds: 478,
     })
     expect(laterFaster.rows[0]?.sparkValues).toEqual([520, 478, 498])
+    expect(laterFaster.rows[0]?.sparkDays).toEqual([
+      "2026-08-16",
+      "2026-08-18",
+      "2026-08-20",
+    ])
   })
 })
 

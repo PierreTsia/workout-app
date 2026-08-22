@@ -37,9 +37,9 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
   ) {
     return (
       <ProfilePulseGrid>
-        <ProfileStatCardSkeleton />
-        <ProfileStatCardSkeleton />
-        <ProfileStatCardSkeleton />
+        <ProfileStatCardSkeleton size="small" />
+        <ProfileStatCardSkeleton size="small" />
+        <ProfileStatCardSkeleton size="small" />
       </ProfilePulseGrid>
     )
   }
@@ -116,6 +116,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
   return (
     <ProfilePulseGrid>
       <ProfileStatCard
+        size="small"
         title={t("pulse.sessions")}
         value={pulse.sessions}
         delta={
@@ -125,6 +126,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
         }
       />
       <ProfileStatCard
+        size="small"
         title={t("pulse.sessionTime")}
         value={pulse.timeLabel}
         delta={
@@ -134,6 +136,7 @@ export function PulseBlock({ mode }: { mode: PulseFixtureMode }) {
         }
       />
       <ProfileStatCard
+        size="small"
         title={t("pulse.avgDuration")}
         value={`${pulse.avgMinutes} min`}
         hint={

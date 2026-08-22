@@ -162,16 +162,16 @@ export function BalanceTonnageRow({ mode }: { mode: BalanceTonnageFixtureMode })
           label={t("balance.score", { score })}
           bandLabel={t(`balance.band.${balanceBandFromScore(score)}`)}
         />
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_10.5rem] items-center gap-3">
-          <div className="min-w-0">
+        <div className="@container min-w-0">
+          <div className="grid min-w-0 grid-cols-1 items-start gap-4 @min-[28rem]:grid-cols-[minmax(0,1fr)_9.5rem] @min-[28rem]:items-center">
             <MuscleRadarChart
               series={{
                 current: radarCurrent,
                 prior: includeDeltas ? radarPrior : undefined,
               }}
             />
+            <MuscleSetRanks values={radarCurrent} />
           </div>
-          <MuscleSetRanks values={radarCurrent} />
         </div>
       </ProfileSection>
       <ProfileSection
