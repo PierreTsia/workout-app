@@ -15,17 +15,42 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { from: vi.fn(), rpc: vi.fn() },
 }))
 
+type ProfileMock = Pick<
+  UserProfile,
+  | "user_id"
+  | "display_name"
+  | "avatar_url"
+  | "session_duration_minutes"
+  | "created_at"
+  | "active_title_tier_id"
+>
+
+const loadedProfile = (): ProfileMock => ({
+  user_id: "user-1",
+  display_name: "Ada",
+  avatar_url: null,
+  session_duration_minutes: 60,
+  created_at: "2023-01-01T00:00:00.000Z",
+  active_title_tier_id: null,
+})
+
+const profileState = vi.hoisted(() => ({
+  isPending: false,
+  data: {
+    user_id: "user-1",
+    display_name: "Ada" as string | null,
+    avatar_url: null as string | null,
+    session_duration_minutes: 60,
+    created_at: "2023-01-01T00:00:00.000Z",
+    active_title_tier_id: null as string | null,
+  },
+}))
+
 vi.mock("@/hooks/useUserProfile", () => ({
   useUserProfile: () => ({
-    data: {
-      user_id: "user-1",
-      display_name: "Ada",
-      avatar_url: null,
-      session_duration_minutes: 60,
-      created_at: "2023-01-01T00:00:00.000Z",
-      active_title_tier_id: null,
-    } satisfies Partial<UserProfile>,
-    isLoading: false,
+    data: profileState.data,
+    isPending: profileState.isPending,
+    isLoading: profileState.isPending,
     isError: false,
   }),
 }))
@@ -113,6 +138,20 @@ vi.mock("@/hooks/useProfileSnapshot", () => ({
   }),
 }))
 
+const GOOGLE_PHOTO = "https://lh3.google/photo.png"
+const CUSTOM_PHOTO = "https://cdn.example/ada.png"
+
+function googleAuthUser() {
+  return {
+    id: "user-1",
+    email: "ada@example.com",
+    user_metadata: {
+      avatar_url: GOOGLE_PHOTO,
+      full_name: "Ada Google",
+    },
+  }
+}
+
 function renderHero() {
   const result = renderWithProviders(
     <ProfileWindowProvider kind="7" setKind={() => {}}>
@@ -120,7 +159,7 @@ function renderHero() {
     </ProfileWindowProvider>,
   )
   act(() => {
-    result.store.set(authAtom, { id: "user-1", email: "ada@example.com" } as never)
+    result.store.set(authAtom, googleAuthUser() as never)
   })
   return result
 }
@@ -128,6 +167,8 @@ function renderHero() {
 describe("HeroBlock program badge popover", () => {
   afterEach(() => {
     vi.useRealTimers()
+    profileState.isPending = false
+    profileState.data = loadedProfile()
   })
 
   it("opens the active program popover with an exercise and a builder link", async () => {
@@ -156,10 +197,10 @@ describe("HeroBlock program badge popover", () => {
     renderHero()
 
     await waitFor(() => {
-      expect(screen.getByText("Also PPL this week")).toBeInTheDocument()
+      expect(screen.getByText("Also PPL · Last 7 days")).toBeInTheDocument()
     })
 
-    await user.click(screen.getByText("Also PPL this week"))
+    await user.click(screen.getByText("Also PPL · Last 7 days"))
 
     expect(await screen.findByText(/Overhead Press/)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Open program" })).toHaveAttribute(
@@ -181,5 +222,41 @@ describe("HeroBlock program badge popover", () => {
 
     expect(screen.queryByRole("link", { name: "Open program" })).not.toBeInTheDocument()
     expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+  })
+})
+
+describe("HeroBlock GymLogic identity", () => {
+  afterEach(() => {
+    profileState.isPending = false
+    profileState.data = loadedProfile()
+  })
+
+  it("skeletons the avatar and handle until the GymLogic profile query settles", () => {
+    profileState.isPending = true
+    profileState.data = { ...loadedProfile(), display_name: null, avatar_url: null }
+    renderHero()
+
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
+      0,
+    )
+    expect(screen.queryByText("ada@example.com")).not.toBeInTheDocument()
+    expect(screen.queryByText("Ada Google")).not.toBeInTheDocument()
+    expect(document.querySelector(`img[src="${GOOGLE_PHOTO}"]`)).toBeNull()
+    expect(screen.queryByText("Ada")).not.toBeInTheDocument()
+  })
+
+  it("renders the GymLogic handle and custom avatar after the profile query settles", () => {
+    profileState.data = {
+      ...profileState.data,
+      display_name: "Ada",
+      avatar_url: CUSTOM_PHOTO,
+    }
+    renderHero()
+
+    expect(screen.getByRole("region", { name: "Ada" })).toBeInTheDocument()
+    expect(screen.queryByText("ada@example.com")).not.toBeInTheDocument()
+    expect(screen.queryByText("Ada Google")).not.toBeInTheDocument()
+    expect(document.querySelector(`img[src="${GOOGLE_PHOTO}"]`)).toBeNull()
+    expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0)
   })
 })

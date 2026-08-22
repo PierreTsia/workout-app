@@ -5,15 +5,15 @@
   "about": "About {{section}}",
   "windowHint": "The whole profile uses this period.",
   "window": {
-    "7": "This week",
-    "30": "This month",
-    "100": "This quarter",
-    "365": "This year",
+    "7": "Last 7 days",
+    "30": "Last 30 days",
+    "100": "Last 100 days",
+    "365": "Last 365 days",
     "all": "All time"
   },
   "hero": {
     "activeProgram": "Active · {{program}}",
-    "hop": "Also {{other}} this week",
+    "hop": "Also {{other}} · {{window}}",
     "openProgram": "Open program",
     "moreExercises": "+{{n}} more",
     "previewEmpty": "No exercises in this program.",
@@ -43,7 +43,7 @@
     "listRecent": "Recent",
     "listHighest": "Highest",
     "andMore": "and {{n}} more…",
-    "empty": "No achievements yet."
+    "empty": "No achievements in this window."
   },
   "pulse": {
     "sessions": "Sessions",

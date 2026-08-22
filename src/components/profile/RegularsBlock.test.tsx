@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { act, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { ProfileWindowProvider } from "@/components/profile/ProfileWindowContext"
 import { RegularsBlock, type RegularsFixtureMode } from "./RegularsBlock"
@@ -114,6 +115,24 @@ describe("RegularsBlock", () => {
     ).toBeGreaterThan(0)
   })
 
+  it("keeps the evolution explanation open after a tap", async () => {
+    const user = userEvent.setup()
+    renderRegulars("pierre", "7")
+
+    const [trigger] = screen.getAllByRole("button", {
+      name: "+2 kg vs the first log in this window",
+    })
+    if (trigger == null) throw new Error("expected a Regulars evolution mark")
+    await user.click(trigger)
+    const tip = await screen.findByText("+2 kg vs the first log in this window")
+    expect(tip).toBeVisible()
+
+    await user.click(screen.getByRole("heading", { name: "Regulars" }))
+    expect(
+      screen.queryByText("+2 kg vs the first log in this window"),
+    ).not.toBeInTheDocument()
+  })
+
   it("labels weight and reps marks against the first log in the window", () => {
     renderRegulars("pierre", "100")
 
@@ -159,7 +178,7 @@ describe("RegularsBlock", () => {
     expect(within(items[0]).getByText("Pull-up")).toBeInTheDocument()
     expect(within(items[0]).getByText("400")).toBeInTheDocument()
     expect(within(items[items.length - 1]).getByText("Walking lunge")).toBeInTheDocument()
-    expect(within(card).getByText("Most logged · This quarter")).toBeInTheDocument()
+    expect(within(card).getByText("Most logged · Last 100 days")).toBeInTheDocument()
   })
 
   it("follows the window: 7d is a shorter list with Squat on top", () => {
@@ -170,7 +189,7 @@ describe("RegularsBlock", () => {
     expect(items).toHaveLength(5)
     expect(within(items[0]).getByText("Squat")).toBeInTheDocument()
     expect(within(items[0]).getByText("48")).toBeInTheDocument()
-    expect(within(card).getByText("Most logged · This week")).toBeInTheDocument()
+    expect(within(card).getByText("Most logged · Last 7 days")).toBeInTheDocument()
     expect(screen.queryByText("Walking lunge")).not.toBeInTheDocument()
     expect(screen.queryByText("400")).not.toBeInTheDocument()
   })
@@ -191,7 +210,7 @@ describe("RegularsBlock", () => {
     expect(within(items[0]).getByText("33")).toBeInTheDocument()
     expect(within(items[0]).getByText("+2 kg")).toBeInTheDocument()
     expect(items[0].className).toMatch(/auto_4\.5rem/)
-    expect(within(card).getByText("Most logged · This week")).toBeInTheDocument()
+    expect(within(card).getByText("Most logged · Last 7 days")).toBeInTheDocument()
     expect(screen.queryByText("Squat")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
     expect(screen.queryByText("On program")).not.toBeInTheDocument()
@@ -215,7 +234,7 @@ describe("RegularsBlock", () => {
     expect(within(items[0]).getByText("+1")).toBeInTheDocument()
     expect(within(card).getByText("cindy-pull")).toBeInTheDocument()
     expect(within(card).getByText("Trap bar")).toBeInTheDocument()
-    expect(within(card).getByText("Most logged · This quarter")).toBeInTheDocument()
+    expect(within(card).getByText("Most logged · Last 100 days")).toBeInTheDocument()
     expect(screen.queryByText("Pull-up")).not.toBeInTheDocument()
     expect(screen.queryByText("400")).not.toBeInTheDocument()
   })

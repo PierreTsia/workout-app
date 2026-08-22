@@ -145,26 +145,31 @@ function higherRank(a: BadgeStatusRow, b: BadgeStatusRow): BadgeStatusRow {
   return a.tier_level >= b.tier_level ? a : b
 }
 
+export function grantedInWindow(
+  rows: readonly BadgeStatusRow[],
+  window: SuccesWindow | null,
+): (BadgeStatusRow & { granted_at: string })[] {
+  const granted = sortGrantedDesc(rows.filter(isGranted))
+  if (window == null) return granted
+  return granted.filter((row) => {
+    const day = grantedDay(row, window.timeZone)
+    return day >= window.from && day <= window.to
+  })
+}
+
 export function buildSuccesVm(
   rows: readonly BadgeStatusRow[],
   window: SuccesWindow | null,
 ): SuccesVm {
-  const granted = sortGrantedDesc(rows.filter(isGranted))
-  const latest = granted[0]
+  const inWindow = grantedInWindow(rows, window)
+  const latest = inWindow[0]
   if (latest == null) {
     return { status: "empty" }
   }
 
-  const inWindow =
-    window == null
-      ? granted
-      : granted.filter((row) => {
-          const day = grantedDay(row, window.timeZone)
-          return day >= window.from && day <= window.to
-        })
   const recent = inWindow.filter((row) => row.tier_id !== latest.tier_id)
-  const highest = granted.reduce(higherRank, latest)
-  const nextHighest = [...granted]
+  const highest = inWindow.reduce(higherRank, latest)
+  const nextHighest = [...inWindow]
     .filter((row) => row.tier_id !== highest.tier_id)
     .sort((a, b) => {
       const rankDelta = RANK_ORDER[b.rank] - RANK_ORDER[a.rank]
@@ -176,12 +181,12 @@ export function buildSuccesVm(
 
   return {
     status: "ok",
-    unlocked: granted.length,
+    unlocked: inWindow.length,
     total: rows.length,
     latest,
     highest,
     recent,
     nextHighest,
-    byRank: succesRankCounts(granted),
+    byRank: succesRankCounts(inWindow),
   }
 }
