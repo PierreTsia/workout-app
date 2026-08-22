@@ -22,7 +22,7 @@ export function CircuitScoreSparkline({
   return (
     <ChartContainer
       config={sparkConfig}
-      className="h-10 w-24"
+      className="h-8 w-14"
       role="img"
       aria-label={`${name} score`}
     >

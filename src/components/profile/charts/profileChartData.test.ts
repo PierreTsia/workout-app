@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { MIX_7_CATEGORIES, MIX_7_SERIES, RADAR_CURRENT } from "./fixtures"
 import {
+  localizeProfileTick,
   profileTickInterval,
   scaleRadarCredits,
   toMixCountRows,
@@ -12,6 +13,23 @@ describe("profileTickInterval", () => {
     expect(profileTickInterval(7)).toBe(0)
     expect(profileTickInterval(8)).toBe(0)
     expect(profileTickInterval(14)).toBe("preserveStartEnd")
+  })
+})
+
+describe("localizeProfileTick", () => {
+  const fr = (key: string, options?: Record<string, string | number>) => {
+    if (key === "rhythm.weekCurrent") return "S"
+    if (key === "rhythm.weekAgo") return `S-${options?.n}`
+    if (key === "rhythm.week") return `S${options?.n}`
+    return key
+  }
+
+  it("maps English week marks to French S-labels", () => {
+    expect(localizeProfileTick("W", fr)).toBe("S")
+    expect(localizeProfileTick("W-14", fr)).toBe("S-14")
+    expect(localizeProfileTick("W3", fr)).toBe("S3")
+    expect(localizeProfileTick("2026-W34", fr)).toBe("S34")
+    expect(localizeProfileTick("Mon", fr)).toBe("Mon")
   })
 })
 

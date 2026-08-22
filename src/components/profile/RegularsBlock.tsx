@@ -47,7 +47,7 @@ function RegularEvolutionMark({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 tabular-nums",
+        "inline-flex shrink-0 items-center gap-1 tabular-nums",
         delta >= 0
           ? "text-emerald-600 dark:text-emerald-400"
           : "text-amber-600 dark:text-amber-400",
@@ -124,13 +124,15 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
           <li
             key={row.name}
             className={cn(
-              "grid items-center gap-2",
+              "grid items-center gap-2 [&>*]:min-w-0",
               showEvolution
                 ? "grid-cols-[minmax(0,1fr)_auto_4.5rem]"
                 : "grid-cols-[minmax(0,1fr)_4.5rem]",
             )}
           >
-            <span className="truncate">{row.name}</span>
+            <span className="min-w-0 truncate" title={row.name}>
+              {row.name}
+            </span>
             {showEvolution ? (
               row.evolution != null ? (
                 <RegularEvolutionMark
@@ -141,7 +143,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
                 <span />
               )
             ) : null}
-            <span className="text-right tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-right tabular-nums text-muted-foreground">
               {row.reps == null
                 ? t("regulars.unranked")
                 : formatNumber(row.reps, i18n.language)}

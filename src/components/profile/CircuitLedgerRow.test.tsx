@@ -36,6 +36,8 @@ describe("CircuitLedgerRow", () => {
     )
 
     expect(screen.getByText("Cindy")).toBeInTheDocument()
+    expect(screen.getByText("Cindy").className).toMatch(/truncate/)
+    expect(screen.getByRole("listitem").className).toMatch(/minmax\(0,1fr\)/)
     expect(screen.getByText("10+1")).toBeInTheDocument()
     expect(screen.getByText("1")).toBeInTheDocument()
     expect(screen.queryByRole("img", { name: "Cindy score" })).not.toBeInTheDocument()

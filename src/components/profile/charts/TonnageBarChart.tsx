@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
@@ -6,8 +6,16 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { formatNumber } from "@/lib/formatters"
-import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { profileTickInterval } from "./profileChartData"
+import {
+  PROFILE_CHART_TOOLTIP_PROPS,
+  ProfileChartTooltip,
+} from "./ProfileChartTooltip"
+import {
+  localizeProfileTick,
+  PROFILE_Y_LEFT,
+  PROFILE_Y_RIGHT,
+  profileTickInterval,
+} from "./profileChartData"
 
 const tonnageChartConfig = {
   tonnage: { label: "Tonnage", color: "hsl(174 100% 39%)" },
@@ -32,6 +40,7 @@ export function TonnageBarChart({
 }) {
   const { t, i18n } = useTranslation("profile")
   const data = toTonnageRows(categories, series)
+  const tick = (value: string | number) => localizeProfileTick(String(value), t)
 
   return (
     <ChartContainer
@@ -48,14 +57,32 @@ export function TonnageBarChart({
           axisLine={false}
           interval={profileTickInterval(categories.length)}
           minTickGap={16}
+          tickFormatter={tick}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={PROFILE_Y_LEFT}
+          tickFormatter={(value) =>
+            formatNumber(value, i18n.language, { maximumFractionDigits: 1 })
+          }
+        />
+        <YAxis
+          orientation="right"
+          width={PROFILE_Y_RIGHT}
+          tick={false}
+          axisLine={false}
+          tickLine={false}
         />
         <ChartTooltip
+          {...PROFILE_CHART_TOOLTIP_PROPS}
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}
               payload={props.payload}
-              label={props.label}
-              lesson={t("tonnage.tooltip")}
+              label={
+                props.label == null ? undefined : tick(String(props.label))
+              }
               formatValue={(value) =>
                 `${formatNumber(value, i18n.language, {
                   maximumFractionDigits: 2,
@@ -64,7 +91,7 @@ export function TonnageBarChart({
             />
           )}
         />
-        <Bar dataKey="tonnage" fill="var(--color-tonnage)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="tonnage" fill="var(--color-tonnage)" />
       </BarChart>
     </ChartContainer>
   )

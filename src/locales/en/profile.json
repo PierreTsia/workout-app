@@ -143,6 +143,8 @@
       "attention": "Needs attention",
       "imbalanced": "Imbalanced"
     },
+    "current": "Current",
+    "prior": "Prior",
     "rankLegend": "Sets · 1 / 0.5",
     "empty": "Not enough sessions for a score.",
     "hint": "How evenly you work your muscles. Counts sets, not kilos. Needs 3 sessions. Weight moved is in Tonnage.",
@@ -167,7 +169,7 @@
     "subtitle": "Most logged · {{window}}",
     "unranked": "—",
     "empty": "Not enough logs in this period.",
-    "hint": "Your most-logged moves in this period."
+    "hint": "Your most-logged moves in this period. The delta is last session minus first, in this window."
   },
   "circuits": {
     "title": "Circuits",

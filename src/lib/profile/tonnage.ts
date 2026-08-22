@@ -93,7 +93,7 @@ function grainLabel(key: string, kind: ProfileWindowKind, index: number): string
     const month = Number(key.slice(5, 7))
     return MIX_CATEGORIES["365"][month - 1] ?? fallback ?? key
   }
-  return fallback ?? key
+  return fallback ?? `W${index + 1}`
 }
 
 function grainSlots(kind: ProfileWindowKind, from: string, to: string): string[] {

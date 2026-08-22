@@ -98,10 +98,12 @@ describe("RegularsBlock", () => {
     mockRpc.mockResolvedValue({ data: { sessions: [], sets: [] }, error: null })
   })
 
-  it("shows name and last evolution, not program pills", () => {
+  it("shows name and window evolution, not program pills", () => {
     renderRegulars("pierre")
 
     expect(screen.getByText("Squat")).toBeInTheDocument()
+    expect(screen.getByText("Squat").className).toMatch(/truncate/)
+    expect(screen.getByText("Squat").className).toMatch(/min-w-0/)
     expect(screen.getAllByText("+2 kg").length).toBeGreaterThan(0)
     expect(screen.queryByText("On program")).not.toBeInTheDocument()
     expect(screen.queryByText("Off program")).not.toBeInTheDocument()

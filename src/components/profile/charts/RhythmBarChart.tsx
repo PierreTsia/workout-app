@@ -5,9 +5,16 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { readRhythmHits, rhythmLesson } from "./chartLessons"
-import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { profileTickInterval } from "./profileChartData"
+import {
+  PROFILE_CHART_TOOLTIP_PROPS,
+  ProfileChartTooltip,
+} from "./ProfileChartTooltip"
+import {
+  localizeProfileTick,
+  PROFILE_Y_LEFT,
+  PROFILE_Y_RIGHT,
+  profileTickInterval,
+} from "./profileChartData"
 
 function toRhythmRows(
   categories: readonly string[],
@@ -30,6 +37,7 @@ export function RhythmBarChart({
 }) {
   const { t } = useTranslation("profile")
   const data = toRhythmRows(categories, series)
+  const tick = (value: string | number) => localizeProfileTick(String(value), t)
   const yMax = Math.max(target, ...series)
   const rhythmChartConfig = {
     hits: { label: t("rhythm.bar"), color: "hsl(174 100% 39%)" },
@@ -50,25 +58,37 @@ export function RhythmBarChart({
           axisLine={false}
           interval={profileTickInterval(categories.length)}
           minTickGap={16}
+          tickFormatter={tick}
         />
-        <YAxis hide domain={[0, yMax]} allowDecimals={false} />
+        <YAxis
+          domain={[0, yMax]}
+          allowDecimals={false}
+          tickLine={false}
+          axisLine={false}
+          width={PROFILE_Y_LEFT}
+        />
+        <YAxis
+          orientation="right"
+          width={PROFILE_Y_RIGHT}
+          tick={false}
+          axisLine={false}
+          tickLine={false}
+        />
         <ReferenceLine y={target} stroke="hsl(174 100% 39% / 0.55)" strokeDasharray="4 4" />
         <ChartTooltip
+          {...PROFILE_CHART_TOOLTIP_PROPS}
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}
               payload={props.payload}
-              label={props.label}
-              lesson={rhythmLesson(
-                readRhythmHits(props.payload?.[0]?.payload),
-                target,
-                t,
-              )}
+              label={
+                props.label == null ? undefined : tick(String(props.label))
+              }
               formatValue={(value) => t("rhythm.tooltip.days", { n: value })}
             />
           )}
         />
-        <Bar dataKey="hits" fill="var(--color-hits)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="hits" fill="var(--color-hits)" />
       </BarChart>
     </ChartContainer>
   )

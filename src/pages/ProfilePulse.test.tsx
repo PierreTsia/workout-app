@@ -171,7 +171,7 @@ describe("profile pulse tiles", () => {
       expect(screen.getAllByText("40 min").length).toBeGreaterThan(0)
     })
     const sessionTime = screen.getByText("Session time")
-    const value = sessionTime.parentElement?.querySelector(".text-5xl")
+    const value = sessionTime.parentElement?.querySelector(".text-2xl")
     expect(value?.textContent).toBe("40 min")
     expect(screen.queryByText("120 min")).not.toBeInTheDocument()
     expect(screen.queryByText("2h")).not.toBeInTheDocument()

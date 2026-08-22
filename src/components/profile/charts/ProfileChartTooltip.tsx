@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import { useChart } from "@/components/ui/chart"
 
 function tooltipFields(item: unknown) {
@@ -13,18 +13,33 @@ function tooltipFields(item: unknown) {
   }
 }
 
+const CLEAR_BOX: CSSProperties = {
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+  outline: "none",
+  padding: 0,
+}
+
+/** Strip Recharts' default white frame — it wraps the whole plot on tap. */
+export const PROFILE_CHART_TOOLTIP_PROPS = {
+  cursor: false,
+  allowEscapeViewBox: { x: true, y: true },
+  offset: 8,
+  contentStyle: CLEAR_BOX,
+  wrapperStyle: { ...CLEAR_BOX, pointerEvents: "none" },
+} as const
+
 export function ProfileChartTooltip({
   active,
   payload,
   label,
-  lesson,
   formatValue,
   hideZeros = false,
 }: {
   active?: boolean
   payload?: ReadonlyArray<unknown>
   label?: ReactNode
-  lesson?: string
   formatValue?: (value: number, dataKey: string) => string
   hideZeros?: boolean
 }) {
@@ -51,18 +66,20 @@ export function ProfileChartTooltip({
     ]
   })
 
+  if (rows.length === 0 && (label == null || label === "")) return null
+
   return (
-    <div className="grid max-w-64 gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="grid max-w-40 gap-1 rounded-md border border-border/50 bg-background px-2 py-1 text-[11px] shadow-md">
       {label != null && label !== "" ? (
         <p className="font-medium">{label}</p>
       ) : null}
       {rows.length > 0 ? (
-        <ul className="grid gap-1">
+        <ul className="grid gap-0.5">
           {rows.map((row) => (
-            <li key={row.key} className="flex items-center justify-between gap-3">
+            <li key={row.key} className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <span
-                  className="size-2 shrink-0 rounded-[2px]"
+                  className="size-1.5 shrink-0 rounded-[2px]"
                   style={{ backgroundColor: row.color }}
                 />
                 {row.name}
@@ -71,9 +88,6 @@ export function ProfileChartTooltip({
             </li>
           ))}
         </ul>
-      ) : null}
-      {lesson ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">{lesson}</p>
       ) : null}
     </div>
   )

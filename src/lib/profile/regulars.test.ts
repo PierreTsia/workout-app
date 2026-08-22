@@ -275,7 +275,7 @@ describe("regularsFromSnapshot", () => {
     ])
   })
 
-  it("shows last-session load vs the previous session of the same move", () => {
+  it("shows last-session load minus the first session of the same move in the window", () => {
     const rows = regularsFromSnapshot(
       snapshot(
         [
@@ -331,7 +331,39 @@ describe("regularsFromSnapshot", () => {
     expect(rows[0]?.evolution).toEqual({ kind: "weight", kg: 2.5 })
   })
 
-  it("omits a flat or incomparable last-vs-prev charge", () => {
+  it("keeps a mid-window plateau: last minus first, not last minus previous", () => {
+    const rows = regularsFromSnapshot(
+      snapshot(
+        [
+          makeSession({
+            id: "first",
+            started_at: "2026-08-16T10:00:00.000Z",
+            finished_at: "2026-08-16T11:00:00.000Z",
+          }),
+          makeSession({
+            id: "mid",
+            started_at: "2026-08-18T10:00:00.000Z",
+            finished_at: "2026-08-18T11:00:00.000Z",
+          }),
+          makeSession({
+            id: "last",
+            started_at: "2026-08-20T10:00:00.000Z",
+            finished_at: "2026-08-20T11:00:00.000Z",
+          }),
+        ],
+        [
+          makeSet({ session_id: "first", exercise_id: "squat", weight_logged: 100, reps: "5" }),
+          makeSet({ session_id: "mid", exercise_id: "squat", weight_logged: 102, reps: "5" }),
+          makeSet({ session_id: "last", exercise_id: "squat", weight_logged: 102, reps: "5" }),
+        ],
+      ),
+      WEEK,
+    )
+
+    expect(rows[0]?.evolution).toEqual({ kind: "weight", kg: 2 })
+  })
+
+  it("omits a flat or incomparable first-to-last charge", () => {
     const rows = regularsFromSnapshot(
       snapshot(
         [

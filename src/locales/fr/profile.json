@@ -143,6 +143,8 @@
       "attention": "À surveiller",
       "imbalanced": "Déséquilibré"
     },
+    "current": "Actuel",
+    "prior": "Avant",
     "rankLegend": "Séries · 1 / 0.5",
     "empty": "Pas assez de séances pour un score.",
     "hint": "Est-ce que tu travailles tes muscles de façon équilibrée. On compte les séries, pas les kilos. Il faut 3 séances. Le poids soulevé est dans Tonnage.",
@@ -167,7 +169,7 @@
     "subtitle": "Les plus loggés · {{window}}",
     "unranked": "—",
     "empty": "Pas assez de logs sur cette période.",
-    "hint": "Tes mouvements les plus faits sur cette période."
+    "hint": "Tes mouvements les plus faits sur cette période. Le delta, c’est dernière séance moins première, dans la fenêtre."
   },
   "circuits": {
     "title": "Circuits",

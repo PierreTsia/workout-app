@@ -25,7 +25,7 @@ export function AmrapScore({
   return (
     <div
       className={cn(
-        "flex flex-col gap-0.5",
+        "flex min-w-0 w-full flex-col gap-0.5",
         edge === "end" && "items-end",
         edge === "start" && "items-start",
         edge === "center" && "items-center gap-1",
@@ -42,7 +42,7 @@ export function AmrapScore({
       <p
         className={cn(
           "text-muted-foreground",
-          compact && "max-w-[11rem] truncate text-[10px]",
+          compact && "max-w-full truncate text-[10px]",
           compact && edge === "end" && "text-right",
           compact && edge === "start" && "text-left",
           !compact && "text-sm",
