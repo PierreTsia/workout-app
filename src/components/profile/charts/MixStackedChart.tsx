@@ -11,6 +11,7 @@ import {
   ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
+  formatProfileTooltipLabel,
   localizeProfileTick,
   PROFILE_Y_LEFT,
   PROFILE_Y_RIGHT,
@@ -36,9 +37,11 @@ export function MixStackedChart({
   categories: readonly string[]
   series: MixSeries
 }) {
-  const { t } = useTranslation("profile")
+  const { t, i18n } = useTranslation("profile")
   const data = toMixCountRows(categories, series)
   const tick = (value: string | number) => localizeProfileTick(String(value), t)
+  const caption = (value: string | number) =>
+    formatProfileTooltipLabel(String(value), t, i18n.language)
 
   return (
     <ChartContainer
@@ -76,7 +79,7 @@ export function MixStackedChart({
               active={props.active}
               payload={props.payload}
               label={
-                props.label == null ? undefined : tick(String(props.label))
+                props.label == null ? undefined : caption(String(props.label))
               }
               formatValue={(value) => String(value)}
               hideZeros
@@ -90,6 +93,7 @@ export function MixStackedChart({
             dataKey={key}
             stackId="mix"
             fill={`var(--color-${key})`}
+            activeBar={false}
           />
         ))}
       </BarChart>

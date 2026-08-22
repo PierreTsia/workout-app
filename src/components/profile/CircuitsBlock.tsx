@@ -15,6 +15,7 @@ import {
   type CircuitLedgerPulse,
   type CircuitLedgerRowVm,
 } from "@/lib/profile/circuitLedger"
+import { vsPriorDelta } from "@/lib/profile/vsPrior"
 import {
   pierreCircuits,
   pierreCircuitsPulse,
@@ -58,16 +59,6 @@ export function CircuitsBlock({ mode }: { mode: CircuitsFixtureMode }) {
             ? "empty"
             : "ok"
 
-  const vsPrior = (n: string | number, value: number) => ({
-    value,
-    label:
-      value === 0
-        ? t("pulse.deltaEven")
-        : value < 0
-          ? t("pulse.deltaDown", { n })
-          : t("pulse.delta", { n }),
-  })
-
   const runsDelta = pulseDelta(pulse.runsDelta, includeDeltas)
   const distinctDelta = pulseDelta(pulse.distinctDelta, includeDeltas)
   const pbsDelta = pulseDelta(pulse.pbsDelta, includeDeltas)
@@ -91,7 +82,7 @@ export function CircuitsBlock({ mode }: { mode: CircuitsFixtureMode }) {
             title={t("circuits.runs")}
             value={pulse.runs}
             delta={
-              runsDelta == null ? undefined : vsPrior(Math.abs(runsDelta), runsDelta)
+              runsDelta == null ? undefined : vsPriorDelta(t, runsDelta)
             }
           />
           <ProfileStatCard
@@ -101,7 +92,7 @@ export function CircuitsBlock({ mode }: { mode: CircuitsFixtureMode }) {
             delta={
               distinctDelta == null
                 ? undefined
-                : vsPrior(Math.abs(distinctDelta), distinctDelta)
+                : vsPriorDelta(t, distinctDelta)
             }
           />
           <ProfileStatCard
@@ -109,7 +100,7 @@ export function CircuitsBlock({ mode }: { mode: CircuitsFixtureMode }) {
             title={t("circuits.pbs")}
             value={pulse.pbs}
             delta={
-              pbsDelta == null ? undefined : vsPrior(Math.abs(pbsDelta), pbsDelta)
+              pbsDelta == null ? undefined : vsPriorDelta(t, pbsDelta)
             }
           />
         </ProfilePulseGrid>

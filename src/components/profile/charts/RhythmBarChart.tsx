@@ -9,6 +9,7 @@ import {
   ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
+  formatProfileTooltipLabel,
   localizeProfileTick,
   PROFILE_Y_LEFT,
   PROFILE_Y_RIGHT,
@@ -34,9 +35,11 @@ export function RhythmBarChart({
   series: readonly number[]
   target: number
 }) {
-  const { t } = useTranslation("profile")
+  const { t, i18n } = useTranslation("profile")
   const data = toRhythmRows(categories, series)
   const tick = (value: string | number) => localizeProfileTick(String(value), t)
+  const caption = (value: string | number) =>
+    formatProfileTooltipLabel(String(value), t, i18n.language)
   const yMax = Math.max(target, ...series)
   const rhythmChartConfig = {
     hits: { label: t("rhythm.bar"), color: "hsl(174 100% 39%)" },
@@ -80,13 +83,13 @@ export function RhythmBarChart({
               active={props.active}
               payload={props.payload}
               label={
-                props.label == null ? undefined : tick(String(props.label))
+                props.label == null ? undefined : caption(String(props.label))
               }
               formatValue={(value) => t("rhythm.tooltip.days", { n: value })}
             />
           )}
         />
-        <Bar dataKey="hits" fill="var(--color-hits)" />
+        <Bar dataKey="hits" fill="var(--color-hits)" activeBar={false} />
       </BarChart>
     </ChartContainer>
   )

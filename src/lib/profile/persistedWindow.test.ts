@@ -71,7 +71,15 @@ describe("resolveProfileWindow", () => {
   })
 
   it("prefers a valid stored cran", () => {
+    localStorage.setItem(PROFILE_WINDOW_STORAGE_KEY, "100")
+    expect(resolveProfileWindow(localStorage)).toBe("100")
+  })
+
+  it("migrates a stored Toujours cran off the broken view", () => {
     localStorage.setItem(PROFILE_WINDOW_STORAGE_KEY, "all")
-    expect(resolveProfileWindow(localStorage)).toBe("all")
+    expect(resolveProfileWindow(localStorage)).toBe(DEFAULT_PROFILE_WINDOW)
+    expect(localStorage.getItem(PROFILE_WINDOW_STORAGE_KEY)).toBe(
+      DEFAULT_PROFILE_WINDOW,
+    )
   })
 })

@@ -203,7 +203,7 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythmCell?.className).not.toMatch(/col-span-2/)
   })
 
-  it("exposes five window crans and hides vs-prior on All time", async () => {
+  it("exposes four window crans and hides the broken All time option", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -217,22 +217,15 @@ describe("ProfilePage T0 fixtures", () => {
       "This month",
       "This quarter",
       "This year",
-      "All time",
     ]) {
       expect(screen.getByRole("option", { name: label })).toBeInTheDocument()
     }
-    await user.click(screen.getByRole("option", { name: "All time" }))
-
-    expect(screen.queryByText("+1 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText("+3 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText("+4 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText(/Also PPL/)).not.toBeInTheDocument()
-    expect(withinBalance().getByText("67 / 100")).toBeInTheDocument()
-    expect(withinBalance().queryByText("+4 vs prior")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("option", { name: "All time" }),
+    ).not.toBeInTheDocument()
   })
 
-  it("shows signed pulse vs-prior deltas and keeps prescribed comparison neutral", async () => {
-    const user = userEvent.setup()
+  it("shows signed pulse vs-prior deltas and keeps prescribed comparison neutral", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(
@@ -253,10 +246,6 @@ describe("ProfilePage T0 fixtures", () => {
     expect(prescribed).toHaveAttribute("href", "/account")
     expect(prescribed.closest("p")?.className).not.toMatch(/emerald|destructive/)
 
-    await chooseWindow(user, "All time")
-    expect(screen.queryByText("+3 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText("+1h 20 vs prior")).not.toBeInTheDocument()
-    expect(screen.queryByText("even vs prior")).not.toBeInTheDocument()
   })
 
   it("restyles Mix/Rhythm grain when toggling This month to This week", async () => {
@@ -323,7 +312,7 @@ describe("ProfilePage T0 fixtures", () => {
     })
   })
 
-  it("switches 1y and all-time Rhythm to frequency bars with a target line", async () => {
+  it("switches 1y Rhythm to frequency bars with a target line", async () => {
     const user = userEvent.setup()
     renderWithProviders(<ProfilePage />)
 
@@ -341,19 +330,6 @@ describe("ProfilePage T0 fixtures", () => {
     expect(rhythmYear.getByText("Jan")).toBeInTheDocument()
     expect(rhythmYear.getByText("Dec")).toBeInTheDocument()
     expect(yearChart.querySelector(".recharts-reference-line")).not.toBeNull()
-
-    await chooseWindow(user, "All time")
-    const rhythmAll = withinRhythm()
-    expect(rhythmAll.getByText("By year · target 4 d / wk")).toBeInTheDocument()
-    expect(rhythmAll.queryByRole("grid", { name: /heatmap calendar/i })).not.toBeInTheDocument()
-    const allChart = await rhythmAll.findByRole("img", { name: "Rhythm" })
-    await waitFor(() => {
-      expect(
-        allChart.querySelectorAll(".recharts-xAxis .recharts-cartesian-axis-tick"),
-      ).toHaveLength(3)
-    })
-    expect(rhythmAll.getByText("2024")).toBeInTheDocument()
-    expect(allChart.querySelector(".recharts-reference-line")).not.toBeNull()
   })
 
   it("hides the Rhythm chart on the empty fixture", () => {

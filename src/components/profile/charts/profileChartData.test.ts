@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { MIX_7_CATEGORIES, MIX_7_SERIES, RADAR_CURRENT } from "./fixtures"
 import {
+  formatProfileTooltipLabel,
   localizeProfileTick,
   profileTickInterval,
   scaleRadarCredits,
@@ -21,15 +22,31 @@ describe("localizeProfileTick", () => {
     if (key === "rhythm.weekCurrent") return "S"
     if (key === "rhythm.weekAgo") return `S-${options?.n}`
     if (key === "rhythm.week") return `S${options?.n}`
+    if (key === "rhythm.weekday.mon") return "Lun"
+    if (key === "rhythm.month.aug") return "août"
+    if (key === "rhythm.tooltip.weekCaption") {
+      return `${options?.week} · ${options?.span}`
+    }
+    if (key === "rhythm.tooltip.dayCaption") {
+      return `${options?.weekday} ${options?.date}`
+    }
     return key
   }
 
-  it("maps English week marks to French S-labels", () => {
+  it("maps English week marks and grain keys to French S-labels", () => {
     expect(localizeProfileTick("W", fr)).toBe("S")
     expect(localizeProfileTick("W-14", fr)).toBe("S-14")
     expect(localizeProfileTick("W3", fr)).toBe("S3")
     expect(localizeProfileTick("2026-W34", fr)).toBe("S34")
-    expect(localizeProfileTick("Mon", fr)).toBe("Mon")
+    expect(localizeProfileTick("Mon", fr)).toBe("Lun")
+    expect(localizeProfileTick("2026-08-17", fr)).toBe("Lun")
+    expect(localizeProfileTick("2026-08", fr)).toBe("août")
+  })
+
+  it("adds the calendar span on a week tooltip", () => {
+    expect(formatProfileTooltipLabel("2026-W34", fr, "fr")).toBe(
+      "S34 · 17–23 août",
+    )
   })
 })
 

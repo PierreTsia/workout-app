@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
-  PROFILE_WINDOW_KINDS,
+  PROFILE_WINDOW_SELECT_KINDS,
   isProfileWindowKind,
   type ProfileWindowKind,
 } from "@/lib/profile/window"
@@ -59,7 +59,7 @@ function WindowSelect() {
         </ProfileHint>
       </div>
       <SelectContent>
-        {PROFILE_WINDOW_KINDS.map((windowKind) => (
+        {PROFILE_WINDOW_SELECT_KINDS.map((windowKind) => (
           <SelectItem key={windowKind} value={windowKind}>
             {t(`window.${windowKind}`)}
           </SelectItem>

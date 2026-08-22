@@ -2,27 +2,29 @@ import { describe, expect, it, vi } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import { ProfileHint } from "./ProfileHint"
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
 describe("ProfileHint", () => {
-  it("shows the pedagogical copy on hover", async () => {
+  it("keeps the pedagogical copy open after a click (tap)", async () => {
     const user = userEvent.setup()
     renderWithProviders(
-      <TooltipProvider>
-        <ProfileHint label="About Mix">
-          Same-day types stack; the tallest slice won the day.
-        </ProfileHint>
-      </TooltipProvider>,
+      <ProfileHint label="About Mix">
+        Same-day types stack; the tallest slice won the day.
+      </ProfileHint>,
     )
 
-    await user.hover(screen.getByRole("button", { name: "About Mix" }))
+    await user.click(screen.getByRole("button", { name: "About Mix" }))
     expect(
       await screen.findByText(
         "Same-day types stack; the tallest slice won the day.",
       ),
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Same-day types stack; the tallest slice won the day.",
+      ),
+    ).toBeVisible()
   })
 })

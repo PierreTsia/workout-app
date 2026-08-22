@@ -1,11 +1,13 @@
-import { getISOWeek, getISOWeekYear } from "date-fns"
 import {
-  addIsoDays,
-  isoDayDiff,
+  grainForKind,
+  grainKey as profileGrainKey,
+  profileBuckets,
+} from "@/lib/profile/grain"
+import {
   isoDayInTimeZone,
   priorWindowRange,
 } from "@/lib/profile/windowRange"
-import { MIX_CATEGORIES, pierreRhythmPresence, type ProfileWindowKind } from "./window"
+import { pierreRhythmPresence, type ProfileWindowKind } from "./window"
 import type { ProfileSnapshot, SessionFact, SetFact } from "./types"
 
 export type TonnageVm =
@@ -65,39 +67,9 @@ function tonnesInRange(
   return kg / 1000
 }
 
-function enumerateIsoDays(from: string, to: string): string[] {
-  const count = isoDayDiff(from, to) + 1
-  return Array.from({ length: count }, (_, i) => addIsoDays(from, i))
-}
-
-function dateFromIsoDay(isoDay: string): Date {
-  const [year, month, day] = isoDay.split("-").map(Number)
-  return new Date(year, month - 1, day)
-}
-
-function grainKey(isoDay: string, kind: ProfileWindowKind): string {
-  if (kind === "7") return isoDay
-  if (kind === "365") return isoDay.slice(0, 7)
+function slotKey(isoDay: string, kind: ProfileWindowKind): string {
   if (kind === "all") return isoDay.slice(0, 4)
-  const date = dateFromIsoDay(isoDay)
-  return `${getISOWeekYear(date)}-W${String(getISOWeek(date)).padStart(2, "0")}`
-}
-
-function grainLabel(key: string, kind: ProfileWindowKind, index: number): string {
-  const fallback = MIX_CATEGORIES[kind][index]
-  if (kind === "7") {
-    const weekday = dateFromIsoDay(key).getDay()
-    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][weekday] ?? fallback ?? key
-  }
-  if (kind === "365") {
-    const month = Number(key.slice(5, 7))
-    return MIX_CATEGORIES["365"][month - 1] ?? fallback ?? key
-  }
-  return fallback ?? `W${index + 1}`
-}
-
-function grainSlots(kind: ProfileWindowKind, from: string, to: string): string[] {
-  return [...new Set(enumerateIsoDays(from, to).map((day) => grainKey(day, kind)))]
+  return profileGrainKey(isoDay, grainForKind(kind))
 }
 
 function tonnesBySessionDay(
@@ -125,15 +97,24 @@ function tonnageBars(
   to: string,
   timeZone: string,
 ): { categories: string[]; bars: number[] } {
-  const slots = grainSlots(kind, from, to)
+  const slots =
+    kind === "all"
+      ? [
+          ...new Set(
+            sessions.map((session) =>
+              slotKey(localFinishedDay(session, timeZone), kind),
+            ),
+          ),
+        ].sort()
+      : profileBuckets(kind, from, to).map((bucket) => bucket.key)
   const byDay = tonnesBySessionDay(snapshot, sessions, timeZone)
   const tonnesBySlot = [...byDay.entries()].reduce((bySlot, [day, tonnes]) => {
-    const key = grainKey(day, kind)
+    const key = slotKey(day, kind)
     bySlot.set(key, (bySlot.get(key) ?? 0) + tonnes)
     return bySlot
   }, new Map<string, number>())
   return {
-    categories: slots.map((key, i) => grainLabel(key, kind, i)),
+    categories: slots,
     bars: slots.map((key) => tonnesBySlot.get(key) ?? 0),
   }
 }

@@ -3,7 +3,7 @@
   "back": "Retour",
   "windowToggle": "Fenêtre",
   "about": "À propos — {{section}}",
-  "windowHint": "Tout le profil suit cette période. Sur Toujours, pas de comparaison avec avant.",
+  "windowHint": "Tout le profil suit cette période.",
   "window": {
     "7": "Cette semaine",
     "30": "Ce mois-ci",
@@ -77,6 +77,8 @@
     "empty": "Aucune séance dans cette fenêtre.",
     "hint": "Combien de jours tu t’es entraîné. La ligne pointillée = 4 jours par semaine.",
     "tooltip": {
+      "weekCaption": "{{week}} · {{span}}",
+      "dayCaption": "{{weekday}} {{date}}",
       "days": "{{n}} j",
       "empty": "Pas d’entraînement ici.",
       "short": "{{n}} jours. Objectif : {{target}} / semaine.",

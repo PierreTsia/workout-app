@@ -2,6 +2,9 @@ import type { BadgeStatusRow } from "@/types/achievements"
 
 export const PROFILE_WINDOW_KINDS = ["7", "30", "100", "365", "all"] as const
 
+/** Selectable crans. `"all"` stays on the type until we fix or delete Toujours. */
+export const PROFILE_WINDOW_SELECT_KINDS = ["7", "30", "100", "365"] as const
+
 export type ProfileWindowKind = (typeof PROFILE_WINDOW_KINDS)[number]
 
 export function isProfileWindowKind(value: string): value is ProfileWindowKind {

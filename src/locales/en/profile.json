@@ -3,7 +3,7 @@
   "back": "Back",
   "windowToggle": "Window",
   "about": "About {{section}}",
-  "windowHint": "The whole profile uses this period. All time has no “vs prior”.",
+  "windowHint": "The whole profile uses this period.",
   "window": {
     "7": "This week",
     "30": "This month",
@@ -77,6 +77,8 @@
     "empty": "No sessions in this window.",
     "hint": "How many days you trained. Dashed line = 4 days a week.",
     "tooltip": {
+      "weekCaption": "{{week}} · {{span}}",
+      "dayCaption": "{{weekday}} {{date}}",
       "days": "{{n}} d",
       "empty": "No training here.",
       "short": "{{n}} days. Target: {{target}} / week.",

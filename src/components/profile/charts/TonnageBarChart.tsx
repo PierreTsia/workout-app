@@ -10,6 +10,7 @@ import {
   ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
+  formatProfileTooltipLabel,
   localizeProfileTick,
   PROFILE_Y_LEFT,
   PROFILE_Y_RIGHT,
@@ -40,6 +41,8 @@ export function TonnageBarChart({
   const { t, i18n } = useTranslation("profile")
   const data = toTonnageRows(categories, series)
   const tick = (value: string | number) => localizeProfileTick(String(value), t)
+  const caption = (value: string | number) =>
+    formatProfileTooltipLabel(String(value), t, i18n.language)
 
   return (
     <ChartContainer
@@ -79,7 +82,7 @@ export function TonnageBarChart({
               active={props.active}
               payload={props.payload}
               label={
-                props.label == null ? undefined : tick(String(props.label))
+                props.label == null ? undefined : caption(String(props.label))
               }
               formatValue={(value) =>
                 `${formatNumber(value, i18n.language, {
@@ -89,7 +92,7 @@ export function TonnageBarChart({
             />
           )}
         />
-        <Bar dataKey="tonnage" fill="var(--color-tonnage)" />
+        <Bar dataKey="tonnage" fill="var(--color-tonnage)" activeBar={false} />
       </BarChart>
     </ChartContainer>
   )
