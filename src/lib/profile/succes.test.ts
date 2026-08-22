@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { buildSuccesVm, succesListPreview } from "./succes"
+import {
+  buildSuccesVm,
+  formatBadgePerformance,
+  PERFORMANCE_MAX_CHARS,
+  succesListPreview,
+} from "./succes"
 import type { AchievementRank, BadgeStatusRow } from "@/types/achievements"
 
 function makeBadge(
@@ -238,5 +243,56 @@ describe("buildSuccesVm", () => {
     const preview = succesListPreview(recent)
     expect(preview.shown.map((badge) => badge.title_en)).toEqual(["A", "B", "C"])
     expect(preview.more).toBe(2)
+  })
+})
+
+describe("formatBadgePerformance", () => {
+  it.each([
+    { slug: "volume_king", n: 0, locale: "en", expected: "0 kg" },
+    { slug: "volume_king", n: 13, locale: "en", expected: "13 kg" },
+    { slug: "volume_king", n: 100, locale: "fr", expected: "100 kg" },
+    { slug: "volume_king", n: 1_000, locale: "en", expected: "1 t" },
+    { slug: "volume_king", n: 1_000, locale: "fr", expected: "1 t" },
+    { slug: "volume_king", n: 1_000_000, locale: "en", expected: "1 kt" },
+    { slug: "volume_king", n: 1_000_000, locale: "fr", expected: "1 kt" },
+    { slug: "volume_king", n: 12_500_000, locale: "en", expected: "12.5 kt" },
+    { slug: "volume_king", n: 12_500_000, locale: "fr", expected: "12,5 kt" },
+    { slug: "circuit_runner", n: 0, locale: "en", expected: "0" },
+    { slug: "circuit_runner", n: 15, locale: "en", expected: "15" },
+    { slug: "consistency_streak", n: 13, locale: "en", expected: "13" },
+    { slug: "consistency_streak", n: 12_500, locale: "en", expected: "12.5K" },
+  ] as const)(
+    "compacts $slug $n ($locale) to $expected",
+    ({ slug, n, locale, expected }) => {
+      const label = formatBadgePerformance(
+        makeBadge({
+          tier_id: `${slug}-${n}-${locale}`,
+          title_en: "Feat",
+          group_slug: slug,
+          threshold_value: n,
+        }),
+        locale,
+      )
+      expect(label).toBe(expected)
+      expect(label).not.toMatch(/1[ \u00A0\u202F]?000[ \u00A0\u202F]?000/)
+      expect(label?.length).toBeLessThanOrEqual(PERFORMANCE_MAX_CHARS)
+    },
+  )
+
+  it("still shows the threshold for a locked row, not current_value", () => {
+    expect(
+      formatBadgePerformance(
+        makeBadge({
+          tier_id: "locked",
+          title_en: "Locked Silver",
+          group_slug: "push_ups",
+          threshold_value: 500,
+          current_value: 120,
+          is_unlocked: false,
+          granted_at: null,
+        }),
+        "en",
+      ),
+    ).toBe("500")
   })
 })

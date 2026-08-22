@@ -49,6 +49,7 @@ export type CircuitLedgerRowVm =
       runCount: number
       best: CircuitAmrapBest
       sparkValues: readonly number[]
+      sparkDays?: readonly string[]
     }
   | {
       mode: "rounds"
@@ -59,6 +60,7 @@ export type CircuitLedgerRowVm =
       runCount: number
       best: CircuitToursBest
       sparkValues: readonly number[]
+      sparkDays?: readonly string[]
     }
 
 export type CircuitLedgerPulse = {
@@ -216,10 +218,19 @@ function bestAmrapInWindow(runs: readonly ScoredAmrap[]): AmrapScoreValue | null
   )
 }
 
-function lastEightSpark(runs: readonly ScoredRun[]): readonly number[] {
-  const chronological = [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt))
-  const last = chronological.slice(-SPARK_LIMIT)
-  return last.map((run) => (run.mode === "amrap" ? run.score.fullRounds : run.seconds))
+function lastEightSpark(runs: readonly ScoredRun[]): {
+  values: readonly number[]
+  days: readonly string[]
+} {
+  const last = [...runs]
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .slice(-SPARK_LIMIT)
+  return {
+    values: last.map((run) =>
+      run.mode === "amrap" ? run.score.fullRounds : run.seconds,
+    ),
+    days: last.map((run) => run.day),
+  }
 }
 
 function emptyPulse(includePrior: boolean): CircuitLedgerPulse {
@@ -254,7 +265,7 @@ function rowFromGroup(
   const pbSession = careerBestSession(group)
   const pb =
     pbSession != null && windowRuns.some((run) => run.sessionId === pbSession)
-  const sparkValues = lastEightSpark(windowRuns)
+  const spark = lastEightSpark(windowRuns)
   if (sample.mode === "amrap") {
     const amraps = windowRuns.filter(
       (run): run is ScoredAmrap => run.mode === "amrap",
@@ -269,7 +280,8 @@ function rowFromGroup(
       pb,
       runCount: windowRuns.length,
       best,
-      sparkValues,
+      sparkValues: spark.values,
+      sparkDays: spark.days,
     }
   }
   const tours = windowRuns.filter(
@@ -286,7 +298,8 @@ function rowFromGroup(
     pb,
     runCount: windowRuns.length,
     best: { seconds: best.seconds },
-    sparkValues,
+    sparkValues: spark.values,
+    sparkDays: spark.days,
   }
 }
 

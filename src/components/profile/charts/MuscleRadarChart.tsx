@@ -8,14 +8,13 @@ import {
 import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { readRadarRow } from "./chartLessons"
 import {
-  PROFILE_CHART_TOOLTIP_PROPS,
   ProfileChartTooltip,
+  ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
   PIERRE_SET_CREDIT_SCALE,
@@ -72,8 +71,7 @@ export function MuscleRadarChart({ series }: { series: MuscleRadarSeries }) {
             }
           />
           <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
-          <ChartTooltip
-            {...PROFILE_CHART_TOOLTIP_PROPS}
+          <ProfileChartTooltipLayer
             content={(props) => {
               const display = displayRadarRow(
                 props.payload?.[0]?.payload,

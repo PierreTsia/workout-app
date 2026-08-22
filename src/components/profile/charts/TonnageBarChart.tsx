@@ -2,13 +2,12 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
 import { formatNumber } from "@/lib/formatters"
 import {
-  PROFILE_CHART_TOOLTIP_PROPS,
   ProfileChartTooltip,
+  ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
   localizeProfileTick,
@@ -74,8 +73,7 @@ export function TonnageBarChart({
           axisLine={false}
           tickLine={false}
         />
-        <ChartTooltip
-          {...PROFILE_CHART_TOOLTIP_PROPS}
+        <ProfileChartTooltipLayer
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}

@@ -78,7 +78,12 @@ export function CircuitLedgerRow({ row }: { row: CircuitLedgerRowVm }) {
       </div>
       <CircuitRunCount n={row.runCount} />
       <CircuitBestScore row={row} />
-      <CircuitScoreSparkline name={row.name} values={row.sparkValues} />
+      <CircuitScoreSparkline
+        name={row.name}
+        values={row.sparkValues}
+        mode={row.mode}
+        days={row.sparkDays}
+      />
     </li>
   )
 }

@@ -2,12 +2,11 @@ import { Bar, BarChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recha
 import { useTranslation } from "react-i18next"
 import {
   ChartContainer,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
 import {
-  PROFILE_CHART_TOOLTIP_PROPS,
   ProfileChartTooltip,
+  ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
   localizeProfileTick,
@@ -75,8 +74,7 @@ export function RhythmBarChart({
           tickLine={false}
         />
         <ReferenceLine y={target} stroke="hsl(174 100% 39% / 0.55)" strokeDasharray="4 4" />
-        <ChartTooltip
-          {...PROFILE_CHART_TOOLTIP_PROPS}
+        <ProfileChartTooltipLayer
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}

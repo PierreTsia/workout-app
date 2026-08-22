@@ -7,14 +7,14 @@ const sizeClasses = {
   sm: "h-10 w-10",
   md: "h-16 w-16",
   lg: "h-28 w-28",
-  xl: "h-36 w-36",
+  xl: "h-20 w-20 sm:h-36 sm:w-36",
 } as const
 
 const placeholderSize = {
   sm: "text-base",
   md: "text-2xl",
   lg: "text-4xl",
-  xl: "text-5xl",
+  xl: "text-3xl sm:text-5xl",
 } as const
 
 interface BadgeIconProps {
@@ -54,7 +54,7 @@ export function BadgeIcon({
         "badge-frame",
         `badge-frame-${rank}`,
         sizeClasses[size],
-        "relative overflow-hidden",
+        "relative min-h-0 min-w-0 shrink-0 overflow-hidden",
         locked && "grayscale opacity-40",
         className,
       )}
@@ -72,7 +72,7 @@ export function BadgeIcon({
             onLoad={handleLoad}
             onError={handleError}
             className={cn(
-              "h-full w-full object-cover transition-opacity duration-300",
+              "h-full w-full min-h-0 min-w-0 max-h-full max-w-full object-cover transition-opacity duration-300",
               loaded ? "opacity-100" : "opacity-0",
             )}
           />

@@ -1,5 +1,10 @@
 import type { CSSProperties, ReactNode } from "react"
-import { useChart } from "@/components/ui/chart"
+import {
+  useActiveTooltipCoordinate,
+  usePlotArea,
+  type TooltipProps,
+} from "recharts"
+import { ChartTooltip, useChart } from "@/components/ui/chart"
 
 function tooltipFields(item: unknown) {
   if (item == null || typeof item !== "object") return undefined
@@ -21,14 +26,77 @@ const CLEAR_BOX: CSSProperties = {
   padding: 0,
 }
 
-/** Strip Recharts' default white frame — it wraps the whole plot on tap. */
+export type TooltipFlipPoint = {
+  readonly x: number
+  readonly y: number
+}
+
+export type TooltipFlipBox = {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * Prefer the opposite side of the cursor when the active point is in the far
+ * half of the plot. Recharts then places the box at `coordinate − size − offset`.
+ */
+export function profileTooltipReverseDirection(
+  coordinate: TooltipFlipPoint | undefined,
+  plot: TooltipFlipBox | undefined,
+): { x: boolean; y: boolean } {
+  if (
+    coordinate == null ||
+    plot == null ||
+    plot.width <= 0 ||
+    plot.height <= 0
+  ) {
+    return { x: false, y: false }
+  }
+  return {
+    x: coordinate.x >= plot.x + plot.width / 2,
+    y: coordinate.y >= plot.y + plot.height / 2,
+  }
+}
+
+/**
+ * Stay inside the plot so Recharts can flip when the preferred side still
+ * overflows. `allowEscapeViewBox: true` is what clipped the last Mix bar.
+ */
 export const PROFILE_CHART_TOOLTIP_PROPS = {
   cursor: false,
-  allowEscapeViewBox: { x: true, y: true },
+  allowEscapeViewBox: { x: false, y: false },
   offset: 8,
   contentStyle: CLEAR_BOX,
   wrapperStyle: { ...CLEAR_BOX, pointerEvents: "none" },
 } as const
+
+/** Shared Tooltip: half-plot flip + in-plot clamp. Use on every profile chart. */
+export function ProfileChartTooltipLayer({
+  content,
+  allowEscapeViewBox,
+  reverseDirection,
+}: {
+  content: TooltipProps["content"]
+  allowEscapeViewBox?: TooltipProps["allowEscapeViewBox"]
+  reverseDirection?: { x: boolean; y: boolean }
+}) {
+  const coordinate = useActiveTooltipCoordinate()
+  const plot = usePlotArea()
+  return (
+    <ChartTooltip
+      {...PROFILE_CHART_TOOLTIP_PROPS}
+      allowEscapeViewBox={
+        allowEscapeViewBox ?? PROFILE_CHART_TOOLTIP_PROPS.allowEscapeViewBox
+      }
+      reverseDirection={
+        reverseDirection ?? profileTooltipReverseDirection(coordinate, plot)
+      }
+      content={content}
+    />
+  )
+}
 
 export function ProfileChartTooltip({
   active,

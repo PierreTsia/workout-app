@@ -1,3 +1,4 @@
+import { formatCompactNumber, formatNumber } from "@/lib/formatters"
 import { isoDayInTimeZone } from "@/lib/profile/windowRange"
 import type { AchievementRank, BadgeStatusRow } from "@/types/achievements"
 
@@ -42,6 +43,48 @@ export type SuccesListKind = (typeof SUCCES_LIST_KINDS)[number]
 
 export function isSuccesListKind(value: string): value is SuccesListKind {
   return SUCCES_LIST_KINDS.some((kind) => kind === value)
+}
+
+const KG_PER_TONNE = 1_000
+const KG_PER_KILOTONNE = 1_000_000
+
+function formatScaled(value: number, locale: string): string {
+  return formatNumber(value, locale, { maximumFractionDigits: 1 })
+}
+
+/**
+ * Volume thresholds live in kg on the snapshot (`total_volume_kg`).
+ * Compact to metric tonnes — a mass, not a display-unit conversion — so a
+ * 320px row never paints `1 000 000 kg`. lb users still see `t`/`kt`;
+ * converting first would make bronze (1000 kg → ~2 205 lbs) *longer*.
+ */
+function formatVolumeKg(kg: number, locale: string): string {
+  if (kg >= KG_PER_KILOTONNE) {
+    return `${formatScaled(kg / KG_PER_KILOTONNE, locale)} kt`
+  }
+  if (kg >= KG_PER_TONNE) {
+    return `${formatScaled(kg / KG_PER_TONNE, locale)} t`
+  }
+  return `${formatNumber(kg, locale)} kg`
+}
+
+/** Longest compact label `formatBadgePerformance` may paint (e.g. `12,5 kt`). */
+export const PERFORMANCE_MAX_CHARS = 10
+
+/**
+ * The feat attached to a badge is the tier threshold (kg, reps, runs, …).
+ * Locked rows — if shown — use the same number as the unlock target.
+ * Volume is stored in kg; other tracks are counts (compact at 10k+).
+ */
+export function formatBadgePerformance(
+  badge: Pick<BadgeStatusRow, "group_slug" | "threshold_value">,
+  locale: string,
+): string | null {
+  const n = Math.floor(badge.threshold_value)
+  if (!Number.isFinite(n)) return null
+  return badge.group_slug === "volume_king"
+    ? formatVolumeKg(n, locale)
+    : formatCompactNumber(n, locale)
 }
 
 export type SuccesWindow = {

@@ -14,6 +14,9 @@
   "hero": {
     "activeProgram": "Actif · {{program}}",
     "hop": "Aussi {{other}} cette semaine",
+    "openProgram": "Ouvrir le programme",
+    "moreExercises": "+{{n}} de plus",
+    "previewEmpty": "Aucun exercice dans ce programme.",
     "activeSince": "Actif depuis {{span}}",
     "tenureDays_one": "{{count}} jour",
     "tenureDays_other": "{{count}} jours",
@@ -22,7 +25,9 @@
     "tenureYears_one": "{{count}} an",
     "tenureYears_other": "{{count}} ans",
     "tenureYearsHalf_one": "{{count}} an et demi",
-    "tenureYearsHalf_other": "{{count}} ans et demi"
+    "tenureYearsHalf_other": "{{count}} ans et demi",
+    "changeFeaturedBadge": "Changer le badge affiché",
+    "featuredBadgeList": "Badges débloqués"
   },
   "achievements": {
     "hint": "Le dernier badge, le plus haut palier, et ceux gagnés sur la période. La liste complète est dans Succès.",
@@ -169,7 +174,12 @@
     "subtitle": "Les plus loggés · {{window}}",
     "unranked": "—",
     "empty": "Pas assez de logs sur cette période.",
-    "hint": "Tes mouvements les plus faits sur cette période. Le delta, c’est dernière séance moins première, dans la fenêtre."
+    "hint": "Tes mouvements les plus faits sur cette période. Le delta, c’est dernière séance moins première, dans la fenêtre.",
+    "evolution": {
+      "weight": "{{signed}} par rapport à la première séance de la fenêtre",
+      "reps_one": "{{signed}} répétition par rapport à la première séance de la fenêtre",
+      "reps_other": "{{signed}} répétitions par rapport à la première séance de la fenêtre"
+    }
   },
   "circuits": {
     "title": "Circuits",
@@ -177,8 +187,13 @@
     "distinct": "Circuits distincts",
     "pbs": "PBs",
     "pb": "PB",
+    "score": "Score",
     "empty": "Aucun circuit dans cette fenêtre.",
-    "hint": "Tes épreuves nommées. Le score est le meilleur run de la période — AMRAP en tours, Tours en temps. Un PB, c’est un record."
+    "hint": "Tes épreuves nommées. Le score est le meilleur run de la période — AMRAP en tours, Tours en temps. Un PB, c’est un record.",
+    "tooltip": {
+      "amrap_one": "{{count}} tour",
+      "amrap_other": "{{count}} tours"
+    }
   },
   "error": "Impossible de charger ce bloc."
 }

@@ -4,12 +4,11 @@ import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
-  ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart"
 import {
-  PROFILE_CHART_TOOLTIP_PROPS,
   ProfileChartTooltip,
+  ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
 import {
   localizeProfileTick,
@@ -72,8 +71,7 @@ export function RecordsComboChart({
           width={PROFILE_Y_RIGHT}
           tickFormatter={(value) => `${value}%`}
         />
-        <ChartTooltip
-          {...PROFILE_CHART_TOOLTIP_PROPS}
+        <ProfileChartTooltipLayer
           content={(props) => (
             <ProfileChartTooltip
               active={props.active}

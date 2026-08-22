@@ -392,13 +392,21 @@ describe("ProfilePage T0 fixtures", () => {
     renderWithProviders(<ProfilePage />)
 
     expect(screen.getAllByText(/Unlocked on/)).toHaveLength(2)
-    expect(document.querySelectorAll(".badge-frame.h-36")).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.h-20")).toHaveLength(2)
+    expect(document.querySelectorAll(".badge-frame.sm\\:h-36")).toHaveLength(2)
     expect(document.querySelectorAll(".badge-frame.h-10")).toHaveLength(3)
+    expect(screen.getByText("No Break").className).toMatch(/min-w-0/)
+    expect(screen.getByText("No Break").className).toMatch(/line-clamp-2/)
     const recent = screen.getByRole("list", { name: "Recent" })
     expect(recent?.textContent).toMatch(/Aug 10/)
     expect(recent?.textContent).toContain("Best Cindy score in rounds")
     expect(recent?.textContent).toContain("GymLogic circuit runs (1+ round)")
     expect(recent?.textContent).toContain("Cumulative Pompes-family reps")
+    const listRow = screen.getByRole("button", { name: "Baby Spidey" })
+    expect(listRow.className).toMatch(/minmax\(0,1fr\)/)
+    expect(listRow.className).toMatch(/min-w-0/)
+    expect(screen.getByText("Baby Spidey").className).toMatch(/min-w-0/)
+    expect(screen.getByText("Baby Spidey").className).toMatch(/truncate/)
   })
 
   it("opens the achievement detail drawer when a Succès medal is clicked", async () => {
@@ -507,9 +515,9 @@ describe("ProfilePage T0 fixtures", () => {
     expect(within(circuits.getAllByRole("listitem")[0]).getByText("12")).toBeInTheDocument()
     expect(within(circuits.getAllByRole("listitem")[0]).getByText("PB")).toBeInTheDocument()
     expect(circuits.queryByText("4 min")).not.toBeInTheDocument()
-    expect(await circuits.findByRole("img", { name: "Cindy score" })).toBeInTheDocument()
-    expect(circuits.getByRole("img", { name: "Athena score" })).toBeInTheDocument()
-    expect(circuits.getByRole("img", { name: "Force score" })).toBeInTheDocument()
+    expect(await circuits.findByRole("img", { name: /Cindy score/ })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: /Athena score/ })).toBeInTheDocument()
+    expect(circuits.getByRole("img", { name: /Force score/ })).toBeInTheDocument()
     expect(
       circuits
         .getAllByRole("listitem")
@@ -564,12 +572,12 @@ describe("ProfilePage T0 fixtures", () => {
     const empty = renderWithProviders(<ProfileDashboard mode="empty" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Circuit Star" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-20")).toBeNull()
     empty.unmount()
 
     renderWithProviders(<ProfileDashboard mode="loading" />)
     expect(screen.queryByRole("button", { name: "No Break" })).not.toBeInTheDocument()
-    expect(document.querySelector(".badge-frame.h-36")).toBeNull()
+    expect(document.querySelector(".badge-frame.h-20")).toBeNull()
     expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(
       0,
     )

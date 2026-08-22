@@ -4,6 +4,12 @@ import { useTranslation } from "react-i18next"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { ProfileSection } from "@/components/profile/ProfileSection"
 import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseLibrary } from "@/hooks/useExerciseLibrary"
 import { useProfileLiveQueries } from "@/hooks/useProfileSnapshot"
@@ -37,25 +43,41 @@ function RegularEvolutionMark({
   evolution: RegularEvolution
   formatWeight: (kg: number) => string
 }) {
+  const { t } = useTranslation("profile")
   const delta = evolution.kind === "weight" ? evolution.kg : evolution.n
   const Icon = evolution.kind === "weight" ? Dumbbell : TrendingUp
-  const label =
+  const signed =
     evolution.kind === "weight"
       ? `${signedPrefix(delta)}${formatWeight(Math.abs(delta))}`
       : `${signedPrefix(delta)}${Math.abs(delta)}`
+  const explanation =
+    evolution.kind === "weight"
+      ? t("regulars.evolution.weight", { signed })
+      : t("regulars.evolution.reps", { signed, count: Math.abs(delta) })
 
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 tabular-nums",
-        delta >= 0
-          ? "text-emerald-600 dark:text-emerald-400"
-          : "text-amber-600 dark:text-amber-400",
-      )}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      {label}
-    </span>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1 tabular-nums",
+              delta >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-amber-600 dark:text-amber-400",
+            )}
+            aria-label={explanation}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {signed}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64 text-xs leading-snug">
+          {explanation}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
