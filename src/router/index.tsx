@@ -25,6 +25,9 @@ const HistoryPage = lazyWithRecover(() =>
 const BuilderPage = lazyWithRecover(() =>
   import("@/pages/BuilderPage").then((m) => ({ default: m.BuilderPage })),
 )
+const ProgramPage = lazyWithRecover(() =>
+  import("@/pages/ProgramPage").then((m) => ({ default: m.ProgramPage })),
+)
 const AboutPage = lazyWithRecover(() =>
   import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })),
 )
@@ -180,6 +183,10 @@ export const router = createBrowserRouter([
               {
                 path: "/builder/:programId",
                 element: <BuilderPage />,
+              },
+              {
+                path: "/programs/:programId",
+                element: <ProgramPage />,
               },
               {
                 path: "/library",

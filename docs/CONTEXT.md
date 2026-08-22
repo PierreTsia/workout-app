@@ -133,7 +133,7 @@ The live training plan the user owns: a named set of **workout days**, each a **
 
 **Program Page**:
 First-class identity route `/programs/:id`. Shows the week as written and the program's raison d'être: **Goal Tracks**, **Program Balance**, **Program Facts**, **Program Score Rubric**. Replaces `ProgramDetailSheet` — the sheet is **removed**, not kept as a peek. Card tap on **Library Programs** goes here. A day row is read-only on this page (the week as written). **Edit** goes to the existing **Builder** (`/builder/:programId`) — no Hevy-floor chrome and no live score banner in v1. No « Commencer » here; launching a **Session** stays on Home. Activate / archive live on the card and on this page. Character sheet is *equal* — no pin, gold, or filter on `profile.goal`.
-→ `file:src/components/library/ProgramDetailSheet.tsx`
+→ `file:src/pages/ProgramPage.tsx`
 
 **Program Identity v1**:
 The first shippable slice: **Program** scoring + **Library Programs** cards + **Program Page** ([#504](https://github.com/PierreTsia/workout-app/issues/504)). Out: live-while-editing banner ([#519](https://github.com/PierreTsia/workout-app/issues/519)); **Builder** restyle / body map / insight ([#503](https://github.com/PierreTsia/workout-app/issues/503)); clone / import / export. Edit is an exit to today's Builder, not a new authoring surface.

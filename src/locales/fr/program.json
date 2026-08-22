@@ -10,7 +10,31 @@
     "ok": "Dans le viseur",
     "high": "Élevé"
   },
+  "rubric": {
+    "hypertrophy": "Dans le viseur : la plupart des muscles que tu as mis dans la semaine ont 8–20 séries et 2–3 jours.",
+    "strength": "Dans le viseur : 20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus.",
+    "endurance": "Dans le viseur : un Circuit, ou assez de séries à reps hautes et repos court.",
+    "balance": "Un nombre : à quel point cette semaine touche les muscles de façon égale. Pas tes séances d’hier."
+  },
+  "example": {
+    "hypertrophy": "{{muscle}} : {{sets}} séries · {{days}} j → {{band}}"
+  },
   "facts": {
-    "line": "{{days}} j · {{sets}} séries · {{circuits}} circuits"
-  }
+    "line": "{{days}} j · {{sets}} séries · {{circuits}} circuits",
+    "mix": {
+      "free": "Charges libres",
+      "machine": "Machines",
+      "bodyweight": "Poids du corps",
+      "other": "Autre"
+    }
+  },
+  "empty": {
+    "scores": "Ajoute un jour pour voir à quoi sert ce programme."
+  },
+  "notFound": "Ce programme n’est pas là.",
+  "notFoundBack": "Retour aux programmes",
+  "loadError": "On n’a pas pu charger ce programme.",
+  "offline": "Les scores s’affichent si la semaine est déjà sur le téléphone.",
+  "edit": "Éditer",
+  "pageTitle": "Programme"
 }

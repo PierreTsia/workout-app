@@ -12,9 +12,7 @@ import { useProgramsIntent } from "@/hooks/useProgramsIntent"
 import { useActivateProgram } from "@/hooks/useActivateProgram"
 import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
-import { ProgramDetailSheet } from "@/components/library/ProgramDetailSheet"
 import { ActivateConfirmDialog } from "@/components/library/ActivateConfirmDialog"
-import type { Program } from "@/types/onboarding"
 
 export function MyWorkoutsTab() {
   const { t } = useTranslation("library")
@@ -26,7 +24,6 @@ export function MyWorkoutsTab() {
 
   const [showArchived, setShowArchived] = useState(false)
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
-  const [detailProgram, setDetailProgram] = useState<Program | null>(null)
 
   const visiblePrograms = (programs ?? []).filter((p) => {
     if (showArchived) return true
@@ -116,7 +113,6 @@ export function MyWorkoutsTab() {
           isSessionActive={session.isActive}
           onActivate={() => setActivateTargetId(program.id)}
           onArchive={() => handleArchive(program.id, program.archived_at === null)}
-          onDetails={() => setDetailProgram(program)}
           onEdit={() => handleEdit(program.id)}
           score={scoresByProgram?.[program.id]}
           intentLoading={intentLoading}
@@ -133,13 +129,6 @@ export function MyWorkoutsTab() {
           {t("showArchived")}
         </label>
       </div>
-
-      <ProgramDetailSheet
-        program={detailProgram}
-        open={detailProgram !== null}
-        onOpenChange={(open) => { if (!open) setDetailProgram(null) }}
-        onEdit={handleEdit}
-      />
 
       <ActivateConfirmDialog
         open={activateTargetId !== null}

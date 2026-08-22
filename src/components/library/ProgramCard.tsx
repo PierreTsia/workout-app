@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +14,6 @@ interface ProgramCardProps {
   isSessionActive: boolean
   onActivate: () => void
   onArchive: () => void
-  onDetails: () => void
   onEdit: () => void
   score?: ProgramScore
   intentLoading?: boolean
@@ -25,7 +25,6 @@ export function ProgramCard({
   isSessionActive,
   onActivate,
   onArchive,
-  onDetails,
   onEdit,
   score,
   intentLoading,
@@ -37,27 +36,25 @@ export function ProgramCard({
 
   return (
     <Card className={cn(isActive && "border-primary/50", isArchived && "opacity-60")}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">{program.name}</CardTitle>
-            {isActive && <Badge>{t("active")}</Badge>}
-            {isArchived && <Badge variant="outline">{t("archived")}</Badge>}
+      <Link to={`/programs/${program.id}`} className="block">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">{program.name}</CardTitle>
+              {isActive && <Badge>{t("active")}</Badge>}
+              {isArchived && <Badge variant="outline">{t("archived")}</Badge>}
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={onDetails}
-            className="text-xs text-primary underline-offset-2 hover:underline"
-          >
-            {t("details")}
-          </button>
-        </div>
-        <ProgramScoreChips score={score} isLoading={intentLoading} />
-        <Badge variant="outline" className="w-fit text-[10px]">
-          {t("generatedOn", { date: formattedDate })}
-        </Badge>
-      </CardHeader>
-      <CardContent className="flex gap-2 pt-0">
+          <ProgramScoreChips score={score} isLoading={intentLoading} />
+          <Badge variant="outline" className="w-fit text-[10px]">
+            {t("generatedOn", { date: formattedDate })}
+          </Badge>
+        </CardHeader>
+      </Link>
+      <CardContent
+        className="flex gap-2 pt-0"
+        onClick={(event) => event.stopPropagation()}
+      >
         {!isArchived && (
           <Button size="sm" variant="outline" onClick={onEdit}>
             {t("editProgram")}

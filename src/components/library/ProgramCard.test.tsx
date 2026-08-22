@@ -1,6 +1,7 @@
 import { vi, describe, it, expect } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { Route, Routes } from "react-router-dom"
 import { renderWithProviders } from "@/test/utils"
 import { ProgramCard } from "./ProgramCard"
 import type { Program } from "@/types/onboarding"
@@ -41,7 +42,6 @@ function renderCard(overrides = {}) {
     onActivate: vi.fn(),
     onArchive: vi.fn(),
     onEdit: vi.fn(),
-    onDetails: vi.fn(),
     ...overrides,
   }
   renderWithProviders(<ProgramCard {...defaultProps} />)
@@ -106,7 +106,6 @@ describe("ProgramCard", () => {
       onActivate: vi.fn(),
       onArchive: vi.fn(),
       onEdit: vi.fn(),
-      onDetails: vi.fn(),
       score: makeScore(),
     }
     renderWithProviders(<ProgramCard {...defaultProps} />, { locale: "fr" })
@@ -152,10 +151,46 @@ describe("ProgramCard", () => {
     expect(screen.getByText("Archived")).toBeInTheDocument()
   })
 
-  it("calls onDetails when details link is clicked", async () => {
-    const props = renderCard()
-    await userEvent.setup().click(screen.getByText("Details"))
-    expect(props.onDetails).toHaveBeenCalledOnce()
+  it("navigates to the program page when the card title is clicked", async () => {
+    const defaultProps = {
+      program: BASE_PROGRAM,
+      isActive: false,
+      isSessionActive: false,
+      onActivate: vi.fn(),
+      onArchive: vi.fn(),
+      onEdit: vi.fn(),
+    }
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<ProgramCard {...defaultProps} />} />
+        <Route path="/programs/:programId" element={<div>program page</div>} />
+      </Routes>,
+    )
+
+    await userEvent.setup().click(screen.getByRole("link", { name: /Test Program/ }))
+    expect(screen.getByText("program page")).toBeInTheDocument()
+  })
+
+  it("does not navigate when Activate is clicked", async () => {
+    const onActivate = vi.fn()
+    const defaultProps = {
+      program: BASE_PROGRAM,
+      isActive: false,
+      isSessionActive: false,
+      onActivate,
+      onArchive: vi.fn(),
+      onEdit: vi.fn(),
+    }
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<ProgramCard {...defaultProps} />} />
+        <Route path="/programs/:programId" element={<div>program page</div>} />
+      </Routes>,
+    )
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Activate" }))
+    expect(onActivate).toHaveBeenCalledOnce()
+    expect(screen.queryByText("program page")).not.toBeInTheDocument()
   })
 
   it("calls onActivate when Activate button is clicked", async () => {
