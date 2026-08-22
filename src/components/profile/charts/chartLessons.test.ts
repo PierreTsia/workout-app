@@ -12,18 +12,15 @@ function t(key: string, opts?: Record<string, string | number>): string {
 }
 
 describe("chartLessons", () => {
-  it("explains Mix by the winning slice, rest when empty", () => {
+  it("lists Mix session counts, rest when empty", () => {
     expect(mixLesson({ programme: 0, quickWorkout: 0, circuits: 0 }, t)).toBe(
       "mix.tooltip.rest",
     )
-    expect(mixLesson({ programme: 20, quickWorkout: 10, circuits: 70 }, t)).toBe(
-      "mix.tooltip.circuits",
+    expect(mixLesson({ programme: 2, quickWorkout: 1, circuits: 0 }, t)).toBe(
+      'mix.tooltip.slice:{"n":2,"slice":"mix.slice.programme:{\\"count\\":2}"} · mix.tooltip.slice:{"n":1,"slice":"mix.slice.quickWorkout:{\\"count\\":1}"}',
     )
-    expect(mixLesson({ programme: 10, quickWorkout: 80, circuits: 10 }, t)).toBe(
-      "mix.tooltip.quickWorkout",
-    )
-    expect(mixLesson({ programme: 60, quickWorkout: 20, circuits: 20 }, t)).toBe(
-      "mix.tooltip.programme",
+    expect(mixLesson({ programme: 0, quickWorkout: 0, circuits: 1 }, t)).toBe(
+      'mix.tooltip.slice:{"n":1,"slice":"mix.slice.circuits:{\\"count\\":1}"}',
     )
   })
 

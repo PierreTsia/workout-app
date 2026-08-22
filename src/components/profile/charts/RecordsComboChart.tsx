@@ -9,7 +9,11 @@ import {
 } from "@/components/ui/chart"
 import { readRecordsRow, recordsLesson } from "./chartLessons"
 import { ProfileChartTooltip } from "./ProfileChartTooltip"
-import { toRecordsComboRows, type RecordsComboSeries } from "./profileChartData"
+import {
+  profileTickInterval,
+  toRecordsComboRows,
+  type RecordsComboSeries,
+} from "./profileChartData"
 
 export type { RecordsComboSeries, RecordsComboRow } from "./profileChartData"
 
@@ -42,7 +46,8 @@ export function RecordsComboChart({
           dataKey="category"
           tickLine={false}
           axisLine={false}
-          interval={0}
+          interval={profileTickInterval(categories.length)}
+          minTickGap={16}
         />
         <YAxis
           yAxisId="prs"

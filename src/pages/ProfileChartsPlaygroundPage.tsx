@@ -29,7 +29,7 @@ export function ProfileChartsPlaygroundPage() {
         <CardHeader>
           <h2 className="text-lg font-semibold tracking-tight">Mix</h2>
           <CardDescription>
-            100% stacked Programme / Quick Workout / Circuits
+            Session-count stacked Programme / Quick Workout / Circuits
           </CardDescription>
         </CardHeader>
         <CardContent>

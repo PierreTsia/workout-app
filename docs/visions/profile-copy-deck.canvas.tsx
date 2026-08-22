@@ -114,7 +114,7 @@ const SECTIONS: Section[] = [
     verdict: "keep",
     job: "D’où viennent les séances de la fenêtre — même grain que le Rythme.",
     challenge:
-      "Stacked 100 %, une séance = une part. Precedence figée : Benchmark Circuit (benchmark_circuit_id) > Quick Workout (program_id null) > Programme. Jetable Tours ne prennent jamais la part Circuits.",
+      "Stacked comptes, une séance = une part, hauteur = nombre de séances. Precedence figée : Benchmark Circuit (benchmark_circuit_id) > Quick Workout (program_id null) > Programme. Jetable Tours ne prennent jamais la part Circuits.",
     rows: [
       { slot: "H2", fr: "Mix", en: "Mix" },
       { slot: "Série A", fr: "Programme", en: "Program" },

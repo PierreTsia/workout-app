@@ -58,13 +58,14 @@ function setFact(
   exerciseId: string,
   reps: string,
   blockExerciseId: string | null = null,
+  weightLogged = 0,
 ) {
   return {
     session_id: sessionId,
     exercise_id: exerciseId,
     was_pr: false,
     rir: null,
-    weight_logged: 0,
+    weight_logged: weightLogged,
     reps,
     duration_seconds: null,
     block_exercise_id: blockExerciseId,
@@ -81,8 +82,8 @@ function liveSnapshot() {
       sessionFact("old-b", `${addIsoDays(today, -88)}T11:00:00.000Z`),
     ],
     sets: [
-      setFact("week-a", "Trap bar", "16"),
-      setFact("week-b", "Trap bar", "17"),
+      setFact("week-a", "Trap bar", "16", null, 80),
+      setFact("week-b", "Trap bar", "17", null, 82),
       setFact("old-a", "Ring row", "388"),
       setFact("old-b", "Ring row", "389"),
       setFact("old-a", "cindy-pull", "5", "station-pull"),
@@ -155,6 +156,8 @@ describe("RegularsBlock", () => {
     const items = within(card).getAllByRole("listitem")
     expect(items).toHaveLength(1)
     expect(within(items[0]).getByText("33")).toBeInTheDocument()
+    expect(within(items[0]).getByText("+2 kg")).toBeInTheDocument()
+    expect(items[0].className).toMatch(/auto_4\.5rem/)
     expect(within(card).getByText("Most logged · This week")).toBeInTheDocument()
     expect(screen.queryByText("Squat")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
@@ -176,6 +179,7 @@ describe("RegularsBlock", () => {
     expect(items).toHaveLength(3)
     expect(within(items[0]).getByText("Ring row")).toBeInTheDocument()
     expect(within(items[0]).getByText("777")).toBeInTheDocument()
+    expect(within(items[0]).getByText("+1")).toBeInTheDocument()
     expect(within(card).getByText("cindy-pull")).toBeInTheDocument()
     expect(within(card).getByText("Trap bar")).toBeInTheDocument()
     expect(within(card).getByText("Most logged · This quarter")).toBeInTheDocument()
@@ -224,6 +228,10 @@ describe("RegularsBlock", () => {
     })
     expect(screen.getByText("1,240")).toBeInTheDocument()
     expect(screen.getByText("Most logged · All time")).toBeInTheDocument()
+    expect(regularsCard().querySelector("li")?.className).toMatch(
+      /grid-cols-\[minmax\(0,1fr\)_4\.5rem\]/,
+    )
+    expect(regularsCard().querySelector("li")?.className).not.toMatch(/auto_4\.5rem/)
     expect(screen.queryByText("Walking lunge")).not.toBeInTheDocument()
     expect(screen.queryByText("Ring row")).not.toBeInTheDocument()
     expect(screen.queryByText("777")).not.toBeInTheDocument()

@@ -102,6 +102,7 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
             : "ok"
 
   const rows = liveRows ?? rankRegulars(pierreRegulars(kind))
+  const showEvolution = rows.some((row) => row.evolution != null)
 
   return (
     <ProfileSection
@@ -124,17 +125,21 @@ export function RegularsBlock({ mode }: { mode: RegularsFixtureMode }) {
             key={row.name}
             className={cn(
               "grid items-center gap-2",
-              row.evolution != null
+              showEvolution
                 ? "grid-cols-[minmax(0,1fr)_auto_4.5rem]"
                 : "grid-cols-[minmax(0,1fr)_4.5rem]",
             )}
           >
             <span className="truncate">{row.name}</span>
-            {row.evolution != null ? (
-              <RegularEvolutionMark
-                evolution={row.evolution}
-                formatWeight={formatWeight}
-              />
+            {showEvolution ? (
+              row.evolution != null ? (
+                <RegularEvolutionMark
+                  evolution={row.evolution}
+                  formatWeight={formatWeight}
+                />
+              ) : (
+                <span />
+              )
             ) : null}
             <span className="text-right tabular-nums text-muted-foreground">
               {row.reps == null

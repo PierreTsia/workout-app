@@ -105,12 +105,18 @@
   "mix": {
     "title": "Mix",
     "empty": "No sessions in this window.",
-    "hint": "Programme, Quick Workout, or Circuit — sometimes the same day. Bars stack.",
+    "hint": "Bar height is how many sessions. Color is Programme, Quick Workout, or Circuit — one session, one slice.",
+    "slice": {
+      "programme_one": "Programme",
+      "programme_other": "Programme",
+      "quickWorkout_one": "Quick Workout",
+      "quickWorkout_other": "Quick Workout",
+      "circuits_one": "Circuit",
+      "circuits_other": "Circuits"
+    },
     "tooltip": {
       "rest": "Rest day.",
-      "circuits": "Circuit that day — it comes before Programme.",
-      "quickWorkout": "Session with no programme.",
-      "programme": "Programme session."
+      "slice": "{{n}} {{slice}}"
     }
   },
   "records": {

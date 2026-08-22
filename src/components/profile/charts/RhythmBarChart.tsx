@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/chart"
 import { readRhythmHits, rhythmLesson } from "./chartLessons"
 import { ProfileChartTooltip } from "./ProfileChartTooltip"
+import { profileTickInterval } from "./profileChartData"
 
 function toRhythmRows(
   categories: readonly string[],
@@ -47,7 +48,8 @@ export function RhythmBarChart({
           dataKey="category"
           tickLine={false}
           axisLine={false}
-          interval={0}
+          interval={profileTickInterval(categories.length)}
+          minTickGap={16}
         />
         <YAxis hide domain={[0, yMax]} allowDecimals={false} />
         <ReferenceLine y={target} stroke="hsl(174 100% 39% / 0.55)" strokeDasharray="4 4" />
