@@ -12,6 +12,7 @@ import { useProgramsIntent } from "@/hooks/useProgramsIntent"
 import { useActivateProgram } from "@/hooks/useActivateProgram"
 import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
+import { listLibraryPrograms } from "@/components/library/listLibraryPrograms"
 import { ActivateConfirmDialog } from "@/components/library/ActivateConfirmDialog"
 
 export function MyWorkoutsTab() {
@@ -29,10 +30,7 @@ export function MyWorkoutsTab() {
     if (showArchived) return true
     return p.archived_at === null
   })
-  const listedPrograms = [
-    ...visiblePrograms.filter((program) => program.is_active),
-    ...visiblePrograms.filter((program) => !program.is_active),
-  ]
+  const listedPrograms = listLibraryPrograms(visiblePrograms)
   const visibleIds = listedPrograms.map((program) => program.id)
   const { data: scoresByProgram, isLoading: intentLoading } =
     useProgramsIntent(visibleIds)

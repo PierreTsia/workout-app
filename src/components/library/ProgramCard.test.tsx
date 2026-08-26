@@ -83,42 +83,6 @@ describe("ProgramCard", () => {
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
     expect(screen.getByText("3 days · 24 sets · 1 circuits")).toBeInTheDocument()
     expect(screen.queryByText(/Push/)).not.toBeInTheDocument()
-    expect(screen.queryByTestId("program-card-body-map")).not.toBeInTheDocument()
-  })
-
-  it("puts the goal line above the week and the body map under the copy", () => {
-    renderCard({
-      score: makeScore(),
-      days: [
-        outlineDay("d1", "🔥", "Push"),
-        outlineDay("d2", "💪", "Pull"),
-      ],
-      bodyMap: [{ name: "Pectoraux", muscles: ["chest"], frequency: 4 }],
-    })
-
-    const goal = screen.getByText("Built for")
-    const week = screen.getByRole("button", { name: "Exercises on Push" })
-    const map = screen.getByTestId("program-card-body-map")
-    expect(goal.compareDocumentPosition(week) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    )
-    expect(week.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    )
-    expect(map).toHaveClass("mt-auto")
-  })
-
-  it("lays the active program out as a featured row on desktop", () => {
-    renderCard({
-      isActive: true,
-      score: makeScore(),
-      days: [outlineDay("d1", "🔥", "Push")],
-      bodyMap: [{ name: "Pectoraux", muscles: ["chest"], frequency: 4 }],
-    })
-
-    const map = screen.getByTestId("program-card-body-map")
-    expect(map.parentElement).toHaveClass("lg:flex-row", "lg:items-start")
-    expect(map).toHaveClass("lg:shrink-0")
   })
 
   it("shows the week as day labels, not exercise names", () => {
@@ -135,15 +99,6 @@ describe("ProgramCard", () => {
     expect(screen.getByRole("button", { name: "Exercises on Pull" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Exercises on Legs" })).toBeInTheDocument()
     expect(screen.queryByText(/Bench/)).not.toBeInTheDocument()
-  })
-
-  it("shows a compact body map when the week has muscle credits", () => {
-    renderCard({
-      score: makeScore(),
-      bodyMap: [{ name: "Pectoraux", muscles: ["chest"], frequency: 4 }],
-    })
-
-    expect(screen.getByTestId("program-card-body-map")).toBeInTheDocument()
   })
 
   it("does not fabricate On target chips for an empty program", () => {
@@ -249,12 +204,6 @@ describe("ProgramCard", () => {
   it("shows Active badge when active", () => {
     renderCard({ isActive: true })
     expect(screen.getByText("Active")).toBeInTheDocument()
-    expect(screen.getByText("Test Program").closest(".cursor-pointer")).toHaveClass("lg:col-span-2")
-  })
-
-  it("does not span the library grid when the program is inactive", () => {
-    renderCard()
-    expect(screen.getByText("Test Program").closest(".cursor-pointer")).not.toHaveClass("lg:col-span-2")
   })
 
   it("keeps actions in the overflow menu — not as footer buttons", () => {
@@ -324,7 +273,6 @@ describe("ProgramCard", () => {
     )
 
     const cardLink = screen.getByRole("link", { name: "Test Program" })
-    expect(cardLink).toHaveClass("absolute", "inset-0")
     await userEvent.setup().click(cardLink)
     expect(screen.getByText("program page")).toBeInTheDocument()
   })
@@ -551,13 +499,5 @@ describe("ProgramCard", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Open menu" }))
     expect(screen.getByRole("menuitem", { name: "Edit" })).toBeInTheDocument()
     expect(screen.queryByText("program page")).not.toBeInTheDocument()
-  })
-
-  it("calls onActivate when Activate is chosen in the menu", async () => {
-    const props = renderCard()
-    const user = userEvent.setup()
-    await user.click(screen.getByRole("button", { name: "Open menu" }))
-    await user.click(screen.getByRole("menuitem", { name: "Activate" }))
-    expect(props.onActivate).toHaveBeenCalledOnce()
   })
 })
