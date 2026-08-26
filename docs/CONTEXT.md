@@ -160,7 +160,7 @@ Share of solo sets that are strength-shaped: `rep_range_max` (or parsed `reps`) 
 → `file:src/types/database.ts`
 
 **Program Balance**:
-A first-class score of the **Program** as written: `computeBalanceScore` on the 13-axis intended vector (zeros kept). Solo sets credit primary 1 / secondary 0.5. Each **Circuit** station adds a *presence* credit (1 / 0.5) once per block — same for **AMRAP** and **Tours**, never `rounds ×`. A Cindy-only week scores **low**, not empty and not "excellent". Same formula as **Équilibre**, different grain (intent vs executed **Sessions**). Fourth number on the **Program Page**, not a **Goal Track**. The only 0–100 on the character sheet. UI: EN **Balance** / FR **Répartition** — never **Équilibre** (that's executed volume on Profil).
+A first-class score of the **Program** as written: `computeBalanceScore` on the 13-axis intended vector (zeros kept). Solo sets credit primary 1 / secondary 0.5. Each **Circuit** station adds a *presence* credit (1 / 0.5) once per block — same for **AMRAP** and **Tours**, never `rounds ×`. A Cindy-only week scores **low**, not empty and not "excellent". Same formula as Profil **Équilibre**, different grain (intent vs executed **Sessions**). Fourth number on the **Program Page**, not a **Goal Track**, and **not** on the **Library Programs** card — a split's 31 next to the body map looked like a bug. The only 0–100 on the character sheet. UI: EN **Balance** / FR **Équilibre**. The in-app hint explains the 0–100 with the published floors (70+ balanced, 50–69 watch, under 50 concentrated). Do not lecture grain vs Profil **Équilibre**.
 → `file:src/lib/trainingBalance.ts`
 
 **Program Facts**:
@@ -172,7 +172,7 @@ The published house rules behind **Goal Tracks** and **Program Balance**. In-app
 → `file:docs/CONTEXT.md`
 
 **Program Score Copy**:
-User-facing FR/EN for **Goal Tracks**, **Program Balance**, **Program Facts**, and the **Program Score Rubric**. Density: one rule-sentence always visible on the **Program Page**; worked example on tap; **Library Programs** card = 4 compact scores + one fact line (`Nj · N séries · N circuits`) — equipment mix stays on the **Program Page**. Live Builder banner is out of **Program Identity v1**. A dedicated copy pass is in-epic (HITL) — do not ship glossary voice. Forbidden in UI: **Exercise Slot**, **Template Prescription**, **Goal Track**, `CV`, `log1p`, `MUSCLE_TAXONOMY`, `rep_range_max`, internal file paths. Speak like a coach to a beginner (muscles, séries, jours, repos), not like the schema.
+User-facing FR/EN for **Goal Tracks**, **Program Balance**, **Program Facts**, and the **Program Score Rubric**. Density: one rule-sentence always visible on the **Program Page**; worked example on tap; **Library Programs** card = dominant **Goal Track** ("Built for" / "Fait pour") + a hint that names the goal and the week-as-written reason (no band names on the card) + compact body map of the week as written + one fact line (`Nj · N séries · N circuits`) + **workout day** labels (tap a day for an exercise peek, not a nested **DayCard**) — **Program Balance** 0–100 and equipment mix stay on the **Program Page**. Live Builder banner is out of **Program Identity v1**. A dedicated copy pass is in-epic (HITL) — do not ship glossary voice. Forbidden in UI: **Exercise Slot**, **Template Prescription**, **Goal Track**, `CV`, `log1p`, `MUSCLE_TAXONOMY`, `rep_range_max`, internal file paths. Speak like a coach to a beginner (muscles, séries, jours, repos), not like the schema.
 → `file:src/locales/`
 
 **Cycle**:

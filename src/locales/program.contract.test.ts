@@ -14,7 +14,7 @@ describe("program i18n contract", () => {
       "On target means one Circuit, or enough short-rest high-rep sets.",
     )
     expect(en.rubric.balance).toBe(
-      "A number from how evenly this week hits the muscle list. Not last month’s sessions.",
+      "A score out of 100 for how much the program works all your muscle groups. 70 to 100 is balanced; 50 to 69 needs a look; under 50, a few muscles do almost all the work.",
     )
     expect(en.example.hypertrophy).toBe(
       "{{muscle}}: {{sets}} sets · {{days}} days → {{band}}",
@@ -32,6 +32,23 @@ describe("program i18n contract", () => {
     )
     expect(en.edit).toBe("Edit")
     expect(en.pageTitle).toBe("Program")
+    expect(en.focus.label).toBe("Built for")
+    expect(en.focus.help).toBe("Why this goal")
+    expect(en.focus.fit).toBe(
+      "This program looks better for {{goal}}, because {{reason}}.",
+    )
+    expect(en.focus.reason.hypertrophy).toBe(
+      "most muscles you programmed hit 8–20 sets and 2–3 days this week",
+    )
+    expect(en.focus.reason.strength).toBe(
+      "20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more",
+    )
+    expect(en.focus.reason.endurance).toBe(
+      "it has a Circuit, or enough high-rep sets with short rest",
+    )
+    expect(en.balance.help).toBe("What this score means")
+    expect(en.days.preview).toBe("Exercises on {{day}}")
+    expect(en.days.empty).toBe("Nothing on this day yet.")
 
     expect(fr.rubric.hypertrophy).toBe(
       "Dans le viseur : la plupart des muscles que tu as mis dans la semaine ont 8–20 séries et 2–3 jours.",
@@ -43,7 +60,7 @@ describe("program i18n contract", () => {
       "Dans le viseur : un Circuit, ou assez de séries à reps hautes et repos court.",
     )
     expect(fr.rubric.balance).toBe(
-      "Un nombre : à quel point cette semaine touche les muscles de façon égale. Pas tes séances d’hier.",
+      "Un score sur 100 qui évalue à quel point le programme travaille l'ensemble des groupes musculaires. De 70 à 100, c'est équilibré ; 50 à 69, à surveiller ; sous 50, quelques muscles font presque tout.",
     )
     expect(fr.example.hypertrophy).toBe(
       "{{muscle}} : {{sets}} séries · {{days}} j → {{band}}",
@@ -63,7 +80,23 @@ describe("program i18n contract", () => {
     )
     expect(fr.edit).toBe("Éditer")
     expect(fr.pageTitle).toBe("Programme")
-    expect(fr.track.balance).toBe("Répartition")
-    expect(JSON.stringify(fr)).not.toMatch(/Équilibre/)
+    expect(fr.track.balance).toBe("Équilibre")
+    expect(fr.focus.label).toBe("Fait pour")
+    expect(fr.focus.help).toBe("Pourquoi cet objectif")
+    expect(fr.focus.fit).toBe(
+      "Ce programme paraît plus fait pour {{goal}}, parce que {{reason}}.",
+    )
+    expect(fr.focus.reason.hypertrophy).toBe(
+      "la plupart des muscles de la semaine ont 8–20 séries et 2–3 jours",
+    )
+    expect(fr.focus.reason.strength).toBe(
+      "20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus",
+    )
+    expect(fr.focus.reason.endurance).toBe(
+      "tu as un Circuit, ou assez de séries à reps hautes et repos court",
+    )
+    expect(fr.balance.help).toBe("Ce que ce score veut dire")
+    expect(fr.days.preview).toBe("Exercices du jour {{day}}")
+    expect(fr.days.empty).toBe("Rien ce jour-là pour l'instant.")
   })
 })

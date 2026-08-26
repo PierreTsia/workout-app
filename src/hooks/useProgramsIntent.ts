@@ -5,13 +5,28 @@ import {
   PROGRAM_INTENT_KEY,
   PROGRAMS_INTENT_KEY,
 } from "@/lib/programScore/queryKeys"
+import {
+  bodyMapFromIntent,
+  type ProgramBodyMap,
+} from "@/lib/programScore/bodyMapFromIntent"
+import { outlineDaysFromRows } from "@/lib/programScore/dayOutline"
 import { scoreProgram } from "@/lib/programScore/scoreProgram"
 import { toIntent } from "@/lib/programScore/toIntent"
-import type { ProgramScore, SlimDayRow } from "@/lib/programScore/types"
+import type {
+  ProgramDayOutline,
+  ProgramScore,
+  SlimDayRow,
+} from "@/lib/programScore/types"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
 
-export type ProgramsIntentMap = Readonly<Record<string, ProgramScore>>
+export type ProgramIntentView = {
+  score: ProgramScore
+  bodyMap: ProgramBodyMap
+  days: readonly ProgramDayOutline[]
+}
+
+export type ProgramsIntentMap = Readonly<Record<string, ProgramIntentView>>
 
 type IntentDayRow = SlimDayRow & { program_id: string }
 
@@ -20,10 +35,11 @@ const EXERCISE_EMBED = `exercise:exercises(${SLIM_EXERCISE_SELECT})`
 export const PROGRAMS_INTENT_SELECT = [
   "id",
   "label",
+  "emoji",
   "sort_order",
   "program_id",
-  `workout_exercises(sets, rest_seconds, reps, rep_range_min, rep_range_max, muscle_snapshot, ${EXERCISE_EMBED})`,
-  `exercise_blocks(mode, cap_seconds, rounds, exercises:block_exercises(muscle_snapshot, ${EXERCISE_EMBED}))`,
+  `workout_exercises(id, name_snapshot, emoji_snapshot, sort_order, sets, rest_seconds, reps, rep_range_min, rep_range_max, muscle_snapshot, ${EXERCISE_EMBED})`,
+  `exercise_blocks(id, label, mode, cap_seconds, rounds, sort_order, exercises:block_exercises(id, position, muscle_snapshot, ${EXERCISE_EMBED}))`,
 ].join(", ")
 
 function scoreByProgram(
@@ -39,10 +55,18 @@ function scoreByProgram(
   )
 
   return Object.fromEntries(
-    programIds.map((id) => [
-      id,
-      scoreProgram(toIntent(id, daysByProgram[id] ?? [])),
-    ]),
+    programIds.map((id) => {
+      const programRows = daysByProgram[id] ?? []
+      const intent = toIntent(id, programRows)
+      return [
+        id,
+        {
+          score: scoreProgram(intent),
+          bodyMap: bodyMapFromIntent(intent),
+          days: outlineDaysFromRows(programRows),
+        },
+      ]
+    }),
   )
 }
 
@@ -66,7 +90,7 @@ export function useProgramsIntent(programIds: readonly string[]) {
 
       const scores = scoreByProgram(programIds, data ?? [])
       programIds.forEach((id) => {
-        queryClient.setQueryData([PROGRAM_INTENT_KEY, id], scores[id])
+        queryClient.setQueryData([PROGRAM_INTENT_KEY, id], scores[id]?.score)
       })
       return scores
     },

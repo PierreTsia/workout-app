@@ -118,7 +118,7 @@ export function BuilderPage() {
         onBack={handleBack}
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
         {view === "list" && (
           <DayList
             programId={programId}

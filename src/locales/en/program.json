@@ -14,7 +14,7 @@
     "hypertrophy": "On target means most muscles you programmed hit 8–20 sets and 2–3 days this week.",
     "strength": "On target means 20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more.",
     "endurance": "On target means one Circuit, or enough short-rest high-rep sets.",
-    "balance": "A number from how evenly this week hits the muscle list. Not last month’s sessions."
+    "balance": "A score out of 100 for how much the program works all your muscle groups. 70 to 100 is balanced; 50 to 69 needs a look; under 50, a few muscles do almost all the work."
   },
   "example": {
     "hypertrophy": "{{muscle}}: {{sets}} sets · {{days}} days → {{band}}"
@@ -35,6 +35,24 @@
   "notFoundBack": "Back to programs",
   "loadError": "We couldn’t load this program.",
   "offline": "Scores will show when this week is already on the phone.",
+  "focus": {
+    "label": "Built for",
+    "separator": ": ",
+    "help": "Why this goal",
+    "fit": "This program looks better for {{goal}}, because {{reason}}.",
+    "reason": {
+      "hypertrophy": "most muscles you programmed hit 8–20 sets and 2–3 days this week",
+      "strength": "20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more",
+      "endurance": "it has a Circuit, or enough high-rep sets with short rest"
+    }
+  },
+  "balance": {
+    "help": "What this score means"
+  },
+  "days": {
+    "preview": "Exercises on {{day}}",
+    "empty": "Nothing on this day yet."
+  },
   "edit": "Edit",
   "pageTitle": "Program"
 }

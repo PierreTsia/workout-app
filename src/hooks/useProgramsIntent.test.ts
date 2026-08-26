@@ -32,6 +32,7 @@ function makeDayRow(overrides: Partial<IntentDayRow> = {}): IntentDayRow {
     id: "day-1",
     program_id: "prog-1",
     label: "Push",
+    emoji: "🔥",
     sort_order: 0,
     workout_exercises: [makeSlimSolo()],
     exercise_blocks: [],
@@ -95,23 +96,41 @@ describe("useProgramsIntent", () => {
     expect(select).toHaveBeenCalledWith(
       expect.stringContaining("measurement_type"),
     )
+    expect(select).toHaveBeenCalledWith(
+      expect.stringContaining("name_snapshot"),
+    )
     expect(select.mock.calls[0]?.[0]).not.toContain("instructions")
     expect(inFilter).toHaveBeenCalledWith("program_id", ["prog-1", "prog-2"])
 
     const scored = result.current.data
-    expect(scored?.["prog-1"]?.facts.setCount).toBe(HYPERTROPHY_VOLUME_MIN)
-    expect(scored?.["prog-1"]?.facts.dayCount).toBe(1)
-    expect(scored?.["prog-1"]?.hypertrophy.band).toBe("short")
-    expect(scored?.["prog-2"]?.hypertrophy.band).toBe("empty")
-    expect(scored?.["prog-2"]?.balance).toEqual({ kind: "empty" })
+    expect(scored?.["prog-1"]?.score.facts.setCount).toBe(HYPERTROPHY_VOLUME_MIN)
+    expect(scored?.["prog-1"]?.score.facts.dayCount).toBe(1)
+    expect(scored?.["prog-1"]?.score.hypertrophy.band).toBe("short")
+    expect(scored?.["prog-1"]?.bodyMap.some((row) => row.muscles.includes("chest"))).toBe(
+      true,
+    )
+    expect(scored?.["prog-2"]?.score.hypertrophy.band).toBe("empty")
+    expect(scored?.["prog-2"]?.score.balance).toEqual({ kind: "empty" })
+    expect(scored?.["prog-1"]?.days[0]).toMatchObject({
+      id: "day-1",
+      emoji: "🔥",
+      label: "Push",
+    })
+    expect(scored?.["prog-1"]?.days[0]?.items).toHaveLength(1)
+    expect(scored?.["prog-1"]?.days[0]?.items[0]).toMatchObject({
+      kind: "solo",
+      sets: HYPERTROPHY_VOLUME_MIN,
+    })
+    expect(scored?.["prog-2"]?.bodyMap).toEqual([])
+    expect(scored?.["prog-2"]?.days).toEqual([])
 
     expect(setQueryData).toHaveBeenCalledWith(
       ["program-intent", "prog-1"],
-      scored?.["prog-1"],
+      scored?.["prog-1"]?.score,
     )
     expect(setQueryData).toHaveBeenCalledWith(
       ["program-intent", "prog-2"],
-      scored?.["prog-2"],
+      scored?.["prog-2"]?.score,
     )
   })
 })

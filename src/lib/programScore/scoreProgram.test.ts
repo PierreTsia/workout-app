@@ -423,6 +423,7 @@ function makeSlimDay(overrides: Partial<SlimDayRow> = {}): SlimDayRow {
   return {
     id: "day-1",
     label: "Push",
+    emoji: "🔥",
     sort_order: 0,
     workout_exercises: [],
     exercise_blocks: [],

@@ -160,21 +160,48 @@ export function ProgramPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
-      <div className="flex items-center gap-3 pt-1">
-        <Link
-          to="/library/programs"
-          className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={t("notFoundBack")}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">{t("pageTitle")}</p>
-          <h1 className="text-xl font-bold leading-tight">{program?.name}</h1>
+    <div className="flex flex-1 flex-col gap-6 px-4 pb-8">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3 pt-1">
+          <Link
+            to="/library/programs"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+            aria-label={t("notFoundBack")}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">{t("pageTitle")}</p>
+            <h1 className="text-xl font-bold leading-tight">{program?.name}</h1>
+          </div>
+          {isActive && <Badge>{tLibrary("active")}</Badge>}
+          {isArchived && <Badge variant="outline">{tLibrary("archived")}</Badge>}
         </div>
-        {isActive && <Badge>{tLibrary("active")}</Badge>}
-        {isArchived && <Badge variant="outline">{tLibrary("archived")}</Badge>}
+
+        <div className="flex flex-wrap gap-2">
+          {gatedId != null && !isArchived && (
+            <Button asChild>
+              <Link to={`/builder/${gatedId}`} state={{ from }}>
+                {t("edit")}
+              </Link>
+            </Button>
+          )}
+          {program != null && !isActive && !isArchived && (
+            <Button
+              variant="outline"
+              onClick={() => setActivateOpen(true)}
+              disabled={session.isActive}
+              title={session.isActive ? tLibrary("sessionActiveWarning") : undefined}
+            >
+              {tLibrary("activate")}
+            </Button>
+          )}
+          {program != null && !isActive && (
+            <Button variant="ghost" onClick={handleArchive}>
+              {isArchived ? tLibrary("unarchive") : tLibrary("archive")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {!isOnline && score == null ? (
@@ -183,8 +210,8 @@ export function ProgramPage() {
         <p className="text-sm text-muted-foreground">{t("empty.scores")}</p>
       ) : (
         <>
-          <ProgramScoreSheet score={score} />
           <ProgramFactsBlock facts={score.facts} />
+          <ProgramScoreSheet score={score} />
         </>
       )}
 
@@ -197,31 +224,6 @@ export function ProgramPage() {
             items={day.items}
           />
         ))}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {gatedId != null && !isArchived && (
-          <Button asChild size="sm" variant="outline">
-            <Link to={`/builder/${gatedId}`} state={{ from }}>
-              {t("edit")}
-            </Link>
-          </Button>
-        )}
-        {program != null && !isActive && !isArchived && (
-          <Button
-            size="sm"
-            onClick={() => setActivateOpen(true)}
-            disabled={session.isActive}
-            title={session.isActive ? tLibrary("sessionActiveWarning") : undefined}
-          >
-            {tLibrary("activate")}
-          </Button>
-        )}
-        {program != null && !isActive && (
-          <Button variant="ghost" size="sm" onClick={handleArchive}>
-            {isArchived ? tLibrary("unarchive") : tLibrary("archive")}
-          </Button>
-        )}
       </div>
 
       <ActivateConfirmDialog

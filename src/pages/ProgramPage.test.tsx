@@ -174,6 +174,8 @@ describe("ProgramPage", () => {
         "On target means most muscles you programmed hit 8–20 sets and 2–3 days this week.",
       ),
     ).toBeInTheDocument()
+    expect(screen.getByText("Balance")).toBeInTheDocument()
+    expect(screen.getByText("42")).toBeInTheDocument()
     expect(screen.getByText("3 days · 24 sets · 1 circuits")).toBeInTheDocument()
     expect(screen.getByText(/Free weights/)).toBeInTheDocument()
     expect(screen.getByText(/Bench Press/)).toBeInTheDocument()

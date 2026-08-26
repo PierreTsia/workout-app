@@ -264,6 +264,26 @@ function accumulateCircuit(
   }
 }
 
+function foldWeek(intent: ProgramIntent): WeekAcc {
+  return intent.days.reduce((week, day) => {
+    const afterSolos = day.solos.reduce(
+      (next, solo) => accumulateSolo(next, day.id, solo),
+      week,
+    )
+    return day.circuits.reduce(
+      (next, circuit) => accumulateCircuit(next, day.id, circuit),
+      afterSolos,
+    )
+  }, emptyAcc())
+}
+
+/** Same 13-axis credits as Program Balance (solos 1 / 0.5, Circuit presence once). */
+export function intentBalanceCredits(
+  intent: ProgramIntent,
+): ReadonlyMap<MuscleTaxonomy, number> {
+  return foldWeek(intent).balanceByMuscle
+}
+
 function scoreHypertrophy(
   volumeByMuscle: ReadonlyMap<MuscleTaxonomy, number>,
   daysByMuscle: ReadonlyMap<MuscleTaxonomy, ReadonlySet<string>>,
@@ -328,16 +348,7 @@ export function scoreProgram(intent: ProgramIntent): ProgramScore {
     return emptyScore(intent.days.length)
   }
 
-  const acc = intent.days.reduce((week, day) => {
-    const afterSolos = day.solos.reduce(
-      (next, solo) => accumulateSolo(next, day.id, solo),
-      week,
-    )
-    return day.circuits.reduce(
-      (next, circuit) => accumulateCircuit(next, day.id, circuit),
-      afterSolos,
-    )
-  }, emptyAcc())
+  const acc = foldWeek(intent)
 
   const balanceVector = MUSCLE_TAXONOMY.map(
     (muscle) => acc.balanceByMuscle.get(muscle) ?? 0,

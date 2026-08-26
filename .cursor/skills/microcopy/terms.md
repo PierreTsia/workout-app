@@ -37,7 +37,7 @@ Use these words. Do not invent a synonym.
 | **Round Screen** | (no chrome name required) | | Block runner |
 | **Benchmark Circuit** | named circuit / the circuit's label (Cindy, Zeus) | circuit nommé / le nom | WOD, seed |
 | **Program Facts** | speak the facts (N days, N sets, N circuits) | N jours · N séries · N circuits | Program Facts (as a heading unless CONTEXT says so) |
-| **Program Balance** | Balance | Répartition | Équilibre (that's Profil / executed), CV, log1p |
+| **Program Balance** | Balance | Équilibre | Répartition; CV, log1p. 0–100 on Program Page / Profil / History, not the Library card. Hint = floors, not a grain lecture. |
 | **Goal Track** (hypertrophy) | Muscle growth | Prise de masse | Hypertrophy (unless glossed) |
 | **Goal Track** (strength) | Strength | Force | |
 | **Goal Track** (endurance) | Endurance | Endurance | |

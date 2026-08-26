@@ -25,6 +25,7 @@ function makeDayRow(overrides: Partial<SlimDayRow> = {}): SlimDayRow {
   return {
     id: "day-1",
     label: "Push",
+    emoji: "🔥",
     sort_order: 0,
     workout_exercises: [makeSlimSolo()],
     exercise_blocks: [],

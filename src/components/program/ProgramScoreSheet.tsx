@@ -1,4 +1,8 @@
+import { ChevronDown } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { BAND_CLASS } from "@/components/program/bandStyles"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Collapsible,
   CollapsibleContent,
@@ -7,6 +11,11 @@ import {
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import type { ProgramIntentScore } from "@/lib/programScore/hypertrophyExample"
 import type { ScoreBand } from "@/lib/programScore/types"
+import {
+  BALANCE_BAND_COLOR,
+  balanceBandFromScore,
+} from "@/lib/trainingBalance"
+import { cn } from "@/lib/utils"
 
 const TRACKS = ["hypertrophy", "strength", "endurance"] as const
 
@@ -23,47 +32,97 @@ export function ProgramScoreSheet({ score }: { score: ProgramIntentScore }) {
   const { muscleLabel } = useCatalogLabels()
   const example = score.hypertrophyExample
   const hypertrophyBand = bandLabel(t, score.hypertrophy.band)
+  const balanceBand =
+    score.balance.kind === "score"
+      ? balanceBandFromScore(score.balance.value)
+      : null
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {TRACKS.map((track) => {
-        const band = bandLabel(t, score[track].band)
+        const band = score[track].band
+        const label = bandLabel(t, band)
+        const expandable = track === "hypertrophy" && example != null && hypertrophyBand != null
+
+        const header = (
+          <>
+            <CardTitle className="text-sm font-medium leading-tight">
+              {t(`track.${track}`)}
+            </CardTitle>
+            <div className="flex shrink-0 items-center gap-1">
+              {label != null && band !== "empty" && (
+                <Badge
+                  variant="outline"
+                  className={cn("text-[10px] font-medium", BAND_CLASS[band])}
+                >
+                  {label}
+                </Badge>
+              )}
+              {expandable && (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden />
+              )}
+            </div>
+          </>
+        )
+
         return (
-          <Collapsible key={track}>
-            <CollapsibleTrigger className="flex w-full flex-col gap-1 rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/50">
-              <p className="text-sm font-medium">
-                {t(`track.${track}`)}
-                {band != null ? ` · ${band}` : null}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t(`rubric.${track}`)}
-              </p>
-            </CollapsibleTrigger>
-            {track === "hypertrophy" && example != null && hypertrophyBand != null ? (
-              <CollapsibleContent className="px-1 pt-1">
+          <Card key={track}>
+            <Collapsible>
+              <CardHeader className="p-4 pb-2">
+                {expandable ? (
+                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 text-left">
+                    {header}
+                  </CollapsibleTrigger>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    {header}
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
                 <p className="text-sm text-muted-foreground">
-                  {t("example.hypertrophy", {
-                    muscle: muscleLabel(example.muscle),
-                    sets: example.sets,
-                    days: example.days,
-                    band: t(`band.${example.band}`),
-                  })}
+                  {t(`rubric.${track}`)}
                 </p>
-              </CollapsibleContent>
-            ) : null}
-          </Collapsible>
+                {expandable && (
+                  <CollapsibleContent className="pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      {t("example.hypertrophy", {
+                        muscle: muscleLabel(example.muscle),
+                        sets: example.sets,
+                        days: example.days,
+                        band: t(`band.${example.band}`),
+                      })}
+                    </p>
+                  </CollapsibleContent>
+                )}
+              </CardContent>
+            </Collapsible>
+          </Card>
         )
       })}
 
-      <Collapsible>
-        <CollapsibleTrigger className="flex w-full flex-col gap-1 rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/50">
-          <p className="text-sm font-medium">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 p-4 pb-2">
+          <CardTitle className="text-sm font-medium leading-tight">
             {t("track.balance")}
-            {score.balance.kind === "score" ? ` ${score.balance.value}` : null}
-          </p>
+          </CardTitle>
+          {score.balance.kind === "score" && balanceBand != null && (
+            <Badge
+              variant="outline"
+              className="text-[10px] font-medium tabular-nums"
+              style={{
+                color: BALANCE_BAND_COLOR[balanceBand],
+                borderColor: BALANCE_BAND_COLOR[balanceBand],
+              }}
+            >
+              {score.balance.value}
+            </Badge>
+          )}
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
           <p className="text-sm text-muted-foreground">{t("rubric.balance")}</p>
-        </CollapsibleTrigger>
-      </Collapsible>
+        </CardContent>
+      </Card>
     </div>
   )
 }
