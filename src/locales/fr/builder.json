@@ -8,6 +8,8 @@
   "weightLabel": "Poids ({{unit}})",
   "restSeconds": "Repos (secondes)",
   "restShort": "{{seconds}}s",
+  "restColumn": "Repos",
+  "holdColumn": "Tenue",
   "placeholderReps": "ex. 8-12",
   "placeholderWeight": "ex. 10",
   "dayName": "Nom du jour",

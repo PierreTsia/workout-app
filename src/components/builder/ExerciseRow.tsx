@@ -1,14 +1,19 @@
+import { useCallback, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { GripVertical, Pencil, Timer, Trash2 } from "lucide-react"
-import type { WorkoutExerciseWithExercise } from "@/types/database"
+import { GripVertical, Pencil, Trash2 } from "lucide-react"
+import type { WorkoutExercise, WorkoutExerciseWithExercise } from "@/types/database"
+import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
-import { formatDurationShort } from "@/lib/formatters"
+import { DEFAULT_DURATION_FALLBACK_SEC } from "@/lib/sessionSetRow"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { AdminOnly } from "@/components/admin/AdminOnly"
 
@@ -16,13 +21,94 @@ interface ExerciseRowProps {
   exercise: WorkoutExerciseWithExercise
   onTap: () => void
   onDelete: () => void
+  onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
 
-export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
+interface RowForm {
+  sets: string
+  reps: string
+  weight: string
+  rest_seconds: string
+  target_duration_seconds: string
+}
+
+function seedForm(
+  exercise: WorkoutExercise,
+  toDisplay: (kg: number) => number,
+  defaultHoldSeconds: number,
+): RowForm {
+  const displayWeight = Math.round(toDisplay(Number(exercise.weight)) * 10) / 10
+  return {
+    sets: String(exercise.sets),
+    reps: exercise.reps,
+    weight: String(displayWeight),
+    rest_seconds: String(exercise.rest_seconds),
+    target_duration_seconds: String(
+      exercise.target_duration_seconds ?? defaultHoldSeconds,
+    ),
+  }
+}
+
+const compactInputClass = "h-8 px-1 text-center font-mono text-sm"
+
+function stopRowTap(event: SyntheticEvent) {
+  event.stopPropagation()
+}
+
+function fieldPatch(
+  field: keyof RowForm,
+  updated: RowForm,
+  toKg: (value: number) => number,
+): {
+  sets?: number
+  reps?: string
+  weight?: string
+  rest_seconds?: number
+  target_duration_seconds?: number | null
+} {
+  switch (field) {
+    case "sets": {
+      const sets = parseInt(updated.sets, 10)
+      return isNaN(sets) ? {} : { sets }
+    }
+    case "reps":
+      return { reps: updated.reps || undefined }
+    case "weight": {
+      if (!updated.weight) return {}
+      const weightKg = toKg(Number(updated.weight) || 0)
+      return { weight: String(Math.round(weightKg * 10) / 10) }
+    }
+    case "rest_seconds": {
+      const restSeconds = parseInt(updated.rest_seconds, 10)
+      return isNaN(restSeconds) ? {} : { rest_seconds: restSeconds }
+    }
+    case "target_duration_seconds": {
+      const targetSec = parseInt(updated.target_duration_seconds, 10)
+      return { target_duration_seconds: isNaN(targetSec) ? null : targetSec }
+    }
+  }
+}
+
+export function ExerciseRow({
+  exercise,
+  onTap,
+  onDelete,
+  onMutationStateChange,
+}: ExerciseRowProps) {
   const { t } = useTranslation("builder")
-  const { formatWeight } = useWeightUnit()
-  const { exerciseName, muscleLabel } = useCatalogLabels()
+  const { unit, toDisplay, toKg } = useWeightUnit()
+  const { exerciseName } = useCatalogLabels()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
+  const updateExercise = useUpdateExercise()
+  const isDuration = (libExercise ?? exercise.exercise)?.measurement_type === "duration"
+  const defaultHoldSeconds =
+    libExercise?.default_duration_seconds ?? DEFAULT_DURATION_FALLBACK_SEC
+  const [form, setForm] = useState<RowForm>(() =>
+    seedForm(exercise, toDisplay, defaultHoldSeconds),
+  )
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const pendingRef = useRef<{ form: RowForm; field: keyof RowForm } | null>(null)
+
   const {
     attributes,
     listeners,
@@ -38,72 +124,181 @@ export function ExerciseRow({ exercise, onTap, onDelete }: ExerciseRowProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const targetDuration = exercise.target_duration_seconds
-  const isDuration =
-    libExercise?.measurement_type === "duration" &&
-    targetDuration != null &&
-    targetDuration > 0
-  const valueLabel = isDuration
-    ? formatDurationShort(targetDuration)
-    : exercise.reps
-  const summary = `${exercise.sets}×${valueLabel} @ ${formatWeight(Number(exercise.weight))}`
+  const applyPatch = useCallback(
+    (updated: RowForm, field: keyof RowForm) => {
+      const patch = fieldPatch(field, updated, toKg)
+      if (Object.keys(patch).length === 0) return
+      onMutationStateChange("saving")
+      updateExercise.mutate(
+        {
+          id: exercise.id,
+          dayId: exercise.workout_day_id,
+          ...patch,
+        },
+        {
+          onSuccess: () => onMutationStateChange("saved"),
+          onError: () => onMutationStateChange("error"),
+        },
+      )
+    },
+    [exercise.id, exercise.workout_day_id, updateExercise, onMutationStateChange, toKg],
+  )
+  const applyPatchRef = useRef(applyPatch)
+  applyPatchRef.current = applyPatch
+
+  const flush = useCallback((updated: RowForm, field: keyof RowForm) => {
+    pendingRef.current = { form: updated, field }
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      pendingRef.current = null
+      applyPatchRef.current(updated, field)
+    }, 500)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(debounceRef.current)
+      const pending = pendingRef.current
+      if (!pending) return
+      pendingRef.current = null
+      applyPatchRef.current(pending.form, pending.field)
+    }
+  }, [])
+
+  function handleChange(field: keyof RowForm, value: string) {
+    const next = { ...form, [field]: value }
+    setForm(next)
+    flush(next, field)
+  }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded-lg border bg-card p-3"
+      className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:grid md:grid-cols-[auto_1fr_40px_40px_50px_50px_auto] md:items-center md:gap-2"
     >
-      <button
-        className="touch-none cursor-grab text-muted-foreground active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-5 w-5" />
-      </button>
+      <div className="flex items-center gap-2 md:contents">
+        <button
+          className="touch-none cursor-grab text-muted-foreground active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-5 w-5" />
+        </button>
 
-      <div className="flex-1 cursor-pointer" onClick={onTap}>
-        <div className="flex items-center gap-2">
-          <ExerciseThumbnail imageUrl={libExercise?.image_url} emoji={exercise.emoji_snapshot} className="h-7 w-7" />
-          <span className="text-sm font-medium">{exerciseName(exercise)}</span>
+        <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2" onClick={onTap}>
+          <ExerciseThumbnail
+            imageUrl={libExercise?.image_url}
+            emoji={exercise.emoji_snapshot}
+            className="h-7 w-7"
+          />
+          <span className="truncate text-sm font-medium">{exerciseName(exercise)}</span>
         </div>
-        <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
-          <span>
-            {muscleLabel(libExercise?.muscle_group ?? exercise.muscle_snapshot)}{" "}
-            &middot; {summary}
-          </span>
-          <span className="inline-flex items-center gap-0.5">
-            &middot; <Timer className="h-3 w-3" />
-            {t("restShort", { seconds: exercise.rest_seconds })}
-          </span>
-        </p>
+
+        <div className="ml-auto flex shrink-0 items-center md:col-start-7 md:row-start-1 md:ml-0">
+          <AdminOnly>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              asChild
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Link to={`/admin/exercises/${exercise.exercise_id}`}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+          </AdminOnly>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <AdminOnly>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-          asChild
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Link to={`/admin/exercises/${exercise.exercise_id}`}>
-            <Pencil className="h-4 w-4" />
-          </Link>
-        </Button>
-      </AdminOnly>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete()
-        }}
+      <div
+        className="grid grid-cols-4 gap-1 md:contents"
+        onClick={stopRowTap}
+        onPointerDown={stopRowTap}
       >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+        <CompactField label={t("sets")} className="md:col-start-3 md:row-start-1">
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={form.sets}
+            onChange={(e) => handleChange("sets", e.target.value)}
+            className={compactInputClass}
+          />
+        </CompactField>
+        {isDuration ? (
+          <CompactField label={t("holdColumn")} className="md:col-start-4 md:row-start-1">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={form.target_duration_seconds}
+              onChange={(e) => handleChange("target_duration_seconds", e.target.value)}
+              className={compactInputClass}
+            />
+          </CompactField>
+        ) : (
+          <CompactField label={t("reps")} className="md:col-start-4 md:row-start-1">
+            <Input
+              value={form.reps}
+              onChange={(e) => handleChange("reps", e.target.value)}
+              placeholder={t("placeholderReps")}
+              className={compactInputClass}
+            />
+          </CompactField>
+        )}
+        <CompactField label={unit} className="md:col-start-5 md:row-start-1">
+          <Input
+            value={form.weight}
+            onChange={(e) => handleChange("weight", e.target.value)}
+            placeholder={t("placeholderWeight")}
+            className={compactInputClass}
+          />
+        </CompactField>
+        <CompactField label={t("restColumn")} className="md:col-start-6 md:row-start-1">
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={15}
+            value={form.rest_seconds}
+            onChange={(e) => handleChange("rest_seconds", e.target.value)}
+            className={compactInputClass}
+          />
+        </CompactField>
+      </div>
     </div>
+  )
+}
+
+function CompactField({
+  label,
+  children,
+  className,
+}: {
+  label: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <Label className={cn("flex min-w-0 flex-col gap-0.5 font-normal", className)}>
+      <span className="text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground md:sr-only">
+        {label}
+      </span>
+      {children}
+    </Label>
   )
 }

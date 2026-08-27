@@ -231,6 +231,7 @@ export function DayEditor({
                   exercise={item.exercise}
                   onTap={() => onSelectExercise(item.exercise.id)}
                   onDelete={() => setDeleteTarget(item.exercise)}
+                  onMutationStateChange={onMutationStateChange}
                 />
               ) : (
                 <BlockCard
