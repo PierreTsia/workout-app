@@ -82,8 +82,8 @@ test.describe("Feedback — happy path", () => {
     })
     await expect(addExerciseButton).toBeVisible({ timeout: 5_000 })
 
-    const exerciseRows = page.locator("div.flex.items-center.gap-2.rounded-lg")
-    const hasExistingExercise = (await exerciseRows.count()) > 0
+    const overflowButtons = page.getByRole("button", { name: /more actions/i })
+    const hasExistingExercise = (await overflowButtons.count()) > 0
 
     if (!hasExistingExercise) {
       await addExerciseButton.click()
@@ -92,14 +92,14 @@ test.describe("Feedback — happy path", () => {
       const allItems = pickerDialog.locator("[cmdk-item]")
       await expect(allItems.first()).toBeVisible({ timeout: 10_000 })
       await allItems.first().getByRole("checkbox").click()
-      await pickerDialog
-        .getByRole("button", { name: /apply changes|appliquer/i })
-        .click()
+      await pickerDialog.getByRole("button", { name: /add 1/i }).click()
       await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
     }
 
-    await exerciseRows.first().click()
-    await page.waitForTimeout(1_000)
+    await page.getByRole("button", { name: /more actions/i }).first().click()
+    await page
+      .getByRole("menuitem", { name: /ranges and instructions/i })
+      .click()
 
     const feedbackTrigger = page.getByRole("button", {
       name: /report an issue/i,
