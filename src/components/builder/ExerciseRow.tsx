@@ -143,7 +143,9 @@ export function ExerciseRow({
     [exercise.id, exercise.workout_day_id, updateExercise, onMutationStateChange, toKg],
   )
   const applyPatchRef = useRef(applyPatch)
-  applyPatchRef.current = applyPatch
+  useEffect(() => {
+    applyPatchRef.current = applyPatch
+  })
 
   const flush = useCallback((updated: RowForm, field: keyof RowForm) => {
     pendingRef.current = { form: updated, field }

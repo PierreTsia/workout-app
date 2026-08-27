@@ -142,7 +142,9 @@ export function ExerciseDetailForm({
     ],
   )
   const applyPatchRef = useRef(applyPatch)
-  applyPatchRef.current = applyPatch
+  useEffect(() => {
+    applyPatchRef.current = applyPatch
+  })
 
   const flush = useCallback((updated: FormState) => {
     pendingRef.current = updated
