@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest"
 import { screen, waitFor, fireEvent, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
-import { isAdminAtom } from "@/store/atoms"
+import { isAdminAtom, weightUnitAtom } from "@/store/atoms"
 import type { Exercise, WorkoutExerciseWithExercise } from "@/types/database"
 import { ExerciseRow } from "./ExerciseRow"
 
@@ -84,6 +84,7 @@ describe("ExerciseRow", () => {
   beforeEach(() => {
     mutate.mockReset()
     mockLibExercise = undefined
+    localStorage.setItem("weightUnit", JSON.stringify("kg"))
   })
 
   afterEach(() => {
@@ -238,6 +239,39 @@ describe("ExerciseRow", () => {
 
     vi.advanceTimersByTime(1)
     expect(mutate).toHaveBeenCalledTimes(1)
+  })
+
+  it("persists every field edited in the same debounce window", () => {
+    vi.useFakeTimers()
+    render(makeExercise({ sets: 4, rest_seconds: 90 }))
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Sets" }), {
+      target: { value: "5" },
+    })
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Rest" }), {
+      target: { value: "120" },
+    })
+
+    vi.advanceTimersByTime(500)
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(mutate.mock.calls[0]?.[0]).toEqual({
+      id: "ex-1",
+      dayId: "day-1",
+      sets: 5,
+      rest_seconds: 120,
+    })
+  })
+
+  it("rescales the weight input when the display unit changes", () => {
+    const { store } = render(makeExercise({ weight: "60" }))
+
+    expect(screen.getByRole("textbox", { name: "kg" })).toHaveValue("60")
+
+    act(() => {
+      store.set(weightUnitAtom, "lbs")
+    })
+
+    expect(screen.getByRole("textbox", { name: "lbs" })).toHaveValue("132.3")
   })
 
   it("does not navigate on name click; leftover fields open from overflow", async () => {

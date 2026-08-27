@@ -53,17 +53,19 @@ function stopRowTap(event: SyntheticEvent) {
   event.stopPropagation()
 }
 
-function fieldPatch(
-  field: keyof RowForm,
-  updated: RowForm,
-  toKg: (value: number) => number,
-): {
+type FieldPatch = {
   sets?: number
   reps?: string
   weight?: string
   rest_seconds?: number
   target_duration_seconds?: number | null
-} {
+}
+
+function fieldPatch(
+  field: keyof RowForm,
+  updated: RowForm,
+  toKg: (value: number) => number,
+): FieldPatch {
   switch (field) {
     case "sets": {
       const sets = parseInt(updated.sets, 10)
@@ -87,6 +89,17 @@ function fieldPatch(
   }
 }
 
+function formPatch(
+  updated: RowForm,
+  fields: Iterable<keyof RowForm>,
+  toKg: (value: number) => number,
+): FieldPatch {
+  return [...fields].reduce<FieldPatch>(
+    (patch, field) => ({ ...patch, ...fieldPatch(field, updated, toKg) }),
+    {},
+  )
+}
+
 export function ExerciseRow({
   exercise,
   onDelete,
@@ -105,8 +118,21 @@ export function ExerciseRow({
   const [form, setForm] = useState<RowForm>(() =>
     seedForm(exercise, toDisplay, defaultHoldSeconds),
   )
+  const [trackedUnit, setTrackedUnit] = useState(unit)
+  if (unit !== trackedUnit) {
+    setTrackedUnit(unit)
+    setForm((prev) => ({
+      ...prev,
+      weight: String(
+        Math.round(toDisplay(Number(exercise.weight)) * 10) / 10,
+      ),
+    }))
+  }
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const pendingRef = useRef<{ form: RowForm; field: keyof RowForm } | null>(null)
+  const pendingRef = useRef<{
+    form: RowForm
+    fields: ReadonlySet<keyof RowForm>
+  } | null>(null)
 
   const {
     attributes,
@@ -124,8 +150,8 @@ export function ExerciseRow({
   }
 
   const applyPatch = useCallback(
-    (updated: RowForm, field: keyof RowForm) => {
-      const patch = fieldPatch(field, updated, toKg)
+    (updated: RowForm, fields: Iterable<keyof RowForm>) => {
+      const patch = formPatch(updated, fields, toKg)
       if (Object.keys(patch).length === 0) return
       onMutationStateChange("saving")
       updateExercise.mutate(
@@ -148,11 +174,13 @@ export function ExerciseRow({
   })
 
   const flush = useCallback((updated: RowForm, field: keyof RowForm) => {
-    pendingRef.current = { form: updated, field }
+    const fields = new Set(pendingRef.current?.fields)
+    fields.add(field)
+    pendingRef.current = { form: updated, fields }
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       pendingRef.current = null
-      applyPatchRef.current(updated, field)
+      applyPatchRef.current(updated, fields)
     }, 500)
   }, [])
 
@@ -162,7 +190,7 @@ export function ExerciseRow({
       const pending = pendingRef.current
       if (!pending) return
       pendingRef.current = null
-      applyPatchRef.current(pending.form, pending.field)
+      applyPatchRef.current(pending.form, pending.fields)
     }
   }, [])
 
