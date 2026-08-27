@@ -82,10 +82,13 @@ test.describe("Feedback — happy path", () => {
     })
     await expect(addExerciseButton).toBeVisible({ timeout: 5_000 })
 
-    const overflowButtons = page.getByRole("button", { name: /more actions/i })
-    const hasExistingExercise = (await overflowButtons.count()) > 0
+    const soloRow = page
+      .locator("div")
+      .filter({ has: page.getByRole("spinbutton", { name: /sets/i }) })
+      .filter({ has: page.getByRole("button", { name: /more actions/i }) })
+      .first()
 
-    if (!hasExistingExercise) {
+    if ((await soloRow.count()) === 0) {
       await addExerciseButton.click()
       const pickerDialog = page.getByRole("dialog")
       await expect(pickerDialog).toBeVisible({ timeout: 5_000 })
@@ -96,7 +99,7 @@ test.describe("Feedback — happy path", () => {
       await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
     }
 
-    await page.getByRole("button", { name: /more actions/i }).first().click()
+    await soloRow.getByRole("button", { name: /more actions/i }).click()
     await page
       .getByRole("menuitem", { name: /ranges and instructions/i })
       .click()

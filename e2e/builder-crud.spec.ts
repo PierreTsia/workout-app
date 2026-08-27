@@ -179,11 +179,7 @@ test.describe("Builder — CRUD", () => {
     await expect(deleteExDialog).toBeVisible()
     await deleteExDialog.getByRole("button", { name: /^remove$/i }).click()
     await expect(deleteExDialog).not.toBeVisible({ timeout: 10_000 })
-    await expect(
-      page.locator("span.truncate.text-sm.font-medium", {
-        hasText: exerciseName!,
-      }),
-    ).toHaveCount(0, { timeout: 5_000 })
+    await expect(exerciseRow).not.toBeVisible({ timeout: 5_000 })
 
     // --- Navigate back to day list ---
     const backButton = page.locator("button:has(.lucide-arrow-left)")
