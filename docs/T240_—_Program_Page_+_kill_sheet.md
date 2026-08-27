@@ -10,7 +10,7 @@ AFK — route, sheet death, and read-link retarget are locked. Rubric *strings* 
 
 ## Slice
 
-router → `useProgram` + `useProgramIntent` → `ProgramPage` + `ProgramScoreSheet` + `ProgramFactsBlock` + `DayCard` → card `Link` → delete sheet → retarget Profil/Home → vitest
+router → `useProgram` + `useProgramIntent` → `ProgramPage` + `ProgramScoreSheet` + `ProgramFactsBlock` + `ProgramDayRow` → card `Link` → delete sheet → retarget Profil/Home → vitest
 
 ## Dependencies
 
@@ -33,8 +33,8 @@ T238, T239 (chips, `program` ns, `["program-intent"]` hydrate).
 - Header: name, active/archived, `pageTitle`. Back → `/library/programs`. No gold / pin / filter on `profile.goal` (story 4).
 - `ProgramScoreSheet`: contract `rubric.*` always visible; tap → `example.hypertrophy` (and siblings as needed) with *this* week’s facts.
 - `ProgramFactsBlock`: `facts.line` + mix buckets (`facts.mix.*`). No clock.
-- Days: extract `toDayCardItems` from the sheet; reuse `file:src/components/library/DayCard.tsx`. Rows read-only. No « Commencer ». No per-day Builder deep link.
-- Actions: Éditer → `/builder/:id` `{ state: { from } }`. Activate / archive reuse `useActivateProgram` / `useArchiveProgram` + `ActivateConfirmDialog`. Use existing `library` action keys.
+- Days: compact `ProgramDayRow`s (name, index, counts). Expand to read solos + Circuits. No « Commencer ». Header Edit → Builder day list (`location.state.from`). Day pencil → that day's editor (`location.state.dayId`).
+- Actions: header Edit as above. Activate / archive in the header kebab — reuse `useActivateProgram` / `useArchiveProgram` + `ActivateConfirmDialog`. Use existing `library` action keys.
 
 ### Card + sheet
 
@@ -66,11 +66,11 @@ Add remaining contract keys: `rubric.*`, `example.hypertrophy`, `facts.mix.*`, `
 
 ## Acceptance Criteria
 
-- [ ] `/programs/:uuid` renders scores + facts + DayCards for the owner
+- [ ] `/programs/:uuid` renders scores + facts + day rows for the owner
 - [ ] Foreign / junk id → not-found + back to Library; 0 fake `ok`
 - [ ] Card tap (not Edit/Activate/Archive) → the page; `ProgramDetailSheet` gone
 - [ ] Profil / Home read path → `/programs/:id`, not Builder
-- [ ] Éditer lands on today’s Builder; Activate/Archive behave as on the card
+- [ ] Header Edit → Builder day list; day pencil → that day's editor; Activate/Archive behave as on the card
 - [ ] No « Commencer » on the page
 - [ ] EN + FR keys match the Tech Plan i18n contract
 - [ ] Env-stripped vitest + `tsc -p tsconfig.app.json --noEmit`

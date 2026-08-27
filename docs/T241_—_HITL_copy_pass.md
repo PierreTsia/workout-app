@@ -27,7 +27,7 @@ Check:
 - Rubric sentences read as a coach, not a spec
 - Tap example (`example.hypertrophy` and any siblings shipped in T240) uses *this* week’s facts
 - Empty / offline / 404 strings still match the product voice
-- **Répartition** never becomes **Équilibre**; **Balance** stays the EN track name
+- **Répartition** never appears; Program Balance is EN **Balance** / FR **Équilibre**
 
 ### Allowed edits
 
@@ -36,7 +36,7 @@ Check:
 
 ### Forbidden
 
-- Renaming tracks (`track.hypertrophy` stays Muscle growth / Prise de masse; `track.balance` stays Balance / Répartition)
+- Renaming tracks (`track.hypertrophy` stays Muscle growth / Prise de masse; `track.balance` stays Balance / Équilibre)
 - Changing `bands.ts` numbers to “make copy easier”
 - Adding keys that invent a fourth Goal Track or a Start CTA
 - Shipping glossary in UI: Exercise Slot, Template Prescription, Goal Track, CV, log1p, `rep_range_max`, intent, taxonomy
@@ -57,7 +57,7 @@ Check:
 - [ ] You have signed off on the four rubric sentences + one tap example against a real week (HITL — Pierre)
 - [ ] 0 glossary leaks in `src/locales/**/*.json` for the forbidden list
 - [ ] Track names and band labels still match the Tech Plan contract (or a documented one-word fix you approved)
-- [ ] FR never uses Équilibre for Program Balance
+- [ ] FR uses Équilibre for Program Balance; Répartition is absent from `program.json`
 - [ ] Env-stripped vitest still green
 
 ## References

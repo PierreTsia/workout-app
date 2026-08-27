@@ -18,7 +18,7 @@
 | List chrome | Whole card navigates except Edit / Activate / Archive | « Détails » disappears. |
 | Read links | Profil badge + “see program” Home → `/programs/:id` | Edit stays `/builder/:id`. |
 | i18n | New `program` namespace | Score copy is a product surface. `library` keeps activate/archive chrome. |
-| **Program Balance** UI | EN Balance / FR **Répartition** | **Équilibre** is Profil / executed. |
+| **Program Balance** UI | EN Balance / FR **Équilibre** | Same word as Profil; different grain (intent vs executed). Do not lecture. **Répartition** is forbidden. |
 | **Goal Track** UI | Muscle growth / Strength / Endurance — FR Prise de masse / Force / Endurance | Never print “Goal Track”. |
 | Schema | None | Scores are derived. Do not add columns to `programs`. |
 | Gate | All users | Not admin-first. Real data, real week. |
@@ -205,7 +205,7 @@ HITL copy pass may tighten sentences; tickets must not invent synonyms for the t
 | `track.hypertrophy` | Muscle growth | Prise de masse | terms.md — not “Hypertrophy” naked |
 | `track.strength` | Strength | Force | Already in the product |
 | `track.endurance` | Endurance | Endurance | Same word both langs |
-| `track.balance` | Balance | Répartition | Not Équilibre |
+| `track.balance` | Balance | Équilibre | Same word as Profil; grain is intent. Never Répartition |
 | `band.short` | Low | Faible | Band, not a moral fail |
 | `band.ok` | On target | Dans le viseur | Pedagogical, not “OK” |
 | `band.high` | High | Élevé | |
