@@ -67,10 +67,6 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
     days: WorkoutDayWithExerciseCount[]
   } | null>(null)
 
-  if (pendingDays && pendingDays.programId !== programId) {
-    setPendingDays(null)
-  }
-
   const items =
     pendingDays?.programId === programId ? pendingDays.days : (days ?? [])
 
