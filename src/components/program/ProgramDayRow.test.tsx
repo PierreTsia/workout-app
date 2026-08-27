@@ -130,6 +130,7 @@ describe("ProgramDayRow", () => {
     expect(screen.getByText(/Bench Press/)).toBeInTheDocument()
     expect(screen.getByText("Cindy")).toBeInTheDocument()
     expect(screen.getByText("Pull-ups")).toBeInTheDocument()
+    expect(screen.getByText("5 reps")).toBeInTheDocument()
   })
 
   it("edits that day from the pencil, not the whole row", () => {
@@ -169,5 +170,77 @@ describe("ProgramDayRow", () => {
     )
     expect(screen.getByText("Hang from the bar")).toBeInTheDocument()
     expect(screen.getByText("Pull until your chin clears")).toBeInTheDocument()
+  })
+
+  it("labels circuit station amounts as reps or seconds, not a naked count", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ProgramDayRow
+        day={makeDay({
+          items: [
+            {
+              kind: "circuit",
+              id: "blk-1",
+              label: "Bear Bird Hollow",
+              rounds: 3,
+              exerciseCount: 2,
+              sortOrder: 0,
+              stations: [
+                {
+                  id: "be-1",
+                  name: "Bear walk",
+                  emoji: "🔥",
+                  amounts: [10],
+                  isDuration: false,
+                  exerciseId: PULL_ID,
+                },
+                {
+                  id: "be-2",
+                  name: "Hollow hold",
+                  emoji: "🔥",
+                  amounts: [30],
+                  isDuration: true,
+                },
+              ],
+            },
+          ],
+        })}
+        index={1}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: /Push/ }))
+    expect(screen.getByText("10 reps")).toBeInTheDocument()
+    expect(screen.getByText("30s")).toBeInTheDocument()
+  })
+
+  it("shows empty-day copy when there is nothing to expand into", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <ProgramDayRow
+        day={makeDay({ exerciseCount: 0, items: [] })}
+        index={2}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: /Push/ }))
+    expect(screen.getByText("Nothing on this day yet.")).toBeInTheDocument()
+  })
+
+  it("hides the day pencil when the program cannot be edited", () => {
+    renderWithProviders(<ProgramDayRow day={makeDay()} index={1} />)
+
+    expect(
+      screen.queryByRole("link", { name: "Edit Push" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("indexes the day in French", () => {
+    renderWithProviders(<ProgramDayRow day={makeDay()} index={1} />, {
+      locale: "fr",
+    })
+
+    expect(screen.getByText("Jour 1")).toBeInTheDocument()
+    expect(screen.getByText(/2 exercices/)).toBeInTheDocument()
   })
 })
