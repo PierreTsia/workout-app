@@ -158,38 +158,32 @@ test.describe("Builder — CRUD", () => {
     await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
     await expect(page.getByText(exerciseName!)).toBeVisible({ timeout: 5_000 })
 
-    // --- Open exercise detail editor ---
-    await page.getByText(exerciseName!).first().click()
-
-    const setsInput = page.locator("input[type='number']").first()
+    // --- Edit sets inline on the row; leftover fields live behind ⋯ ---
+    const exerciseRow = page
+      .locator("div")
+      .filter({ hasText: exerciseName! })
+      .filter({ has: page.getByRole("spinbutton", { name: /sets/i }) })
+      .first()
+    const setsInput = exerciseRow.getByRole("spinbutton", { name: /sets/i })
     await expect(setsInput).toBeVisible({ timeout: 5_000 })
 
-    // --- Edit sets ---
     await setsInput.fill("5")
     await page.waitForTimeout(1_000)
     await expect(setsInput).toHaveValue("5")
 
-    // --- Navigate back to day editor ---
-    const backButton = page.locator("button:has(.lucide-arrow-left)")
-    await backButton.click()
-
-    // --- Delete the exercise ---
-    const exerciseRow = page
-      .locator("div.flex.items-center.gap-2.rounded-lg")
-      .filter({ hasText: exerciseName! })
-    await expect(exerciseRow).toBeVisible({ timeout: 5_000 })
-
-    await exerciseRow
-      .locator("button")
-      .filter({ has: page.locator("svg.lucide-trash-2") })
-      .click()
+    // --- Delete the exercise via overflow ---
+    await exerciseRow.getByRole("button", { name: /more actions/i }).click()
+    await page.getByRole("menuitem", { name: /remove/i }).click()
 
     const deleteExDialog = page.getByRole("dialog")
     await expect(deleteExDialog).toBeVisible()
     await deleteExDialog.getByRole("button", { name: /remove/i }).click()
-    await expect(exerciseRow).not.toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText(exerciseName!)).not.toBeVisible({
+      timeout: 5_000,
+    })
 
     // --- Navigate back to day list ---
+    const backButton = page.locator("button:has(.lucide-arrow-left)")
     await backButton.click()
 
     // --- Delete the created day ---
@@ -341,10 +335,14 @@ test.describe("Builder — CRUD", () => {
 
     await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
 
-    // --- The circuit renders as a BlockCard: edit affordance + both exercises ---
+    // --- The circuit renders as a BlockCard: overflow → Edit circuit + both exercises ---
     await expect(
-      page.getByRole("button", { name: /edit circuit/i }),
+      page.getByRole("button", { name: /more actions/i }),
     ).toBeVisible({ timeout: 10_000 })
+    await page.getByRole("button", { name: /more actions/i }).click()
+    await expect(
+      page.getByRole("menuitem", { name: /edit circuit/i }),
+    ).toBeVisible()
     await expect(page.getByText(firstName!).first()).toBeVisible()
     await expect(page.getByText(secondName!).first()).toBeVisible()
 

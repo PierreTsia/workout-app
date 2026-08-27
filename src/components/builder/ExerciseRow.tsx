@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { GripVertical, Pencil, Trash2 } from "lucide-react"
+import { GripVertical } from "lucide-react"
 import type { WorkoutExercise, WorkoutExerciseWithExercise } from "@/types/database"
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
@@ -11,15 +10,14 @@ import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
 import { DEFAULT_DURATION_FALLBACK_SEC } from "@/lib/sessionSetRow"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
-import { AdminOnly } from "@/components/admin/AdminOnly"
+import { ExerciseOverflowMenu } from "./ExerciseOverflowMenu"
+import { ExerciseDetailSheet } from "./ExerciseDetailSheet"
 
 interface ExerciseRowProps {
   exercise: WorkoutExerciseWithExercise
-  onTap: () => void
   onDelete: () => void
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
@@ -91,7 +89,6 @@ function fieldPatch(
 
 export function ExerciseRow({
   exercise,
-  onTap,
   onDelete,
   onMutationStateChange,
 }: ExerciseRowProps) {
@@ -100,6 +97,7 @@ export function ExerciseRow({
   const { exerciseName } = useCatalogLabels()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
   const updateExercise = useUpdateExercise()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const isDuration = (libExercise ?? exercise.exercise)?.measurement_type === "duration"
   const defaultHoldSeconds =
     libExercise?.default_duration_seconds ?? DEFAULT_DURATION_FALLBACK_SEC
@@ -186,7 +184,7 @@ export function ExerciseRow({
           <GripVertical className="h-5 w-5" />
         </button>
 
-        <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2" onClick={onTap}>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <ExerciseThumbnail
             imageUrl={libExercise?.image_url}
             emoji={exercise.emoji_snapshot}
@@ -195,34 +193,27 @@ export function ExerciseRow({
           <span className="truncate text-sm font-medium">{exerciseName(exercise)}</span>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center md:col-start-7 md:row-start-1 md:ml-0">
-          <AdminOnly>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-              asChild
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Link to={`/admin/exercises/${exercise.exercise_id}`}>
-                <Pencil className="h-4 w-4" />
-              </Link>
-            </Button>
-          </AdminOnly>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete()
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        <div
+          className="ml-auto flex shrink-0 items-center md:col-start-7 md:row-start-1 md:ml-0"
+          onClick={stopRowTap}
+          onPointerDown={stopRowTap}
+        >
+          <ExerciseOverflowMenu
+            exerciseId={exercise.exercise_id}
+            onEditDetails={() => setDetailsOpen(true)}
+            onRemove={onDelete}
+          />
         </div>
       </div>
+
+      {detailsOpen && (
+        <ExerciseDetailSheet
+          exercise={exercise}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          onMutationStateChange={onMutationStateChange}
+        />
+      )}
 
       <div
         className="grid grid-cols-4 gap-1 md:contents"

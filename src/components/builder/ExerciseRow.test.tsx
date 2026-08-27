@@ -20,6 +20,10 @@ vi.mock("@/hooks/useExerciseFromLibrary", () => ({
   useExerciseFromLibrary: () => ({ data: mockLibExercise, isLoading: false }),
 }))
 
+vi.mock("@/hooks/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}))
+
 const catalogRow = (overrides: Partial<Exercise> = {}) =>
   ({
     id: "lib-1",
@@ -57,21 +61,18 @@ function render(
   exercise: WorkoutExerciseWithExercise,
   options: {
     locale?: "en" | "fr"
-    onTap?: () => void
     onDelete?: () => void
     onMutationStateChange?: (state: "saving" | "saved" | "error") => void
   } = {},
 ) {
   const {
     locale,
-    onTap = vi.fn(),
     onDelete = vi.fn(),
     onMutationStateChange = vi.fn(),
   } = options
   return renderWithProviders(
     <ExerciseRow
       exercise={exercise}
-      onTap={onTap}
       onDelete={onDelete}
       onMutationStateChange={onMutationStateChange}
     />,
@@ -130,17 +131,16 @@ describe("ExerciseRow", () => {
     expect(screen.getByText("Exercice supprimé")).toBeInTheDocument()
   })
 
-  it("saves sets from the row without opening detail", async () => {
+  it("saves sets from the row without opening leftover fields", async () => {
     const user = userEvent.setup()
-    const onTap = vi.fn()
 
-    render(makeExercise({ sets: 4 }), { onTap })
+    render(makeExercise({ sets: 4 }))
 
     const sets = screen.getByRole("spinbutton", { name: "Sets" })
     await user.clear(sets)
     await user.type(sets, "5")
 
-    expect(onTap).not.toHaveBeenCalled()
+    expect(screen.queryByText("Progression settings")).not.toBeInTheDocument()
 
     await waitFor(() =>
       expect(mutate.mock.calls.at(-1)?.[0]).toMatchObject({
@@ -149,7 +149,7 @@ describe("ExerciseRow", () => {
         sets: 5,
       }),
     )
-    expect(onTap).not.toHaveBeenCalled()
+    expect(screen.queryByText("Progression settings")).not.toBeInTheDocument()
   })
 
   it("shows a hold field instead of reps for duration exercises", () => {
@@ -213,28 +213,65 @@ describe("ExerciseRow", () => {
     expect(mutate).toHaveBeenCalledTimes(1)
   })
 
-  it("still opens detail when tapping the name", async () => {
+  it("does not navigate on name click; leftover fields open from overflow", async () => {
     const user = userEvent.setup()
-    const onTap = vi.fn()
-    render(makeExercise(), { onTap })
+    render(makeExercise())
 
     await user.click(screen.getByText("Bench Press"))
 
-    expect(onTap).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole("button", { name: "More actions" }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Progression settings")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(
+      screen.getByRole("menuitem", { name: "Ranges and instructions" }),
+    )
+
+    expect(screen.getByText("Progression settings")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("spinbutton", { name: "Sets" }),
+    ).not.toBeInTheDocument()
   })
 
-  it("keeps the admin pencil and trash on the row", () => {
+  it("opens remove from overflow instead of a trash button", async () => {
+    const user = userEvent.setup()
+    const onDelete = vi.fn()
+    render(makeExercise(), { onDelete })
+
+    expect(document.querySelector(".lucide-trash-2")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Remove" }))
+
+    expect(onDelete).toHaveBeenCalledTimes(1)
+  })
+
+  it("puts the admin catalog link in the overflow menu only", async () => {
+    const user = userEvent.setup()
     const { store } = render(makeExercise())
     act(() => {
       store.set(isAdminAtom, true)
     })
 
-    expect(screen.getByRole("link")).toHaveAttribute(
-      "href",
-      "/admin/exercises/lib-1",
-    )
-    expect(document.querySelector(".lucide-pencil")).toBeInTheDocument()
-    expect(document.querySelector(".lucide-trash-2")).toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+    expect(document.querySelector(".lucide-pencil")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    const catalogLink = screen.getByRole("menuitem", { name: "Edit in admin" })
+    expect(catalogLink).toHaveAttribute("href", "/admin/exercises/lib-1")
+  })
+
+  it("hides the catalog link from non-admins", async () => {
+    const user = userEvent.setup()
+    render(makeExercise())
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+
+    expect(
+      screen.queryByRole("menuitem", { name: "Edit in admin" }),
+    ).not.toBeInTheDocument()
   })
 
   it("keeps the typed value and reports error when the mutation fails", async () => {
@@ -266,5 +303,8 @@ describe("ExerciseRow", () => {
 
     expect(screen.getByRole("spinbutton", { name: "Repos" })).toBeInTheDocument()
     expect(screen.getByRole("spinbutton", { name: "Tenue" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Plus d'actions" }),
+    ).toBeInTheDocument()
   })
 })

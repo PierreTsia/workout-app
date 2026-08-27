@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 import { screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { renderWithProviders, mockQueryResult } from "@/test/utils"
 import type {
   DayItem,
   Exercise,
+  ExerciseBlockWithExercises,
   WorkoutExerciseWithExercise,
 } from "@/types/database"
 import type { WorkoutDayWithExerciseCount } from "@/hooks/useWorkoutDays"
@@ -34,7 +36,8 @@ vi.mock("./ExerciseLibraryPicker", () => ({
 }))
 
 vi.mock("./BlockEditor", () => ({
-  BlockEditor: () => null,
+  BlockEditor: ({ open }: { open: boolean }) =>
+    open ? <div>block editor</div> : null,
 }))
 
 const useWorkoutDays = vi.hoisted(() => vi.fn())
@@ -113,6 +116,37 @@ function makeSolo(
   }
 }
 
+function makeBlock(
+  overrides: Partial<ExerciseBlockWithExercises> = {},
+): ExerciseBlockWithExercises {
+  return {
+    id: "b-1",
+    workout_day_id: "day-1",
+    label: "Metcon",
+    rounds: 3,
+    rest_seconds: 90,
+    transition_seconds: 0,
+    mode: "rounds",
+    cap_seconds: null,
+    sort_order: 1,
+    created_at: "1970-01-01T00:00:00Z",
+    exercises: [
+      {
+        id: "be-1",
+        block_id: "b-1",
+        exercise_id: "ex-2",
+        name_snapshot: "Burpee",
+        muscle_snapshot: "full",
+        emoji_snapshot: "🔥",
+        position: 0,
+        per_round: [{ amount: 10, weight: 0 }],
+        exercise: null,
+      },
+    ],
+    ...overrides,
+  }
+}
+
 function makeDay(): WorkoutDayWithExerciseCount {
   return {
     id: "day-1",
@@ -137,7 +171,6 @@ function renderEditor() {
     <DayEditor
       programId="prog-1"
       dayId="day-1"
-      onSelectExercise={vi.fn()}
       onMutationStateChange={vi.fn()}
     />,
   )
@@ -165,5 +198,38 @@ describe("DayEditor intent map", () => {
     expect(screen.queryByTestId("body-model-anterior")).not.toBeInTheDocument()
     expect(screen.queryByText("Chest")).not.toBeInTheDocument()
     expect(screen.getByText("Nothing on this day yet.")).toBeInTheDocument()
+  })
+})
+
+describe("DayEditor overflow", () => {
+  it("opens the existing remove-exercise confirm from ⋯", async () => {
+    idleMutation.mutate.mockClear()
+    stubEditor([{ kind: "solo", sort_order: 0, exercise: makeSolo() }])
+    const user = userEvent.setup()
+    renderEditor()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Remove" }))
+
+    expect(
+      screen.getByRole("heading", { name: "Remove exercise?" }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Remove" }))
+    expect(idleMutation.mutate).toHaveBeenCalledWith(
+      { id: "solo-1", dayId: "day-1" },
+      expect.any(Object),
+    )
+  })
+
+  it("opens BlockEditor from ⋯ Edit circuit", async () => {
+    stubEditor([{ kind: "block", sort_order: 0, block: makeBlock() }])
+    const user = userEvent.setup()
+    renderEditor()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Edit circuit" }))
+
+    expect(screen.getByText("block editor")).toBeInTheDocument()
   })
 })

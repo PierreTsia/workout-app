@@ -95,5 +95,7 @@
   "kindCircuits": "Circuits",
   "circuitsEmpty": "No benchmark circuits yet.",
   "circuitsError": "Couldn’t load circuits.",
-  "instantiateError": "Couldn’t add this circuit."
+  "instantiateError": "Couldn’t add this circuit.",
+  "moreAria": "More actions",
+  "editDetails": "Ranges and instructions"
 }

@@ -95,5 +95,7 @@
   "kindCircuits": "Circuits",
   "circuitsEmpty": "Pas encore de circuits de référence.",
   "circuitsError": "Impossible de charger les circuits.",
-  "instantiateError": "Impossible d’ajouter ce circuit."
+  "instantiateError": "Impossible d’ajouter ce circuit.",
+  "moreAria": "Plus d'actions",
+  "editDetails": "Plages et consignes"
 }

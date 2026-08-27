@@ -12,10 +12,9 @@ import { DayList } from "@/components/builder/DayList"
 import { DayListSkeleton } from "@/components/builder/DayListSkeleton"
 import { DayEditor } from "@/components/builder/DayEditor"
 import { DayEditorSkeleton } from "@/components/builder/DayEditorSkeleton"
-import { ExerciseDetailEditor } from "@/components/builder/ExerciseDetailEditor"
 import { readBuilderLocationState } from "@/lib/builderLocationState"
 
-type BuilderView = "list" | "editor" | "detail"
+type BuilderView = "list" | "editor"
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function BuilderPage() {
@@ -36,9 +35,6 @@ export function BuilderPage() {
   const [selectedDayId, setSelectedDayId] = useState<string | null>(
     nav.dayId ?? null,
   )
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
-    null,
-  )
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
 
   const handleMutationState = useCallback(
@@ -54,10 +50,7 @@ export function BuilderPage() {
   }
 
   function handleBack() {
-    if (view === "detail") {
-      setSelectedExerciseId(null)
-      setView("editor")
-    } else if (view === "editor") {
+    if (view === "editor") {
       setSelectedDayId(null)
       setView("list")
     } else {
@@ -70,17 +63,8 @@ export function BuilderPage() {
     setView("editor")
   }
 
-  function handleSelectExercise(exerciseId: string) {
-    setSelectedExerciseId(exerciseId)
-    setView("detail")
-  }
-
   const viewTitle =
-    view === "list"
-      ? t("workoutBuilder")
-      : view === "editor"
-        ? t("editDay")
-        : t("editExercise")
+    view === "list" ? t("workoutBuilder") : t("editDay")
 
   if (!isOnline) {
     return (
@@ -145,15 +129,6 @@ export function BuilderPage() {
           <DayEditor
             programId={programId}
             dayId={selectedDayId}
-            onSelectExercise={handleSelectExercise}
-            onMutationStateChange={handleMutationState}
-          />
-        )}
-
-        {view === "detail" && selectedDayId && selectedExerciseId && (
-          <ExerciseDetailEditor
-            dayId={selectedDayId}
-            exerciseId={selectedExerciseId}
             onMutationStateChange={handleMutationState}
           />
         )}

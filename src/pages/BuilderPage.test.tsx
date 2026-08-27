@@ -34,7 +34,20 @@ vi.mock("@/components/builder/DayList", () => ({
 }))
 
 vi.mock("@/components/builder/DayEditor", () => ({
-  DayEditor: ({ dayId }: { dayId: string }) => <div>{`editing ${dayId}`}</div>,
+  DayEditor: ({
+    dayId,
+    onSelectExercise,
+  }: {
+    dayId: string
+    onSelectExercise?: unknown
+  }) => (
+    <div>
+      <p>{`editing ${dayId}`}</p>
+      <p>
+        {onSelectExercise != null ? "has-select-exercise" : "no-select-exercise"}
+      </p>
+    </div>
+  ),
 }))
 
 import { BuilderPage } from "./BuilderPage"
@@ -71,5 +84,12 @@ describe("BuilderPage", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("editing day-1")).toBeInTheDocument()
     expect(screen.queryByText("day list")).not.toBeInTheDocument()
+  })
+
+  it("does not pass a detail-stack select handler into the day editor", () => {
+    renderBuilder({ dayId: "day-1", from: "/programs/x" })
+
+    expect(screen.getByText("no-select-exercise")).toBeInTheDocument()
+    expect(screen.queryByText("has-select-exercise")).not.toBeInTheDocument()
   })
 })

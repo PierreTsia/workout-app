@@ -50,14 +50,12 @@ import { BlockEditor } from "./BlockEditor"
 interface DayEditorProps {
   programId: string
   dayId: string
-  onSelectExercise: (exerciseId: string) => void
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
 
 export function DayEditor({
   programId,
   dayId,
-  onSelectExercise,
   onMutationStateChange,
 }: DayEditorProps) {
   const { t } = useTranslation("builder")
@@ -236,7 +234,6 @@ export function DayEditor({
                 <ExerciseRow
                   key={item.exercise.id}
                   exercise={item.exercise}
-                  onTap={() => onSelectExercise(item.exercise.id)}
                   onDelete={() => setDeleteTarget(item.exercise)}
                   onMutationStateChange={onMutationStateChange}
                 />
