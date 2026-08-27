@@ -12,7 +12,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { Layers, Loader2, Plus } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
@@ -76,7 +76,6 @@ export function DayEditor({
   const [label, setLabel] = useState(day?.label ?? "")
   const [trackedDayId, setTrackedDayId] = useState(dayId)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [blockPickerOpen, setBlockPickerOpen] = useState(false)
   const [editBlockId, setEditBlockId] = useState<string | null>(null)
   const [deleteBlockId, setDeleteBlockId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] =
@@ -260,29 +259,20 @@ export function DayEditor({
         </p>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setPickerOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          {t("addExercise")}
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setBlockPickerOpen(true)}
-        >
-          <Layers className="h-4 w-4" />
-          {t("createBlock")}
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={() => setPickerOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        {t("addExercise")}
+      </Button>
 
       <ExerciseLibraryPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         dayId={dayId}
+        dayLabel={label}
         existingExerciseCount={soloItems.length}
         existingExercises={soloItems.map((e) => ({
           exercise_id: e.exercise_id,
@@ -290,14 +280,6 @@ export function DayEditor({
         }))}
         onMutationStateChange={onMutationStateChange}
         existingMaxSortOrder={existingMaxSortOrder}
-      />
-
-      <ExerciseLibraryPicker
-        open={blockPickerOpen}
-        onOpenChange={setBlockPickerOpen}
-        dayId={dayId}
-        existingExerciseCount={0}
-        onMutationStateChange={onMutationStateChange}
         onCreateBlock={handleCreateBlock}
       />
 

@@ -1,8 +1,9 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react"
-import { Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react"
+import { Loader2, RefreshCw, Search, SlidersHorizontal, ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { CircuitSeedCard } from "@/components/builder/CircuitSeedCard"
+import { NewCircuitRow } from "@/components/builder/NewCircuitRow"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import {
   ExerciseSelectionList,
@@ -13,10 +14,7 @@ import type { ExistingDayExercise } from "@/components/builder/ExerciseSelection
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useBenchmarkSeeds } from "@/hooks/useBenchmarkSeeds"
-import {
-  useAddExercisesToDay,
-  useDeleteExercise,
-} from "@/hooks/useBuilderMutations"
+import { useAddExercisesToDay } from "@/hooks/useBuilderMutations"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
 import { useExerciseLibraryPaginated } from "@/hooks/useExerciseLibraryPaginated"
 import { useInstantiateBenchmarkOnDay } from "@/hooks/useInstantiateBenchmarkOnDay"
@@ -76,7 +74,6 @@ interface PickerSelectionPanelProps {
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
   onClose: () => void
   addExercises: ReturnType<typeof useAddExercisesToDay>
-  deleteExercise: ReturnType<typeof useDeleteExercise>
   onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
   isLoading: boolean
   hasNextPage: boolean
@@ -149,7 +146,7 @@ function PickerSelectionPanel({
   )
 }
 
-function CircuitsKindBody({
+function CircuitsSeedsBody({
   isLoading,
   isError,
   seeds,
@@ -173,7 +170,6 @@ function CircuitsKindBody({
       </div>
     )
   }
-
   if (isError) {
     return (
       <p className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-sm text-muted-foreground">
@@ -181,7 +177,6 @@ function CircuitsKindBody({
       </p>
     )
   }
-
   if (seeds.length === 0) {
     return (
       <p className="flex min-h-0 flex-1 items-center justify-center py-8 text-center text-sm text-muted-foreground">
@@ -189,10 +184,39 @@ function CircuitsKindBody({
       </p>
     )
   }
+  return (
+    <SeedCardList
+      seeds={seeds}
+      pendingSeedId={pendingSeedId}
+      locked={locked}
+      onSelect={onSelect}
+    />
+  )
+}
 
+function CircuitsKindBody({
+  isLoading,
+  isError,
+  seeds,
+  pendingSeedId,
+  locked,
+  onSelect,
+  onNewCircuit,
+}: {
+  isLoading: boolean
+  isError: boolean
+  seeds: CatalogPreviewRow[]
+  pendingSeedId: string | undefined
+  locked: boolean
+  onSelect: (seed: CatalogPreviewRow) => void
+  onNewCircuit: () => void
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
-      <SeedCardList
+      <NewCircuitRow onSelect={onNewCircuit} />
+      <CircuitsSeedsBody
+        isLoading={isLoading}
+        isError={isError}
         seeds={seeds}
         pendingSeedId={pendingSeedId}
         locked={locked}
@@ -208,13 +232,14 @@ interface ExerciseLibraryPickerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   dayId: string
+  dayLabel: string
   existingExerciseCount: number
-  /** Exercises already in this day (pre-checked; uncheck to remove) */
+  /** Exercises already in this day (badged, not selectable, not a delete). */
   existingExercises?: ExistingDayExercise[]
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
-  /** When provided, the picker creates a block from the selected exercises instead of adding solos. */
+  /** Jetable Circuit create from Circuits / create mode. */
   onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
-  /** Highest existing sort_order on the day. Presence gates the Circuits kind. */
+  /** Highest existing sort_order on the day. Required to instantiate a seed. */
   existingMaxSortOrder?: number
 }
 
@@ -222,6 +247,7 @@ export function ExerciseLibraryPicker({
   open,
   onOpenChange,
   dayId,
+  dayLabel,
   existingExerciseCount,
   existingExercises = [],
   onMutationStateChange,
@@ -231,12 +257,11 @@ export function ExerciseLibraryPicker({
   const { t } = useTranslation("builder")
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const addExercises = useAddExercisesToDay()
-  const deleteExercise = useDeleteExercise()
-  const canInstantiate = existingMaxSortOrder !== undefined && !onCreateBlock
   const instantiate = useInstantiateBenchmarkOnDay()
   const instantiateInFlight = useRef(false)
 
   const [kind, setKind] = useState<"exercises" | "circuits">("exercises")
+  const [circuitMode, setCircuitMode] = useState<"seeds" | "create">("seeds")
   const [searchInput, setSearchInput] = useState("")
   const [searchDebounced, setSearchDebounced] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -279,7 +304,7 @@ export function ExerciseLibraryPicker({
     enabled: open,
   })
 
-  const seedsQuery = useBenchmarkSeeds(open && canInstantiate)
+  const seedsQuery = useBenchmarkSeeds(open)
   const seeds = seedsQuery.data ?? []
   const queryIsActive = normalizeBenchmarkKey(searchInput).length >= 2
   const matchingSeeds = queryIsActive
@@ -314,6 +339,7 @@ export function ExerciseLibraryPicker({
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setKind("exercises")
+      setCircuitMode("seeds")
       setSearchInput("")
       if (next) {
         setSearchDebounced("")
@@ -332,8 +358,9 @@ export function ExerciseLibraryPicker({
     ? [...existingSet].sort().join(",")
     : "closed"
 
-  const pickerTitle = onCreateBlock ? t("createBlock") : t("addExercise")
-  const showCircuits = canInstantiate && kind === "circuits"
+  const pickerTitle = t("addToDay", { label: dayLabel })
+  const showSeedBrowser = kind === "circuits" && circuitMode === "seeds"
+  const creatingCircuit = kind === "circuits" && circuitMode === "create"
 
   const handleInstantiate = useCallback(
     async (seed: CatalogPreviewRow) => {
@@ -371,13 +398,13 @@ export function ExerciseLibraryPicker({
       className="flex min-h-0 flex-1 flex-col"
       shouldFilter={false}
     >
-      {canInstantiate ? (
-        <ToggleGroup
+      <ToggleGroup
           type="single"
           value={kind}
           onValueChange={(value) => {
             if (value === "exercises" || value === "circuits") {
               setKind(value)
+              setCircuitMode("seeds")
             }
           }}
           variant="outline"
@@ -396,7 +423,20 @@ export function ExerciseLibraryPicker({
             {t("kindCircuits")}
           </ToggleGroupItem>
         </ToggleGroup>
-      ) : null}
+        {creatingCircuit ? (
+          <div className="px-3 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 px-2"
+              onClick={() => setCircuitMode("seeds")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t("pickerBack")}
+            </Button>
+          </div>
+        ) : null}
       <div className="flex shrink-0 items-center border-b px-3 pr-2">
         <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
         <Input
@@ -407,7 +447,7 @@ export function ExerciseLibraryPicker({
           className="h-11 flex-1 min-w-0 border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           aria-label={t("searchExercises")}
         />
-        {showCircuits ? null : (
+        {showSeedBrowser ? null : (
           <button
             type="button"
             onClick={() => setFiltersOpen(!filtersOpen)}
@@ -424,69 +464,73 @@ export function ExerciseLibraryPicker({
         )}
       </div>
 
-      {showCircuits ? null : (
-        <div
-          className={cn(
-            "grid shrink-0 transition-[grid-template-rows] duration-200",
-            filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-          )}
-        >
-          <div className="overflow-hidden">
-            {filtersOpen && (
-              <ExerciseFilterPanel
-                muscleGroups={muscleGroups}
-                equipmentTypes={equipmentTypes}
-                difficultyLevels={difficultyLevels}
-                selectedMuscleGroup={selectedMuscleGroup}
-                selectedEquipment={selectedEquipment}
-                selectedDifficulty={selectedDifficulty}
-                onMuscleGroupChange={setSelectedMuscleGroup}
-                onEquipmentChange={setSelectedEquipment}
-                onDifficultyChange={setSelectedDifficulty}
-              />
+        {showSeedBrowser ? null : (
+          <div
+            className={cn(
+              "grid shrink-0 transition-[grid-template-rows] duration-200",
+              filtersOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
             )}
+          >
+            <div className="overflow-hidden">
+              {filtersOpen && (
+                <ExerciseFilterPanel
+                  muscleGroups={muscleGroups}
+                  equipmentTypes={equipmentTypes}
+                  difficultyLevels={difficultyLevels}
+                  selectedMuscleGroup={selectedMuscleGroup}
+                  selectedEquipment={selectedEquipment}
+                  selectedDifficulty={selectedDifficulty}
+                  onMuscleGroupChange={setSelectedMuscleGroup}
+                  onEquipmentChange={setSelectedEquipment}
+                  onDifficultyChange={setSelectedDifficulty}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showCircuits ? (
-        <CircuitsKindBody
-          isLoading={seedsQuery.isLoading}
-          isError={seedsQuery.isError}
-          seeds={circuitsSeeds}
-          pendingSeedId={pendingSeedId}
-          locked={instantiate.isPending}
-          onSelect={(seed) => {
-            void handleInstantiate(seed)
-          }}
-        />
-      ) : (
-        <PickerSelectionPanel
-          key={selectionKey}
-          selectionKey={selectionKey}
-          initialSelectedIds={existingExercises.map((e) => e.exercise_id)}
-          existingExercises={existingExercises}
-          existingSet={existingSet}
-          grouped={grouped}
-          dayId={dayId}
-          existingExerciseCount={existingExerciseCount}
-          onMutationStateChange={onMutationStateChange}
-          onClose={() => handleOpenChange(false)}
-          addExercises={addExercises}
-          deleteExercise={deleteExercise}
-          onCreateBlock={onCreateBlock}
-          isLoading={isLoading}
-          hasNextPage={!!hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          onLoadMore={() => fetchNextPage()}
-          pinnedSeeds={matchingSeeds}
-          pendingSeedId={pendingSeedId}
-          locked={instantiate.isPending}
-          onSelectSeed={(seed) => {
-            void handleInstantiate(seed)
-          }}
-        />
-      )}
+        {showSeedBrowser ? (
+          <CircuitsKindBody
+            isLoading={seedsQuery.isLoading}
+            isError={seedsQuery.isError}
+            seeds={circuitsSeeds}
+            pendingSeedId={pendingSeedId}
+            locked={instantiate.isPending}
+            onSelect={(seed) => {
+              void handleInstantiate(seed)
+            }}
+            onNewCircuit={() => setCircuitMode("create")}
+          />
+        ) : (
+          <PickerSelectionPanel
+            key={selectionKey}
+            selectionKey={selectionKey}
+            initialSelectedIds={
+              creatingCircuit
+                ? []
+                : existingExercises.map((e) => e.exercise_id)
+            }
+            existingExercises={existingExercises}
+            existingSet={existingSet}
+            grouped={grouped}
+            dayId={dayId}
+            existingExerciseCount={existingExerciseCount}
+            onMutationStateChange={onMutationStateChange}
+            onClose={() => handleOpenChange(false)}
+            addExercises={addExercises}
+            onCreateBlock={creatingCircuit ? onCreateBlock : undefined}
+            isLoading={isLoading}
+            hasNextPage={!!hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => fetchNextPage()}
+            pinnedSeeds={creatingCircuit ? [] : matchingSeeds}
+            pendingSeedId={pendingSeedId}
+            locked={instantiate.isPending}
+            onSelectSeed={(seed) => {
+              void handleInstantiate(seed)
+            }}
+          />
+        )}
     </Command>
   )
 

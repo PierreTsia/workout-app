@@ -145,14 +145,14 @@ test.describe("Builder — CRUD", () => {
     await searchInput.fill("")
     await expect(allItems).toHaveCount(libraryItemCount, { timeout: 10_000 })
 
-    // --- Select exercise via checkbox + Apply ---
+    // --- Select exercise via checkbox + Add N ---
     const exerciseOption = allItems.first()
     const exerciseName = await exerciseOption
       .locator("span.truncate")
       .textContent()
     await exerciseOption.getByRole("checkbox").click()
     await pickerDialog
-      .getByRole("button", { name: /apply changes|appliquer/i })
+      .getByRole("button", { name: /add 1/i })
       .click()
 
     await expect(pickerDialog).not.toBeVisible({ timeout: 5_000 })
@@ -309,15 +309,18 @@ test.describe("Builder — CRUD", () => {
     const dayLabelText = await newDayLabel.textContent()
     await newDayLabel.click()
 
-    // --- Open the circuit picker (block mode) ---
-    const createCircuitButton = page.getByRole("button", {
-      name: /create circuit/i,
+    // --- Open Add → Circuits → New circuit ---
+    const addExerciseButton = page.getByRole("button", {
+      name: /add exercise/i,
     })
-    await expect(createCircuitButton).toBeVisible({ timeout: 10_000 })
-    await createCircuitButton.click()
+    await expect(addExerciseButton).toBeVisible({ timeout: 10_000 })
+    await addExerciseButton.click()
 
     const pickerDialog = page.getByRole("dialog")
     await expect(pickerDialog).toBeVisible({ timeout: 5_000 })
+
+    await pickerDialog.getByRole("radio", { name: /circuits/i }).click()
+    await pickerDialog.getByRole("button", { name: /new circuit/i }).click()
 
     const items = pickerDialog.locator("[cmdk-item]")
     await expect(items.first()).toBeVisible({ timeout: 10_000 })
