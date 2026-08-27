@@ -45,7 +45,7 @@ function resolveMeasurement(
   return exercise?.measurement_type ?? "reps"
 }
 
-function toSolo(row: SlimSoloRow): IntentSolo {
+export function toSolo(row: SlimSoloRow): IntentSolo {
   const range = parseTargetRepRange(row)
   return {
     sets: row.sets,
@@ -58,7 +58,7 @@ function toSolo(row: SlimSoloRow): IntentSolo {
   }
 }
 
-function toStation(row: SlimStationRow): IntentStation {
+export function toStation(row: SlimStationRow): IntentStation {
   return {
     primaryMuscle: resolveMuscle(row.exercise, row.muscle_snapshot),
     secondaryMuscles: resolveSecondaries(row.exercise),
@@ -66,7 +66,7 @@ function toStation(row: SlimStationRow): IntentStation {
   }
 }
 
-function toCircuit(row: SlimCircuitRow): IntentCircuit {
+export function toCircuit(row: SlimCircuitRow): IntentCircuit {
   return {
     mode: row.mode,
     capSeconds: row.cap_seconds,

@@ -28,6 +28,7 @@ import {
   useReorderExercises,
 } from "@/hooks/useBuilderMutations"
 import { dayItemId, reorderDayItems } from "@/lib/dayItems"
+import { toIntentDayFromDayItems } from "@/lib/programScore/toIntentDayFromDayItems"
 import type { Exercise, WorkoutExerciseWithExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DayEditorSkeleton } from "./DayEditorSkeleton"
+import { DayIntentMap } from "./DayIntentMap"
 import { ExerciseRow } from "./ExerciseRow"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
 import { BlockCard } from "./BlockCard"
@@ -204,6 +206,10 @@ export function DayEditor({
 
   const editBlock = blocks.find((b) => b.id === editBlockId) ?? null
   const deleteBlockTarget = blocks.find((b) => b.id === deleteBlockId) ?? null
+  const intentDay = toIntentDayFromDayItems(
+    { id: dayId, label, sortOrder: day?.sort_order ?? 0 },
+    dayItems,
+  )
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -213,6 +219,8 @@ export function DayEditor({
         placeholder={t("dayName")}
         className="text-lg font-semibold"
       />
+
+      <DayIntentMap day={intentDay} />
 
       <DndContext
         sensors={sensors}

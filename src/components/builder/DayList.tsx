@@ -18,12 +18,19 @@ import { CSS } from "@dnd-kit/utilities"
 import { Loader2, Plus, Trash2, GripVertical, Dumbbell } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
+import { useProgramIntent } from "@/hooks/useProgramIntent"
 import {
   useCreateDay,
   useDeleteDay,
   useReorderDays,
 } from "@/hooks/useBuilderMutations"
+import { dayIntentToHeatmap } from "@/lib/programScore/dayIntentToHeatmap"
+import type { ProgramIntentDay } from "@/lib/programScore/types"
 import { DayListSkeleton } from "./DayListSkeleton"
+import {
+  BodyMap,
+  BODY_MAP_INTENSITY_COLORS,
+} from "@/components/body-map/BodyMap"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -44,6 +51,7 @@ interface DayListProps {
 export function DayList({ programId, onSelectDay, onMutationStateChange }: DayListProps) {
   const { t } = useTranslation("builder")
   const { data: days, isLoading } = useWorkoutDays(programId)
+  const { data: intent } = useProgramIntent(programId)
   const createDay = useCreateDay(programId)
   const deleteDay = useDeleteDay(programId)
   const reorderDays = useReorderDays(programId)
@@ -114,6 +122,7 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
   }
 
   const items = days ?? []
+  const intentById = new Map((intent?.days ?? []).map((day) => [day.id, day]))
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -141,7 +150,7 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
               dayId={day.id}
               label={day.label}
               emoji={day.emoji}
-              exerciseCount={day.exerciseCount}
+              intentDay={intentById.get(day.id)}
               onTap={() => onSelectDay(day.id)}
               onDelete={() =>
                 setDeleteTarget({ id: day.id, label: day.label })
@@ -202,19 +211,17 @@ function DayCard({
   dayId,
   label,
   emoji,
-  exerciseCount,
+  intentDay,
   onTap,
   onDelete,
 }: {
   dayId: string
   label: string
   emoji: string
-  exerciseCount: number
+  intentDay: ProgramIntentDay | undefined
   onTap: () => void
   onDelete: () => void
 }) {
-  const { t } = useTranslation("builder")
-
   const {
     attributes,
     listeners,
@@ -229,6 +236,10 @@ function DayCard({
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
+
+  const heatmap = intentDay ? dayIntentToHeatmap(intentDay) : null
+  const showMap =
+    heatmap != null && (heatmap.data.length > 0 || heatmap.chips.length > 0)
 
   return (
     <Card
@@ -247,12 +258,17 @@ function DayCard({
           <GripVertical className="h-5 w-5" />
         </button>
         <span className="text-2xl">{emoji}</span>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold">{label}</p>
-          <p className="text-xs text-muted-foreground">
-            {t("exerciseCount", { count: exerciseCount })}
-          </p>
         </div>
+        {showMap && heatmap && (
+          <BodyMap
+            data={heatmap.data}
+            size="sm"
+            highlightedColors={BODY_MAP_INTENSITY_COLORS}
+            className="shrink-0"
+          />
+        )}
         <Button
           variant="ghost"
           size="icon"

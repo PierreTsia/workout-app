@@ -4,7 +4,8 @@ import {
   HYPERTROPHY_VOLUME_MAX,
   HYPERTROPHY_VOLUME_MIN,
 } from "@/lib/programScore/bands"
-import type { ProgramIntent, ProgramScore, ScoreBand } from "@/lib/programScore/types"
+import { scoreProgram } from "@/lib/programScore/scoreProgram"
+import type { ProgramIntent, ProgramIntentDay, ProgramScore, ScoreBand } from "@/lib/programScore/types"
 
 export type HypertrophyExample = {
   muscle: string
@@ -15,6 +16,18 @@ export type HypertrophyExample = {
 
 export type ProgramIntentScore = ProgramScore & {
   hypertrophyExample?: HypertrophyExample | null
+}
+
+export type ProgramIntentPayload = ProgramIntentScore & {
+  days: readonly ProgramIntentDay[]
+}
+
+export function programIntentPayload(intent: ProgramIntent): ProgramIntentPayload {
+  return {
+    ...scoreProgram(intent),
+    hypertrophyExample: hypertrophyWorkedExample(intent),
+    days: intent.days,
+  }
 }
 
 type MuscleAcc = {
