@@ -121,13 +121,13 @@ describe("MyWorkoutsTab", () => {
     expect(screen.getByRole("link", { name: "Old PPL" })).toBeInTheDocument()
   })
 
-  it("offers New Program", () => {
+  it("offers New program", () => {
     renderWithProviders(<MyWorkoutsTab />)
 
-    expect(screen.getByRole("button", { name: "New Program" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "New program" })).toBeEnabled()
   })
 
-  it("opens New Program on the create flow", async () => {
+  it("opens New program on the create flow", async () => {
     const user = userEvent.setup()
     renderWithProviders(
       <Routes>
@@ -136,17 +136,17 @@ describe("MyWorkoutsTab", () => {
       </Routes>,
     )
 
-    await user.click(screen.getByRole("button", { name: "New Program" }))
+    await user.click(screen.getByRole("button", { name: "New program" }))
     expect(screen.getByText("create page")).toBeInTheDocument()
   })
 
-  it("blocks New Program while a session is running", () => {
+  it("blocks New program while a session is running", () => {
     const { store } = renderWithProviders(<MyWorkoutsTab />)
     act(() => {
       store.set(sessionAtom, { ...defaultSessionState, isActive: true })
     })
 
-    expect(screen.getByRole("button", { name: "New Program" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "New program" })).toBeDisabled()
     expect(screen.getByText("Finish your current workout first")).toBeInTheDocument()
   })
 

@@ -41,6 +41,7 @@ Use these words. Do not invent a synonym.
 | **Goal Track** (hypertrophy) | Muscle growth | Prise de masse | Hypertrophy (unless glossed) |
 | **Goal Track** (strength) | Strength | Force | |
 | **Goal Track** (endurance) | Endurance | Endurance | |
+| **Score band** | Low / Moderate / High | Faible / Modéré / Élevé | On target, Dans le viseur |
 | **Set** | Set | Série | |
 | **Reps** | Reps | Reps / répétitions | |
 | **Rest** | Rest | Repos | |

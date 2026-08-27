@@ -27,6 +27,22 @@ describe("DayCard", () => {
     expect(screen.getByText("2 exercises")).toBeInTheDocument()
   })
 
+  it("is a link to the Builder when to is set", () => {
+    renderWithProviders(
+      <DayCard
+        label="Day 1 — Push"
+        exerciseCount={2}
+        items={asItems(EXERCISES)}
+        to="/builder/p-1"
+        linkState={{ dayId: "day-1", from: "/programs/p-1" }}
+      />,
+    )
+    expect(screen.getByRole("link", { name: /Day 1 — Push/ })).toHaveAttribute(
+      "href",
+      "/builder/p-1",
+    )
+  })
+
   it("renders muscle focus when provided", () => {
     renderWithProviders(
       <DayCard
@@ -67,6 +83,9 @@ describe("DayCard", () => {
     expect(screen.getByText(/90s rest/)).toBeInTheDocument()
     expect(screen.getByText(/4 × 6-8/)).toBeInTheDocument()
     expect(screen.getByText(/120s rest/)).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /Instructions:/ }),
+    ).not.toBeInTheDocument()
   })
 
   it("sorts exercises by sortOrder", () => {
@@ -115,5 +134,43 @@ describe("DayCard", () => {
     expect(screen.getByText("Finisher")).toBeInTheDocument()
     expect(screen.getByText(/3 exercises · 5 rounds/i)).toBeInTheDocument()
     expect(screen.getByText(/Gainage planche/)).toBeInTheDocument()
+  })
+
+  it("labels circuit station Rx as reps or seconds, not a naked count", () => {
+    renderWithProviders(
+      <DayCard
+        label="Day 1"
+        exerciseCount={1}
+        items={[
+          {
+            kind: "circuit",
+            id: "block-1",
+            label: "Bear Bird Hollow",
+            rounds: 3,
+            exerciseCount: 2,
+            sortOrder: 0,
+            stations: [
+              {
+                id: "s-1",
+                name: "Bear walk",
+                emoji: "🔥",
+                amounts: [10],
+                isDuration: false,
+              },
+              {
+                id: "s-2",
+                name: "Hollow hold",
+                emoji: "🔥",
+                amounts: [30],
+                isDuration: true,
+              },
+            ],
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText("10 reps")).toBeInTheDocument()
+    expect(screen.getByText("30s")).toBeInTheDocument()
   })
 })

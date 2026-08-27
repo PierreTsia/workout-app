@@ -4,14 +4,17 @@ import fr from "@/locales/fr/program.json"
 
 describe("program i18n contract", () => {
   it("matches the Tech Plan EN and FR values", () => {
+    expect(en.band.short).toBe("Low")
+    expect(en.band.ok).toBe("Moderate")
+    expect(en.band.high).toBe("High")
     expect(en.rubric.hypertrophy).toBe(
-      "On target means most muscles you programmed hit 8–20 sets and 2–3 days this week.",
+      "Moderate: most muscles you programmed hit 8–20 sets and 2–3 days this week.",
     )
     expect(en.rubric.strength).toBe(
-      "On target means 20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more.",
+      "Moderate: 20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more.",
     )
     expect(en.rubric.endurance).toBe(
-      "On target means one Circuit, or enough short-rest high-rep sets.",
+      "Moderate: one Circuit, or enough short-rest high-rep sets.",
     )
     expect(en.rubric.balance).toBe(
       "A score out of 100 for how much the program works all your muscle groups. 70 to 100 is balanced; 50 to 69 needs a look; under 50, a few muscles do almost all the work.",
@@ -19,6 +22,9 @@ describe("program i18n contract", () => {
     expect(en.example.hypertrophy).toBe(
       "{{muscle}}: {{sets}} sets · {{days}} days → {{band}}",
     )
+    expect(en.facts.stat.days).toBe("Days")
+    expect(en.facts.stat.sets).toBe("Sets")
+    expect(en.facts.stat.circuits).toBe("Circuits")
     expect(en.facts.mix.free).toBe("Free weights")
     expect(en.facts.mix.machine).toBe("Machines")
     expect(en.facts.mix.bodyweight).toBe("Bodyweight")
@@ -49,15 +55,20 @@ describe("program i18n contract", () => {
     expect(en.balance.help).toBe("What this score means")
     expect(en.days.preview).toBe("Exercises on {{day}}")
     expect(en.days.empty).toBe("Nothing on this day yet.")
+    expect(en.days.index).toBe("Day {{count}}")
+    expect(en.days.edit).toBe("Edit {{day}}")
 
+    expect(fr.band.short).toBe("Faible")
+    expect(fr.band.ok).toBe("Modéré")
+    expect(fr.band.high).toBe("Élevé")
     expect(fr.rubric.hypertrophy).toBe(
-      "Dans le viseur : la plupart des muscles que tu as mis dans la semaine ont 8–20 séries et 2–3 jours.",
+      "Modéré : la plupart des muscles que tu as mis dans la semaine ont 8–20 séries et 2–3 jours.",
     )
     expect(fr.rubric.strength).toBe(
-      "Dans le viseur : 20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus.",
+      "Modéré : 20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus.",
     )
     expect(fr.rubric.endurance).toBe(
-      "Dans le viseur : un Circuit, ou assez de séries à reps hautes et repos court.",
+      "Modéré : un Circuit, ou assez de séries à reps hautes et repos court.",
     )
     expect(fr.rubric.balance).toBe(
       "Un score sur 100 qui évalue à quel point le programme travaille l'ensemble des groupes musculaires. De 70 à 100, c'est équilibré ; 50 à 69, à surveiller ; sous 50, quelques muscles font presque tout.",
@@ -65,6 +76,9 @@ describe("program i18n contract", () => {
     expect(fr.example.hypertrophy).toBe(
       "{{muscle}} : {{sets}} séries · {{days}} j → {{band}}",
     )
+    expect(fr.facts.stat.days).toBe("Jours")
+    expect(fr.facts.stat.sets).toBe("Séries")
+    expect(fr.facts.stat.circuits).toBe("Circuits")
     expect(fr.facts.mix.free).toBe("Charges libres")
     expect(fr.facts.mix.machine).toBe("Machines")
     expect(fr.facts.mix.bodyweight).toBe("Poids du corps")
@@ -98,5 +112,7 @@ describe("program i18n contract", () => {
     expect(fr.balance.help).toBe("Ce que ce score veut dire")
     expect(fr.days.preview).toBe("Exercices du jour {{day}}")
     expect(fr.days.empty).toBe("Rien ce jour-là pour l'instant.")
+    expect(fr.days.index).toBe("Jour {{count}}")
+    expect(fr.days.edit).toBe("Éditer {{day}}")
   })
 })

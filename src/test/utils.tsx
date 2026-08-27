@@ -4,7 +4,7 @@ import { render, renderHook } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createStore, Provider as JotaiProvider } from "jotai"
 import { I18nextProvider } from "react-i18next"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, type InitialEntry } from "react-router-dom"
 import i18n from "i18next"
 import { initReactI18next } from "react-i18next"
 
@@ -124,7 +124,7 @@ export function createTestI18n({ lng = "en" }: { lng?: TestLocale } = {}) {
 }
 
 interface ProviderOptions extends Omit<RenderOptions, "wrapper"> {
-  initialEntries?: string[]
+  initialEntries?: InitialEntry[]
   locale?: TestLocale
 }
 

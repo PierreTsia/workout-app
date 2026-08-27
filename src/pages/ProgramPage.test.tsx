@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
-import { Route, Routes } from "react-router-dom"
+import userEvent from "@testing-library/user-event"
+import { Route, Routes, useLocation, useParams } from "react-router-dom"
 import { mockQueryResult, renderWithProviders } from "@/test/utils"
 import type { ProgramScore } from "@/lib/programScore/types"
 import type { Program } from "@/types/onboarding"
@@ -30,14 +31,24 @@ vi.mock("@/hooks/useOnlineStatus", () => ({
   useOnlineStatus: () => mockOnline(),
 }))
 
+import { readBuilderLocationState } from "@/lib/builderLocationState"
 import { ProgramPage } from "./ProgramPage"
 
 const VALID_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+
+function BuilderLanding() {
+  const { programId } = useParams()
+  const { dayId } = readBuilderLocationState(useLocation().state)
+  return (
+    <div>{`builder:${programId}:${dayId ?? "list"}`}</div>
+  )
+}
 
 function renderAt(path: string, locale: "en" | "fr" = "en") {
   return renderWithProviders(
     <Routes>
       <Route path="/programs/:programId" element={<ProgramPage />} />
+      <Route path="/builder/:programId" element={<BuilderLanding />} />
     </Routes>,
     { initialEntries: [path], locale },
   )
@@ -107,17 +118,84 @@ describe("ProgramPage", () => {
     mockOnline.mockReturnValue(true)
   })
 
-  it("shows not-found for a junk id and does not fabricate On target bands", () => {
+  it("shows not-found for a junk id and does not fabricate Moderate bands", () => {
     renderAt("/programs/not-a-uuid")
 
     expect(screen.getByText("This program isn’t here.")).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: "Back to programs" }),
     ).toHaveAttribute("href", "/library/programs")
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
   })
 
-  it("shows not-found for a missing program and does not fabricate On target bands", () => {
+  it("shows a loading status while the program query is pending, not not-found", () => {
+    mockUseProgram.mockReturnValue({
+      ...mockQueryResult(undefined),
+      isPending: true,
+      isLoading: false,
+      isSuccess: false,
+      isFetched: false,
+      status: "pending",
+    })
+    mockUseProgramIntent.mockReturnValue({
+      ...mockQueryResult(undefined),
+      isPending: true,
+      isLoading: false,
+      isSuccess: false,
+      status: "pending",
+    })
+    mockUseProgramDayCards.mockReturnValue({
+      ...mockQueryResult(undefined),
+      isPending: true,
+      isLoading: false,
+      isSuccess: false,
+      status: "pending",
+    })
+
+    renderAt(`/programs/${VALID_ID}`)
+
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument()
+    expect(screen.queryByText("This program isn’t here.")).not.toBeInTheDocument()
+  })
+
+  it("keeps loading while a cached not-found is still refetching", () => {
+    mockUseProgram.mockReturnValue({
+      ...missingProgram(),
+      isFetching: true,
+    })
+
+    renderAt(`/programs/${VALID_ID}`)
+
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument()
+    expect(screen.queryByText("This program isn’t here.")).not.toBeInTheDocument()
+  })
+
+  it("shows a loading status until scores and days settle, not an empty week", () => {
+    mockUseProgram.mockReturnValue(mockQueryResult(makeProgram()))
+    mockUseProgramIntent.mockReturnValue({
+      ...mockQueryResult(undefined),
+      isPending: true,
+      isLoading: false,
+      isSuccess: false,
+      status: "pending",
+    })
+    mockUseProgramDayCards.mockReturnValue({
+      ...mockQueryResult(undefined),
+      isPending: true,
+      isLoading: false,
+      isSuccess: false,
+      status: "pending",
+    })
+
+    renderAt(`/programs/${VALID_ID}`)
+
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument()
+    expect(
+      screen.queryByText("Add a day to see what this program is for."),
+    ).not.toBeInTheDocument()
+  })
+
+  it("shows not-found for a missing program and does not fabricate Moderate bands", () => {
     mockUseProgram.mockReturnValue(missingProgram())
     mockUseProgramIntent.mockReturnValue(mockQueryResult(undefined))
 
@@ -127,7 +205,7 @@ describe("ProgramPage", () => {
     expect(
       screen.getByRole("link", { name: "Back to programs" }),
     ).toHaveAttribute("href", "/library/programs")
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
   })
 
   it("shows empty.scores for a week with no items and does not show Low", () => {
@@ -138,16 +216,18 @@ describe("ProgramPage", () => {
 
     expect(screen.getByText("Add a day to see what this program is for.")).toBeInTheDocument()
     expect(screen.queryByText("Low")).not.toBeInTheDocument()
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
   })
 
-  it("renders scores, facts, and DayCards for the owner, without Start", () => {
+  it("renders scores, facts, and day summaries for the owner, without Start", async () => {
     mockUseProgram.mockReturnValue(mockQueryResult(makeProgram()))
     mockUseProgramIntent.mockReturnValue(mockQueryResult(scoredWeek()))
     mockUseProgramDayCards.mockReturnValue(
       mockQueryResult([
         {
           id: "day-1",
+          emoji: "🔥",
+          name: "Push",
           label: "🔥 Push",
           exerciseCount: 1,
           items: [
@@ -166,18 +246,27 @@ describe("ProgramPage", () => {
       ]),
     )
 
+    const user = userEvent.setup()
     renderAt(`/programs/${VALID_ID}`)
 
     expect(screen.getByRole("heading", { name: "PPL" })).toBeInTheDocument()
+    await user.click(screen.getAllByRole("button", { name: "Why this goal" })[0])
     expect(
       screen.getByText(
-        "On target means most muscles you programmed hit 8–20 sets and 2–3 days this week.",
+        "Moderate: most muscles you programmed hit 8–20 sets and 2–3 days this week.",
       ),
     ).toBeInTheDocument()
     expect(screen.getByText("Balance")).toBeInTheDocument()
+    expect(screen.getByText("Moderate")).toBeInTheDocument()
+    expect(screen.getByText("Low")).toBeInTheDocument()
+    expect(screen.getByText("High")).toBeInTheDocument()
     expect(screen.getByText("42")).toBeInTheDocument()
-    expect(screen.getByText("3 days · 24 sets · 1 circuits")).toBeInTheDocument()
+    expect(screen.getByText("Days")).toBeInTheDocument()
+    expect(screen.getByText("24")).toBeInTheDocument()
+    expect(screen.getByText("Sets")).toBeInTheDocument()
     expect(screen.getByText(/Free weights/)).toBeInTheDocument()
+    expect(screen.queryByText(/Bench Press/)).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: /Push/ }))
     expect(screen.getByText(/Bench Press/)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute(
       "href",
@@ -185,9 +274,71 @@ describe("ProgramPage", () => {
     )
     expect(screen.queryByRole("button", { name: /start/i })).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /start/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Open menu" })).not.toBeInTheDocument()
   })
 
-  it("shows loadError and no On target when the program query fails", () => {
+  it("keeps activate and archive in the header menu, not a button row", async () => {
+    mockUseProgram.mockReturnValue(
+      mockQueryResult(makeProgram({ is_active: false })),
+    )
+    mockUseProgramIntent.mockReturnValue(mockQueryResult(scoredWeek()))
+    mockUseProgramDayCards.mockReturnValue(mockQueryResult([]))
+    const user = userEvent.setup()
+    renderAt(`/programs/${VALID_ID}`)
+
+    expect(screen.queryByRole("button", { name: "Activate" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Open menu" }))
+    expect(screen.getByRole("menuitem", { name: "Activate" })).toBeInTheDocument()
+    expect(screen.getByRole("menuitem", { name: "Archive" })).toBeInTheDocument()
+  })
+
+  it("opens that day's Builder editor from a day card", async () => {
+    mockUseProgram.mockReturnValue(mockQueryResult(makeProgram()))
+    mockUseProgramIntent.mockReturnValue(mockQueryResult(scoredWeek()))
+    mockUseProgramDayCards.mockReturnValue(
+      mockQueryResult([
+        {
+          id: "day-1",
+          emoji: "🔥",
+          name: "Push",
+          label: "🔥 Push",
+          exerciseCount: 1,
+          items: [
+            {
+              kind: "solo" as const,
+              id: "we-1",
+              emoji: "🏋️",
+              name: "Bench Press",
+              sets: 3,
+              reps: "8",
+              restSeconds: 90,
+              sortOrder: 0,
+            },
+          ],
+        },
+      ]),
+    )
+    const user = userEvent.setup()
+    renderAt(`/programs/${VALID_ID}`)
+
+    await user.click(screen.getByRole("link", { name: "Edit Push" }))
+    expect(screen.getByText(`builder:${VALID_ID}:day-1`)).toBeInTheDocument()
+  })
+
+  it("opens the Builder day list from the header Edit", async () => {
+    mockUseProgram.mockReturnValue(mockQueryResult(makeProgram()))
+    mockUseProgramIntent.mockReturnValue(mockQueryResult(scoredWeek()))
+    mockUseProgramDayCards.mockReturnValue(mockQueryResult([]))
+    const user = userEvent.setup()
+    renderAt(`/programs/${VALID_ID}`)
+
+    await user.click(screen.getByRole("link", { name: "Edit" }))
+    expect(screen.getByText(`builder:${VALID_ID}:list`)).toBeInTheDocument()
+  })
+
+  it("shows loadError and no Moderate when the program query fails", () => {
     mockUseProgram.mockReturnValue({
       ...mockQueryResult(undefined),
       isError: true,
@@ -199,7 +350,7 @@ describe("ProgramPage", () => {
     renderAt(`/programs/${VALID_ID}`)
 
     expect(screen.getByText("We couldn’t load this program.")).toBeInTheDocument()
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
   })
 
   it("shows offline copy and no bands when offline with a cache miss", () => {
@@ -215,7 +366,7 @@ describe("ProgramPage", () => {
     expect(
       screen.getByText("Scores will show when this week is already on the phone."),
     ).toBeInTheDocument()
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
     expect(screen.queryByText("Low")).not.toBeInTheDocument()
   })
 })

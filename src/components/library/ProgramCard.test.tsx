@@ -77,11 +77,11 @@ describe("ProgramCard", () => {
     expect(screen.getByText("Test Program")).toBeInTheDocument()
     expect(screen.getByText("Built for")).toBeInTheDocument()
     expect(screen.getByText("Endurance")).toBeInTheDocument()
-    expect(screen.queryByText("Muscle growth · On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Muscle growth · Moderate")).not.toBeInTheDocument()
     expect(screen.queryByText("Balance")).not.toBeInTheDocument()
     expect(screen.queryByText("42")).not.toBeInTheDocument()
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
-    expect(screen.getByText("3 days · 24 sets · 1 circuits")).toBeInTheDocument()
+    expect(screen.getByText("3 days · 24 sets · 1 circuit")).toBeInTheDocument()
     expect(screen.queryByText(/Push/)).not.toBeInTheDocument()
   })
 
@@ -101,7 +101,7 @@ describe("ProgramCard", () => {
     expect(screen.queryByText(/Bench/)).not.toBeInTheDocument()
   })
 
-  it("does not fabricate On target chips for an empty program", () => {
+  it("does not fabricate Moderate chips for an empty program", () => {
     renderCard({
       score: makeScore({
         hypertrophy: { band: "empty", volume: "empty", frequency: "empty" },
@@ -118,7 +118,7 @@ describe("ProgramCard", () => {
       }),
     })
 
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
     expect(screen.queryByText(/Muscle growth/)).not.toBeInTheDocument()
     expect(screen.queryByText("Low")).not.toBeInTheDocument()
     expect(screen.queryByText("Built for")).not.toBeInTheDocument()
@@ -132,7 +132,7 @@ describe("ProgramCard", () => {
       0,
     )
     expect(screen.queryByText("Low")).not.toBeInTheDocument()
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
   })
 
   it("uses the FR contract for focus and the fact line — not Équilibre on the card", () => {
@@ -151,10 +151,10 @@ describe("ProgramCard", () => {
     expect(screen.getByText("Endurance")).toBeInTheDocument()
     expect(screen.getByText(/Créé le /)).toBeInTheDocument()
     expect(screen.queryByText(/Généré le /)).not.toBeInTheDocument()
-    expect(screen.queryByText("Prise de masse · Dans le viseur")).not.toBeInTheDocument()
+    expect(screen.queryByText("Prise de masse · Modéré")).not.toBeInTheDocument()
     expect(screen.queryByText("Équilibre")).not.toBeInTheDocument()
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
-    expect(screen.getByText("3 j · 24 séries · 1 circuits")).toBeInTheDocument()
+    expect(screen.getByText("3 j · 24 séries · 1 circuit")).toBeInTheDocument()
   })
 
   it("opens the focus popover with a goal and a reason — not band names", async () => {
@@ -168,7 +168,7 @@ describe("ProgramCard", () => {
         "This program looks better for Endurance, because it has a Circuit, or enough high-rep sets with short rest.",
       ),
     ).toBeInTheDocument()
-    expect(screen.queryByText("On target")).not.toBeInTheDocument()
+    expect(screen.queryByText("Moderate")).not.toBeInTheDocument()
     expect(screen.queryByText("Low")).not.toBeInTheDocument()
     expect(
       screen.queryByText(
@@ -177,7 +177,7 @@ describe("ProgramCard", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("FR focus popover says the goal and the reason — not Dans le viseur", async () => {
+  it("FR focus popover says the goal and the reason — not Modéré", async () => {
     const defaultProps = {
       program: BASE_PROGRAM,
       isActive: false,
@@ -197,7 +197,7 @@ describe("ProgramCard", () => {
         "Ce programme paraît plus fait pour Endurance, parce que tu as un Circuit, ou assez de séries à reps hautes et repos court.",
       ),
     ).toBeInTheDocument()
-    expect(screen.queryByText("Dans le viseur")).not.toBeInTheDocument()
+    expect(screen.queryByText("Modéré")).not.toBeInTheDocument()
     expect(screen.queryByText("Faible")).not.toBeInTheDocument()
   })
 

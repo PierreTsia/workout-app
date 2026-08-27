@@ -6,6 +6,7 @@ import {
 import { DayOutlinePopover } from "@/components/program/DayOutlinePopover"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { Skeleton } from "@/components/ui/skeleton"
+import { formatFactsLine } from "@/components/program/formatFactsLine"
 import { cn } from "@/lib/utils"
 import type { ProgramBodyMap } from "@/lib/programScore/bodyMapFromIntent"
 import { formatDayOutlineCaption } from "@/lib/programScore/dayOutline"
@@ -61,13 +62,7 @@ export function ProgramScoreChips({
       )}
     >
       <div className={cn("flex min-w-0 flex-col gap-2", featured && "lg:flex-1")}>
-        <p className="text-sm font-medium">
-          {t("facts.line", {
-            days: score.facts.dayCount,
-            sets: score.facts.setCount,
-            circuits: score.facts.circuitCount,
-          })}
-        </p>
+        <p className="text-sm font-medium">{formatFactsLine(t, score.facts)}</p>
 
         {winners.length > 0 && (
           <div className="flex min-w-0 items-center gap-1">

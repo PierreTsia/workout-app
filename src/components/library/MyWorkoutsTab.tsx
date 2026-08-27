@@ -79,23 +79,25 @@ export function MyWorkoutsTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Dumbbell className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold text-foreground">
-          {t("myPrograms")}
-        </h2>
-      </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-2">
+          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">
+            {t("myPrograms")}
+          </h2>
+        </div>
 
-      <Button
-        className="w-full gap-2"
-        variant="outline"
-        onClick={() => navigate("/create-program")}
-        disabled={session.isActive}
-        title={session.isActive ? t("sessionActiveWarning") : undefined}
-      >
-        <Plus className="h-4 w-4" />
-        {t("createProgram")}
-      </Button>
+        <Button
+          className="w-full gap-2 lg:w-auto"
+          variant="outline"
+          onClick={() => navigate("/create-program")}
+          disabled={session.isActive}
+          title={session.isActive ? t("sessionActiveWarning") : undefined}
+        >
+          <Plus className="h-4 w-4" />
+          {t("createProgram")}
+        </Button>
+      </div>
 
       {session.isActive && (
         <p className="text-center text-xs text-muted-foreground">

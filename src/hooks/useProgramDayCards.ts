@@ -10,6 +10,8 @@ import { supabase } from "@/lib/supabase"
 
 export type ProgramDayCard = {
   id: string
+  emoji: string
+  name: string
   label: string
   exerciseCount: number
   items: DayCardItem[]
@@ -29,8 +31,8 @@ const DAY_CARDS_SELECT = [
   "emoji",
   "label",
   "sort_order",
-  `workout_exercises(id, emoji_snapshot, name_snapshot, sets, reps, rest_seconds, sort_order, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
-  `exercise_blocks(id, label, rounds, sort_order, exercises:block_exercises(id, position))`,
+  `workout_exercises(id, exercise_id, emoji_snapshot, name_snapshot, sets, reps, rest_seconds, sort_order, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
+  `exercise_blocks(id, label, rounds, sort_order, exercises:block_exercises(id, position, exercise_id, name_snapshot, emoji_snapshot, per_round, exercise:exercises(measurement_type)))`,
 ].join(", ")
 
 export function useProgramDayCards(programId: string | null) {
@@ -55,6 +57,8 @@ export function useProgramDayCards(programId: string | null) {
         const items = toDayCardItems(day.workout_exercises, blocks)
         return {
           id: day.id,
+          emoji: day.emoji,
+          name: day.label,
           label: `${day.emoji} ${day.label}`,
           exerciseCount: items.length,
           items,
