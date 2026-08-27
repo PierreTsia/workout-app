@@ -267,10 +267,13 @@ test.describe("Onboarding", () => {
     await page.getByRole("link", { name: /^Programs$/i }).click()
     await expect(page).toHaveURL(/\/library\/programs/, { timeout: 10_000 })
 
-    // --- Click "Activate" on the inactive program ---
-    const activateButton = page.getByRole("button", { name: /Activate/i }).first()
-    await expect(activateButton).toBeVisible({ timeout: 15_000 })
-    await activateButton.click()
+    // Activate lives in the inactive card kebab — not a footer button.
+    const inactiveCard = page.getByRole("link", { name: "Second Program" }).locator("..")
+    await expect(inactiveCard.getByRole("button", { name: "Open menu" })).toBeVisible({
+      timeout: 15_000,
+    })
+    await inactiveCard.getByRole("button", { name: "Open menu" }).click()
+    await page.getByRole("menuitem", { name: /Activate/i }).click()
 
     // --- Confirm activation dialog ---
     await expect(page.getByText(/Switch program/i)).toBeVisible({ timeout: 5_000 })
