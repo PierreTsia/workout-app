@@ -177,10 +177,9 @@ test.describe("Builder — CRUD", () => {
 
     const deleteExDialog = page.getByRole("dialog")
     await expect(deleteExDialog).toBeVisible()
-    await deleteExDialog.getByRole("button", { name: /remove/i }).click()
-    await expect(page.getByText(exerciseName!)).not.toBeVisible({
-      timeout: 5_000,
-    })
+    await deleteExDialog.getByRole("button", { name: /^remove$/i }).click()
+    await expect(deleteExDialog).not.toBeVisible({ timeout: 10_000 })
+    await expect(exerciseRow).not.toBeVisible({ timeout: 5_000 })
 
     // --- Navigate back to day list ---
     const backButton = page.locator("button:has(.lucide-arrow-left)")
@@ -347,6 +346,7 @@ test.describe("Builder — CRUD", () => {
     await expect(page.getByText(secondName!).first()).toBeVisible()
 
     // --- Cleanup: delete the throwaway day ---
+    await page.keyboard.press("Escape")
     const backButton = page.locator("button:has(.lucide-arrow-left)")
     await backButton.click()
     const dayCard = page
