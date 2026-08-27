@@ -12,7 +12,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { Layers, Loader2, Plus } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
@@ -27,7 +27,8 @@ import {
   useDeleteExercise,
   useReorderExercises,
 } from "@/hooks/useBuilderMutations"
-import { dayItemId, reorderDayItems } from "@/lib/dayItems"
+import { dayItemId, dayItemSortUpdates, moveDayItems } from "@/lib/dayItems"
+import { toIntentDayFromDayItems } from "@/lib/programScore/toIntentDayFromDayItems"
 import type { Exercise, WorkoutExerciseWithExercise } from "@/types/database"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DayEditorSkeleton } from "./DayEditorSkeleton"
+import { DayIntentMap } from "./DayIntentMap"
 import { ExerciseRow } from "./ExerciseRow"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
 import { BlockCard } from "./BlockCard"
@@ -48,14 +50,12 @@ import { BlockEditor } from "./BlockEditor"
 interface DayEditorProps {
   programId: string
   dayId: string
-  onSelectExercise: (exerciseId: string) => void
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
 }
 
 export function DayEditor({
   programId,
   dayId,
-  onSelectExercise,
   onMutationStateChange,
 }: DayEditorProps) {
   const { t } = useTranslation("builder")
@@ -74,16 +74,19 @@ export function DayEditor({
   const [label, setLabel] = useState(day?.label ?? "")
   const [trackedDayId, setTrackedDayId] = useState(dayId)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [blockPickerOpen, setBlockPickerOpen] = useState(false)
   const [editBlockId, setEditBlockId] = useState<string | null>(null)
   const [deleteBlockId, setDeleteBlockId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] =
     useState<WorkoutExerciseWithExercise | null>(null)
+  const [pendingOrder, setPendingOrder] = useState<typeof dayItems | null>(null)
 
   if (dayId !== trackedDayId) {
     setTrackedDayId(dayId)
     setLabel(day?.label ?? "")
+    setPendingOrder(null)
   }
+
+  const displayItems = pendingOrder ?? dayItems
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
@@ -120,13 +123,15 @@ export function DayEditor({
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const { solos, blocks } = reorderDayItems(
-      dayItems,
+    const nextItems = moveDayItems(
+      displayItems,
       String(active.id),
       String(over.id),
     )
-    if (solos.length === 0 && blocks.length === 0) return
+    if (nextItems === displayItems) return
 
+    const { solos, blocks } = dayItemSortUpdates(nextItems)
+    setPendingOrder(nextItems)
     onMutationStateChange("saving")
     try {
       await Promise.all([
@@ -140,6 +145,8 @@ export function DayEditor({
       onMutationStateChange("saved")
     } catch {
       onMutationStateChange("error")
+    } finally {
+      setPendingOrder(null)
     }
   }
 
@@ -161,7 +168,7 @@ export function DayEditor({
     )
   }
 
-  const existingMaxSortOrder = dayItems.reduce(
+  const existingMaxSortOrder = displayItems.reduce(
     (max, item) => Math.max(max, item.sort_order),
     -1,
   )
@@ -193,10 +200,12 @@ export function DayEditor({
   }
 
   const soloItems = useMemo(
-    () => dayItems.flatMap((i) => (i.kind === "solo" ? [i.exercise] : [])),
-    [dayItems],
+    () => displayItems.flatMap((i) => (i.kind === "solo" ? [i.exercise] : [])),
+    [displayItems],
   )
-  const blocks = dayItems.flatMap((i) => (i.kind === "block" ? [i.block] : []))
+  const blocks = displayItems.flatMap((i) =>
+    i.kind === "block" ? [i.block] : [],
+  )
 
   if (isLoading) {
     return <DayEditorSkeleton />
@@ -204,6 +213,10 @@ export function DayEditor({
 
   const editBlock = blocks.find((b) => b.id === editBlockId) ?? null
   const deleteBlockTarget = blocks.find((b) => b.id === deleteBlockId) ?? null
+  const intentDay = toIntentDayFromDayItems(
+    { id: dayId, label, sortOrder: day?.sort_order ?? 0 },
+    displayItems,
+  )
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -214,23 +227,25 @@ export function DayEditor({
         className="text-lg font-semibold"
       />
 
+      <DayIntentMap day={intentDay} />
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={dayItems.map(dayItemId)}
+          items={displayItems.map(dayItemId)}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex flex-col gap-2">
-            {dayItems.map((item) =>
+            {displayItems.map((item) =>
               item.kind === "solo" ? (
                 <ExerciseRow
                   key={item.exercise.id}
                   exercise={item.exercise}
-                  onTap={() => onSelectExercise(item.exercise.id)}
                   onDelete={() => setDeleteTarget(item.exercise)}
+                  onMutationStateChange={onMutationStateChange}
                 />
               ) : (
                 <BlockCard
@@ -245,35 +260,26 @@ export function DayEditor({
         </SortableContext>
       </DndContext>
 
-      {dayItems.length === 0 && (
+      {displayItems.length === 0 && (
         <p className="py-4 text-center text-sm text-muted-foreground">
           {t("noExercises")}
         </p>
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setPickerOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          {t("addExercise")}
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          onClick={() => setBlockPickerOpen(true)}
-        >
-          <Layers className="h-4 w-4" />
-          {t("createBlock")}
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={() => setPickerOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
+        {t("addExercise")}
+      </Button>
 
       <ExerciseLibraryPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         dayId={dayId}
+        dayLabel={label}
         existingExerciseCount={soloItems.length}
         existingExercises={soloItems.map((e) => ({
           exercise_id: e.exercise_id,
@@ -281,14 +287,6 @@ export function DayEditor({
         }))}
         onMutationStateChange={onMutationStateChange}
         existingMaxSortOrder={existingMaxSortOrder}
-      />
-
-      <ExerciseLibraryPicker
-        open={blockPickerOpen}
-        onOpenChange={setBlockPickerOpen}
-        dayId={dayId}
-        existingExerciseCount={0}
-        onMutationStateChange={onMutationStateChange}
         onCreateBlock={handleCreateBlock}
       />
 

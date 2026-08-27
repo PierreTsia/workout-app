@@ -126,11 +126,19 @@ describe("useProgramsIntent", () => {
 
     expect(setQueryData).toHaveBeenCalledWith(
       ["program-intent", "prog-1"],
-      scored?.["prog-1"]?.score,
+      expect.objectContaining({
+        facts: expect.objectContaining({ setCount: HYPERTROPHY_VOLUME_MIN }),
+        days: expect.arrayContaining([
+          expect.objectContaining({ id: "day-1", label: "Push" }),
+        ]),
+      }),
     )
     expect(setQueryData).toHaveBeenCalledWith(
       ["program-intent", "prog-2"],
-      scored?.["prog-2"]?.score,
+      expect.objectContaining({
+        hypertrophy: expect.objectContaining({ band: "empty" }),
+        days: [],
+      }),
     )
   })
 })

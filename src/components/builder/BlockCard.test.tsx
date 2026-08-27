@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { SortableContext } from "@dnd-kit/sortable"
 import { renderWithProviders } from "@/test/utils"
@@ -83,5 +84,49 @@ describe("BlockCard", () => {
       screen.queryByText("As many rounds as possible."),
     ).not.toBeInTheDocument()
     expect(screen.queryByText(/1 round/i)).not.toBeInTheDocument()
+  })
+
+  it("opens Edit circuit from overflow, not a pencil or trash button", async () => {
+    const user = userEvent.setup()
+    const onEdit = vi.fn()
+    const onDelete = vi.fn()
+    const block = makeBlock()
+    renderWithProviders(
+      <DndContext>
+        <SortableContext items={[block.id]}>
+          <BlockCard block={block} onEdit={onEdit} onDelete={onDelete} />
+        </SortableContext>
+      </DndContext>,
+    )
+
+    expect(
+      screen.queryByRole("button", { name: /edit circuit/i }),
+    ).not.toBeInTheDocument()
+    expect(document.querySelector(".lucide-pencil")).not.toBeInTheDocument()
+    expect(document.querySelector(".lucide-trash-2")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Edit circuit" }))
+
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onDelete).not.toHaveBeenCalled()
+  })
+
+  it("opens circuit remove from overflow", async () => {
+    const user = userEvent.setup()
+    const onDelete = vi.fn()
+    const block = makeBlock()
+    renderWithProviders(
+      <DndContext>
+        <SortableContext items={[block.id]}>
+          <BlockCard block={block} onEdit={vi.fn()} onDelete={onDelete} />
+        </SortableContext>
+      </DndContext>,
+    )
+
+    await user.click(screen.getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Remove" }))
+
+    expect(onDelete).toHaveBeenCalledTimes(1)
   })
 })

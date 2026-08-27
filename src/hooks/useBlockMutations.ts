@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom } from "@/store/atoms"
+import { applySortOrders } from "@/lib/dayItems"
 import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { buildBlockInsertRows } from "@/lib/blockPersistence"
 import { resizePerRound } from "@/lib/perRound"
@@ -224,6 +225,20 @@ export function useReorderBlocks() {
       )
       const failed = results.find((r) => r.error)
       if (failed?.error) throw failed.error
+    },
+    onMutate: async ({ dayId, blocks }) => {
+      const queryKey = ["exercise-blocks", dayId] as const
+      await qc.cancelQueries({ queryKey })
+      const previous = qc.getQueryData<{ id: string; sort_order: number }[]>(
+        queryKey,
+      )
+      if (previous) qc.setQueryData(queryKey, applySortOrders(previous, blocks))
+      return { previous }
+    },
+    onError: (_err, { dayId }, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["exercise-blocks", dayId], context.previous)
+      }
     },
     onSuccess: (_data, { dayId }) => {
       qc.invalidateQueries({ queryKey: ["exercise-blocks", dayId] })

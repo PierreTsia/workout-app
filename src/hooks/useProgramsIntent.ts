@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { SLIM_EXERCISE_SELECT } from "@/lib/exerciseSelects"
+import { programIntentPayload } from "@/lib/programScore/hypertrophyExample"
 import {
   PROGRAM_INTENT_KEY,
   PROGRAMS_INTENT_KEY,
@@ -90,7 +91,11 @@ export function useProgramsIntent(programIds: readonly string[]) {
 
       const scores = scoreByProgram(programIds, data ?? [])
       programIds.forEach((id) => {
-        queryClient.setQueryData([PROGRAM_INTENT_KEY, id], scores[id]?.score)
+        const programRows = (data ?? []).filter((row) => row.program_id === id)
+        queryClient.setQueryData(
+          [PROGRAM_INTENT_KEY, id],
+          programIntentPayload(toIntent(id, programRows)),
+        )
       })
       return scores
     },

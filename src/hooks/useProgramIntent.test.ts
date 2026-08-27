@@ -90,5 +90,8 @@ describe("useProgramIntent", () => {
     expect(result.current.data?.facts.dayCount).toBe(1)
     expect(result.current.data?.hypertrophy.band).toBe("short")
     expect(result.current.data?.hypertrophyExample?.muscle).toBe("Pectoraux")
+    expect(result.current.data?.days).toHaveLength(1)
+    expect(result.current.data?.days[0]?.id).toBe("day-1")
+    expect(result.current.data?.days[0]?.solos).toHaveLength(1)
   })
 })
