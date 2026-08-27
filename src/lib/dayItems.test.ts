@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest"
-import { buildDayItems, reorderDayItems } from "@/lib/dayItems"
+import {
+  applySortOrders,
+  buildDayItems,
+  dayItemId,
+  moveDayItems,
+  reorderDayItems,
+} from "@/lib/dayItems"
 import type {
   WorkoutExerciseWithExercise,
   ExerciseBlockWithExercises,
@@ -132,5 +138,55 @@ describe("reorderDayItems", () => {
       solos: [],
       blocks: [],
     })
+  })
+})
+
+describe("moveDayItems", () => {
+  it("returns a new sequence with reindexed nested rows on drop", () => {
+    const items = buildDayItems(
+      [
+        makeSolo({ id: "s-a", sort_order: 0 }),
+        makeSolo({ id: "s-b", sort_order: 2 }),
+      ],
+      [makeBlock({ id: "b-1", sort_order: 1 })],
+    )
+
+    const next = moveDayItems(items, "b-1", "s-a")
+
+    expect(next.map(dayItemId)).toEqual(["b-1", "s-a", "s-b"])
+    expect(next.map((item) => item.sort_order)).toEqual([0, 1, 2])
+    expect(next[0]).toMatchObject({
+      kind: "block",
+      block: { id: "b-1", sort_order: 0 },
+    })
+    expect(next[1]).toMatchObject({
+      kind: "solo",
+      exercise: { id: "s-a", sort_order: 1 },
+    })
+  })
+
+  it("returns the same array when the drop is a no-op", () => {
+    const items = buildDayItems([makeSolo({ id: "s-a" })], [])
+    expect(moveDayItems(items, "s-a", "s-a")).toBe(items)
+    expect(moveDayItems(items, "nope", "s-a")).toBe(items)
+  })
+})
+
+describe("applySortOrders", () => {
+  it("rewrites sort_order on matching ids and leaves the rest", () => {
+    const rows = [
+      makeSolo({ id: "s-a", sort_order: 0 }),
+      makeSolo({ id: "s-b", sort_order: 1 }),
+    ]
+
+    expect(
+      applySortOrders(rows, [
+        { id: "s-a", sort_order: 1 },
+        { id: "s-b", sort_order: 0 },
+      ]).map((row) => [row.id, row.sort_order]),
+    ).toEqual([
+      ["s-a", 1],
+      ["s-b", 0],
+    ])
   })
 })

@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { FeedbackTrigger } from "@/components/feedback/FeedbackTrigger"
+import { ProfileHint } from "@/components/profile/ProfileHint"
 
 type LibraryExercise = ReturnType<typeof useExerciseFromLibrary>["data"]
 
@@ -191,7 +192,7 @@ export function ExerciseDetailForm({
 
       <ExerciseInstructionsPanel exerciseId={exercise.exercise_id} />
 
-      <Collapsible>
+      <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent/50">
           {t("progressionSettings")}
           <ChevronDown className="h-4 w-4 shrink-0 transition-transform [[data-state=open]>&]:rotate-180" />
@@ -282,16 +283,23 @@ export function ExerciseDetailForm({
                 placeholder={t("weightIncrementPlaceholder")}
               />
             </FieldGroup>
-            <FieldGroup label={t("maxWeightReached")}>
+            <div className="flex flex-col gap-1.5">
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                {t("maxWeightReached")}
+                <ProfileHint label={t("maxWeightReachedHintAria")}>
+                  {t("maxWeightReachedHint")}
+                </ProfileHint>
+              </span>
               <Switch
                 checked={form.max_weight_reached}
+                aria-label={t("maxWeightReached")}
                 onCheckedChange={(checked) => {
                   const next = { ...form, max_weight_reached: checked }
                   setForm(next)
                   flush(next)
                 }}
               />
-            </FieldGroup>
+            </div>
           </div>
         </CollapsibleContent>
       </Collapsible>

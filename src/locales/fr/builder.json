@@ -63,6 +63,8 @@
   "weightIncrement": "Palier de poids",
   "weightIncrementPlaceholder": "Auto",
   "maxWeightReached": "Poids max atteint",
+  "maxWeightReachedHintAria": "Ce que signifie poids max atteint",
+  "maxWeightReachedHint": "Active si tu ne peux plus monter en poids. Ensuite on ajoute une série, pas des kilos.",
   "durationRangeMin": "Maintien min (sec)",
   "durationRangeMax": "Maintien max (sec)",
   "durationIncrement": "Palier maintien (sec)",

@@ -95,6 +95,7 @@ describe("ExerciseDetailForm", () => {
       screen.queryByRole("spinbutton", { name: "Rest (seconds)" }),
     ).not.toBeInTheDocument()
     expect(screen.getByText("Progression settings")).toBeInTheDocument()
+    expect(screen.getByRole("spinbutton", { name: "Min reps" })).toBeInTheDocument()
   })
 
   it("writes leftover range fields without touching sets or rest", async () => {
@@ -107,7 +108,6 @@ describe("ExerciseDetailForm", () => {
       }),
     )
 
-    await user.click(screen.getByText("Progression settings"))
     const minSets = screen.getByRole("spinbutton", { name: "Min sets" })
     await user.clear(minSets)
     await user.type(minSets, "4")
@@ -130,7 +130,6 @@ describe("ExerciseDetailForm", () => {
   it("flushes a pending leftover edit on unmount", () => {
     const { unmount } = renderForm(makeExercise({ set_range_min: 3 }))
 
-    fireEvent.click(screen.getByText("Progression settings"))
     fireEvent.change(screen.getByRole("spinbutton", { name: "Min sets" }), {
       target: { value: "4" },
     })
@@ -144,8 +143,25 @@ describe("ExerciseDetailForm", () => {
     })
   })
 
-  it("shows duration ranges instead of rep ranges for holds", async () => {
+  it("explains weight maxed on tap without flipping the switch", async () => {
     const user = userEvent.setup()
+    renderForm()
+
+    const toggle = screen.getByRole("switch", { name: "Weight maxed" })
+    expect(toggle).toBeChecked()
+
+    await user.click(
+      screen.getByRole("button", { name: "What weight maxed means" }),
+    )
+    expect(
+      await screen.findByText(
+        "On when you can't go heavier. Next step is an extra set, not more weight.",
+      ),
+    ).toBeVisible()
+    expect(toggle).toBeChecked()
+  })
+
+  it("shows duration ranges instead of rep ranges for holds", () => {
     renderWithProviders(
       <ExerciseDetailForm
         exercise={makeExercise()}
@@ -153,8 +169,6 @@ describe("ExerciseDetailForm", () => {
         onMutationStateChange={vi.fn()}
       />,
     )
-
-    await user.click(screen.getByText("Progression settings"))
 
     expect(
       screen.getByRole("spinbutton", { name: "Min hold (sec)" }),

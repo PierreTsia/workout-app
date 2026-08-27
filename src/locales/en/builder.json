@@ -63,6 +63,8 @@
   "weightIncrement": "Weight step",
   "weightIncrementPlaceholder": "Auto",
   "maxWeightReached": "Weight maxed",
+  "maxWeightReachedHintAria": "What weight maxed means",
+  "maxWeightReachedHint": "On when you can't go heavier. Next step is an extra set, not more weight.",
   "durationRangeMin": "Min hold (sec)",
   "durationRangeMax": "Max hold (sec)",
   "durationIncrement": "Hold step (sec)",

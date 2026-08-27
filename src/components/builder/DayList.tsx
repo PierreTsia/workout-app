@@ -17,7 +17,10 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { Loader2, Plus, Trash2, GripVertical, Dumbbell } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useWorkoutDays } from "@/hooks/useWorkoutDays"
+import {
+  useWorkoutDays,
+  type WorkoutDayWithExerciseCount,
+} from "@/hooks/useWorkoutDays"
 import { useProgramIntent } from "@/hooks/useProgramIntent"
 import {
   useCreateDay,
@@ -59,6 +62,17 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
     id: string
     label: string
   } | null>(null)
+  const [pendingDays, setPendingDays] = useState<{
+    programId: string
+    days: WorkoutDayWithExerciseCount[]
+  } | null>(null)
+
+  if (pendingDays && pendingDays.programId !== programId) {
+    setPendingDays(null)
+  }
+
+  const items =
+    pendingDays?.programId === programId ? pendingDays.days : (days ?? [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -69,22 +83,27 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
-    if (!over || active.id === over.id || !days) return
+    if (!over || active.id === over.id) return
 
-    const oldIndex = days.findIndex((d) => d.id === active.id)
-    const newIndex = days.findIndex((d) => d.id === over.id)
+    const oldIndex = items.findIndex((d) => d.id === active.id)
+    const newIndex = items.findIndex((d) => d.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
-    const reordered = arrayMove(days, oldIndex, newIndex).map((d, idx) => ({
-      id: d.id,
-      sort_order: idx,
+    const nextDays = arrayMove(items, oldIndex, newIndex).map((d, sort_order) => ({
+      ...d,
+      sort_order,
     }))
+    setPendingDays({ programId, days: nextDays })
 
     onMutationStateChange("saving")
-    reorderDays.mutate(reordered, {
-      onSuccess: () => onMutationStateChange("saved"),
-      onError: () => onMutationStateChange("error"),
-    })
+    reorderDays.mutate(
+      nextDays.map((d) => ({ id: d.id, sort_order: d.sort_order })),
+      {
+        onSettled: () => setPendingDays(null),
+        onSuccess: () => onMutationStateChange("saved"),
+        onError: () => onMutationStateChange("error"),
+      },
+    )
   }
 
   function handleNewDay() {
@@ -121,7 +140,6 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
     return <DayListSkeleton />
   }
 
-  const items = days ?? []
   const intentById = new Map((intent?.days ?? []).map((day) => [day.id, day]))
 
   return (

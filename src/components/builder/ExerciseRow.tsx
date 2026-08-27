@@ -96,11 +96,12 @@ export function ExerciseRow({
   const { unit, toDisplay, toKg } = useWeightUnit()
   const { exerciseName } = useCatalogLabels()
   const { data: libExercise } = useExerciseFromLibrary(exercise.exercise_id)
+  const catalog = libExercise ?? exercise.exercise
   const updateExercise = useUpdateExercise()
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const isDuration = (libExercise ?? exercise.exercise)?.measurement_type === "duration"
+  const isDuration = catalog?.measurement_type === "duration"
   const defaultHoldSeconds =
-    libExercise?.default_duration_seconds ?? DEFAULT_DURATION_FALLBACK_SEC
+    catalog?.default_duration_seconds ?? DEFAULT_DURATION_FALLBACK_SEC
   const [form, setForm] = useState<RowForm>(() =>
     seedForm(exercise, toDisplay, defaultHoldSeconds),
   )
@@ -186,9 +187,9 @@ export function ExerciseRow({
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <ExerciseThumbnail
-            imageUrl={libExercise?.image_url}
+            imageUrl={catalog?.image_url}
             emoji={exercise.emoji_snapshot}
-            className="h-7 w-7"
+            className="h-9 w-9 rounded-md"
           />
           <span className="truncate text-sm font-medium">{exerciseName(exercise)}</span>
         </div>
@@ -286,7 +287,7 @@ function CompactField({
 }) {
   return (
     <Label className={cn("flex min-w-0 flex-col gap-0.5 font-normal", className)}>
-      <span className="text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground md:sr-only">
+      <span className="text-center text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </span>
       {children}

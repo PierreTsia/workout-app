@@ -96,6 +96,33 @@ describe("ExerciseRow", () => {
     expect(screen.getByRole("spinbutton", { name: "Rest" })).toHaveValue(90)
   })
 
+  it("renders the catalog illustration from the slot embed, not the emoji", () => {
+    render(
+      makeExercise({
+        emoji_snapshot: "🦅",
+        exercise: catalogRow({ image_url: "papillon.webp", emoji: "🦅" }),
+      }),
+    )
+
+    const thumb = document.querySelector("img")
+    expect(thumb).toHaveAttribute(
+      "src",
+      expect.stringContaining("papillon.webp"),
+    )
+    expect(screen.queryByText("🦅")).not.toBeInTheDocument()
+  })
+
+  it("keeps Sets / Reps / unit / Rest visible above the values", () => {
+    render(makeExercise())
+
+    const setsLegend = screen.getByText("Sets")
+    expect(setsLegend).toBeVisible()
+    expect(setsLegend).not.toHaveClass("sr-only")
+    expect(screen.getByText("Reps")).toBeVisible()
+    expect(screen.getByText("kg")).toBeVisible()
+    expect(screen.getByText("Rest")).toBeVisible()
+  })
+
   it("shows the English catalog name to an English reader", () => {
     render(
       makeExercise({ name_snapshot: "Développé couché", exercise: catalogRow() }),
@@ -230,6 +257,7 @@ describe("ExerciseRow", () => {
     )
 
     expect(screen.getByText("Progression settings")).toBeInTheDocument()
+    expect(screen.getByRole("spinbutton", { name: "Min reps" })).toBeInTheDocument()
     expect(
       screen.queryByRole("spinbutton", { name: "Sets" }),
     ).not.toBeInTheDocument()
