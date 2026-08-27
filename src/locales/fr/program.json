@@ -1,0 +1,71 @@
+{
+  "track": {
+    "hypertrophy": "Prise de masse",
+    "strength": "Force",
+    "endurance": "Endurance",
+    "balance": "Équilibre"
+  },
+  "band": {
+    "short": "Faible",
+    "ok": "Modéré",
+    "high": "Élevé"
+  },
+  "rubric": {
+    "hypertrophy": "Modéré : la plupart des muscles que tu as mis dans la semaine ont 8–20 séries et 2–3 jours.",
+    "strength": "Modéré : 20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus.",
+    "endurance": "Modéré : un Circuit, ou assez de séries à reps hautes et repos court.",
+    "balance": "Un score sur 100 qui évalue à quel point le programme travaille l'ensemble des groupes musculaires. De 70 à 100, c'est équilibré ; 50 à 69, à surveiller ; sous 50, quelques muscles font presque tout."
+  },
+  "example": {
+    "hypertrophy": "{{muscle}} : {{sets}} séries · {{days}} j → {{band}}"
+  },
+  "facts": {
+    "line": "{{days}} · {{sets}} · {{circuits}}",
+    "days_one": "{{count}} j",
+    "days_other": "{{count}} j",
+    "sets_one": "{{count}} série",
+    "sets_other": "{{count}} séries",
+    "circuits_one": "{{count}} circuit",
+    "circuits_other": "{{count}} circuits",
+    "stat": {
+      "days": "Jours",
+      "sets": "Séries",
+      "circuits": "Circuits"
+    },
+    "mix": {
+      "free": "Charges libres",
+      "machine": "Machines",
+      "bodyweight": "Poids du corps",
+      "other": "Autre"
+    }
+  },
+  "empty": {
+    "scores": "Ajoute un jour pour voir à quoi sert ce programme."
+  },
+  "notFound": "Ce programme n’est pas là.",
+  "notFoundBack": "Retour aux programmes",
+  "loadError": "On n’a pas pu charger ce programme.",
+  "offline": "Les scores s’affichent si la semaine est déjà sur le téléphone.",
+  "focus": {
+    "label": "Fait pour",
+    "separator": " : ",
+    "help": "Pourquoi cet objectif",
+    "fit": "Ce programme paraît plus fait pour {{goal}}, parce que {{reason}}.",
+    "reason": {
+      "hypertrophy": "la plupart des muscles de la semaine ont 8–20 séries et 2–3 jours",
+      "strength": "20–40 % des séries font 6 reps ou moins, avec 150 secondes de repos ou plus",
+      "endurance": "tu as un Circuit, ou assez de séries à reps hautes et repos court"
+    }
+  },
+  "balance": {
+    "help": "Ce que ce score veut dire"
+  },
+  "days": {
+    "preview": "Exercices du jour {{day}}",
+    "empty": "Rien ce jour-là pour l'instant.",
+    "index": "Jour {{count}}",
+    "edit": "Éditer {{day}}"
+  },
+  "edit": "Éditer",
+  "pageTitle": "Programme"
+}

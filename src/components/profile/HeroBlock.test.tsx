@@ -186,7 +186,7 @@ describe("HeroBlock program badge popover", () => {
     expect(await screen.findByText(/Bench Press/)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Open program" })).toHaveAttribute(
       "href",
-      "/builder/upper-lower",
+      "/programs/upper-lower",
     )
   })
 
@@ -205,7 +205,7 @@ describe("HeroBlock program badge popover", () => {
     expect(await screen.findByText(/Overhead Press/)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Open program" })).toHaveAttribute(
       "href",
-      "/builder/ppl",
+      "/programs/ppl",
     )
   })
 

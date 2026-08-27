@@ -5,7 +5,7 @@
   "myWorkoutsEmpty": "Aucun programme",
   "showArchived": "Afficher archivés",
   "active": "Actif",
-  "generatedOn": "Généré le {{date}}",
+  "createdOn": "Créé le {{date}}",
   "archived": "Archivé",
   "activate": "Activer",
   "archive": "Archiver",

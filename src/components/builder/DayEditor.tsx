@@ -39,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DayEditorSkeleton } from "./DayEditorSkeleton"
 import { ExerciseRow } from "./ExerciseRow"
 import { ExerciseLibraryPicker } from "./ExerciseLibraryPicker"
 import { BlockCard } from "./BlockCard"
@@ -198,11 +199,7 @@ export function DayEditor({
   const blocks = dayItems.flatMap((i) => (i.kind === "block" ? [i.block] : []))
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <DayEditorSkeleton />
   }
 
   const editBlock = blocks.find((b) => b.id === editBlockId) ?? null

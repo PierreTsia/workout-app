@@ -23,6 +23,7 @@ import {
   useDeleteDay,
   useReorderDays,
 } from "@/hooks/useBuilderMutations"
+import { DayListSkeleton } from "./DayListSkeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -109,11 +110,7 @@ export function DayList({ programId, onSelectDay, onMutationStateChange }: DayLi
   }
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <DayListSkeleton />
   }
 
   const items = days ?? []
