@@ -231,7 +231,6 @@ const queryResultDefaults = {
   isStale: false,
   isSuccess: true,
   isEnabled: true,
-  promise: Promise.resolve(),
   refetch: (() => Promise.resolve({ data: undefined, isError: false, error: null, isSuccess: true, status: "success" as const, dataUpdatedAt: 0, errorUpdateCount: 0, errorUpdatedAt: 0, failureCount: 0, failureReason: null, fetchStatus: "idle" as const, isFetched: true, isFetchedAfterMount: true, isFetching: false, isInitialLoading: false, isLoading: false, isLoadingError: false, isPaused: false, isPending: false, isPlaceholderData: false, isRefetchError: false, isRefetching: false, isStale: false })) as UseQueryResult["refetch"],
   status: "success" as const,
 } satisfies Omit<UseQueryResult, "data">
