@@ -1,17 +1,20 @@
 import { useCallback, useState } from "react"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
-import { ArrowLeft, Dumbbell, Loader2 } from "lucide-react"
+import { ArrowLeft, Dumbbell } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useOnlineStatus } from "@/hooks/useOnlineStatus"
 import { useProgram } from "@/hooks/useProgram"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { OfflineBlock } from "@/components/builder/OfflineBlock"
 import { BuilderHeader } from "@/components/builder/BuilderHeader"
 import { DayList } from "@/components/builder/DayList"
+import { DayListSkeleton } from "@/components/builder/DayListSkeleton"
 import { DayEditor } from "@/components/builder/DayEditor"
-import { ExerciseDetailEditor } from "@/components/builder/ExerciseDetailEditor"
+import { DayEditorSkeleton } from "@/components/builder/DayEditorSkeleton"
+import { readBuilderLocationState } from "@/lib/builderLocationState"
 
-type BuilderView = "list" | "editor" | "detail"
+type BuilderView = "list" | "editor"
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function BuilderPage() {
@@ -27,10 +30,10 @@ export function BuilderPage() {
     isError: programError,
   } = useProgram(programId ?? null)
 
-  const [view, setView] = useState<BuilderView>("list")
-  const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
-    null,
+  const nav = readBuilderLocationState(location.state)
+  const [view, setView] = useState<BuilderView>(nav.dayId ? "editor" : "list")
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(
+    nav.dayId ?? null,
   )
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
 
@@ -42,15 +45,12 @@ export function BuilderPage() {
   )
 
   function navigateBack() {
-    const from = (location.state as { from?: string } | null)?.from
+    const { from } = readBuilderLocationState(location.state)
     navigate(from ?? "/library/programs")
   }
 
   function handleBack() {
-    if (view === "detail") {
-      setSelectedExerciseId(null)
-      setView("editor")
-    } else if (view === "editor") {
+    if (view === "editor") {
       setSelectedDayId(null)
       setView("list")
     } else {
@@ -63,17 +63,8 @@ export function BuilderPage() {
     setView("editor")
   }
 
-  function handleSelectExercise(exerciseId: string) {
-    setSelectedExerciseId(exerciseId)
-    setView("detail")
-  }
-
   const viewTitle =
-    view === "list"
-      ? t("workoutBuilder")
-      : view === "editor"
-        ? t("editDay")
-        : t("editExercise")
+    view === "list" ? t("workoutBuilder") : t("editDay")
 
   if (!isOnline) {
     return (
@@ -91,8 +82,15 @@ export function BuilderPage() {
 
   if (programLoading) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-1 flex-col">
+        <div
+          className="flex items-center gap-3 border-b px-4 py-3"
+          aria-hidden
+        >
+          <Skeleton className="h-9 w-9 shrink-0" />
+          <Skeleton className="h-5 w-40" />
+        </div>
+        {nav.dayId ? <DayEditorSkeleton /> : <DayListSkeleton />}
       </div>
     )
   }
@@ -118,7 +116,7 @@ export function BuilderPage() {
         onBack={handleBack}
       />
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
         {view === "list" && (
           <DayList
             programId={programId}
@@ -131,15 +129,6 @@ export function BuilderPage() {
           <DayEditor
             programId={programId}
             dayId={selectedDayId}
-            onSelectExercise={handleSelectExercise}
-            onMutationStateChange={handleMutationState}
-          />
-        )}
-
-        {view === "detail" && selectedDayId && selectedExerciseId && (
-          <ExerciseDetailEditor
-            dayId={selectedDayId}
-            exerciseId={selectedExerciseId}
             onMutationStateChange={handleMutationState}
           />
         )}

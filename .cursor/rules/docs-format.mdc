@@ -148,6 +148,18 @@ graph TD
 | Failure | Behavior |
 |---|---|
 | ... | ... |
+
+---
+
+## i18n contract
+
+Omit only when the epic adds no user-facing strings. Produced by the `microcopy` skill. Tickets copy these values — they do not invent new wording.
+
+**Namespace:** `…`
+
+| Key | EN | FR | Why this wording |
+|---|---|---|---|
+| `…` | … | … | … |
 ```
 
 ---

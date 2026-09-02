@@ -1,12 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Layers, Pencil, Timer, Trash2 } from "lucide-react"
+import { GripVertical, Layers, MoreHorizontal, Timer } from "lucide-react"
 import type { ExerciseBlockWithExercises } from "@/types/database"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { AmrapLabel } from "@/components/circuit/AmrapLabel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface BlockCardProps {
   block: ExerciseBlockWithExercises
@@ -38,7 +44,8 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
       : null
 
   return (
-    <Card ref={setNodeRef} style={style} className="bg-card">
+    <Card ref={setNodeRef} style={style} className="relative overflow-hidden bg-card">
+      <div className="absolute inset-y-0 left-0 w-0.5 bg-primary" />
       <CardContent className="flex items-start gap-2 p-3">
         <button
           className="mt-0.5 touch-none cursor-grab text-muted-foreground active:cursor-grabbing"
@@ -61,30 +68,38 @@ export function BlockCard({ block, onEdit, onDelete }: BlockCardProps) {
                 {t("blockRounds", { count: block.rounds })}
               </span>
             )}
-            <span className="ml-auto flex shrink-0 items-center">
-              {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={onEdit}
-                  aria-label={t("editBlock")}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={onDelete}
-                  aria-label={t("remove")}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </span>
+            {(onEdit || onDelete) && (
+              <span className="ml-auto flex shrink-0 items-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      aria-label={t("moreAria")}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {onEdit && (
+                      <DropdownMenuItem onSelect={onEdit}>
+                        {t("editBlock")}
+                      </DropdownMenuItem>
+                    )}
+                    {onDelete && (
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={onDelete}
+                      >
+                        {t("remove")}
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            )}
           </div>
 
           <ul className="flex flex-col gap-1">

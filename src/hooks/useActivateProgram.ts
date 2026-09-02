@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { getDefaultStore } from "jotai"
 import { supabase } from "@/lib/supabase"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { authAtom, hasProgramAtom, activeProgramIdAtom } from "@/store/atoms"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
 
@@ -64,6 +65,7 @@ export function useActivateProgram() {
       qc.invalidateQueries({ queryKey: ["active-program"] })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
       qc.invalidateQueries({ queryKey: ["user-programs"] })
+      invalidateProgramIntentQueries(qc)
 
       trackEvent.mutate({
         eventType: "program_activated",

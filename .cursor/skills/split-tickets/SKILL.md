@@ -79,6 +79,7 @@ From the Tech Plan, extract:
 - Data model changes (schema work often becomes its own ticket)
 - Key decisions and constraints (these inform ticket ordering)
 - New files and responsibilities table
+- **i18n contract** — if the plan has one, tickets that add UI **copy those EN/FR values**. They do not invent new wording. If the epic clearly adds user-facing copy and the plan has no contract, stop and run `.cursor/skills/microcopy/SKILL.md` before writing tickets.
 
 ---
 
@@ -202,7 +203,7 @@ Each ticket must include:
 - **Dependencies**: explicit list of prerequisite tickets (or "None").
 - **Scope**: detailed sub-sections matching the Tech Plan's architecture. Include tables for dependencies/packages, config details, file-responsibility mappings where relevant.
 - **Out of Scope**: what this ticket explicitly does NOT do (reference the next ticket if work is deferred there).
-- **Acceptance Criteria**: checkbox-style, each independently verifiable. Aim for 4-8 criteria per ticket. At least one criterion should describe a demoable end-to-end behavior, not just "the function exists".
+- **Acceptance Criteria**: checkbox-style, each independently verifiable. Aim for 4-8 criteria per ticket. At least one criterion should describe a demoable end-to-end behavior, not just "the function exists". If the ticket ships UI, include "EN + FR keys match the Tech Plan i18n contract" as a criterion.
 - **References**: links to the Epic Brief and Tech Plan, plus any relevant sections of the Tech Plan.
 
 ### Step 4.2 — Cross-reference check

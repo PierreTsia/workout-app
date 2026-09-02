@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 
 export function useUpdateProgramName() {
   const qc = useQueryClient()
@@ -22,6 +23,7 @@ export function useUpdateProgramName() {
     onSuccess: (_data, { programId }) => {
       qc.invalidateQueries({ queryKey: ["program", programId] })
       qc.invalidateQueries({ queryKey: ["user-programs"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }

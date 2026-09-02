@@ -21,6 +21,11 @@ export const BODY_MAP_INTENSITY_COLORS = [
   "hsl(var(--primary))",
 ] as const
 
+const SILHOUETTE_MAX_WIDTH = {
+  sm: 64,
+  md: 140,
+} as const
+
 interface BodyMapProps {
   /** Pre-built data array (aggregated mode) — takes precedence over muscleGroup */
   data?: IExerciseData[]
@@ -33,6 +38,8 @@ interface BodyMapProps {
    * Use `BODY_MAP_INTENSITY_COLORS` when `data` uses bucketed frequencies (e.g. Balance tab).
    */
   highlightedColors?: readonly string[]
+  /** `sm` is a card thumbnail; `md` is the default session / history size. */
+  size?: keyof typeof SILHOUETTE_MAX_WIDTH
   className?: string
 }
 
@@ -45,6 +52,7 @@ export function BodyMap({
   muscleGroup,
   secondaryMuscles,
   highlightedColors,
+  size = "md",
   className,
 }: BodyMapProps) {
   const exerciseData = useMemo(() => {
@@ -54,22 +62,26 @@ export function BodyMap({
   }, [data, muscleGroup, secondaryMuscles])
 
   const colors = highlightedColors ?? HIGHLIGHTED_COLORS
+  const maxWidth = SILHOUETTE_MAX_WIDTH[size]
+  const silhouetteStyle = { width: "100%", maxWidth: `${maxWidth}px` }
 
   return (
-    <div className={`flex items-center justify-center gap-2 ${className ?? ""}`}>
+    <div
+      className={`flex items-center justify-center ${size === "sm" ? "gap-1" : "gap-2"} ${className ?? ""}`}
+    >
       <Model
         data={exerciseData}
         type="anterior"
         bodyColor={BODY_COLOR}
         highlightedColors={[...colors]}
-        style={{ width: "100%", maxWidth: "140px" }}
+        style={silhouetteStyle}
       />
       <Model
         data={exerciseData}
         type="posterior"
         bodyColor={BODY_COLOR}
         highlightedColors={[...colors]}
-        style={{ width: "100%", maxWidth: "140px" }}
+        style={silhouetteStyle}
       />
     </div>
   )

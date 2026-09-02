@@ -219,6 +219,8 @@ describe("profile hero tenure, hop, and Succès", () => {
   })
 
   it("shows the hop line when two Programs produced sessions in this window", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date(2026, 7, 21))
     state.sessions = [
       session({ id: "ul", program_id: "upper-lower" }),
       session({

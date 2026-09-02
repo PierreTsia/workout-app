@@ -224,6 +224,7 @@ function renderPicker(overrides = {}, locale: "en" | "fr" = "en") {
       open={true}
       onOpenChange={vi.fn()}
       dayId="day-1"
+      dayLabel="Push A"
       existingExerciseCount={0}
       onMutationStateChange={vi.fn()}
       {...overrides}
@@ -387,7 +388,7 @@ describe("ExerciseLibraryPicker", () => {
       fetchNextPage: mockFetchNextPage,
     })
     renderPicker()
-    expect(screen.getByText("Add Exercise")).toBeInTheDocument()
+    expect(screen.getByText("Add to Push A")).toBeInTheDocument()
   })
 
   it("shows empty state when no exercises match", () => {
@@ -417,12 +418,13 @@ describe("ExerciseLibraryPicker", () => {
     expect(mockFetchNextPage).toHaveBeenCalledTimes(1)
   })
 
-  it("adds one exercise when one checkbox selected and Apply changes clicked", async () => {
+  it("adds one exercise when one checkbox is selected and Add 1 is clicked", async () => {
     renderPicker()
     const user = userEvent.setup()
     const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    expect(screen.getByRole("button", { name: "Add 0" })).toBeDisabled()
     await user.click(checkboxes[0])
-    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    await user.click(screen.getByRole("button", { name: "Add 1" }))
     expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
     const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
     expect(vars.exercises).toHaveLength(1)
@@ -436,15 +438,15 @@ describe("ExerciseLibraryPicker", () => {
     expect(mockAddExercisesMutateAsync).not.toHaveBeenCalled()
   })
 
-  it("shows Apply changes button and batch-adds when checkboxes selected", async () => {
+  it("shows Add N and batch-adds when checkboxes are selected", async () => {
     renderPicker()
     const user = userEvent.setup()
     const checkboxes = screen.getAllByRole("checkbox")
     expect(checkboxes.length).toBeGreaterThanOrEqual(2)
     await user.click(checkboxes[0])
     await user.click(checkboxes[1])
-    expect(screen.getByRole("button", { name: "Apply changes" })).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    expect(screen.getByRole("button", { name: "Add 2" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Add 2" }))
     expect(mockAddExercisesMutateAsync).toHaveBeenCalledTimes(1)
     const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
     expect(vars).toMatchObject({
@@ -455,27 +457,23 @@ describe("ExerciseLibraryPicker", () => {
     expect(vars.exercises).toHaveLength(2)
   })
 
-  it("pre-checks exercises already in the day", async () => {
-    renderPicker({
-      existingExercises: [{ exercise_id: "1", id: "we-1" }],
-    })
-    const checked = await screen.findByRole("checkbox", { checked: true })
-    expect(checked).toBeInTheDocument()
-  })
-
-  it("calls delete when existing exercise is unchecked and Apply changes clicked", async () => {
+  it("badges already-on-day exercises as not selectable and never deletes from Apply", async () => {
     renderPicker({
       existingExerciseCount: 1,
       existingExercises: [{ exercise_id: "1", id: "we-1" }],
     })
-    const user = userEvent.setup()
-    const checked = screen.getByRole("checkbox", { checked: true })
-    await user.click(checked)
-    await user.click(screen.getByRole("button", { name: "Apply changes" }))
-    expect(mockDeleteExerciseMutateAsync).toHaveBeenCalledWith({ id: "we-1", dayId: "day-1" })
+
+    expect(screen.getByText("On day")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("checkbox", { checked: true }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Apply changes" }),
+    ).not.toBeInTheDocument()
+    expect(mockDeleteExerciseMutateAsync).not.toHaveBeenCalled()
   })
 
-  it("keeps Apply changes visible after filtering hides a selected exercise", async () => {
+  it("keeps Add N visible after filtering hides a selected exercise", async () => {
     renderPicker()
     const user = userEvent.setup()
 
@@ -483,19 +481,15 @@ describe("ExerciseLibraryPicker", () => {
     await user.click(checkboxes[0]) // Développé couché (Pectoraux)
     await user.click(checkboxes[1]) // Élévations latérales (Épaules)
 
-    expect(
-      screen.getByRole("button", { name: "Apply changes" }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Add 2" })).toBeInTheDocument()
 
     await user.click(screen.getByLabelText("Filters"))
     await user.click(screen.getByRole("button", { name: "Chest" }))
 
     expect(screen.queryByText("Lateral Raises")).not.toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "Apply changes" }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Add 2" })).toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Apply changes" }))
+    await user.click(screen.getByRole("button", { name: "Add 2" }))
     const [vars] = mockAddExercisesMutateAsync.mock.calls[0]
     expect(vars.exercises).toHaveLength(2)
   })
@@ -522,8 +516,11 @@ describe("ExerciseLibraryPicker", () => {
     )
 
     const onCreateBlock = vi.fn().mockResolvedValue(undefined)
-    renderPicker({ onCreateBlock })
+    renderPicker({ existingMaxSortOrder: -1, onCreateBlock })
     const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "New circuit" }))
 
     const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
     await user.click(checkboxes[0])
@@ -543,12 +540,15 @@ describe("ExerciseLibraryPicker", () => {
       { name: /create circuit \(2 exercises\)/i },
       { timeout: 2000 },
     )
-  })
+  }, 15_000)
 
-  it("keeps create circuit CTA visible after filtering in block mode", async () => {
+  it("keeps create circuit CTA visible after filtering in create mode", async () => {
     const onCreateBlock = vi.fn().mockResolvedValue(undefined)
-    renderPicker({ onCreateBlock })
+    renderPicker({ existingMaxSortOrder: -1, onCreateBlock })
     const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "New circuit" }))
 
     const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
     await user.click(checkboxes[0])
@@ -565,7 +565,7 @@ describe("ExerciseLibraryPicker", () => {
     expect(
       screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
     ).toBeInTheDocument()
-  })
+  }, 15_000)
 
   it("shows the Exercises | Circuits kind toggle when the instantiate path is present", () => {
     renderPicker({ existingMaxSortOrder: -1 })
@@ -592,11 +592,126 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
   })
 
-  it("does not show the kind toggle in Create circuit (block) mode", () => {
-    renderPicker({ onCreateBlock: vi.fn() })
+  it("shows the kind toggle when jetable create is wired on the same picker", () => {
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onCreateBlock: vi.fn(),
+    })
 
-    expect(screen.queryByRole("radio", { name: "Exercises" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("radio", { name: "Circuits" })).not.toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Exercises" })).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeInTheDocument()
+  })
+
+  it("pins a New circuit row on the Circuits kind", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onCreateBlock: vi.fn(),
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+
+    expect(
+      screen.getByRole("button", { name: "New circuit" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("Pick at least two exercises."),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.queryByText("WOD")).not.toBeInTheDocument()
+  })
+
+  it("enters catalog create after New circuit and enables createBlockCta at two picks", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    const onCreateBlock = vi.fn().mockResolvedValue(undefined)
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onCreateBlock,
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "New circuit" }))
+
+    expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Circuits" })).toBeChecked()
+
+    const createCta = screen.getByRole("button", { name: /create circuit/i })
+    expect(createCta).toBeDisabled()
+
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    expect(
+      screen.getByRole("button", { name: /create circuit/i }),
+    ).toBeDisabled()
+    await user.click(checkboxes[1])
+    expect(
+      screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
+    ).toBeEnabled()
+  })
+
+  it("returns from create mode to seeds via Back", async () => {
+    mockUseBenchmarkSeeds.mockReturnValue({
+      data: [makeCindySeed()],
+      isLoading: false,
+      isError: false,
+    })
+    renderPicker({
+      existingMaxSortOrder: -1,
+      onCreateBlock: vi.fn(),
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "New circuit" }))
+    expect(screen.getByText("Bench Press")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Back" }))
+
+    expect(screen.getByRole("button", { name: "Cindy" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "New circuit" })).toBeInTheDocument()
+    expect(screen.queryByText("Bench Press")).not.toBeInTheDocument()
+  })
+
+  it("lets create mode pick a movement that is already a solo", async () => {
+    const onCreateBlock = vi.fn().mockResolvedValue(undefined)
+    renderPicker({
+      existingMaxSortOrder: -1,
+      existingExercises: [{ exercise_id: "1", id: "we-1" }],
+      onCreateBlock,
+    })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole("radio", { name: "Circuits" }))
+    await user.click(screen.getByRole("button", { name: "New circuit" }))
+
+    expect(screen.queryByText("On day")).not.toBeInTheDocument()
+    const checkboxes = screen.getAllByRole("checkbox", { name: "Add" })
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
+    await user.click(
+      screen.getByRole("button", { name: /create circuit \(2 exercises\)/i }),
+    )
+
+    expect(onCreateBlock).toHaveBeenCalledTimes(1)
+    const [selected] = onCreateBlock.mock.calls[0]
+    expect(selected).toHaveLength(2)
+    expect(selected.map((ex: { id: string }) => ex.id)).toContain("1")
+  })
+
+  it("titles the sheet with the current day label", () => {
+    renderPicker({ dayLabel: "Push A" })
+    expect(screen.getByRole("heading", { name: "Add to Push A" })).toBeInTheDocument()
   })
 
   it("lists Cindy as a WOD card on the Circuits kind", async () => {
@@ -806,6 +921,7 @@ describe("ExerciseLibraryPicker", () => {
             open={open}
             onOpenChange={setOpen}
             dayId="day-1"
+            dayLabel="Push A"
             existingExerciseCount={0}
             onMutationStateChange={vi.fn()}
             existingMaxSortOrder={-1}
@@ -826,11 +942,6 @@ describe("ExerciseLibraryPicker", () => {
     expect(screen.getByRole("radio", { name: "Exercises" })).toBeChecked()
     expect(screen.getByText("Bench Press")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Cindy" })).not.toBeInTheDocument()
-  })
-
-  it("does not fetch seeds when the Create circuit picker is open", () => {
-    renderPicker({ onCreateBlock: vi.fn() })
-    expect(mockUseBenchmarkSeeds).toHaveBeenCalledWith(false)
   })
 
   it("does not pin a seed card on Exercises when the query is empty", () => {

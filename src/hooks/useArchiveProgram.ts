@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { useTrackEvent } from "@/hooks/useTrackEvent"
 
 export function useArchiveProgram() {
@@ -19,6 +20,7 @@ export function useArchiveProgram() {
 
     onSuccess: ({ programId, archive }) => {
       qc.invalidateQueries({ queryKey: ["user-programs"] })
+      invalidateProgramIntentQueries(qc)
 
       trackEvent.mutate({
         eventType: archive ? "program_archived" : "program_unarchived",

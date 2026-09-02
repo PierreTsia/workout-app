@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Program Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "border": "#2d2d37",
+                        "secondary-container": "#494851",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "primary-container": "#00c9a7",
+                        "on-secondary": "#303038",
+                        "error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-surface": "#e4e1e7",
+                        "on-secondary-fixed": "#1b1b23",
+                        "surface-bright": "#39393d",
+                        "surface-dim": "#131317",
+                        "on-error-container": "#ffdad6",
+                        "secondary": "#c7c5d0",
+                        "on-surface-variant": "#bacac3",
+                        "background": "#131317",
+                        "primary-fixed": "#5ffbd6",
+                        "inverse-primary": "#006b58",
+                        "tertiary-fixed": "#ffdbcb",
+                        "tertiary-container": "#ff9862",
+                        "on-tertiary-container": "#762f00",
+                        "error": "#ffb4ab",
+                        "primary": "#44e5c2",
+                        "on-primary": "#000000",
+                        "on-error": "#690005",
+                        "outline-variant": "#3c4a45",
+                        "outline": "#85948e",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "surface-container-high": "#2a292e",
+                        "surface-container-lowest": "#0e0e12",
+                        "surface-container-highest": "#353439",
+                        "on-primary-container": "#004e40",
+                        "secondary-fixed": "#e4e1ec",
+                        "on-tertiary-fixed": "#341100",
+                        "on-secondary-container": "#b9b7c2",
+                        "surface-container": "#1f1f23",
+                        "tertiary": "#ffc0a1",
+                        "foreground": "#f2f2f2",
+                        "muted": "#999999",
+                        "on-tertiary": "#552000",
+                        "on-primary-fixed": "#002019",
+                        "surface-tint": "#38debb",
+                        "surface-variant": "#353439",
+                        "inverse-on-surface": "#303034",
+                        "primary-fixed-dim": "#38debb",
+                        "inverse-surface": "#e4e1e7",
+                        "on-primary-fixed-variant": "#005142",
+                        "on-background": "#e4e1e7",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "surface-container-low": "#1b1b1f",
+                        "surface": "#15151c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit-xl": "32px",
+                        "unit-lg": "24px",
+                        "gutter": "1rem",
+                        "container-prose": "48rem",
+                        "container-media": "64rem",
+                        "unit-md": "16px",
+                        "unit-sm": "8px",
+                        "section-gap-mobile": "4rem",
+                        "unit-xs": "4px",
+                        "section-gap": "6rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "body-md": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "mono": ["Geist Mono"],
+                        "headline-lg": ["Geist"],
+                        "label": ["Geist"],
+                        "headline-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #0f0f13; }
+        .card-bg { background-color: #1a1a22; }
+    </style>
+</head>
+<body class="text-on-surface font-body-md antialiased pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-sm border-b border-border flex justify-between items-center h-16 px-4 max-w-container-media mx-auto">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-muted cursor-pointer hover:text-on-surface transition-colors" data-icon="chevron_left">chevron_left</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Hypertrophy 12</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-primary-container"></div>
+<span class="text-[13px] text-muted font-medium">Saved</span>
+</div>
+</header>
+<main class="pt-24 px-4 max-w-container-prose mx-auto flex flex-col gap-8">
+<!-- Day Title -->
+<div>
+<div class="flex items-center gap-2">
+<h1 class="text-[22px] font-semibold tracking-tight text-on-surface">Push A</h1>
+<span class="material-symbols-outlined text-muted text-sm cursor-pointer hover:text-on-surface" data-icon="edit">edit</span>
+</div>
+<p class="text-[12px] text-muted mt-1">6 movements · 21 sets</p>
+</div>
+<!-- Body Map Card -->
+<div class="bg-surface rounded-xl border border-border overflow-hidden">
+<div class="p-4 border-b border-border">
+<img alt="Body Map" class="w-full h-auto object-contain max-h-48 opacity-80 mix-blend-screen" data-alt="A dark-mode styled anatomical map showing highlighted muscle groups for a push workout, focusing on chest, shoulders, and triceps, minimalist aesthetic." src="https://lh3.googleusercontent.com/aida/AEtjO1VwDKSQ64aEXVqavU98W17dJ8lI7C1rPLi_le5M3IPO-FPc3dluZgfL5arqnZ8TJe_HaDhOAPsJIgluqf153U-2EmNpCyfm1b7s5ZX0jJlJuOIDF0asn7RjwOwo0oX6FS-T27P_6K5aROS7oU4emC_Hkc7ep3SiDAUJNPrNnmQCz53SPgG8w9IflmsyUDVa4fW6eE37UK9An2Cl_t_sE4LahMZq7g1tKzXFh27fT2VDxx0jsKZl9jwG0EU"/>
+</div>
+<div class="p-3 flex gap-2 overflow-x-auto no-scrollbar">
+<div class="card-bg border border-border rounded-lg px-2.5 py-1.5 flex items-center gap-2 flex-shrink-0">
+<div class="w-[2px] h-3 bg-primary-container rounded-full"></div>
+<span class="text-[11px] font-medium text-on-surface">Chest</span>
+<span class="text-[11px] font-mono text-primary-container">12</span>
+</div>
+<div class="card-bg border border-border rounded-lg px-2.5 py-1.5 flex items-center gap-2 flex-shrink-0">
+<span class="text-[11px] font-medium text-muted">Shoulders</span>
+<span class="text-[11px] font-mono text-muted">8</span>
+</div>
+<div class="card-bg border border-border rounded-lg px-2.5 py-1.5 flex items-center gap-2 flex-shrink-0">
+<span class="text-[11px] font-medium text-muted">Triceps</span>
+<span class="text-[11px] font-mono text-muted">6</span>
+</div>
+</div>
+</div>
+<!-- Exercise List Area -->
+<div class="flex flex-col gap-3">
+<!-- Column Header -->
+<div class="grid grid-cols-[auto_1fr_40px_40px_50px_50px_auto] gap-2 px-3 pb-2 border-b border-border items-center">
+<div class="w-6"></div> <!-- Drag handle space -->
+<div class="pl-12"></div> <!-- Thumb + Name space -->
+<div class="text-[11px] font-medium text-muted tracking-widest text-center uppercase">Sets</div>
+<div class="text-[11px] font-medium text-muted tracking-widest text-center uppercase">Reps</div>
+<div class="text-[11px] font-medium text-muted tracking-widest text-center uppercase">Kg</div>
+<div class="text-[11px] font-medium text-muted tracking-widest text-center uppercase">Rest</div>
+<div class="w-6"></div> <!-- Menu space -->
+</div>
+<!-- Solo Exercises -->
+<!-- Bench Press -->
+<div class="card-bg rounded-xl border border-border p-3 grid grid-cols-[auto_1fr_40px_40px_50px_50px_auto] gap-2 items-center group hover:border-outline-variant transition-colors">
+<span class="material-symbols-outlined text-muted text-base cursor-grab opacity-50 group-hover:opacity-100" data-icon="drag_indicator">drag_indicator</span>
+<div class="flex items-center gap-3">
+<img alt="Bench Press thumbnail" class="w-9 h-9 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1U6euWoW67aU9hbV_-POrYtlC6DThFYXuTpAeBIpXnqMmysAzSBeLCGip3Uc762nJscjyQwxkgzOdqg7-yhdZtb5ZMb-zRXlBrmud6-rSkLypwp6vAUWpaSSIRyqzjzBS4KgA5MPkMKecpDPdiARV_ftLSJhQvx_YdfUQHd0bh1Y_aF4eu6duO3zT4NZ5AwtYfJEpQl-uGFPC4gcvAqHjKBkiXTNO6hXbr577zN5QaseTJW5j4hMyN0mbg"/>
+<span class="text-sm font-medium text-on-surface truncate">Bench Press</span>
+</div>
+<div class="text-sm font-mono text-on-surface text-center">4</div>
+<div class="text-sm font-mono text-on-surface text-center">8</div>
+<div class="text-sm font-mono text-on-surface text-center py-1 border border-primary-container rounded bg-surface-dim">80</div>
+<div class="text-sm font-mono text-muted text-center">2:00</div>
+<span class="material-symbols-outlined text-muted cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+<!-- Incline Dumbbell Press -->
+<div class="card-bg rounded-xl border border-border p-3 grid grid-cols-[auto_1fr_40px_40px_50px_50px_auto] gap-2 items-center group hover:border-outline-variant transition-colors">
+<span class="material-symbols-outlined text-muted text-base cursor-grab opacity-50 group-hover:opacity-100" data-icon="drag_indicator">drag_indicator</span>
+<div class="flex items-center gap-3">
+<img alt="Incline Press thumbnail" class="w-9 h-9 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1XtsgU__DzqIl3ktGMFzOs941n-1OJiHGRyQzBtVVH2PWZ2dmyLkNhQy3An8rpwIQQBu3StDcfJCCtJ9IL0gd0D8TmSLYyhSBC14Wq0UwIfqDHXOZe4kxyJeUA3TzWrIqbtZAS57iZFihiOIRzAOZrHbnelYYPVBSXDPKC-KFHR5_7Rk5eigTpp9uLzR7kaIxATDxLSqF8JGgyE3o3lYMvBj9VL0TMFu84VWEUTM2LDRMDLiPktDjrP4pE"/>
+<span class="text-sm font-medium text-on-surface truncate">Incline DB Press</span>
+</div>
+<div class="text-sm font-mono text-on-surface text-center">3</div>
+<div class="text-sm font-mono text-on-surface text-center">10</div>
+<div class="text-sm font-mono text-on-surface text-center">28</div>
+<div class="text-sm font-mono text-muted text-center">1:30</div>
+<span class="material-symbols-outlined text-muted cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+<!-- Overhead Press -->
+<div class="card-bg rounded-xl border border-border p-3 grid grid-cols-[auto_1fr_40px_40px_50px_50px_auto] gap-2 items-center group hover:border-outline-variant transition-colors">
+<span class="material-symbols-outlined text-muted text-base cursor-grab opacity-50 group-hover:opacity-100" data-icon="drag_indicator">drag_indicator</span>
+<div class="flex items-center gap-3">
+<img alt="Overhead Press thumbnail" class="w-9 h-9 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1U0KRWStHO2Hoynscm7lUkN45S6EGoMUBH4cZQfazL83FMYsHEfnsK_B8SV3zjwYHQ1sQFtYzQuFJnVfZu2DWpy3EkBz5YdvqETYKw4qgOKh0CilYzfW2HJNuYqJLu4WMofgN160O0rKdPTC4_mCLlEI_LguGmHClrP4SepVcjIuAfB9nkwgt0L5pLcQYwXxg9FzdxZP1UaSeOQkle2flhkvhQAlLBKKXX6UoLt9ap6WVLlL5k7kqn7UPs"/>
+<span class="text-sm font-medium text-on-surface truncate">Overhead Press</span>
+</div>
+<div class="text-sm font-mono text-on-surface text-center">3</div>
+<div class="text-sm font-mono text-on-surface text-center">6</div>
+<div class="text-sm font-mono text-on-surface text-center">50</div>
+<div class="text-sm font-mono text-muted text-center">2:00</div>
+<span class="material-symbols-outlined text-muted cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+<!-- Circuit Block -->
+<div class="card-bg rounded-xl border border-border overflow-hidden relative">
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-primary-container"></div>
+<div class="p-3 border-b border-border flex justify-between items-center pl-4 bg-surface/50">
+<div class="flex items-center gap-2">
+<span class="text-[13px] font-medium text-on-surface">Metcon Finisher</span>
+<span class="text-[12px] text-muted">· 3 rounds</span>
+</div>
+<span class="material-symbols-outlined text-muted cursor-pointer hover:text-on-surface text-sm" data-icon="more_horiz">more_horiz</span>
+</div>
+<div class="flex flex-col">
+<!-- Push-up -->
+<div class="p-3 pl-4 flex items-center gap-3 border-b border-border/50">
+<img alt="Push-up thumbnail" class="w-8 h-8 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1X85OAaXQYJ4Lc6kdU5cnzAbK2BW39KXhdouv7gzU-ULmrfQ9TCSvo9Q7vp8YbAtx3sh9ggkzFcniq5OBFDBv4nRF4vT8OE4lyrABBjdzSnEUHg4MQTFC8aT_tURSwfLCRbgY1bDUBb_CIxp7E7LpFHZfBCE50AqYiMFebjqqyXs0xaxHkNdTkb_G4F0NQul6V9czCxf0vqc8t1Aw-iOy_ERaE8YEX7yCPjRbzpy5jeghCwficXAkJxSXQ"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-on-surface">Push-up</span>
+<span class="text-[12px] text-muted font-mono">12 reps</span>
+</div>
+</div>
+<!-- Dip -->
+<div class="p-3 pl-4 flex items-center gap-3 border-b border-border/50">
+<img alt="Dip thumbnail" class="w-8 h-8 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1V23SA2fgjTwFuXhKitFzFJZYN_gy75wsVy76XBQz33MqNXo69XHuR25zXOr19O4xLYnuBNo0nhSFhkWwKh6vi-WaLO0Ce7aPvDd4hARvT-8lx-E-6aC5IuhteMZhEJJrHkOSceKKA5n4xLf4RkWfYPqoqva4pIbs_NJRchVALqNiw_qirIFA5pbkCyWDnpgBMRjSYV8t2qH6imBD9scCju2ym0p-KKJVU0mjOst1ceOdo8q6W1ijKIOug"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-on-surface">Dip</span>
+<span class="text-[12px] text-muted font-mono">10 reps</span>
+</div>
+</div>
+<!-- Band Flye -->
+<div class="p-3 pl-4 flex items-center gap-3">
+<img alt="Band Flye thumbnail" class="w-8 h-8 rounded-md object-cover border border-border" src="https://lh3.googleusercontent.com/aida/AEtjO1XTxE_aswygDxuaQnXN2xwehhNWHp99CKjHSjs0UioCYmCV81zWsNmUzHLR6Ec8rtLTX_aw94OrHjLzR0cxMln-LOAMU2-9mYH_Whn1ccUSq2cMHxpPQwc9LsE13oBmBvhR2Lm4BzluVhjh0jufghHrM3ECVIm_QYeVW1FZWVHju-y3GZMHwOvtB8OCVm_1kclUSBhUfnDg36ciSYk_6pnfR_gOPfbHcDMOYS3EGwQvpWlI6TQeUarzgdQ"/>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-on-surface">Band Flye</span>
+<span class="text-[12px] text-muted font-mono">15 reps</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full h-11 mt-4 bg-primary-container text-[#000000] rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm font-bold" data-icon="add">add</span>
+                Add Exercise
+            </button>
+</div>
+</main>
+</body></html>

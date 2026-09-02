@@ -71,7 +71,7 @@ export function ProgramBadgePopover({
         )}
         <Separator className="my-3" />
         <Button variant="link" className="h-auto p-0" asChild>
-          <Link to={`/builder/${programId}`}>{t("hero.openProgram")}</Link>
+          <Link to={`/programs/${programId}`}>{t("hero.openProgram")}</Link>
         </Button>
       </PopoverContent>
     </Popover>
