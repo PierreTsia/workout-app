@@ -1,10 +1,7 @@
 import { useMemo, useState, useCallback } from "react"
 import { Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import {
-  useAddExercisesToDay,
-  useDeleteExercise,
-} from "@/hooks/useBuilderMutations"
+import { useAddExercisesToDay } from "@/hooks/useBuilderMutations"
 import type { Exercise } from "@/types/database"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { ExerciseInfoDialog } from "@/components/exercise/ExerciseInfoDialog"
@@ -21,7 +18,7 @@ import {
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
 
-/** Minimal shape for an existing day exercise (library id + row id for delete) */
+/** Minimal shape for an existing day exercise (library id + row id). */
 export interface ExistingDayExercise {
   exercise_id: string
   id: string
@@ -37,14 +34,11 @@ export interface ExerciseSelectionContentProps {
   onMutationStateChange: (state: "saving" | "saved" | "error") => void
   onClose: () => void
   addExercises: ReturnType<typeof useAddExercisesToDay>
-  deleteExercise: ReturnType<typeof useDeleteExercise>
-  /** When provided, the picker switches to block-creation mode: selecting >=2 exercises and confirming creates a block instead of adding solos. */
+  /** When provided, the picker creates a Circuit from the selected exercises instead of adding solos. */
   onCreateBlock?: (selected: Exercise[]) => Promise<void> | void
 }
 
 export function useExerciseSelection({
-  initialSelectedIds,
-  existingExercises,
   existingSet,
   grouped,
   dayId,
@@ -52,39 +46,40 @@ export function useExerciseSelection({
   onMutationStateChange,
   onClose,
   addExercises,
-  deleteExercise,
   onCreateBlock,
 }: ExerciseSelectionContentProps) {
   const { t } = useTranslation("builder")
   const isBlockMode = !!onCreateBlock
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(isBlockMode ? [] : initialSelectedIds),
-  )
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   /**
    * Keeps full Exercise rows for every exercise the user toggles ON, so a
    * filter/search that hides a selected row never drops it from the pending
-   * additions (block CTA *and* "Apply changes" both depend on this).
+   * additions (create CTA *and* Add N both depend on this).
    */
   const [selectedById, setSelectedById] = useState<Map<string, Exercise>>(
     () => new Map(),
   )
   const [isCreatingBlock, setIsCreatingBlock] = useState(false)
 
-  const toggleSelected = useCallback((ex: Exercise) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(ex.id)) next.delete(ex.id)
-      else next.add(ex.id)
-      return next
-    })
-    setSelectedById((prev) => {
-      const next = new Map(prev)
-      if (next.has(ex.id)) next.delete(ex.id)
-      else next.set(ex.id, ex)
-      return next
-    })
-  }, [])
+  const toggleSelected = useCallback(
+    (ex: Exercise) => {
+      if (!isBlockMode && existingSet.has(ex.id)) return
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(ex.id)) next.delete(ex.id)
+        else next.add(ex.id)
+        return next
+      })
+      setSelectedById((prev) => {
+        const next = new Map(prev)
+        if (next.has(ex.id)) next.delete(ex.id)
+        else next.set(ex.id, ex)
+        return next
+      })
+    },
+    [existingSet, isBlockMode],
+  )
 
   const toAdd = useMemo(
     () =>
@@ -94,19 +89,13 @@ export function useExerciseSelection({
     [selectedById, selectedIds, existingSet],
   )
 
-  const toRemove = useMemo(
-    () =>
-      existingExercises.filter((e) => !selectedIds.has(e.exercise_id)),
-    [existingExercises, selectedIds],
-  )
-
   const selectedExercises = useMemo(
     () =>
       [...selectedById.values()].filter((ex) => selectedIds.has(ex.id)),
     [selectedById, selectedIds],
   )
 
-  const hasChanges = toAdd.length > 0 || toRemove.length > 0
+  const hasChanges = toAdd.length > 0
   const canCreateBlock = selectedExercises.length >= 2
 
   async function handleCreateBlock() {
@@ -128,18 +117,11 @@ export function useExerciseSelection({
     if (!hasChanges) return
     onMutationStateChange("saving")
     try {
-      if (toAdd.length > 0) {
-        await addExercises.mutateAsync({
-          dayId,
-          exercises: toAdd,
-          startSortOrder: existingExerciseCount,
-        })
-      }
-      await Promise.all(
-        toRemove.map((e) =>
-          deleteExercise.mutateAsync({ id: e.id, dayId }),
-        ),
-      )
+      await addExercises.mutateAsync({
+        dayId,
+        exercises: toAdd,
+        startSortOrder: existingExerciseCount,
+      })
       onMutationStateChange("saved")
       onClose()
     } catch {
@@ -147,8 +129,7 @@ export function useExerciseSelection({
     }
   }
 
-  const isApplying =
-    addExercises.isPending || deleteExercise.isPending
+  const isApplying = addExercises.isPending
 
   return {
     t,
@@ -156,8 +137,10 @@ export function useExerciseSelection({
     selectedIds,
     toggleSelected,
     grouped,
+    existingSet,
     canCreateBlock,
     hasChanges,
+    addCount: toAdd.length,
     isCreatingBlock,
     isApplying,
     selectedExercises,
@@ -173,7 +156,8 @@ export function ExerciseSelectionList({
 }: {
   state: ExerciseSelectionState
 }) {
-  const { t, selectedIds, toggleSelected, grouped } = state
+  const { t, selectedIds, toggleSelected, grouped, isBlockMode, existingSet } =
+    state
   const { catalogName, muscleLabel } = useCatalogLabels()
 
   return (
@@ -182,24 +166,38 @@ export function ExerciseSelectionList({
       {grouped &&
         Object.entries(grouped).map(([muscle, exList]) => (
           <CommandGroup key={muscle} heading={muscleLabel(muscle)}>
-            {exList.map((ex) => (
+            {exList.map((ex) => {
+              const lockedOnDay = !isBlockMode && existingSet.has(ex.id)
+              return (
               <CommandItem
                 key={ex.id}
                 // Both spellings of both fields, so searching matches what the
                 // reader sees *and* what a French user has always typed.
                 value={`${ex.name} ${ex.name_en ?? ""} ${ex.muscle_group} ${muscleLabel(ex.muscle_group)}`}
                 onSelect={() => {}}
-                className="flex items-center justify-between gap-2"
+                className={cn(
+                  "flex items-center justify-between gap-2",
+                  lockedOnDay && "opacity-70",
+                )}
               >
                 <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <Checkbox
-                    checked={selectedIds.has(ex.id)}
-                    onCheckedChange={() => toggleSelected(ex)}
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    aria-label={t("add")}
-                    className="shrink-0"
-                  />
+                  {lockedOnDay ? (
+                    <Badge
+                      variant="outline"
+                      className="h-5 shrink-0 px-1.5 text-[10px] uppercase tracking-wider"
+                    >
+                      {t("alreadyInDay")}
+                    </Badge>
+                  ) : (
+                    <Checkbox
+                      checked={selectedIds.has(ex.id)}
+                      onCheckedChange={() => toggleSelected(ex)}
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-label={t("add")}
+                      className="shrink-0"
+                    />
+                  )}
                   <ExerciseThumbnail
                     imageUrl={ex.image_url}
                     emoji={ex.emoji}
@@ -229,7 +227,8 @@ export function ExerciseSelectionList({
                   />
                 </span>
               </CommandItem>
-            ))}
+              )
+            })}
           </CommandGroup>
         ))}
     </>
@@ -246,7 +245,7 @@ export function ExerciseSelectionActions({
     t,
     isBlockMode,
     canCreateBlock,
-    hasChanges,
+    addCount,
     isCreatingBlock,
     isApplying,
     selectedExercises,
@@ -255,13 +254,12 @@ export function ExerciseSelectionActions({
   } = state
 
   if (isBlockMode) {
-    if (!canCreateBlock) return null
     return (
       <div className="shrink-0 border-t bg-popover p-3">
         <Button
           className="w-full"
           onClick={handleCreateBlock}
-          disabled={isCreatingBlock}
+          disabled={!canCreateBlock || isCreatingBlock}
         >
           {isCreatingBlock ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -272,18 +270,17 @@ export function ExerciseSelectionActions({
     )
   }
 
-  if (!hasChanges) return null
   return (
     <div className="shrink-0 border-t bg-popover p-3">
       <Button
         className="w-full"
         onClick={handleApply}
-        disabled={isApplying}
+        disabled={addCount === 0 || isApplying}
       >
         {isApplying ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : null}
-        {t("applyChanges")}
+        {t("addSelectedCount", { count: addCount })}
       </Button>
     </div>
   )

@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { deriveDurationRangeMax } from "@/lib/progression"
+import { applySortOrders } from "@/lib/dayItems"
+import { invalidateProgramIntentQueries } from "@/lib/programScore/queryKeys"
 import { authAtom } from "@/store/atoms"
 import type {
   Exercise,
@@ -35,6 +37,7 @@ export function useCreateDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -64,6 +67,7 @@ export function useUpdateDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -82,6 +86,7 @@ export function useDeleteDay(programId: string | null) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -134,6 +139,7 @@ export function useAddExerciseToDay() {
       })
       // Refresh the embedded `exerciseCount` on `useWorkoutDays` (DayList badge).
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -185,6 +191,7 @@ export function useAddExercisesToDay() {
         queryKey: ["workout-exercises", variables.dayId],
       })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -222,6 +229,7 @@ export function useUpdateExercise() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -242,6 +250,7 @@ export function useDeleteExercise() {
         queryKey: ["workout-exercises", variables.dayId],
       })
       qc.invalidateQueries({ queryKey: ["workout-days"] })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -273,6 +282,7 @@ export function useSwapExerciseInDay() {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -280,6 +290,7 @@ export function useSwapExerciseInDay() {
 export function useReorderDays(programId: string | null) {
   const user = useAtomValue(authAtom)
   const qc = useQueryClient()
+  const daysKey = ["workout-days", user?.id, programId] as const
 
   return useMutation({
     mutationFn: async (days: Pick<WorkoutDay, "id" | "sort_order">[]) => {
@@ -293,8 +304,18 @@ export function useReorderDays(programId: string | null) {
       const failed = results.find((r) => r.error)
       if (failed?.error) throw failed.error
     },
+    onMutate: async (days) => {
+      await qc.cancelQueries({ queryKey: daysKey })
+      const previous = qc.getQueryData<WorkoutDay[]>(daysKey)
+      if (previous) qc.setQueryData(daysKey, applySortOrders(previous, days))
+      return { previous }
+    },
+    onError: (_err, _days, context) => {
+      if (context?.previous) qc.setQueryData(daysKey, context.previous)
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["workout-days", user?.id, programId] })
+      qc.invalidateQueries({ queryKey: daysKey })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }
@@ -319,10 +340,23 @@ export function useReorderExercises() {
       const failed = results.find((r) => r.error)
       if (failed?.error) throw failed.error
     },
+    onMutate: async ({ dayId, exercises }) => {
+      const queryKey = ["workout-exercises", dayId] as const
+      await qc.cancelQueries({ queryKey })
+      const previous = qc.getQueryData<WorkoutExercise[]>(queryKey)
+      if (previous) qc.setQueryData(queryKey, applySortOrders(previous, exercises))
+      return { previous }
+    },
+    onError: (_err, { dayId }, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["workout-exercises", dayId], context.previous)
+      }
+    },
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({
         queryKey: ["workout-exercises", variables.dayId],
       })
+      invalidateProgramIntentQueries(qc)
     },
   })
 }

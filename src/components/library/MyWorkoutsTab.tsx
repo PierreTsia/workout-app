@@ -8,12 +8,12 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { sessionAtom } from "@/store/atoms"
 import { useUserPrograms } from "@/hooks/useUserPrograms"
+import { useProgramsIntent } from "@/hooks/useProgramsIntent"
 import { useActivateProgram } from "@/hooks/useActivateProgram"
 import { useArchiveProgram } from "@/hooks/useArchiveProgram"
 import { ProgramCard } from "@/components/library/ProgramCard"
-import { ProgramDetailSheet } from "@/components/library/ProgramDetailSheet"
+import { listLibraryPrograms } from "@/components/library/listLibraryPrograms"
 import { ActivateConfirmDialog } from "@/components/library/ActivateConfirmDialog"
-import type { Program } from "@/types/onboarding"
 
 export function MyWorkoutsTab() {
   const { t } = useTranslation("library")
@@ -25,12 +25,15 @@ export function MyWorkoutsTab() {
 
   const [showArchived, setShowArchived] = useState(false)
   const [activateTargetId, setActivateTargetId] = useState<string | null>(null)
-  const [detailProgram, setDetailProgram] = useState<Program | null>(null)
 
   const visiblePrograms = (programs ?? []).filter((p) => {
     if (showArchived) return true
     return p.archived_at === null
   })
+  const listedPrograms = listLibraryPrograms(visiblePrograms)
+  const visibleIds = listedPrograms.map((program) => program.id)
+  const { data: scoresByProgram, isLoading: intentLoading } =
+    useProgramsIntent(visibleIds)
 
   function handleEdit(programId: string) {
     navigate(`/builder/${programId}`, { state: { from: "/library/programs" } })
@@ -76,23 +79,25 @@ export function MyWorkoutsTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Dumbbell className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold text-foreground">
-          {t("myPrograms")}
-        </h2>
-      </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-2">
+          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">
+            {t("myPrograms")}
+          </h2>
+        </div>
 
-      <Button
-        className="w-full gap-2"
-        variant="outline"
-        onClick={() => navigate("/create-program")}
-        disabled={session.isActive}
-        title={session.isActive ? t("sessionActiveWarning") : undefined}
-      >
-        <Plus className="h-4 w-4" />
-        {t("createProgram")}
-      </Button>
+        <Button
+          className="w-full gap-2 lg:w-auto"
+          variant="outline"
+          onClick={() => navigate("/create-program")}
+          disabled={session.isActive}
+          title={session.isActive ? t("sessionActiveWarning") : undefined}
+        >
+          <Plus className="h-4 w-4" />
+          {t("createProgram")}
+        </Button>
+      </div>
 
       {session.isActive && (
         <p className="text-center text-xs text-muted-foreground">
@@ -100,22 +105,29 @@ export function MyWorkoutsTab() {
         </p>
       )}
 
-      {visiblePrograms.length === 0 && (
+      {listedPrograms.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">{t("myWorkoutsEmpty")}</p>
       )}
 
-      {visiblePrograms.map((program) => (
-        <ProgramCard
-          key={program.id}
-          program={program}
-          isActive={program.is_active}
-          isSessionActive={session.isActive}
-          onActivate={() => setActivateTargetId(program.id)}
-          onArchive={() => handleArchive(program.id, program.archived_at === null)}
-          onDetails={() => setDetailProgram(program)}
-          onEdit={() => handleEdit(program.id)}
-        />
-      ))}
+      {listedPrograms.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {listedPrograms.map((program) => (
+            <ProgramCard
+              key={program.id}
+              program={program}
+              isActive={program.is_active}
+              isSessionActive={session.isActive}
+              onActivate={() => setActivateTargetId(program.id)}
+              onArchive={() => handleArchive(program.id, program.archived_at === null)}
+              onEdit={() => handleEdit(program.id)}
+              score={scoresByProgram?.[program.id]?.score}
+              bodyMap={scoresByProgram?.[program.id]?.bodyMap}
+              days={scoresByProgram?.[program.id]?.days}
+              intentLoading={intentLoading}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 pt-2">
         <Switch
@@ -127,13 +139,6 @@ export function MyWorkoutsTab() {
           {t("showArchived")}
         </label>
       </div>
-
-      <ProgramDetailSheet
-        program={detailProgram}
-        open={detailProgram !== null}
-        onOpenChange={(open) => { if (!open) setDetailProgram(null) }}
-        onEdit={handleEdit}
-      />
 
       <ActivateConfirmDialog
         open={activateTargetId !== null}

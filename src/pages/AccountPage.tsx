@@ -219,7 +219,7 @@ export function AccountPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-10 pt-4">
+    <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
       {/* Nav bar */}
       <div className="flex items-center gap-3">
         <button

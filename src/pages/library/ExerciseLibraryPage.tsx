@@ -149,7 +149,7 @@ export function ExerciseLibraryPage() {
           </div>
         </div>
 
-        <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto">
+        <CommandList className="min-h-0 flex-1 max-h-none overflow-x-hidden overflow-y-auto scrollbar-thin">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

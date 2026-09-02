@@ -1,0 +1,71 @@
+{
+  "track": {
+    "hypertrophy": "Muscle growth",
+    "strength": "Strength",
+    "endurance": "Endurance",
+    "balance": "Balance"
+  },
+  "band": {
+    "short": "Low",
+    "ok": "Moderate",
+    "high": "High"
+  },
+  "rubric": {
+    "hypertrophy": "Moderate: most muscles you programmed hit 8–20 sets and 2–3 days this week.",
+    "strength": "Moderate: 20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more.",
+    "endurance": "Moderate: one Circuit, or enough short-rest high-rep sets.",
+    "balance": "A score out of 100 for how much the program works all your muscle groups. 70 to 100 is balanced; 50 to 69 needs a look; under 50, a few muscles do almost all the work."
+  },
+  "example": {
+    "hypertrophy": "{{muscle}}: {{sets}} sets · {{days}} days → {{band}}"
+  },
+  "facts": {
+    "line": "{{days}} · {{sets}} · {{circuits}}",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "sets_one": "{{count}} set",
+    "sets_other": "{{count}} sets",
+    "circuits_one": "{{count}} circuit",
+    "circuits_other": "{{count}} circuits",
+    "stat": {
+      "days": "Days",
+      "sets": "Sets",
+      "circuits": "Circuits"
+    },
+    "mix": {
+      "free": "Free weights",
+      "machine": "Machines",
+      "bodyweight": "Bodyweight",
+      "other": "Other"
+    }
+  },
+  "empty": {
+    "scores": "Add a day to see what this program is for."
+  },
+  "notFound": "This program isn’t here.",
+  "notFoundBack": "Back to programs",
+  "loadError": "We couldn’t load this program.",
+  "offline": "Scores will show when this week is already on the phone.",
+  "focus": {
+    "label": "Built for",
+    "separator": ": ",
+    "help": "Why this goal",
+    "fit": "This program looks better for {{goal}}, because {{reason}}.",
+    "reason": {
+      "hypertrophy": "most muscles you programmed hit 8–20 sets and 2–3 days this week",
+      "strength": "20–40% of your sets are 6 reps or fewer, with rest of 150 seconds or more",
+      "endurance": "it has a Circuit, or enough high-rep sets with short rest"
+    }
+  },
+  "balance": {
+    "help": "What this score means"
+  },
+  "days": {
+    "preview": "Exercises on {{day}}",
+    "empty": "Nothing on this day yet.",
+    "index": "Day {{count}}",
+    "edit": "Edit {{day}}"
+  },
+  "edit": "Edit",
+  "pageTitle": "Program"
+}

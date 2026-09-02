@@ -43,6 +43,45 @@ export interface DayItemReorder {
 }
 
 /**
+ * Move `activeId` to `overId`'s slot and reindex `0..n-1` on both the item
+ * and its nested row. Same-array return means the ids were not found or
+ * already sit on the same slot — callers can skip the persist.
+ */
+export function moveDayItems(
+  items: DayItem[],
+  activeId: string,
+  overId: string,
+): DayItem[] {
+  const oldIndex = items.findIndex((i) => dayItemId(i) === activeId)
+  const newIndex = items.findIndex((i) => dayItemId(i) === overId)
+  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return items
+
+  return arrayMove(items, oldIndex, newIndex).map((item, sort_order) =>
+    item.kind === "solo"
+      ? { ...item, sort_order, exercise: { ...item.exercise, sort_order } }
+      : { ...item, sort_order, block: { ...item.block, sort_order } },
+  )
+}
+
+export function dayItemSortUpdates(items: readonly DayItem[]): DayItemReorder {
+  const indexed = items.map((item, sort_order) => ({ item, sort_order }))
+  return {
+    solos: indexed
+      .filter(({ item }) => item.kind === "solo")
+      .map(({ item, sort_order }) => ({
+        id: dayItemId(item),
+        sort_order,
+      })),
+    blocks: indexed
+      .filter(({ item }) => item.kind === "block")
+      .map(({ item, sort_order }) => ({
+        id: dayItemId(item),
+        sort_order,
+      })),
+  }
+}
+
+/**
  * Move `activeId` to `overId`'s slot within the merged sequence, then reindex
  * the whole day `0..n-1`. Returns the new `sort_order` for solos and blocks
  * separately so each can be persisted to its own table (#351, T140).
@@ -52,26 +91,19 @@ export function reorderDayItems(
   activeId: string,
   overId: string,
 ): DayItemReorder {
-  const oldIndex = items.findIndex((i) => dayItemId(i) === activeId)
-  const newIndex = items.findIndex((i) => dayItemId(i) === overId)
-  if (oldIndex === -1 || newIndex === -1) return { solos: [], blocks: [] }
+  const next = moveDayItems(items, activeId, overId)
+  if (next === items) return { solos: [], blocks: [] }
+  return dayItemSortUpdates(next)
+}
 
-  const reindexed = arrayMove(items, oldIndex, newIndex).map(
-    (item, sort_order) => ({ item, sort_order }),
-  )
-
-  const solos = reindexed
-    .filter(({ item }) => item.kind === "solo")
-    .map(({ item, sort_order }) => ({
-      id: dayItemId(item),
-      sort_order,
-    }))
-  const blocks = reindexed
-    .filter(({ item }) => item.kind === "block")
-    .map(({ item, sort_order }) => ({
-      id: dayItemId(item),
-      sort_order,
-    }))
-
-  return { solos, blocks }
+/** Apply a reorder payload onto cached rows without waiting for a refetch. */
+export function applySortOrders<T extends { id: string; sort_order: number }>(
+  rows: readonly T[],
+  updates: readonly { id: string; sort_order: number }[],
+): T[] {
+  const nextOrder = new Map(updates.map((row) => [row.id, row.sort_order]))
+  return rows.map((row) => {
+    const sort_order = nextOrder.get(row.id)
+    return sort_order === undefined ? row : { ...row, sort_order }
+  })
 }

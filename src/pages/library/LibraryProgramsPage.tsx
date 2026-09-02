@@ -12,7 +12,7 @@ export function LibraryProgramsPage() {
   const { data: saved = [] } = useSavedWorkouts()
 
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-8">
+    <div className="flex flex-1 flex-col gap-6 px-4 pb-8">
       <div className="flex items-center gap-3">
         <button
           type="button"

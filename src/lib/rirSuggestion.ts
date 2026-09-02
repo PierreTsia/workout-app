@@ -79,8 +79,13 @@ export function getAdjustmentTier(
 const RANGE_RE = /^(\d+)-(\d+)$/
 const FIXED_RE = /^\d+$/
 
+export type TargetRepRangeSource = Pick<
+  WorkoutExercise,
+  "reps" | "rep_range_min" | "rep_range_max"
+>
+
 export function parseTargetRepRange(
-  exercise: WorkoutExercise,
+  exercise: TargetRepRangeSource,
 ): RepRange | null {
   if (
     exercise.rep_range_min != null &&

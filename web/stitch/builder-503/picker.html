@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Add to Push A</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "foreground": "#f2f2f2",
+                        "background": "#131317",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface": "#15151c",
+                        "inverse-surface": "#e4e1e7",
+                        "tertiary": "#ffc0a1",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-primary-fixed": "#002019",
+                        "outline-variant": "#3c4a45",
+                        "surface-container": "#1f1f23",
+                        "surface-tint": "#38debb",
+                        "error": "#ffb4ab",
+                        "primary-container": "#00c9a7",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "on-primary-container": "#004e40",
+                        "on-primary": "#00382d",
+                        "secondary": "#c7c5d0",
+                        "on-secondary-fixed": "#1b1b23",
+                        "surface-variant": "#353439",
+                        "on-surface-variant": "#bacac3",
+                        "secondary-fixed": "#e4e1ec",
+                        "on-error": "#690005",
+                        "inverse-primary": "#006b58",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-secondary-container": "#b9b7c2",
+                        "muted": "#999999",
+                        "tertiary-container": "#ff9862",
+                        "surface-dim": "#131317",
+                        "primary-fixed": "#5ffbd6",
+                        "on-surface": "#e4e1e7",
+                        "inverse-on-surface": "#303034",
+                        "surface-container-high": "#2a292e",
+                        "on-background": "#e4e1e7",
+                        "outline": "#85948e",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "on-primary-fixed-variant": "#005142",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary": "#552000",
+                        "surface-container-highest": "#353439",
+                        "surface-bright": "#39393d",
+                        "primary-fixed-dim": "#38debb",
+                        "surface-container-low": "#1b1b1f",
+                        "error-container": "#93000a",
+                        "primary": "#44e5c2",
+                        "on-secondary": "#303038",
+                        "secondary-container": "#494851",
+                        "on-error-container": "#ffdad6",
+                        "border": "#2d2d37",
+                        "on-tertiary-fixed": "#341100",
+                        "on-tertiary-container": "#762f00",
+                        "canvas": "#0f0f13",
+                        "card": "#1a1a22"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "md": "8px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Geist"],
+                        "mono": ["Geist Mono"],
+                        "headline-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "label": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "headline-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for horizontal lists */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-[#0f0f13] text-foreground font-body-md antialiased min-h-screen flex flex-col max-w-[390px] mx-auto relative overflow-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 h-16 shrink-0 bg-[#0f0f13] z-10">
+<div class="w-8 h-8"></div> <!-- Spacer for center alignment -->
+<h1 class="font-headline-sm text-headline-sm text-foreground">Add to Push A</h1>
+<button class="w-8 h-8 flex items-center justify-center text-muted active:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+</header>
+<!-- Fixed Controls Area -->
+<div class="px-4 pb-4 flex flex-col gap-4 shrink-0 bg-[#0f0f13] z-10 border-b border-border">
+<!-- Search -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted text-[20px]">search</span>
+<input class="w-full h-[40px] bg-surface border border-border rounded-md pl-10 pr-4 text-body-sm font-body-sm text-foreground placeholder:text-muted focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all" placeholder="Search the catalog" type="text"/>
+</div>
+<!-- Kind Toggle -->
+<div class="flex p-1 bg-surface border border-border rounded-md w-full relative">
+<button class="flex-1 py-1.5 text-center font-label text-label text-foreground relative z-10">
+                Exercises
+                <div class="absolute bottom-0 left-4 right-4 h-0.5 bg-primary-container rounded-t-full"></div>
+</button>
+<button class="flex-1 py-1.5 text-center font-label text-label text-muted relative z-10 transition-colors">
+                Circuits
+            </button>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-2 overflow-x-auto hide-scrollbar -mx-4 px-4 pb-1">
+<button class="shrink-0 px-4 py-1.5 bg-surface border border-primary-container rounded-md font-label text-label text-foreground whitespace-nowrap">All</button>
+<button class="shrink-0 px-4 py-1.5 bg-[#1a1a22] border border-border rounded-md font-label text-label text-muted hover:text-foreground transition-colors whitespace-nowrap">Chest</button>
+<button class="shrink-0 px-4 py-1.5 bg-[#1a1a22] border border-border rounded-md font-label text-label text-muted hover:text-foreground transition-colors whitespace-nowrap">Shoulders</button>
+<button class="shrink-0 px-4 py-1.5 bg-[#1a1a22] border border-border rounded-md font-label text-label text-muted hover:text-foreground transition-colors whitespace-nowrap">Triceps</button>
+<button class="shrink-0 px-4 py-1.5 bg-[#1a1a22] border border-border rounded-md font-label text-label text-muted hover:text-foreground transition-colors whitespace-nowrap">Back</button>
+</div>
+</div>
+<!-- Scrollable Catalog List -->
+<div class="flex-1 overflow-y-auto pb-24">
+<ul class="flex flex-col">
+<!-- Item 1: Bench Press -->
+<li class="flex items-center gap-4 px-4 h-[56px] active:bg-surface/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface border border-border">
+<img class="w-full h-full object-cover" data-alt="A dark, moody thumbnail photo of a muscular torso pressing a heavy barbell on a bench press, studio lighting, stark contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEFUDA3QWItropGlIzsE3kJkHPl-JxOEqpikLjHTGLkH7Vp7nJpUtNn6qQBIVR4SXU5MMpe4puH8eAleS5ldq9Q3AIxGSHIdCrhJoyRF45VqaJxLxvy8NIRjnabmnUSTWhFevtHb9OlMrPM9q8-EiLkSI04xopxVAxrlwv_UxBdm3XbYcrQcSVK7EtYznwqb6BoNUDPkFuilFBl0Mt_n3CzC9obZPfttdwXfzh-rJgF6xhwd_JSdV-eg9Xet8hiCNJpDW6slXBqk0"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-foreground truncate">Bench Press</p>
+<p class="font-label text-[12px] text-muted truncate">Chest · barbell</p>
+</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary-container shrink-0">
+<span class="material-symbols-outlined text-black text-[18px] font-bold">check</span>
+</div>
+</li>
+<!-- Item 2: Incline Dumbbell Press -->
+<li class="flex items-center gap-4 px-4 h-[56px] active:bg-surface/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface border border-border">
+<img class="w-full h-full object-cover" data-alt="Close up dark high contrast photo of an athlete performing an incline dumbbell press, sharp focus on the dumbbells, sweat, grit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4dERtzOS7webUzZLRqinenx05P_NcImX5Ho5Ps7YifuBii8kqW9ULKv1I44jxyzOtWh5qb2aa1D4cZLkpeDDeENLFF34P5hDsW1mfss3_enlZwJ3xaJft039z2l06Iftw7Ymo5Rpp3co8YMZEObyjyLB0PkZSLeBQmhzSdSspjdNbURCHKCaflIVDdL6gO5YsNEOQOcjn6Ir-U_cHoH4oLdmvZp7OXAk-o1wnPLJZQomkLj0PAgncvGXuZm7VKT4OkVDmSYBOBD0"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-foreground truncate">Incline Dumbbell Press</p>
+<p class="font-label text-[12px] text-muted truncate">Chest · dumbbell</p>
+</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary-container shrink-0">
+<span class="material-symbols-outlined text-black text-[18px] font-bold">check</span>
+</div>
+</li>
+<!-- Item 3: Cable Flye -->
+<li class="flex items-center gap-4 px-4 h-[56px] active:bg-surface/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface border border-border flex items-center justify-center text-muted">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-foreground truncate">Cable Flye</p>
+<p class="font-label text-[12px] text-muted truncate">Chest · cable</p>
+</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary-container shrink-0">
+<span class="material-symbols-outlined text-black text-[18px] font-bold">check</span>
+</div>
+</li>
+<!-- Item 4: Overhead Press -->
+<li class="flex items-center gap-4 px-4 h-[56px] active:bg-surface/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface border border-border">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1U0KRWStHO2Hoynscm7lUkN45S6EGoMUBH4cZQfazL83FMYsHEfnsK_B8SV3zjwYHQ1sQFtYzQuFJnVfZu2DWpy3EkBz5YdvqETYKw4qgOKh0CilYzfW2HJNuYqJLu4WMofgN160O0rKdPTC4_mCLlEI_LguGmHClrP4SepVcjIuAfB9nkwgt0L5pLcQYwXxg9FzdxZP1UaSeOQkle2flhkvhQAlLBKKXX6UoLt9ap6WVLlL5k7kqn7UPs"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-foreground truncate">Overhead Press</p>
+<p class="font-label text-[12px] text-muted truncate">Shoulders · barbell</p>
+</div>
+<div class="shrink-0">
+<span class="px-2 py-1 rounded bg-surface border border-border font-mono text-[10px] text-muted uppercase tracking-wider">On Day</span>
+</div>
+</li>
+<!-- Item 5: Push Up -->
+<li class="flex items-center gap-4 px-4 h-[56px] active:bg-surface/50 transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-md overflow-hidden shrink-0 bg-surface border border-border">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1X85OAaXQYJ4Lc6kdU5cnzAbK2BW39KXhdouv7gzU-ULmrfQ9TCSvo9Q7vp8YbAtx3sh9ggkzFcniq5OBFDBv4nRF4vT8OE4lyrABBjdzSnEUHg4MQTFC8aT_tURSwfLCRbgY1bDUBb_CIxp7E7LpFHZfBCE50AqYiMFebjqqyXs0xaxHkNdTkb_G4F0NQul6V9czCxf0vqc8t1Aw-iOy_ERaE8YEX7yCPjRbzpy5jeghCwficXAkJxSXQ"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-body-sm text-body-sm text-foreground truncate">Push Up</p>
+<p class="font-label text-[12px] text-muted truncate">Chest · bodyweight</p>
+</div>
+<div class="w-6 h-6 rounded flex items-center justify-center border border-border shrink-0">
+</div>
+</li>
+</ul>
+</div>
+<!-- Sticky Footer -->
+<div class="absolute bottom-0 left-0 w-full px-4 py-4 bg-[#0f0f13]/90 backdrop-blur-md border-t border-border flex items-center justify-center">
+<button class="w-full h-[44px] bg-primary-container rounded-md flex items-center justify-center font-label text-label text-black active:opacity-90 transition-opacity inset-shadow shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+            Add 3
+        </button>
+</div>
+</body></html>

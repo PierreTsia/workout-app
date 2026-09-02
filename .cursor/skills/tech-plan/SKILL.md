@@ -92,6 +92,7 @@ Using the Epic Brief + codebase exploration + user answers from Phase 2, generat
 - **Data Model**: mermaid diagrams for new or modified entities, schema snippets, localStorage shapes if applicable
 - **Component Architecture**: mermaid graph of the component/module hierarchy, file-responsibility tables, detailed component descriptions
 - **Failure Mode Analysis**: table of what-if scenarios and their behavior
+- **i18n contract** — if the epic adds or changes user-facing copy, follow `.cursor/skills/microcopy/SKILL.md` and include the key table (namespace, key, EN, FR, why). Do not write "add i18n keys" as a vague leftover. If there are no new strings, say so in one line.
 
 Present the full markdown to the user in a text message (do NOT write the file yet).
 
@@ -131,6 +132,7 @@ Print a short recap:
 - Architectural approach in 2-3 sentences
 - Key decisions made during refinement (list the most impactful ones)
 - Any deferred items or known risks accepted
+- i18n: either "N keys contracted (EN+FR)" or "no new user-facing strings"
 - Suggest: "When you're ready, say **split into tickets** to continue."
 
 ---

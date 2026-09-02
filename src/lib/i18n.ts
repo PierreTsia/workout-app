@@ -24,6 +24,7 @@ import enAchievements from "@/locales/en/achievements.json"
 import enApiTokens from "@/locales/en/api-tokens.json"
 import enCatalog from "@/locales/en/catalog.json"
 import enProfile from "@/locales/en/profile.json"
+import enProgram from "@/locales/en/program.json"
 
 import frCommon from "@/locales/fr/common.json"
 import frAuth from "@/locales/fr/auth.json"
@@ -46,6 +47,7 @@ import frAchievements from "@/locales/fr/achievements.json"
 import frApiTokens from "@/locales/fr/api-tokens.json"
 import frCatalog from "@/locales/fr/catalog.json"
 import frProfile from "@/locales/fr/profile.json"
+import frProgram from "@/locales/fr/program.json"
 
 i18n
   .use(LanguageDetector)
@@ -74,6 +76,7 @@ i18n
         "api-tokens": enApiTokens,
         catalog: enCatalog,
         profile: enProfile,
+        program: enProgram,
       },
       fr: {
         common: frCommon,
@@ -97,11 +100,12 @@ i18n
         "api-tokens": frApiTokens,
         catalog: frCatalog,
         profile: frProfile,
+        program: frProgram,
       },
     },
     fallbackLng: "en",
     supportedLngs: ["en", "fr"],
-    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program", "account", "privacy", "achievements", "api-tokens", "catalog", "profile"],
+    ns: ["common", "auth", "workout", "history", "builder", "settings", "about", "exercise", "admin", "feedback", "error", "onboarding", "library", "generator", "create-program", "account", "privacy", "achievements", "api-tokens", "catalog", "profile", "program"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
