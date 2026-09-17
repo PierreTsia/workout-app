@@ -12,6 +12,12 @@ describe("WorkoutPage done-day recap", () => {
 
 describe("WorkoutPage live session start", () => {
   it("wipes leftover PR flags when a live session starts (#533)", () => {
-    expect(source).toMatch(/\bbeginLiveSession\(/)
+    const startIdx = source.indexOf("async function startSession")
+    const endIdx = source.indexOf("\n  function handleNewSession", startIdx)
+    expect(startIdx).toBeGreaterThan(-1)
+    expect(endIdx).toBeGreaterThan(startIdx)
+
+    const startSession = source.slice(startIdx, endIdx)
+    expect(startSession).toMatch(/isActive:\s*true[\s\S]*\bbeginLiveSession\(/)
   })
 })
