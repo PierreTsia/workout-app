@@ -119,6 +119,7 @@ const LOCAL_ID = `local-${STARTED_AT}`
 
 let cancelActiveSession: typeof import("./cancelSession").cancelActiveSession
 let resetSessionAtoms: typeof import("./cancelSession").resetSessionAtoms
+let beginLiveSession: typeof import("./cancelSession").beginLiveSession
 
 function setActiveSession(overrides: Record<string, unknown> = {}) {
   mockStore.get.mockImplementation((atom: unknown) => {
@@ -159,6 +160,7 @@ describe("cancelSession", () => {
     const mod = await import("./cancelSession")
     cancelActiveSession = mod.cancelActiveSession
     resetSessionAtoms = mod.resetSessionAtoms
+    beginLiveSession = mod.beginLiveSession
   })
 
   afterEach(() => {
@@ -208,6 +210,31 @@ describe("cancelSession", () => {
      */
     it("clears prFlagsAtom and sessionBestPerformanceAtom (regression #291)", () => {
       resetSessionAtoms()
+
+      const prFlagsSet = mockStore.set.mock.calls.find(
+        ([atom]) => atom === PR_FLAGS_ATOM,
+      )
+      const sessionBestSet = mockStore.set.mock.calls.find(
+        ([atom]) => atom === SESSION_BEST_PERFORMANCE_ATOM,
+      )
+
+      expect(prFlagsSet?.[1]).toEqual({})
+      expect(sessionBestSet?.[1]).toEqual({})
+    })
+  })
+
+  // =========================================================================
+  // beginLiveSession
+  // =========================================================================
+
+  describe("beginLiveSession", () => {
+    /**
+     * Finish leaves prFlags populated for the bilan. Persistence (#291) then
+     * survives a reload before "New Session", and startSession used to keep
+     * those catalog-keyed flags — trophies on exercises with zero logged sets.
+     */
+    it("does not carry previous session PR flags into a newly started session", () => {
+      beginLiveSession()
 
       const prFlagsSet = mockStore.set.mock.calls.find(
         ([atom]) => atom === PR_FLAGS_ATOM,
