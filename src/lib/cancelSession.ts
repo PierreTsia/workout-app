@@ -47,7 +47,9 @@ function timeoutAfter(ms: number, label: string): Promise<never> {
  *
  * `prFlagsAtom` and `sessionBestPerformanceAtom` are persisted (regression
  * #291) so they must be cleared here too, otherwise PR badges from the
- * previous session would leak into the next one's bilan.
+ * previous session would leak into the next one's bilan. Start of a live
+ * session uses {@link beginLiveSession} for the same wipe (reload after
+ * finish, before "New Session" — #533).
  *
  * Does NOT touch local React state inside `WorkoutPage` (finishedStats,
  * finishedQuickInfo, …). Those only matter post-finish; during an active
@@ -57,9 +59,19 @@ export function resetSessionAtoms(): void {
   store.set(sessionAtom, defaultSessionState)
   store.set(restAtom, null)
   store.set(isQuickWorkoutAtom, false)
+  beginLiveSession()
+  clearSessionExercisePatchStorage()
+}
+
+/**
+ * Session-scoped PR atoms survive a mid-session refresh (#291) but must not
+ * leak across sessions. Finish leaves them populated for the bilan; starting
+ * a live session has to wipe them, or catalog-keyed trophies show on exercises
+ * with zero logged sets (#533).
+ */
+export function beginLiveSession(): void {
   store.set(prFlagsAtom, {})
   store.set(sessionBestPerformanceAtom, {})
-  clearSessionExercisePatchStorage()
 }
 
 /**

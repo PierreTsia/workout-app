@@ -68,7 +68,7 @@ import {
   getInitialPreSessionPatchForHydration,
   saveSessionExercisePatch,
 } from "@/lib/sessionExercisePatchStorage"
-import { resetSessionAtoms } from "@/lib/cancelSession"
+import { resetSessionAtoms, beginLiveSession } from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { buildSessionItems } from "@/lib/sessionItems"
 import { sessionProgress } from "@/lib/sessionFinishStats"
@@ -944,6 +944,7 @@ export function WorkoutPage() {
       cycleId,
       completedBlockIds: [],
     }))
+    beginLiveSession()
   }
 
   function handleNewSession() {

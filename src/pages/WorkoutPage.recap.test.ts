@@ -9,3 +9,9 @@ describe("WorkoutPage done-day recap", () => {
     expect(source).toMatch(/\bLastSessionRecap\b/)
   })
 })
+
+describe("WorkoutPage live session start", () => {
+  it("wipes leftover PR flags when a live session starts (#533)", () => {
+    expect(source).toMatch(/\bbeginLiveSession\(/)
+  })
+})
