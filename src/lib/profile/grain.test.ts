@@ -42,6 +42,11 @@ describe("profileBuckets", () => {
     expect(buckets.some((bucket) => bucket.label.startsWith("W-"))).toBe(false)
     expect(buckets.at(-1)?.key).toBe(grainKey("2026-08-21", "isoWeek"))
   })
+
+  it("lets a 30-day window cover 5 or 6 ISO weeks depending on weekday", () => {
+    expect(profileBuckets("30", "2026-08-20", "2026-09-18")).toHaveLength(5)
+    expect(profileBuckets("30", "2026-08-23", "2026-09-21")).toHaveLength(6)
+  })
 })
 
 describe("isoWeekMonday", () => {

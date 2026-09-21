@@ -7,6 +7,13 @@ import {
   restoreChartLayout,
   stubChartLayout,
 } from "@/components/profile/charts/chartTestLayout"
+import { profileBuckets } from "@/lib/profile/grain"
+import { PIERRE_WEEKLY_TARGET } from "@/lib/profile/window"
+import {
+  isoDayInTimeZone,
+  profileWindowRange,
+} from "@/lib/profile/windowRange"
+import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import { authAtom } from "@/store/atoms"
 import type { User } from "@/types/auth"
 
@@ -83,6 +90,12 @@ function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString()
 }
 
+function live30dWeekCount(): number {
+  const timeZone = getResolvedIANATimeZone()
+  const range = profileWindowRange("30", isoDayInTimeZone(new Date(), timeZone))
+  return profileBuckets("30", range.from, range.to).length
+}
+
 describe("profile Mix and Rhythm from snapshot", () => {
   beforeEach(() => {
     stubChartLayout()
@@ -123,9 +136,12 @@ describe("profile Mix and Rhythm from snapshot", () => {
 
     const rhythm = within(sectionCard("Rhythm"))
     expect(rhythm.queryByText("No sessions in this window.")).not.toBeInTheDocument()
-    expect(rhythm.getAllByRole("listitem")).toHaveLength(5)
+    const weeks = live30dWeekCount()
+    expect(weeks).toBeGreaterThanOrEqual(5)
+    expect(weeks).toBeLessThanOrEqual(6)
+    expect(rhythm.getAllByRole("listitem")).toHaveLength(weeks)
     const dots = rhythm.getByRole("list", { name: "Rhythm" }).querySelectorAll("[data-rhythm-dot]")
-    expect(dots).toHaveLength(20)
+    expect(dots).toHaveLength(weeks * PIERRE_WEEKLY_TARGET)
     expect([...dots].every((dot) => dot.getAttribute("data-rhythm-dot") === "off")).toBe(true)
   })
 
