@@ -416,3 +416,11 @@ The capability journey page on the Astro mini-site at `/tour` (nav label **Tour*
 **Tour Split Stage**:
 Desktop interaction model for the **Product Tour**: left sticky scene rail (01–06) + right sticky device stage that crossfades / focal-zooms as the active scene changes (scroll or click). Mobile uses a linear stack of the same six scenes instead. Scene 04 swaps phone chrome for a desktop window (BYOA / External MCP Client). Zig-zag feature rows are explicitly out.
 → `file:web/src/pages/tour.astro`
+
+---
+
+## Transactional mail
+
+**Welcome Email**:
+The one account message sent when a GymLogic account is created, before onboarding. A short orientation: **Program**, **Session**, and connecting an **External MCP Client** — English first, French below (**tu**). Not the **Product Tour** (that's `/tour`); the mail digests three of its scenes (start with a Program, train the Session, bring your own agent) and links to it. Distinct from feedback notifications. Not a newsletter; not an Auth confirmation.
+_Avoid_: calling the mail itself "the Product Tour", drip, day-2 sequences

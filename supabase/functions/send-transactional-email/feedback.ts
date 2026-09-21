@@ -1,4 +1,4 @@
-/** Lightweight feedback ack / resolved templates — English only (matches welcome V1). */
+/** Lightweight feedback ack / resolved templates — English only. */
 
 export function buildFeedbackAckEmail(params: {
   unsubscribeUrl: string
