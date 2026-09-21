@@ -1,9 +1,9 @@
-import { Resend } from "npm:resend@4.0.1"
+import { Resend } from "npm:resend@6.28.1"
 import { signUnsubscribeToken, unsubscribeSecret } from "../_shared/unsubscribeToken.ts"
 import { corsHeaders } from "../_shared/cors.ts"
 import { createServiceClient } from "../_shared/supabase.ts"
 import { buildFeedbackAckEmail, buildFeedbackResolvedEmail } from "./feedback.ts"
-import { buildWelcomeEmail } from "./welcome.ts"
+import { resolveWelcomeSend } from "./welcome.ts"
 
 type WebhookPayload = {
   type: "INSERT" | "UPDATE" | "DELETE"
@@ -137,21 +137,25 @@ async function handleAuthUserInsert(record: Record<string, unknown>) {
 
   const resendKey = Deno.env.get("RESEND_API_KEY")
   const fromEmail = Deno.env.get("FROM_EMAIL")?.trim()
-  const appName = Deno.env.get("APP_NAME")?.trim()
 
   if (!resendKey || !fromEmail) {
     console.error("send-transactional-email: missing RESEND_API_KEY or FROM_EMAIL")
     return jsonResponse({ error: "Server misconfigured" }, 500)
   }
 
-  const { subject, html } = buildWelcomeEmail({ appName })
+  const welcome = resolveWelcomeSend({
+    templateId: Deno.env.get("RESEND_WELCOME_TEMPLATE_ID"),
+    appUrl: Deno.env.get("APP_URL"),
+    tourUrl: Deno.env.get("TOUR_URL"),
+    connectUrl: Deno.env.get("CONNECT_URL"),
+  })
   const resend = new Resend(resendKey)
 
   const { data: sendData, error: sendErr } = await resend.emails.send({
     from: fromEmail,
     to: email,
-    subject,
-    html,
+    subject: welcome.subject,
+    template: welcome.template,
   })
 
   if (sendErr) {
