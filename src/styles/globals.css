@@ -474,6 +474,9 @@
   html.gl-session-orientation-guard .max-h-\[92vh\] {
     max-height: 92vw;
   }
+  html.gl-session-orientation-guard .max-h-\[min\(50vh\,24rem\)\] {
+    max-height: min(50vw, 24rem);
+  }
   @media (min-width: 40rem) {
     html.gl-session-orientation-guard .sm\:max-h-\[80vh\] {
       max-height: 80vw;
