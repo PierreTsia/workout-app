@@ -424,7 +424,7 @@
   html.gl-session-orientation-guard {
     width: 100vh;
     height: 100vw;
-    background: var(--background);
+    background: hsl(var(--background));
     transform-origin: top left;
   }
   html.gl-session-orientation-guard[data-gl-rot="-90"] {
