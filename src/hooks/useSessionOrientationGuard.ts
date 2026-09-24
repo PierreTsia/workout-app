@@ -9,7 +9,9 @@ type RotValue = "-90" | "90"
 function currentRot(): RotValue {
   const angle =
     screen.orientation?.angle ??
-    (window as Window & { orientation?: number }).orientation
+    ("orientation" in window && typeof window.orientation === "number"
+      ? window.orientation
+      : undefined)
   if (angle === undefined || Number.isNaN(angle)) return "-90"
   return angle > 0 && angle < 180 ? "-90" : "90"
 }
@@ -25,7 +27,11 @@ export function useSessionOrientationGuard(): void {
     root.classList.add(GUARD_CLASS)
     root.setAttribute("data-gl-rot", currentRot())
 
-    void screen.orientation?.lock?.("portrait")?.catch(() => {})
+    try {
+      void screen.orientation?.lock?.("portrait")?.catch(() => {})
+    } catch {
+      // lock threw synchronously — silent fallback
+    }
 
     const updateRot = () => root.setAttribute("data-gl-rot", currentRot())
     screen.orientation?.addEventListener?.("change", updateRot)
