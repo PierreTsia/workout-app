@@ -248,6 +248,10 @@ The in-session timer for duration-based exercises (planks, hollow holds, dead ha
 The product-level promise that during a held isometric (plank, hollow hold, etc.) the user never needs to look at the screen to know how the set is going. Three layers, in order of reliability: **(1)** screen wake lock via **`useKeepScreenAwake`** to keep the visual countdown legible without re-unlocking the phone (foreground only); **(2)** sequenced audio cues at T-3 / T-2 / T-1 (660 Hz / 150 ms `playWarningBeep`) and a finish chime at T-0 (`playFinishBeeps`, two-note 880 → 1100 Hz) for eyes-closed / looking-up moments; **(3)** a service-worker notification at T-0 (best-effort, mirrors **`useRestTimer`**'s pattern) for the backgrounded / phone-in-pocket case. Centralized through **`src/lib/audio.ts`** + **`useKeepScreenAwake`** (see ADR 0006). Currently scoped to **Duration Set Timer**; **`useRestTimer`**'s 10-second warning is a credible future caller.
 → `file:src/components/workout/DurationSetTimer.tsx`, `file:src/lib/audio.ts`, `file:src/hooks/useKeepScreenAwake.ts`
 
+**Session Orientation Guard**:
+The session-scoped orientation policy that stops the phone-on-the-floor beat from reflowing the PWA into landscape: while a **Session** is live or paused (`sessionAtom.isActive && startedAt != null`, mounted in `AppShell`), `<html>` carries `gl-session-orientation-guard` + `data-gl-rot`, a best-effort `screen.orientation.lock("portrait")` runs where the platform allows it (installed Android PWAs — silent failure like **Eyes-off Feedback**'s wake lock), and on `(orientation: landscape) and (pointer: coarse)` a CSS block rotates the root box back to an upright portrait visual (iOS, where every lock API is ignored). Session-only by design: no guard pre-session, on other screens, or on desktop (fine pointer). The PWA manifest deliberately has no `orientation` field.
+→ `file:src/hooks/useSessionOrientationGuard.ts`, `file:src/styles/globals.css`, ADR `file:docs/adr/0022-session-orientation-policy.md`
+
 ---
 
 ## Supersets & Circuits

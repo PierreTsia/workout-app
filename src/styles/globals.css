@@ -410,3 +410,36 @@
 .achievement-glow-diamond {
   background: radial-gradient(circle at center, rgba(168, 85, 247, 0.4) 0%, rgba(103, 232, 249, 0.15) 50%, transparent 70%);
 }
+
+/* ===== Session Portrait Guard (#501) =====
+   Tri-gated: guard <html> class (live Session) + landscape + coarse pointer.
+   Swaps the root box to portrait dimensions and rotates it back upright so
+   the session UI never reflows into the accidental landscape layout — the
+   iOS half of the Prevent policy (Android installed PWAs get the OS lock).
+   Unlayered on purpose: must outrank Tailwind's layered h-dvh / min-h-dvh
+   utilities without !important. Do not transform <body> here — vaul drawers
+   set an inline body transform that must compose inside this one.
+   ADR: docs/adr/0022-session-orientation-policy.md */
+@media (orientation: landscape) and (pointer: coarse) {
+  html.gl-session-orientation-guard {
+    width: 100vh;
+    height: 100vw;
+    background: hsl(var(--background));
+    transform-origin: top left;
+  }
+  html.gl-session-orientation-guard[data-gl-rot="-90"] {
+    transform: translateY(100vh) rotate(-90deg);
+  }
+  html.gl-session-orientation-guard[data-gl-rot="90"] {
+    transform: translateX(100vw) rotate(90deg);
+  }
+  html.gl-session-orientation-guard body {
+    height: 100%;
+  }
+  html.gl-session-orientation-guard .h-dvh {
+    height: 100%;
+  }
+  html.gl-session-orientation-guard .min-h-dvh {
+    min-height: 100%;
+  }
+}

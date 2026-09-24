@@ -4,6 +4,7 @@ import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { drawerOpenAtom } from "@/store/atoms"
 import { useHydrateLocaleFromProfile } from "@/hooks/useProfileLocale"
+import { useSessionOrientationGuard } from "@/hooks/useSessionOrientationGuard"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
 import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
@@ -19,6 +20,9 @@ export function AppShell() {
   // Runs where auth is already resolved, which is the earliest the profile's
   // language is readable at all.
   useHydrateLocaleFromProfile()
+  // Session-scoped orientation policy (#501): OS lock + landscape CSS fallback
+  // live off <html> marker classes, so they must survive WorkoutPage unmounts.
+  useSessionOrientationGuard()
   const { pathname } = useLocation()
   const hideSessionChrome = pathname.startsWith("/cycle-summary")
 
