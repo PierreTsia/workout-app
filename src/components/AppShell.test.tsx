@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { screen } from "@testing-library/react"
+import { screen, waitFor } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import { renderWithProviders } from "@/test/utils"
+import { defaultSessionState, sessionAtom } from "@/store/atoms"
 import { AppShell } from "./AppShell"
 
 vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
@@ -51,5 +52,48 @@ describe("AppShell", () => {
     renderShell()
 
     expect(screen.getByRole("main")).toHaveClass("scrollbar-thin")
+  })
+
+  it("guards orientation exactly while a session is active", async () => {
+    vi.stubGlobal("screen", {
+      orientation: {
+        lock: vi.fn().mockResolvedValue(undefined),
+        unlock: vi.fn(),
+        angle: 0,
+        type: "portrait-primary",
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    })
+
+    try {
+      const { store } = renderShell()
+
+      store.set(sessionAtom, {
+        ...defaultSessionState,
+        isActive: true,
+        startedAt: 1_700_000_000_000,
+      })
+      await waitFor(() => {
+        expect(
+          document.documentElement.classList.contains(
+            "gl-session-orientation-guard",
+          ),
+        ).toBe(true)
+      })
+
+      store.set(sessionAtom, { ...defaultSessionState })
+      await waitFor(() => {
+        expect(
+          document.documentElement.classList.contains(
+            "gl-session-orientation-guard",
+          ),
+        ).toBe(false)
+      })
+    } finally {
+      vi.unstubAllGlobals()
+      document.documentElement.classList.remove("gl-session-orientation-guard")
+      document.documentElement.removeAttribute("data-gl-rot")
+    }
   })
 })
