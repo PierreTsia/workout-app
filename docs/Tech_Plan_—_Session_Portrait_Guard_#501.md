@@ -47,7 +47,7 @@ No schema, no localStorage keys, no atoms. The only state is runtime DOM on `<ht
 ```text
 document.documentElement
 ├── classList: … dark | light | gl-session-orientation-guard?   ← set iff predicate
-└── data-gl-rot: "-90" | "90"                                   ← set iff predicate AND landscape
+└── data-gl-rot: "-90" | "90"                                   ← set while active (T248 AC4); CSS consumes it only in landscape
 ```
 
 Lifecycle (single owner: the hook in AppShell):
@@ -55,8 +55,8 @@ Lifecycle (single owner: the hook in AppShell):
 ```mermaid
 stateDiagram-v2
     [*] --> Inactive: predicate false
-    Inactive --> Locked: isActive && startedAt<br/>class added<br/>lock() attempted
-    Locked --> LandscapeRotated: media match (landscape & coarse)<br/>data-gl-rot written
+    Inactive --> Locked: isActive && startedAt<br/>class + data-gl-rot written<br/>lock() attempted
+    Locked --> LandscapeRotated: media match (landscape & coarse)<br/>CSS rotates (consumes data-gl-rot)
     LandscapeRotated --> Locked: back to portrait<br/>media unmatch (CSS only)
     Locked --> Inactive: finish / cancel / logout<br/>class removed, unlock()
     Locked --> Locked: navigate / ⇄ /history<br/>(AppShell stays mounted)
@@ -85,7 +85,7 @@ graph TD
 | `src/hooks/useSessionOrientationGuard.test.ts` | **new** | Unit tests (see Testing). |
 | `src/components/AppShell.tsx` | edit | Call the hook once (one line). |
 | `src/components/AppShell.test.tsx` | edit | Integration: session active ⇒ class present; inactive ⇒ absent. |
-| `src/styles/globals.css` | edit | One plain-CSS block: landscape + coarse + `.gl-session-orientation-guard` ⇒ html swap/rotate, body/html background, `.h-dvh`/`.min-h-dvh` overrides. |
+| `src/styles/globals.css` | edit | One plain-CSS block: landscape + coarse + `.gl-session-orientation-guard` ⇒ html swap/rotate, body/#root percentage-height chain, `.h-dvh`/`.min-h-dvh` overrides, vh→vw remaps for session-reachable vh utilities. |
 | `docs/adr/0022-session-orientation-policy.md` | **new** | Context / Decision / Consequences / Alternatives (Floor HUD, manifest, overlay nudge, freeze-without-rotate). |
 | `docs/CONTEXT.md` | edit | One glossary term: **Session Orientation Guard**. |
 | `docs/Epic_Brief_—_Session_Portrait_Guard_#501.md` | done | Brief. |
@@ -98,7 +98,7 @@ export function useSessionOrientationGuard(): void
 ```
 
 - Activation: `sessionAtom.isActive && session.startedAt != null`.
-- On activate: add class; attempt `screen.orientation.lock("portrait")` (guarded by `typeof …?.lock === "function"`, `.catch(() => {})`); write `data-gl-rot` if currently landscape.
+- On activate: add class; attempt `screen.orientation.lock("portrait")` (guarded by `typeof …?.lock === "function"`, `.catch(() => {})` + try/catch); write `data-gl-rot` (unconditionally while active — the landscape media query is the consumer's gate).
 - On orientation change (while active): rewrite `data-gl-rot` from `screen.orientation.angle` (`> 0 … < 180` ⇒ `-90`, else `90`; fallback `window.orientation`, default `-90`).
 - On deactivate / unmount: remove class + attribute; `screen.orientation.unlock()` in try/catch.
 
@@ -119,6 +119,7 @@ export function useSessionOrientationGuard(): void
     transform: translateX(100vw) rotate(90deg);
   }
   html.gl-session-orientation-guard body { height: 100%; }
+  html.gl-session-orientation-guard #root { height: 100%; }
   html.gl-session-orientation-guard .h-dvh { height: 100%; }
   html.gl-session-orientation-guard .min-h-dvh { min-height: 100%; }
 }
@@ -142,7 +143,7 @@ Geometry: html box is swapped to portrait dimensions (width `100vh`, height `100
 | 8 | vaul drawer open (RIR, rest timer) while rotated | vaul's inline `body` scale composes inside the html transform; drawer content stays inside the rotated portrait box. Accepted cosmetic risk: drawer scale animation may read slightly odd. |
 | 9 | StrictMode double effect | Additive classList operations + symmetric cleanup ⇒ idempotent. |
 | 10 | Orientation angle unavailable (`screen.orientation` missing) | Fallback chain `window.orientation` → default `-90`. Worst case: content upside-down in landscape until the athlete returns to portrait (Android installed PWAs are usually locked anyway). |
-| 11 | `QuickWorkoutSheet` `max-h-[90dvh]` (`file:src/components/generator/QuickWorkoutSheet.tsx:195`) under rotation | `90dvh` still measures the landscape viewport ⇒ drawer slightly shorter than ideal. Cosmetic, accepted — QW sheet is rarely open mid-live-session. |
+| 11 | `QuickWorkoutSheet` `max-h-[90dvh]` (`file:src/components/generator/QuickWorkoutSheet.tsx:195`) under rotation | Guard block remaps it to `90vw` (= rotated box height); same remap covers the other session-reachable vh utilities (`max-h-[75/80/85/90/92vh]`, `h-[75/80vh]`, `min-h-screen`). |
 | 12 | iOS keyboard opens over a rotated view (rare mid-session) | visualViewport quirks unowned by CSS rotation. Accepted: no text input is central to the training beat. |
 | 13 | White flash at rotation edges / antialiasing | `background` set on the swapped html box (theme `#0f0f13`). |
 
