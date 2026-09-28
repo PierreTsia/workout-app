@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-16
 - **Decided in:** grill-with-docs for [#393](https://github.com/PierreTsia/workout-app/issues/393)
+- **Amended by:** ADR 0018 (§Decision.2 "keep `/library` unchanged", third child only); ADR 0021 (§Decision.3 — the page-level *Create circuit* verb)
 
 ## Context
 

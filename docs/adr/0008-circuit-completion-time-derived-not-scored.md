@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-17
 - **Decided in:** grilling session (`grill-with-docs`) + Epic Brief / Tech Plan for issue #396
+- **Amended by:** ADR 0014 (AMRAP only — the cap is a real wall-clock, not derived)
 
 ## Context
 
