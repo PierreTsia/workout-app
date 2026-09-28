@@ -1,5 +1,6 @@
 import { bilingualExerciseLabel } from "../lib/bilingualName.ts"
 import { formatWeightConvention, type WeightConvention } from "../lib/format.ts"
+import { isUuid } from "../lib/uuid.ts"
 import {
   resolveEnglishInstructions,
   type ExerciseInstructions,
@@ -73,8 +74,6 @@ function resolveImageUrl(imagePath: string | null | undefined): string | null {
   return base ? `${base}/storage/v1/object/public/exercise-media/${imagePath}` : imagePath
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 export const getExerciseDetails: ToolDefinition = {
   name: "get_exercise_details",
   annotations: {
@@ -120,7 +119,7 @@ export const getExerciseDetails: ToolDefinition = {
       }
     }
 
-    if (!UUID_RE.test(exerciseId)) {
+    if (!isUuid(exerciseId)) {
       return {
         content: [{ type: "text", text: `Invalid exercise_id format: "${exerciseId}". Expected a UUID — use \`resolve_exercises\` (by name) or \`search_exercises\` (browse) to find it.` }],
         isError: true,
