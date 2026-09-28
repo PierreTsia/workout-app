@@ -108,7 +108,7 @@ class MockBuilder {
 
   constructor(private mock: MockSupabase, private table: string) {}
 
-  select(_cols: string): this {
+  select(_cols: string): this { // eslint-disable-line @typescript-eslint/no-unused-vars -- mirrors supabase query builder signature
     return this
   }
 
