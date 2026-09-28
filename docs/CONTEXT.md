@@ -42,6 +42,9 @@ A third-party host for the LLM (e.g. Claude Desktop, Cursor) that connects to th
 Third variant in a day's MCP `exercises[]` array (alongside bare UUID and solo prescription object), discriminated by `type: "circuit"`. Expresses an **Exercise Block** on the wire using user-facing "Circuit" vocabulary: rounds, block-level rest/transition, and nested exercises with native `{ amount, weight_kg }` or optional `per_round`. Mapped to `exercise_blocks` / `block_exercises` at persistence; never exposes the internal "block" term to agents or users. Decided for #452.
 → `file:supabase/functions/mcp/tools/createProgram.ts`, ADR `file:docs/adr/0011-mcp-circuit-items-in-exercises-array.md`
 
+**Write Consent**:
+The handshake an **External MCP Client** must complete before a write persists: a first call with `dry_run: true`, then a commit call whose payload **echoes the previewed payload unchanged**, guarded by a **Jev** Noul on that payload. Consent is the echoed payload itself — not a token, not a second concept; a differently-shaped second payload is a different operation and must be previewed again. Same shape as the app's own two-phase flows (`generate-quick-workout` → `commit-quick-workout`). v1 contract decision: [#287](https://github.com/PierreTsia/workout-app/issues/287), ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`.
+
 ---
 
 ## AI providers
@@ -55,6 +58,13 @@ The default model provider for in-app AI calls — **Gemini** (`gemini-2.5-flash
 
 **Fallback Provider**:
 The secondary provider engaged by **AI Provider Fallback** when the **Primary Provider** is unavailable — **Groq** (OpenAI-compatible, no-card free tier, decorrelated from Google's infrastructure) in v1. Decorrelation — not a higher per-provider SLA — is the point: it is rare for both to be down at the same instant. A future second fallback (OpenRouter, Cerebras…) is out of v1 scope.
+
+**Jev**:
+The one-pass verdict service (System One) used to route and to gate: given a state and a sentence, it answers a **Noul** (the probability that a yes/no is true), a **Choice** (a set of options summing to 1) or a **Score** (an ordered scale), and the code opens exactly one branch. It never generates prose — anything that produces words stays with the **Primary Provider** or with code. Verdicts only, and entry by the **Embedded Agent** first: ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`.
+
+**Door (Porte)**:
+The single **Jev** pass at the head of an **Embedded Agent** turn, before any model call, that picks exactly one branch for that turn. A branch the database can answer (v1: `ask_progress`, `ask_history`) costs no model call at all; a hijack verdict or a low-confidence **Choice** leaves the turn on the **Primary Provider** rather than guessing an action.
+→ ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`
 
 ---
 
