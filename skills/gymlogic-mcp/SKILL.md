@@ -613,6 +613,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 | `resolve_exercises` returns `status: "ambiguous"` | Top-2 scores are within the threshold (≈0.10). Look at `matches[]` for alternates, pick from context if obvious (equipment / muscle group hint), otherwise present the list to the user. |
 | `resolve_exercises` returns `status: "no_match"` | Nothing similar enough in the catalog. Try `search_exercises` with broader filters (muscle group + equipment), or ask the user to rephrase / pick from a browse list. |
 | `resolve_exercises` returns `status: "empty_query"` | One of the input strings was blank/whitespace. Filter empty strings out of `queries` before calling. |
+| `search_exercises` / `resolve_exercises` returns no usable result | Abandon the option and ask the user — NEVER fabricate a placeholder id or any non-UUID string. Worked example (incident #288): an agent passed `"kroc-row-id"` after `search_exercises("Kroc row")` returned 0 rows. |
 | `Invalid UUID at days["<label>"].exercises[<i>]` | You passed a non-UUID string (e.g. an exercise name). Resolve via `resolve_exercises` (preferred) or `search_exercises` first. |
 | `Unknown or inaccessible exercise_id(s):` | The UUID is valid format but the exercise doesn't exist or isn't visible to this user. Re-search. |
 | `create_program v0.3.0 introduced a breaking change...` | You used the v0.2.x `exercise_ids` field. Switch to `exercises` (bare UUIDs or full objects — see "Common write patterns"). |
@@ -627,7 +628,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 ## Parameter format conventions
 
 - **Dates**: ISO 8601, date-only (`2026-04-27`) for `from_date` / `to_date`. Server appends `T00:00:00Z` / `T23:59:59Z` automatically.
-- **Exercise IDs**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`). Always obtained from `resolve_exercises` (preferred for batch program-building) or `search_exercises`. Never invent or transcribe from memory.
+- **Exercise IDs**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`). Always obtained from `resolve_exercises` (preferred for batch program-building) or `search_exercises`. Never invent or transcribe from memory. If a search returns no usable result, abandon the option or ask the user — never fabricate a placeholder id.
 - **Muscle groups (FR canonical)**: `Abdos`, `Biceps`, `Deltoïdes post.`, `Dos`, `Épaules`, `Fessiers`, `Ischios`, `Ischios / Bas du dos`, `Lombaires`, `Mollets`, `Pectoraux`, `Quadriceps`, `Trapèzes`, `Triceps`.
 - **Equipment values**: `barbell`, `dumbbell`, `cable`, `machine`, `ez_bar`, `bodyweight`.
 - **Body region aliases** (for `search_exercises` only): `upper_body`, `lower_body`, `push`, `pull`, `arms`, `legs`, `core`.
