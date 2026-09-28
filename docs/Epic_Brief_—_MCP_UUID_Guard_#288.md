@@ -2,7 +2,7 @@
 
 ## Summary
 
-Les agents qui consomment le MCP GymLogic peuvent, après une `search_exercises` vide, fabriquer un identifiant de repli (ex. `kroc-row-id`) et l'envoyer à `get_exercise_details` ou aux write-tools. Aujourd'hui le serveur répond par une erreur générique de catalog-miss qui n'explique pas la malformation. Cet epic rend le garde-fou structurel : toute entrée d'id non-UUID est rejetée en amont avec un message actionnable, et la règle anti-pattern est gravée dans le SKILL canonique. Bénéfice permanent pour tous les agents, sans dépendre de leur prompt.
+Les agents qui consomment le MCP GymLogic peuvent, après une `search_exercises` vide, fabriquer un identifiant de repli (ex. `kroc-row-id`) et l'envoyer à un tool. Le garde-fou est **à moitié mergé** : le chemin lecture (`get_exercise_details`) valide déjà le format UUID avec un message actionnable (PR #543), mais avec une regex locale dupliquée et sans test ; le chemin write (`fetchExercisesByIds`, partagé par `create_program` / `update_program`) répond toujours par une erreur générique qui ne distingue pas « id malformé » de « id valide mais absent ». Cet epic ferme le gap restant : two-tier sur la branche write, refactor sur le helper partagé `isUuid`, tests sur les deux branches, et règle anti-pattern gravée dans le SKILL canonique. Bénéfice permanent pour tous les agents, sans dépendre de leur prompt.
 
 ---
 
@@ -12,33 +12,33 @@ Les agents qui consomment le MCP GymLogic peuvent, après une `search_exercises`
 
 **Current state:**
 - L'incident de référence : Iris (HITL Epic C #280) a inventé `kroc-row-id` après une recherche `Kroc row` vide, et l'a passé à `get_exercise_details`.
-- `get_exercise_details` ne valide aucun format d'id : la requête part en base et revient en miss générique.
-- `fetchExercisesByIds` (catalogue partagé des write-tools `create_program` / `update_program`) retourne `Unknown or inaccessible exercise_id(s): …` sans distinguer « id malformé » de « id valide mais absent ».
+- Chemin lecture : `get_exercise_details` **valide déjà le format** (retourne `Invalid exercise_id format: "<id>". Expected a UUID — use resolve_exercises…`) — mais via un `UUID_RE` local dupliqué (ligne 76) au lieu du helper `isUuid` (`lib/uuid.ts`), et **aucun test** ne couvre cette branche d'erreur (une seule occurrence du message, dans le code).
+- Chemin write : `fetchExercisesByIds` retourne `Unknown or inaccessible exercise_id(s): …` sans distinguer « id malformé » de « id valide mais absent » — la moitié du garde-fou reste à construire.
 - Le SKILL canonique contient la règle générique « Never invent or transcribe from memory » mais aucun paragraphe dédié au cas « recherche vide → ne pas fabriquer de placeholder ».
-- Un helper `isUuid` (check de forme UUID, tests verts) existe déjà côté edge function — l'infrastructure de validation est là, elle n'est simplement pas branchée sur ces deux chemins.
 
 **Pain points:**
 | Pain | Impact |
 |---|---|
-| Erreur non actionnable sur id malformé | L'agent boucle ou improvise ; trace de debug confuse pour l'humain |
-| Aucune validation de format sur le chemin lecture (`get_exercise_details`) | La branche la plus exposée est la moins gardée |
+| Erreur non actionnable sur id malformé (branche write) | L'agent boucle ou improvise ; trace de debug confuse pour l'humain |
+| Regex dupliquée entre `get_exercise_details` et `lib/uuid.ts` | Divergence de contrat possible entre les deux chemins |
+| Branche read non testée | Le garde-fou mergé peut régresser silencieusement |
 | Règle SKILL implicite seulement | Chaque nouvel agent doit redécouvrir l'anti-pattern, ou pas |
 
 ---
 
 ## User Stories
 
-1. En tant qu'agent MCP, quand je passe un id qui n'est pas un UUID à `get_exercise_details`, je veux une erreur explicite me disant de relancer `search_exercises` et de choisir un id retourné, pour ne pas boucler sur un miss incompréhensible.
-2. En tant qu'agent MCP, quand je passe un id UUID bien formé mais absent du catalogue à un write-tool, je veux l'erreur catalog-miss existante, pour distinguer « mal formé » de « pas accessible ».
-3. En tant qu'agent MCP, quand `search_exercises` ne retourne aucun résultat exploitable, je veux que le SKILL canonique me dise d'abandonner l'option ou de demander à l'utilisateur, jamais de fabriquer un placeholder, pour éviter l'amorce de l'incident.
-4. En tant que développeur du MCP, je veux la validation de forme centralisée sur le helper `isUuid` existant, pour ne pas dupliquer la regex dans les handlers.
-5. En tant qu'humain en HITL, je veux que le comportement soit couvert par des tests vitest sur les deux branches, pour que le garde-fou survive aux refactors.
+1. As an MCP agent, I want `fetchExercisesByIds` to tell malformed UUIDs apart from valid-but-missing ids, so that I don't retry a fabrication the server can't explain.
+2. As an MCP agent, when I pass a well-formed UUID that is absent from the catalog to a write-tool, I want the existing catalog-miss error preserved, so that « malformed » and « not accessible » stay distinguishable.
+3. As an MCP agent, when `search_exercises` returns no usable result, I want the canonical SKILL to tell me to abandon the option or ask the user — never fabricate a placeholder id, so that the original incident can't be re-triggered.
+4. As an MCP developer, I want both id-validation sites to use the shared `isUuid` helper, so that the UUID contract is defined in exactly one place.
+5. As an MCP developer, I want vitest cases covering the malformed-id branch on both the read and write paths, so that the guard survives refactors.
 
 ### Success measures
 
 | Story # | Measure |
 |---|---|
-| 1–2 | 100 % des ids non-UUID reçoivent le message actionnable (couverture test) |
+| 1 | 100 % des ids non-UUID passés aux write-tools reçoivent le message actionnable (couverture test, branche `fetchExercisesByIds`) |
 | 5 | CI verte avec les nouveaux cas vitest, sans réseau ni clé |
 
 Stories sans mesure numérique : validées qualitativement par la story elle-même.
@@ -48,28 +48,29 @@ Stories sans mesure numérique : validées qualitativement par la story elle-mê
 ## Scope
 
 **In scope:**
-1. Validation de forme UUID + message actionnable dans `get_exercise_details` (chemin lecture).
-2. Distinction malformed-id vs catalog-miss dans `fetchExercisesByIds` (chemin write, partagé par `create_program` / `update_program`).
-3. Cas vitest sur les deux branches (format rejeté, format valide mais absent).
+1. `fetchExercisesByIds` : two-tier — id non-UUID → message actionnable (« not a valid UUID — re-run search_exercises… ») ; id UUID valide mais absent → message catalog-miss existant.
+2. Refactor : remplacer le `UUID_RE` local de `get_exercise_details` par le helper `isUuid` partagé (comportement inchangé).
+3. Cas vitest : branche malformed-id côté write (nouvelle) et côté read (`Invalid exercise_id format`, actuellement non couverte).
 4. Paragraphe anti-pattern dédié dans `skills/gymlogic-mcp/SKILL.md` (recherche vide → abandonner / demander, jamais de placeholder), avec exemple du mauvais pattern.
 5. Re-validation HITL du prompt cardio Iris : recherche vide → pas d'id fabriqué, l'agent abandonne ou demande.
 
 **Out of scope:**
-- Renforcement de la regex `isUuid` vers le format v4 strict (v4 serait plus strict ; le check de forme suffit au garde-fou, décision dans le tech plan si jugé utile).
-- Miroir de la règle dans le `AGENTS.md` d'Iris (chemin (3) de l'issue : au prochain refresh agent, pas ici).
+- Toute nouvelle validation côté read : déjà mergée (#543) — seule la duplication de regex et l'absence de test sont traitées ici.
+- Renforcement de la regex `isUuid` vers le format v4 strict (check de forme suffisant au garde-fou ; à trancher au tech plan si jugé utile).
+- Miroir de la règle dans le `AGENTS.md` d'Iris (chemin (3) de l'issue : au prochain refresh agent).
 - Fuzzy matching FR de `search_exercises` (#286) — la cause racine de la recherche vide est un ticket séparé.
 
 ---
 
 ## Success Criteria
 
-- **Numeric :** aucun appel tool avec id non-UUID ne peut atteindre Postgres sans recevoir le message actionnable ; tous les nouveaux cas vitest passent en CI fixtures-only (sans réseau ni clé).
-- **Qualitative :** un agent sous pression de récupération (recherche vide) ne peut plus interpréter l'erreur comme un miss de catalogue ; le SKILL canonique rend l'anti-pattern explicite pour tout agent futur.
+- **Numeric :** la branche write rejette 100 % des ids non-UUID avec le message actionnable, couverte par vitest (fixtures-only, sans réseau ni clé) ; la branche read existante est couverte par un test de non-régression.
+- **Qualitative :** un agent sous pression de récupération (recherche vide) reçoit côté write la même guidance explicite que côté read ; le SKILL canonique rend l'anti-pattern explicite pour tout agent futur.
 
 ---
 
 ## References
 
-- Issue #288 (contrat : body + relecture critique 2026-09-28, acceptance raffinée)
-- Incident : HITL Epic C #280, prompt 3 (21:56:17), PR #285
+- Issue #288 (contrat : body + relecture critique corrigée 2026-09-28)
+- Incident : HITL Epic C #280, prompt 3 (21:56:17), PR #285 ; garde-fou read mergé dans PR #543
 - Tech plan : à rédiger par dev-gymlogic (`docs/Tech_Plan_—_…`)
