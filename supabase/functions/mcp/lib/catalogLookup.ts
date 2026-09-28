@@ -9,6 +9,7 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 import type { BenchmarkCircuitLookup, BenchmarkRx } from "./resolveBenchmark.ts"
+import { isUuid } from "./uuid.ts"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -92,6 +93,20 @@ export async function fetchExercisesByIds(
   if (unique.length === 0) {
     return { data: [], error: null }
   }
+
+  // Two-tier (#288): a fabricated or garbage id is rejected up-front, before
+  // any Postgres round-trip, with an actionable message. Valid-but-missing ids
+  // keep the generic catalog-miss error below. Callers today pre-filter via
+  // `collectCandidateExerciseIds`, so this is defense-in-depth for future
+  // callers that bypass those validators.
+  const malformed = unique.filter((id) => !isUuid(id))
+  if (malformed.length > 0) {
+    return {
+      data: [],
+      error: `"${malformed.join('", "')}" is not a valid UUID. Do not invent ids — re-run search_exercises (or resolve_exercises by name) and pick a returned id.`,
+    }
+  }
+
   const { data, error } = await supabase
     .from("exercises")
     .select(CATALOG_COLUMNS)

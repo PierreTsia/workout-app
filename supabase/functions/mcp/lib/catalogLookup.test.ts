@@ -149,6 +149,51 @@ describe("fetchExercisesByIds", () => {
     expect(supabase._calls).toHaveLength(0)
   })
 
+  it("rejects a malformed non-UUID id before any supabase query with an actionable message", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, ["kroc-row-id"])
+
+    expect(result.error).toBe(
+      '"kroc-row-id" is not a valid UUID. Do not invent ids — re-run search_exercises (or resolve_exercises by name) and pick a returned id.',
+    )
+    expect(result.data).toEqual([])
+    expect(supabase._calls).toHaveLength(0)
+  })
+
+  it("rejects a mixed list of malformed and valid ids immediately without fetching", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, [ID_BENCH, "not-a-uuid"])
+
+    expect(result.error).toBe(
+      '"not-a-uuid" is not a valid UUID. Do not invent ids — re-run search_exercises (or resolve_exercises by name) and pick a returned id.',
+    )
+    expect(result.data).toEqual([])
+    expect(supabase._calls).toHaveLength(0)
+  })
+
+  it("lists every malformed id in the rejection message", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, ["foo", "bar"])
+
+    expect(result.error).toBe(
+      '"foo", "bar" is not a valid UUID. Do not invent ids — re-run search_exercises (or resolve_exercises by name) and pick a returned id.',
+    )
+    expect(supabase._calls).toHaveLength(0)
+  })
+
+  it("keeps the generic valid-miss message unchanged for a well-formed but absent UUID", async () => {
+    const supabase = makeFakeSupabase({ rows: [] })
+
+    const result = await fetchExercisesByIds(supabase as never, [ID_MISSING])
+
+    expect(result.error).toBe(`Unknown or inaccessible exercise_id(s): ${ID_MISSING}`)
+    expect(result.data).toEqual([])
+    expect(supabase._calls).toHaveLength(1)
+  })
+
   it("normalises measurement_type 'duration' and parses default_duration_seconds to a finite number", async () => {
     const supabase = makeFakeSupabase({
       rows: [
