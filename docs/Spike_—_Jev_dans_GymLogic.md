@@ -1,6 +1,6 @@
 # Jev dans GymLogic
 
-Note d'introduction — pendant GymLogic de `mijote docs/spike/Jev_dans_Mijote.md`. Elle pose **une** question structurante et quatre tranches ordonnées. Ce n'est pas un Tech Plan : rien ici n'est engagé tant que la question du § Dernier n'est pas tranchée.
+Note d'introduction — pendant GymLogic de `mijote docs/spike/Jev_dans_Mijote.md`. Elle pose **une** question structurante — **tranchée le 28/09** (issue #552, ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`) — et quatre tranches ordonnées. Ce n'est pas un Tech Plan : les tranches restent à découper.
 
 Le vocabulaire Jev est celui de la note mijote et ne change pas ici : un **Noul** est la probabilité qu'un oui/non soit vrai, une **Choice** est un jeu d'options qui somment à 1, un **Score** est une note sur une échelle ordonnée. Un seul passage pose les questions ; le code ouvre une seule branche. Même wire : `POST https://opencode.ai/zen/v1/systemone`, Bearer, `JEV_MODEL`.
 
@@ -54,7 +54,7 @@ Un appel MCP ne porte pas d'écran. L'équivalent honnête n'est pas d'en invent
 | Coût d'un verdict faux | un écran qui ne s'ouvre pas — récupérable | une écriture légitime bloquée, ou une mauvaise écriture passée |
 | Dépend de | rien | une décision produit sur le consentement (#287) |
 
-Mon avis : commencer par la **Piste A**, branche `ask_progress`/`ask_history` seule. C'est le gain le plus net, le risque le plus faible, et ça met le wire Jev en place dans un endroit où une erreur ne casse rien.
+**Décidé (28/09, issue #552, ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`)** : entrée par l'app — **Piste A** — première tranche réduite à `ask_progress` / `ask_history`, zéro modèle. `start_session` et `log_set` viendront après, avec leur propre review. Le MCP attend la décision de consentement (tranche 2), et Jev ne génère jamais de texte.
 
 ## Livraison
 
