@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Add to Push A</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "surface-container-high": "#2a292e",
+                        "surface-variant": "#353439",
+                        "muted": "#999999",
+                        "error-container": "#93000a",
+                        "tertiary-container": "#ff9862",
+                        "on-surface": "#e4e1e7",
+                        "on-primary-fixed-variant": "#005142",
+                        "secondary-container": "#494851",
+                        "surface-container-lowest": "#0e0e12",
+                        "primary": "#44e5c2",
+                        "on-primary-container": "#004e40",
+                        "on-primary": "#000000",
+                        "on-background": "#e4e1e7",
+                        "inverse-on-surface": "#303034",
+                        "surface-container-highest": "#353439",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "surface-bright": "#39393d",
+                        "on-tertiary": "#552000",
+                        "on-primary-fixed": "#002019",
+                        "secondary-fixed": "#e4e1ec",
+                        "inverse-surface": "#e4e1e7",
+                        "primary-container": "#00c9a7",
+                        "surface-tint": "#38debb",
+                        "error": "#ffb4ab",
+                        "foreground": "#f2f2f2",
+                        "surface-container": "#1f1f23",
+                        "on-tertiary-fixed": "#341100",
+                        "primary-fixed": "#5ffbd6",
+                        "on-secondary": "#303038",
+                        "tertiary": "#ffc0a1",
+                        "on-secondary-container": "#b9b7c2",
+                        "primary-fixed-dim": "#38debb",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface": "#15151c",
+                        "background": "#131317",
+                        "outline-variant": "#3c4a45",
+                        "on-tertiary-container": "#762f00",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-secondary-fixed": "#1b1b23",
+                        "surface-dim": "#131317",
+                        "outline": "#85948e",
+                        "inverse-primary": "#006b58",
+                        "on-error": "#690005",
+                        "secondary": "#c7c5d0",
+                        "on-surface-variant": "#bacac3",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-container-low": "#1b1b1f",
+                        "border": "#2d2d37"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "6rem",
+                        "unit-lg": "24px",
+                        "section-gap-mobile": "4rem",
+                        "unit-xs": "4px",
+                        "unit-sm": "8px",
+                        "container-prose": "48rem",
+                        "container-media": "64rem",
+                        "unit-md": "16px",
+                        "gutter": "1rem",
+                        "unit-xl": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "mono": ["Geist Mono"],
+                        "label": ["Geist"],
+                        "body-md": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-sm": ["Geist"],
+                        "headline-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Geist Font import placeholder */
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono&display=swap');
+        
+        body {
+            background-color: #0f0f13; /* Forcing the requested canvas color */
+        }
+        
+        /* Custom scrollbar hiding for horizontal lists */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md text-foreground flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden relative">
+<!-- Header -->
+<header class="flex items-center justify-between px-4 h-16 shrink-0 relative">
+<div class="w-8"></div> <!-- Spacer for centering -->
+<h1 class="font-headline-sm text-[18px] font-semibold text-foreground absolute left-1/2 -translate-x-1/2">Add to Push A</h1>
+<button aria-label="Close" class="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground transition-colors">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</header>
+<!-- Search Bar -->
+<div class="px-4 py-2 shrink-0">
+<div class="flex items-center bg-surface border border-border rounded h-[40px] px-3 focus-within:border-muted transition-colors">
+<span class="material-symbols-outlined text-muted mr-2 text-[20px]" data-icon="search">search</span>
+<input class="bg-transparent border-none outline-none w-full text-foreground placeholder-muted font-body-sm h-full p-0 focus:ring-0" placeholder="Search the catalog" type="text"/>
+</div>
+</div>
+<!-- Segmented Control -->
+<div class="px-4 py-2 shrink-0">
+<div class="flex w-full bg-surface border border-border rounded p-1">
+<button class="flex-1 py-1.5 text-center font-label text-label text-foreground border-b-2 border-primary-container">
+                Exercises
+            </button>
+<button class="flex-1 py-1.5 text-center font-label text-label text-muted border-b-2 border-transparent">
+                Circuits
+            </button>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="px-4 py-3 shrink-0 flex gap-2 overflow-x-auto hide-scrollbar">
+<button class="px-3 py-1.5 rounded bg-transparent border border-primary-container text-foreground font-body-sm whitespace-nowrap">All</button>
+<button class="px-3 py-1.5 rounded bg-surface border border-border text-muted font-body-sm whitespace-nowrap">Chest</button>
+<button class="px-3 py-1.5 rounded bg-surface border border-border text-muted font-body-sm whitespace-nowrap">Shoulders</button>
+<button class="px-3 py-1.5 rounded bg-surface border border-border text-muted font-body-sm whitespace-nowrap">Triceps</button>
+<button class="px-3 py-1.5 rounded bg-surface border border-border text-muted font-body-sm whitespace-nowrap">Back</button>
+</div>
+<!-- Catalog List -->
+<div class="flex-1 overflow-y-auto px-4 pb-20">
+<!-- Row 1: Bench Press -->
+<div class="flex items-center justify-between h-[56px] border-b border-border/50 group cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-[40px] h-[40px] rounded bg-surface flex items-center justify-center overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="A highly detailed close-up shot of a dark steel Olympic barbell on a sleek black bench press rack. The setting is a minimalist, modern fitness studio with low-key dramatic lighting. Deep charcoal backgrounds contrast with the metallic sheen of the knurled barbell. High contrast, blunt precision, dark editorial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBydkZ2DN_0Lm-QzyENFP5WKhAihVUx0tNi4-p1dW42K97cctc-9v9Oq-9ayo3D_xR8DrlUoY6Je2hXnOX-byIWWapUuLp6qI6LVviOyYx6yqBOXnWYJTIbMAP8crWNX1SAnA7uwsYgoZwMAUilLtfDmmanKFmkh2mVNvPcN_-Pa8R36dLksXjssqHynnDMhZSNMCLSpJhBSNKhlLCln9MJWQSXsf_KmDvKH2oUhp3oeb1yWG3DiGGis9FDS5F4dzVx8W6lpWg16ew"/>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-body-md text-[14px] text-foreground leading-tight">Bench Press</span>
+<span class="font-body-sm text-[12px] text-muted leading-tight mt-0.5">Chest · barbell</span>
+</div>
+</div>
+<div class="w-5 h-5 rounded-[4px] bg-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px] text-on-primary font-bold" data-icon="check">check</span>
+</div>
+</div>
+<!-- Row 2: Incline Dumbbell Press -->
+<div class="flex items-center justify-between h-[56px] border-b border-border/50 group cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-[40px] h-[40px] rounded bg-surface flex items-center justify-center overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="A highly detailed shot of two heavy black hexagonal dumbbells resting on a slightly inclined workout bench. The setting is a minimalist, dark-mode home gym environment with subtle rim lighting outlining the weights. Focus on texture and brutalist aesthetic, utilizing deep blacks and subtle grays. Editorial, flat design feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBSrXTVKWQ9A8pwzjnbcsyZSqaqwwpvMgOv8XhzMdVulluK4b6CkYDt0iBZBeDhZPm2rXP8RFkA2wzacHsrMAkAF1OgdDDHK-zTYrlmyOhDzsZ585KSQb_VZUKiNl73hIBWzrW7TyOblDpm0Qt4djenJL5CB4fwQYYuXu4sxilhgngFEmt4ThSs_M9B7A-G-ir7t2wPrGKvGQERF69Rp6Vv99WpckkXhqvvjn3DdDp8FF5BrAmUG1Fti93sV6XpROMVrF4Rsfd2gM"/>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-body-md text-[14px] text-foreground leading-tight">Incline Dumbbell Press</span>
+<span class="font-body-sm text-[12px] text-muted leading-tight mt-0.5">Chest · dumbbell</span>
+</div>
+</div>
+<div class="w-5 h-5 rounded-[4px] bg-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px] text-on-primary font-bold" data-icon="check">check</span>
+</div>
+</div>
+<!-- Row 3: Cable Flye -->
+<div class="flex items-center justify-between h-[56px] border-b border-border/50 group cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-[40px] h-[40px] rounded bg-surface flex items-center justify-center overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="A highly detailed close-up of a matte black cable machine handle attached to a steel carabiner. The setting is a dark, brutalist commercial gym interior. Minimalist composition highlighting the industrial mechanics of the machine. The mood is serious and focused, utilizing a monochrome palette with slight metallic glints." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBal9bfMDNSBCUm8sxzvksHCPjXk0HyYPL-THxGzjidHetkkokEPqn5Vd330YWOwqx6rwhlEOvcK4oy4alAUbC_Y3c9IZFnFZsMqFB6lPDk0p3iiDP8FDdpiI5zDkw8XNlfMGxMO3VFgp663uWsbaX2BwxWRCMjkr1v46S5IWCL2-8ZBEg7M0yI8JDYn-Fczl6zKQBAy9NiRIavBGEJWV1R49OrfKrj1LRLe_40W7EmMztzheqrUI3yu4EjQ6Ssqk4xIgWhA5niVtg"/>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-body-md text-[14px] text-foreground leading-tight">Cable Flye</span>
+<span class="font-body-sm text-[12px] text-muted leading-tight mt-0.5">Chest · cable</span>
+</div>
+</div>
+<div class="w-5 h-5 rounded-[4px] bg-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[16px] text-on-primary font-bold" data-icon="check">check</span>
+</div>
+</div>
+<!-- Row 4: Overhead Press -->
+<div class="flex items-center justify-between h-[56px] border-b border-border/50 group opacity-60">
+<div class="flex items-center gap-3">
+<div class="w-[40px] h-[40px] rounded bg-surface flex items-center justify-center overflow-hidden shrink-0">
+<img class="w-full h-full object-cover opacity-80 mix-blend-luminosity" data-alt="A highly detailed side profile shot of an empty black power rack with barbell set high for an overhead press. Minimalist dark studio lighting, emphasizing stark vertical lines and structural precision. High contrast aesthetic focusing on the raw utility of the equipment. Deep surface container colors with muted highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKuP74LODFKSk9pG9uM81gGXDXEGqsioD7hcBxX2T_cjY6mwqq6brK68Fz2A3YKlt8vTYPpqB708QVDTNlhLYFq_V5Azz4Wo0uq-AnCaK0CHSXwe8PEKD8ffz9UZqORlTkCDvzKCb4JRh77IBgcw6BL85iRTEmAMdBdHDTAliU8iZHtBmQYKCsTUoyRGttPPIVoO0vk2G6fyyQGVaG6G1wZozUeWYQ1evZ9RuVgD_SvcYuGLq-DKHE4OeFMguoSogTgliGWJgGTX8"/>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-body-md text-[14px] text-foreground leading-tight">Overhead Press</span>
+<span class="font-body-sm text-[12px] text-muted leading-tight mt-0.5">Shoulders · barbell</span>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-surface border border-border text-muted font-mono text-[11px] uppercase tracking-wider shrink-0">
+                On day
+            </div>
+</div>
+<!-- Row 5: Push Up -->
+<div class="flex items-center justify-between h-[56px] border-b border-border/50 group cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-[40px] h-[40px] rounded bg-surface flex items-center justify-center overflow-hidden shrink-0">
+<span class="material-symbols-outlined text-muted" data-icon="fitness_center">fitness_center</span>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-body-md text-[14px] text-foreground leading-tight">Push Up</span>
+<span class="font-body-sm text-[12px] text-muted leading-tight mt-0.5">Chest · bodyweight</span>
+</div>
+</div>
+<div class="w-5 h-5 rounded-[4px] border border-muted bg-transparent flex items-center justify-center shrink-0">
+</div>
+</div>
+</div>
+<!-- Sticky Footer -->
+<div class="absolute bottom-0 w-full bg-background/95 backdrop-blur-sm border-t border-border px-4 py-4 pb-safe flex items-center justify-center">
+<button class="w-full h-[44px] rounded bg-primary-container text-on-primary font-label text-label active:opacity-80 transition-opacity">
+            Add 3
+        </button>
+</div>
+</body></html>

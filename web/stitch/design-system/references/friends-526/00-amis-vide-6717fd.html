@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Amis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono&display=swap');
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#5ffbd6",
+                        "on-primary-fixed": "#002019",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "on-surface-variant": "#bacac3",
+                        "inverse-primary": "#006b58",
+                        "surface-container-lowest": "#0e0e12",
+                        "secondary": "#c7c5d0",
+                        "surface-dim": "#131317",
+                        "on-tertiary-fixed": "#341100",
+                        "on-error": "#690005",
+                        "on-primary-container": "#004e40",
+                        "tertiary": "#ffc0a1",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "on-tertiary-container": "#762f00",
+                        "surface-bright": "#39393d",
+                        "on-secondary-container": "#b9b7c2",
+                        "secondary-container": "#494851",
+                        "primary-container": "#00c9a7",
+                        "surface-container-highest": "#353439",
+                        "tertiary-container": "#ff9862",
+                        "secondary-fixed": "#e4e1ec",
+                        "primary": "#44e5c2",
+                        "on-background": "#e4e1e7",
+                        "surface-container": "#1f1f23",
+                        "on-secondary-fixed": "#1b1b23",
+                        "outline-variant": "#3c4a45",
+                        "background": "#131317",
+                        "surface": "#131317",
+                        "surface-tint": "#38debb",
+                        "on-tertiary": "#552000",
+                        "on-surface": "#e4e1e7",
+                        "inverse-on-surface": "#303034",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-variant": "#353439",
+                        "surface-container-high": "#2a292e",
+                        "error": "#ffb4ab",
+                        "on-primary": "#00382d",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-primary-fixed-variant": "#005142",
+                        "on-secondary": "#303038",
+                        "inverse-surface": "#e4e1e7",
+                        "surface-container-low": "#1b1b1f",
+                        "outline": "#85948e",
+                        "error-container": "#93000a",
+                        "primary-fixed-dim": "#38debb",
+                        "brand-bg": "#0f0f13",
+                        "brand-surface": "#15151c",
+                        "brand-card": "#1a1a22",
+                        "brand-border": "#2d2d37",
+                        "brand-text": "#f2f2f2",
+                        "brand-muted": "#999999",
+                        "brand-accent": "#00c9a7",
+                        "brand-black": "#000000"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "brand-btn": "8px",
+                        "brand-card": "12px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "40px",
+                        "unit": "4px",
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "margin-desktop": "32px",
+                        "lg": "24px",
+                        "margin-mobile": "16px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-xl": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "mono": ["'Geist Mono'"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "0em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-brand-bg text-brand-text font-body-md min-h-screen flex flex-col antialiased" style="width: 390px; margin: 0 auto; outline: 1px solid #333;">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant flex justify-between items-center px-margin-mobile h-16 w-full z-50 sticky top-0">
+<button aria-label="Menu" class="text-brand-muted hover:text-brand-text transition-colors flex items-center justify-center p-2 -ml-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<div class="font-headline-md text-headline-md font-bold text-on-surface dark:text-on-surface">
+            GymLogic
+        </div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand-accent text-sm" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-margin-mobile py-lg flex flex-col gap-xl overflow-y-auto">
+<!-- Header Section -->
+<section class="flex flex-col gap-2">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-brand-text">Amis</h1>
+<p class="text-brand-muted text-sm">Tes potes voient que tu t’es entraîné. Pas tes séries.</p>
+</section>
+<!-- Invitation Card -->
+<section class="bg-brand-card rounded-brand-card border border-brand-border p-md flex flex-col gap-4">
+<h2 class="font-label-md text-label-md text-brand-text">Lien d’invitation</h2>
+<div class="bg-brand-surface border border-brand-border rounded-brand-btn p-3 font-mono text-sm text-brand-text overflow-hidden text-ellipsis whitespace-nowrap">
+                gymlogic.me/f/••••
+            </div>
+<div class="flex items-center gap-3 mt-2">
+<button class="bg-brand-accent text-brand-black rounded-brand-btn px-4 py-2 font-label-md text-label-md hover:opacity-90 transition-opacity">
+                    Copier le lien
+                </button>
+<button class="text-brand-muted font-label-md text-label-md px-2 py-2 hover:text-brand-text transition-colors">
+                    Régénérer
+                </button>
+</div>
+<p class="text-brand-muted text-xs mt-1">Un lien, pas un ami automatique — iel doit accepter.</p>
+</section>
+<!-- Search Section -->
+<section class="flex flex-col gap-3">
+<div class="relative">
+<input class="w-full bg-brand-surface border border-brand-border rounded-brand-btn px-4 py-3 text-brand-text placeholder:text-brand-muted focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors font-body-md text-body-md" placeholder="Nom affiché ou email exact" type="text"/>
+</div>
+<p class="text-brand-muted text-xs leading-relaxed">Préfixe sur le nom. Email = correspondance exacte. Pas un annuaire.</p>
+</section>
+<!-- Footer Meta -->
+<footer class="mt-auto pt-8">
+<p class="text-brand-muted font-label-sm text-label-sm">0 / 50 amis</p>
+</footer>
+</main>
+</body></html>

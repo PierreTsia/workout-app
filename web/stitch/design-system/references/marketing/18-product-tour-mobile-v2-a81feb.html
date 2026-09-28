@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Product Tour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#85948e",
+                        "on-primary-container": "#004e40",
+                        "surface-bright": "#39393d",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-low": "#1b1b1f",
+                        "border": "#27272a",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "on-secondary-fixed-variant": "#454747",
+                        "inverse-primary": "#006b58",
+                        "tertiary-container": "#ff9862",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "tertiary-fixed": "#ffdbcb",
+                        "primary-container": "#00c9a7",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "muted": "#999999",
+                        "on-primary-fixed": "#002019",
+                        "surface-tint": "#38debb",
+                        "surface-container-high": "#2a292e",
+                        "surface-container": "#1f1f23",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#2f3131",
+                        "surface-container-highest": "#353439",
+                        "background": "#131317",
+                        "on-primary-fixed-variant": "#005142",
+                        "primary-fixed": "#5ffbd6",
+                        "on-surface-variant": "#bacac3",
+                        "primary": "#44e5c2",
+                        "surface": "#121212",
+                        "outline-variant": "#3c4a45",
+                        "on-background": "#e4e1e7",
+                        "on-secondary-container": "#b4b5b5",
+                        "surface-dim": "#131317",
+                        "inverse-on-surface": "#303034",
+                        "on-tertiary-container": "#762f00",
+                        "surface-variant": "#353439",
+                        "on-surface": "#e4e1e7",
+                        "secondary-container": "#454747",
+                        "secondary": "#c6c6c7",
+                        "secondary-fixed": "#e2e2e2",
+                        "on-tertiary": "#552000",
+                        "error-container": "#93000a",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-primary": "#00382d",
+                        "tertiary": "#ffc0a1",
+                        "inverse-surface": "#e4e1e7",
+                        "primary-fixed-dim": "#38debb",
+                        "on-tertiary-fixed": "#341100"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "section-gap-lg": "8rem",
+                        "content-stack": "1.5rem",
+                        "section-gap-sm": "4rem",
+                        "container-max-prose": "48rem",
+                        "gutter-base": "1rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Geist", "sans-serif"],
+                        "headline-h1-mobile": ["Geist", "sans-serif"],
+                        "body-main": ["Geist", "sans-serif"],
+                        "headline-h2": ["Geist", "sans-serif"],
+                        "code-snippet": ["Geist", "sans-serif"],
+                        "headline-h1": ["Geist", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-h1-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600" }],
+                        "body-main": ["1rem", { "lineHeight": "1.65", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h2": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "code-snippet": ["0.875rem", { "lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h1": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0f0f13; /* Editorial dark theme base */
+            color: #e4e1e7;
+        }
+        
+        .ken-burns {
+            animation: ken-burns 15s ease-out infinite alternate;
+        }
+        
+        @keyframes ken-burns {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05) translate(-1%, -1%); }
+        }
+        
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .device-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-main text-body-main antialiased selection:bg-primary-container selection:text-black">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-screen-xl mx-auto">
+<div class="flex items-center gap-2 text-on-background font-headline-h2 text-headline-h2 font-semibold">
+<span class="material-symbols-outlined text-primary-container">fitness_center</span>
+<span>GymLogic</span>
+</div>
+<!-- Desktop Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-primary font-semibold hover:text-primary transition-colors duration-200 active:scale-95 transition-transform duration-150" href="#">Tour</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Claude Connector</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Blog</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">About</a>
+<a class="bg-primary-container text-black font-semibold text-sm px-4 py-2 rounded-lg hover:bg-primary transition-colors" href="#">Open app →</a>
+</nav>
+<!-- Mobile Menu Icon -->
+<button class="md:hidden text-on-background p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="w-full max-w-[390px] mx-auto pt-24 pb-section-gap-sm md:max-w-container-max-prose md:pt-32 md:pb-section-gap-lg px-gutter-base">
+<!-- HERO -->
+<section class="mb-section-gap-sm md:mb-section-gap-lg text-center fade-in-up">
+<h1 class="font-headline-h1-mobile text-headline-h1-mobile md:font-headline-h1 md:text-headline-h1 text-on-background mb-content-stack">
+                What GymLogic actually does
+            </h1>
+<p class="text-on-surface-variant text-lg md:text-xl max-w-prose mx-auto">
+                Program, train, progress, ask an agent, see the truth over time.
+            </p>
+</section>
+<!-- 01. Get a program -->
+<section class="mb-section-gap-sm md:mb-section-gap-lg fade-in-up">
+<div class="mb-6 text-center md:text-left">
+<span class="font-label-caps text-label-caps text-muted block mb-2">01</span>
+<h2 class="font-headline-h2 text-headline-h2 text-on-background mb-2">Get a program</h2>
+<p class="text-on-surface-variant">Three ways in; the money shot is the draft you accept or reject.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 overflow-hidden device-float">
+<div class="aspect-[9/16] bg-surface-container rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover ken-burns" data-alt="A sleek, dark-mode mobile UI showing a weekly fitness program layout. The screen displays a grid of days with specific exercises listed underneath. Clean typography, minimal borders, and bright primary color accents (#00c9a7) highlight active selections. The design feels like a premium technical manual for fitness." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAk3HnaugiXNT9NHaeMUcXjxHCsNxcO_bCg-FkjR6gTA_YFJ340ErQ0OLrwKld72LcgrcH7mz9EJbqv2o4mo1ln8T0Wbq140zpcJa3_Y9--sWrSaXKPtOENc6OkfKbEmopbDb7WHD2XBvivvp23IPQo2-Z8sDbgD2KY9TgQcBMP5cgjrVSaW-1bg3EgbVs6-LfRWkbzmRuD3epKu91aFLE81Nac58C8hqwJCtojCbSuLmOnS8bz8ND8IYTzPXJTBUZjWq7QI2iujSQ"/>
+</div>
+</div>
+</section>
+<!-- 02. Train the session -->
+<section class="mb-section-gap-sm md:mb-section-gap-lg fade-in-up">
+<div class="mb-6 text-center md:text-left">
+<span class="font-label-caps text-label-caps text-muted block mb-2">02</span>
+<h2 class="font-headline-h2 text-headline-h2 text-on-background mb-2">Train the session</h2>
+<p class="text-on-surface-variant">Log the work without a spreadsheet brain.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 overflow-hidden device-float">
+<div class="aspect-[9/16] bg-surface-container rounded-lg overflow-hidden relative">
+<img class="w-full h-full object-cover ken-burns" data-alt="A dark-mode mobile interface focused on logging a workout set. A clean, tabular layout shows Reps, Weight, and RIR (Reps in Reserve). A subtle highlight emphasizes the RIR column. The aesthetic is extremely minimalist and technical, with sharp geometric shapes and no drop shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUZhg739kH-L0k_lEDvs76Lo8t0g_jJ5HNWfoHtEH9xKcJhFJDIFNpIMoC30wkfCDEWWgKT_ZirSCCB9DnxrzLvOoU8m36wgk4_tXQotTTtG2pezRbKxcuju56vk4BUY1E5EEcN4qunda5UCD7I0mLdfH4f-2Kownjvl1Kc977jss3Jn4vIA3Uq-bm5RzihcIYVP4PeVWtz-U_Jbw0rDDaZWGYtqpaS-m7_bgNZztSkgW-N_KJTyD160EmO9MHbawVAFWaqzbQbLI" style="transform-origin: center right;"/>
+</div>
+</div>
+</section>
+<!-- DUAL DOORS (CTA) -->
+<section class="bg-surface border-y border-border py-section-gap-sm px-gutter-base -mx-gutter-base md:rounded-xl md:border-x md:mx-0 mb-section-gap-sm md:mb-section-gap-lg text-center fade-in-up">
+<h3 class="font-headline-h2 text-headline-h2 text-on-background mb-content-stack">Start building your foundation</h3>
+<div class="flex flex-col gap-4 max-w-sm mx-auto">
+<button class="w-full bg-primary-container text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                    Open the app <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="w-full border border-border text-on-surface font-semibold text-sm px-6 py-3 rounded-lg hover:border-muted transition-colors">
+                    Connect your agent
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-section-gap-sm border-t border-border bg-background">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-screen-xl mx-auto gap-content-stack">
+<div class="text-on-background font-headline-h2 text-headline-h2 font-semibold">
+                GymLogic
+            </div>
+<div class="text-muted text-sm text-center md:text-left">
+                © 2024 GymLogic. Precision performance.
+            </div>
+<div class="flex gap-4 items-center">
+<a class="text-muted hover:text-primary transition-colors font-label-caps text-label-caps uppercase" href="#">GitHub</a>
+<a class="text-muted hover:text-primary transition-colors font-label-caps text-label-caps uppercase" href="#">Blog</a>
+<a class="text-muted hover:text-primary transition-colors font-label-caps text-label-caps uppercase" href="#">About</a>
+<a class="text-muted hover:text-primary transition-colors font-label-caps text-label-caps uppercase" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+<script>
+        // Simple Intersection Observer for fade-in animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+        });
+    </script>
+</body></html>

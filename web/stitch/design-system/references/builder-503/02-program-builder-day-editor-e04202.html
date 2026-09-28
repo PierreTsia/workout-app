@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Program Builder Day Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#00c9a7",
+                        "secondary-container": "#494851",
+                        "on-secondary-container": "#b9b7c2",
+                        "on-tertiary-container": "#762f00",
+                        "tertiary-fixed": "#ffdbcb",
+                        "primary": "#44e5c2",
+                        "surface-container-high": "#2a292e",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "primary-fixed": "#5ffbd6",
+                        "inverse-on-surface": "#303034",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "outline": "#85948e",
+                        "surface-variant": "#353439",
+                        "secondary": "#c7c5d0",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-primary": "#00382d",
+                        "border": "#2d2d37",
+                        "surface-bright": "#39393d",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#005142",
+                        "tertiary": "#ffc0a1",
+                        "on-secondary-fixed": "#1b1b23",
+                        "foreground": "#f2f2f2",
+                        "surface": "#15151c",
+                        "inverse-primary": "#006b58",
+                        "error": "#ffb4ab",
+                        "on-tertiary": "#552000",
+                        "tertiary-container": "#ff9862",
+                        "on-primary-fixed": "#002019",
+                        "surface-tint": "#38debb",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "on-surface-variant": "#bacac3",
+                        "on-primary-container": "#004e40",
+                        "secondary-fixed": "#e4e1ec",
+                        "primary-fixed-dim": "#38debb",
+                        "on-secondary": "#303038",
+                        "on-tertiary-fixed": "#341100",
+                        "on-surface": "#e4e1e7",
+                        "background": "#0f0f13", // Adjusted per prompt
+                        "on-background": "#e4e1e7",
+                        "inverse-surface": "#e4e1e7",
+                        "surface-container": "#1f1f23",
+                        "outline-variant": "#3c4a45",
+                        "surface-container-highest": "#353439",
+                        "surface-container-low": "#1b1b1f",
+                        "surface-dim": "#131317",
+                        "muted": "#999999",
+                        "on-error": "#690005"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "unit-lg": "24px",
+                        "unit-md": "16px",
+                        "container-media": "64rem",
+                        "section-gap-mobile": "4rem",
+                        "gutter": "1rem",
+                        "container-prose": "48rem",
+                        "unit-xl": "32px",
+                        "unit-xs": "4px",
+                        "unit-sm": "8px",
+                        "section-gap": "6rem"
+                    },
+                    fontFamily: {
+                        "headline-sm": ["Geist"],
+                        "mono": ["Geist Mono"],
+                        "headline-lg": ["Geist"],
+                        "label": ["Geist"],
+                        "body-md": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "body-sm": ["Geist"]
+                    },
+                    fontSize: {
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #0f0f13; color: #f2f2f2; }
+        .card-bg { background-color: #1a1a22; }
+    </style>
+</head>
+<body class="font-body-md antialiased min-h-screen flex justify-center">
+<div class="w-full max-w-[390px] h-full min-h-screen relative border-x border-border/20 shadow-2xl overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-4 py-3 w-full z-50 border-b border-border bg-background sticky top-0">
+<button class="text-muted hover:opacity-80 transition-opacity flex items-center justify-center w-6 h-6">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1 px-3">
+<h1 class="font-label text-[16px] font-semibold text-foreground">Hypertrophy 12</h1>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#00c9a7]"></span>
+<span class="font-body-sm text-[11px] text-muted">Saved</span>
+</div>
+</header>
+<main class="p-4 pb-24 flex flex-col gap-6">
+<!-- Day Title -->
+<section class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-[22px] text-foreground">Push A</h2>
+<span class="material-symbols-outlined text-muted text-[18px]">edit</span>
+</div>
+<p class="font-body-sm text-[12px] text-muted">6 movements · 21 sets</p>
+</section>
+<!-- Body Map Card -->
+<section class="bg-surface rounded-xl border border-border p-4 flex gap-4 items-center">
+<div class="w-[120px] shrink-0">
+<img alt="Anatomy" class="w-full h-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFJl6RRvJAfl5exwgQaSxjO4gI4T16qAXeQ4jQKyHi2Em2GBHTREELvqy8BSoBU0RRSWV7Jb5TcI-EnNXVrVElRhPlQIBDCT6becFAJwB38FIettSHAUlRGnSdZGqdOyP3pXJ9X1FbAE-v1PMK2TzeHpAzehELL-9SaQltIAUfC154jjZRp5mKAaPtO7XNbGjctwRru1NUsJ9GnWEQGCCVii4ae72ZM9PI8r2LMzsjQblG1dlpBJUFpriSLATEfRBgrCrbQ-TAa-s"/>
+</div>
+<div class="flex flex-col gap-2 flex-1">
+<div class="flex items-center justify-between card-bg rounded-lg p-2 px-3 border-l-2 border-l-[#00c9a7]">
+<span class="font-label text-[12px] text-foreground">Chest</span>
+<span class="font-mono text-[13px] text-[#00c9a7]">12</span>
+</div>
+<div class="flex items-center justify-between card-bg rounded-lg p-2 px-3">
+<span class="font-label text-[12px] text-muted">Shoulders</span>
+<span class="font-mono text-[13px] text-[#00c9a7]">8</span>
+</div>
+<div class="flex items-center justify-between card-bg rounded-lg p-2 px-3">
+<span class="font-label text-[12px] text-muted">Triceps</span>
+<span class="font-mono text-[13px] text-[#00c9a7]">6</span>
+</div>
+</div>
+</section>
+<!-- Exercise List -->
+<section class="flex flex-col">
+<!-- Column Header -->
+<div class="grid grid-cols-[1fr_44px_44px_44px_44px_24px] gap-2 items-center pb-2 border-b border-border sticky top-[53px] bg-background z-40 mb-3 px-1">
+<div class="text-[11px] uppercase tracking-wider text-muted font-medium"></div>
+<div class="text-[11px] uppercase tracking-wider text-muted font-medium text-center">Sets</div>
+<div class="text-[11px] uppercase tracking-wider text-muted font-medium text-center">Reps</div>
+<div class="text-[11px] uppercase tracking-wider text-muted font-medium text-center">Kg</div>
+<div class="text-[11px] uppercase tracking-wider text-muted font-medium text-center">Rest</div>
+<div></div>
+</div>
+<!-- Bench Press -->
+<div class="grid grid-cols-[1fr_44px_44px_44px_44px_24px] gap-2 items-center py-3 border-b border-border/50 group">
+<div class="flex items-center gap-3">
+<img alt="Bench Press" class="w-[36px] h-[36px] rounded bg-surface object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCST1O3TcYns_pIt81h6Qr2QeoNFkzmeqZ4VusLhD1HYHUIldwmHgQX05NWHr7dTJeCq_VULvzzMwv06MtVV-C-rIb01FwUiF15xOXSLVcmF2NGpdXuGL2MgiwJCLWW8TqNIu355vqTyYtmqxELRpDF8n0t-yASP1o-7XZNeP5FfeydaXGXSBR3QGQSaG20LYA0G-NiQTr_5qiMqf4SnhgUlxLOB_rCX8FPzMniWo06IVr907QhOJeD_u8QZXV4zRRNHv3AgP8LHcY"/>
+<div class="flex flex-col min-w-0">
+<span class="font-label text-[14px] truncate text-foreground leading-tight">Bench Press</span>
+<span class="font-body-sm text-[11px] text-muted">Chest</span>
+</div>
+</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">4</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">8</div>
+<div class="h-[32px] bg-background border border-[#00c9a7] rounded flex items-center justify-center font-mono text-[13px] text-foreground shadow-[inset_0_0_0_1px_#00c9a7]">80</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">2:00</div>
+<div class="flex justify-end text-muted">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</div>
+</div>
+<!-- Incline Dumbbell Press -->
+<div class="grid grid-cols-[1fr_44px_44px_44px_44px_24px] gap-2 items-center py-3 border-b border-border/50">
+<div class="flex items-center gap-3">
+<img alt="Incline Dumbbell Press" class="w-[36px] h-[36px] rounded bg-surface object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQotuMmex_2HEHloglQfe_CVbqzWA3nf8Yi_xQNMQaXKBH6Nni4feG890qHm6MMemHod8mai4EBCQPk2fJmaNIuINAjsBNA5dUxicwbZ_FvNykM5oPUEbqREPlZyi631M-sDKli-26XP-lBhYg9HP2dMqNIMYkRI4nZns6HbanNrGZheCi1Sm6DBQWwMs9LQQ667Wcm87PcpVVo2YLr73S51XevSM7d5D5XcYQo0PwIsuKZZVDLfQU0a2hSnDbwDV4S2AdD930p_c"/>
+<div class="flex flex-col min-w-0">
+<span class="font-label text-[14px] truncate text-foreground leading-tight">Incline DB Press</span>
+<span class="font-body-sm text-[11px] text-muted">Chest</span>
+</div>
+</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">3</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">10</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">28</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">1:30</div>
+<div class="flex justify-end text-muted">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</div>
+</div>
+<!-- Overhead Press -->
+<div class="grid grid-cols-[1fr_44px_44px_44px_44px_24px] gap-2 items-center py-3 border-b border-border/50">
+<div class="flex items-center gap-3">
+<img alt="Overhead Press" class="w-[36px] h-[36px] rounded bg-surface object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcIxd9yIHU827u8XpLMub6lxSNpt0rsXZxM3AmR60Jq6jw4nSt4ouwnsmoIiTcO4sOKCuaMi-vRZLk2wMZQ9PNlNykyziik-oyoo47QBGJ_vhIT_xZ1f54GJqJJvavo7Ei8a2C79TDkrAonVW4jyqDl3i94P_nxfWNmYw3EOztmur0H7o12QZXZwWO6quR6-oknzQWpYy3mEXIx21Nnsm56Dgp_AcauxhcIHQjTxuD2lkoRHbDxTaVNV9x7JqKXSfRdGYVxNAiBJw"/>
+<div class="flex flex-col min-w-0">
+<span class="font-label text-[14px] truncate text-foreground leading-tight">Overhead Press</span>
+<span class="font-body-sm text-[11px] text-muted">Shoulders</span>
+</div>
+</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">3</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">6</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">50</div>
+<div class="h-[32px] bg-background border border-border rounded flex items-center justify-center font-mono text-[13px] text-foreground">2:00</div>
+<div class="flex justify-end text-muted">
+<span class="material-symbols-outlined text-[18px]">more_horiz</span>
+</div>
+</div>
+</section>
+<!-- Circuit Block -->
+<section class="card-bg rounded-xl border border-border overflow-hidden border-l-[3px] border-l-[#00c9a7]">
+<div class="p-3 border-b border-border flex justify-between items-center bg-surface">
+<div class="flex items-center gap-2">
+<span class="font-label text-[13px] font-medium text-foreground">Metcon Finisher</span>
+<span class="font-body-sm text-[12px] text-muted">· 3 rounds</span>
+</div>
+<span class="material-symbols-outlined text-muted text-[18px]">more_horiz</span>
+</div>
+<div class="p-3 flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<img alt="Push-up" class="w-[32px] h-[32px] rounded bg-background object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQu5noaFW_4VBNMH_WM899ah0hyfvoLiLa4dGVm90GwwWOklsLVuszauCTjqII8EzNsmYXz3ap_gt7UL9_XR4lXATfFNAXVJ0zQ8mGsnHk_96ab_h2rZXMiEOxESfHXCKHW0R5uZppRMCKtJDZtSF64bBE8-uCreMpQqr0LRC_6BcHvrbQJPdJTxq8k6k4VACbQ-PG7ARHGs4slU_DtLtzOSPnAm_HXkQTiQRoF1WSxq-NdoqOPSGKp5PkdtT0CXc9jOp4so6U3Aw"/>
+<span class="font-label text-[13px] text-foreground">Push-up</span>
+<span class="font-body-sm text-[12px] text-muted ml-auto">· 12 reps</span>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Dip" class="w-[32px] h-[32px] rounded bg-background object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOurCUGd_ENdwrDzrzyOsCUDM_BBOVm1A-K4nFT-A0GL0qaj0bghZQaJAjq4hlDZAb_xRsTU3OwnfD5PJ5N7CO_G0mSXhtCiy6Jt2deNPUsU1PVGo98uCxl0JLgCh0WVHElIu1_9TEuaEnO5ZnWdkLQWWkpvEOJCyOtHoXf8nlmlZWlOs3dC81Y-ByiItu3cQck0QpurQjIQEzLwtJXONZ4OJQeYaBCKaBN6tYLufVHm6g4zOfyNQsJQJ8FcWQPby7KPd2eDXzQP8"/>
+<span class="font-label text-[13px] text-foreground">Dip</span>
+<span class="font-body-sm text-[12px] text-muted ml-auto">· 10 reps</span>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Band Flye" class="w-[32px] h-[32px] rounded bg-background object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQb0nUF398p9MobOlrDTQlAWHlfxB3FxgtsjTddFZAUXWtK3Ku2hoCodXwHXreAvR4SLuEXjJvzjeoHfqugWm1uR4rfDKCT5gU2zeQdYIWZAo8R0p-jWouWh69vZbhA8tALG6ib2jhVo1DP3Te2b-wl2Ht_-llKjv4GH2wE3AmKW2f6pr-y4uNHwFrEAz0vcJGJ9ik7M5ClxAgh045uUCdfJeCzkuq-11W5AfGsS6054GJA6H33VuMCd8TWPUEgNLlEreGxXncTu0"/>
+<span class="font-label text-[13px] text-foreground">Band Flye</span>
+<span class="font-body-sm text-[12px] text-muted ml-auto">· 15 reps</span>
+</div>
+</div>
+</section>
+<!-- Add Action -->
+<button class="w-full h-[44px] bg-[#00c9a7] text-black font-label text-[14px] font-semibold rounded-lg flex items-center justify-center gap-1 hover:opacity-90 transition-opacity">
+                + Add
+            </button>
+</main>
+</div>
+</body></html>

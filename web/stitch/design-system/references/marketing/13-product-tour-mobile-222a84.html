@@ -1,0 +1,248 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymLogic - Product Tour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed-dim": "#c6c6c7",
+                      "surface-container-highest": "#353439",
+                      "on-tertiary-container": "#762f00",
+                      "secondary-fixed": "#e2e2e2",
+                      "tertiary": "#ffc0a1",
+                      "surface-container": "#1f1f23",
+                      "tertiary-fixed": "#ffdbcb",
+                      "surface": "#121212",
+                      "on-secondary-fixed-variant": "#454747",
+                      "inverse-primary": "#006b58",
+                      "surface-tint": "#38debb",
+                      "secondary": "#c6c6c7",
+                      "muted": "#999999",
+                      "surface-container-high": "#2a292e",
+                      "error": "#ffb4ab",
+                      "surface-dim": "#131317",
+                      "surface-container-lowest": "#0e0e12",
+                      "on-surface": "#e4e1e7",
+                      "on-tertiary": "#552000",
+                      "outline-variant": "#3c4a45",
+                      "on-primary": "#00382d",
+                      "on-secondary-container": "#b4b5b5",
+                      "tertiary-container": "#ff9862",
+                      "surface-container-low": "#1b1b1f",
+                      "on-primary-fixed-variant": "#005142",
+                      "primary-fixed-dim": "#38debb",
+                      "border": "#27272a",
+                      "surface-variant": "#353439",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-fixed-dim": "#ffb692",
+                      "on-secondary": "#2f3131",
+                      "primary-container": "#00c9a7",
+                      "primary-fixed": "#5ffbd6",
+                      "outline": "#85948e",
+                      "on-secondary-fixed": "#1a1c1c",
+                      "surface-bright": "#39393d",
+                      "on-tertiary-fixed": "#341100",
+                      "on-surface-variant": "#bacac3",
+                      "on-tertiary-fixed-variant": "#793100",
+                      "error-container": "#93000a",
+                      "on-primary-container": "#004e40",
+                      "primary": "#44e5c2",
+                      "inverse-surface": "#e4e1e7",
+                      "on-error": "#690005",
+                      "on-primary-fixed": "#002019",
+                      "inverse-on-surface": "#303034",
+                      "secondary-container": "#454747",
+                      "background": "#131317",
+                      "on-background": "#e4e1e7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-max-prose": "48rem",
+                      "content-stack": "1.5rem",
+                      "gutter-base": "1rem",
+                      "section-gap-lg": "8rem",
+                      "section-gap-sm": "4rem"
+              },
+              "fontFamily": {
+                      "code-snippet": [
+                              "Geist"
+                      ],
+                      "headline-h1": [
+                              "Geist"
+                      ],
+                      "headline-h1-mobile": [
+                              "Geist"
+                      ],
+                      "label-caps": [
+                              "Geist"
+                      ],
+                      "body-main": [
+                              "Geist"
+                      ],
+                      "headline-h2": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "code-snippet": [
+                              "0.875rem",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-h1": [
+                              "3rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-h1-mobile": [
+                              "2.25rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "0.75rem",
+                              {
+                                      "lineHeight": "1rem",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-main": [
+                              "1rem",
+                              {
+                                      "lineHeight": "1.65",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-h2": [
+                              "1.875rem",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0f0f13; /* Enforce strict background */
+        }
+        /* Mobile focal zoom animation */
+        .zoom-in-scroll {
+            animation: slowZoom linear forwards;
+            animation-timeline: view();
+            animation-range: entry 10% cover 50%;
+        }
+        @keyframes slowZoom {
+            from { transform: scale(0.95); opacity: 0.8; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-main antialiased selection:bg-primary-container selection:text-black">
+<!-- TopAppBar -->
+<header class="bg-background/80 backdrop-blur-md fixed top-0 w-full z-50 border-b border-border">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-container-max-prose mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary font-headline-h2 text-headline-h2 text-on-surface tracking-tighter" data-weight="fill" style="font-variation-settings: 'FILL' 1;">exercise</span>
+<span class="font-headline-h2 text-headline-h2 text-on-surface tracking-tighter">GymLogic</span>
+</div>
+<a class="font-label-caps text-label-caps text-primary hover:text-primary transition-colors active:scale-95 duration-200 uppercase tracking-widest" href="#">Open the app →</a>
+</div>
+</header>
+<main class="pt-24 pb-section-gap-sm px-gutter-base max-w-3xl mx-auto space-y-section-gap-sm">
+<!-- Hero Section -->
+<section class="pt-12 pb-8 flex flex-col items-start gap-4">
+<h1 class="font-headline-h1-mobile text-headline-h1-mobile text-on-surface tracking-tight">What GymLogic actually does</h1>
+<p class="font-body-main text-body-main text-muted max-w-lg">Program, train, progress, ask an agent, see the truth over time.</p>
+</section>
+<!-- Scene 01 -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<span class="font-label-caps text-label-caps text-muted uppercase tracking-widest">Scene 01</span>
+<h2 class="font-headline-h2 text-headline-h2 text-on-surface">Get a program</h2>
+<p class="font-body-main text-body-main text-muted">Three ways in; the money shot is the draft you accept or reject.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 overflow-hidden zoom-in-scroll">
+<img class="w-full h-auto object-cover rounded-lg border border-border" data-alt="A meticulously designed mobile interface showing a fitness training program draft. The UI is dark-themed with flat, geometric components, sharp typography, and bright teal accent colors indicating actionable areas. The layout is clean and technical, reminiscent of a developer tool rather than a standard fitness app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3-C7pU7-LDrI0A2tscB_8Ig6KG7qaWABUz6883HLIT6ZGO4gryXSNY1Ho6bXdoO5NsrbtphSBHYDPSOsKkoK7hMptwtZtW6afjKaPtbf_UpAQCdj74j_jckTBb5MuYB7gEUJ752sSm_20RLXk-Eo5J4sq_mxsE6OqreJO7JRuCCp_7ynz3rJQL4uIstkm3d0wwQ-rpeZBujWeFRquJs5BH6whycPa00br3jX0Z_KWJGwTtIJzheku">
+</div>
+</section>
+<!-- Scene 02 -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<span class="font-label-caps text-label-caps text-muted uppercase tracking-widest">Scene 02</span>
+<h2 class="font-headline-h2 text-headline-h2 text-on-surface">Train the session</h2>
+<p class="font-body-main text-body-main text-muted">Log the work without a spreadsheet brain.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 overflow-hidden zoom-in-scroll">
+<img class="w-full h-auto object-cover rounded-lg border border-border" data-alt="A dark-themed mobile application screen displaying a precise, technical table for logging workout sets. The table columns include weight, repetitions, and RIR (Reps in Reserve). The design relies on high contrast, strict grid alignments, and a minimalist aesthetic with deep blacks and stark white text. Teal accents highlight active input fields." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5Ee9G0ypC6YQB_bAeuhUbNGrGIUptY-wqRXCgdllKIzzxJpFFq1dTMCjWpSo0dxgHSW6YOclFeqY4EcSAQ56i8QAZQUHXkJAbnQhCfdn4Ieo4_rEU2o6oD5U7dVWrX4ipnNBxx1NE0O2ysHllyckeUZ4MGi7jgNpIKld4qc6ryNV3wFWEiAf1sLJBk0_sofDfVUEGtbiE_zaCPXNoLKYPElPQG4BPyrGKvaDESXsuliSV0hp0SCFj">
+</div>
+</section>
+<!-- Scene 03 -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<span class="font-label-caps text-label-caps text-muted uppercase tracking-widest">Scene 03</span>
+<h2 class="font-headline-h2 text-headline-h2 text-on-surface">Progress on purpose</h2>
+<p class="font-body-main text-body-main text-muted">Next load from last session + RIR — add weight, add reps, hold, or plateau.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 overflow-hidden zoom-in-scroll">
+<img class="w-full h-auto object-cover rounded-lg border border-border" data-alt="A close-up view of a dark mobile UI featuring a technical progression suggestion component. It shows a precise '+2.5kg' recommendation derived from past performance data. The visual style is highly analytical, utilizing thin borders, monochromatic backgrounds, and a singular pop of vibrant teal to draw attention to the suggested load increase." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCObFeuk7si8rK1WuYOEeHse-papJcs5Kh_pg1lMr6DNTmDEuadTXLStX1nu_r8iHPC4XbLv2lGEJ5wG2RGBFkNAjDpWe98O2rCtEjZ6oQvMeDU8MZF5hXZ3-POTFCy4eYyYwfWPYGsCCwUwyKDezjgwULaIJ8UsnpNQdLa7drbsGH0fyY-rVWWS2TVNWPo_QDpgp57Rd42rZ_V1mq0VpfrZKnxa4CwRyk2m9u-BwSwFLKyH-AcTgCF">
+</div>
+</section>
+<!-- Dual Doors -->
+<section class="bg-surface-container border border-border rounded-xl p-6 flex flex-col gap-4 mt-section-gap-sm">
+<h3 class="font-headline-h2 text-headline-h2 text-on-surface text-center">Ready to commit?</h3>
+<div class="flex flex-col gap-3 w-full">
+<button class="w-full bg-primary-container text-black font-label-caps text-label-caps py-4 rounded-lg flex items-center justify-center font-bold tracking-wide active:scale-95 transition-transform">
+                    OPEN THE APP
+                </button>
+<button class="w-full bg-transparent border border-border text-on-surface hover:border-muted font-label-caps text-label-caps py-4 rounded-lg flex items-center justify-center tracking-wide active:scale-95 transition-all">
+                    CONNECT YOUR AGENT
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-background w-full py-section-gap-sm border-t border-border">
+<div class="flex flex-col items-center px-gutter-base max-w-container-max-prose mx-auto gap-4">
+<span class="font-headline-h2 text-headline-h2 text-on-surface">GymLogic</span>
+<div class="flex gap-6">
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Privacy</a>
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Terms</a>
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Contact</a>
+</div>
+<span class="font-body-main text-body-main text-muted text-sm mt-4">© 2024 GymLogic. All rights reserved.</span>
+</div>
+</footer>
+</body></html>

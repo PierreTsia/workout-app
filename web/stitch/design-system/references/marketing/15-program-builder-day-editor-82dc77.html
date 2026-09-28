@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic - Program Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-container": "#454747",
+                    "on-secondary": "#2f3131",
+                    "primary-container": "#00c9a7",
+                    "surface": "#121212",
+                    "surface-container-highest": "#353439",
+                    "secondary-fixed": "#e2e2e2",
+                    "primary-fixed": "#5ffbd6",
+                    "inverse-primary": "#006b58",
+                    "on-surface": "#e4e1e7",
+                    "border": "#27272a",
+                    "background": "#0f0f13",
+                    "error": "#ffb4ab",
+                    "surface-dim": "#131317",
+                    "outline-variant": "#3c4a45",
+                    "on-tertiary-fixed-variant": "#793100",
+                    "inverse-on-surface": "#303034",
+                    "on-tertiary-container": "#762f00",
+                    "on-primary": "#00382d",
+                    "on-tertiary-fixed": "#341100",
+                    "surface-container-high": "#2a292e",
+                    "on-secondary-container": "#b4b5b5",
+                    "surface-container-lowest": "#0e0e12",
+                    "error-container": "#93000a",
+                    "tertiary": "#ffc0a1",
+                    "tertiary-fixed": "#ffdbcb",
+                    "on-background": "#e4e1e7",
+                    "on-secondary-fixed-variant": "#454747",
+                    "surface-container": "#1f1f23",
+                    "on-primary-container": "#004e40",
+                    "surface-variant": "#15151c",
+                    "surface-tint": "#38debb",
+                    "inverse-surface": "#e4e1e7",
+                    "on-error": "#690005",
+                    "primary": "#00c9a7",
+                    "outline": "#85948e",
+                    "tertiary-container": "#ff9862",
+                    "on-primary-fixed": "#002019",
+                    "on-tertiary": "#552000",
+                    "secondary": "#c6c6c7",
+                    "on-surface-variant": "#bacac3",
+                    "on-primary-fixed-variant": "#005142",
+                    "on-error-container": "#ffdad6",
+                    "primary-fixed-dim": "#38debb",
+                    "muted": "#999999",
+                    "tertiary-fixed-dim": "#ffb692",
+                    "on-secondary-fixed": "#1a1c1c",
+                    "surface-container-low": "#1b1b1f",
+                    "surface-bright": "#39393d",
+                    "secondary-fixed-dim": "#c6c6c7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "section-gap-lg": "8rem",
+                    "container-max-prose": "48rem",
+                    "content-stack": "1.5rem",
+                    "section-gap-sm": "4rem",
+                    "gutter-base": "1rem"
+            },
+            "fontFamily": {
+                    "headline-h1-mobile": [
+                            "Geist"
+                    ],
+                    "headline-h2": [
+                            "Geist"
+                    ],
+                    "code-snippet": [
+                            "Geist"
+                    ],
+                    "label-caps": [
+                            "Geist"
+                    ],
+                    "headline-h1": [
+                            "Geist"
+                    ],
+                    "body-main": [
+                            "Geist"
+                    ]
+            },
+            "fontSize": {
+                    "headline-h1-mobile": [
+                            "2.25rem",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.04em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-h2": [
+                            "1.875rem",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "code-snippet": [
+                            "0.875rem",
+                            {
+                                    "lineHeight": "1.5",
+                                    "letterSpacing": "0em",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-caps": [
+                            "0.75rem",
+                            {
+                                    "lineHeight": "1rem",
+                                    "letterSpacing": "0.1em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-h1": [
+                            "3rem",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-main": [
+                            "1rem",
+                            {
+                                    "lineHeight": "1.65",
+                                    "letterSpacing": "0em",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            font-family: 'Geist', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Minimal anatomical svg styling */
+        .muscle-highlight {
+            fill: theme('colors.primary');
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        
+        .body-outline {
+            fill: none;
+            stroke: theme('colors.border');
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen w-full mx-auto overflow-x-hidden flex flex-col" style="max-width: 390px;">
+<!-- HEADER -->
+<header class="flex justify-between items-center px-4 py-4 w-full bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b border-border">
+<button aria-label="Go back" class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center w-10 h-10 -ml-2">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col items-center flex-1">
+<span class="font-label-caps text-label-caps text-muted">Hypertrophy 12</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(0,201,167,0.4)]"></div>
+<span class="font-code-snippet text-code-snippet text-on-background">Saved</span>
+</div>
+</div>
+<div class="w-10"></div> <!-- Balancer -->
+</header>
+<main class="flex-1 pb-24 px-4 flex flex-col gap-6 pt-4">
+<!-- TITLE SECTION -->
+<section>
+<h1 class="font-headline-h1-mobile text-headline-h1-mobile text-on-background mb-0 tracking-tight">Push A</h1>
+</section>
+<!-- BODY MAP SECTION -->
+<section class="bg-surface-variant rounded-lg border border-border p-4 relative overflow-hidden flex flex-col items-center">
+<div class="flex w-full justify-between items-start absolute top-4 left-0 px-4 z-10 pointer-events-none">
+<div class="flex flex-col gap-2">
+<div class="bg-surface border border-primary px-2 py-1 rounded text-xs font-semibold text-primary flex items-center gap-1 backdrop-blur-md">
+                        Chest <span class="opacity-70 font-mono">12</span>
+</div>
+<div class="bg-surface border border-primary/40 px-2 py-1 rounded text-xs font-semibold text-on-background flex items-center gap-1 backdrop-blur-md">
+                        Shoulders <span class="text-muted font-mono">8</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 items-end">
+<div class="bg-surface border border-primary/20 px-2 py-1 rounded text-xs font-semibold text-muted flex items-center gap-1 backdrop-blur-md">
+                        Triceps <span class="font-mono">6</span>
+</div>
+</div>
+</div>
+<!-- Abstract minimalist anatomical figure representation (Placeholder for actual SVG) -->
+<div class="h-48 w-full flex justify-center items-center opacity-80 mt-2">
+<svg class="w-full h-full max-w-[200px]" preserveaspectratio="xMidYMid meet" viewbox="0 0 200 200">
+<!-- Generic Torso Map -->
+<g class="body-outline">
+<!-- Head -->
+<circle cx="100" cy="30" r="15"></circle>
+<!-- Neck -->
+<path d="M95 45 L95 55 M105 45 L105 55"></path>
+<!-- Torso Outline -->
+<path d="M70 60 C80 50 120 50 130 60 L140 110 C130 140 70 140 60 110 Z"></path>
+<!-- Arms -->
+<path d="M65 65 Q40 70 30 110 L45 110 M135 65 Q160 70 170 110 L155 110"></path>
+</g>
+<!-- Muscle Highlights -->
+<g>
+<!-- Chest Highlight -->
+<path class="muscle-highlight" d="M75 65 C85 60 115 60 125 65 L120 85 C100 90 100 90 80 85 Z"></path>
+<!-- Shoulders Highlight -->
+<circle cx="65" cy="65" fill="theme('colors.primary')" opacity="0.3" r="8"></circle>
+<circle cx="135" cy="65" fill="theme('colors.primary')" opacity="0.3" r="8"></circle>
+</g>
+</svg>
+</div>
+</section>
+<!-- EXERCISE LIST (Slot-level editor) -->
+<section class="flex flex-col gap-3">
+<!-- Slot 1: Active/Focused -->
+<div class="bg-surface border border-primary/50 rounded-lg p-3 flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<h3 class="font-semibold text-sm text-on-background">Bench Press</h3>
+<span class="material-symbols-outlined text-muted text-sm" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Sets</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">4</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Reps</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">8</div>
+</div>
+<div class="flex flex-col gap-1 relative">
+<label class="text-[10px] text-primary uppercase font-bold tracking-wider">KG</label>
+<div class="bg-background border border-primary shadow-[0_0_0_1px_rgba(0,201,167,0.2)] rounded px-2 py-1.5 text-center font-mono text-sm text-on-background font-bold relative overflow-hidden">
+                            80
+                            <div class="absolute bottom-0 left-0 w-full h-[1px] bg-primary animate-pulse"></div>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Rest</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-muted">2:00</div>
+</div>
+</div>
+</div>
+<!-- Slot 2 -->
+<div class="bg-surface border border-border rounded-lg p-3 flex flex-col gap-3 opacity-90">
+<div class="flex justify-between items-center">
+<h3 class="font-semibold text-sm text-on-background">Incline DB Press</h3>
+<span class="material-symbols-outlined text-muted text-sm" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Sets</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">3</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Reps</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">10</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">KG</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-muted">--</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Rest</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-muted">1:30</div>
+</div>
+</div>
+</div>
+<!-- Slot 3 -->
+<div class="bg-surface border border-border rounded-lg p-3 flex flex-col gap-3 opacity-90">
+<div class="flex justify-between items-center">
+<h3 class="font-semibold text-sm text-on-background">Overhead Press</h3>
+<span class="material-symbols-outlined text-muted text-sm" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Sets</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">3</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Reps</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-on-background">8-10</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">KG</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-muted">--</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-muted uppercase font-bold tracking-wider">Rest</label>
+<div class="bg-background border border-border rounded px-2 py-1.5 text-center font-mono text-sm text-muted">2:00</div>
+</div>
+</div>
+</div>
+</section>
+<!-- FINISHER SECTION -->
+<section class="mt-4">
+<div class="flex items-center gap-2 mb-3">
+<h2 class="font-headline-h2 text-headline-h2 text-on-background text-lg">Metcon Finisher</h2>
+<div class="bg-surface-variant border border-border px-2 py-0.5 rounded text-xs font-mono text-muted">3 ROUNDS</div>
+</div>
+<div class="relative pl-4">
+<!-- Grouping Rail -->
+<div class="absolute left-0 top-1 bottom-1 w-1 bg-primary rounded-full opacity-80"></div>
+<div class="flex flex-col gap-2">
+<!-- Circuit Item 1 -->
+<div class="bg-surface border border-border rounded-lg p-2.5 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<span class="font-mono text-xs text-muted w-4">A1</span>
+<span class="font-semibold text-sm text-on-background">Lateral Raises</span>
+</div>
+<div class="font-mono text-sm text-muted">15 Reps</div>
+</div>
+<!-- Circuit Item 2 -->
+<div class="bg-surface border border-border rounded-lg p-2.5 flex justify-between items-center">
+<div class="flex items-center gap-3">
+<span class="font-mono text-xs text-muted w-4">A2</span>
+<span class="font-semibold text-sm text-on-background">Face Pulls</span>
+</div>
+<div class="font-mono text-sm text-muted">15 Reps</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BOTTOM ACTION -->
+<div class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-background via-background/90 to-transparent z-40 pb-8 max-w-[390px] mx-auto left-1/2 -translate-x-1/2">
+<button class="w-full bg-primary text-black font-semibold text-sm py-3.5 rounded-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+            Add exercise
+        </button>
+</div>
+</body></html>

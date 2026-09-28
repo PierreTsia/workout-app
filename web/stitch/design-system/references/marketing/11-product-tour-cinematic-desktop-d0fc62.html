@@ -1,0 +1,370 @@
+<!DOCTYPE html><html class="dark scroll-smooth" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymLogic Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "surface-container-highest": "#353439",
+                        "on-tertiary-container": "#762f00",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary": "#ffc0a1",
+                        "surface-container": "#1f1f23",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface": "#121212",
+                        "on-secondary-fixed-variant": "#454747",
+                        "inverse-primary": "#006b58",
+                        "surface-tint": "#38debb",
+                        "secondary": "#c6c6c7",
+                        "muted": "#999999",
+                        "surface-container-high": "#2a292e",
+                        "error": "#ffb4ab",
+                        "surface-dim": "#131317",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-surface": "#e4e1e7",
+                        "on-tertiary": "#552000",
+                        "outline-variant": "#3c4a45",
+                        "on-primary": "#00382d",
+                        "on-secondary-container": "#b4b5b5",
+                        "tertiary-container": "#ff9862",
+                        "surface-container-low": "#1b1b1f",
+                        "on-primary-fixed-variant": "#005142",
+                        "primary-fixed-dim": "#38debb",
+                        "border": "#27272a",
+                        "surface-variant": "#353439",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-secondary": "#2f3131",
+                        "primary-container": "#00c9a7",
+                        "primary-fixed": "#5ffbd6",
+                        "outline": "#85948e",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "surface-bright": "#39393d",
+                        "on-tertiary-fixed": "#341100",
+                        "on-surface-variant": "#bacac3",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "error-container": "#93000a",
+                        "on-primary-container": "#004e40",
+                        "primary": "#44e5c2",
+                        "inverse-surface": "#e4e1e7",
+                        "on-error": "#690005",
+                        "on-primary-fixed": "#002019",
+                        "inverse-on-surface": "#303034",
+                        "secondary-container": "#454747",
+                        "background": "#0f0f13",
+                        "on-background": "#e4e1e7",
+                        "surface-band": "#15151c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max-prose": "48rem",
+                        "content-stack": "1.5rem",
+                        "gutter-base": "2rem",
+                        "section-gap-lg": "12rem",
+                        "section-gap-sm": "6rem"
+                    },
+                    "fontFamily": {
+                        "code-snippet": ["Geist"],
+                        "headline-h1": ["Geist"],
+                        "headline-h1-mobile": ["Geist"],
+                        "label-caps": ["Geist"],
+                        "body-main": ["Geist"],
+                        "headline-h2": ["Geist"]
+                    },
+                    "fontSize": {
+                        "code-snippet": ["0.875rem", { "lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h1": ["4.5rem", { "lineHeight": "1.05", "letterSpacing": "-0.05em", "fontWeight": "600" }],
+                        "headline-h1-mobile": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600" }],
+                        "label-caps": ["0.875rem", { "lineHeight": "1rem", "letterSpacing": "0.15em", "fontWeight": "600" }],
+                        "body-main": ["1.125rem", { "lineHeight": "1.65", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h2": ["2.5rem", { "lineHeight": "1.15", "letterSpacing": "-0.03em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #0f0f13; }
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .ambient-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 201, 167, 0.05) 0%, transparent 60%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: -1;
+            transition: transform 0.1s ease-out;
+        }
+
+        .parallax-wrap {
+            will-change: transform;
+        }
+
+        .focal-zoom {
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.8s ease;
+            filter: brightness(0.9);
+        }
+        .visible .focal-zoom {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-main antialiased selection:bg-primary-container selection:text-black">
+<div class="ambient-glow" id="glow"></div>
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-background/70 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+<div class="flex justify-between items-center px-gutter-base py-5 max-w-[1440px] mx-auto">
+<a class="font-headline-h2 text-xl font-semibold text-on-background flex items-center gap-2 tracking-tight" href="#">
+<span class="text-primary-container material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">exercise</span>
+                GymLogic
+            </a>
+<div class="hidden md:flex gap-10">
+<a class="text-primary font-semibold hover:text-primary-fixed transition-colors duration-200" href="/tour">Tour</a>
+<a class="text-muted font-medium hover:text-on-surface transition-colors duration-200" href="/claude">Claude Connector</a>
+<a class="text-muted font-medium hover:text-on-surface transition-colors duration-200" href="/blog">Blog</a>
+<a class="text-muted font-medium hover:text-on-surface transition-colors duration-200" href="/about">About</a>
+</div>
+<button class="bg-primary-container text-black font-semibold text-sm px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-primary-fixed transition-colors">
+                Open app <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</nav>
+<main class="overflow-hidden">
+<!-- Hero Section -->
+<section class="min-h-screen flex flex-col justify-center items-center text-center px-gutter-base relative fade-in-up pt-32 pb-24">
+<div class="max-w-[1000px] mx-auto z-10 flex flex-col items-center">
+<h1 class="font-headline-h1-mobile md:font-headline-h1 text-headline-h1-mobile md:text-headline-h1 mb-8 max-w-4xl leading-tight tracking-tight">
+                Precision performance, <br><span class="text-primary-container">systematically defined.</span>
+</h1>
+<p class="text-muted font-body-main text-xl max-w-2xl mx-auto mb-12">
+                Program, train, progress, ask an agent, see the truth over time. GymLogic is the developer tool for physical training.
+            </p>
+<button class="bg-surface border border-border text-on-surface font-semibold text-sm px-8 py-4 rounded-full hover:border-primary-container hover:text-primary-container transition-colors duration-300 flex items-center gap-3">
+                Begin the Tour <span class="material-symbols-outlined text-sm">south</span>
+</button>
+</div>
+<div class="w-full max-w-[1200px] mt-24 relative parallax-wrap" data-speed="0.05">
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
+<img class="w-full h-auto object-cover rounded-t-3xl border-t border-x border-border/50 shadow-2xl opacity-90 focal-zoom" data-alt="Hero Device Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+</div>
+</section>
+<!-- Scene 01: Get a program (Right Image) -->
+<section class="py-section-gap-lg px-gutter-base fade-in-up">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-5 md:pr-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 01</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Get a program</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Three ways in; the money shot is the draft you accept or reject. Fine-tune your protocol before hitting the gym floor.</p>
+</div>
+<div class="md:col-span-7 parallax-wrap" data-speed="0.03">
+<div class="bg-surface-container-highest/30 border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 01 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 right-8 text-xs text-muted font-code-snippet bg-background/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Draft Review UI</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Scene 02: Train the session (Left Image) -->
+<section class="py-section-gap-lg px-gutter-base bg-surface-band fade-in-up border-y border-white/5">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-7 order-2 md:order-1 parallax-wrap" data-speed="-0.02">
+<div class="bg-background border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 02 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 left-8 text-xs text-muted font-code-snippet bg-surface/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Active Session Logging</div>
+</div>
+</div>
+<div class="md:col-span-5 order-1 md:order-2 md:pl-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 02</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Train the session</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Execute with precision. Log sets, reps, and RIR (Reps in Reserve) without friction. The interface gets out of your way when you are under the bar.</p>
+</div>
+</div>
+</section>
+<!-- Scene 03: Progress on purpose (Right Image) -->
+<section class="py-section-gap-lg px-gutter-base fade-in-up">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-5 md:pr-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 03</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Progress on purpose</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Auto-regulation and progressive overload built in. See what you did last time right inline, and let the system suggest your next jump.</p>
+</div>
+<div class="md:col-span-7 parallax-wrap" data-speed="0.04">
+<div class="bg-surface-container-highest/30 border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 03 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 right-8 text-xs text-muted font-code-snippet bg-background/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Progression Metrics</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Scene 04: One-off days (Left Image) -->
+<section class="py-section-gap-lg px-gutter-base bg-surface-band fade-in-up border-y border-white/5">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-7 order-2 md:order-1 parallax-wrap" data-speed="-0.03">
+<div class="bg-background border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 04 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 left-8 text-xs text-muted font-code-snippet bg-surface/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Ad-hoc Workout Editor</div>
+</div>
+</div>
+<div class="md:col-span-5 order-1 md:order-2 md:pl-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 04</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">One-off days</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Off script? No problem. Spin up an ad-hoc session on the fly. Full flexibility to track whatever you decide to hit today.</p>
+</div>
+</div>
+</section>
+<!-- Scene 05: Bring your agent (Right Image - Desktop Mock conceptually) -->
+<section class="py-section-gap-lg px-gutter-base fade-in-up">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-5 md:pr-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 05</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Bring your agent</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Connect Claude or your preferred AI agent. Ask deep analytical questions about your performance data, volume trends, and recovery.</p>
+</div>
+<div class="md:col-span-7 parallax-wrap" data-speed="0.02">
+<div class="bg-surface-container-highest/30 border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden aspect-video">
+<img class="object-cover w-full h-full rounded-xl shadow-2xl focal-zoom" data-alt="Scene 05 Desktop Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 right-8 text-xs text-muted font-code-snippet bg-background/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Agent Desktop Interface</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Scene 06: Know the movement (Left Image) -->
+<section class="py-section-gap-lg px-gutter-base bg-surface-band fade-in-up border-y border-white/5">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-7 order-2 md:order-1 parallax-wrap" data-speed="-0.04">
+<div class="bg-background border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 06 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 left-8 text-xs text-muted font-code-snippet bg-surface/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Exercise History &amp; Form</div>
+</div>
+</div>
+<div class="md:col-span-5 order-1 md:order-2 md:pl-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 06</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">Know the movement</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Access historical charts, 1RM estimates, and notes for any specific exercise instantly. Never guess what weight you should pull.</p>
+</div>
+</div>
+</section>
+<!-- Scene 07: See yourself over time (Right Image) -->
+<section class="py-section-gap-lg px-gutter-base fade-in-up">
+<div class="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-16 items-center">
+<div class="md:col-span-5 md:pr-12">
+<span class="font-label-caps text-label-caps text-primary-container tracking-widest uppercase block mb-4">Scene 07</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-6">See yourself over time</h2>
+<p class="text-muted text-lg mb-8 leading-relaxed">Visualize volume heatmaps, readiness scores, and long-term macrocycle progression. The ultimate source of truth for your physical development.</p>
+</div>
+<div class="md:col-span-7 parallax-wrap" data-speed="0.05">
+<div class="bg-surface-container-highest/30 border border-white/5 rounded-3xl p-8 flex justify-center items-center relative overflow-hidden">
+<img class="object-contain w-auto max-h-[700px] rounded-xl shadow-2xl focal-zoom" data-alt="Scene 07 Mock" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA11-G1TYto8FQPvWVBImmCV7rPuzaps61uWlh5vTi10j1Dn5deTEZi6w210iquyyx2I_gTGDAGneFQVUaiBvXxvbnYht1DDXnDEp4xQE79EYTcd7de6M-1GyaNFofaPoDGmvdIA4HEQUTem-smSeac3le9sPdxJbyVWMg7VBdZI7jkXX3LYEzhrkz3S4G1eDqT7CpnYQDyFj1aUGbPekX28mJS2Q0z1dW6d9uvx6O_8dHdcrFwUCZ-">
+<div class="absolute bottom-6 right-8 text-xs text-muted font-code-snippet bg-background/80 backdrop-blur px-3 py-1.5 rounded-md border border-white/10">Long-term Analytics Heatmap</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Dual Doors CTA -->
+<section class="py-section-gap-lg bg-surface-band border-t border-border fade-in-up w-full">
+<div class="text-center max-w-2xl mx-auto px-gutter-base">
+<h2 class="font-headline-h1-mobile md:font-headline-h1 text-headline-h1-mobile md:text-headline-h1 mb-10 tracking-tight">Ready to build?</h2>
+<div class="flex flex-col sm:flex-row justify-center gap-6">
+<button class="bg-primary-container text-black font-semibold text-lg px-10 py-4 rounded-lg hover:bg-primary-fixed transition-colors">
+                        Open the app
+                    </button>
+<button class="bg-transparent border border-border text-on-surface font-semibold text-lg px-10 py-4 rounded-lg hover:border-muted transition-colors">
+                        Connect your agent
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="w-full py-8 bg-background">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-[1440px] mx-auto gap-4">
+<div class="font-headline-h2 text-lg font-semibold text-on-background flex items-center gap-2">
+<span class="text-primary-container material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">exercise</span>
+</div>
+<div class="flex gap-8">
+<a class="text-muted text-sm hover:text-primary-container transition-colors duration-300" href="#">GitHub</a>
+<a class="text-muted text-sm hover:text-primary-container transition-colors duration-300" href="#">Blog</a>
+<a class="text-muted text-sm hover:text-primary-container transition-colors duration-300" href="#">About</a>
+<a class="text-muted text-sm hover:text-primary-container transition-colors duration-300" href="#">Privacy</a>
+</div>
+<div class="text-muted text-sm">
+                © 2024 GymLogic. Precision performance.
+            </div>
+</div>
+</footer>
+<script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Intersection Observer for fade-in-up and focal-zoom
+            const observerOptions = {
+                root: null,
+                rootMargin: '-50px',
+                threshold: 0.2
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.fade-in-up').forEach((elem) => {
+                observer.observe(elem);
+            });
+
+            // Parallax and Ambient Glow effect on Scroll/Mousemove
+            const glow = document.getElementById('glow');
+            const parallaxWraps = document.querySelectorAll('.parallax-wrap');
+            
+            let lastScrollY = window.scrollY;
+
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                
+                // Parallax
+                parallaxWraps.forEach(wrap => {
+                    const speed = parseFloat(wrap.dataset.speed) || 0.05;
+                    const rect = wrap.getBoundingClientRect();
+                    
+                    // Only apply if in viewport
+                    if(rect.top < window.innerHeight && rect.bottom > 0) {
+                        const yPos = (scrollY * speed);
+                        wrap.style.transform = `translateY(${yPos}px)`;
+                    }
+                });
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                const x = e.clientX;
+                const y = e.clientY;
+                glow.style.transform = `translate(calc(-50% + ${(x - window.innerWidth/2) * 0.05}px), calc(-50% + ${(y - window.innerHeight/2) * 0.05}px))`;
+            });
+        });
+    </script>
+</body></html>

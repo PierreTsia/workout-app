@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Amis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#006b58",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-bright": "#39393d",
+                        "tertiary": "#ffc0a1",
+                        "on-error": "#690005",
+                        "on-secondary-fixed": "#1b1b23",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-container": "#004e40",
+                        "on-tertiary": "#552000",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "surface-container-highest": "#353439",
+                        "surface": "#131317",
+                        "primary-fixed": "#5ffbd6",
+                        "primary-fixed-dim": "#38debb",
+                        "on-surface-variant": "#bacac3",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-container": "#ff9862",
+                        "on-surface": "#e4e1e7",
+                        "surface-container-high": "#2a292e",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "secondary-fixed": "#e4e1ec",
+                        "surface-tint": "#38debb",
+                        "surface-variant": "#353439",
+                        "surface-container": "#1f1f23",
+                        "on-background": "#e4e1e7",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#005142",
+                        "inverse-on-surface": "#303034",
+                        "on-tertiary-container": "#762f00",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "outline-variant": "#3c4a45",
+                        "error-container": "#93000a",
+                        "secondary-container": "#494851",
+                        "on-secondary": "#303038",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-primary": "#00382d",
+                        "surface-dim": "#131317",
+                        "secondary": "#c7c5d0",
+                        "primary-container": "#00c9a7",
+                        "on-secondary-container": "#b9b7c2",
+                        "surface-container-low": "#1b1b1f",
+                        "on-primary-fixed": "#002019",
+                        "inverse-surface": "#e4e1e7",
+                        "background": "#131317",
+                        "primary": "#44e5c2",
+                        "outline": "#85948e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "unit": "4px",
+                        "margin-desktop": "32px",
+                        "md": "16px",
+                        "xl": "40px",
+                        "gutter": "16px",
+                        "lg": "24px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "headline-xl": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "body-md": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "data-display": ["Geist"],
+                        "mono": ["'Geist Mono'", "monospace"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "0em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "data-display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0f0f13; /* Forcing the requested dark background */
+        }
+        .glass-panel {
+            background: rgba(26, 26, 34, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#0f0f13] text-on-surface antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface border-b border-outline-variant flat no shadows transition-colors duration-200">
+<div class="flex items-center justify-between px-md h-16 w-full">
+<button class="text-primary dark:text-primary hover:bg-surface-variant/50 p-sm rounded-full flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Amis</h1>
+<button class="text-on-surface-variant hover:bg-surface-variant/50 p-sm rounded-full flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- NavigationDrawer (Hidden on mobile intent as per task, but structurally provided if menu clicked. Kept minimal for empty state focus) -->
+<!-- Not rendering full NavigationDrawer shell as this is a focused empty state canvas -->
+<!-- Main Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center pt-24 pb-xl px-margin-mobile md:px-margin-desktop max-w-3xl mx-auto w-full">
+<div class="text-center mb-xl w-full">
+<h2 class="font-headline-xl text-headline-xl text-on-surface mb-sm">Tes amis voient quand tu t’entraînes.</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Pas un réseau. Deux humains.</p>
+</div>
+<!-- Invite Link Section -->
+<div class="w-full max-w-md flex flex-col items-center gap-md mb-xl">
+<button class="w-full bg-primary-container text-[#000000] font-label-md text-label-md font-bold py-md px-lg rounded-lg shadow-none active:scale-95 transition-transform flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">content_copy</span>
+                Copier le lien d’invite
+            </button>
+<div class="bg-surface-container py-sm px-md rounded border border-outline-variant w-full text-center">
+<span class="font-mono text-on-surface-variant text-sm tracking-widest">gymlogic.me/invite/p7k2</span>
+</div>
+<button class="w-full bg-transparent text-primary-container font-label-md text-label-md py-md px-lg rounded-lg border border-primary-container hover:bg-primary-container/10 active:scale-95 transition-all">
+                Nouveau lien
+            </button>
+</div>
+<!-- Search Section -->
+<div class="w-full max-w-md mt-xl border-t border-outline-variant pt-xl">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary-container transition-colors">search</span>
+<input class="w-full bg-[#0f0f13] text-on-surface border border-outline-variant rounded-lg pl-12 pr-md py-md font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all placeholder:text-on-surface-variant/50" placeholder="Nom ou email" type="text"/>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-sm text-center">Ils verront tes séances à venir. Pas le passé.</p>
+</div>
+</main>
+</body></html>

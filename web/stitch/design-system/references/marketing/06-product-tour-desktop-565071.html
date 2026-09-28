@@ -1,0 +1,237 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymLogic - Product Tour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#e4e1e7",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "inverse-on-surface": "#303034",
+                        "on-error": "#690005",
+                        "on-secondary-fixed-variant": "#454747",
+                        "on-tertiary": "#552000",
+                        "background": "#131317",
+                        "surface-container": "#1f1f23",
+                        "secondary": "#c6c6c7",
+                        "error-container": "#93000a",
+                        "surface": "#121212",
+                        "primary": "#44e5c2",
+                        "secondary-fixed": "#e2e2e2",
+                        "on-primary-fixed-variant": "#005142",
+                        "surface-variant": "#353439",
+                        "on-primary-fixed": "#002019",
+                        "primary-container": "#00c9a7",
+                        "surface-container-high": "#2a292e",
+                        "on-tertiary-container": "#762f00",
+                        "surface-tint": "#38debb",
+                        "outline-variant": "#3c4a45",
+                        "on-secondary": "#2f3131",
+                        "primary-fixed": "#5ffbd6",
+                        "surface-dim": "#131317",
+                        "secondary-container": "#454747",
+                        "primary-fixed-dim": "#38debb",
+                        "on-tertiary-fixed": "#341100",
+                        "tertiary-container": "#ff9862",
+                        "on-background": "#e4e1e7",
+                        "border": "#27272a",
+                        "on-primary": "#00382d",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "on-secondary-container": "#b4b5b5",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "outline": "#85948e",
+                        "muted": "#999999",
+                        "on-surface-variant": "#bacac3",
+                        "on-surface": "#e4e1e7",
+                        "surface-bright": "#39393d",
+                        "on-primary-container": "#004e40",
+                        "tertiary": "#ffc0a1",
+                        "surface-container-lowest": "#0e0e12",
+                        "inverse-primary": "#006b58",
+                        "surface-container-low": "#1b1b1f",
+                        "surface-container-highest": "#353439",
+                        "tertiary-fixed": "#ffdbcb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "section-gap-lg": "8rem",
+                        "container-max-prose": "48rem",
+                        "content-stack": "1.5rem",
+                        "section-gap-sm": "4rem",
+                        "gutter-base": "1rem"
+                    },
+                    "fontFamily": {
+                        "headline-h2": ["Geist", "sans-serif"],
+                        "body-main": ["Geist", "sans-serif"],
+                        "headline-h1": ["Geist", "sans-serif"],
+                        "code-snippet": ["Geist", "monospace"],
+                        "headline-h1-mobile": ["Geist", "sans-serif"],
+                        "label-caps": ["Geist", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-h2": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-main": ["1rem", { "lineHeight": "1.65", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h1": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "600" }],
+                        "code-snippet": ["0.875rem", { "lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-h1-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600" }],
+                        "label-caps": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.1em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #0f0f13; }
+        .border-base { border-color: #27272a; border-width: 1px; }
+        .surface-base { background-color: #121212; }
+        .text-accent { color: #00c9a7; }
+        .bg-accent { background-color: #00c9a7; }
+        
+        /* Editorial layout utilities */
+        .prose-container { max-width: 48rem; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+        .scene-container { display: flex; flex-direction: column; gap: 4rem; padding-top: 8rem; padding-bottom: 8rem; align-items: center; text-align: center; border-bottom: 1px solid #27272a; }
+        .scene-mockup { width: 100%; max-width: 320px; aspect-ratio: 9/19; background-color: #121212; border: 1px solid #27272a; border-radius: 2rem; position: relative; overflow: hidden; margin: 0 auto; box-shadow: none; display: flex; flex-direction: column; }
+        .scene-mockup-desktop { width: 100%; max-width: 800px; aspect-ratio: 16/9; background-color: #121212; border: 1px solid #27272a; border-radius: 0.5rem; position: relative; overflow: hidden; margin: 0 auto; box-shadow: none; }
+        
+        .mock-header { padding: 1rem; border-bottom: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; }
+        .mock-content { padding: 1rem; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+        .mock-item { border: 1px solid #27272a; padding: 0.75rem; border-radius: 0.25rem; display: flex; justify-content: space-between; align-items: center;}
+        
+        .zoom-callout { position: absolute; border: 1px solid #00c9a7; pointer-events: none; }
+        .zoom-line { position: absolute; background-color: #00c9a7; }
+        .zoom-label { position: absolute; background-color: #121212; color: #00c9a7; font-family: 'Geist', sans-serif; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; border: 1px solid #00c9a7; text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;}
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-main antialiased selection:bg-primary-container selection:text-black">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-border">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-screen-xl mx-auto">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="font-headline-h2 text-headline-h2 font-semibold text-on-background dark:text-on-background">GymLogic</span>
+</div>
+<div class="hidden md:flex gap-8">
+<a class="text-primary font-semibold hover:text-primary transition-colors duration-200" href="/tour">Tour</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Claude Connector</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Blog</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">About</a>
+</div>
+<button class="bg-primary-container text-black font-semibold text-sm px-4 py-2 rounded-lg hover:bg-surface-tint transition-colors">
+                Open app →
+            </button>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pt-32 pb-section-gap-lg">
+<!-- Hero -->
+<section class="prose-container text-center pt-section-gap-sm pb-section-gap-lg">
+<h1 class="font-headline-h1 text-headline-h1 mb-content-stack text-on-background">What GymLogic actually does</h1>
+<p class="font-body-main text-body-main text-muted max-w-2xl mx-auto mb-section-gap-sm">
+                Program, train, progress, ask an agent, see the truth over time.
+            </p>
+<div class="scene-mockup h-[600px] mx-auto opacity-50 grayscale">
+<div class="mock-header">
+<span class="font-label-caps text-label-caps text-on-surface">Overview</span>
+<span class="material-symbols-outlined text-muted">more_horiz</span>
+</div>
+<div class="mock-content items-center justify-center">
+<span class="material-symbols-outlined text-muted text-4xl">dashboard</span>
+</div>
+</div>
+</section>
+<!-- Scene 01 -->
+<section class="scene-container prose-container">
+<div>
+<span class="font-label-caps text-label-caps text-primary-container mb-2 block">Scene 01</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-4">Get a program</h2>
+<p class="font-body-main text-body-main text-muted max-w-xl mx-auto">Three ways in; the money shot is the draft you accept or reject.</p>
+</div>
+<div class="scene-mockup h-[500px]">
+<div class="mock-header">
+<span class="font-label-caps text-label-caps text-on-surface">Draft Program</span>
+</div>
+<div class="mock-content">
+<div class="mock-item"><span class="text-sm">Squat</span><span class="text-xs text-muted">3x5</span></div>
+<div class="mock-item"><span class="text-sm">Bench Press</span><span class="text-xs text-muted">3x8</span></div>
+<div class="mock-item"><span class="text-sm">Deadlift</span><span class="text-xs text-muted">1x5</span></div>
+<div class="mt-auto pt-4 border-t border-border flex gap-2">
+<button class="flex-1 bg-surface border border-border text-on-surface py-2 rounded text-sm font-semibold">Reject</button>
+<button class="flex-1 bg-primary-container text-black py-2 rounded text-sm font-semibold relative">
+                            Accept Draft
+                            <div class="zoom-callout inset-[-4px]"></div>
+</button>
+</div>
+</div>
+<div class="zoom-label bottom-[-16px] right-[-40px]">Commit Draft</div>
+<div class="zoom-line h-px w-8 bottom-0 right-[-8px]"></div>
+</div>
+</section>
+<!-- Scene 02 -->
+<section class="scene-container prose-container">
+<div>
+<span class="font-label-caps text-label-caps text-primary-container mb-2 block">Scene 02</span>
+<h2 class="font-headline-h2 text-headline-h2 mb-4">Train the session</h2>
+<p class="font-body-main text-body-main text-muted max-w-xl mx-auto">The daily job — log the work without a spreadsheet brain.</p>
+</div>
+<div class="scene-mockup h-[500px]">
+<div class="mock-header">
+<span class="font-label-caps text-label-caps text-on-surface">Log Workout</span>
+</div>
+<div class="mock-content">
+<div class="text-sm font-semibold mb-2">Squat</div>
+<div class="flex gap-2 text-xs text-muted mb-1 px-2"><span class="w-8">Set</span><span class="flex-1">Weight</span><span class="flex-1">Reps</span><span class="flex-1 text-right">RIR</span></div>
+<div class="flex gap-2 items-center bg-surface-container-low p-2 rounded border border-border">
+<span class="w-8 text-sm">1</span>
+<input class="flex-1 bg-surface border border-border rounded px-2 py-1 text-sm text-center" type="text" value="315">
+<input class="flex-1 bg-surface border border-border rounded px-2 py-1 text-sm text-center" type="text" value="5">
+<div class="flex-1 relative">
+<input class="w-full bg-surface border border-primary-container rounded px-2 py-1 text-sm text-center text-primary-container" type="text" value="2">
+<div class="zoom-callout inset-[-2px]"></div>
+</div>
+</div>
+</div>
+<div class="zoom-label top-[120px] right-[-60px]">RIR Log</div>
+<div class="zoom-line h-px w-12 top-[130px] right-[-10px]"></div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-section-gap-lg bg-surface border-t border-b border-border mt-section-gap-lg text-center">
+<h2 class="font-headline-h2 text-headline-h2 mb-content-stack">Precision performance.</h2>
+<div class="flex flex-col sm:flex-row justify-center gap-4 px-gutter-base">
+<button class="bg-primary-container text-black font-semibold text-sm px-6 py-3 rounded-lg hover:bg-surface-tint transition-colors">
+                    Open the app
+                </button>
+<button class="bg-transparent border border-border text-on-surface font-semibold text-sm px-6 py-3 rounded-lg hover:border-muted transition-colors">
+                    Connect your agent
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-section-gap-sm border-t border-border bg-background dark:bg-background">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-screen-xl mx-auto gap-content-stack">
+<span class="font-body-main text-body-main text-muted">© 2024 GymLogic. Precision performance.</span>
+<div class="flex gap-6">
+<a class="font-label-caps text-label-caps text-muted hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="font-label-caps text-label-caps text-muted hover:text-primary transition-colors" href="#">Blog</a>
+<a class="font-label-caps text-label-caps text-muted hover:text-primary transition-colors" href="#">About</a>
+<a class="font-label-caps text-label-caps text-muted hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Amis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#2a292e",
+                        "outline-variant": "#3c4a45",
+                        "surface-container-lowest": "#0e0e12",
+                        "surface-variant": "#353439",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-tertiary": "#552000",
+                        "surface-container-low": "#1b1b1f",
+                        "primary-container": "#00c9a7",
+                        "outline": "#85948e",
+                        "tertiary-container": "#ff9862",
+                        "primary-fixed": "#5ffbd6",
+                        "surface": "#131317",
+                        "secondary-container": "#494851",
+                        "on-error-container": "#ffdad6",
+                        "on-background": "#e4e1e7",
+                        "on-surface-variant": "#bacac3",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "error-container": "#93000a",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-surface": "#e4e1e7",
+                        "on-secondary": "#303038",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "background": "#131317",
+                        "on-tertiary-container": "#762f00",
+                        "inverse-primary": "#006b58",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-dim": "#131317",
+                        "primary": "#44e5c2",
+                        "on-primary": "#00382d",
+                        "primary-fixed-dim": "#38debb",
+                        "on-surface": "#e4e1e7",
+                        "on-secondary-fixed": "#1b1b23",
+                        "on-error": "#690005",
+                        "on-primary-fixed": "#002019",
+                        "on-primary-container": "#004e40",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "tertiary": "#ffc0a1",
+                        "surface-container": "#1f1f23",
+                        "secondary": "#c7c5d0",
+                        "surface-bright": "#39393d",
+                        "inverse-on-surface": "#303034",
+                        "secondary-fixed": "#e4e1ec",
+                        "surface-container-highest": "#353439",
+                        "error": "#ffb4ab",
+                        "surface-tint": "#38debb",
+                        "on-secondary-container": "#b9b7c2",
+                        "on-primary-fixed-variant": "#005142",
+                        // Custom palette overrides from prompt
+                        "canvas-black": "#0f0f13",
+                        "surface-input": "#15151c",
+                        "surface-card": "#1a1a22",
+                        "border-muted": "#2d2d37",
+                        "mint-accent": "#00c9a7",
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "btn": "8px",
+                        "card": "12px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "gutter": "16px",
+                        "margin-desktop": "32px",
+                        "xl": "40px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist", "sans-serif"],
+                        "label-md": ["Geist", "sans-serif"],
+                        "headline-xl": ["Geist", "sans-serif"],
+                        "body-md": ["Geist", "sans-serif"],
+                        "headline-lg": ["Geist", "sans-serif"],
+                        "label-sm": ["Geist", "sans-serif"],
+                        "body-lg": ["Geist", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "0em", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-xl": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Geist', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-canvas-black text-on-surface antialiased w-[390px] mx-auto min-h-screen relative overflow-x-hidden selection:bg-mint-accent selection:text-black pb-8">
+<!-- TopAppBar -->
+<header class="flex items-center justify-between px-margin-mobile h-14 w-full z-50 bg-surface-container border-b border-outline-variant sticky top-0">
+<div class="flex items-center gap-2 text-primary font-headline-lg-mobile text-headline-lg-mobile">
+<span class="material-symbols-outlined text-[28px]">menu</span>
+</div>
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-on-surface flex-1 text-center">Amis</h1>
+<div class="flex items-center gap-2 text-primary font-headline-lg-mobile text-headline-lg-mobile">
+<span class="material-symbols-outlined text-[28px]">circle</span>
+</div>
+</header>
+<main class="p-margin-mobile flex flex-col gap-sm">
+<!-- Header Row -->
+<div class="flex items-center justify-between mb-sm mt-sm">
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface">Amis</h2>
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors">Gérer</button>
+</div>
+<!-- 1. Friend Request Strip -->
+<div class="bg-surface-card rounded-card border border-border-muted p-md flex flex-col gap-sm">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center font-headline-md-mobile text-headline-md-mobile text-on-surface border border-border-muted">
+                    M
+                </div>
+<p class="font-body-md text-body-md text-on-surface flex-1 leading-tight">Maya wants to be friends</p>
+</div>
+<div class="flex gap-unit mt-xs">
+<button class="flex-1 bg-mint-accent text-black font-label-md text-label-md py-2 px-4 rounded-btn h-10 hover:opacity-90 transition-opacity">Accepter</button>
+<button class="flex-1 bg-transparent border border-border-muted text-on-surface font-label-md text-label-md py-2 px-4 rounded-btn h-10 hover:bg-surface-input transition-colors">Décliner</button>
+</div>
+</div>
+<!-- 2. Presence Card (Collapsed) -->
+<div class="bg-surface-card rounded-card border border-border-muted p-md flex flex-col gap-unit">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="font-label-md text-label-md text-on-surface">Ada</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2h ago</span>
+</div>
+<div class="flex items-center gap-unit text-on-surface-variant">
+<span class="font-label-md text-label-md">1</span>
+<span class="material-symbols-outlined text-[16px]">thumb_up</span>
+</div>
+</div>
+<h3 class="font-headline-md-mobile text-headline-md-mobile text-on-surface mt-xs">Push A</h3>
+<div class="flex items-center gap-sm mt-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">48 min</span>
+<div class="w-[3px] h-[3px] rounded-full bg-border-muted"></div>
+<span class="font-label-md text-label-md text-on-surface-variant">6 exercises</span>
+<span class="ml-auto font-label-sm text-label-sm border border-border-muted text-on-surface-variant px-2 py-0.5 rounded-full">PR</span>
+</div>
+</div>
+<!-- 3. Presence Card (Expanded) -->
+<div class="bg-surface-card rounded-card border border-border-muted p-md flex flex-col gap-unit">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="font-label-md text-label-md text-on-surface">Leo</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Yesterday</span>
+</div>
+</div>
+<h3 class="font-headline-md-mobile text-headline-md-mobile text-on-surface mt-xs">Quick Workout</h3>
+<div class="flex items-center gap-sm mt-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">32 min</span>
+<div class="w-[3px] h-[3px] rounded-full bg-border-muted"></div>
+<span class="font-label-md text-label-md text-on-surface-variant">4 exercises</span>
+</div>
+<div class="border-t border-border-muted mt-sm pt-sm flex flex-col gap-sm">
+<!-- Kudos Row -->
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center font-label-sm text-label-sm text-on-surface border border-border-muted z-10">J</div>
+<div class="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center font-label-sm text-label-sm text-on-surface border border-border-muted z-0">S</div>
+</div>
+<button class="flex items-center gap-unit text-mint-accent">
+<span class="material-symbols-outlined text-[18px] icon-fill">thumb_up</span>
+<span class="font-label-md text-label-md">Kudos</span>
+</button>
+</div>
+<!-- Comment -->
+<div class="bg-surface-input rounded-btn p-sm flex items-start gap-sm border border-border-muted">
+<div class="w-6 h-6 rounded-full bg-surface-container flex-shrink-0 flex items-center justify-center font-label-sm text-label-sm text-on-surface border border-border-muted">T</div>
+<p class="font-body-md text-body-md text-on-surface-variant text-[14px]">Sale jour. Tu as fini.</p>
+</div>
+<!-- Input -->
+<div class="relative mt-xs">
+<input class="w-full bg-surface-input border border-border-muted rounded-btn py-2 px-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-mint-accent transition-colors text-[14px] pr-10" placeholder="Ton commentaire (un seul, remplaçable)" type="text"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-mint-accent transition-colors">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 4. Presence Card (Your own) -->
+<div class="bg-surface-card rounded-card border border-border-muted p-md flex flex-col gap-unit opacity-80">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<span class="font-label-md text-label-md text-on-surface">Ada (toi)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-input px-2 py-0.5 rounded-full border border-border-muted">Privé</span>
+</div>
+</div>
+<h3 class="font-headline-md-mobile text-headline-md-mobile text-on-surface mt-xs">Push B</h3>
+<div class="flex items-center gap-sm mt-xs">
+<span class="font-label-md text-label-md text-on-surface-variant">41 min</span>
+<div class="w-[3px] h-[3px] rounded-full bg-border-muted"></div>
+<span class="font-label-md text-label-md text-on-surface-variant">5 exercises</span>
+</div>
+</div>
+</main>
+</body></html>
