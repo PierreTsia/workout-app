@@ -290,6 +290,19 @@ export function peekSessionRealId(
   return getSessionMeta(userId)[localSessionId]?.realId ?? null
 }
 
+/**
+ * Every `realSessionId` still present in the offline queue (any item type).
+ *
+ * Read-only. Used by the orphan-session self-heal (#568) to skip sessions the
+ * queue still owns: a queued `session_finish` would otherwise drain later and
+ * overwrite an auto-close `finished_at` with `now()`.
+ */
+export function queuedRealSessionIds(): Set<string> {
+  const userId = getUserId()
+  if (!userId) return new Set()
+  return new Set(getQueue(userId).map((item) => item.realSessionId))
+}
+
 /** Set-log payloads still in the offline queue for a local session id. */
 export function queuedSetLogPayloadsForSession(
   localSessionId: string,

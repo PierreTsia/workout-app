@@ -25,6 +25,11 @@ export function SessionRow({ session: s }: { session: Session }) {
                 {tGen("quickWorkoutBadge")}
               </Badge>
             )}
+            {!s.finished_at && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                {t("unfinishedBadge")}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground">
             {formatDate(s.started_at, i18n.language, {

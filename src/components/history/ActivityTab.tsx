@@ -11,7 +11,7 @@ import { useTrainingActivityByDay } from "@/hooks/useTrainingActivityByDay"
 import { useSessionsForDateRange } from "@/hooks/useSessionsForDateRange"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { pickDefaultSelectedDate } from "@/lib/pickDefaultSelectedDate"
-import { formatSessionDayKeyInTimeZone } from "@/lib/sessionDayInTimeZone"
+import { sessionsForDay } from "@/lib/daySessions"
 import { buildDenseTrainingDays } from "@/lib/trainingActivityBuckets"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
 import type { HeatmapCell } from "@/components/history/heatmap-calendar"
@@ -87,10 +87,7 @@ export function ActivityTab() {
 
   const daySessions = useMemo(() => {
     if (!selectedDate) return []
-    return rangeSessions.filter((s) => {
-      if (!s.finished_at) return false
-      return formatSessionDayKeyInTimeZone(s.finished_at, tz) === selectedKey
-    })
+    return sessionsForDay(rangeSessions, selectedKey, tz)
   }, [rangeSessions, selectedDate, selectedKey, tz])
 
   const hasSessionsInVisibleMonth = (monthRows ?? []).some((r) => r.session_count > 0)
