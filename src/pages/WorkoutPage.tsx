@@ -30,6 +30,7 @@ import {
   restAtom,
   completedBlockIdsAtom,
   queueSyncMetaAtom,
+  finishRequestAtom,
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
@@ -95,6 +96,8 @@ import {
   type ExerciseEditScope,
 } from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
+import { FinishSessionDialog } from "@/components/workout/FinishSessionDialog"
+import { useFinishSessionAttempt } from "@/hooks/useFinishSessionAttempt"
 import { OpenSessionDialog } from "@/components/workout/OpenSessionDialog"
 import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAlertDialog"
 import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
@@ -866,6 +869,26 @@ export function WorkoutPage() {
     (b) => !completedBlockIds.has(b.id),
   ).length
 
+  const { attempt, confirmOpen, setConfirmOpen, confirmBody, confirmFinish } =
+    useFinishSessionAttempt({
+      exercises,
+      itemCount: items.length,
+      incompleteBlockCount,
+      onFinish: handleFinish,
+      onBlockedByPause: openPauseBlocked,
+    })
+
+  // The header finish control (#571) bumps a transient counter. Consume it once
+  // the day has loaded, so a tap during initial load can't finish a session the
+  // app hasn't read yet; reset it so a later remount doesn't replay the request.
+  const finishRequest = useAtomValue(finishRequestAtom)
+  const setFinishRequest = useSetAtom(finishRequestAtom)
+  useEffect(() => {
+    if (finishRequest === 0 || items.length === 0) return
+    setFinishRequest(0)
+    attempt()
+  }, [finishRequest, items.length, attempt, setFinishRequest])
+
   function handleFinish() {
     const { setsDone, slotsCompleted, hasSkipped, totalSlots } = sessionProgress(
       {
@@ -1114,6 +1137,13 @@ export function WorkoutPage() {
             }))
           }
         />
+        {/* Header finish (#571) must reach the confirm even where the bottom nav isn't rendered. */}
+        <FinishSessionDialog
+          open={confirmOpen}
+          body={confirmBody}
+          onOpenChange={setConfirmOpen}
+          onConfirm={confirmFinish}
+        />
       </div>
     )
   }
@@ -1255,8 +1285,7 @@ export function WorkoutPage() {
                 <SessionNav
                   exercises={exercises}
                   itemCount={items.length}
-                  incompleteBlockCount={incompleteBlockCount}
-                  onFinish={handleFinish}
+                  onFinishAttempt={attempt}
                   onBlockedByPause={openPauseBlocked}
                 />
               ) : (
@@ -1490,6 +1519,13 @@ export function WorkoutPage() {
         open={pendingStart != null}
         onFinish={() => void finishBlockedStart()}
         onResume={resumeBlockedStart}
+      />
+
+      <FinishSessionDialog
+        open={confirmOpen}
+        body={confirmBody}
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmFinish}
       />
     </div>
   )

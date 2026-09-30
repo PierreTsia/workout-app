@@ -8,6 +8,7 @@ import { useSessionOrientationGuard } from "@/hooks/useSessionOrientationGuard"
 import { useOrphanSessionClose } from "@/hooks/useOrphanSessionClose"
 import { OrphanSessionPrompt } from "@/components/workout/OrphanSessionPrompt"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
+import { FinishSessionButton } from "@/components/workout/FinishSessionButton"
 import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
 import { InstallBanner } from "@/components/InstallBanner"
@@ -46,6 +47,7 @@ export function AppShell() {
               ☰
             </button>
             {!hideSessionChrome && <SessionTimerChip />}
+            {!hideSessionChrome && <FinishSessionButton />}
           </div>
           <div className="flex items-center gap-2">
             {!hideSessionChrome && <RestTimerPill />}
