@@ -10,14 +10,14 @@
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Close threshold | Ceiling of **12 h** on the last `set_logs.logged_at`, constant `ORPHAN_SESSION_THRESHOLD_MS` in `file:src/lib/orphanSessionClose.ts` | The `sessions` row carries no planned duration, and prod closes 0–1 min after the last set. 12 h is far beyond any live session and still catches the 16 h overnight orphan. The issue offered "planned duration + margin **or** a 12 h ceiling"; the ceiling is the only one the data supports. |
+| Close threshold | **3 h idle gap** on the last `set_logs.logged_at`, constant `ORPHAN_SESSION_THRESHOLD_MS` in `file:src/lib/orphanSessionClose.ts` | The `sessions` row carries no planned duration, and prod closes 0–1 min after the last set. The threshold is an idle gap since the last set, not a session ceiling, so a long-but-active session never trips it; 3 h closes same-day orphans on the next open. |
 | `finished_at` written | Last set's `logged_at`, **never `now()`** | A close at boot must not invent a timestamp hours after the fact; the last set is the real end. |
 | Close guard | Exclude the active local session **and** any `realSessionId` still present in the offline queue | `ensureSession` cannot clear `finished_at`, but a queued `session_finish` draining later **would** overwrite it with `now()`. The queue is the only writer that can fight us; we must not race it. |
 | Idempotence | `UPDATE … .is("finished_at", null)` on `sessions` | Second run touches 0 rows; a session already closed (by the user or the backfill) is never re-touched. Mirrors `file:src/hooks/useFinishCycle.ts:25`, but **without** its `now()`. |
 | Mount point | `file:src/components/AppShell.tsx`, next to `useSessionOrientationGuard()` | AppShell is the authenticated layout, mounted once, where auth is already resolved and where `sessionAtom` and the queue are readable. "At app open" ≠ route-scoped (`WorkoutPage`). |
 | Visibility — day detail | Remove the `.not("finished_at","is",null)` in `file:src/hooks/useSessionsForDateRange.ts:23`, replace the filter in `file:src/components/history/ActivityTab.tsx:91` with `sessionsForDay()` bucketing on `finished_at ?? started_at` | The issue named `ActivityTab`; the data never arrives because the SQL filter drops it first. Both must change. The client has no per-session last set (no join), so it falls back to `started_at` for an orphan; after the auto-close `finished_at` is the last set anyway. |
 | Visibility — heatmap/calendar | Modify RPC `get_training_activity_by_day` to bucket on `COALESCE(finished_at, started_at)` and include any session with sets | Chosen scope "complete": an orphan must reach the heatmap and the calendar dots too, not only the day list. Same key as the client, so a dotted day always has a matching day-list row. |
-| Orphan day key | `finished_at ?? started_at` — **same key on the client and in the RPC** | The client cannot see a session's last set without a join, so both sides agree on start for an unfinished session. After the auto-close `finished_at` is the last set anyway, so the mismatch window is < 12 h. |
+| Orphan day key | `finished_at ?? started_at` — **same key on the client and in the RPC** | The client cannot see a session's last set without a join, so both sides agree on start for an unfinished session. After the auto-close `finished_at` is the last set anyway, so the mismatch window is < 3 h. |
 | Achievement replay | **None.** The close/backfill never calls `check_and_grant_achievements` | Issue invariant: the backfill makes sessions visible, it does not re-credit PRs or badges. |
 | Backfill delivery | One-shot **SQL migration**, `WHERE finished_at IS NULL` | Product path (`supabase db push`), no service-role key, idempotent, no app logic to replay. A script is only justified when recomputing PR logic. |
 | Mail to the 2 users | Deferred — details frozen after the fix ships | Issue §4: needs a send channel and a product decision. Out of the code slices. |
@@ -33,7 +33,7 @@
 
 **Changing the RPC reaches other surfaces.** `get_training_activity_by_day` (`file:supabase/migrations/20260323120000_get_training_activity_by_day.sql`) is `SECURITY INVOKER`, user-scoped, and feeds the Profile heatmap and calendar outside History. Bucketing open sessions changes what "a training day" means there too. The `minutes` column currently uses `finished_at - started_at`; an orphan must use `COALESCE(finished_at, max logged_at) - started_at`.
 
-**An active session may now appear in the heatmap.** With the RPC change, a session the user is doing right now has set logs and counts. The RPC cannot tell "live" from "abandoned". This is accepted (it is not silent either), and the auto-close makes it a finished row within 12 h.
+**An active session may now appear in the heatmap.** With the RPC change, a session the user is doing right now has set logs and counts. The RPC cannot tell "live" from "abandoned". This is accepted (it is not silent either), and the auto-close makes it a finished row within 3 h.
 
 **StrictMode symmetry.** `file:src/main.tsx` wraps in `StrictMode`: the hook mounts twice in dev. A once-per-mount ref plus the idempotent UPDATE absorb it; a test asserts 2 mounts ≠ 2 updates.
 
@@ -166,7 +166,7 @@ graph TD
 
 1. **Reproduce** — a failing test (or a scripted row) proving an orphan is invisible in History: a session with `set_logs` and `finished_at null` that `ActivityTab` drops. Green when fixed.
 2. **Fix in code** — Slice 1 (auto-close hook) + Slice 2 (visibility + RPC). Unit + integration + render tests.
-3. **QA** — manual pass: create an orphan older than 12 h in a branch DB, open the app, confirm auto-close, History row visible with the badge, heatmap/calendar dot.
+3. **QA** — manual pass: create an orphan older than 3 h in a branch DB, open the app, confirm auto-close, History row visible with the badge, heatmap/calendar dot.
 4. **Migration** — backfill the 5 prod rows via `supabase db push`, then run the acceptance query `select id from public.sessions where finished_at is null;` ⇒ 0 rows, and confirm no new `user_achievements` rows.
 5. **Mail** — to the 2 affected users; channel and copy **frozen after** steps 1–4.
 
@@ -200,4 +200,4 @@ A transactional-email wording (step 5) is **not** contracted here — it lands o
 ## i18n / Docs
 
 - 1 new key (`history.unfinishedBadge`, EN+FR).
-- ADR 0024 records: 12 h ceiling, last-set rule, `has_skipped_sets:false`, `was_pr` not recomputed, no achievement re-grant, queue guard, visibility scope, and the absence of Sentry evidence (retained reading: user never tapped Terminer).
+- ADR 0024 records: 3 h idle gap, last-set rule, `has_skipped_sets:false`, `was_pr` not recomputed, no achievement re-grant, queue guard, visibility scope, and the absence of Sentry evidence (retained reading: user never tapped Terminer).

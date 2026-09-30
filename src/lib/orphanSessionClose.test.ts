@@ -49,6 +49,28 @@ describe("computeOrphanClose", () => {
     expect(close).toBeNull()
   })
 
+  it("closes a session just past the threshold", () => {
+    const close = computeOrphanClose(
+      [
+        {
+          logged_at: new Date(
+            NOW - ORPHAN_SESSION_THRESHOLD_MS - 1,
+          ).toISOString(),
+        },
+      ],
+      NOW,
+    )
+    expect(close).not.toBeNull()
+  })
+
+  it("ignores a last set in the future (device clock skew)", () => {
+    const close = computeOrphanClose(
+      [{ logged_at: new Date(NOW + HOUR).toISOString() }],
+      NOW,
+    )
+    expect(close).toBeNull()
+  })
+
   it("returns null for a session with no sets", () => {
     expect(computeOrphanClose([], NOW)).toBeNull()
   })

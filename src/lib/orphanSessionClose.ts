@@ -11,14 +11,16 @@
  */
 
 /**
- * A session whose last set is older than this is considered abandoned.
+ * A session with no logged set for this long is considered abandoned.
  *
- * 12 h is a ceiling, not a planned-duration estimate: the session row carries
- * no planned duration, and real sessions close 0–1 min after the last set
- * (measured in prod). 12 h is far beyond any live session while still catching
- * same-day orphans — including the one left open overnight (16 h spread).
+ * This is an **idle gap since the last set**, not a session-length ceiling:
+ * a long-but-active session (sets keep coming) never trips it, only one that
+ * has gone quiet for the whole window does. The session row carries no planned
+ * duration, and prod closes 0–1 min after the last set, so 3 h is already far
+ * beyond any live session while closing same-day orphans on the next open
+ * instead of waiting half a day.
  */
-export const ORPHAN_SESSION_THRESHOLD_MS = 12 * 60 * 60 * 1000
+export const ORPHAN_SESSION_THRESHOLD_MS = 3 * 60 * 60 * 1000
 
 export interface OrphanClose {
   /** Last set's `logged_at` — never `now()`. */

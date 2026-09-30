@@ -14,8 +14,8 @@ Nothing closed an orphan: no delay, no resume, no offer. « Annuler la séance �
 
 We will:
 
-1. **Close orphan sessions at app open**, from `AppShell` via a dedicated `useOrphanSessionClose`. For each open session whose last `set_logs.logged_at` is older than a **12 h ceiling**, write `finished_at = last logged_at` (**never `now()`**), `total_sets_done = count(set_logs)`, `active_duration_ms = last − first`, `has_skipped_sets = false`.
-2. **Use a 12 h ceiling, not a planned-duration estimate.** The `sessions` row carries no planned duration, and prod closes 0–1 min after the last set. 12 h is far beyond any live session and still catches the same-day and overnight orphans.
+1. **Close orphan sessions at app open**, from `AppShell` via a dedicated `useOrphanSessionClose`. For each open session whose last `set_logs.logged_at` is older than a **3 h idle gap**, write `finished_at = last logged_at` (**never `now()`**), `total_sets_done = count(set_logs)`, `active_duration_ms = last − first`, `has_skipped_sets = false`.
+2. **Use a 3 h idle gap, not a planned-duration estimate.** The `sessions` row carries no planned duration, and prod closes 0–1 min after the last set. The threshold is an **idle gap since the last set** (not a session-length ceiling), so a long-but-active session never trips it; 3 h is already far beyond any live session and closes same-day orphans on the next open rather than waiting half a day.
 3. **Guard the UPDATE twice.** Skip the active local session (resolved through `peekSessionRealId`, since the queue keys sessions by `local-<startedAt>` → UUID) and any `realSessionId` still in the offline queue — a queued `session_finish` would drain later and overwrite our value with `now()`. The `UPDATE` carries `.is("finished_at", null)`, so it is idempotent and can never touch an already-closed session.
 4. **Never fight the offline queue.** The self-heal writes directly; it does not enqueue a `session_finish` and does not call `check_and_grant_achievements`.
 5. **Never hide an unfinished session.** `useSessionsForDateRange` and `ActivityTab` stop filtering on `finished_at`; an orphan is bucketed on `finished_at ?? started_at` and shown with a « non terminée » badge. The heatmap/calendar RPC `get_training_activity_by_day` uses the **same** key for any session with at least one set, so a dotted day always has a matching day-list row.
@@ -28,7 +28,7 @@ We will:
   - `has_skipped_sets` is not reconstructible for an orphan (the local state is gone) → always `false`, possibly wrong.
   - `was_pr` was never computed for those sets, so April records stay absent — not invented.
   - **No achievement is re-credited** by the close or the backfill.
-  - An in-progress session now has a set and so can appear in the heatmap/calendar before it is closed; the RPC cannot distinguish "live" from "abandoned". Accepted — the auto-close turns it into a finished row within 12 h.
+  - An in-progress session now has a set and so can appear in the heatmap/calendar before it is closed; the RPC cannot distinguish "live" from "abandoned". Accepted — the auto-close turns it into a finished row within 3 h.
   - No client-side evidence was found that a `session_finish` was ever *lost* (the reading retained is "the user never tapped Terminer"); the queue guard is prevention as much as repair.
 - **Follow-ups:** a mail to the affected users is deferred; its channel and copy are frozen once the fix ships. PRs (`was_pr`) and achievements are re-derived by a separate one-time manual script run after the prod backfill — tracked in [#569](https://github.com/PierreTsia/workout-app/issues/569).
 
