@@ -1,8 +1,8 @@
--- #568 — count a session on its last-known instant, not only on finished_at.
--- Per-day aggregates for sessions that have at least one set: closed sessions
--- bucket on `finished_at`, still-open sessions (finish never landed) on their
--- last `set_logs.logged_at`. The `minutes` column uses the same instant so an
--- open session reports its real span.
+-- #568 — count a session on the day it happened, not only when it closed.
+-- Per-day aggregates for closed sessions plus still-open sessions (finish never
+-- landed) that have at least one set. The day key mirrors the client
+-- (`sessionsForDay`): `COALESCE(finished_at, started_at)`, so a dotted day in
+-- the heatmap always has a matching row in the day list.
 --
 -- Supersedes the finished_at-only version (20260323120000_get_training_activity_by_day.sql).
 CREATE OR REPLACE FUNCTION public.get_training_activity_by_day(
@@ -21,27 +21,25 @@ SECURITY INVOKER
 SET search_path = public
 AS $$
   SELECT
-    (COALESCE(s.finished_at, last_set.at) AT TIME ZONE p_tz)::date AS day,
+    (COALESCE(s.finished_at, s.started_at) AT TIME ZONE p_tz)::date AS day,
     COUNT(*)::bigint AS session_count,
     COALESCE(
       SUM(
         GREATEST(
           0,
-          (EXTRACT(EPOCH FROM (COALESCE(s.finished_at, last_set.at) - s.started_at)) / 60)::bigint
+          (EXTRACT(EPOCH FROM (COALESCE(s.finished_at, s.started_at) - s.started_at)) / 60)::bigint
         )
       ),
       0
     ) AS minutes
   FROM sessions s
-  JOIN LATERAL (
-    SELECT MAX(sl.logged_at) AS at
-    FROM set_logs sl
-    WHERE sl.session_id = s.id
-  ) last_set ON TRUE
   WHERE s.user_id = auth.uid()
-    AND COALESCE(s.finished_at, last_set.at) IS NOT NULL
-    AND (COALESCE(s.finished_at, last_set.at) AT TIME ZONE p_tz)::date >= p_from
-    AND (COALESCE(s.finished_at, last_set.at) AT TIME ZONE p_tz)::date <= p_to
+    AND (
+      s.finished_at IS NOT NULL
+      OR EXISTS (SELECT 1 FROM set_logs sl WHERE sl.session_id = s.id)
+    )
+    AND (COALESCE(s.finished_at, s.started_at) AT TIME ZONE p_tz)::date >= p_from
+    AND (COALESCE(s.finished_at, s.started_at) AT TIME ZONE p_tz)::date <= p_to
   GROUP BY 1
   ORDER BY 1;
 $$;
