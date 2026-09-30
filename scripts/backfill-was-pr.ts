@@ -14,15 +14,19 @@
  * Production (ignore .env.local so local Supabase does not win):
  *   npx tsx scripts/backfill-was-pr.ts --no-env-local --apply
  *
- * Scoped re-derivation (#569) — recompute only the recovered sessions' rows,
- * reading the surrounding (user, exercise) history needed for the running best:
+ * Scoped re-derivation (#569) — recompute the affected users' whole PR stream,
+ * which is the only correct unit: a recovered session changes the running best
+ * that LATER sessions on the same exercise were compared against, so writing
+ * just the recovered rows would leave stale `was_pr` downstream. `--users`
+ * bounds the read + write + re-grant; `--sessions` only resolves/validates the
+ * owners and warns when a given row is absent.
  *
- *   npx tsx scripts/backfill-was-pr.ts --sessions <uuid,uuid,...> --users <uuid,...> --apply --regrant
+ *   npx tsx scripts/backfill-was-pr.ts --no-env-local \
+ *     --sessions <uuid,…> --users <uuid,…> --apply --regrant
  *
- * `--sessions` restricts which rows are written; `--users` restricts the data
- * read and the achievement re-grant. Only rows whose value actually changes are
- * written, so a second run is a no-op. Without flags the script runs over the
- * whole history, as before.
+ * Only rows whose value actually changes are written, so a second run is a
+ * no-op. With `--sessions` given but unreadable, the script fails closed rather
+ * than widening to the whole table. Without any flag: whole history, as before.
  *
  * Do not run --apply against production from the Circuit was_pr ticket.
  *
@@ -44,7 +48,10 @@ function argList(flag: string): string[] {
   const i = process.argv.indexOf(flag)
   if (i === -1) return []
   const raw = process.argv[i + 1]
-  if (!raw || raw.startsWith("--")) return []
+  if (!raw || raw.startsWith("--")) {
+    console.error(`${flag} needs a comma-separated value`)
+    process.exit(1)
+  }
   return raw
     .split(",")
     .map((s) => s.trim())
@@ -135,6 +142,8 @@ async function loadExercises() {
     const { data, error } = await supabase
       .from("exercises")
       .select("id, measurement_type, equipment")
+      // Unique tiebreak: without it, LIMIT/OFFSET pages can drop or repeat rows.
+      .order("id", { ascending: true })
       .range(from, from + pageSize - 1)
     if (error) throw error
     if (!data?.length) break
@@ -166,6 +175,9 @@ async function loadFinishedSetLogs(): Promise<LogRow[]> {
     if (SCOPE_USERS.length > 0) query = query.in("sessions.user_id", SCOPE_USERS)
     const { data, error } = await query
       .order("logged_at", { ascending: true })
+      // Unique tiebreak: bulk-inserted logs share a `logged_at`, and unstable
+      // page order can drop a row (wrong running best) or repeat one.
+      .order("id", { ascending: true })
       .range(from, from + pageSize - 1)
     if (error) throw error
     if (!data?.length) break
@@ -206,19 +218,48 @@ async function allUserIds(): Promise<string[]> {
   return out
 }
 
+/**
+ * Resolve the scope from `--sessions` / `--users`. Fails closed: a mistyped
+ * `--sessions` must never silently widen the run to the whole table.
+ */
+async function resolveScope(): Promise<void> {
+  if (SCOPE_SESSIONS.size === 0) return
+
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("id, user_id")
+    .in("id", [...SCOPE_SESSIONS])
+  if (error) throw error
+
+  const rows = data ?? []
+  if (rows.length === 0) {
+    throw new Error(
+      "--sessions matched no session — refusing to widen to the whole table. Check the ids.",
+    )
+  }
+  if (rows.length !== SCOPE_SESSIONS.size) {
+    console.warn(
+      `Warning: ${rows.length}/${SCOPE_SESSIONS.size} session id(s) resolved in this project`,
+    )
+  }
+
+  const owners = [...new Set(rows.map((s) => s.user_id))]
+  if (SCOPE_USERS.length === 0) {
+    SCOPE_USERS = owners
+  } else {
+    const missing = owners.filter((u) => !SCOPE_USERS.includes(u))
+    if (missing.length > 0) {
+      throw new Error(
+        `--users omits the owner of some --sessions: ${missing.join(", ")}`,
+      )
+    }
+  }
+}
+
 async function main() {
   console.log(APPLY ? "APPLY mode" : "DRY RUN")
 
-  // Derive the users from the sessions when only sessions are given, so the
-  // read (and the re-grant) stays bounded to the recovered rows' owners.
-  if (SCOPE_SESSIONS.size > 0 && SCOPE_USERS.length === 0) {
-    const { data, error } = await supabase
-      .from("sessions")
-      .select("user_id")
-      .in("id", [...SCOPE_SESSIONS])
-    if (error) throw error
-    SCOPE_USERS = [...new Set((data ?? []).map((s) => s.user_id))]
-  }
+  await resolveScope()
 
   if (SCOPE_SESSIONS.size > 0 || SCOPE_USERS.length > 0) {
     console.log(
@@ -226,14 +267,19 @@ async function main() {
     )
   }
 
-  // A row is written only if it belongs to a targeted session (or nothing is
-  // targeted) and its recomputed value differs — so re-running is a no-op.
-  const isTarget = (r: LogRow) =>
-    SCOPE_SESSIONS.size === 0 || SCOPE_SESSIONS.has(r.session_id)
-
   const exerciseMap = await loadExercises()
   const logs = await loadFinishedSetLogs()
   console.log(`Loaded ${logs.length} finished set_logs rows`)
+
+  if (SCOPE_SESSIONS.size > 0) {
+    const present = new Set(logs.map((l) => l.session_id))
+    const missing = [...SCOPE_SESSIONS].filter((id) => !present.has(id))
+    if (missing.length > 0) {
+      console.warn(
+        `Warning: ${missing.length} targeted session(s) had no finished set_logs (backfill not applied yet?): ${missing.join(", ")}`,
+      )
+    }
+  }
 
   const groups = new Map<string, LogRow[]>()
   for (const r of logs) {
@@ -245,8 +291,11 @@ async function main() {
     groups.set(key, list)
   }
 
+  // The correct write unit is the whole scoped stream, not just the recovered
+  // sessions: a recovered set changes the running best later sets were compared
+  // against. Change-only writes keep that re-derivation safe and idempotent.
   const updates: { id: string; was_pr: boolean }[] = []
-  let computedTargets = 0
+  let computed = 0
   let wouldBeTrue = 0
 
   for (const [, rows] of groups) {
@@ -267,15 +316,14 @@ async function main() {
       const wasPr = !isBaseline && score > runningBest && score > 0
       runningBest = Math.max(runningBest, score)
 
-      if (!isTarget(r)) continue
-      computedTargets += 1
+      computed += 1
       if (wasPr) wouldBeTrue += 1
       if (r.was_pr !== wasPr) updates.push({ id: r.id, was_pr: wasPr })
     }
   }
 
   console.log(
-    `Computed ${computedTargets} target row(s); ${wouldBeTrue} with was_pr=true; ${updates.length} differ from stored`,
+    `Computed ${computed} row(s); ${wouldBeTrue} with was_pr=true; ${updates.length} differ from stored`,
   )
 
   if (!APPLY) {
@@ -298,8 +346,7 @@ async function main() {
   console.log(`Updated ${written} set_logs`)
 
   if (REGRANT) {
-    const userIds =
-      SCOPE_USERS.length > 0 ? SCOPE_USERS : await allUserIds()
+    const userIds = SCOPE_USERS.length > 0 ? SCOPE_USERS : await allUserIds()
     let done = 0
     for (const id of userIds) {
       const { error: rpcErr } = await supabase.rpc(
