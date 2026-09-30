@@ -18,7 +18,7 @@ We will:
 2. **Use a 12 h ceiling, not a planned-duration estimate.** The `sessions` row carries no planned duration, and prod closes 0–1 min after the last set. 12 h is far beyond any live session and still catches the same-day and overnight orphans.
 3. **Guard the UPDATE twice.** Skip the active local session (resolved through `peekSessionRealId`, since the queue keys sessions by `local-<startedAt>` → UUID) and any `realSessionId` still in the offline queue — a queued `session_finish` would drain later and overwrite our value with `now()`. The `UPDATE` carries `.is("finished_at", null)`, so it is idempotent and can never touch an already-closed session.
 4. **Never fight the offline queue.** The self-heal writes directly; it does not enqueue a `session_finish` and does not call `check_and_grant_achievements`.
-5. **Never hide an unfinished session.** `useSessionsForDateRange` and `ActivityTab` stop filtering on `finished_at`; an orphan is bucketed on `finished_at ?? started_at` and shown with a « non terminée » badge. The heatmap/calendar RPC `get_training_activity_by_day` buckets on `COALESCE(finished_at, last set)` for any session with at least one set.
+5. **Never hide an unfinished session.** `useSessionsForDateRange` and `ActivityTab` stop filtering on `finished_at`; an orphan is bucketed on `finished_at ?? started_at` and shown with a « non terminée » badge. The heatmap/calendar RPC `get_training_activity_by_day` uses the **same** key for any session with at least one set, so a dotted day always has a matching day-list row.
 6. **Backfill the 5 known rows** with a one-shot SQL migration, values recomputed from `set_logs`, `WHERE finished_at IS NULL`.
 
 ## Consequences
