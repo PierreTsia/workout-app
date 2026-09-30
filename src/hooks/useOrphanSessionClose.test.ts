@@ -17,6 +17,7 @@ const peekSessionRealId = vi.hoisted(() => vi.fn((): string | null => null))
 const pruneCancelledSessions = vi.hoisted(() =>
   vi.fn<(userId: string) => Set<string>>(() => new Set()),
 )
+const trackSessionEvent = vi.hoisted(() => vi.fn())
 
 vi.mock("@/lib/syncService", () => ({
   queuedRealSessionIds,
@@ -24,23 +25,33 @@ vi.mock("@/lib/syncService", () => ({
   pruneCancelledSessions,
 }))
 
+vi.mock("@/lib/sessionEvents", () => ({ trackSessionEvent }))
+
 vi.mock("@/lib/supabase", () => {
-  const chain = {
-    select: () => chain,
-    is: () => chain,
+  const selectChain = {
+    select: () => selectChain,
+    eq: () => selectChain,
+    is: () => selectChain,
     returns: () => Promise.resolve({ data: spies.rows, error: null }),
+  }
+  const updateChain = {
     update: (payload: Record<string, unknown>) => {
       spies.updates.push(payload)
-      return chain
+      return updateChain
     },
     eq: (_column: string, id: string) => {
       spies.ids.push(id)
-      return chain
+      return updateChain
     },
+    is: () => updateChain,
     then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
       resolve({ data: spies.rows, error: null }),
   }
-  return { supabase: { from: () => chain } }
+  return {
+    supabase: {
+      from: () => ({ select: selectChain.select, update: updateChain.update }),
+    },
+  }
 })
 
 const oldIso = () => new Date(Date.now() - 13 * HOUR).toISOString()
@@ -48,7 +59,10 @@ const recentIso = () => new Date(Date.now() - HOUR).toISOString()
 
 const orphan = (id: string, loggedAt: string) => ({
   id,
+  workout_day_id: "day-1",
+  workout_label_snapshot: "Push",
   started_at: new Date(new Date(loggedAt).getTime() - HOUR).toISOString(),
+  cycle_id: "cycle-1",
   set_logs: [{ logged_at: loggedAt }],
 })
 
@@ -68,6 +82,7 @@ describe("useOrphanSessionClose", () => {
     queuedRealSessionIds.mockReturnValue(new Set())
     peekSessionRealId.mockReturnValue(null)
     pruneCancelledSessions.mockReturnValue(new Set())
+    trackSessionEvent.mockClear()
   })
 
   it("closes a stale orphan with the last set — never now()", async () => {
@@ -84,6 +99,24 @@ describe("useOrphanSessionClose", () => {
       active_duration_ms: 0,
       has_skipped_sets: false,
     })
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_closed", {
+      cause: "auto",
+      session_id: "s1",
+      idle_ms: expect.any(Number),
+      total_sets_done: 1,
+    })
+  })
+
+  it("exposes a recent orphan without closing it", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+    expect(result.current.recentOrphan?.lastSetAt).toBe(last)
+    expect(spies.updates).toHaveLength(0)
+    expect(trackSessionEvent).not.toHaveBeenCalled()
   })
 
   it("leaves a recent session alone (possibly still in progress)", async () => {
