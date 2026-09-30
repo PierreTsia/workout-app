@@ -120,7 +120,7 @@ interface QueueItem {
   fingerprint: string
 }
 
-interface SessionMeta {
+export interface SessionMeta {
   realId: string
   workoutDayId: string | null
   workoutLabelSnapshot: string
@@ -277,6 +277,22 @@ export function getSessionRealId(
   localSessionId: string,
 ): string {
   return resolveSessionMeta(userId, localSessionId).realId
+}
+
+/**
+ * Write a `sessionMeta` entry without minting a UUID. Used by the resume path
+ * (#571) to point a reopened local session at the orphan's real row before any
+ * set is logged — otherwise `resolveSessionMeta` would mint a fresh UUID and
+ * split the resumed session into two rows. Write-only and idempotent.
+ */
+export function seedSessionMeta(
+  userId: string,
+  localSessionId: string,
+  meta: SessionMeta,
+): void {
+  const allMeta = getSessionMeta(userId)
+  allMeta[localSessionId] = meta
+  setSessionMeta(userId, allMeta)
 }
 
 /**

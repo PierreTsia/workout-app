@@ -56,6 +56,11 @@ import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { useSessionBlockRuns } from "@/hooks/useSessionBlockRuns"
+import {
+  completedBlockIdsFromRuns,
+  hydrateSetsDataFromLogs,
+} from "@/lib/resumeSession"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import {
   buildInitialSetRowsForExercise,
@@ -678,7 +683,11 @@ export function WorkoutPage() {
 
   const activeRealId =
     user != null ? peekSessionRealId(user.id, sessionId) : null
-  const { data: activeSessionLogs = [] } = useSessionSetLogs(activeRealId)
+  const { data: activeSessionLogs = [], isFetched: activeSessionLogsFetched } =
+    useSessionSetLogs(activeRealId)
+  const { data: sessionBlockRuns } = useSessionBlockRuns(
+    activeRealId ?? undefined,
+  )
   const queuePendingCount = useAtomValue(queueSyncMetaAtom).pendingCount
   const queuedPayloads = useMemo(() => {
     void queuePendingCount
@@ -759,6 +768,70 @@ export function WorkoutPage() {
     if (!session.isActive || session.activeDayId || !session.currentDayId) return
     setSession((prev) => ({ ...prev, activeDayId: prev.currentDayId }))
   }, [session.activeDayId, session.currentDayId, session.isActive, setSession])
+
+  // Resume hydration (#571): a session reopened from an orphan already has its
+  // set_logs persisted. Merge them into setsData once so the table shows them
+  // as done instead of fresh. A fresh session has no logs at first fetch, so
+  // the ref is consumed with nothing to merge.
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (resumedRef.current) return
+    if (!session.isActive) return
+    if (exercises.length === 0) return
+    if (!activeSessionLogsFetched) return
+    resumedRef.current = true
+
+    const hydrated = hydrateSetsDataFromLogs(
+      exercises,
+      activeSessionLogs,
+      exerciseById,
+    )
+    if (Object.keys(hydrated).length === 0) return
+
+    setSession((prev) => {
+      const merged = Object.entries(hydrated).reduce(
+        (acc, [slotId, rows]) => {
+          // Never clobber a slot the user already logged locally this session.
+          if (prev.setsData[slotId]?.some((r) => r.done)) return acc
+          return { ...acc, [slotId]: rows }
+        },
+        prev.setsData,
+      )
+      return { ...prev, setsData: merged }
+    })
+  }, [
+    session.isActive,
+    exercises,
+    activeSessionLogs,
+    activeSessionLogsFetched,
+    exerciseById,
+    setSession,
+  ])
+
+  // Best-effort circuit resume (#571): a finished block run means the circuit
+  // was completed before the orphan was reopened. In-progress runs are re-run.
+  const resumedBlocksRef = useRef(false)
+  useEffect(() => {
+    if (resumedBlocksRef.current) return
+    if (!session.isActive) return
+    if (!sessionBlockRuns) return
+    resumedBlocksRef.current = true
+
+    const ids = completedBlockIdsFromRuns(
+      [...sessionBlockRuns.entries()].map(([block_id, run]) => ({
+        block_id,
+        finished_at: run.finished_at,
+      })),
+    )
+    if (ids.length === 0) return
+
+    setSession((prev) => ({
+      ...prev,
+      completedBlockIds: Array.from(
+        new Set([...(prev.completedBlockIds ?? []), ...ids]),
+      ),
+    }))
+  }, [session.isActive, sessionBlockRuns, setSession])
 
 
 
