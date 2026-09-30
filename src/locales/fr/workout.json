@@ -70,8 +70,6 @@
   "finishEarlySkippedAndRemaining_other": "Vous avez {{count}} séries non complétées et il reste des exercices ou circuits. Terminer quand même ?",
   "orphanPrompt.title": "Ta dernière séance n'a pas été terminée",
   "orphanPrompt.body": "La reprendre, ou la terminer pour enregistrer tes séries ?",
-  "openSession.resume": "La reprendre",
-  "openSession.finish": "La terminer",
   "weightPerArm": "{{unit}}/bras",
   "addedWeight": "+{{unit}}",
   "rir.title": "Répétitions en réserve",

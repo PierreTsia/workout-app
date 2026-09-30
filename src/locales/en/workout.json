@@ -70,8 +70,6 @@
   "finishEarlySkippedAndRemaining_other": "You have {{count}} skipped sets and still have exercises or circuits left. Finish anyway?",
   "orphanPrompt.title": "Your last session wasn't finished",
   "orphanPrompt.body": "Resume it, or finish it to save your sets?",
-  "openSession.resume": "Resume it",
-  "openSession.finish": "Finish it",
   "weightPerArm": "{{unit}}/arm",
   "addedWeight": "+{{unit}}",
   "rir.title": "Reps in Reserve",
