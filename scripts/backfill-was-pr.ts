@@ -14,6 +14,16 @@
  * Production (ignore .env.local so local Supabase does not win):
  *   npx tsx scripts/backfill-was-pr.ts --no-env-local --apply
  *
+ * Scoped re-derivation (#569) — recompute only the recovered sessions' rows,
+ * reading the surrounding (user, exercise) history needed for the running best:
+ *
+ *   npx tsx scripts/backfill-was-pr.ts --sessions <uuid,uuid,...> --users <uuid,...> --apply --regrant
+ *
+ * `--sessions` restricts which rows are written; `--users` restricts the data
+ * read and the achievement re-grant. Only rows whose value actually changes are
+ * written, so a second run is a no-op. Without flags the script runs over the
+ * whole history, as before.
+ *
  * Do not run --apply against production from the Circuit was_pr ticket.
  *
  * Run migration 20260403100000_pr_record_hunter_reset.sql (or let supabase db push)
@@ -29,6 +39,20 @@ import {
 
 const APPLY = process.argv.includes("--apply")
 const REGRANT = process.argv.includes("--regrant")
+
+function argList(flag: string): string[] {
+  const i = process.argv.indexOf(flag)
+  if (i === -1) return []
+  const raw = process.argv[i + 1]
+  if (!raw || raw.startsWith("--")) return []
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+let SCOPE_USERS = argList("--users")
+const SCOPE_SESSIONS = new Set(argList("--sessions"))
 
 const url = process.env.VITE_SUPABASE_URL?.trim()
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
@@ -56,6 +80,7 @@ type LogRow = {
   duration_seconds: number | null
   logged_at: string
   set_number: number
+  was_pr: boolean
   sessions: SessionEmbed | SessionEmbed[] | null
 }
 
@@ -127,14 +152,19 @@ async function loadExercises() {
 
 async function loadFinishedSetLogs(): Promise<LogRow[]> {
   const out: LogRow[] = []
-  const pageSize = 2000
+  // Supabase caps a response at 1000 rows regardless of the requested range,
+  // so a larger page size makes `rows.length < pageSize` fire on page 1 and
+  // silently truncates the scan. Keep the page at the cap to actually page.
+  const pageSize = 1000
   let from = 0
   for (;;) {
-    const { data, error } = await supabase
+    let query = supabase
       .from("set_logs")
       .select(
-        "id, session_id, exercise_id, reps_logged, weight_logged, estimated_1rm, duration_seconds, logged_at, set_number, sessions!inner(user_id, started_at, finished_at)",
+        "id, session_id, exercise_id, reps_logged, weight_logged, estimated_1rm, duration_seconds, logged_at, set_number, was_pr, sessions!inner(user_id, started_at, finished_at)",
       )
+    if (SCOPE_USERS.length > 0) query = query.in("sessions.user_id", SCOPE_USERS)
+    const { data, error } = await query
       .order("logged_at", { ascending: true })
       .range(from, from + pageSize - 1)
     if (error) throw error
@@ -158,8 +188,48 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return res
 }
 
+async function allUserIds(): Promise<string[]> {
+  const out: string[] = []
+  let page = 1
+  for (;;) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    })
+    if (error) throw error
+    const users = data.users ?? []
+    if (users.length === 0) break
+    out.push(...users.map((u) => u.id))
+    if (users.length < 1000) break
+    page += 1
+  }
+  return out
+}
+
 async function main() {
   console.log(APPLY ? "APPLY mode" : "DRY RUN")
+
+  // Derive the users from the sessions when only sessions are given, so the
+  // read (and the re-grant) stays bounded to the recovered rows' owners.
+  if (SCOPE_SESSIONS.size > 0 && SCOPE_USERS.length === 0) {
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("user_id")
+      .in("id", [...SCOPE_SESSIONS])
+    if (error) throw error
+    SCOPE_USERS = [...new Set((data ?? []).map((s) => s.user_id))]
+  }
+
+  if (SCOPE_SESSIONS.size > 0 || SCOPE_USERS.length > 0) {
+    console.log(
+      `Scope: ${SCOPE_SESSIONS.size || "all"} session(s), ${SCOPE_USERS.length || "all"} user(s)`,
+    )
+  }
+
+  // A row is written only if it belongs to a targeted session (or nothing is
+  // targeted) and its recomputed value differs — so re-running is a no-op.
+  const isTarget = (r: LogRow) =>
+    SCOPE_SESSIONS.size === 0 || SCOPE_SESSIONS.has(r.session_id)
 
   const exerciseMap = await loadExercises()
   const logs = await loadFinishedSetLogs()
@@ -176,6 +246,7 @@ async function main() {
   }
 
   const updates: { id: string; was_pr: boolean }[] = []
+  let computedTargets = 0
   let wouldBeTrue = 0
 
   for (const [, rows] of groups) {
@@ -195,12 +266,17 @@ async function main() {
       const isBaseline = firstSid != null && r.session_id === firstSid
       const wasPr = !isBaseline && score > runningBest && score > 0
       runningBest = Math.max(runningBest, score)
-      updates.push({ id: r.id, was_pr: wasPr })
+
+      if (!isTarget(r)) continue
+      computedTargets += 1
       if (wasPr) wouldBeTrue += 1
+      if (r.was_pr !== wasPr) updates.push({ id: r.id, was_pr: wasPr })
     }
   }
 
-  console.log(`Computed ${updates.length} rows; ${wouldBeTrue} with was_pr=true`)
+  console.log(
+    `Computed ${computedTargets} target row(s); ${wouldBeTrue} with was_pr=true; ${updates.length} differ from stored`,
+  )
 
   if (!APPLY) {
     console.log("Done (dry run). Pass --apply to write.")
@@ -222,28 +298,18 @@ async function main() {
   console.log(`Updated ${written} set_logs`)
 
   if (REGRANT) {
-    let page = 1
-    let total = 0
-    for (;;) {
-      const { data, error: uErr } = await supabase.auth.admin.listUsers({
-        page,
-        perPage: 1000,
-      })
-      if (uErr) throw uErr
-      const users = data.users ?? []
-      if (users.length === 0) break
-      for (const u of users) {
-        const { error: rpcErr } = await supabase.rpc(
-          "check_and_grant_achievements",
-          { p_user_id: u.id },
-        )
-        if (rpcErr) console.error("RPC failed for", u.id, rpcErr.message)
-        total += 1
-      }
-      if (users.length < 1000) break
-      page += 1
+    const userIds =
+      SCOPE_USERS.length > 0 ? SCOPE_USERS : await allUserIds()
+    let done = 0
+    for (const id of userIds) {
+      const { error: rpcErr } = await supabase.rpc(
+        "check_and_grant_achievements",
+        { p_user_id: id },
+      )
+      if (rpcErr) console.error("RPC failed for", id, rpcErr.message)
+      done += 1
     }
-    console.log("Re-grant RPC invoked for", total, "users")
+    console.log("Re-grant RPC invoked for", done, "users")
   } else {
     console.log("Skip RPC re-grant (pass --regrant to call check_and_grant_achievements)")
   }
