@@ -116,6 +116,24 @@ describe("SessionRow", () => {
   })
 
   it.each([
+    ["en", "Not finished"],
+    ["fr", "Non terminée"],
+  ] as const)("marks an unfinished session in %s instead of hiding it", (locale, label) => {
+    renderWithProviders(
+      <SessionRow session={{ ...session, finished_at: null, total_sets_done: 0 }} />,
+      { locale },
+    )
+
+    expect(screen.getByText(label)).toBeInTheDocument()
+  })
+
+  it("does not mark a finished session", () => {
+    renderWithProviders(<SessionRow session={session} />, { locale: "en" })
+
+    expect(screen.queryByText("Not finished")).not.toBeInTheDocument()
+  })
+
+  it.each([
     ["en", "Bench Press", "Développé couché"],
     ["fr", "Développé couché", "Bench Press"],
   ] as const)("names a solo group in %s", async (locale, expected, hidden) => {
