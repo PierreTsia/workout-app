@@ -5,9 +5,11 @@ import { authAtom } from "@/store/atoms"
 import type { Session } from "@/types/database"
 
 /**
- * Finished sessions with `finished_at` in [rangeFrom, rangeTo] (inclusive),
- * aligned with `get_training_activity_by_day` day buckets (finished_at in user TZ).
- * Range bounds use JS Date → ISO like the visible month window from date-fns.
+ * Sessions in [rangeFrom, rangeTo] (inclusive): finished sessions whose
+ * `finished_at` falls inside the range, plus unfinished sessions (#568) whose
+ * `started_at` falls inside it. Aligned with `get_training_activity_by_day`
+ * day buckets (finished_at in user TZ). Range bounds use JS Date → ISO like the
+ * visible month window from date-fns.
  */
 export function useSessionsForDateRange(rangeFrom: Date, rangeTo: Date) {
   const user = useAtomValue(authAtom)
@@ -20,10 +22,11 @@ export function useSessionsForDateRange(rangeFrom: Date, rangeTo: Date) {
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
-        .not("finished_at", "is", null)
-        .gte("finished_at", fromIso)
-        .lte("finished_at", toIso)
-        .order("finished_at", { ascending: false })
+        .or(
+          `and(finished_at.gte.${fromIso},finished_at.lte.${toIso}),` +
+            `and(finished_at.is.null,started_at.gte.${fromIso},started_at.lte.${toIso})`,
+        )
+        .order("started_at", { ascending: false })
 
       if (error) throw error
       return (data as Session[]) ?? []
