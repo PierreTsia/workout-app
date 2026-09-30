@@ -5,6 +5,9 @@
  *
  * The copy is English, personal, and says plainly that it was written by the
  * assistant. Badges are inlined per recipient through `ACHIEVEMENTS`.
+ *
+ * Text variables are HTML-escaped here so the template can interpolate them raw
+ * (`{{{SESSION_LABEL}}}`); only `ACHIEVEMENTS` is deliberately pre-rendered HTML.
  */
 
 export const RECOVERY_SUBJECT = "A session of yours went missing. It’s back."
@@ -18,14 +21,12 @@ export const RECOVERY_URL_FALLBACKS = {
   APP_URL: "https://gymlogic.me",
 } as const
 
-export type RecoveryUrlKey = keyof typeof RECOVERY_URL_FALLBACKS
-
 export type RecoveryVariables = {
   SESSION_DATE: string
   SESSION_LABEL: string
   SET_COUNT: string
   DURATION: string
-  /** Pre-rendered HTML list of badges (see `renderAchievements`). */
+  /** Pre-rendered, escaped HTML list of badges (see `renderAchievements`). */
   ACHIEVEMENTS: string
   APP_URL: string
 }
@@ -58,15 +59,27 @@ function httpsUrl(raw: string | undefined, fallback: string): string {
   return candidate.startsWith("https://") ? candidate : fallback
 }
 
-/** Render the badge list inlined by the sender. */
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
+/**
+ * Render the badge list inlined by the sender. Every field is escaped: the
+ * catalog text is ours but the label a recipient typed is not ours to trust.
+ */
 export function renderAchievements(badges: RecoveryBadge[]): string {
   return badges
     .map(
       (b) =>
         `<p style="margin:0 0 10px;">` +
-        `<img src="${b.iconUrl}" width="40" height="40" alt="" ` +
+        `<img src="${escapeHtml(b.iconUrl)}" width="40" height="40" alt="" ` +
         `style="vertical-align:middle;border-radius:8px;margin-right:10px;" />` +
-        `<span style="vertical-align:middle;"><strong>${b.track}, ${b.rank}</strong> — ${b.title} (${b.threshold})</span>` +
+        `<span style="vertical-align:middle;"><strong>${escapeHtml(b.track)}, ${escapeHtml(b.rank)}</strong> — ${escapeHtml(b.title)} (${escapeHtml(b.threshold)})</span>` +
         `</p>`,
     )
     .join("")
@@ -86,10 +99,10 @@ export function buildRecoverySend(params: {
     template: {
       id: params.templateId?.trim() || DEFAULT_RECOVERY_TEMPLATE_ID,
       variables: {
-        SESSION_DATE: params.sessionDate,
-        SESSION_LABEL: params.sessionLabel,
+        SESSION_DATE: escapeHtml(params.sessionDate),
+        SESSION_LABEL: escapeHtml(params.sessionLabel),
         SET_COUNT: String(params.setCount),
-        DURATION: params.duration,
+        DURATION: escapeHtml(params.duration),
         ACHIEVEMENTS: renderAchievements(params.badges),
         APP_URL: httpsUrl(params.appUrl, RECOVERY_URL_FALLBACKS.APP_URL),
       },
@@ -147,7 +160,7 @@ export const RECOVERY_TEMPLATE_HTML = `<!DOCTYPE html>
               <p style="margin:0 0 12px;">What it means for you: nothing to do. Your data was never at risk; the only thing wrong was that we weren’t showing it.</p>
               <p style="margin:0 0 20px;">Thanks for trusting GymLogic with your training.</p>
               <p style="margin:0 0 12px;">GymLogic is still young, and the people training on it now are the ones shaping where it goes. If something’s off, or you’d do it differently, reply to this email. It reaches a person at <a href="mailto:admin@gymlogic.me" style="${LINK}">admin@gymlogic.me</a>.</p>
-              <p style="margin:20px 0 0;${MUTED}">— GymLogic’s assistant<br />I’m not a person, and this went out automatically. But write back, and a person reads it at <a href="mailto:admin@gymlogic.me" style="color:#666666;text-decoration:underline;">admin@gymlogic.me</a>.</p>
+              <p style="margin:20px 0 0;${MUTED}">— GymLogic’s assistant<br />I’m not a person. But write back, and a person reads it at <a href="mailto:admin@gymlogic.me" style="color:#666666;text-decoration:underline;">admin@gymlogic.me</a>.</p>
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 16px;">
                 <tr>
@@ -166,7 +179,7 @@ export const RECOVERY_TEMPLATE_HTML = `<!DOCTYPE html>
                 </tr>
               </table>
 
-              <p style="margin:0;${MUTED}">This note was written by GymLogic’s assistant and sent automatically. · <a href="mailto:admin@gymlogic.me" style="color:#666666;text-decoration:underline;">admin@gymlogic.me</a></p>
+              <p style="margin:0;${MUTED}">This note was written by GymLogic’s assistant. · <a href="mailto:admin@gymlogic.me" style="color:#666666;text-decoration:underline;">admin@gymlogic.me</a></p>
             </td>
           </tr>
         </table>
