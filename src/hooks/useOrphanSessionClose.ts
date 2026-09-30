@@ -4,11 +4,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
 import { authAtom, sessionAtom } from "@/store/atoms"
 import { computeOrphanClose } from "@/lib/orphanSessionClose"
-import { peekSessionRealId, queuedRealSessionIds } from "@/lib/syncService"
+import {
+  peekSessionRealId,
+  pruneCancelledSessions,
+  queuedRealSessionIds,
+} from "@/lib/syncService"
 
 interface OpenSessionRow {
   id: string
-  started_at: string
   set_logs: { logged_at: string }[] | null
 }
 
@@ -41,11 +44,12 @@ export function useOrphanSessionClose(): void {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sessions")
-        .select("id, started_at, set_logs(logged_at)")
+        .select("id, set_logs(logged_at)")
         .is("finished_at", null)
+        .returns<OpenSessionRow[]>()
 
       if (error) throw error
-      return (data as unknown as OpenSessionRow[]) ?? []
+      return data ?? []
     },
   })
 
@@ -55,6 +59,10 @@ export function useOrphanSessionClose(): void {
     triggeredRef.current = true
 
     const excluded = queuedRealSessionIds()
+    // A session cancelled while offline keeps its row (the best-effort delete
+    // failed); the deny-list is the only marker. Without this, a cancelled
+    // session would come back as "unfinished" and be closed into a real workout.
+    for (const id of pruneCancelledSessions(user.id)) excluded.add(id)
     if (session.isActive && session.startedAt != null) {
       const activeId = peekSessionRealId(user.id, `local-${session.startedAt}`)
       if (activeId) excluded.add(activeId)

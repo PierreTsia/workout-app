@@ -14,16 +14,21 @@ const spies = vi.hoisted(() => ({
 
 const queuedRealSessionIds = vi.hoisted(() => vi.fn((): Set<string> => new Set()))
 const peekSessionRealId = vi.hoisted(() => vi.fn((): string | null => null))
+const pruneCancelledSessions = vi.hoisted(() =>
+  vi.fn<(userId: string) => Set<string>>(() => new Set()),
+)
 
 vi.mock("@/lib/syncService", () => ({
   queuedRealSessionIds,
   peekSessionRealId,
+  pruneCancelledSessions,
 }))
 
 vi.mock("@/lib/supabase", () => {
   const chain = {
     select: () => chain,
-    is: () => Promise.resolve({ data: spies.rows, error: null }),
+    is: () => chain,
+    returns: () => Promise.resolve({ data: spies.rows, error: null }),
     update: (payload: Record<string, unknown>) => {
       spies.updates.push(payload)
       return chain
@@ -32,6 +37,8 @@ vi.mock("@/lib/supabase", () => {
       spies.ids.push(id)
       return chain
     },
+    then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
+      resolve({ data: spies.rows, error: null }),
   }
   return { supabase: { from: () => chain } }
 })
@@ -60,6 +67,7 @@ describe("useOrphanSessionClose", () => {
     spies.ids = []
     queuedRealSessionIds.mockReturnValue(new Set())
     peekSessionRealId.mockReturnValue(null)
+    pruneCancelledSessions.mockReturnValue(new Set())
   })
 
   it("closes a stale orphan with the last set — never now()", async () => {
@@ -83,7 +91,10 @@ describe("useOrphanSessionClose", () => {
 
     mount()
 
-    await waitFor(() => expect(peekSessionRealId).toHaveBeenCalledTimes(0))
+    // Wait for the effect to have run (it calls the queue guard), then assert
+    // nothing was written — a bare "not called" would pass before the query
+    // even resolved.
+    await waitFor(() => expect(queuedRealSessionIds).toHaveBeenCalled())
     expect(spies.updates).toHaveLength(0)
   })
 
@@ -112,6 +123,16 @@ describe("useOrphanSessionClose", () => {
     mount()
 
     await waitFor(() => expect(queuedRealSessionIds).toHaveBeenCalled())
+    expect(spies.updates).toHaveLength(0)
+  })
+
+  it("never closes a session the user cancelled (offline delete may have failed)", async () => {
+    spies.rows = [orphan("cancelled", oldIso())]
+    pruneCancelledSessions.mockReturnValue(new Set(["cancelled"]))
+
+    mount()
+
+    await waitFor(() => expect(pruneCancelledSessions).toHaveBeenCalledWith("u1"))
     expect(spies.updates).toHaveLength(0)
   })
 
