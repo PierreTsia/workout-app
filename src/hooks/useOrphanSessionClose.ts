@@ -10,6 +10,7 @@ import {
   fetchOpenSessions,
   type OpenSessionRow,
 } from "@/lib/openSessions"
+import { resumeOrphanSession } from "@/lib/resumeSession"
 import { trackSessionEvent } from "@/lib/sessionEvents"
 
 /** A recent (< 3 h idle) orphan the app-open prompt can offer to resume or finish. */
@@ -133,6 +134,7 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
           cycleId: recent.row.cycle_id,
           lastSetAt: recent.lastSetAt,
         })
+        trackSessionEvent("session_orphan_prompted", { surface: "app_open" })
       }
     })()
   }, [user, data, session, queryClient])
@@ -142,14 +144,39 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
     setRecentOrphan(null)
   }, [])
 
-  // T255 wires the resume path (seed sessionMeta + reopen the atom).
-  const resume = useCallback(() => {}, [])
+  // Reopen the orphan locally: seed its `sessionMeta` so new set logs upsert on
+  // the same row, activate the atom, then clear the prompt.
+  const resume = useCallback(() => {
+    const row = recentRowRef.current
+    const userId = user?.id
+    if (!row || !userId) return
+
+    resumeOrphanSession(
+      {
+        id: row.id,
+        workout_day_id: row.workout_day_id,
+        workout_label_snapshot: row.workout_label_snapshot ?? "",
+        started_at: row.started_at,
+        cycle_id: row.cycle_id,
+      },
+      userId,
+    )
+    trackSessionEvent("session_orphan_resumed", { surface: "app_open" })
+
+    recentRowRef.current = null
+    setRecentOrphan(null)
+  }, [user])
 
   const finish = useCallback(async () => {
     const row = recentRowRef.current
     if (!row) return
 
-    const close = computeOrphanClose(row.set_logs ?? [], Date.now())
+    // An explicit Finish has no idle threshold: force the last-set payload even
+    // though a recent orphan is inside `ORPHAN_SESSION_THRESHOLD_MS`.
+    const close = computeOrphanClose(
+      row.set_logs ?? [],
+      Number.POSITIVE_INFINITY,
+    )
     if (!close) return
 
     const { error } = await closeOpenSession(row.id, close)

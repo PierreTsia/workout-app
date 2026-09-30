@@ -18,6 +18,7 @@ const pruneCancelledSessions = vi.hoisted(() =>
   vi.fn<(userId: string) => Set<string>>(() => new Set()),
 )
 const trackSessionEvent = vi.hoisted(() => vi.fn())
+const resumeOrphanSession = vi.hoisted(() => vi.fn())
 
 vi.mock("@/lib/syncService", () => ({
   queuedRealSessionIds,
@@ -26,6 +27,8 @@ vi.mock("@/lib/syncService", () => ({
 }))
 
 vi.mock("@/lib/sessionEvents", () => ({ trackSessionEvent }))
+
+vi.mock("@/lib/resumeSession", () => ({ resumeOrphanSession }))
 
 vi.mock("@/lib/supabase", () => {
   const selectChain = {
@@ -83,6 +86,7 @@ describe("useOrphanSessionClose", () => {
     peekSessionRealId.mockReturnValue(null)
     pruneCancelledSessions.mockReturnValue(new Set())
     trackSessionEvent.mockClear()
+    resumeOrphanSession.mockClear()
   })
 
   it("closes a stale orphan with the last set — never now()", async () => {
@@ -107,7 +111,7 @@ describe("useOrphanSessionClose", () => {
     })
   })
 
-  it("exposes a recent orphan without closing it", async () => {
+  it("exposes a recent orphan, emits the prompt, and does not close it", async () => {
     const last = recentIso()
     spies.rows = [orphan("s1", last)]
 
@@ -116,7 +120,99 @@ describe("useOrphanSessionClose", () => {
     await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
     expect(result.current.recentOrphan?.lastSetAt).toBe(last)
     expect(spies.updates).toHaveLength(0)
-    expect(trackSessionEvent).not.toHaveBeenCalled()
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_prompted", {
+      surface: "app_open",
+    })
+  })
+
+  it("finish() closes the recent orphan with the last set and cause open_prompt", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.finish()
+    })
+
+    await waitFor(() => expect(spies.updates).toHaveLength(1))
+    expect(spies.ids).toEqual(["s1"])
+    expect(spies.updates[0]).toEqual({
+      finished_at: last,
+      total_sets_done: 1,
+      active_duration_ms: 0,
+      has_skipped_sets: false,
+    })
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_closed", {
+      cause: "open_prompt",
+      session_id: "s1",
+      total_sets_done: 1,
+    })
+    await waitFor(() => expect(result.current.recentOrphan).toBeNull())
+  })
+
+  it("resume() reopens the orphan on its day and emits resumed", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.resume()
+    })
+
+    expect(resumeOrphanSession).toHaveBeenCalledWith(
+      {
+        id: "s1",
+        workout_day_id: "day-1",
+        workout_label_snapshot: "Push",
+        started_at: expect.any(String),
+        cycle_id: "cycle-1",
+      },
+      "u1",
+    )
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_resumed", {
+      surface: "app_open",
+    })
+    await waitFor(() => expect(result.current.recentOrphan).toBeNull())
+  })
+
+  it("dismiss() clears the prompt and leaves the row open", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.dismiss()
+    })
+
+    expect(result.current.recentOrphan).toBeNull()
+    expect(spies.updates).toHaveLength(0)
+  })
+
+  it("does not prompt while a local session is active", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    const rendered = renderHookWithProviders(() => useOrphanSessionClose())
+    act(() => {
+      rendered.store.set(authAtom, { id: "u1" } as never)
+      rendered.store.set(sessionAtom, {
+        ...defaultSessionState,
+        isActive: true,
+        startedAt: 1_700_000_000_000,
+      })
+    })
+
+    // Wait for the effect to have run, then assert no prompt was surfaced.
+    await waitFor(() => expect(queuedRealSessionIds).toHaveBeenCalled())
+    expect(rendered.result.current.recentOrphan).toBeNull()
+    expect(trackSessionEvent).not.toHaveBeenCalledWith(
+      "session_orphan_prompted",
+      expect.anything(),
+    )
   })
 
   it("leaves a recent session alone (possibly still in progress)", async () => {
