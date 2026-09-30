@@ -95,6 +95,7 @@ import {
   type ExerciseEditScope,
 } from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
+import { OpenSessionDialog } from "@/components/workout/OpenSessionDialog"
 import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAlertDialog"
 import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
 import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
@@ -123,6 +124,10 @@ import type {
   WorkoutExerciseWithLabel,
 } from "@/types/database"
 import { useExerciseById } from "@/hooks/useExerciseById"
+import {
+  useStartSessionGuard,
+  type StartSessionOpts,
+} from "@/hooks/useStartSessionGuard"
 
 const EMPTY_DAYS: WorkoutDay[] = []
 
@@ -985,39 +990,57 @@ export function WorkoutPage() {
     }, 0)
   }
 
-  async function startSession({ skipCycle = false } = {}) {
-    let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
+  const commitStartSession = useCallback(
+    async ({ skipCycle = false }: StartSessionOpts = {}) => {
+      let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
 
-    if (!cycleId && activeProgramId && user && !skipCycle) {
-      const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
-      if (result.kind === "ok") {
-        cycleId = result.cycleId
-        // Always invalidate: the React Query cache may be stale (e.g. another
-        // tab created the cycle after our last fetch) even when source is
-        // "existing". Without this, useActiveCycle can stay stuck on null.
-        queryClient.invalidateQueries({
-          queryKey: ["active-cycle", activeProgramId],
-        })
-      } else {
-        console.warn(
-          "[WorkoutPage] Could not resolve/create active cycle:",
-          result.reason,
-        )
-        toast.warning(t("cycleUnavailable"))
+      if (!cycleId && activeProgramId && user && !skipCycle) {
+        const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
+        if (result.kind === "ok") {
+          cycleId = result.cycleId
+          // Always invalidate: the React Query cache may be stale (e.g. another
+          // tab created the cycle after our last fetch) even when source is
+          // "existing". Without this, useActiveCycle can stay stuck on null.
+          queryClient.invalidateQueries({
+            queryKey: ["active-cycle", activeProgramId],
+          })
+        } else {
+          console.warn(
+            "[WorkoutPage] Could not resolve/create active cycle:",
+            result.reason,
+          )
+          toast.warning(t("cycleUnavailable"))
+        }
       }
-    }
 
-    setSession((prev) => ({
-      ...prev,
-      isActive: true,
-      activeDayId: prev.currentDayId,
-      startedAt: Date.now(),
-      pausedAt: null,
-      accumulatedPause: 0,
-      cycleId,
-      completedBlockIds: [],
-    }))
-    beginLiveSession()
+      setSession((prev) => ({
+        ...prev,
+        isActive: true,
+        activeDayId: prev.currentDayId,
+        startedAt: Date.now(),
+        pausedAt: null,
+        accumulatedPause: 0,
+        cycleId,
+        completedBlockIds: [],
+      }))
+      beginLiveSession()
+    },
+    [activeCycle?.id, activeProgramId, user, queryClient, setSession, t],
+  )
+
+  const {
+    pending: pendingStart,
+    guard: guardStartSession,
+    finish: finishBlockedStart,
+    resume: resumeBlockedStart,
+  } = useStartSessionGuard({
+    userId: user?.id ?? null,
+    session,
+    commitStart: commitStartSession,
+  })
+
+  async function startSession(opts: StartSessionOpts = {}) {
+    await guardStartSession(opts)
   }
 
   function handleNewSession() {
@@ -1462,6 +1485,12 @@ export function WorkoutPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OpenSessionDialog
+        open={pendingStart != null}
+        onFinish={() => void finishBlockedStart()}
+        onResume={resumeBlockedStart}
+      />
     </div>
   )
 }
