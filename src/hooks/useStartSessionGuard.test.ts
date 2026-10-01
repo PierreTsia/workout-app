@@ -9,6 +9,7 @@ const HOUR = 60 * 60 * 1000
 const spies = vi.hoisted(() => ({
   updates: [] as Record<string, unknown>[],
   ids: [] as string[],
+  closeError: null as { message: string } | null,
 }))
 
 const findBlockingOpenSession = vi.hoisted(() => vi.fn())
@@ -28,7 +29,7 @@ vi.mock("@/lib/supabase", () => {
       spies.ids.push(id)
       return chain
     },
-    is: () => Promise.resolve({ error: null }),
+    is: () => Promise.resolve({ error: spies.closeError }),
   }
   return { supabase: { from: () => chain } }
 })
@@ -62,6 +63,7 @@ describe("useStartSessionGuard", () => {
   beforeEach(() => {
     spies.updates = []
     spies.ids = []
+    spies.closeError = null
     findBlockingOpenSession.mockReset()
     resumeOrphanSession.mockReset()
     trackSessionEvent.mockReset()
@@ -97,7 +99,10 @@ describe("useStartSessionGuard", () => {
 
   it("Finish closes the orphan with its last set, then starts", async () => {
     const row = orphan("s1")
-    findBlockingOpenSession.mockResolvedValue(row)
+    // First guard call finds s1; the post-close re-run finds nothing.
+    findBlockingOpenSession
+      .mockResolvedValueOnce(row)
+      .mockResolvedValueOnce(null)
     const { result, commitStart } = mount()
 
     await act(async () => {
@@ -120,6 +125,43 @@ describe("useStartSessionGuard", () => {
     })
     expect(commitStart).toHaveBeenCalledWith({ skipCycle: true })
     expect(result.current.pending).toBeNull()
+  })
+
+  it("keeps the dialog open and does not start when the close fails", async () => {
+    findBlockingOpenSession.mockResolvedValue(orphan("s1"))
+    spies.closeError = { message: "boom" }
+    const { result, commitStart } = mount()
+
+    await act(async () => {
+      await result.current.guard({ skipCycle: true })
+    })
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    expect(commitStart).not.toHaveBeenCalled()
+    expect(result.current.pending?.orphan.id).toBe("s1")
+    expect(trackSessionEvent).not.toHaveBeenCalledWith(
+      "session_orphan_closed",
+      expect.anything(),
+    )
+  })
+
+  it("re-runs the guard after a close and surfaces a second blocker", async () => {
+    findBlockingOpenSession
+      .mockResolvedValueOnce(orphan("s1"))
+      .mockResolvedValueOnce(orphan("s2"))
+    const { result, commitStart } = mount()
+
+    await act(async () => {
+      await result.current.guard({ skipCycle: true })
+    })
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    expect(commitStart).not.toHaveBeenCalled()
+    expect(result.current.pending?.orphan.id).toBe("s2")
   })
 
   it("Resume reopens the orphan on its day and does not start", async () => {

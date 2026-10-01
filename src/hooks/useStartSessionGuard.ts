@@ -100,16 +100,20 @@ export function useStartSessionGuard({
 
   const finish = useCallback(async () => {
     if (!pending) return
+    // A zero-set row or an update error leaves the row open; starting anyway
+    // would recreate the second-open-row state this guard exists to prevent.
+    // Keep the dialog up so the user can still Resume.
     const closed = await closeBlockingSession(pending.orphan)
-    if (closed) {
-      trackSessionEvent("session_orphan_closed", {
-        cause: "start_guard",
-        session_id: pending.orphan.id,
-      })
-    }
+    if (!closed) return
+    trackSessionEvent("session_orphan_closed", {
+      cause: "start_guard",
+      session_id: pending.orphan.id,
+    })
+    const opts = pending.opts
     setPending(null)
-    await commitStart(pending.opts)
-  }, [pending, commitStart])
+    // Re-run the guard: closing one row does not rule out another blocker.
+    await guard(opts)
+  }, [pending, guard])
 
   const resume = useCallback(() => {
     if (!pending || !userId) return
