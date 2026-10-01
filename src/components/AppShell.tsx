@@ -37,7 +37,7 @@ export function AppShell() {
       {/* Viewport-locked: header is a sibling of <main>, not a sticky overlay.
           Body-scroll + sticky was cropping the session ExerciseStrip (#472). */}
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
-        <header className="flex shrink-0 items-center justify-between bg-background px-4 pb-2 pt-4">
+        <header className="flex shrink-0 items-center justify-between bg-background px-4 pb-2 pt-[calc(1rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -65,7 +65,7 @@ export function AppShell() {
           onDismiss={dismiss}
         />
 
-        <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin">
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin pb-[env(safe-area-inset-bottom)]">
           {/* Column is centered; scrolling stays on full-bleed <main> so the
               bar sits on the viewport edge, not inset at max-w-5xl. */}
           <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
