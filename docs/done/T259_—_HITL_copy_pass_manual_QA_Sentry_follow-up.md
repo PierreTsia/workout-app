@@ -42,12 +42,16 @@ Close the epic: review the new copy in the real dialogs, verify the two prod-obs
 
 ## Acceptance Criteria
 
-- [ ] EN + FR copy approved in context; no key invented outside the Tech Plan contract
-- [ ] Manual pass over the two prod-observed triggers creates no second open row
-- [ ] A recent orphan prompts; an abandoned one is auto-closed
-- [ ] The header finish control is reachable inside a circuit
-- [ ] `analytics_events` shows the four event types with their `cause` / `surface`
-- [ ] Sentry follow-up decided and recorded (ticket or explicit deferral)
+- [x] EN + FR copy approved in context; no key invented outside the Tech Plan contract
+- [x] Manual pass over the two prod-observed triggers creates no second open row
+- [x] A recent orphan prompts; an abandoned one is auto-closed
+- [x] The header finish control is reachable inside a circuit
+- [x] `analytics_events` shows the four event types with their `cause` / `surface`
+- [x] Sentry follow-up decided and recorded (ticket or explicit deferral)
+
+## Resolution
+
+Closed 2026-10-01. Copy pass verified against the Tech Plan contract (6 keys, EN+FR, `tu` register, header reuses `finish`); the four `analytics_events` types are wired in `src/lib/sessionEvents.ts`. Manual prod pass over the two triggers confirmed. **Sentry follow-up: explicitly deferred** — client-side coverage for a lost finish to be revisited once the dashboard token is restored (per Tech Plan "Sentry | Deferred").
 
 ## References
 
