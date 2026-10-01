@@ -261,6 +261,20 @@ function fingerprint(composite: string): string {
   return h.toString(36)
 }
 
+/**
+ * Strictly monotonic enqueue timestamp. `Date.now()` alone can return the same
+ * millisecond for two enqueues (e.g. a correction replacing an item while a
+ * drain is in flight), which makes the drain's snapshot/add detection treat a
+ * fresh item as the one it already processed and drop it. Bumping past the last
+ * value guarantees a replacement is distinguishable from its predecessor.
+ */
+let lastQueuedAt = 0
+function stamp(): number {
+  const now = Date.now()
+  lastQueuedAt = now > lastQueuedAt ? now : lastQueuedAt + 1
+  return lastQueuedAt
+}
+
 // ---------------------------------------------------------------------------
 // Session-meta resolution
 // ---------------------------------------------------------------------------
@@ -408,7 +422,7 @@ export function enqueueSetLog(payload: SetLogPayload): void {
     type: "set_log",
     payload,
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   }
@@ -435,7 +449,7 @@ export function enqueueBlockRun(payload: BlockRunPayload): void {
     type: "block_run",
     payload,
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   })
@@ -495,7 +509,7 @@ export function enqueueSessionFinish(
     type: "session_finish",
     payload,
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   }
@@ -529,7 +543,7 @@ export function enqueueDeviation(payload: DeviationPayload): void {
     type: "deviation",
     payload,
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   })
@@ -559,7 +573,7 @@ export function enqueueSessionNote(sessionId: string, note: string): void {
     type: "session_note",
     payload: { sessionId, note: note.trim() || null },
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   })
@@ -602,7 +616,7 @@ export function enqueueDeviationDelete(input: {
     type: "deviation_delete",
     payload: { ...input },
     realSessionId: meta.realId,
-    queuedAt: Date.now(),
+    queuedAt: stamp(),
     dedupeComposite: composite,
     fingerprint: fp,
   })
