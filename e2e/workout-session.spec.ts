@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect } from "./fixtures"
 
 test.describe("Workout session — full flow", () => {
   test.describe.configure({ timeout: 90_000 })

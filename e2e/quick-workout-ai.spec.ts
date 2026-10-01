@@ -15,7 +15,7 @@
 // GoTrue + RLS + FKs, which was the source of all flakiness on this spec
 // (see PR #347 discussion).
 
-import { test, expect } from "@playwright/test"
+import { test, expect } from "./fixtures"
 import { createClient } from "@supabase/supabase-js"
 
 const SUPABASE_URL = "http://127.0.0.1:54321"

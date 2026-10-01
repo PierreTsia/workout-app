@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect } from "./fixtures"
 
 /**
  * A block is one navigable slot in the session sequence (#351): it shows in the
