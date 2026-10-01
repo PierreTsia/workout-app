@@ -1,0 +1,23 @@
+name: release-please
+
+# Opens/updates the standing `chore(release): vX.Y.Z` PR from Conventional
+# Commits. Merging that PR cuts the tag + GitHub Release (and, via
+# release-deploy.yml, the prod deploy). `docs`/`chore`/`ci`/`test` never cut a
+# release, so a doc-only merge is inert. See ADR 0025.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
