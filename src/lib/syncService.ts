@@ -15,6 +15,7 @@ import {
 import { coerceNumeric } from "@/lib/achievementUtils"
 import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
+import type { DeviationPayload } from "@/lib/deviationCapture"
 
 // ---------------------------------------------------------------------------
 // Payload types (unchanged from stub)
@@ -112,8 +113,12 @@ export interface SessionFinishPayload {
 // ---------------------------------------------------------------------------
 
 interface QueueItem {
-  type: "set_log" | "session_finish" | "block_run"
-  payload: SetLogPayload | SessionFinishPayload | BlockRunPayload
+  type: "set_log" | "session_finish" | "block_run" | "deviation"
+  payload:
+    | SetLogPayload
+    | SessionFinishPayload
+    | BlockRunPayload
+    | DeviationPayload
   realSessionId: string
   queuedAt: number
   dedupeComposite: string
@@ -465,6 +470,38 @@ export function enqueueSessionFinish(
   updatePendingCount(userId)
 }
 
+/**
+ * Queue a Deviation Reason (T266). One item per (session × slot × set), so a
+ * corrected reason overwrites. A null `reasonCode` is kept — the skip is data.
+ * Offline-first, drained by the same queue as set logs.
+ */
+export function enqueueDeviation(payload: DeviationPayload): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueDeviation called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, payload.sessionId)
+  const slot = payload.workoutExerciseId ?? payload.exerciseId ?? "unknown"
+  const composite = `${meta.realId}|deviation|${slot}|${payload.setNumber}`
+  const fp = fingerprint(composite)
+
+  const queue = getQueue(userId)
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
+
+  filtered.push({
+    type: "deviation",
+    payload,
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
+  updatePendingCount(userId)
+}
+
 // ---------------------------------------------------------------------------
 // Cancel session — deny-list + queue surgery
 // ---------------------------------------------------------------------------
@@ -680,6 +717,9 @@ async function drainQueueOnce(userId: string): Promise<void> {
       } else if (item.type === "block_run") {
         const ok = await processBlockRun(item)
         if (!ok) surviving.push(item)
+      } else if (item.type === "deviation") {
+        const ok = await processDeviation(item)
+        if (!ok) surviving.push(item)
       } else {
         const ok = await processSessionFinish(item, userId)
         if (!ok) surviving.push(item)
@@ -893,6 +933,34 @@ async function processBlockRun(item: QueueItem): Promise<boolean> {
     return true
   } catch (e) {
     console.error("[SyncService] processBlockRun error", e)
+    return false
+  }
+}
+
+async function processDeviation(item: QueueItem): Promise<boolean> {
+  const p = item.payload as DeviationPayload
+  try {
+    const { error } = await supabase
+      .from("session_deviation_events")
+      .upsert(
+        {
+          session_id: item.realSessionId,
+          workout_exercise_id: p.workoutExerciseId ?? null,
+          exercise_id: p.exerciseId ?? null,
+          set_number: p.setNumber,
+          kind: p.kind,
+          reason_code: p.reasonCode,
+          note: p.note,
+        },
+        { onConflict: "session_id,workout_exercise_id,set_number,kind" },
+      )
+    if (error) {
+      console.error("[SyncService] deviation upsert failed", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processDeviation error", e)
     return false
   }
 }

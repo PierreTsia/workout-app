@@ -14,10 +14,12 @@ import type { SessionSetRow } from "@/lib/sessionSetRow"
 import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
+const enqueueDeviationMock = vi.fn()
 const scheduleImmediateDrainMock = vi.fn()
 
 vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: (...args: unknown[]) => enqueueSetLogMock(...args),
+  enqueueDeviation: (...args: unknown[]) => enqueueDeviationMock(...args),
   scheduleImmediateDrain: () => scheduleImmediateDrainMock(),
 }))
 
@@ -56,6 +58,32 @@ vi.mock("@/components/workout/RirDrawer", () => ({
       <div data-testid="rir-drawer">
         <button onClick={() => onConfirm(mockRirValue)} data-testid="rir-confirm">
           Confirm RIR
+        </button>
+      </div>
+    ) : null,
+}))
+
+vi.mock("@/components/workout/DeviationReasonSheet", () => ({
+  DeviationReasonSheet: ({
+    open,
+    onResolve,
+  }: {
+    open: boolean
+    onResolve: (reason: string | null, note: string | null) => void
+  }) =>
+    open ? (
+      <div data-testid="deviation-sheet">
+        <button
+          data-testid="deviation-save"
+          onClick={() => onResolve("fatigue", null)}
+        >
+          Save reason
+        </button>
+        <button
+          data-testid="deviation-skip"
+          onClick={() => onResolve(null, null)}
+        >
+          Skip
         </button>
       </div>
     ) : null,
@@ -104,6 +132,7 @@ const BASE_SESSION: SessionState = {
 describe("SetsTable", () => {
   beforeEach(() => {
     enqueueSetLogMock.mockClear()
+    enqueueDeviationMock.mockClear()
     mockRirValue = 2
     mockLibExercise = undefined
   })
@@ -168,6 +197,54 @@ describe("SetsTable", () => {
     expect(next.setsData["workout-ex-1"][0].done).toBe(true)
     expect(next.setsData["workout-ex-1"][0].rir).toBe(2)
     expect(next.totalSetsDone).toBe(1)
+  })
+
+  it("does not ask for a reason when the set matches the prescription", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(screen.queryByTestId("deviation-sheet")).not.toBeInTheDocument()
+    expect(enqueueDeviationMock).not.toHaveBeenCalled()
+  })
+
+  it("asks for a reason when the weight is changed, and records it on Save", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    const weightInput = screen.getAllByDisplayValue("60")[0]
+    await user.clear(weightInput)
+    await user.type(weightInput, "72.5")
+
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(screen.getByTestId("deviation-sheet")).toBeInTheDocument()
+
+    await user.click(screen.getByTestId("deviation-save"))
+
+    expect(enqueueDeviationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        workoutExerciseId: "workout-ex-1",
+        exerciseId: "library-ex-1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+      }),
+    )
   })
 
   // Cycle 13: SetsTable must populate the Prescription Snapshot fields on

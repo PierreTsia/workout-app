@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBestPerformanceAtom } from "@/store/atoms"
 import { primeAudio } from "@/lib/audio"
-import { enqueueSetLog, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSetLog, enqueueDeviation, scheduleImmediateDrain } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
@@ -25,6 +25,14 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { RirDrawer } from "@/components/workout/RirDrawer"
+import {
+  DeviationReasonSheet,
+  type DeviationSetInfo,
+} from "@/components/workout/DeviationReasonSheet"
+import {
+  buildLoadDeviationPayload,
+  isLoadDeviation,
+} from "@/lib/deviationCapture"
 import { DurationSetTimer } from "@/components/workout/DurationSetTimer"
 import {
   normalizeSessionSetRow,
@@ -154,6 +162,9 @@ export function SetsTable({
   }
 
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
+  const [deviationInfo, setDeviationInfo] = useState<DeviationSetInfo | null>(
+    null,
+  )
 
   const rawRows = session.setsData[exercise.id] ?? []
   const rows: SessionSetRow[] = rawRows.map((r) => normalizeSessionSetRow(r))
@@ -453,6 +464,23 @@ export function SetsTable({
         prescribedSets: prescriptionForLog.sets,
       })
       scheduleImmediateDrain()
+
+      if (
+        isLoadDeviation(
+          { reps: currentSet.reps, weight: currentSet.weight },
+          {
+            reps: prescriptionForLog.reps ?? 0,
+            weight: prescriptionForLog.weight ?? 0,
+          },
+        )
+      ) {
+        setDeviationInfo({
+          setNumber: setIdx + 1,
+          prescribed: String(prescriptionForLog.weight ?? 0),
+          actual: currentSet.weight,
+          unit,
+        })
+      }
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
 
@@ -959,6 +987,27 @@ export function SetsTable({
             : null
         }
         onConfirm={confirmRir}
+      />
+
+      <DeviationReasonSheet
+        open={deviationInfo !== null}
+        setInfo={deviationInfo}
+        onResolve={(reason, note) => {
+          if (deviationInfo) {
+            enqueueDeviation(
+              buildLoadDeviationPayload({
+                sessionId,
+                workoutExerciseId: exercise.id,
+                exerciseId: exercise.exercise_id,
+                setNumber: deviationInfo.setNumber,
+                reasonCode: reason,
+                note,
+              }),
+            )
+            scheduleImmediateDrain()
+          }
+          setDeviationInfo(null)
+        }}
       />
     </div>
   )

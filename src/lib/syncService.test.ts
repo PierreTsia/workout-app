@@ -47,6 +47,7 @@ let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
 let cyclesChain = createChain()
 let blockRunsChain = createChain()
+let deviationsChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -171,6 +172,7 @@ let peekSessionRealId: typeof import("./syncService").peekSessionRealId
 let enqueueBlockRun: typeof import("./syncService").enqueueBlockRun
 let discardBlockRun: typeof import("./syncService").discardBlockRun
 let queuedBlockRunFor: typeof import("./syncService").queuedBlockRunFor
+let enqueueDeviation: typeof import("./syncService").enqueueDeviation
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -217,6 +219,7 @@ describe("SyncService", () => {
     workoutExercisesChain = createChain()
     cyclesChain = createChain()
     blockRunsChain = createChain()
+    deviationsChain = createChain()
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
@@ -224,6 +227,7 @@ describe("SyncService", () => {
       if (table === "workout_exercises") return workoutExercisesChain
       if (table === "cycles") return cyclesChain
       if (table === "block_runs") return blockRunsChain
+      if (table === "session_deviation_events") return deviationsChain
       return createChain()
     })
 
@@ -243,6 +247,7 @@ describe("SyncService", () => {
     enqueueBlockRun = mod.enqueueBlockRun
     discardBlockRun = mod.discardBlockRun
     queuedBlockRunFor = mod.queuedBlockRunFor
+    enqueueDeviation = mod.enqueueDeviation
   })
 
   afterEach(() => {
@@ -1335,6 +1340,74 @@ describe("SyncService", () => {
       expect(queuedBlockRunFor("local-session-1", "blk-1")?.startedAt).toBe(
         5_000,
       )
+    })
+  })
+
+  describe("enqueueDeviation", () => {
+    it("enqueues a deviation item keyed on the slot and set", () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 2,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].type).toBe("deviation")
+      expect(queue[0].dedupeComposite).toContain(DETERMINISTIC_UUID)
+      expect(queue[0].dedupeComposite).toContain("we1")
+    })
+  })
+
+  describe("drainQueue — deviations", () => {
+    it("upserts a deviation row into session_deviation_events", async () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 2,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: "mal dormi",
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(readQueue()).toHaveLength(0)
+      expect(deviationsChain.upsert).toHaveBeenCalledTimes(1)
+      const [row] = deviationsChain.upsert.mock.calls[0]
+      expect(row).toEqual(
+        expect.objectContaining({
+          session_id: DETERMINISTIC_UUID,
+          workout_exercise_id: "we1",
+          exercise_id: "ex1",
+          set_number: 2,
+          kind: "load_deviation",
+          reason_code: "fatigue",
+          note: "mal dormi",
+        }),
+      )
+    })
+
+    it("keeps a deviation with no reason (skip) — reason_code null", async () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: null,
+        note: null,
+      })
+
+      await drainQueue(USER_ID)
+
+      const [row] = deviationsChain.upsert.mock.calls[0]
+      expect(row).toEqual(expect.objectContaining({ reason_code: null }))
     })
   })
 
