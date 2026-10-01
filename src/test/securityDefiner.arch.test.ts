@@ -318,7 +318,8 @@ const revokeAnon = (name: string) =>
 
 const grantExecute = (name: string) =>
   new RegExp(
-    `GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+(?:public\\.)?${name}\\s*\\([^)]*\\)\\s+TO\\s+([^;]+);`,
+    // `GRANT ALL [PRIVILEGES]` also grants EXECUTE — match both forms.
+    `GRANT\\s+(?:EXECUTE|ALL(?:\\s+PRIVILEGES)?)\\s+ON\\s+FUNCTION\\s+(?:public\\.)?${name}\\s*\\([^)]*\\)\\s+TO\\s+([^;]+);`,
     "gi",
   )
 
