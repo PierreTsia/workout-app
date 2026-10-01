@@ -1,6 +1,6 @@
 # Tech Plan — Prevent Orphan Sessions (#571)
 
-> Implements `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` — issue `PierreTsia/workout-app#571`. Context: ADR `file:docs/adr/0024-session-orphan-self-heal.md`, Tech Plan `file:docs/Tech_Plan_—_Session_Orphan_Self-Heal_#568.md`. Glossary: `file:docs/CONTEXT.md` (**Session**, **Cycle**).
+> Implements `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` — issue `PierreTsia/workout-app#571`. Context: ADR `file:docs/adr/0024-session-orphan-self-heal.md`, Tech Plan `file:docs/Tech_Plan_—_Session_Orphan_Self-Heal_#568.md`. Glossary: `file:docs/CONTEXT.md` (**Session**, **Cycle**).
 
 ---
 

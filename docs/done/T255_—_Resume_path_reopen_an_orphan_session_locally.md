@@ -48,6 +48,6 @@ Give the app a way to reopen an orphan session whose local atom is gone: seed th
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 5)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Resume mechanism / hydration)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 5)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Resume mechanism / hydration)
 - `file:src/lib/syncService.ts:240-291`, `file:src/components/workout/SetsTable.tsx:158`

@@ -61,6 +61,6 @@ Make finishing a partial session always reachable — including inside a circuit
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 3; scope D)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Finish affordance / trigger / extraction)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 3; scope D)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Finish affordance / trigger / extraction)
 - `file:src/components/workout/SessionNav.tsx:124-136`, `file:src/pages/WorkoutPage.tsx:995-1023`

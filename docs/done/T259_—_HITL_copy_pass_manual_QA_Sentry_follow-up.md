@@ -55,6 +55,6 @@ Closed 2026-10-01. Copy pass verified against the Tech Plan contract (6 keys, EN
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (Success Criteria)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (i18n contract, Delivery Pipeline)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (Success Criteria)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (i18n contract, Delivery Pipeline)
 - `.opencode/skills/microcopy/SKILL.md`
