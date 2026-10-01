@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   DEVIATION_REASONS,
+  isDeviationReason,
+  showsWeightAxis,
   type DeviationReason,
 } from "@/lib/deviationCapture"
 
@@ -56,7 +58,7 @@ export function DeviationReasonSheet({
     setNote("")
   }
 
-  const showWeight = setInfo ? setInfo.weightChanged || !setInfo.repsChanged : false
+  const showWeight = setInfo ? showsWeightAxis(setInfo) : false
 
   return (
     <Drawer
@@ -96,7 +98,7 @@ export function DeviationReasonSheet({
           type="single"
           value={reason ?? ""}
           onValueChange={(value) =>
-            setReason((value || null) as DeviationReason | null)
+            setReason(isDeviationReason(value) ? value : null)
           }
           aria-label={t("deviation.reasonGroupLabel")}
           className="flex flex-wrap gap-2 px-4 pb-2"

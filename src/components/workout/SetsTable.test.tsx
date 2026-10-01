@@ -15,11 +15,14 @@ import { SetsTable } from "./SetsTable"
 
 const enqueueSetLogMock = vi.fn()
 const enqueueDeviationMock = vi.fn()
+const enqueueDeviationDeleteMock = vi.fn()
 const scheduleImmediateDrainMock = vi.fn()
 
 vi.mock("@/lib/syncService", () => ({
   enqueueSetLog: (...args: unknown[]) => enqueueSetLogMock(...args),
   enqueueDeviation: (...args: unknown[]) => enqueueDeviationMock(...args),
+  enqueueDeviationDelete: (...args: unknown[]) =>
+    enqueueDeviationDeleteMock(...args),
   scheduleImmediateDrain: () => scheduleImmediateDrainMock(),
 }))
 
@@ -143,6 +146,7 @@ describe("SetsTable", () => {
   beforeEach(() => {
     enqueueSetLogMock.mockClear()
     enqueueDeviationMock.mockClear()
+    enqueueDeviationDeleteMock.mockClear()
     mockRirValue = 2
     mockLibExercise = undefined
     weightUnitState.unit = "kg"
@@ -304,6 +308,43 @@ describe("SetsTable", () => {
     await user.click(screen.getByTestId("rir-confirm"))
 
     expect(screen.getByTestId("deviation-sheet")).toBeInTheDocument()
+  })
+
+  it("tombstones the deviation when a re-log returns to the prescription", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    // Deviate and save a reason.
+    const weightInput = screen.getAllByDisplayValue("60")[0]
+    await user.clear(weightInput)
+    await user.type(weightInput, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(1)
+
+    // Uncheck, restore the prescription, re-log.
+    await user.click(screen.getAllByRole("checkbox")[0])
+    const weightAgain = screen.getAllByDisplayValue("72.5")[0]
+    await user.clear(weightAgain)
+    await user.type(weightAgain, "60")
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueDeviationDeleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        workoutExerciseId: "workout-ex-1",
+        exerciseId: "library-ex-1",
+        setNumber: 1,
+        kind: "load_deviation",
+      }),
+    )
   })
 
   // Cycle 13: SetsTable must populate the Prescription Snapshot fields on

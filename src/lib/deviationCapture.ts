@@ -30,6 +30,23 @@ export function deviationReasonKey(reason: DeviationReason | null): string {
   return reason ? `deviation.reason.${reason}` : "deviation.reason.none"
 }
 
+/** Narrow an untrusted string (a ToggleGroup value) to a known reason. */
+export function isDeviationReason(value: string): value is DeviationReason {
+  return (DEVIATION_REASONS as readonly string[]).includes(value)
+}
+
+/**
+ * Whether a deviation row should render the weight line. A reps-only deviation
+ * shows reps alone; anything else (weight changed, or no reps signal) shows the
+ * weight line. One rule, shared by the sheet and the debrief.
+ */
+export function showsWeightAxis(axes: {
+  weightChanged: boolean
+  repsChanged: boolean
+}): boolean {
+  return axes.weightChanged || !axes.repsChanged
+}
+
 /** Catalog row used to resolve a display name at render (ADR 0010). */
 export interface CatalogName {
   name: string | null

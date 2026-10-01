@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import {
   deviationReasonKey,
+  showsWeightAxis,
   type DebriefAdjustment,
 } from "@/lib/deviationCapture"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
@@ -29,8 +30,7 @@ export function SessionAdjustments({ adjustments }: SessionAdjustmentsProps) {
       ) : (
         <div className="divide-y divide-border rounded-xl bg-card">
           {adjustments.map((adjustment) => {
-            const showWeight =
-              adjustment.weightChanged || !adjustment.repsChanged
+            const showWeight = showsWeightAxis(adjustment)
             return (
               <div key={adjustment.id} className="flex flex-col gap-1 p-3">
                 <span className="text-sm font-medium">

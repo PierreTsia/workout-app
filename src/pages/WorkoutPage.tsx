@@ -734,7 +734,7 @@ export function WorkoutPage() {
         deviation,
         log,
         {
-          exerciseNameSnapshot: lib?.name ?? null,
+          exerciseNameSnapshot: lib?.name ?? log?.exerciseNameSnapshot ?? null,
           catalogExercise: lib ? { name: lib.name, name_en: lib.name_en } : null,
         },
         toDisplay,

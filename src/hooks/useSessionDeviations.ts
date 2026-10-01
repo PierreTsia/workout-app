@@ -52,31 +52,31 @@ export function useSessionDeviations(
           .select(
             "id, workout_exercise_id, exercise_id, set_number, reason_code, note",
           )
-          .eq("session_id", sessionId),
+          .eq("session_id", sessionId)
+          .returns<DeviationSelectRow[]>(),
         supabase
           .from("set_logs")
           .select(
             `workout_exercise_id, exercise_id, set_number, weight_logged, prescribed_weight, reps_logged, prescribed_reps, exercise_name_snapshot, exercise:exercises(${LABEL_EXERCISE_SELECT})`,
           )
-          .eq("session_id", sessionId),
+          .eq("session_id", sessionId)
+          .returns<LogSelectRow[]>(),
       ])
       if (deviationsRes.error) throw deviationsRes.error
       if (logsRes.error) throw logsRes.error
 
-      const deviations: DeviationRow[] = (
-        (deviationsRes.data ?? []) as DeviationSelectRow[]
-      ).map((row) => ({
-        id: row.id,
-        workoutExerciseId: row.workout_exercise_id,
-        exerciseId: row.exercise_id,
-        setNumber: row.set_number,
-        reasonCode: row.reason_code as DeviationReason | null,
-        note: row.note,
-      }))
+      const deviations: DeviationRow[] = (deviationsRes.data ?? []).map(
+        (row) => ({
+          id: row.id,
+          workoutExerciseId: row.workout_exercise_id,
+          exerciseId: row.exercise_id,
+          setNumber: row.set_number,
+          reasonCode: row.reason_code as DeviationReason | null,
+          note: row.note,
+        }),
+      )
 
-      const logs: SessionLogRow[] = (
-        (logsRes.data ?? []) as unknown as LogSelectRow[]
-      ).map((row) => ({
+      const logs: SessionLogRow[] = (logsRes.data ?? []).map((row) => ({
         workoutExerciseId: row.workout_exercise_id,
         exerciseId: row.exercise_id,
         setNumber: row.set_number,
