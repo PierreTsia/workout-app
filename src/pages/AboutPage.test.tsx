@@ -1,7 +1,15 @@
-import { describe, it, expect } from "vitest"
-import { screen } from "@testing-library/react"
+import { describe, it, expect, vi } from "vitest"
+import { screen, waitFor } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
 import { AboutPage } from "./AboutPage"
+
+vi.mock("@/lib/releaseVersion", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/releaseVersion")>()
+  return {
+    ...actual,
+    fetchReleaseVersion: vi.fn().mockResolvedValue("1.2.3"),
+  }
+})
 
 describe("AboutPage", () => {
   function renderAbout() {
@@ -75,5 +83,21 @@ describe("AboutPage", () => {
     renderAbout()
     const navLink = screen.getByRole("link", { name: /Go to app/i })
     expect(navLink).toHaveAttribute("href", "/")
+  })
+
+  it("renders the release version and a link to the releases in a new tab", async () => {
+    renderAbout()
+
+    await waitFor(() =>
+      expect(screen.getByText("Version 1.2.3")).toBeInTheDocument(),
+    )
+
+    const releasesLink = screen.getByRole("link", { name: /Release notes/i })
+    expect(releasesLink).toHaveAttribute(
+      "href",
+      "https://github.com/PierreTsia/workout-app/releases",
+    )
+    expect(releasesLink).toHaveAttribute("target", "_blank")
+    expect(releasesLink).toHaveAttribute("rel", "noopener noreferrer")
   })
 })

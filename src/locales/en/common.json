@@ -53,5 +53,8 @@
   "oauthConsentDeniedTitle": "Authorization denied",
   "oauthConsentSuccessHint": "Return to the app to continue. You can close this tab.",
   "learnAboutGymLogic": "Learn about GymLogic ↗",
-  "docs": "Docs"
+  "docs": "Docs",
+  "releaseVersion": "Version {{version}}",
+  "releaseNotes": "Release notes",
+  "opensInNewTab": "(opens in a new tab)"
 }

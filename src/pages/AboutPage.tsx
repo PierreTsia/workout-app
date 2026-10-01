@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ReleaseVersionLink } from "@/components/ReleaseVersionLink"
 import { publicSite } from "@/lib/publicSite"
 
 const GITHUB_REPO = "https://github.com/PierreTsia/workout-app"
@@ -124,6 +125,7 @@ export function AboutPage() {
                 <ExternalLink className="ml-2 h-3 w-3" />
               </a>
             </Button>
+            <ReleaseVersionLink className="mt-4 text-sm text-zinc-500" />
           </AboutSection>
 
           <AboutSection title={t("supportTitle")}>

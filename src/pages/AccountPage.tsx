@@ -37,6 +37,7 @@ import {
 import { useUpdateUserProfile } from "@/hooks/useUpdateUserProfile"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { BadgeShowcase } from "@/components/achievements/BadgeShowcase"
+import { ReleaseVersionLink } from "@/components/ReleaseVersionLink"
 
 const LBS_TO_KG = 0.453592
 
@@ -390,6 +391,8 @@ export function AccountPage() {
           </AlertDialogContent>
         </AlertDialog>
       </section>
+
+      <ReleaseVersionLink className="pt-1 text-center text-xs text-muted-foreground" />
     </div>
   )
 }

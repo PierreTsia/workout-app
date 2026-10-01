@@ -15,6 +15,7 @@ Close the epic: enable the function deploy, seed the `v1.0.0` baseline, and conf
 1. **Secret** — add `SUPABASE_ACCESS_TOKEN` (a Supabase personal access token) to the repo Actions secrets. Without it `deploy-functions` no-ops. Decision: set it now, or defer and keep function deploys manual.
 2. **Baseline** — create the `v1.0.0` tag + GitHub Release at the setup commit (manifest already `1.0.0`), so release-please starts from `1.0.1+`.
 3. **Verify** — merge a `feat`/`fix` PR, confirm the release PR opens; merge it, confirm tag + release + notes + path-gated deploys; confirm `package.json` == tag == `SERVER_INFO.version`; confirm a doc-only merge produces nothing.
+4. **Repo setting + release-PR token** — enable *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests* (done), and set a `RELEASE_PLEASE_TOKEN` secret (fine-grained PAT, *Contents* + *Pull requests: write*). Without it the release PR is created with the default `GITHUB_TOKEN`, never runs its own CI, and stays **blocked** on the required checks.
 
 ## Out of Scope
 
@@ -27,6 +28,7 @@ Close the epic: enable the function deploy, seed the `v1.0.0` baseline, and conf
 - [ ] A `feat`/`fix` merge opens the release PR; merging it cuts `vX.Y.Z` and deploys only what changed.
 - [ ] A doc-only merge cuts nothing and deploys nothing.
 - [ ] `package.json` / tag / `SERVER_INFO.version` agree.
+- [ ] Actions allowed to create PRs; `RELEASE_PLEASE_TOKEN` set so the release PR runs CI.
 
 ## References
 

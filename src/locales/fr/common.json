@@ -53,5 +53,8 @@
   "oauthConsentDeniedTitle": "Autorisation refusée",
   "oauthConsentSuccessHint": "Retournez à l'application pour continuer. Vous pouvez fermer cet onglet.",
   "learnAboutGymLogic": "Découvrir GymLogic ↗",
-  "docs": "Docs"
+  "docs": "Docs",
+  "releaseVersion": "Version {{version}}",
+  "releaseNotes": "Notes de version",
+  "opensInNewTab": "(ouvre un nouvel onglet)"
 }

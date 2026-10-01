@@ -28,6 +28,12 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@v4
         with:
+          # A PAT (fine-grained, Contents + Pull requests: write) makes the
+          # release PR run CI: a PR opened with the default GITHUB_TOKEN
+          # suppresses its own `pull_request` workflows, so the release PR would
+          # stay BLOCKED on the required checks. Falls back to GITHUB_TOKEN when
+          # the secret is unset (the release PR then needs an admin merge).
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 

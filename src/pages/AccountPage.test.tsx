@@ -74,6 +74,14 @@ vi.mock("@/lib/avatarUpload", () => ({
   removeUserAvatarFiles: vi.fn(),
 }))
 
+vi.mock("@/lib/releaseVersion", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/releaseVersion")>()
+  return {
+    ...actual,
+    fetchReleaseVersion: vi.fn().mockResolvedValue("1.2.3"),
+  }
+})
+
 const TEST_USER = { id: "uid-1", email: "test@example.com" } as unknown as User
 
 function renderPage() {
@@ -161,5 +169,29 @@ describe("AccountPage — danger zone", () => {
     // Re-open dialog — input should be empty
     await user.click(screen.getByRole("button", { name: /delete my account/i }))
     expect(screen.getByPlaceholderText("DELETE")).toHaveValue("")
+  })
+})
+
+describe("AccountPage — release version", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockDeleteMutateAsync.mockResolvedValue(undefined)
+    mockUpdateMutateAsync.mockResolvedValue(mockProfile)
+  })
+
+  it("shows the release version and links to the releases in a new tab", async () => {
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.getByText("Version 1.2.3")).toBeInTheDocument(),
+    )
+
+    const releasesLink = screen.getByRole("link", { name: /Release notes/i })
+    expect(releasesLink).toHaveAttribute(
+      "href",
+      "https://github.com/PierreTsia/workout-app/releases",
+    )
+    expect(releasesLink).toHaveAttribute("target", "_blank")
+    expect(releasesLink).toHaveAttribute("rel", "noopener noreferrer")
   })
 })
