@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { resolveAuth, UnauthorizedError } from "./lib/auth.ts"
 import { getPublicMcpUrl } from "./lib/publicUrl.ts"
+import { versionResponse } from "./lib/versionRoute.ts"
 import { toolRegistry } from "./tools/registry.ts"
 import { resourceRegistry } from "./resources/registry.ts"
 
@@ -142,9 +143,8 @@ Deno.serve(async (req) => {
     // Public, unauthenticated version read for the SPA: the single release
     // number (same value External MCP Clients read), so the app can display it
     // without baking a number that a backend-only release would leave stale.
-    if (url.pathname.endsWith("/version")) {
-      return json({ version: SERVER_INFO.version })
-    }
+    const versionBody = versionResponse(url.pathname, SERVER_INFO.version)
+    if (versionBody) return json(versionBody)
     const wellKnown = await handleWellKnown(url, publicMcpUrl)
     if (wellKnown) return wellKnown
     return json(fail(null, -32600, "Only POST is supported"), 405)

@@ -21,6 +21,7 @@ export function ReleaseVersionLink({ className }: { className?: string }) {
         className="font-medium underline-offset-2 hover:underline"
       >
         {t("releaseNotes")}
+        <span className="sr-only"> {t("opensInNewTab")}</span>
         <ExternalLink className="ml-1 inline h-3 w-3" aria-hidden />
       </a>
     </p>

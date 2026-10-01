@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
-import { fetchReleaseVersion } from "@/lib/releaseVersion"
+import {
+  BUILD_RELEASE_VERSION,
+  fetchReleaseVersion,
+} from "@/lib/releaseVersion"
 import { ReleaseVersionLink } from "./ReleaseVersionLink"
 
 vi.mock("@/lib/releaseVersion", async (importOriginal) => {
@@ -34,12 +37,14 @@ describe("ReleaseVersionLink", () => {
     expect(link).toHaveAttribute("rel", "noopener noreferrer")
   })
 
-  it("falls back to the build version when the fetch returns null", async () => {
+  it("falls back to the exact build version when the fetch returns null", async () => {
     mockedFetch.mockResolvedValue(null)
 
     renderWithProviders(<ReleaseVersionLink />)
 
     await waitFor(() => expect(mockedFetch).toHaveBeenCalled())
-    expect(screen.getByText(/^Version /)).toBeInTheDocument()
+    expect(
+      screen.getByText(`Version ${BUILD_RELEASE_VERSION}`),
+    ).toBeInTheDocument()
   })
 })

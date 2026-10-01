@@ -55,5 +55,6 @@
   "learnAboutGymLogic": "Découvrir GymLogic ↗",
   "docs": "Docs",
   "releaseVersion": "Version {{version}}",
-  "releaseNotes": "Notes de version"
+  "releaseNotes": "Notes de version",
+  "opensInNewTab": "(ouvre un nouvel onglet)"
 }

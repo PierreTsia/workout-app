@@ -18,7 +18,6 @@ export function useReleaseVersion(): string {
     queryFn: fetchReleaseVersion,
     retry: 0,
     staleTime: ONE_HOUR,
-    gcTime: Infinity,
     refetchOnWindowFocus: false,
   })
   return data ?? BUILD_RELEASE_VERSION
