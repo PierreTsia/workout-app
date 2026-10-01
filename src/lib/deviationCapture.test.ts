@@ -4,6 +4,7 @@ import {
   buildLoadDeviationPayload,
   deviationReasonKey,
   isLoadDeviation,
+  mergeSessionDeviations,
 } from "@/lib/deviationCapture"
 
 type Row = { reps: string; weight: string }
@@ -129,5 +130,64 @@ describe("buildAdjustment", () => {
 
     expect(adjustment.prescribed).toBe("—")
     expect(adjustment.actual).toBe("—")
+  })
+
+  it("rounds the converted numbers to one decimal (lbs noise)", () => {
+    const adjustment = buildAdjustment(
+      deviation,
+      { weightLogged: 30, prescribedWeight: 27.5 },
+      "Bench Press",
+      (kg) => kg * 2.20462,
+      "lbs",
+    )
+
+    expect(adjustment.prescribed).toBe("60.6")
+    expect(adjustment.actual).toBe("66.1")
+  })
+})
+
+describe("mergeSessionDeviations", () => {
+  const deviationRow = {
+    id: "d1",
+    workoutExerciseId: "we1",
+    exerciseId: "ex1",
+    setNumber: 2,
+    reasonCode: "fatigue" as const,
+    note: "mal dormi",
+  }
+
+  it("joins a deviation to its logged set for name and numbers", () => {
+    const rows = mergeSessionDeviations(
+      [deviationRow],
+      [
+        {
+          workoutExerciseId: "we1",
+          exerciseId: "ex1",
+          setNumber: 2,
+          weightLogged: 72.5,
+          prescribedWeight: 80,
+          exerciseNameSnapshot: "Bench Press",
+        },
+      ],
+      (kg) => kg,
+      "kg",
+    )
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      exerciseName: "Bench Press",
+      prescribed: "80",
+      actual: "72.5",
+      reasonCode: "fatigue",
+      note: "mal dormi",
+    })
+  })
+
+  it("still lists a deviation whose set log is missing (degraded, not hidden)", () => {
+    const rows = mergeSessionDeviations([deviationRow], [], (kg) => kg, "kg")
+
+    expect(rows).toHaveLength(1)
+    expect(rows[0].prescribed).toBe("—")
+    expect(rows[0].actual).toBe("—")
   })
 })

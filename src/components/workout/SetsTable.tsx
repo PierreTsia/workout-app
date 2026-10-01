@@ -465,18 +465,20 @@ export function SetsTable({
       })
       scheduleImmediateDrain()
 
+      // Compare in the athlete's display unit: `currentSet.weight` is display
+      // (kg or lbs), the prescription is stored in kg. Without converting, an
+      // lbs user looks like a deviation on every conforming set.
+      const prescribedDisplay =
+        Math.round(toDisplay(prescriptionForLog.weight ?? 0) * 10) / 10
       if (
         isLoadDeviation(
           { reps: currentSet.reps, weight: currentSet.weight },
-          {
-            reps: prescriptionForLog.reps ?? 0,
-            weight: prescriptionForLog.weight ?? 0,
-          },
+          { reps: prescriptionForLog.reps ?? 0, weight: prescribedDisplay },
         )
       ) {
         setDeviationInfo({
           setNumber: setIdx + 1,
-          prescribed: String(prescriptionForLog.weight ?? 0),
+          prescribed: String(prescribedDisplay),
           actual: currentSet.weight,
           unit,
         })

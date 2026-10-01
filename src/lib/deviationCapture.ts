@@ -49,6 +49,14 @@ type AdjustmentLog = {
 
 const EM_DASH = "—"
 
+/** Convert kg to the athlete's display unit, rounded to one decimal. */
+function formatDisplayWeight(
+  kg: number,
+  toDisplay: (kg: number) => number,
+): string {
+  return String(Math.round(toDisplay(kg) * 10) / 10)
+}
+
 /**
  * Join a captured deviation with its logged set into a display-ready debrief
  * row. `toDisplay` converts the stored kg to the athlete's unit; a missing log
@@ -67,10 +75,12 @@ export function buildAdjustment(
   const slot = deviation.workoutExerciseId ?? deviation.exerciseId ?? "?"
   const prescribed =
     log?.prescribedWeight != null
-      ? String(toDisplay(log.prescribedWeight))
+      ? formatDisplayWeight(log.prescribedWeight, toDisplay)
       : EM_DASH
   const actual =
-    log?.weightLogged != null ? String(toDisplay(log.weightLogged)) : EM_DASH
+    log?.weightLogged != null
+      ? formatDisplayWeight(log.weightLogged, toDisplay)
+      : EM_DASH
 
   return {
     id: `${slot}|${deviation.setNumber}`,
@@ -82,6 +92,66 @@ export function buildAdjustment(
     reasonCode: deviation.reasonCode,
     note: deviation.note,
   }
+}
+
+/** A `session_deviation_events` row as read from the DB. */
+export type DeviationRow = {
+  id: string
+  workoutExerciseId: string | null
+  exerciseId: string | null
+  setNumber: number | null
+  reasonCode: DeviationReason | null
+  note: string | null
+}
+
+/** A `set_logs` row reduced to what the debrief needs. */
+export type SessionLogRow = {
+  workoutExerciseId: string | null
+  exerciseId: string | null
+  setNumber: number
+  weightLogged: number | null
+  prescribedWeight: number | null
+  exerciseNameSnapshot: string | null
+}
+
+/**
+ * Join deviation rows to their logged sets for the S3 debrief (T267). Reads the
+ * table, not the offline queue — the queue is drained before the finish screen
+ * renders. A deviation whose set log cannot be matched still appears, numbers
+ * degraded to an em dash, so the reason is never hidden.
+ */
+export function mergeSessionDeviations(
+  deviations: DeviationRow[],
+  logs: SessionLogRow[],
+  toDisplay: (kg: number) => number,
+  unit: string,
+): DebriefAdjustment[] {
+  return deviations.map((deviation) => {
+    const slot = deviation.workoutExerciseId ?? deviation.exerciseId
+    const log = logs.find(
+      (l) =>
+        (l.workoutExerciseId ?? l.exerciseId) === slot &&
+        l.setNumber === deviation.setNumber,
+    )
+    return buildAdjustment(
+      {
+        workoutExerciseId: deviation.workoutExerciseId,
+        exerciseId: deviation.exerciseId,
+        setNumber: deviation.setNumber ?? 0,
+        reasonCode: deviation.reasonCode,
+        note: deviation.note,
+      },
+      log
+        ? {
+            weightLogged: log.weightLogged ?? undefined,
+            prescribedWeight: log.prescribedWeight,
+          }
+        : undefined,
+      log?.exerciseNameSnapshot ?? "Exercise",
+      toDisplay,
+      unit,
+    )
+  })
 }
 
 export type LoadDeviationInput = {

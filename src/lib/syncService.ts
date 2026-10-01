@@ -992,22 +992,37 @@ async function processBlockRun(item: QueueItem): Promise<boolean> {
 async function processDeviation(item: QueueItem): Promise<boolean> {
   const p = item.payload as DeviationPayload
   try {
-    const { error } = await supabase
+    const row = {
+      session_id: item.realSessionId,
+      workout_exercise_id: p.workoutExerciseId ?? null,
+      exercise_id: p.exerciseId ?? null,
+      set_number: p.setNumber,
+      kind: p.kind,
+      reason_code: p.reasonCode,
+      note: p.note,
+    }
+    const onConflict = "session_id,workout_exercise_id,set_number,kind"
+    const first = await supabase
+      .from("session_deviation_events")
+      .upsert(row, { onConflict })
+    const hasRefs =
+      row.workout_exercise_id != null || row.exercise_id != null
+    if (first.error?.code !== "23503" || !hasRefs) {
+      if (first.error) {
+        console.error("[SyncService] deviation upsert failed", first.error)
+        return false
+      }
+      return true
+    }
+    // Template row gone (deleted exercise/slot): keep the reason, drop the refs.
+    const retry = await supabase
       .from("session_deviation_events")
       .upsert(
-        {
-          session_id: item.realSessionId,
-          workout_exercise_id: p.workoutExerciseId ?? null,
-          exercise_id: p.exerciseId ?? null,
-          set_number: p.setNumber,
-          kind: p.kind,
-          reason_code: p.reasonCode,
-          note: p.note,
-        },
-        { onConflict: "session_id,workout_exercise_id,set_number,kind" },
+        { ...row, workout_exercise_id: null, exercise_id: null },
+        { onConflict },
       )
-    if (error) {
-      console.error("[SyncService] deviation upsert failed", error)
+    if (retry.error) {
+      console.error("[SyncService] deviation upsert retry failed", retry.error)
       return false
     }
     return true

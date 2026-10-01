@@ -105,6 +105,7 @@ import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
 import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
 import { SessionSummary } from "@/components/workout/SessionSummary"
 import { buildAdjustment, type DebriefAdjustment } from "@/lib/deviationCapture"
+import { useSessionDeviations } from "@/hooks/useSessionDeviations"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
@@ -247,9 +248,6 @@ export function WorkoutPage() {
     enabled: !finished,
   })
   const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
-  const [finishedAdjustments, setFinishedAdjustments] = useState<
-    DebriefAdjustment[]
-  >([])
   const [finishedSessionId, setFinishedSessionId] = useState("no-session")
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
@@ -708,6 +706,39 @@ export function WorkoutPage() {
     return queuedSetLogPayloadsForSession(sessionId)
   }, [sessionId, queuePendingCount])
 
+  // S3 debrief (T267): read the finished session's deviations from the table.
+  // Falls back to the offline queue while a drain is still pending.
+  const finishedRealId =
+    user != null ? peekSessionRealId(user.id, finishedSessionId) : null
+  const { data: dbAdjustments = [] } = useSessionDeviations(
+    finishedRealId,
+    toDisplay,
+    unit,
+  )
+  const adjustments = useMemo<DebriefAdjustment[]>(() => {
+    if (dbAdjustments.length > 0) return dbAdjustments
+    const queuedLogs = queuedSetLogPayloadsForSession(finishedSessionId)
+    const nameById = new Map(
+      exercises.map((e) => [e.exercise_id, e.name_snapshot] as const),
+    )
+    return queuedDeviationsForSession(finishedSessionId).map((deviation) => {
+      const slot = deviation.workoutExerciseId ?? deviation.exerciseId
+      const log = queuedLogs.find(
+        (l) =>
+          (l.workoutExerciseId ?? l.exerciseId) === slot &&
+          l.setNumber === deviation.setNumber,
+      )
+      return buildAdjustment(
+        deviation,
+        log,
+        (deviation.exerciseId && nameById.get(deviation.exerciseId)) ||
+          "Exercise",
+        toDisplay,
+        unit,
+      )
+    })
+  }, [dbAdjustments, finishedSessionId, exercises, toDisplay, unit])
+
   useEffect(() => {
     if (!session.isActive || !user?.id || !currentExercise) return
     const lib = exerciseById.get(currentExercise.exercise_id)
@@ -1004,29 +1035,7 @@ export function WorkoutPage() {
     }
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
-    const queuedLogs = queuedSetLogPayloadsForSession(sessionId)
-    const exerciseNameById = new Map(
-      exercises.map((e) => [e.exercise_id, e.name_snapshot] as const),
-    )
     setFinishedSessionId(sessionId)
-    setFinishedAdjustments(
-      queuedDeviationsForSession(sessionId).map((deviation) => {
-        const slot = deviation.workoutExerciseId ?? deviation.exerciseId
-        const log = queuedLogs.find(
-          (l) =>
-            (l.workoutExerciseId ?? l.exerciseId) === slot &&
-            l.setNumber === deviation.setNumber,
-        )
-        return buildAdjustment(
-          deviation,
-          log,
-          (deviation.exerciseId && exerciseNameById.get(deviation.exerciseId)) ||
-            "Exercise",
-          toDisplay,
-          unit,
-        )
-      }),
-    )
     setFinishedStats({
       exercisesCompleted: slotsCompleted,
       setsDone,
@@ -1205,7 +1214,7 @@ export function WorkoutPage() {
         quickWorkoutName={finishedQuickInfo?.name}
         cycleComplete={cycleProgress.isComplete}
         cycleId={session.cycleId}
-        adjustments={finishedAdjustments}
+        adjustments={adjustments}
         onSaveNote={(note) => {
           enqueueSessionNote(finishedSessionId, note)
           scheduleImmediateDrain()
