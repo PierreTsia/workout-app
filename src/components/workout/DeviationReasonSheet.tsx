@@ -107,7 +107,11 @@ export function DeviationReasonSheet({
             <ToggleGroupItem
               key={code}
               value={code}
-              className="rounded-lg border border-border px-3 py-2 text-sm data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              className={
+                reason === code
+                  ? "rounded-lg border border-primary bg-primary px-3 py-2 text-sm text-primary-foreground"
+                  : "rounded-lg border border-border bg-transparent px-3 py-2 text-sm text-foreground"
+              }
             >
               {t(`deviation.reason.${code}`)}
             </ToggleGroupItem>

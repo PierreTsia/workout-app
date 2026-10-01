@@ -50,6 +50,18 @@ describe("DeviationReasonSheet", () => {
     expect(onResolve).toHaveBeenCalledWith("fatigue", null)
   })
 
+  it("marks the selected reason visually", async () => {
+    const user = userEvent.setup()
+    renderWithProviders(
+      <DeviationReasonSheet open setInfo={SET_INFO} onResolve={vi.fn()} />,
+    )
+
+    const fatigue = screen.getByRole("radio", { name: "Fatigue" })
+    await user.click(fatigue)
+
+    expect(fatigue).toHaveClass("bg-primary")
+  })
+
   it("resolves a null reason on Skip — the skip is data", async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn()
