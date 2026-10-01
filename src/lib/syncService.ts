@@ -15,6 +15,7 @@ import {
 import { coerceNumeric } from "@/lib/achievementUtils"
 import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
+import type { DeviationKind, DeviationPayload } from "@/lib/deviationCapture"
 
 // ---------------------------------------------------------------------------
 // Payload types (unchanged from stub)
@@ -107,13 +108,40 @@ export interface SessionFinishPayload {
   closeCycleOnComplete?: boolean
 }
 
+/** Optional one-line session note (T267). Null clears the column. */
+export interface SessionNotePayload {
+  sessionId: string
+  note: string | null
+}
+
+/** Tombstone: a re-log returned the set to its prescription (T266). */
+export interface DeviationDeletePayload {
+  sessionId: string
+  workoutExerciseId: string | null
+  exerciseId: string | null
+  setNumber: number
+  kind: DeviationKind
+}
+
 // ---------------------------------------------------------------------------
 // Internal types
 // ---------------------------------------------------------------------------
 
 interface QueueItem {
-  type: "set_log" | "session_finish" | "block_run"
-  payload: SetLogPayload | SessionFinishPayload | BlockRunPayload
+  type:
+    | "set_log"
+    | "session_finish"
+    | "block_run"
+    | "deviation"
+    | "deviation_delete"
+    | "session_note"
+  payload:
+    | SetLogPayload
+    | SessionFinishPayload
+    | BlockRunPayload
+    | DeviationPayload
+    | DeviationDeletePayload
+    | SessionNotePayload
   realSessionId: string
   queuedAt: number
   dedupeComposite: string
@@ -331,6 +359,18 @@ export function queuedSetLogPayloadsForSession(
     .map((item) => item.payload as SetLogPayload)
 }
 
+/** Deviation payloads still in the offline queue for a local session id. */
+export function queuedDeviationsForSession(
+  localSessionId: string,
+): DeviationPayload[] {
+  const userId = getUserId()
+  if (!userId) return []
+  return getQueue(userId)
+    .filter((item) => item.type === "deviation")
+    .filter((item) => item.payload.sessionId === localSessionId)
+    .map((item) => item.payload as DeviationPayload)
+}
+
 // ---------------------------------------------------------------------------
 // Enqueue
 // ---------------------------------------------------------------------------
@@ -462,6 +502,111 @@ export function enqueueSessionFinish(
 
   queue.push(item)
   setQueue(userId, queue)
+  updatePendingCount(userId)
+}
+
+/**
+ * Queue a Deviation Reason (T266). One item per (session × slot × set), so a
+ * corrected reason overwrites. A null `reasonCode` is kept — the skip is data.
+ * Offline-first, drained by the same queue as set logs.
+ */
+export function enqueueDeviation(payload: DeviationPayload): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueDeviation called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, payload.sessionId)
+  const slot = payload.workoutExerciseId ?? payload.exerciseId ?? "unknown"
+  const composite = `${meta.realId}|deviation|${slot}|${payload.setNumber}`
+  const fp = fingerprint(composite)
+
+  const queue = getQueue(userId)
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
+
+  filtered.push({
+    type: "deviation",
+    payload,
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
+  updatePendingCount(userId)
+}
+
+/**
+ * Queue the optional one-line session note (T267). One item per session, so a
+ * re-typed note overwrites; a blank note clears the column. Offline-first.
+ */
+export function enqueueSessionNote(sessionId: string, note: string): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueSessionNote called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, sessionId)
+  const composite = `${meta.realId}|session_note`
+  const fp = fingerprint(composite)
+
+  const queue = getQueue(userId)
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
+
+  filtered.push({
+    type: "session_note",
+    payload: { sessionId, note: note.trim() || null },
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
+  updatePendingCount(userId)
+}
+
+/**
+ * Tombstone a deviation that no longer holds: the athlete unchecked the set,
+ * restored the prescription, and logged it again (T266). Same identity, so a
+ * later event for the same set is replaced by a delete on drain.
+ */
+export function enqueueDeviationDelete(input: {
+  sessionId: string
+  workoutExerciseId: string | null
+  exerciseId: string | null
+  setNumber: number
+  kind: DeviationKind
+}): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueDeviationDelete called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, input.sessionId)
+  const slot = input.workoutExerciseId ?? input.exerciseId ?? "unknown"
+  const composite = `${meta.realId}|deviation_delete|${slot}|${input.setNumber}`
+  const fp = fingerprint(composite)
+
+  const queue = getQueue(userId)
+  // Drop a pending re-add for the same identity — the delete supersedes it.
+  const addComposite = `${meta.realId}|deviation|${slot}|${input.setNumber}`
+  const addFp = fingerprint(addComposite)
+  const filtered = queue.filter(
+    (item) => item.fingerprint !== fp && item.fingerprint !== addFp,
+  )
+
+  filtered.push({
+    type: "deviation_delete",
+    payload: { ...input },
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
   updatePendingCount(userId)
 }
 
@@ -680,6 +825,15 @@ async function drainQueueOnce(userId: string): Promise<void> {
       } else if (item.type === "block_run") {
         const ok = await processBlockRun(item)
         if (!ok) surviving.push(item)
+      } else if (item.type === "deviation") {
+        const ok = await processDeviation(item)
+        if (!ok) surviving.push(item)
+      } else if (item.type === "deviation_delete") {
+        const ok = await processDeviationDelete(item)
+        if (!ok) surviving.push(item)
+      } else if (item.type === "session_note") {
+        const ok = await processSessionNote(item, userId)
+        if (!ok) surviving.push(item)
       } else {
         const ok = await processSessionFinish(item, userId)
         if (!ok) surviving.push(item)
@@ -692,13 +846,23 @@ async function drainQueueOnce(userId: string): Promise<void> {
   // now).  Without this, those newly-added items would be silently discarded
   // when we write back only the surviving (failed) items.
   const currentQueue = getQueue(userId)
-  const snapshotFingerprints = new Set(queue.map((i) => i.fingerprint))
+  // Key on fingerprint AND queuedAt: a corrected item enqueued during the drain
+  // replaced the old one in place (same fingerprint), so fingerprint alone would
+  // drop the correction. Re-queued items get a fresh queuedAt.
+  const snapshotKeys = new Set(
+    queue.map((i) => `${i.fingerprint}:${i.queuedAt}`),
+  )
   const addedDuringDrain = currentQueue.filter(
-    (item) => !snapshotFingerprints.has(item.fingerprint),
+    (item) => !snapshotKeys.has(`${item.fingerprint}:${item.queuedAt}`),
   )
 
-  // Persist surviving (failed) items + items added during this drain run
-  setQueue(userId, [...addedDuringDrain, ...surviving])
+  // Persist surviving (failed) items + items added during this drain run.
+  // Dedupe by fingerprint, newest wins: a correction that superseded a failed
+  // snapshot item must not leave both versions behind.
+  const merged = new Map(
+    [...surviving, ...addedDuringDrain].map((i) => [i.fingerprint, i] as const),
+  )
+  setQueue(userId, [...merged.values()])
   updatePendingCount(userId)
 
   if (surviving.length === 0) {
@@ -734,6 +898,7 @@ async function drainQueueOnce(userId: string): Promise<void> {
     queryClient.invalidateQueries({ queryKey: ["exercise-trend", exId] })
   }
   queryClient.invalidateQueries({ queryKey: ["sessions"] })
+  queryClient.invalidateQueries({ queryKey: ["session-deviations"] })
   queryClient.invalidateQueries({ queryKey: ["last-session-for-day"] })
   queryClient.invalidateQueries({ queryKey: ["progression-suggestions-for-day"] })
   queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === "workout-exercises" })
@@ -893,6 +1058,99 @@ async function processBlockRun(item: QueueItem): Promise<boolean> {
     return true
   } catch (e) {
     console.error("[SyncService] processBlockRun error", e)
+    return false
+  }
+}
+
+async function processDeviation(item: QueueItem): Promise<boolean> {
+  const p = item.payload as DeviationPayload
+  try {
+    const row = {
+      session_id: item.realSessionId,
+      workout_exercise_id: p.workoutExerciseId ?? null,
+      exercise_id: p.exerciseId ?? null,
+      set_number: p.setNumber,
+      kind: p.kind,
+      reason_code: p.reasonCode,
+      note: p.note,
+    }
+    const onConflict = "session_id,workout_exercise_id,set_number,kind"
+    const first = await supabase
+      .from("session_deviation_events")
+      .upsert(row, { onConflict })
+    const hasRefs =
+      row.workout_exercise_id != null || row.exercise_id != null
+    if (first.error?.code !== "23503" || !hasRefs) {
+      if (first.error) {
+        console.error("[SyncService] deviation upsert failed", first.error)
+        return false
+      }
+      return true
+    }
+    // Template row gone (deleted exercise/slot): keep the reason, drop the refs.
+    const retry = await supabase
+      .from("session_deviation_events")
+      .upsert(
+        { ...row, workout_exercise_id: null, exercise_id: null },
+        { onConflict },
+      )
+    if (retry.error) {
+      console.error("[SyncService] deviation upsert retry failed", retry.error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processDeviation error", e)
+    return false
+  }
+}
+
+async function processSessionNote(
+  item: QueueItem,
+  userId: string,
+): Promise<boolean> {
+  const p = item.payload as SessionNotePayload
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .update({ session_note: p.note })
+      .eq("id", item.realSessionId)
+      .eq("user_id", userId)
+    if (error) {
+      console.error("[SyncService] session note update failed", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processSessionNote error", e)
+    return false
+  }
+}
+
+async function processDeviationDelete(
+  item: QueueItem,
+): Promise<boolean> {
+  const p = item.payload as DeviationDeletePayload
+  try {
+    let query = supabase
+      .from("session_deviation_events")
+      .delete()
+      .eq("session_id", item.realSessionId)
+      .eq("set_number", p.setNumber)
+      .eq("kind", p.kind)
+    if (p.workoutExerciseId) {
+      query = query.eq("workout_exercise_id", p.workoutExerciseId)
+    } else if (p.exerciseId) {
+      query = query.eq("exercise_id", p.exerciseId)
+    }
+    const { error } = await query
+    if (error) {
+      console.error("[SyncService] deviation delete failed", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processDeviationDelete error", e)
     return false
   }
 }

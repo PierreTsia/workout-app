@@ -48,7 +48,7 @@ import {
 } from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, peekSessionRealId, queuedSetLogPayloadsForSession, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSessionFinish, enqueueSessionNote, peekSessionRealId, queuedSetLogPayloadsForSession, queuedDeviationsForSession, scheduleImmediateDrain } from "@/lib/syncService"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
@@ -104,6 +104,8 @@ import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAler
 import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
 import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
 import { SessionSummary } from "@/components/workout/SessionSummary"
+import { buildAdjustment, type DebriefAdjustment } from "@/lib/deviationCapture"
+import { useSessionDeviations } from "@/hooks/useSessionDeviations"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
@@ -211,7 +213,7 @@ type SessionFinishedStats = {
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
-  const { toDisplay } = useWeightUnit()
+  const { toDisplay, unit } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBestPerformance = useSetAtom(sessionBestPerformanceAtom)
@@ -246,6 +248,7 @@ export function WorkoutPage() {
     enabled: !finished,
   })
   const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
+  const [finishedSessionId, setFinishedSessionId] = useState("no-session")
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
     name: string
@@ -703,6 +706,48 @@ export function WorkoutPage() {
     return queuedSetLogPayloadsForSession(sessionId)
   }, [sessionId, queuePendingCount])
 
+  // S3 debrief (T267): read the finished session's deviations from the table.
+  // Falls back to the offline queue while a drain is still pending.
+  const finishedRealId =
+    user != null ? peekSessionRealId(user.id, finishedSessionId) : null
+  const { data: dbAdjustments = [] } = useSessionDeviations(
+    finishedRealId,
+    toDisplay,
+    unit,
+  )
+  const adjustments = useMemo<DebriefAdjustment[]>(() => {
+    const queuedLogs = queuedSetLogPayloadsForSession(finishedSessionId)
+    // Merge, table wins: a drain still in flight leaves the row in the queue,
+    // and the cached table read can lag one drain behind.
+    const byId = new Map<string, DebriefAdjustment>()
+    for (const deviation of queuedDeviationsForSession(finishedSessionId)) {
+      const slot = deviation.workoutExerciseId ?? deviation.exerciseId
+      const log = queuedLogs.find(
+        (l) =>
+          (l.workoutExerciseId ?? l.exerciseId) === slot &&
+          l.setNumber === deviation.setNumber,
+      )
+      const lib = deviation.exerciseId
+        ? (exerciseById.get(deviation.exerciseId) ?? null)
+        : null
+      const adjustment = buildAdjustment(
+        deviation,
+        log,
+        {
+          exerciseNameSnapshot: lib?.name ?? log?.exerciseNameSnapshot ?? null,
+          catalogExercise: lib ? { name: lib.name, name_en: lib.name_en } : null,
+        },
+        toDisplay,
+        unit,
+      )
+      byId.set(adjustment.id, adjustment)
+    }
+    for (const adjustment of dbAdjustments) {
+      byId.set(adjustment.id, adjustment)
+    }
+    return [...byId.values()]
+  }, [dbAdjustments, finishedSessionId, exerciseById, toDisplay, unit])
+
   useEffect(() => {
     if (!session.isActive || !user?.id || !currentExercise) return
     const lib = exerciseById.get(currentExercise.exercise_id)
@@ -999,6 +1044,7 @@ export function WorkoutPage() {
     }
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
+    setFinishedSessionId(sessionId)
     setFinishedStats({
       exercisesCompleted: slotsCompleted,
       setsDone,
@@ -1177,6 +1223,11 @@ export function WorkoutPage() {
         quickWorkoutName={finishedQuickInfo?.name}
         cycleComplete={cycleProgress.isComplete}
         cycleId={session.cycleId}
+        adjustments={adjustments}
+        onSaveNote={(note) => {
+          enqueueSessionNote(finishedSessionId, note)
+          scheduleImmediateDrain()
+        }}
       />
     )
   }

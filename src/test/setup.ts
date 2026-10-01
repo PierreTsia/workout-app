@@ -47,6 +47,13 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 
 Element.prototype.scrollIntoView ??= () => {}
 
+// jsdom implements no Pointer Capture API, and vaul (the Drawer) calls
+// `setPointerCapture` on pointerdown — without these stubs a real Drawer in a
+// test throws an uncaught TypeError and fails the run.
+Element.prototype.setPointerCapture ??= () => {}
+Element.prototype.releasePointerCapture ??= () => {}
+Element.prototype.hasPointerCapture ??= () => false
+
 beforeEach(() => {
   localStorage.clear()
 })

@@ -47,6 +47,7 @@ let setLogsChain = createChain()
 let workoutExercisesChain = createChain()
 let cyclesChain = createChain()
 let blockRunsChain = createChain()
+let deviationsChain = createChain()
 
 const mockFrom = vi.fn()
 
@@ -171,6 +172,9 @@ let peekSessionRealId: typeof import("./syncService").peekSessionRealId
 let enqueueBlockRun: typeof import("./syncService").enqueueBlockRun
 let discardBlockRun: typeof import("./syncService").discardBlockRun
 let queuedBlockRunFor: typeof import("./syncService").queuedBlockRunFor
+let enqueueDeviation: typeof import("./syncService").enqueueDeviation
+let enqueueDeviationDelete: typeof import("./syncService").enqueueDeviationDelete
+let enqueueSessionNote: typeof import("./syncService").enqueueSessionNote
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -217,6 +221,7 @@ describe("SyncService", () => {
     workoutExercisesChain = createChain()
     cyclesChain = createChain()
     blockRunsChain = createChain()
+    deviationsChain = createChain()
 
     mockFrom.mockImplementation((table: string) => {
       if (table === "sessions") return sessionsChain
@@ -224,6 +229,7 @@ describe("SyncService", () => {
       if (table === "workout_exercises") return workoutExercisesChain
       if (table === "cycles") return cyclesChain
       if (table === "block_runs") return blockRunsChain
+      if (table === "session_deviation_events") return deviationsChain
       return createChain()
     })
 
@@ -243,6 +249,9 @@ describe("SyncService", () => {
     enqueueBlockRun = mod.enqueueBlockRun
     discardBlockRun = mod.discardBlockRun
     queuedBlockRunFor = mod.queuedBlockRunFor
+    enqueueDeviation = mod.enqueueDeviation
+    enqueueDeviationDelete = mod.enqueueDeviationDelete
+    enqueueSessionNote = mod.enqueueSessionNote
   })
 
   afterEach(() => {
@@ -499,6 +508,50 @@ describe("SyncService", () => {
         ),
       ).toBe(true)
       expect(readQueue()).toHaveLength(0)
+    })
+
+    it("keeps a same-fingerprint correction enqueued during an in-flight drain", async () => {
+      vi.useRealTimers()
+
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+
+      let resolveSessionUpsert!: (v: unknown) => void
+      sessionsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
+        resolveSessionUpsert = resolve
+      })
+
+      const drainPromise = drainQueue(USER_ID)
+      await new Promise((r) => setTimeout(r, 0))
+
+      // User corrects the reason while the drain is in flight — same identity.
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "pain",
+        note: null,
+      })
+
+      resolveSessionUpsert({ data: null, error: null })
+      deviationsChain.then.mockImplementation((resolve: (v: unknown) => void) =>
+        resolve({ data: null, error: null }),
+      )
+
+      await drainPromise
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].payload.reasonCode).toBe("pain")
     })
 
     it("keeps failed item in queue and sets syncStatus to failed on partial failure", async () => {
@@ -1335,6 +1388,147 @@ describe("SyncService", () => {
       expect(queuedBlockRunFor("local-session-1", "blk-1")?.startedAt).toBe(
         5_000,
       )
+    })
+  })
+
+  describe("enqueueDeviation", () => {
+    it("enqueues a deviation item keyed on the slot and set", () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 2,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].type).toBe("deviation")
+      expect(queue[0].dedupeComposite).toContain(DETERMINISTIC_UUID)
+      expect(queue[0].dedupeComposite).toContain("we1")
+    })
+  })
+
+  describe("drainQueue — deviations", () => {
+    it("upserts a deviation row into session_deviation_events", async () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 2,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: "mal dormi",
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(readQueue()).toHaveLength(0)
+      expect(deviationsChain.upsert).toHaveBeenCalledTimes(1)
+      const [row] = deviationsChain.upsert.mock.calls[0]
+      expect(row).toEqual(
+        expect.objectContaining({
+          session_id: DETERMINISTIC_UUID,
+          workout_exercise_id: "we1",
+          exercise_id: "ex1",
+          set_number: 2,
+          kind: "load_deviation",
+          reason_code: "fatigue",
+          note: "mal dormi",
+        }),
+      )
+    })
+
+    it("keeps a deviation with no reason (skip) — reason_code null", async () => {
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: null,
+        note: null,
+      })
+
+      await drainQueue(USER_ID)
+
+      const [row] = deviationsChain.upsert.mock.calls[0]
+      expect(row).toEqual(expect.objectContaining({ reason_code: null }))
+    })
+  })
+
+  describe("enqueueDeviationDelete", () => {
+    it("deletes the event for the identity on drain", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueDeviationDelete({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(deviationsChain.delete).toHaveBeenCalled()
+      expect(deviationsChain.eq).toHaveBeenCalledWith(
+        "session_id",
+        DETERMINISTIC_UUID,
+      )
+      expect(deviationsChain.eq).toHaveBeenCalledWith("set_number", 1)
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("supersedes a pending re-add for the same identity", () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+      enqueueDeviationDelete({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+      })
+
+      const types = readQueue().map((i: { type: string }) => i.type)
+      expect(types.filter((t: string) => t === "deviation")).toHaveLength(0)
+      expect(types.filter((t: string) => t === "deviation_delete")).toHaveLength(
+        1,
+      )
+    })
+  })
+
+  describe("enqueueSessionNote", () => {
+    it("writes the trimmed note to sessions.session_note for the real session on drain", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueSessionNote("local-session-1", "  mal dormi  ")
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.update).toHaveBeenCalledWith({
+        session_note: "mal dormi",
+      })
+      expect(sessionsChain.eq).toHaveBeenCalledWith("id", DETERMINISTIC_UUID)
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("clears the note when it is blank", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueSessionNote("local-session-1", "   ")
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.update).toHaveBeenCalledWith({ session_note: null })
     })
   })
 
