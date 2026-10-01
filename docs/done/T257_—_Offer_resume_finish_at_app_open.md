@@ -50,6 +50,6 @@ Turn the silent boot-time auto-close into an offer: when an orphan's last set is
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (stories 1, 5, 8; scope A)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Recent vs abandoned / Prompt surface / gating)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (stories 1, 5, 8; scope A)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Recent vs abandoned / Prompt surface / gating)
 - ADR `file:docs/adr/0024-session-orphan-self-heal.md`

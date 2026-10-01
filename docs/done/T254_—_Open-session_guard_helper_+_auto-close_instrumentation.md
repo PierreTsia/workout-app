@@ -54,6 +54,6 @@ Extract the open-session read and its three exclusions into one shared module, a
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 6, scope E)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions, Component Architecture)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (story 6, scope E)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions, Component Architecture)
 - ADR `file:docs/adr/0024-session-orphan-self-heal.md`

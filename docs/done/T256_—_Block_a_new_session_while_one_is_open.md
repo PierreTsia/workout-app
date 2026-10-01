@@ -48,6 +48,6 @@ Kill trigger 2: before `startSession` commits, read the user's open sessions and
 
 ## References
 
-- Epic Brief `file:docs/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (stories 2, 4, 7; scope B)
-- Tech Plan `file:docs/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Guard location / choices / failure mode)
+- Epic Brief `file:docs/done/Epic_Brief_—_Prevent_Orphan_Sessions_#571.md` (stories 2, 4, 7; scope B)
+- Tech Plan `file:docs/done/Tech_Plan_—_Prevent_Orphan_Sessions_#571.md` (Key Decisions: Guard location / choices / failure mode)
 - `file:src/pages/WorkoutPage.tsx:915-948`
