@@ -46,7 +46,7 @@ jobs:
       - id: diff
         run: |
           set -euo pipefail
-          TAG="${{ inputs.tag || github.event.release.tag_name }}"
+          TAG="${{ inputs.tag }}"
           if [ -z "$TAG" ]; then
             TAG=$(git describe --tags --abbrev=0)
           fi

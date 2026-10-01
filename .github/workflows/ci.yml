@@ -210,9 +210,9 @@ jobs:
             }
 
   # NOTE: the production Vercel deploys (SPA + web/ docs) moved to
-  # `.github/workflows/release-deploy.yml`, gated on `on: release: published`
-  # (ADR 0025). This workflow keeps the PR preview (`preview-deploy-web`) and
-  # all the merge-time checks.
+  # `.github/workflows/release-deploy.yml`, invoked by `release-please.yml` via
+  # `workflow_call` when a release is cut (ADR 0025). This workflow keeps the PR
+  # preview (`preview-deploy-web`) and all the merge-time checks.
 
   # Cloudflare Worker proxy (infra/cloudflare/mcp-proxy/) — public-URL frontend
   # for the MCP Edge Function. Runs vanilla vitest against Request/Response

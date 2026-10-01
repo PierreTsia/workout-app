@@ -6,9 +6,11 @@ name: release-please
 #
 # The deploy is invoked directly (reusable workflow) when a release is created:
 # a release made with the default `GITHUB_TOKEN` does NOT trigger an
-# `on: release` workflow run, so `release-deploy.yml` could never fire on its
-# own. `release-deploy.yml` still listens on `release: published` for releases
-# cut by a human or another token.
+# `on: release` workflow run, so a deploy listening on the release event could
+# never fire. This reusable call is the **only** automatic deploy path;
+# `release-deploy.yml` deliberately has no `on: release` trigger (it would
+# double-deploy once a PAT is used), and `workflow_dispatch` covers a hand-cut
+# release.
 on:
   push:
     branches: [main]

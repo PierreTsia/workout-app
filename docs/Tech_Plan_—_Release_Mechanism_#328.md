@@ -127,7 +127,7 @@ graph TD
 
 **`release-deploy.yml`**
 - `on: workflow_call` (input `tag`) — the single path, called by `release-please.yml` when it creates a release — plus `workflow_dispatch` (input `tag`) for a manual tag.
-- Step "resolve targets": `fetch-depth: 0`; `TAG = github.event.release.tag_name`; `PREV =` previous tag (`git describe`/sorted tags); `changed = git diff --name-only PREV..TAG` (all files when there is no previous tag = first release).
+- Step "resolve targets": `fetch-depth: 0`; `TAG = inputs.tag` (falling back to the latest tag via `git describe` when empty); `PREV =` nearest tagged ancestor of `TAG`; `changed = git diff --name-only PREV..TAG` (all files when there is no previous tag = first release).
 - Jobs `deploy-spa`, `deploy-web`, `deploy-functions`, each `if:` on its target flag. `deploy-functions` is a no-op-with-warning when `SUPABASE_ACCESS_TOKEN` is unset — never a hard failure on a release that changes no function.
 
 ### Failure Mode Analysis
