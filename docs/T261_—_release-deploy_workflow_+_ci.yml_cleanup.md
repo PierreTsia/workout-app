@@ -13,9 +13,10 @@ Deploy production only on a release, and only the artefacts that changed since t
 ## Scope
 
 - `.github/workflows/release-deploy.yml` (new):
-  - `on: release: types: [published]` + `workflow_dispatch` (input `tag`).
-  - `fetch-depth: 0`; resolve `TAG` (release tag or input) and `PREV` (previous tag); `changed = git diff --name-only PREV..TAG` (all files when `PREV` is empty).
-  - Jobs: `deploy-spa` (`src/**`, `public/**`, `index.html`, `vite.config.ts`, `package*.json`) → `vercel build/deploy --prod` (existing `deploy` recipe); `deploy-web` (`web/**`) → existing `deploy-web` recipe; `deploy-functions` (`supabase/functions/**`) → `supabase functions deploy` for the changed function dirs, skipped with a warning when `SUPABASE_ACCESS_TOKEN` is unset.
+  - `on: workflow_call` (input `tag`), `release: types: [published]`, `workflow_dispatch` (input `tag`). The reusable entry is how the release workflow calls it — a release created with `GITHUB_TOKEN` does not trigger `on: release`.
+  - `fetch-depth: 0`; resolve `TAG` and `PREV` (nearest tagged ancestor of `TAG`, not the newest tag); `changed = git diff --name-only PREV..TAG` (all files when `PREV` is empty).
+  - Jobs: `deploy-spa` (`src/**`, `public/**`, `index.html`, `vite.config.ts`, config files — **not** `package*.json`) → existing `deploy` recipe; `deploy-web` (`web/**`) → existing `deploy-web` recipe; `deploy-functions` (`supabase/functions/**`) → `supabase functions deploy` for the changed function dirs, or **all** deployable functions when `supabase/functions/_shared/**` changed, skipped with a warning when `SUPABASE_ACCESS_TOKEN` is unset.
+- `.github/workflows/release-please.yml` — expose `release_created`/`tag_name` and add a `deploy` job that `uses: ./.github/workflows/release-deploy.yml` when a release was created.
 - `.github/workflows/ci.yml` — remove the `deploy` and `deploy-web` prod jobs; keep `changes`, `preview-deploy-web`, `gate`, `subproject-checks-passed`, and all PR checks.
 
 ## Out of Scope

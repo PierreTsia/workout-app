@@ -15,7 +15,8 @@ Wire release-please so a merged Conventional-Commit PR accumulates into a single
 - `release-please-config.json` — `release-type: node`, `bootstrap-sha` = the setup commit (`f8ceb14`), package `"."`, `include-component-in-tag: false`, `extra-files` generic on `supabase/functions/mcp/index.ts`, `changelog-sections` with `docs/chore/ci/test/deps` hidden.
 - `.release-please-manifest.json` — `{ ".": "1.0.0" }`.
 - `.github/workflows/release-please.yml` — `on: push: branches: [main]` + `workflow_dispatch`; `permissions: contents: write, pull-requests: write`; `googleapis/release-please-action@v4`.
-- `supabase/functions/mcp/index.ts` — add `// x-release-please-version` to the `SERVER_INFO.version` line.
+- `supabase/functions/mcp/index.ts` — set `SERVER_INFO.version` to `1.0.0` (baseline) and add `// x-release-please-version` to the line.
+- `package.json` + `package-lock.json` — seed `version` to `1.0.0` so the baseline tag matches (`tag == package.json == SERVER_INFO.version`).
 - `CHANGELOG.md` — seed a `1.0.0 — Initial release` section.
 
 ## Out of Scope

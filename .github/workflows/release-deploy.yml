@@ -1,11 +1,23 @@
 name: release-deploy
 
-# Production deploy, gated on a published GitHub Release (ADR 0025). Deploys
-# ONLY the artefacts whose files changed since the previous tag: the SPA, the
-# web/ docs mini-site, and the changed Supabase Edge Functions. The Cloudflare
-# MCP proxy stays manual. A release that changes nothing (e.g. a fix only in
-# docs) deploys nothing.
+# Production deploy, gated on a release (ADR 0025). Deploys ONLY the artefacts
+# whose files changed since the nearest tagged ancestor: the SPA, the web/ docs
+# mini-site, and the changed Supabase Edge Functions (all of them when
+# `_shared/**` changed, since consumers bundle it). The Cloudflare MCP proxy
+# stays manual.
+#
+# Triggered three ways:
+#   - `workflow_call` from release-please.yml when it creates a release, because
+#     a release created with the default `GITHUB_TOKEN` does NOT trigger an
+#     `on: release` workflow run;
+#   - `release: published` for a release cut by a human/other token;
+#   - `workflow_dispatch` to retry a tag.
 on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
   release:
     types: [published]
   workflow_dispatch:
@@ -34,11 +46,13 @@ jobs:
       - id: diff
         run: |
           set -euo pipefail
-          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          TAG="${{ inputs.tag || github.event.release.tag_name }}"
           if [ -z "$TAG" ]; then
             TAG=$(git describe --tags --abbrev=0)
           fi
-          PREV=$(git tag --sort=-creatordate | grep -vx "$TAG" | head -n1 || true)
+          # Nearest tagged ancestor of TAG (NOT the newest tag) so a retry of an
+          # older release diffs against the right baseline.
+          PREV=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${TAG}^" 2>/dev/null || true)
           if [ -z "$PREV" ]; then
             CHANGED=$(git ls-files)
           else
@@ -48,8 +62,19 @@ jobs:
 
           has() { grep -qE "$1" /tmp/changed.txt; }
 
-          SPA_RE='^(src/|public/|index\.html$|vite\.config\.ts$|package\.json$|package-lock\.json$|tsconfig.*\.json$|postcss\.config\.js$|eslint\.config\.js$|components\.json$)'
-          FUNCS=$(printf '%s\n' "$CHANGED" | awk -F/ '/^supabase\/functions\// {print $3}' | sort -u | grep -v '^_shared$' | tr '\n' ' ' || true)
+          # NB: package.json / package-lock.json are intentionally NOT SPA
+          # triggers — release-please rewrites their version fields in the
+          # release commit itself, so including them would make `spa` always
+          # true and churn the PWA cache on every release.
+          SPA_RE='^(src/|public/|index\.html$|vite\.config\.ts$|tsconfig.*\.json$|postcss\.config\.js$|eslint\.config\.js$|components\.json$)'
+
+          # A change under `_shared/**` affects every consumer's bundle, so it
+          # redeploys all deployable functions; otherwise only the changed dirs.
+          if has '^supabase/functions/_shared/'; then
+            FUNCS=$(ls -1 supabase/functions | grep -v '^_shared$' | tr '\n' ' ')
+          else
+            FUNCS=$(printf '%s\n' "$CHANGED" | awk -F/ '/^supabase\/functions\// {print $3}' | sort -u | grep -v '^_shared$' | tr '\n' ' ' || true)
+          fi
 
           {
             echo "tag=$TAG"

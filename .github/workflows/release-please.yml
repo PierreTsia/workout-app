@@ -1,9 +1,14 @@
 name: release-please
 
 # Opens/updates the standing `chore(release): vX.Y.Z` PR from Conventional
-# Commits. Merging that PR cuts the tag + GitHub Release (and, via
-# release-deploy.yml, the prod deploy). `docs`/`chore`/`ci`/`test` never cut a
-# release, so a doc-only merge is inert. See ADR 0025.
+# Commits. Merging that PR cuts the tag + GitHub Release. `docs`/`chore`/`ci`/
+# `test` never cut a release, so a doc-only merge is inert. See ADR 0025.
+#
+# The deploy is invoked directly (reusable workflow) when a release is created:
+# a release made with the default `GITHUB_TOKEN` does NOT trigger an
+# `on: release` workflow run, so `release-deploy.yml` could never fire on its
+# own. `release-deploy.yml` still listens on `release: published` for releases
+# cut by a human or another token.
 on:
   push:
     branches: [main]
@@ -16,8 +21,20 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: release
+        uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  deploy:
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/release-deploy.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit

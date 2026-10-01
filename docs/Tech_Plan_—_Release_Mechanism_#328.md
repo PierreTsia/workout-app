@@ -10,8 +10,8 @@
 | Trigger | Merge the standing release PR (`gh`/GitHub) + `workflow_dispatch` | Deliberate, batched, scriptable by an agent. |
 | Version source | root `package.json`, tag `vX.Y.Z` | One number; release-please's `node` strategy bumps it. |
 | MCP contract version | `SERVER_INFO.version` bumped in the **same** release PR via `extra-files` (generic updater + `// x-release-please-version` annotation) | The agent-facing number must equal the released one. |
-| Deploy trigger | `on: release: types: [published]` | Prod moves only on a release; tag/release created by release-please. |
-| Deploy scope | **Path-gated vs the previous tag** (SPA / `web/**` / `supabase/functions/**`) | No redundant SPA redeploy (PWA cache), no needless docs/function deploys. |
+| Deploy trigger | `release-deploy.yml` is a **reusable** workflow (`workflow_call`), invoked by the release workflow when it creates a release; also `on: release: published` and `workflow_dispatch` | A release made with the default `GITHUB_TOKEN` does **not** trigger `on: release`, so the deploy is called directly (and stays available for human/other-token releases and retries). |
+| Deploy scope | **Path-gated vs the nearest tagged ancestor** (SPA / `web/**` / `supabase/functions/**`; **all** functions when `_shared/**` changes) | No redundant SPA redeploy (PWA cache), no needless docs/function deploys, and `_shared` fan-out redeploys its consumers. |
 | Edge Functions deploy | `supabase functions deploy <changed>` with `SUPABASE_ACCESS_TOKEN` | A release ships app **and** MCP together. |
 | Baseline | manual `v1.0.0` tag at the bootstrap commit | History starts from a known prod point; manifest seeded at `1.0.0`. |
 | Worker proxy | untouched | Stable upstream proxy, not a versioned artefact. |
@@ -22,6 +22,10 @@
 - **The generic updater needs an annotation.** `supabase/functions/mcp/index.ts`'s `SERVER_INFO.version` line must carry `// x-release-please-version` for release-please to rewrite it.
 - **`SUPABASE_ACCESS_TOKEN` is a CI secret** (value only a human can set) → HITL item; the workflow must **no-op cleanly** when the secret is absent or the deploy is skipped.
 - **The produced release PR must not itself trigger a release loop.** release-please's own commits are `chore(release):` → excluded.
+- **`GITHUB_TOKEN` does not trigger workflows.** release-please creates the release with the default token, so `on: release: published` would never fire — the release workflow calls `release-deploy.yml` as a **reusable workflow** instead (documented workaround).
+- **`_shared/**` fan-out.** `embedded-agent`, `generate-quick-workout`, `mcp`, … bundle `supabase/functions/_shared`; a `_shared`-only change must redeploy **every** deployable function, not just the changed dirs.
+- **`package.json` / `package-lock.json` are not SPA triggers.** release-please rewrites their version fields in the release commit, so treating them as SPA paths would make `spa` always true.
+- **Baseline consistency.** Seeding `v1.0.0` requires `package.json`, `package-lock.json` and `SERVER_INFO.version` all at `1.0.0` **before** the tag, or `tag == package.json == SERVER_INFO.version` is false from day one.
 - `ci.yml` currently owns the SPA/deploy-web prod jobs. They must **move** to the release workflow; the **preview** deploy for `web/**` on PRs stays in `ci.yml`.
 - Moving prod deploy off `main` push means the deploy jobs' `needs`/`if` in `ci.yml` disappear — the `gate`/`subproject-checks-passed` structure stays for PR checks.
 
@@ -131,6 +135,7 @@ graph TD
 | Failure | Behavior |
 |---|---|
 | No previous tag (first release) | Deploy all targets. |
+| Release created with the default `GITHUB_TOKEN` | `on: release` never fires; the release workflow invokes `release-deploy.yml` as a reusable workflow instead. |
 | `SUPABASE_ACCESS_TOKEN` unset | `deploy-functions` skips with a warning annotation; the rest of the release still deploys. |
 | Vercel token missing/expired | That deploy job fails; the release/tag already exist, so re-run the workflow (`workflow_dispatch` with `tag`). |
 | release PR stale | Merge it; release-please recomputes against the latest `main`. |
