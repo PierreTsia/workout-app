@@ -113,3 +113,17 @@ export function mapRowsUpdateWeight(
 ): SessionSetRow[] {
   return rows.map((s) => ({ ...s, weight: displayWeight }))
 }
+
+/**
+ * Display-unit weight for a slot's fresh rows: the template weight when set,
+ * else the athlete's history for that slot. Shared by the initial-rows effect
+ * and the resume hydration so both seed the same number.
+ */
+export function resolveSlotDisplayWeight(
+  row: WorkoutExercise,
+  historyWeightKg: number,
+  toDisplay: (kg: number) => number,
+): string {
+  const kg = Number(row.weight) > 0 ? Number(row.weight) : historyWeightKg
+  return String(Math.round(toDisplay(kg) * 10) / 10)
+}

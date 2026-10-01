@@ -67,6 +67,7 @@ import {
   buildInitialSetRowsForExercise,
   mapRowsUpdateWeight,
   migrateSessionSetsData,
+  resolveSlotDisplayWeight,
   type SessionSetRow,
 } from "@/lib/sessionSetRow"
 import {
@@ -731,31 +732,25 @@ export function WorkoutPage() {
 
       for (const ex of exercises) {
         const existing = prev.setsData[ex.id]
-        const storedWeight = Number(ex.weight)
         const historyWeight = lastSlotWeights[ex.id] ?? 0
-        const effectiveWeightKg =
-          storedWeight > 0 ? storedWeight : historyWeight
         const lib = exerciseById.get(ex.exercise_id)
 
         if (!existing) {
-          const displayWeight = String(
-            Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
-          )
           patch[ex.id] = buildInitialSetRowsForExercise(
             ex,
             lib,
-            displayWeight,
+            resolveSlotDisplayWeight(ex, historyWeight, toDisplay),
           )
           hasChanges = true
-        } else if (storedWeight === 0 && historyWeight > 0) {
+        } else if (Number(ex.weight) === 0 && historyWeight > 0) {
           const allUntouched = existing.every(
             (s) => s.weight === "0" && !s.done,
           )
           if (allUntouched) {
-            const displayWeight = String(
-              Math.round(toDisplay(historyWeight) * 10) / 10,
+            patch[ex.id] = mapRowsUpdateWeight(
+              existing,
+              resolveSlotDisplayWeight(ex, historyWeight, toDisplay),
             )
-            patch[ex.id] = mapRowsUpdateWeight(existing, displayWeight)
             hasChanges = true
           }
         }
@@ -778,9 +773,12 @@ export function WorkoutPage() {
   }, [session.activeDayId, session.currentDayId, session.isActive, setSession])
 
   // Resume hydration (#571): a session reopened from an orphan already has its
-  // set_logs persisted. Merge them into setsData once so the table shows them
-  // as done instead of fresh. A fresh session has no logs at first fetch, so
-  // the ref is consumed with nothing to merge.
+  // set_logs persisted. Overlay them onto the slot's prescribed rows once so the
+  // table shows them as done instead of fresh, keeping the sets that were
+  // prescribed but never logged. The rows are rebuilt here rather than relying
+  // on the initial-rows effect, which may not have run in the same commit. A
+  // fresh session has no logs at first fetch, so the ref is consumed with
+  // nothing to merge.
   const resumedRef = useRef(false)
   useEffect(() => {
     if (resumedRef.current) return
@@ -802,11 +800,22 @@ export function WorkoutPage() {
       for (const [slotId, byIndex] of Object.entries(hydrated)) {
         // Never clobber a slot the user already logged locally this session.
         if (prev.setsData[slotId]?.some((r) => r.done)) continue
-        const base = prev.setsData[slotId] ? [...prev.setsData[slotId]] : []
+        const exercise = exercises.find((ex) => ex.id === slotId)
+        if (!exercise) continue
+        const lib = exerciseById.get(exercise.exercise_id)
+        const rows = buildInitialSetRowsForExercise(
+          exercise,
+          lib,
+          resolveSlotDisplayWeight(
+            exercise,
+            lastSlotWeights[exercise.id] ?? 0,
+            toDisplay,
+          ),
+        )
         for (const [index, row] of Object.entries(byIndex)) {
-          base[Number(index)] = row
+          rows[Number(index)] = row
         }
-        setsData[slotId] = base
+        setsData[slotId] = rows
       }
       return { ...prev, setsData }
     })
@@ -816,6 +825,7 @@ export function WorkoutPage() {
     activeSessionLogs,
     activeSessionLogsFetched,
     exerciseById,
+    lastSlotWeights,
     toDisplay,
     setSession,
   ])
