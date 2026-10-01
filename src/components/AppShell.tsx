@@ -37,7 +37,7 @@ export function AppShell() {
       {/* Viewport-locked: header is a sibling of <main>, not a sticky overlay.
           Body-scroll + sticky was cropping the session ExerciseStrip (#472). */}
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
-        <header className="flex shrink-0 items-center justify-between bg-background px-4 pb-2 pt-4">
+        <header className="flex shrink-0 items-center justify-between bg-background px-4 pb-2 pt-[calc(1rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
