@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
+  buildAdjustment,
   buildLoadDeviationPayload,
+  deviationReasonKey,
   isLoadDeviation,
 } from "@/lib/deviationCapture"
 
@@ -74,5 +76,58 @@ describe("buildLoadDeviationPayload", () => {
       buildLoadDeviationPayload({ ...base, reasonCode: null, note: "   " })
         .note,
     ).toBeNull()
+  })
+})
+
+describe("deviationReasonKey", () => {
+  it("maps a reason to its i18n key", () => {
+    expect(deviationReasonKey("fatigue")).toBe("deviation.reason.fatigue")
+  })
+
+  it("maps a null reason to the 'none' key — the skip is shown, not hidden", () => {
+    expect(deviationReasonKey(null)).toBe("deviation.reason.none")
+  })
+})
+
+describe("buildAdjustment", () => {
+  const deviation = {
+    workoutExerciseId: "we1",
+    exerciseId: "ex1",
+    setNumber: 2,
+    reasonCode: "fatigue" as const,
+    note: null,
+  }
+
+  it("formats prescribed and actual in display units", () => {
+    const adjustment = buildAdjustment(
+      deviation,
+      { weightLogged: 72.5, prescribedWeight: 80 },
+      "Bench Press",
+      (kg) => kg,
+      "kg",
+    )
+
+    expect(adjustment).toMatchObject({
+      exerciseName: "Bench Press",
+      setNumber: 2,
+      prescribed: "80",
+      actual: "72.5",
+      unit: "kg",
+      reasonCode: "fatigue",
+      note: null,
+    })
+  })
+
+  it("falls back to an em dash when the log is missing", () => {
+    const adjustment = buildAdjustment(
+      deviation,
+      undefined,
+      "Squat",
+      (kg) => kg,
+      "kg",
+    )
+
+    expect(adjustment.prescribed).toBe("—")
+    expect(adjustment.actual).toBe("—")
   })
 })

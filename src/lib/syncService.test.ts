@@ -173,6 +173,7 @@ let enqueueBlockRun: typeof import("./syncService").enqueueBlockRun
 let discardBlockRun: typeof import("./syncService").discardBlockRun
 let queuedBlockRunFor: typeof import("./syncService").queuedBlockRunFor
 let enqueueDeviation: typeof import("./syncService").enqueueDeviation
+let enqueueSessionNote: typeof import("./syncService").enqueueSessionNote
 
 // ---------------------------------------------------------------------------
 // Suite
@@ -248,6 +249,7 @@ describe("SyncService", () => {
     discardBlockRun = mod.discardBlockRun
     queuedBlockRunFor = mod.queuedBlockRunFor
     enqueueDeviation = mod.enqueueDeviation
+    enqueueSessionNote = mod.enqueueSessionNote
   })
 
   afterEach(() => {
@@ -1408,6 +1410,30 @@ describe("SyncService", () => {
 
       const [row] = deviationsChain.upsert.mock.calls[0]
       expect(row).toEqual(expect.objectContaining({ reason_code: null }))
+    })
+  })
+
+  describe("enqueueSessionNote", () => {
+    it("writes the trimmed note to sessions.session_note for the real session on drain", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueSessionNote("local-session-1", "  mal dormi  ")
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.update).toHaveBeenCalledWith({
+        session_note: "mal dormi",
+      })
+      expect(sessionsChain.eq).toHaveBeenCalledWith("id", DETERMINISTIC_UUID)
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("clears the note when it is blank", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueSessionNote("local-session-1", "   ")
+
+      await drainQueue(USER_ID)
+
+      expect(sessionsChain.update).toHaveBeenCalledWith({ session_note: null })
     })
   })
 

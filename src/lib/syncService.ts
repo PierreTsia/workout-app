@@ -108,17 +108,24 @@ export interface SessionFinishPayload {
   closeCycleOnComplete?: boolean
 }
 
+/** Optional one-line session note (T267). Null clears the column. */
+export interface SessionNotePayload {
+  sessionId: string
+  note: string | null
+}
+
 // ---------------------------------------------------------------------------
 // Internal types
 // ---------------------------------------------------------------------------
 
 interface QueueItem {
-  type: "set_log" | "session_finish" | "block_run" | "deviation"
+  type: "set_log" | "session_finish" | "block_run" | "deviation" | "session_note"
   payload:
     | SetLogPayload
     | SessionFinishPayload
     | BlockRunPayload
     | DeviationPayload
+    | SessionNotePayload
   realSessionId: string
   queuedAt: number
   dedupeComposite: string
@@ -336,6 +343,18 @@ export function queuedSetLogPayloadsForSession(
     .map((item) => item.payload as SetLogPayload)
 }
 
+/** Deviation payloads still in the offline queue for a local session id. */
+export function queuedDeviationsForSession(
+  localSessionId: string,
+): DeviationPayload[] {
+  const userId = getUserId()
+  if (!userId) return []
+  return getQueue(userId)
+    .filter((item) => item.type === "deviation")
+    .filter((item) => item.payload.sessionId === localSessionId)
+    .map((item) => item.payload as DeviationPayload)
+}
+
 // ---------------------------------------------------------------------------
 // Enqueue
 // ---------------------------------------------------------------------------
@@ -493,6 +512,36 @@ export function enqueueDeviation(payload: DeviationPayload): void {
   filtered.push({
     type: "deviation",
     payload,
+    realSessionId: meta.realId,
+    queuedAt: Date.now(),
+    dedupeComposite: composite,
+    fingerprint: fp,
+  })
+  setQueue(userId, filtered)
+  updatePendingCount(userId)
+}
+
+/**
+ * Queue the optional one-line session note (T267). One item per session, so a
+ * re-typed note overwrites; a blank note clears the column. Offline-first.
+ */
+export function enqueueSessionNote(sessionId: string, note: string): void {
+  const userId = getUserId()
+  if (!userId) {
+    console.warn("[SyncService] enqueueSessionNote called without auth")
+    return
+  }
+
+  const meta = resolveSessionMeta(userId, sessionId)
+  const composite = `${meta.realId}|session_note`
+  const fp = fingerprint(composite)
+
+  const queue = getQueue(userId)
+  const filtered = queue.filter((item) => item.fingerprint !== fp)
+
+  filtered.push({
+    type: "session_note",
+    payload: { sessionId, note: note.trim() || null },
     realSessionId: meta.realId,
     queuedAt: Date.now(),
     dedupeComposite: composite,
@@ -719,6 +768,9 @@ async function drainQueueOnce(userId: string): Promise<void> {
         if (!ok) surviving.push(item)
       } else if (item.type === "deviation") {
         const ok = await processDeviation(item)
+        if (!ok) surviving.push(item)
+      } else if (item.type === "session_note") {
+        const ok = await processSessionNote(item, userId)
         if (!ok) surviving.push(item)
       } else {
         const ok = await processSessionFinish(item, userId)
@@ -961,6 +1013,28 @@ async function processDeviation(item: QueueItem): Promise<boolean> {
     return true
   } catch (e) {
     console.error("[SyncService] processDeviation error", e)
+    return false
+  }
+}
+
+async function processSessionNote(
+  item: QueueItem,
+  userId: string,
+): Promise<boolean> {
+  const p = item.payload as SessionNotePayload
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .update({ session_note: p.note })
+      .eq("id", item.realSessionId)
+      .eq("user_id", userId)
+    if (error) {
+      console.error("[SyncService] session note update failed", error)
+      return false
+    }
+    return true
+  } catch (e) {
+    console.error("[SyncService] processSessionNote error", e)
     return false
   }
 }

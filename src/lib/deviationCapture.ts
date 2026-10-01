@@ -25,6 +25,65 @@ export const DEVIATION_REASONS: readonly DeviationReason[] = [
   "other",
 ]
 
+/** i18n key for a reason, or the "no reason given" key when skipped. */
+export function deviationReasonKey(reason: DeviationReason | null): string {
+  return reason ? `deviation.reason.${reason}` : "deviation.reason.none"
+}
+
+/** One line of the S3 debrief (T267). Display-ready — numbers already localised. */
+export interface DebriefAdjustment {
+  id: string
+  exerciseName: string
+  setNumber: number | null
+  prescribed: string
+  actual: string
+  unit: string
+  reasonCode: DeviationReason | null
+  note: string | null
+}
+
+type AdjustmentLog = {
+  weightLogged?: number
+  prescribedWeight?: number | null
+}
+
+const EM_DASH = "—"
+
+/**
+ * Join a captured deviation with its logged set into a display-ready debrief
+ * row. `toDisplay` converts the stored kg to the athlete's unit; a missing log
+ * (e.g. drain not finished) degrades to an em dash rather than hiding the row.
+ */
+export function buildAdjustment(
+  deviation: Pick<
+    DeviationPayload,
+    "workoutExerciseId" | "exerciseId" | "setNumber" | "reasonCode" | "note"
+  >,
+  log: AdjustmentLog | undefined,
+  exerciseName: string,
+  toDisplay: (kg: number) => number,
+  unit: string,
+): DebriefAdjustment {
+  const slot = deviation.workoutExerciseId ?? deviation.exerciseId ?? "?"
+  const prescribed =
+    log?.prescribedWeight != null
+      ? String(toDisplay(log.prescribedWeight))
+      : EM_DASH
+  const actual =
+    log?.weightLogged != null ? String(toDisplay(log.weightLogged)) : EM_DASH
+
+  return {
+    id: `${slot}|${deviation.setNumber}`,
+    exerciseName,
+    setNumber: deviation.setNumber,
+    prescribed,
+    actual,
+    unit,
+    reasonCode: deviation.reasonCode,
+    note: deviation.note,
+  }
+}
+
 export type LoadDeviationInput = {
   sessionId: string
   workoutExerciseId: string | null

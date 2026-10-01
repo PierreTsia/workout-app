@@ -48,7 +48,7 @@ import {
 } from "@/hooks/useLastWeights"
 import { useProgressionSuggestionsForDay } from "@/hooks/useProgressionSuggestionsForDay"
 import { useActiveCycle } from "@/hooks/useCycle"
-import { enqueueSessionFinish, peekSessionRealId, queuedSetLogPayloadsForSession, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSessionFinish, enqueueSessionNote, peekSessionRealId, queuedSetLogPayloadsForSession, queuedDeviationsForSession, scheduleImmediateDrain } from "@/lib/syncService"
 import { getEffectiveElapsed } from "@/lib/session"
 import { supabase } from "@/lib/supabase"
 import { deriveCycleIdForSession, resolveOrCreateActiveCycle } from "@/lib/cycle"
@@ -104,6 +104,7 @@ import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAler
 import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
 import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
 import { SessionSummary } from "@/components/workout/SessionSummary"
+import { buildAdjustment, type DebriefAdjustment } from "@/lib/deviationCapture"
 import { QuickWorkoutSheet } from "@/components/generator/QuickWorkoutSheet"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { SwapExerciseSheet } from "@/components/workout/SwapExerciseSheet"
@@ -211,7 +212,7 @@ type SessionFinishedStats = {
 
 export function WorkoutPage() {
   const { t } = useTranslation("workout")
-  const { toDisplay } = useWeightUnit()
+  const { toDisplay, unit } = useWeightUnit()
   const [session, setSession] = useAtom(sessionAtom)
   const [prFlags, setPrFlags] = useAtom(prFlagsAtom)
   const setSessionBestPerformance = useSetAtom(sessionBestPerformanceAtom)
@@ -246,6 +247,10 @@ export function WorkoutPage() {
     enabled: !finished,
   })
   const [finishedStats, setFinishedStats] = useState<SessionFinishedStats | null>(null)
+  const [finishedAdjustments, setFinishedAdjustments] = useState<
+    DebriefAdjustment[]
+  >([])
+  const [finishedSessionId, setFinishedSessionId] = useState("no-session")
   const [finishedQuickInfo, setFinishedQuickInfo] = useState<{
     dayId: string
     name: string
@@ -999,6 +1004,29 @@ export function WorkoutPage() {
     }
     setIsQuickWorkout(false)
     clearSessionExercisePatchStorage()
+    const queuedLogs = queuedSetLogPayloadsForSession(sessionId)
+    const exerciseNameById = new Map(
+      exercises.map((e) => [e.exercise_id, e.name_snapshot] as const),
+    )
+    setFinishedSessionId(sessionId)
+    setFinishedAdjustments(
+      queuedDeviationsForSession(sessionId).map((deviation) => {
+        const slot = deviation.workoutExerciseId ?? deviation.exerciseId
+        const log = queuedLogs.find(
+          (l) =>
+            (l.workoutExerciseId ?? l.exerciseId) === slot &&
+            l.setNumber === deviation.setNumber,
+        )
+        return buildAdjustment(
+          deviation,
+          log,
+          (deviation.exerciseId && exerciseNameById.get(deviation.exerciseId)) ||
+            "Exercise",
+          toDisplay,
+          unit,
+        )
+      }),
+    )
     setFinishedStats({
       exercisesCompleted: slotsCompleted,
       setsDone,
@@ -1177,6 +1205,11 @@ export function WorkoutPage() {
         quickWorkoutName={finishedQuickInfo?.name}
         cycleComplete={cycleProgress.isComplete}
         cycleId={session.cycleId}
+        adjustments={finishedAdjustments}
+        onSaveNote={(note) => {
+          enqueueSessionNote(finishedSessionId, note)
+          scheduleImmediateDrain()
+        }}
       />
     )
   }
