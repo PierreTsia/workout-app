@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect } from "./fixtures"
 
 test.describe("Login — unauthenticated user", () => {
   test("redirects to /login and shows Google OAuth button", async ({

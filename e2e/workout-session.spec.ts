@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test"
+import { test, expect } from "./fixtures"
 
 test.describe("Workout session — full flow", () => {
   test.describe.configure({ timeout: 90_000 })
@@ -95,8 +95,11 @@ test.describe("Workout session — full flow", () => {
     const lastChip = exerciseChips.last()
     await lastChip.click()
 
-    // The "Next" button becomes "Finish" on the last exercise
-    const finishButton = page.getByRole("button", { name: /finish/i })
+    // The "Next" button becomes "Finish" on the last exercise (bottom nav; the
+    // header chip is a second Finish button, so scope to <main>)
+    const finishButton = page
+      .locator("main")
+      .getByRole("button", { name: /finish/i })
     await expect(finishButton).toBeVisible()
     await finishButton.click()
 

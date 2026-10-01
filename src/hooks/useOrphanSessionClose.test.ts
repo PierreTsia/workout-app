@@ -10,6 +10,7 @@ const spies = vi.hoisted(() => ({
   rows: [] as unknown[],
   updates: [] as Record<string, unknown>[],
   ids: [] as string[],
+  closeError: null as { message: string } | null,
 }))
 
 const queuedRealSessionIds = vi.hoisted(() => vi.fn((): Set<string> => new Set()))
@@ -17,6 +18,8 @@ const peekSessionRealId = vi.hoisted(() => vi.fn((): string | null => null))
 const pruneCancelledSessions = vi.hoisted(() =>
   vi.fn<(userId: string) => Set<string>>(() => new Set()),
 )
+const trackSessionEvent = vi.hoisted(() => vi.fn())
+const resumeOrphanSession = vi.hoisted(() => vi.fn())
 
 vi.mock("@/lib/syncService", () => ({
   queuedRealSessionIds,
@@ -24,23 +27,35 @@ vi.mock("@/lib/syncService", () => ({
   pruneCancelledSessions,
 }))
 
+vi.mock("@/lib/sessionEvents", () => ({ trackSessionEvent }))
+
+vi.mock("@/lib/resumeSession", () => ({ resumeOrphanSession }))
+
 vi.mock("@/lib/supabase", () => {
-  const chain = {
-    select: () => chain,
-    is: () => chain,
+  const selectChain = {
+    select: () => selectChain,
+    eq: () => selectChain,
+    is: () => selectChain,
     returns: () => Promise.resolve({ data: spies.rows, error: null }),
+  }
+  const updateChain = {
     update: (payload: Record<string, unknown>) => {
       spies.updates.push(payload)
-      return chain
+      return updateChain
     },
     eq: (_column: string, id: string) => {
       spies.ids.push(id)
-      return chain
+      return updateChain
     },
-    then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
-      resolve({ data: spies.rows, error: null }),
+    is: () => updateChain,
+    then: (resolve: (v: { data: unknown[]; error: unknown }) => void) =>
+      resolve({ data: spies.rows, error: spies.closeError }),
   }
-  return { supabase: { from: () => chain } }
+  return {
+    supabase: {
+      from: () => ({ select: selectChain.select, update: updateChain.update }),
+    },
+  }
 })
 
 const oldIso = () => new Date(Date.now() - 13 * HOUR).toISOString()
@@ -48,7 +63,10 @@ const recentIso = () => new Date(Date.now() - HOUR).toISOString()
 
 const orphan = (id: string, loggedAt: string) => ({
   id,
+  workout_day_id: "day-1",
+  workout_label_snapshot: "Push",
   started_at: new Date(new Date(loggedAt).getTime() - HOUR).toISOString(),
+  cycle_id: "cycle-1",
   set_logs: [{ logged_at: loggedAt }],
 })
 
@@ -65,9 +83,12 @@ describe("useOrphanSessionClose", () => {
     spies.rows = []
     spies.updates = []
     spies.ids = []
+    spies.closeError = null
     queuedRealSessionIds.mockReturnValue(new Set())
     peekSessionRealId.mockReturnValue(null)
     pruneCancelledSessions.mockReturnValue(new Set())
+    trackSessionEvent.mockClear()
+    resumeOrphanSession.mockClear()
   })
 
   it("closes a stale orphan with the last set — never now()", async () => {
@@ -84,6 +105,135 @@ describe("useOrphanSessionClose", () => {
       active_duration_ms: 0,
       has_skipped_sets: false,
     })
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_closed", {
+      cause: "auto",
+      session_id: "s1",
+      idle_ms: expect.any(Number),
+      total_sets_done: 1,
+    })
+  })
+
+  it("exposes a recent orphan, emits the prompt, and does not close it", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+    expect(result.current.recentOrphan?.lastSetAt).toBe(last)
+    expect(spies.updates).toHaveLength(0)
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_prompted", {
+      surface: "app_open",
+    })
+  })
+
+  it("finish() closes the recent orphan with the last set and cause open_prompt", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.finish()
+    })
+
+    await waitFor(() => expect(spies.updates).toHaveLength(1))
+    expect(spies.ids).toEqual(["s1"])
+    expect(spies.updates[0]).toEqual({
+      finished_at: last,
+      total_sets_done: 1,
+      active_duration_ms: 0,
+      has_skipped_sets: false,
+    })
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_closed", {
+      cause: "open_prompt",
+      session_id: "s1",
+      total_sets_done: 1,
+    })
+    await waitFor(() => expect(result.current.recentOrphan).toBeNull())
+  })
+
+  it("keeps the prompt open when the close fails", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+    spies.closeError = { message: "boom" }
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    expect(result.current.recentOrphan?.id).toBe("s1")
+    expect(trackSessionEvent).not.toHaveBeenCalledWith(
+      "session_orphan_closed",
+      expect.anything(),
+    )
+  })
+
+  it("resume() reopens the orphan on its day and emits resumed", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.resume()
+    })
+
+    expect(resumeOrphanSession).toHaveBeenCalledWith(
+      {
+        id: "s1",
+        workout_day_id: "day-1",
+        workout_label_snapshot: "Push",
+        started_at: expect.any(String),
+        cycle_id: "cycle-1",
+      },
+      "u1",
+    )
+    expect(trackSessionEvent).toHaveBeenCalledWith("session_orphan_resumed", {
+      surface: "app_open",
+    })
+    await waitFor(() => expect(result.current.recentOrphan).toBeNull())
+  })
+
+  it("dismiss() clears the prompt and leaves the row open", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    act(() => {
+      result.current.dismiss()
+    })
+
+    expect(result.current.recentOrphan).toBeNull()
+    expect(spies.updates).toHaveLength(0)
+  })
+
+  it("does not prompt while a local session is active", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    const rendered = renderHookWithProviders(() => useOrphanSessionClose())
+    act(() => {
+      rendered.store.set(authAtom, { id: "u1" } as never)
+      rendered.store.set(sessionAtom, {
+        ...defaultSessionState,
+        isActive: true,
+        startedAt: 1_700_000_000_000,
+      })
+    })
+
+    // Wait for the effect to have run, then assert no prompt was surfaced.
+    await waitFor(() => expect(queuedRealSessionIds).toHaveBeenCalled())
+    expect(rendered.result.current.recentOrphan).toBeNull()
+    expect(trackSessionEvent).not.toHaveBeenCalledWith(
+      "session_orphan_prompted",
+      expect.anything(),
+    )
   })
 
   it("leaves a recent session alone (possibly still in progress)", async () => {

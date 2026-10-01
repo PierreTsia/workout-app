@@ -30,6 +30,7 @@ import {
   restAtom,
   completedBlockIdsAtom,
   queueSyncMetaAtom,
+  finishRequestAtom,
 } from "@/store/atoms"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useWorkoutExercises } from "@/hooks/useWorkoutExercises"
@@ -56,11 +57,17 @@ import { prefetchBestPerformance } from "@/hooks/useBestPerformance"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useLastSessionForDay } from "@/hooks/useLastSessionForDay"
 import { useSessionSetLogs } from "@/hooks/useSessionSetLogs"
+import { useSessionBlockRuns } from "@/hooks/useSessionBlockRuns"
+import {
+  completedBlockIdsFromRuns,
+  hydrateSetsDataFromLogs,
+} from "@/lib/resumeSession"
 import { mergeWorkoutExercises } from "@/lib/mergeWorkoutExercises"
 import {
   buildInitialSetRowsForExercise,
   mapRowsUpdateWeight,
   migrateSessionSetsData,
+  resolveSlotDisplayWeight,
   type SessionSetRow,
 } from "@/lib/sessionSetRow"
 import {
@@ -90,6 +97,9 @@ import {
   type ExerciseEditScope,
 } from "@/components/workout/ExerciseEditScopeDialog"
 import { SessionNav } from "@/components/workout/SessionNav"
+import { FinishSessionDialog } from "@/components/workout/FinishSessionDialog"
+import { useFinishSessionAttempt } from "@/hooks/useFinishSessionAttempt"
+import { OpenSessionDialog } from "@/components/workout/OpenSessionDialog"
 import { PausedWorkoutAlertDialog } from "@/components/workout/PausedWorkoutAlertDialog"
 import { RestartCycleDialog } from "@/components/workout/RestartCycleDialog"
 import { useAbandonAndRestartCycle } from "@/hooks/useAbandonAndRestartCycle"
@@ -118,6 +128,10 @@ import type {
   WorkoutExerciseWithLabel,
 } from "@/types/database"
 import { useExerciseById } from "@/hooks/useExerciseById"
+import {
+  useStartSessionGuard,
+  type StartSessionOpts,
+} from "@/hooks/useStartSessionGuard"
 
 const EMPTY_DAYS: WorkoutDay[] = []
 
@@ -678,7 +692,11 @@ export function WorkoutPage() {
 
   const activeRealId =
     user != null ? peekSessionRealId(user.id, sessionId) : null
-  const { data: activeSessionLogs = [] } = useSessionSetLogs(activeRealId)
+  const { data: activeSessionLogs = [], isFetched: activeSessionLogsFetched } =
+    useSessionSetLogs(activeRealId)
+  const { data: sessionBlockRuns } = useSessionBlockRuns(
+    activeRealId ?? undefined,
+  )
   const queuePendingCount = useAtomValue(queueSyncMetaAtom).pendingCount
   const queuedPayloads = useMemo(() => {
     void queuePendingCount
@@ -714,31 +732,25 @@ export function WorkoutPage() {
 
       for (const ex of exercises) {
         const existing = prev.setsData[ex.id]
-        const storedWeight = Number(ex.weight)
         const historyWeight = lastSlotWeights[ex.id] ?? 0
-        const effectiveWeightKg =
-          storedWeight > 0 ? storedWeight : historyWeight
         const lib = exerciseById.get(ex.exercise_id)
 
         if (!existing) {
-          const displayWeight = String(
-            Math.round(toDisplay(effectiveWeightKg) * 10) / 10,
-          )
           patch[ex.id] = buildInitialSetRowsForExercise(
             ex,
             lib,
-            displayWeight,
+            resolveSlotDisplayWeight(ex, historyWeight, toDisplay),
           )
           hasChanges = true
-        } else if (storedWeight === 0 && historyWeight > 0) {
+        } else if (Number(ex.weight) === 0 && historyWeight > 0) {
           const allUntouched = existing.every(
             (s) => s.weight === "0" && !s.done,
           )
           if (allUntouched) {
-            const displayWeight = String(
-              Math.round(toDisplay(historyWeight) * 10) / 10,
+            patch[ex.id] = mapRowsUpdateWeight(
+              existing,
+              resolveSlotDisplayWeight(ex, historyWeight, toDisplay),
             )
-            patch[ex.id] = mapRowsUpdateWeight(existing, displayWeight)
             hasChanges = true
           }
         }
@@ -759,6 +771,89 @@ export function WorkoutPage() {
     if (!session.isActive || session.activeDayId || !session.currentDayId) return
     setSession((prev) => ({ ...prev, activeDayId: prev.currentDayId }))
   }, [session.activeDayId, session.currentDayId, session.isActive, setSession])
+
+  // Resume hydration (#571): a session reopened from an orphan already has its
+  // set_logs persisted. Overlay them onto the slot's prescribed rows once so the
+  // table shows them as done instead of fresh, keeping the sets that were
+  // prescribed but never logged. The rows are rebuilt here rather than relying
+  // on the initial-rows effect, which may not have run in the same commit. A
+  // fresh session has no logs at first fetch, so the ref is consumed with
+  // nothing to merge.
+  const resumedRef = useRef(false)
+  useEffect(() => {
+    if (resumedRef.current) return
+    if (!session.isActive) return
+    if (exercises.length === 0) return
+    if (!activeSessionLogsFetched) return
+    resumedRef.current = true
+
+    const hydrated = hydrateSetsDataFromLogs(
+      exercises,
+      activeSessionLogs,
+      exerciseById,
+      toDisplay,
+    )
+    if (Object.keys(hydrated).length === 0) return
+
+    setSession((prev) => {
+      const setsData = { ...prev.setsData }
+      for (const [slotId, byIndex] of Object.entries(hydrated)) {
+        // Never clobber a slot the user already logged locally this session.
+        if (prev.setsData[slotId]?.some((r) => r.done)) continue
+        const exercise = exercises.find((ex) => ex.id === slotId)
+        if (!exercise) continue
+        const lib = exerciseById.get(exercise.exercise_id)
+        const rows = buildInitialSetRowsForExercise(
+          exercise,
+          lib,
+          resolveSlotDisplayWeight(
+            exercise,
+            lastSlotWeights[exercise.id] ?? 0,
+            toDisplay,
+          ),
+        )
+        for (const [index, row] of Object.entries(byIndex)) {
+          rows[Number(index)] = row
+        }
+        setsData[slotId] = rows
+      }
+      return { ...prev, setsData }
+    })
+  }, [
+    session.isActive,
+    exercises,
+    activeSessionLogs,
+    activeSessionLogsFetched,
+    exerciseById,
+    lastSlotWeights,
+    toDisplay,
+    setSession,
+  ])
+
+  // Best-effort circuit resume (#571): a finished block run means the circuit
+  // was completed before the orphan was reopened. In-progress runs are re-run.
+  const resumedBlocksRef = useRef(false)
+  useEffect(() => {
+    if (resumedBlocksRef.current) return
+    if (!session.isActive) return
+    if (!sessionBlockRuns) return
+    resumedBlocksRef.current = true
+
+    const ids = completedBlockIdsFromRuns(
+      [...sessionBlockRuns.entries()].map(([block_id, run]) => ({
+        block_id,
+        finished_at: run.finished_at,
+      })),
+    )
+    if (ids.length === 0) return
+
+    setSession((prev) => ({
+      ...prev,
+      completedBlockIds: Array.from(
+        new Set([...(prev.completedBlockIds ?? []), ...ids]),
+      ),
+    }))
+  }, [session.isActive, sessionBlockRuns, setSession])
 
 
 
@@ -787,6 +882,26 @@ export function WorkoutPage() {
   const incompleteBlockCount = dayBlocks.filter(
     (b) => !completedBlockIds.has(b.id),
   ).length
+
+  const { attempt, confirmOpen, setConfirmOpen, confirmBody, confirmFinish } =
+    useFinishSessionAttempt({
+      exercises,
+      itemCount: items.length,
+      incompleteBlockCount,
+      onFinish: handleFinish,
+      onBlockedByPause: openPauseBlocked,
+    })
+
+  // The header finish control (#571) bumps a transient counter. Consume it once
+  // the day has loaded, so a tap during initial load can't finish a session the
+  // app hasn't read yet; reset it so a later remount doesn't replay the request.
+  const finishRequest = useAtomValue(finishRequestAtom)
+  const setFinishRequest = useSetAtom(finishRequestAtom)
+  useEffect(() => {
+    if (finishRequest === 0 || items.length === 0) return
+    setFinishRequest(0)
+    attempt()
+  }, [finishRequest, items.length, attempt, setFinishRequest])
 
   function handleFinish() {
     const { setsDone, slotsCompleted, hasSkipped, totalSlots } = sessionProgress(
@@ -912,39 +1027,57 @@ export function WorkoutPage() {
     }, 0)
   }
 
-  async function startSession({ skipCycle = false } = {}) {
-    let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
+  const commitStartSession = useCallback(
+    async ({ skipCycle = false }: StartSessionOpts = {}) => {
+      let cycleId = deriveCycleIdForSession(skipCycle, activeCycle?.id ?? null)
 
-    if (!cycleId && activeProgramId && user && !skipCycle) {
-      const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
-      if (result.kind === "ok") {
-        cycleId = result.cycleId
-        // Always invalidate: the React Query cache may be stale (e.g. another
-        // tab created the cycle after our last fetch) even when source is
-        // "existing". Without this, useActiveCycle can stay stuck on null.
-        queryClient.invalidateQueries({
-          queryKey: ["active-cycle", activeProgramId],
-        })
-      } else {
-        console.warn(
-          "[WorkoutPage] Could not resolve/create active cycle:",
-          result.reason,
-        )
-        toast.warning(t("cycleUnavailable"))
+      if (!cycleId && activeProgramId && user && !skipCycle) {
+        const result = await resolveOrCreateActiveCycle(activeProgramId, user.id)
+        if (result.kind === "ok") {
+          cycleId = result.cycleId
+          // Always invalidate: the React Query cache may be stale (e.g. another
+          // tab created the cycle after our last fetch) even when source is
+          // "existing". Without this, useActiveCycle can stay stuck on null.
+          queryClient.invalidateQueries({
+            queryKey: ["active-cycle", activeProgramId],
+          })
+        } else {
+          console.warn(
+            "[WorkoutPage] Could not resolve/create active cycle:",
+            result.reason,
+          )
+          toast.warning(t("cycleUnavailable"))
+        }
       }
-    }
 
-    setSession((prev) => ({
-      ...prev,
-      isActive: true,
-      activeDayId: prev.currentDayId,
-      startedAt: Date.now(),
-      pausedAt: null,
-      accumulatedPause: 0,
-      cycleId,
-      completedBlockIds: [],
-    }))
-    beginLiveSession()
+      setSession((prev) => ({
+        ...prev,
+        isActive: true,
+        activeDayId: prev.currentDayId,
+        startedAt: Date.now(),
+        pausedAt: null,
+        accumulatedPause: 0,
+        cycleId,
+        completedBlockIds: [],
+      }))
+      beginLiveSession()
+    },
+    [activeCycle?.id, activeProgramId, user, queryClient, setSession, t],
+  )
+
+  const {
+    pending: pendingStart,
+    guard: guardStartSession,
+    finish: finishBlockedStart,
+    resume: resumeBlockedStart,
+  } = useStartSessionGuard({
+    userId: user?.id ?? null,
+    session,
+    commitStart: commitStartSession,
+  })
+
+  async function startSession(opts: StartSessionOpts = {}) {
+    await guardStartSession(opts)
   }
 
   function handleNewSession() {
@@ -1017,6 +1150,13 @@ export function WorkoutPage() {
               ),
             }))
           }
+        />
+        {/* Header finish (#571) must reach the confirm even where the bottom nav isn't rendered. */}
+        <FinishSessionDialog
+          open={confirmOpen}
+          body={confirmBody}
+          onOpenChange={setConfirmOpen}
+          onConfirm={confirmFinish}
         />
       </div>
     )
@@ -1159,8 +1299,7 @@ export function WorkoutPage() {
                 <SessionNav
                   exercises={exercises}
                   itemCount={items.length}
-                  incompleteBlockCount={incompleteBlockCount}
-                  onFinish={handleFinish}
+                  onFinishAttempt={attempt}
                   onBlockedByPause={openPauseBlocked}
                 />
               ) : (
@@ -1389,6 +1528,19 @@ export function WorkoutPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <OpenSessionDialog
+        open={pendingStart != null}
+        onFinish={() => void finishBlockedStart()}
+        onResume={resumeBlockedStart}
+      />
+
+      <FinishSessionDialog
+        open={confirmOpen}
+        body={confirmBody}
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmFinish}
+      />
     </div>
   )
 }

@@ -6,7 +6,9 @@ import { drawerOpenAtom } from "@/store/atoms"
 import { useHydrateLocaleFromProfile } from "@/hooks/useProfileLocale"
 import { useSessionOrientationGuard } from "@/hooks/useSessionOrientationGuard"
 import { useOrphanSessionClose } from "@/hooks/useOrphanSessionClose"
+import { OrphanSessionPrompt } from "@/components/workout/OrphanSessionPrompt"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
+import { FinishSessionButton } from "@/components/workout/FinishSessionButton"
 import { SyncStatusChip } from "@/components/SyncStatusChip"
 import { SideDrawer } from "@/components/SideDrawer"
 import { InstallBanner } from "@/components/InstallBanner"
@@ -25,7 +27,8 @@ export function AppShell() {
   // live off <html> marker classes, so they must survive WorkoutPage unmounts.
   useSessionOrientationGuard()
   // Orphan-session self-heal (#568): close sessions whose finish never landed.
-  useOrphanSessionClose()
+  // A recent one is offered as Resume / Finish instead (#571).
+  const { recentOrphan, resume, finish, dismiss } = useOrphanSessionClose()
   const { pathname } = useLocation()
   const hideSessionChrome = pathname.startsWith("/cycle-summary")
 
@@ -44,6 +47,7 @@ export function AppShell() {
               ☰
             </button>
             {!hideSessionChrome && <SessionTimerChip />}
+            {!hideSessionChrome && <FinishSessionButton />}
           </div>
           <div className="flex items-center gap-2">
             {!hideSessionChrome && <RestTimerPill />}
@@ -54,6 +58,12 @@ export function AppShell() {
         <SideDrawer />
         <InstallBanner />
         <AchievementUnlockOverlay />
+        <OrphanSessionPrompt
+          orphan={recentOrphan}
+          onResume={resume}
+          onFinish={finish}
+          onDismiss={dismiss}
+        />
 
         <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin">
           {/* Column is centered; scrolling stays on full-bleed <main> so the

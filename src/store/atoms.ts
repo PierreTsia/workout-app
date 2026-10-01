@@ -187,6 +187,9 @@ export const weightUnitAtom = atomWithStorage<"kg" | "lbs">("weightUnit", "kg")
 
 export const drawerOpenAtom = atom(false)
 
+/** Transient (not persisted) header → WorkoutPage seam: bump to request a finish attempt (#571). */
+export const finishRequestAtom = atom(0)
+
 export const isQuickWorkoutAtom = atomWithStorage<boolean>(
   "isQuickWorkout",
   false,

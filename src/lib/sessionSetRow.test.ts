@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { buildInitialSetRowsForExercise, type SessionSetRowReps } from "./sessionSetRow"
+import {
+  buildInitialSetRowsForExercise,
+  resolveSlotDisplayWeight,
+  type SessionSetRowReps,
+} from "./sessionSetRow"
 import type { WorkoutExercise } from "@/types/database"
 
 function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise {
@@ -65,5 +69,22 @@ describe("buildInitialSetRowsForExercise — safeReps fallback", () => {
       expect(r.weight).toBe("60")
       expect(r.done).toBe(false)
     }
+  })
+})
+
+describe("resolveSlotDisplayWeight", () => {
+  const identity = (kg: number) => kg
+
+  it("prefers the template weight when it is set", () => {
+    expect(resolveSlotDisplayWeight(makeExercise({ weight: "80" }), 50, identity)).toBe("80")
+  })
+
+  it("falls back to history when the template weight is 0", () => {
+    expect(resolveSlotDisplayWeight(makeExercise({ weight: "0" }), 50, identity)).toBe("50")
+  })
+
+  it("converts to the display unit and rounds to one decimal", () => {
+    const toLbs = (kg: number) => kg * 2.20462
+    expect(resolveSlotDisplayWeight(makeExercise({ weight: "62.5" }), 0, toLbs)).toBe("137.8")
   })
 })
