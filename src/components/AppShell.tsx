@@ -65,7 +65,7 @@ export function AppShell() {
           onDismiss={dismiss}
         />
 
-        <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin">
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto scrollbar-thin pb-[env(safe-area-inset-bottom)]">
           {/* Column is centered; scrolling stays on full-bleed <main> so the
               bar sits on the viewport edge, not inset at max-w-5xl. */}
           <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
