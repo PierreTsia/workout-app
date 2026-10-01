@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-10-01
-- **Decided in:** grilling session (`grill-with-docs`) for [#328](https://github.com/PierreTsia/workout-app/issues/328)
+- **Decided in:** grilling session (`grill-with-docs`) for [#328](https://github.com/PierreTsia/workout-app/issues/328); amended 2026-10-01 for [#584](https://github.com/PierreTsia/workout-app/issues/584) (SPA displays the release version)
 
 ## Context
 
@@ -16,7 +16,7 @@ Two independent version counters already exist: the repo (`package.json` `0.0.0`
 
 We will adopt **release-please** as the release tool, with one version for the whole repository.
 
-1. **One version.** The release tag (`vX.Y.Z`) is the single source of truth and **drives `SERVER_INFO.version`** — `release-please` bumps `package.json` *and* `supabase/functions/mcp/index.ts` in the same release PR (`extra-files`). The number an **External MCP Client** reads is the number of the release that shipped it.
+1. **One version.** The release tag (`vX.Y.Z`) is the single source of truth and **drives `SERVER_INFO.version`** — `release-please` bumps `package.json` *and* `supabase/functions/mcp/index.ts` in the same release PR (`extra-files`). The number an **External MCP Client** reads is the number of the release that shipped it. The **SPA does not bake a release number**: it reads `SERVER_INFO.version` from the deployed MCP Edge Function at **runtime** (a public `GET …/version`, additive to the MCP HTTP surface, touching no MCP tool), with the build-time `package.json` version as an offline fallback only. The number the user sees therefore cannot lag a backend-only release, and `package.json` stays out of the SPA deploy triggers (§7) — the reason it was excluded is unchanged.
 2. **Deliberate, batched releases.** `release-please` keeps a standing `chore(release): vX.Y.Z` PR open on `main`, accumulating the changes since the last tag. **Merging that PR cuts the release** — tag + GitHub Release + `CHANGELOG.md`. The trigger is therefore scriptable: an agent merges the PR with `gh pr merge`, a human merges it on GitHub, and the release workflow also exposes `workflow_dispatch` for a manual cycle.
 3. **What cuts a release.** Only Conventional-Commit types that mean a user-facing change: `feat` → minor, `fix` → patch, `feat!` / `BREAKING CHANGE` → major. `docs`, `chore`, `ci`, `test` produce **no** release — merging doc-only PRs cannot cut a version, by construction.
 4. **Deploy is gated on the release.** The production Vercel deploy (SPA and the `web/` mini-site) runs on **`on: release: published`**, not on every push to `main`. Merging to `main` no longer changes prod; only cutting a release does. Vercel **preview** deploys for `web/**` on PRs are unchanged.
@@ -26,9 +26,9 @@ We will adopt **release-please** as the release tool, with one version for the w
 
 ## Consequences
 
-- **Positive:** a doc or dependency PR can no longer create a release or touch prod; releases bundle as many merged PRs as you like; exactly one version number exists and it matches what the MCP agents see; release notes are free and consistent.
-- **Negative:** no more continuous deploy — an urgent fix requires cutting a release, which costs one deliberate merge. The release PR can sit stale and must be merged. Wiring the release to `supabase functions deploy` puts a `SUPABASE_ACCESS_TOKEN` in CI and touches production Supabase automatically, so the workflow must deploy **only the functions changed since the last tag** and fail safe.
-- **Follow-ups:** add `release-please-config.json` + `.release-please-manifest.json`, the release workflow, the `SUPABASE_ACCESS_TOKEN` secret, and move the prod deploy jobs out of `ci.yml` onto `on: release: published`; cut the `v1.0.0` baseline; document the flow (this ADR + `AGENTS.md`).
+- **Positive:** a doc or dependency PR can no longer create a release or touch prod; releases bundle as many merged PRs as you like; exactly one version number exists and it matches what the MCP agents see; release notes are free and consistent. The SPA can show the live release number (and link its release notes) **without redeploying the PWA**: a backend-only release updates the displayed number the moment `SERVER_INFO.version` is read, so the single source of truth stays true from the browser too.
+- **Negative:** no more continuous deploy — an urgent fix requires cutting a release, which costs one deliberate merge. The release PR can sit stale and must be merged. Wiring the release to `supabase functions deploy` puts a `SUPABASE_ACCESS_TOKEN` in CI and touches production Supabase automatically, so the workflow must deploy **only the functions changed since the last tag** and fail safe. The SPA's displayed version now depends on reaching the deployed MCP function: offline, it falls back to the last `package.json` value baked at build time, which may lag a backend-only release.
+- **Follow-ups:** add `release-please-config.json` + `.release-please-manifest.json`, the release workflow, the `SUPABASE_ACCESS_TOKEN` secret, and move the prod deploy jobs out of `ci.yml` onto `on: release: published`; cut the `v1.0.0` baseline; document the flow (this ADR + `AGENTS.md`). For [#584](https://github.com/PierreTsia/workout-app/issues/584): expose `GET …/version` on the MCP Edge Function and display the fetched version + a releases link in `src/pages/AboutPage.tsx` and `src/pages/AccountPage.tsx` (i18n EN + FR, colocated tests).
 
 ## Alternatives considered
 
