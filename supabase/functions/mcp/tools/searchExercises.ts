@@ -5,7 +5,6 @@ const MUSCLE_GROUP_ALIASES: Record<string, string> = {
   abs: "Abdos",
   abdominals: "Abdos",
   adductors: "Adducteurs",
-  adducteurs: "Adducteurs",
   biceps: "Biceps",
   "rear delts": "Deltoïdes post.",
   "rear deltoids": "Deltoïdes post.",
