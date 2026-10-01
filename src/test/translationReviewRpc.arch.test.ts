@@ -21,7 +21,12 @@ const repoPath = (globKey: string) => globKey.slice("../../".length)
 
 const definitions = Object.entries(migrationSources)
   .filter(([, sql]) =>
-    /FUNCTION\s+get_translations_for_review\s*\(/.test(sql),
+    // Anchored on CREATE: a later migration may name the function in a REVOKE
+    // without redefining it (#444), and that must not be mistaken for the
+    // definition this guard pins.
+    /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+get_translations_for_review\s*\(/.test(
+      sql,
+    ),
   )
   .sort(([a], [b]) => a.localeCompare(b))
 
