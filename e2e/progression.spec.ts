@@ -90,8 +90,10 @@ test.describe("Progression — cross-session suggestion", () => {
     await completeOneSet()
     await completeOneSet()
 
-    // Finish the session
-    const finishButton = page.getByRole("button", { name: /finish/i })
+    // Finish the session (bottom nav; the header chip is a second Finish button)
+    const finishButton = page
+      .locator("main")
+      .getByRole("button", { name: /finish/i })
     await expect(finishButton).toBeVisible({ timeout: 5_000 })
     await finishButton.click()
 
