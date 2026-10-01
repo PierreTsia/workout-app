@@ -138,7 +138,14 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 200, headers: corsHeaders })
 
   if (req.method === "GET") {
-    const wellKnown = await handleWellKnown(new URL(req.url), publicMcpUrl)
+    const url = new URL(req.url)
+    // Public, unauthenticated version read for the SPA: the single release
+    // number (same value External MCP Clients read), so the app can display it
+    // without baking a number that a backend-only release would leave stale.
+    if (url.pathname.endsWith("/version")) {
+      return json({ version: SERVER_INFO.version })
+    }
+    const wellKnown = await handleWellKnown(url, publicMcpUrl)
     if (wellKnown) return wellKnown
     return json(fail(null, -32600, "Only POST is supported"), 405)
   }

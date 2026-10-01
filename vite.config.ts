@@ -1,4 +1,5 @@
 import path from "path"
+import { readFileSync } from "node:fs"
 import { defineConfig, loadEnv, type PluginOption } from "vite"
 import react from "@vitejs/plugin-react"
 import { VitePWA } from "vite-plugin-pwa"
@@ -12,6 +13,9 @@ export default defineConfig(({ mode }) => {
   const sentryOrg = env.SENTRY_ORG ?? process.env.SENTRY_ORG
   const sentryProject = env.SENTRY_PROJECT ?? process.env.SENTRY_PROJECT
   const analyze = process.env.ANALYZE === "true"
+  const pkg = JSON.parse(
+    readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+  ) as { version: string }
 
   const plugins: PluginOption[] = [
     react(),
@@ -99,6 +103,10 @@ export default defineConfig(({ mode }) => {
       __APP_VERSION__: JSON.stringify(
         mode === "production" ? Date.now().toString(36) : "dev",
       ),
+      // Release number baked at build, used only as the offline fallback: the
+      // SPA reads the live value from the MCP `/version` route at runtime so a
+      // backend-only release cannot leave the displayed number stale.
+      __RELEASE_VERSION__: JSON.stringify(pkg.version),
     },
 
     plugins,
