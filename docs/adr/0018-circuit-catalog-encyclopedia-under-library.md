@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-16
 - **Decided in:** orchestrator lock for [#483](https://github.com/PierreTsia/workout-app/issues/483) (research packet + skip-grill to AFK)
+- **Amends:** ADR 0016 (§Decision.2 "keep `/library` unchanged", third child only)
 
 ## Context
 

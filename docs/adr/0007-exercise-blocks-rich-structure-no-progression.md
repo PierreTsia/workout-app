@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-13
 - **Decided in:** grilling session (`grill-with-docs`) for issue #351 — supersets / circuits
+- **Amended by:** ADR 0011 (§Decision.4 — MCP/AI deferral for the surfaces listed there)
 
 ## Context
 
