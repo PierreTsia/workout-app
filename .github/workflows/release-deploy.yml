@@ -6,20 +6,20 @@ name: release-deploy
 # `_shared/**` changed, since consumers bundle it). The Cloudflare MCP proxy
 # stays manual.
 #
-# Triggered three ways:
-#   - `workflow_call` from release-please.yml when it creates a release, because
-#     a release created with the default `GITHUB_TOKEN` does NOT trigger an
-#     `on: release` workflow run;
-#   - `release: published` for a release cut by a human/other token;
-#   - `workflow_dispatch` to retry a tag.
+# Triggered two ways, never both for the same release:
+#   - `workflow_call` from release-please.yml when it creates a release (the
+#     single deploy path — works with a PAT or the default GITHUB_TOKEN);
+#   - `workflow_dispatch` to (re)deploy a tag by hand, e.g. a release cut from
+#     the GitHub UI.
+# There is deliberately NO `on: release: published` trigger: release-please
+# already calls this workflow, so listening on the release event too would
+# double-deploy every release once a PAT is used.
 on:
   workflow_call:
     inputs:
       tag:
         required: true
         type: string
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:

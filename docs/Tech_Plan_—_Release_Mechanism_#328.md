@@ -10,7 +10,7 @@
 | Trigger | Merge the standing release PR (`gh`/GitHub) + `workflow_dispatch` | Deliberate, batched, scriptable by an agent. |
 | Version source | root `package.json`, tag `vX.Y.Z` | One number; release-please's `node` strategy bumps it. |
 | MCP contract version | `SERVER_INFO.version` bumped in the **same** release PR via `extra-files` (generic updater + `// x-release-please-version` annotation) | The agent-facing number must equal the released one. |
-| Deploy trigger | `release-deploy.yml` is a **reusable** workflow (`workflow_call`), invoked by the release workflow when it creates a release; also `on: release: published` and `workflow_dispatch` | A release made with the default `GITHUB_TOKEN` does **not** trigger `on: release`, so the deploy is called directly (and stays available for human/other-token releases and retries). |
+| Deploy trigger | `release-deploy.yml` is a **reusable** workflow (`workflow_call`) invoked by the release workflow when it creates a release — the single deploy path — plus `workflow_dispatch` for a manual tag | A release made with the default `GITHUB_TOKEN` does **not** trigger `on: release`, so the deploy is called directly; keeping a single path avoids a double-deploy once a PAT is added. |
 | Deploy scope | **Path-gated vs the nearest tagged ancestor** (SPA / `web/**` / `supabase/functions/**`; **all** functions when `_shared/**` changes) | No redundant SPA redeploy (PWA cache), no needless docs/function deploys, and `_shared` fan-out redeploys its consumers. |
 | Edge Functions deploy | `supabase functions deploy <changed>` with `SUPABASE_ACCESS_TOKEN` | A release ships app **and** MCP together. |
 | Baseline | manual `v1.0.0` tag at the bootstrap commit | History starts from a known prod point; manifest seeded at `1.0.0`. |
@@ -22,7 +22,7 @@
 - **The generic updater needs an annotation.** `supabase/functions/mcp/index.ts`'s `SERVER_INFO.version` line must carry `// x-release-please-version` for release-please to rewrite it.
 - **`SUPABASE_ACCESS_TOKEN` is a CI secret** (value only a human can set) → HITL item; the workflow must **no-op cleanly** when the secret is absent or the deploy is skipped.
 - **The produced release PR must not itself trigger a release loop.** release-please's own commits are `chore(release):` → excluded.
-- **`GITHUB_TOKEN` does not trigger workflows.** release-please creates the release with the default token, so `on: release: published` would never fire — the release workflow calls `release-deploy.yml` as a **reusable workflow** instead (documented workaround).
+- **`GITHUB_TOKEN` does not trigger workflows.** release-please creates the release with the default token, so an `on: release: published` trigger would never fire — the release workflow calls `release-deploy.yml` as a **reusable workflow** instead. There is deliberately no `on: release` trigger, which would double-deploy every release once a PAT is used.
 - **`_shared/**` fan-out.** `embedded-agent`, `generate-quick-workout`, `mcp`, … bundle `supabase/functions/_shared`; a `_shared`-only change must redeploy **every** deployable function, not just the changed dirs.
 - **`package.json` / `package-lock.json` are not SPA triggers.** release-please rewrites their version fields in the release commit, so treating them as SPA paths would make `spa` always true.
 - **Baseline consistency.** Seeding `v1.0.0` requires `package.json`, `package-lock.json` and `SERVER_INFO.version` all at `1.0.0` **before** the tag, or `tag == package.json == SERVER_INFO.version` is false from day one.
@@ -108,7 +108,7 @@ graph TD
 | `release-please-config.json` | release-please config, changelog sections, `extra-files` for `SERVER_INFO`. |
 | `.release-please-manifest.json` | current released version (`1.0.0`). |
 | `.github/workflows/release-please.yml` | runs release-please on `main` push + `workflow_dispatch`; opens/updates the release PR, cuts the release on merge. |
-| `.github/workflows/release-deploy.yml` | Reusable (`workflow_call`, invoked by the release workflow) + `release: published` + `workflow_dispatch`: compute changed paths vs the nearest tagged ancestor, then deploy SPA / docs / changed Supabase functions. |
+| `.github/workflows/release-deploy.yml` | Reusable (`workflow_call`, invoked by the release workflow) + `workflow_dispatch`: compute changed paths vs the nearest tagged ancestor, then deploy SPA / docs / changed Supabase functions. |
 | `CHANGELOG.md` | seeded "1.0.0 — Initial release"; maintained by release-please. |
 
 ### Modified Files
@@ -126,7 +126,7 @@ graph TD
 - Invokes the action with `config-file`/`manifest-file`; the action does everything else.
 
 **`release-deploy.yml`**
-- `on: workflow_call` (input `tag`) — the primary path (called by `release-please.yml` when it creates a release), plus `release: types: [published]` and `workflow_dispatch` (input `tag`).
+- `on: workflow_call` (input `tag`) — the single path, called by `release-please.yml` when it creates a release — plus `workflow_dispatch` (input `tag`) for a manual tag.
 - Step "resolve targets": `fetch-depth: 0`; `TAG = github.event.release.tag_name`; `PREV =` previous tag (`git describe`/sorted tags); `changed = git diff --name-only PREV..TAG` (all files when there is no previous tag = first release).
 - Jobs `deploy-spa`, `deploy-web`, `deploy-functions`, each `if:` on its target flag. `deploy-functions` is a no-op-with-warning when `SUPABASE_ACCESS_TOKEN` is unset — never a hard failure on a release that changes no function.
 
@@ -135,7 +135,7 @@ graph TD
 | Failure | Behavior |
 |---|---|
 | No previous tag (first release) | Deploy all targets. |
-| Release created with the default `GITHUB_TOKEN` | `on: release` never fires; the release workflow invokes `release-deploy.yml` as a reusable workflow instead. |
+| Release created with the default `GITHUB_TOKEN` | No `on: release` trigger exists; the release workflow invokes `release-deploy.yml` as a reusable workflow instead. |
 | `SUPABASE_ACCESS_TOKEN` unset | `deploy-functions` skips with a warning annotation; the rest of the release still deploys. |
 | Vercel token missing/expired | That deploy job fails; the release/tag already exist, so re-run the workflow (`workflow_dispatch` with `tag`). |
 | release PR stale | Merge it; release-please recomputes against the latest `main`. |
