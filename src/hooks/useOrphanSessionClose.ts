@@ -181,14 +181,16 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
 
     const { error } = await closeOpenSession(row.id, close)
 
-    if (!error) {
-      trackSessionEvent("session_orphan_closed", {
-        cause: "open_prompt",
-        session_id: row.id,
-        total_sets_done: close.totalSetsDone,
-      })
-      invalidateClosedQueries(queryClient)
-    }
+    // A failed close leaves the row open; clearing the prompt would present it
+    // as success and lose the user's only feedback. Keep it up.
+    if (error) return
+
+    trackSessionEvent("session_orphan_closed", {
+      cause: "open_prompt",
+      session_id: row.id,
+      total_sets_done: close.totalSetsDone,
+    })
+    invalidateClosedQueries(queryClient)
 
     recentRowRef.current = null
     setRecentOrphan(null)

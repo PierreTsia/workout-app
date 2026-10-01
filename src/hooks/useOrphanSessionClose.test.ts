@@ -10,6 +10,7 @@ const spies = vi.hoisted(() => ({
   rows: [] as unknown[],
   updates: [] as Record<string, unknown>[],
   ids: [] as string[],
+  closeError: null as { message: string } | null,
 }))
 
 const queuedRealSessionIds = vi.hoisted(() => vi.fn((): Set<string> => new Set()))
@@ -47,8 +48,8 @@ vi.mock("@/lib/supabase", () => {
       return updateChain
     },
     is: () => updateChain,
-    then: (resolve: (v: { data: unknown[]; error: null }) => void) =>
-      resolve({ data: spies.rows, error: null }),
+    then: (resolve: (v: { data: unknown[]; error: unknown }) => void) =>
+      resolve({ data: spies.rows, error: spies.closeError }),
   }
   return {
     supabase: {
@@ -82,6 +83,7 @@ describe("useOrphanSessionClose", () => {
     spies.rows = []
     spies.updates = []
     spies.ids = []
+    spies.closeError = null
     queuedRealSessionIds.mockReturnValue(new Set())
     peekSessionRealId.mockReturnValue(null)
     pruneCancelledSessions.mockReturnValue(new Set())
@@ -150,6 +152,25 @@ describe("useOrphanSessionClose", () => {
       total_sets_done: 1,
     })
     await waitFor(() => expect(result.current.recentOrphan).toBeNull())
+  })
+
+  it("keeps the prompt open when the close fails", async () => {
+    const last = recentIso()
+    spies.rows = [orphan("s1", last)]
+    spies.closeError = { message: "boom" }
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    expect(result.current.recentOrphan?.id).toBe("s1")
+    expect(trackSessionEvent).not.toHaveBeenCalledWith(
+      "session_orphan_closed",
+      expect.anything(),
+    )
   })
 
   it("resume() reopens the orphan on its day and emits resumed", async () => {
