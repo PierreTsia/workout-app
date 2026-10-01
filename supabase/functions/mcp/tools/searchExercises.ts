@@ -4,6 +4,7 @@ import type { ToolDefinition } from "./registry.ts"
 const MUSCLE_GROUP_ALIASES: Record<string, string> = {
   abs: "Abdos",
   abdominals: "Abdos",
+  adductors: "Adducteurs",
   biceps: "Biceps",
   "rear delts": "Deltoïdes post.",
   "rear deltoids": "Deltoïdes post.",
@@ -28,21 +29,21 @@ const MUSCLE_GROUP_ALIASES: Record<string, string> = {
 
 const BODY_REGION_ALIASES: Record<string, string[]> = {
   upper_body: ["Pectoraux", "Dos", "Épaules", "Biceps", "Triceps", "Trapèzes", "Deltoïdes post."],
-  lower_body: ["Quadriceps", "Ischios", "Fessiers", "Mollets", "Ischios / Bas du dos"],
+  lower_body: ["Quadriceps", "Ischios", "Fessiers", "Mollets", "Ischios / Bas du dos", "Adducteurs"],
   push: ["Pectoraux", "Épaules", "Triceps"],
   pull: ["Dos", "Biceps", "Trapèzes", "Deltoïdes post."],
   arms: ["Biceps", "Triceps"],
-  legs: ["Quadriceps", "Ischios", "Fessiers", "Mollets"],
+  legs: ["Quadriceps", "Ischios", "Fessiers", "Mollets", "Adducteurs"],
   core: ["Abdos", "Lombaires"],
 }
 
 const VALID_MUSCLE_GROUPS = [
-  "Abdos", "Biceps", "Deltoïdes post.", "Dos", "Épaules",
+  "Abdos", "Adducteurs", "Biceps", "Deltoïdes post.", "Dos", "Épaules",
   "Fessiers", "Ischios", "Ischios / Bas du dos", "Lombaires",
   "Mollets", "Pectoraux", "Quadriceps", "Trapèzes", "Triceps",
 ]
 
-function resolveMuscleGroups(input: string | string[]): string[] | undefined {
+export function resolveMuscleGroups(input: string | string[]): string[] | undefined {
   const inputs = Array.isArray(input) ? input : [input]
   const resolved: string[] = []
   const unknown: string[] = []
@@ -106,9 +107,9 @@ export const searchExercises: ToolDefinition = {
           "Filter by muscle group(s). Accepts a single value or an array. " +
           "Body regions: upper_body, lower_body, push, pull, arms, legs, core. " +
           "Specific groups (EN): chest, back, shoulders, biceps, triceps, quads, hamstrings, " +
-          "glutes, calves, abs, traps, rear delts, lower back. " +
+          "glutes, calves, abs, traps, rear delts, lower back, adductors. " +
           "Specific groups (FR): Pectoraux, Dos, Épaules, Biceps, Triceps, Quadriceps, " +
-          "Ischios, Fessiers, Mollets, Abdos, Trapèzes, Deltoïdes post., Lombaires.",
+          "Ischios, Fessiers, Mollets, Abdos, Trapèzes, Deltoïdes post., Lombaires, Adducteurs.",
       },
       equipment: {
         type: "array",
