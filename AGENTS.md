@@ -87,6 +87,14 @@ Cycle rouge → vert → refactor. `npm run lint` avant de pousser.
 - `public/`, `node_modules/`, `.env*` et les exports de données brutes
   (`*-export-*.csv`, `delete_candidates.csv`) ne sont jamais committés.
 
+## Release
+
+Versioning is owned by ADR [`docs/adr/0025-release-mechanism.md`](docs/adr/0025-release-mechanism.md): **one version** for the repo (tag = `package.json` = `SERVER_INFO.version`), via **release-please**, with the production deploy gated on the release.
+
+- **Merging to `main` deploys nothing.** `docs`/`chore`/`ci`/`deps` PRs never cut a release.
+- **Cutting a release = merging the standing `chore(release): vX.Y.Z` PR** (on GitHub, or by an agent with `gh pr merge`): release-please creates the tag + GitHub Release + `CHANGELOG.md`, and bumps `package.json` and `SERVER_INFO.version`.
+- The release triggers [`.github/workflows/release-deploy.yml`](.github/workflows/release-deploy.yml), which deploys **only what changed since the previous tag**: the SPA (`src/`…), the docs site (`web/**`), and the changed Edge Functions (`supabase/functions/**`, via `SUPABASE_ACCESS_TOKEN`). The Cloudflare MCP proxy stays manual.
+
 ## Agent skills
 
 ### Issue tracker
