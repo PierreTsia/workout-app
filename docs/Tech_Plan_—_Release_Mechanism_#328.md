@@ -94,7 +94,7 @@ graph TD
     A --> C[release-please.yml]
     C -->|opens/updates| D[chore release PR]
     D -->|merged| E[tag vX.Y.Z + GitHub Release + CHANGELOG]
-    E --> F[release-deploy.yml on release:published]
+    E --> F[release-deploy.yml — reusable, called on release]
     F --> G{changed since prev tag}
     G -->|src/**| H[Vercel: SPA prod]
     G -->|web/**| I[Vercel: docs prod]
@@ -108,7 +108,7 @@ graph TD
 | `release-please-config.json` | release-please config, changelog sections, `extra-files` for `SERVER_INFO`. |
 | `.release-please-manifest.json` | current released version (`1.0.0`). |
 | `.github/workflows/release-please.yml` | runs release-please on `main` push + `workflow_dispatch`; opens/updates the release PR, cuts the release on merge. |
-| `.github/workflows/release-deploy.yml` | on `release: published`: compute changed paths vs previous tag, then deploy SPA / docs / changed Supabase functions. |
+| `.github/workflows/release-deploy.yml` | Reusable (`workflow_call`, invoked by the release workflow) + `release: published` + `workflow_dispatch`: compute changed paths vs the nearest tagged ancestor, then deploy SPA / docs / changed Supabase functions. |
 | `CHANGELOG.md` | seeded "1.0.0 — Initial release"; maintained by release-please. |
 
 ### Modified Files
@@ -126,7 +126,7 @@ graph TD
 - Invokes the action with `config-file`/`manifest-file`; the action does everything else.
 
 **`release-deploy.yml`**
-- `on: release: types: [published]` (+ `workflow_dispatch` with a `tag` input).
+- `on: workflow_call` (input `tag`) — the primary path (called by `release-please.yml` when it creates a release), plus `release: types: [published]` and `workflow_dispatch` (input `tag`).
 - Step "resolve targets": `fetch-depth: 0`; `TAG = github.event.release.tag_name`; `PREV =` previous tag (`git describe`/sorted tags); `changed = git diff --name-only PREV..TAG` (all files when there is no previous tag = first release).
 - Jobs `deploy-spa`, `deploy-web`, `deploy-functions`, each `if:` on its target flag. `deploy-functions` is a no-op-with-warning when `SUPABASE_ACCESS_TOKEN` is unset — never a hard failure on a release that changes no function.
 

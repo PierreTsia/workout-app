@@ -72,7 +72,7 @@ Give GymLogic a real release mechanism: PRs merge to `main` freely (docs, chores
 1. `release-please-config.json` + `.release-please-manifest.json` + the release workflow (with `workflow_dispatch` for a manual cycle).
 2. Conventional-Commit → bump mapping; `docs`/`chore`/`ci`/`test` excluded.
 3. `extra-files` so the release PR also bumps `SERVER_INFO.version` (`file:supabase/functions/mcp/index.ts`).
-4. A release-triggered deploy workflow (`on: release: published`), **path-gated vs the previous tag**: SPA → Vercel; `web/**` → Vercel docs project; `supabase/functions/**` → `supabase functions deploy` (needs `SUPABASE_ACCESS_TOKEN`).
+4. A release-triggered deploy workflow (a **reusable** workflow the release workflow calls when it cuts a release, so the `GITHUB_TOKEN` suppression of `on: release` doesn't bite; `release: published` kept for human/other-token releases), **path-gated vs the nearest tagged ancestor**: SPA → Vercel; `web/**` → Vercel docs project; `supabase/functions/**` → `supabase functions deploy` (needs `SUPABASE_ACCESS_TOKEN`).
 5. Remove the prod deploy jobs from `ci.yml` (previews stay).
 6. Baseline `v1.0.0` tag.
 7. `CHANGELOG.md` + GitHub Release body (grouped notes).
