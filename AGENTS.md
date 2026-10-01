@@ -94,6 +94,7 @@ Versioning is owned by ADR [`docs/adr/0025-release-mechanism.md`](docs/adr/0025-
 - **Merging to `main` deploys nothing.** `docs`/`chore`/`ci`/`deps` PRs never cut a release.
 - **Cutting a release = merging the standing `chore(release): vX.Y.Z` PR** (on GitHub, or by an agent with `gh pr merge`): release-please creates the tag + GitHub Release + `CHANGELOG.md`, and bumps `package.json` and `SERVER_INFO.version`.
 - The release triggers [`.github/workflows/release-deploy.yml`](.github/workflows/release-deploy.yml), which deploys **only what changed since the previous tag**: the SPA (`src/`…), the docs site (`web/**`), and the changed Edge Functions (`supabase/functions/**`, via `SUPABASE_ACCESS_TOKEN`). The Cloudflare MCP proxy stays manual.
+- **Setup (one-time):** the repo must allow GitHub Actions to create PRs (Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*), and a `RELEASE_PLEASE_TOKEN` secret (fine-grained PAT, *Contents* + *Pull requests: write*) lets the release PR **run CI** — a PR opened with the default `GITHUB_TOKEN` suppresses its own `pull_request` workflows and stays blocked on the required checks.
 
 ## Agent skills
 
