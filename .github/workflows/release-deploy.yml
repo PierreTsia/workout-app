@@ -1,0 +1,149 @@
+name: release-deploy
+
+# Production deploy, gated on a release (ADR 0025). Deploys ONLY the artefacts
+# whose files changed since the nearest tagged ancestor: the SPA, the web/ docs
+# mini-site, and the changed Supabase Edge Functions (all of them when
+# `_shared/**` changed, since consumers bundle it). The Cloudflare MCP proxy
+# stays manual.
+#
+# Triggered three ways:
+#   - `workflow_call` from release-please.yml when it creates a release, because
+#     a release created with the default `GITHUB_TOKEN` does NOT trigger an
+#     `on: release` workflow run;
+#   - `release: published` for a release cut by a human/other token;
+#   - `workflow_dispatch` to retry a tag.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to deploy (defaults to the latest release)
+        required: false
+
+concurrency:
+  group: release-deploy
+  cancel-in-progress: false
+
+jobs:
+  targets:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.diff.outputs.tag }}
+      spa: ${{ steps.diff.outputs.spa }}
+      web: ${{ steps.diff.outputs.web }}
+      functions: ${{ steps.diff.outputs.functions }}
+      functions_list: ${{ steps.diff.outputs.functions_list }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag || github.event.release.tag_name }}"
+          if [ -z "$TAG" ]; then
+            TAG=$(git describe --tags --abbrev=0)
+          fi
+          # Nearest tagged ancestor of TAG (NOT the newest tag) so a retry of an
+          # older release diffs against the right baseline.
+          PREV=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${TAG}^" 2>/dev/null || true)
+          if [ -z "$PREV" ]; then
+            CHANGED=$(git ls-files)
+          else
+            CHANGED=$(git diff --name-only "$PREV" "$TAG")
+          fi
+          echo "$CHANGED" > /tmp/changed.txt
+
+          has() { grep -qE "$1" /tmp/changed.txt; }
+
+          # NB: package.json / package-lock.json are intentionally NOT SPA
+          # triggers — release-please rewrites their version fields in the
+          # release commit itself, so including them would make `spa` always
+          # true and churn the PWA cache on every release.
+          SPA_RE='^(src/|public/|index\.html$|vite\.config\.ts$|vercel\.json$|tsconfig.*\.json$|postcss\.config\.js$|components\.json$)'
+
+          # A change under `_shared/**` affects every consumer's bundle, so it
+          # redeploys all deployable functions; otherwise only the changed dirs.
+          if has '^supabase/functions/_shared/'; then
+            FUNCS=$(ls -1 supabase/functions | grep -v '^_shared$' | tr '\n' ' ')
+          else
+            FUNCS=$(printf '%s\n' "$CHANGED" | awk -F/ '/^supabase\/functions\// {print $3}' | sort -u | grep -v '^_shared$' | tr '\n' ' ' || true)
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "spa=$(has "$SPA_RE" && echo true || echo false)"
+            echo "web=$(has '^web/' && echo true || echo false)"
+            echo "functions=$([ -n "$FUNCS" ] && echo true || echo false)"
+            echo "functions_list=$FUNCS"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Release $TAG (previous: ${PREV:-none})"
+          echo "changed files:"; printf '%s\n' "$CHANGED" | sed 's/^/  /'
+
+  deploy-spa:
+    needs: [targets]
+    if: needs.targets.outputs.spa == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.targets.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-web:
+    needs: [targets]
+    if: needs.targets.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.targets.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy-functions:
+    needs: [targets]
+    if: needs.targets.outputs.functions == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.targets.outputs.tag }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.76.9
+      - name: Deploy changed Edge Functions
+        run: |
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN is not set — skipping Edge Function deploy. Set it (T263) or deploy manually."
+            exit 0
+          fi
+          for fn in ${{ needs.targets.outputs.functions_list }}; do
+            echo "Deploying $fn"
+            supabase functions deploy "$fn" --project-ref favusepjqwpcroiolvaz
+          done

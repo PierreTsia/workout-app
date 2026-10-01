@@ -11,11 +11,13 @@ jobs:
   # Outputs feed paths-filter gating on web deploy jobs and the SPA deploy job
   # (so docs-only commits don't redeploy the SPA, and SPA-only commits don't
   # redeploy docs.gymlogic.me).
+  # Detect which subtree (web/ Astro mini-site vs infra Cloudflare worker)
+  # changed. Outputs feed paths-filter gating on the web preview deploy and the
+  # worker-unit job. (The SPA prod deploy moved to release-deploy.yml — ADR 0025.)
   changes:
     runs-on: ubuntu-latest
     outputs:
       web: ${{ steps.filter.outputs.web }}
-      spa: ${{ steps.filter.outputs.spa }}
       worker: ${{ steps.filter.outputs.worker }}
     steps:
       - uses: actions/checkout@v4
@@ -25,10 +27,6 @@ jobs:
           filters: |
             web:
               - 'web/**'
-            spa:
-              - '**'
-              - '!web/**'
-              - '!infra/**'
             worker:
               - 'infra/cloudflare/**'
 
@@ -211,24 +209,10 @@ jobs:
               });
             }
 
-  # Vercel production deploy for the web/ Astro mini-site on main pushes that
-  # touch web/**. Decoupled from the SPA `gate` job — docs and SPA share no
-  # operational concerns.
-  deploy-web:
-    needs: [changes]
-    if: needs.changes.outputs.web == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm i -g vercel@latest
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+  # NOTE: the production Vercel deploys (SPA + web/ docs) moved to
+  # `.github/workflows/release-deploy.yml`, gated on `on: release: published`
+  # (ADR 0025). This workflow keeps the PR preview (`preview-deploy-web`) and
+  # all the merge-time checks.
 
   # Cloudflare Worker proxy (infra/cloudflare/mcp-proxy/) — public-URL frontend
   # for the MCP Edge Function. Runs vanilla vitest against Request/Response
@@ -280,20 +264,3 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed"
-
-  # SPA deploy is now gated on non-web/ changes. A docs-only commit pushed to
-  # main no longer triggers a SPA redeploy (which would bust the PWA service
-  # worker cache for ~50-100KB of byte-identical precache assets).
-  deploy:
-    needs: [gate, changes]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.changes.outputs.spa == 'true'
-    runs-on: ubuntu-latest
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm i -g vercel@latest
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

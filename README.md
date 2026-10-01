@@ -125,7 +125,7 @@ The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC
 | PWA | vite-plugin-pwa (Workbox) |
 | Theming | next-themes |
 | Testing | Vitest + Testing Library + Playwright |
-| CI/CD | GitHub Actions + Vercel |
+| CI/CD | GitHub Actions + Vercel — prod deploys on a release, not on every merge ([ADR 0025](docs/adr/0025-release-mechanism.md)) |
 
 ---
 
