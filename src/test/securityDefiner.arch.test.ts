@@ -293,6 +293,70 @@ describe("SECURITY DEFINER functions", () => {
 })
 
 /**
+ * #444: `REVOKE ... FROM PUBLIC` does not remove Supabase's explicit `anon`
+ * grant. Supabase sets `ALTER DEFAULT PRIVILEGES ... GRANT EXECUTE ON FUNCTIONS
+ * TO anon, authenticated, service_role` at project creation, so every fresh
+ * CREATE FUNCTION receives an explicit `anon=X` ACL entry, separate from the
+ * implicit PUBLIC one. A migration that revokes only PUBLIC therefore leaves
+ * `anon` able to EXECUTE a SECURITY DEFINER function on a database rebuilt from
+ * migrations — even though prod, patched by hand during the #439 incident, does
+ * not. Not exploitable (the bodies fail closed for anon), but an
+ * environment-reproducibility defect.
+ *
+ * The grant lives in the database, not in the SQL, so this is a static
+ * assertion over the migration files: every SECURITY DEFINER function must be
+ * named in a REVOKE that lists `anon`, and no GRANT may hand EXECUTE back to it.
+ * The revoke may live in any migration, not only the one that defines the
+ * function — the #444 fix is a later, idempotent sweep rather than an edit to
+ * already-applied history.
+ */
+const revokeAnon = (name: string) =>
+  new RegExp(
+    `REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+(?:public\\.)?${name}\\s*\\([^)]*\\)\\s+FROM\\s+([^;]+);`,
+    "gi",
+  )
+
+const grantExecute = (name: string) =>
+  new RegExp(
+    `GRANT\\s+EXECUTE\\s+ON\\s+FUNCTION\\s+(?:public\\.)?${name}\\s*\\([^)]*\\)\\s+TO\\s+([^;]+);`,
+    "gi",
+  )
+
+const grantees = (list: string) =>
+  list.split(",").map((role) => role.trim().toLowerCase())
+
+const allMigrationSql = Object.values(migrationSources)
+  .map(stripComments)
+  .join("\n")
+
+describe("SECURITY DEFINER functions revoke anon by name (#444)", () => {
+  it("names anon in a REVOKE for every SECURITY DEFINER function", () => {
+    const missing = securityDefiners
+      .map(({ name }) => name)
+      .filter(
+        (name) =>
+          ![...allMigrationSql.matchAll(revokeAnon(name))].some(([, list]) =>
+            grantees(list).includes("anon"),
+          ),
+      )
+
+    expect(missing).toEqual([])
+  })
+
+  it("never grants EXECUTE to anon", () => {
+    const offenders = securityDefiners
+      .map(({ name }) => name)
+      .filter((name) =>
+        [...allMigrationSql.matchAll(grantExecute(name))].some(([, list]) =>
+          grantees(list).includes("anon"),
+        ),
+      )
+
+    expect(offenders).toEqual([])
+  })
+})
+
+/**
  * #482 / T210: the circuit achievement migration must keep the five metric
  * branches, seed-only join (`owner_id IS NULL`), Cast Clearing slug lists, and
  * the LEFT JOIN / unnest pattern that yields 0 when a seed is missing.

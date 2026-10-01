@@ -45,7 +45,13 @@ const lastDefinitionOf = (name: string): string =>
         .split(new RegExp(`(?=${FUNCTION_HEAD.source})`, "i")),
     )
     .filter((chunk) =>
-      new RegExp(`FUNCTION\\s+(?:public\\.)?${name}\\s*\\(`, "i").test(chunk),
+      // Anchored on CREATE: a later migration may name the function in a
+      // REVOKE without redefining it (#444), and that must not be mistaken for
+      // the surviving definition.
+      new RegExp(
+        `^CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+(?:public\\.)?${name}\\s*\\(`,
+        "i",
+      ).test(chunk),
     )
     .at(-1) ?? ""
 
