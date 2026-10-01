@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   DEVIATION_REASONS,
   type DeviationReason,
@@ -17,9 +18,14 @@ import {
 
 export interface DeviationSetInfo {
   setNumber: number
+  unit: string
+  /** Did the weight deviate? Drives the prompt copy. */
+  weightChanged: boolean
   prescribed: string
   actual: string
-  unit: string
+  repsChanged: boolean
+  prescribedReps: string | null
+  actualReps: string | null
 }
 
 interface DeviationReasonSheetProps {
@@ -50,6 +56,8 @@ export function DeviationReasonSheet({
     setNote("")
   }
 
+  const showWeight = setInfo ? setInfo.weightChanged || !setInfo.repsChanged : false
+
   return (
     <Drawer
       open={open}
@@ -59,8 +67,12 @@ export function DeviationReasonSheet({
     >
       <DrawerContent aria-label={t("deviation.sheetLabel")}>
         <DrawerHeader>
-          <DrawerTitle>{t("deviation.loadPrompt")}</DrawerTitle>
-          {setInfo && (
+          <DrawerTitle>
+            {setInfo?.weightChanged
+              ? t("deviation.loadPrompt")
+              : t("deviation.loadPromptReps")}
+          </DrawerTitle>
+          {setInfo && showWeight && (
             <DrawerDescription>
               {t("deviation.setInfo", {
                 setNumber: setInfo.setNumber,
@@ -70,32 +82,35 @@ export function DeviationReasonSheet({
               })}
             </DrawerDescription>
           )}
+          {setInfo?.repsChanged && (
+            <DrawerDescription>
+              {t("deviation.setInfoReps", {
+                prescribed: setInfo.prescribedReps,
+                actual: setInfo.actualReps,
+              })}
+            </DrawerDescription>
+          )}
         </DrawerHeader>
 
-        <div
-          role="group"
+        <ToggleGroup
+          type="single"
+          value={reason ?? ""}
+          onValueChange={(value) =>
+            setReason((value || null) as DeviationReason | null)
+          }
           aria-label={t("deviation.reasonGroupLabel")}
           className="flex flex-wrap gap-2 px-4 pb-2"
         >
-          {DEVIATION_REASONS.map((code) => {
-            const selected = reason === code
-            return (
-              <button
-                key={code}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => setReason(selected ? null : code)}
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                  selected
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-foreground hover:border-primary/50"
-                }`}
-              >
-                {t(`deviation.reason.${code}`)}
-              </button>
-            )
-          })}
-        </div>
+          {DEVIATION_REASONS.map((code) => (
+            <ToggleGroupItem
+              key={code}
+              value={code}
+              className="rounded-lg border border-border px-3 py-2 text-sm data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              {t(`deviation.reason.${code}`)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
 
         <div className="px-4 pt-2">
           <Input

@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { sessionAtom, restAtom, prFlagsAtom, sessionBestPerformanceAtom } from "@/store/atoms"
 import { primeAudio } from "@/lib/audio"
-import { enqueueSetLog, enqueueDeviation, scheduleImmediateDrain } from "@/lib/syncService"
+import { enqueueSetLog, enqueueDeviation, enqueueDeviationDelete, scheduleImmediateDrain } from "@/lib/syncService"
 import { getRestElapsedSeconds } from "@/hooks/useRestTimer"
 import { computeEpley1RM } from "@/lib/epley"
 import {
@@ -300,6 +300,8 @@ export function SetsTable({
   const pauseStartRef = useRef<number | null>(null)
   /** Prevents duplicate duration completion when timer auto-log and "stop early" race the same tick. */
   const durationCompleteLockRef = useRef<string | null>(null)
+  /** Identities (`${exerciseId}|${setNumber}`) that already recorded a deviation. */
+  const recordedDeviationsRef = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (session.pausedAt != null) {
       pauseStartRef.current = session.pausedAt
@@ -470,18 +472,36 @@ export function SetsTable({
       // lbs user looks like a deviation on every conforming set.
       const prescribedDisplay =
         Math.round(toDisplay(prescriptionForLog.weight ?? 0) * 10) / 10
+      const prescribedReps = prescriptionForLog.reps ?? 0
+      const actualReps = parseInt(currentSet.reps, 10)
+      const identity = `${exercise.id}|${setIdx + 1}`
       if (
         isLoadDeviation(
           { reps: currentSet.reps, weight: currentSet.weight },
-          { reps: prescriptionForLog.reps ?? 0, weight: prescribedDisplay },
+          { reps: prescribedReps, weight: prescribedDisplay },
         )
       ) {
         setDeviationInfo({
           setNumber: setIdx + 1,
+          unit,
+          weightChanged: Number(currentSet.weight) !== prescribedDisplay,
           prescribed: String(prescribedDisplay),
           actual: currentSet.weight,
-          unit,
+          repsChanged: !Number.isNaN(actualReps) && actualReps !== prescribedReps,
+          prescribedReps: String(prescribedReps),
+          actualReps: currentSet.reps,
         })
+      } else if (recordedDeviationsRef.current.has(identity)) {
+        // Re-log returned to the prescription: drop the stale deviation.
+        recordedDeviationsRef.current.delete(identity)
+        enqueueDeviationDelete({
+          sessionId,
+          workoutExerciseId: exercise.id,
+          exerciseId: exercise.exercise_id,
+          setNumber: setIdx + 1,
+          kind: "load_deviation",
+        })
+        scheduleImmediateDrain()
       }
 
       exerciseSets[setIdx] = { ...currentSet, done: true, rir }
@@ -547,6 +567,7 @@ export function SetsTable({
       exercise,
       sessionId,
       toKg,
+      toDisplay,
       unit,
       equipment,
       historicalBest,
@@ -996,6 +1017,9 @@ export function SetsTable({
         setInfo={deviationInfo}
         onResolve={(reason, note) => {
           if (deviationInfo) {
+            recordedDeviationsRef.current.add(
+              `${exercise.id}|${deviationInfo.setNumber}`,
+            )
             enqueueDeviation(
               buildLoadDeviationPayload({
                 sessionId,

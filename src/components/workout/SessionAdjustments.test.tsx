@@ -11,11 +11,16 @@ function makeAdjustment(
 ): DebriefAdjustment {
   return {
     id: "dev-1",
-    exerciseName: "Bench Press",
+    exerciseNameSnapshot: "Bench Press",
+    catalogExercise: null,
     setNumber: 2,
     prescribed: "80",
     actual: "72.5",
     unit: "kg",
+    weightChanged: true,
+    prescribedReps: "10",
+    actualReps: "10",
+    repsChanged: false,
     reasonCode: "fatigue",
     note: null,
     ...overrides,
@@ -51,5 +56,23 @@ describe("SessionAdjustments", () => {
 
     expect(screen.getByText("No reason given")).toBeInTheDocument()
     expect(screen.getByText("mal dormi")).toBeInTheDocument()
+  })
+
+  it("renders a reps-only deviation without a weight line", () => {
+    renderWithProviders(
+      <SessionAdjustments
+        adjustments={[
+          makeAdjustment({
+            weightChanged: false,
+            repsChanged: true,
+            prescribedReps: "10",
+            actualReps: "8",
+          }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText("Reps 10 → 8")).toBeInTheDocument()
+    expect(screen.queryByText("Set 2 · 80 → 72.5 kg")).not.toBeInTheDocument()
   })
 })

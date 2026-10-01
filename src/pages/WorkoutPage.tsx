@@ -717,9 +717,6 @@ export function WorkoutPage() {
   )
   const adjustments = useMemo<DebriefAdjustment[]>(() => {
     const queuedLogs = queuedSetLogPayloadsForSession(finishedSessionId)
-    const nameById = new Map(
-      exercises.map((e) => [e.exercise_id, e.name_snapshot] as const),
-    )
     // Merge, table wins: a drain still in flight leaves the row in the queue,
     // and the cached table read can lag one drain behind.
     const byId = new Map<string, DebriefAdjustment>()
@@ -730,11 +727,16 @@ export function WorkoutPage() {
           (l.workoutExerciseId ?? l.exerciseId) === slot &&
           l.setNumber === deviation.setNumber,
       )
+      const lib = deviation.exerciseId
+        ? (exerciseById.get(deviation.exerciseId) ?? null)
+        : null
       const adjustment = buildAdjustment(
         deviation,
         log,
-        (deviation.exerciseId && nameById.get(deviation.exerciseId)) ||
-          "Exercise",
+        {
+          exerciseNameSnapshot: lib?.name ?? null,
+          catalogExercise: lib ? { name: lib.name, name_en: lib.name_en } : null,
+        },
         toDisplay,
         unit,
       )
@@ -744,7 +746,7 @@ export function WorkoutPage() {
       byId.set(adjustment.id, adjustment)
     }
     return [...byId.values()]
-  }, [dbAdjustments, finishedSessionId, exercises, toDisplay, unit])
+  }, [dbAdjustments, finishedSessionId, exerciseById, toDisplay, unit])
 
   useEffect(() => {
     if (!session.isActive || !user?.id || !currentExercise) return

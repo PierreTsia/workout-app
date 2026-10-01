@@ -173,6 +173,7 @@ let enqueueBlockRun: typeof import("./syncService").enqueueBlockRun
 let discardBlockRun: typeof import("./syncService").discardBlockRun
 let queuedBlockRunFor: typeof import("./syncService").queuedBlockRunFor
 let enqueueDeviation: typeof import("./syncService").enqueueDeviation
+let enqueueDeviationDelete: typeof import("./syncService").enqueueDeviationDelete
 let enqueueSessionNote: typeof import("./syncService").enqueueSessionNote
 
 // ---------------------------------------------------------------------------
@@ -249,6 +250,7 @@ describe("SyncService", () => {
     discardBlockRun = mod.discardBlockRun
     queuedBlockRunFor = mod.queuedBlockRunFor
     enqueueDeviation = mod.enqueueDeviation
+    enqueueDeviationDelete = mod.enqueueDeviationDelete
     enqueueSessionNote = mod.enqueueSessionNote
   })
 
@@ -506,6 +508,50 @@ describe("SyncService", () => {
         ),
       ).toBe(true)
       expect(readQueue()).toHaveLength(0)
+    })
+
+    it("keeps a same-fingerprint correction enqueued during an in-flight drain", async () => {
+      vi.useRealTimers()
+
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+
+      let resolveSessionUpsert!: (v: unknown) => void
+      sessionsChain.then.mockImplementation((resolve: (v: unknown) => void) => {
+        resolveSessionUpsert = resolve
+      })
+
+      const drainPromise = drainQueue(USER_ID)
+      await new Promise((r) => setTimeout(r, 0))
+
+      // User corrects the reason while the drain is in flight — same identity.
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "pain",
+        note: null,
+      })
+
+      resolveSessionUpsert({ data: null, error: null })
+      deviationsChain.then.mockImplementation((resolve: (v: unknown) => void) =>
+        resolve({ data: null, error: null }),
+      )
+
+      await drainPromise
+
+      const queue = readQueue()
+      expect(queue).toHaveLength(1)
+      expect(queue[0].payload.reasonCode).toBe("pain")
     })
 
     it("keeps failed item in queue and sets syncStatus to failed on partial failure", async () => {
@@ -1410,6 +1456,55 @@ describe("SyncService", () => {
 
       const [row] = deviationsChain.upsert.mock.calls[0]
       expect(row).toEqual(expect.objectContaining({ reason_code: null }))
+    })
+  })
+
+  describe("enqueueDeviationDelete", () => {
+    it("deletes the event for the identity on drain", async () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueDeviationDelete({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+      })
+
+      await drainQueue(USER_ID)
+
+      expect(deviationsChain.delete).toHaveBeenCalled()
+      expect(deviationsChain.eq).toHaveBeenCalledWith(
+        "session_id",
+        DETERMINISTIC_UUID,
+      )
+      expect(deviationsChain.eq).toHaveBeenCalledWith("set_number", 1)
+      expect(readQueue()).toHaveLength(0)
+    })
+
+    it("supersedes a pending re-add for the same identity", () => {
+      enqueueSetLog(makeSetLogPayload())
+      enqueueDeviation({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+        reasonCode: "fatigue",
+        note: null,
+      })
+      enqueueDeviationDelete({
+        sessionId: "local-session-1",
+        workoutExerciseId: "we1",
+        exerciseId: "ex1",
+        setNumber: 1,
+        kind: "load_deviation",
+      })
+
+      const types = readQueue().map((i: { type: string }) => i.type)
+      expect(types.filter((t: string) => t === "deviation")).toHaveLength(0)
+      expect(types.filter((t: string) => t === "deviation_delete")).toHaveLength(
+        1,
+      )
     })
   })
 

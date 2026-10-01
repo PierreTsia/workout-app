@@ -30,21 +30,45 @@ export function deviationReasonKey(reason: DeviationReason | null): string {
   return reason ? `deviation.reason.${reason}` : "deviation.reason.none"
 }
 
-/** One line of the S3 debrief (T267). Display-ready — numbers already localised. */
+/** Catalog row used to resolve a display name at render (ADR 0010). */
+export interface CatalogName {
+  name: string | null
+  name_en: string | null
+}
+
+/**
+ * One line of the S3 debrief (T267). Display-ready for weights; the exercise
+ * name is resolved at render (ADR 0010) from `catalogExercise` with
+ * `exerciseNameSnapshot` as fallback — never from the frozen snapshot alone.
+ * `weightChanged` / `repsChanged` tell the UI which axis actually deviated, so
+ * a reps-only deviation never renders as `60 → 60 kg`.
+ */
 export interface DebriefAdjustment {
   id: string
-  exerciseName: string
+  exerciseNameSnapshot: string | null
+  catalogExercise: CatalogName | null
   setNumber: number | null
   prescribed: string
   actual: string
   unit: string
+  weightChanged: boolean
+  prescribedReps: string | null
+  actualReps: string | null
+  repsChanged: boolean
   reasonCode: DeviationReason | null
   note: string | null
 }
 
 type AdjustmentLog = {
-  weightLogged?: number
+  weightLogged?: number | null
   prescribedWeight?: number | null
+  repsLogged?: string | number | null
+  prescribedReps?: number | null
+}
+
+type AdjustmentNaming = {
+  exerciseNameSnapshot: string | null
+  catalogExercise: CatalogName | null
 }
 
 const EM_DASH = "—"
@@ -55,6 +79,11 @@ function formatDisplayWeight(
   toDisplay: (kg: number) => number,
 ): string {
   return String(Math.round(toDisplay(kg) * 10) / 10)
+}
+
+const asReps = (value: string | number | null | undefined): string | null => {
+  if (value == null || value === "") return null
+  return String(value)
 }
 
 /**
@@ -68,27 +97,38 @@ export function buildAdjustment(
     "workoutExerciseId" | "exerciseId" | "setNumber" | "reasonCode" | "note"
   >,
   log: AdjustmentLog | undefined,
-  exerciseName: string,
+  naming: AdjustmentNaming,
   toDisplay: (kg: number) => number,
   unit: string,
 ): DebriefAdjustment {
   const slot = deviation.workoutExerciseId ?? deviation.exerciseId ?? "?"
-  const prescribed =
+  const prescribedWeight =
     log?.prescribedWeight != null
       ? formatDisplayWeight(log.prescribedWeight, toDisplay)
-      : EM_DASH
-  const actual =
+      : null
+  const actualWeight =
     log?.weightLogged != null
       ? formatDisplayWeight(log.weightLogged, toDisplay)
-      : EM_DASH
+      : null
+  const prescribedReps = asReps(log?.prescribedReps)
+  const actualReps = asReps(log?.repsLogged)
 
   return {
     id: `${slot}|${deviation.setNumber}`,
-    exerciseName,
+    exerciseNameSnapshot: naming.exerciseNameSnapshot,
+    catalogExercise: naming.catalogExercise,
     setNumber: deviation.setNumber,
-    prescribed,
-    actual,
+    prescribed: prescribedWeight ?? EM_DASH,
+    actual: actualWeight ?? EM_DASH,
     unit,
+    weightChanged:
+      prescribedWeight != null &&
+      actualWeight != null &&
+      prescribedWeight !== actualWeight,
+    prescribedReps,
+    actualReps,
+    repsChanged:
+      prescribedReps != null && actualReps != null && prescribedReps !== actualReps,
     reasonCode: deviation.reasonCode,
     note: deviation.note,
   }
@@ -109,9 +149,12 @@ export type SessionLogRow = {
   workoutExerciseId: string | null
   exerciseId: string | null
   setNumber: number
-  weightLogged: number | null
-  prescribedWeight: number | null
-  exerciseNameSnapshot: string | null
+  weightLogged?: number | null
+  prescribedWeight?: number | null
+  repsLogged?: string | number | null
+  prescribedReps?: number | null
+  exerciseNameSnapshot?: string | null
+  catalogExercise?: CatalogName | null
 }
 
 /**
@@ -141,13 +184,11 @@ export function mergeSessionDeviations(
         reasonCode: deviation.reasonCode,
         note: deviation.note,
       },
-      log
-        ? {
-            weightLogged: log.weightLogged ?? undefined,
-            prescribedWeight: log.prescribedWeight,
-          }
-        : undefined,
-      log?.exerciseNameSnapshot ?? "Exercise",
+      log,
+      {
+        exerciseNameSnapshot: log?.exerciseNameSnapshot ?? null,
+        catalogExercise: log?.catalogExercise ?? null,
+      },
       toDisplay,
       unit,
     )

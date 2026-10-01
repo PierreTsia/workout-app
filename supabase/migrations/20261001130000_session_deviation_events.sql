@@ -21,10 +21,25 @@ CREATE TABLE session_deviation_events (
 
 ALTER TABLE session_deviation_events ENABLE ROW LEVEL SECURITY;
 
+-- Own-row, and the referenced session must also belong to the caller — mirrors
+-- the set_logs policy, so a client cannot attach an event to another account's
+-- session (nor probe session ids through the FK).
 CREATE POLICY "own deviation events" ON session_deviation_events
   FOR ALL TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM sessions s
+      WHERE s.id = session_id AND s.user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM sessions s
+      WHERE s.id = session_id AND s.user_id = auth.uid()
+    )
+  );
 
 CREATE INDEX session_deviation_events_session_idx
   ON session_deviation_events (session_id);

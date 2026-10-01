@@ -34,8 +34,18 @@ vi.mock("@/hooks/useBestPerformance", () => ({
   }),
 }))
 
+const weightUnitState = { unit: "kg" as "kg" | "lbs" }
+
 vi.mock("@/hooks/useWeightUnit", () => ({
-  useWeightUnit: () => ({ unit: "kg", toKg: (value: number) => value, toDisplay: (kg: number) => kg }),
+  useWeightUnit: () => ({
+    unit: weightUnitState.unit,
+    toKg: (value: number) =>
+      weightUnitState.unit === "lbs" ? value / 2.20462 : value,
+    toDisplay: (kg: number) =>
+      weightUnitState.unit === "lbs"
+        ? Math.round(kg * 2.20462 * 10) / 10
+        : kg,
+  }),
 }))
 
 let mockLibExercise: Exercise | undefined = undefined
@@ -135,6 +145,7 @@ describe("SetsTable", () => {
     enqueueDeviationMock.mockClear()
     mockRirValue = 2
     mockLibExercise = undefined
+    weightUnitState.unit = "kg"
   })
 
   it("locks all controls when rendered as read-only", async () => {
@@ -245,6 +256,54 @@ describe("SetsTable", () => {
         reasonCode: "fatigue",
       }),
     )
+  })
+
+  it("does not open the sheet for a conforming set in lbs mode", async () => {
+    const user = userEvent.setup()
+    weightUnitState.unit = "lbs"
+    const lbsSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "132.3", done: false },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, lbsSession)
+    })
+
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(screen.queryByTestId("deviation-sheet")).not.toBeInTheDocument()
+  })
+
+  it("opens the sheet for an edited set in lbs mode", async () => {
+    const user = userEvent.setup()
+    weightUnitState.unit = "lbs"
+    const lbsSession: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "110", done: false },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, lbsSession)
+    })
+
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(screen.getByTestId("deviation-sheet")).toBeInTheDocument()
   })
 
   // Cycle 13: SetsTable must populate the Prescription Snapshot fields on

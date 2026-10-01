@@ -98,22 +98,24 @@ describe("buildAdjustment", () => {
     reasonCode: "fatigue" as const,
     note: null,
   }
+  const naming = { exerciseNameSnapshot: "Bench Press", catalogExercise: null }
 
   it("formats prescribed and actual in display units", () => {
     const adjustment = buildAdjustment(
       deviation,
       { weightLogged: 72.5, prescribedWeight: 80 },
-      "Bench Press",
+      naming,
       (kg) => kg,
       "kg",
     )
 
     expect(adjustment).toMatchObject({
-      exerciseName: "Bench Press",
+      exerciseNameSnapshot: "Bench Press",
       setNumber: 2,
       prescribed: "80",
       actual: "72.5",
       unit: "kg",
+      weightChanged: true,
       reasonCode: "fatigue",
       note: null,
     })
@@ -123,26 +125,42 @@ describe("buildAdjustment", () => {
     const adjustment = buildAdjustment(
       deviation,
       undefined,
-      "Squat",
+      naming,
       (kg) => kg,
       "kg",
     )
 
     expect(adjustment.prescribed).toBe("—")
     expect(adjustment.actual).toBe("—")
+    expect(adjustment.weightChanged).toBe(false)
   })
 
   it("rounds the converted numbers to one decimal (lbs noise)", () => {
     const adjustment = buildAdjustment(
       deviation,
       { weightLogged: 30, prescribedWeight: 27.5 },
-      "Bench Press",
+      naming,
       (kg) => kg * 2.20462,
       "lbs",
     )
 
     expect(adjustment.prescribed).toBe("60.6")
     expect(adjustment.actual).toBe("66.1")
+  })
+
+  it("flags a reps-only deviation and carries both rep counts", () => {
+    const adjustment = buildAdjustment(
+      deviation,
+      { weightLogged: 60, prescribedWeight: 60, repsLogged: "8", prescribedReps: 10 },
+      naming,
+      (kg) => kg,
+      "kg",
+    )
+
+    expect(adjustment.weightChanged).toBe(false)
+    expect(adjustment.repsChanged).toBe(true)
+    expect(adjustment.prescribedReps).toBe("10")
+    expect(adjustment.actualReps).toBe("8")
   })
 })
 
@@ -166,6 +184,8 @@ describe("mergeSessionDeviations", () => {
           setNumber: 2,
           weightLogged: 72.5,
           prescribedWeight: 80,
+          repsLogged: "10",
+          prescribedReps: 10,
           exerciseNameSnapshot: "Bench Press",
         },
       ],
@@ -175,7 +195,7 @@ describe("mergeSessionDeviations", () => {
 
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
-      exerciseName: "Bench Press",
+      exerciseNameSnapshot: "Bench Press",
       prescribed: "80",
       actual: "72.5",
       reasonCode: "fatigue",

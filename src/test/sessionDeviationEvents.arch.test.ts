@@ -47,6 +47,14 @@ describe("session_deviation_events migration (T266)", () => {
     expect(sql).toMatch(/user_id uuid NOT NULL DEFAULT auth\.uid\(\)/i)
   })
 
+  it("session-scopes the policy, not just user_id", () => {
+    // A caller-controlled user_id is not enough: the FK target must belong to
+    // the caller too, or an event can reference another account's session.
+    expect(sql).toMatch(
+      /EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+sessions\s+\w+\s+WHERE\s+\w+\.id\s*=\s*session_id\s+AND\s+\w+\.user_id\s*=\s*auth\.uid\(\)\s*\)/i,
+    )
+  })
+
   it("admits only load_deviation as a kind in v1", () => {
     expect(kindsIn(sql)).toEqual(["load_deviation"])
   })

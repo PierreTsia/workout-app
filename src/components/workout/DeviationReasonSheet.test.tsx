@@ -4,7 +4,16 @@ import userEvent from "@testing-library/user-event"
 import { renderWithProviders } from "@/test/utils"
 import { DeviationReasonSheet } from "./DeviationReasonSheet"
 
-const SET_INFO = { setNumber: 2, prescribed: "80", actual: "72.5", unit: "kg" }
+const SET_INFO = {
+  setNumber: 2,
+  prescribed: "80",
+  actual: "72.5",
+  unit: "kg",
+  weightChanged: true,
+  repsChanged: false,
+  prescribedReps: "10",
+  actualReps: "10",
+}
 
 const REASON_LABELS = [
   "Pain or discomfort",
@@ -23,7 +32,7 @@ describe("DeviationReasonSheet", () => {
 
     expect(screen.getByText("Why this weight?")).toBeInTheDocument()
     for (const label of REASON_LABELS) {
-      expect(screen.getByRole("button", { name: label })).toBeInTheDocument()
+      expect(screen.getByRole("radio", { name: label })).toBeInTheDocument()
     }
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled()
   })
@@ -35,7 +44,7 @@ describe("DeviationReasonSheet", () => {
       <DeviationReasonSheet open setInfo={SET_INFO} onResolve={onResolve} />,
     )
 
-    await user.click(screen.getByRole("button", { name: "Fatigue" }))
+    await user.click(screen.getByRole("radio", { name: "Fatigue" }))
     await user.click(screen.getByRole("button", { name: "Save" }))
 
     expect(onResolve).toHaveBeenCalledWith("fatigue", null)
