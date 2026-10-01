@@ -258,6 +258,14 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Match the app surface so any area the browser exposes outside the
+       viewport-locked shell (mobile URL bar / system bars) reads as the app,
+       not a stray band. */
+    background-color: hsl(var(--background));
+    /* No rubber-band bounce that reveals that background on scroll. */
+    overscroll-behavior-y: none;
+  }
   body {
     @apply bg-background text-foreground;
   }
