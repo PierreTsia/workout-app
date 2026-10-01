@@ -629,7 +629,7 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 
 - **Dates**: ISO 8601, date-only (`2026-04-27`) for `from_date` / `to_date`. Server appends `T00:00:00Z` / `T23:59:59Z` automatically.
 - **Exercise IDs**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`). Always obtained from `resolve_exercises` (preferred for batch program-building) or `search_exercises`. Never invent or transcribe from memory. If a search returns no usable result, abandon the option or ask the user — never fabricate a placeholder id.
-- **Muscle groups (FR canonical)**: `Abdos`, `Biceps`, `Deltoïdes post.`, `Dos`, `Épaules`, `Fessiers`, `Ischios`, `Ischios / Bas du dos`, `Lombaires`, `Mollets`, `Pectoraux`, `Quadriceps`, `Trapèzes`, `Triceps`.
+- **Muscle groups (FR canonical)**: `Abdos`, `Adducteurs`, `Biceps`, `Deltoïdes post.`, `Dos`, `Épaules`, `Fessiers`, `Ischios`, `Ischios / Bas du dos`, `Lombaires`, `Mollets`, `Pectoraux`, `Quadriceps`, `Trapèzes`, `Triceps`.
 - **Equipment values**: `barbell`, `dumbbell`, `cable`, `machine`, `ez_bar`, `bodyweight`.
 - **Body region aliases** (for `search_exercises` only): `upper_body`, `lower_body`, `push`, `pull`, `arms`, `legs`, `core`.
 - **Difficulty**: `beginner`, `intermediate`, `advanced`.
