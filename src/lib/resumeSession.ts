@@ -61,12 +61,18 @@ function toSessionSetRow(
   log: SetLog,
   exercise: WorkoutExercise,
   lib: ExerciseListItem | undefined,
+  toDisplay: (kg: number) => number,
 ): SessionSetRow {
+  // `weight_logged` is persisted in kg; `setsData` stores display-unit values
+  // (`SetsTable` converts them back with `toKg`), so convert here.
+  const weight = String(
+    Math.round(toDisplay(log.weight_logged ?? 0) * 10) / 10,
+  )
   if (log.duration_seconds != null) {
     return {
       kind: "duration",
       targetSeconds: resolveTargetSecondsForRow(exercise, lib),
-      weight: String(log.weight_logged),
+      weight,
       done: true,
       rir: log.rir ?? undefined,
       timerStartedAt: null,
@@ -76,23 +82,25 @@ function toSessionSetRow(
   return {
     kind: "reps",
     reps: log.reps_logged ?? "",
-    weight: String(log.weight_logged),
+    weight,
     done: true,
     rir: log.rir ?? undefined,
   }
 }
 
 /**
- * Rebuild `setsData` rows for the solo slots that already have persisted logs,
- * so a resumed session shows them as done instead of fresh. Slots with no logs
- * are omitted (the existing effect builds their fresh rows); block logs are
- * ignored (circuits are tracked through `completedBlockIds`).
+ * Log-derived rows keyed by slot id, then set index (`set_number - 1`). The
+ * caller overlays them onto the slot's prescribed rows rather than replacing
+ * them — sets that were prescribed but never logged stay put. Slots with no
+ * logs are omitted; block logs are ignored (circuits are tracked through
+ * `completedBlockIds`).
  */
 export function hydrateSetsDataFromLogs(
   exercises: WorkoutExercise[],
   logs: SetLog[],
   library: Map<string, ExerciseListItem>,
-): Record<string, SessionSetRow[]> {
+  toDisplay: (kg: number) => number,
+): Record<string, Record<number, SessionSetRow>> {
   const logsBySlot = groupBy(
     logs.filter((log) => log.workout_exercise_id != null),
     (log) => log.workout_exercise_id as string,
@@ -103,10 +111,16 @@ export function hydrateSetsDataFromLogs(
       const slotLogs = logsBySlot.get(exercise.id)
       if (!slotLogs || slotLogs.length === 0) return []
       const lib = library.get(exercise.exercise_id)
-      const rows = [...slotLogs]
-        .sort((a, b) => a.set_number - b.set_number)
-        .map((log) => toSessionSetRow(log, exercise, lib))
-      return [[exercise.id, rows] as const]
+      const byIndex: Record<number, SessionSetRow> = {}
+      for (const log of slotLogs) {
+        byIndex[Math.max(0, log.set_number - 1)] = toSessionSetRow(
+          log,
+          exercise,
+          lib,
+          toDisplay,
+        )
+      }
+      return [[exercise.id, byIndex] as const]
     }),
   )
 }

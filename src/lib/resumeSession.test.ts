@@ -91,17 +91,33 @@ describe("resumeOrphanSession", () => {
   })
 })
 
+const identity = (kg: number) => kg
+
 describe("hydrateSetsDataFromLogs", () => {
-  it("marks already-logged solo sets done with reps, weight and rir", () => {
+  it("marks an already-logged solo set done, keyed by set index", () => {
     const result = hydrateSetsDataFromLogs(
       [makeExercise()],
       [makeLog()],
       new Map(),
+      identity,
     )
 
-    expect(result["slot-1"]).toEqual([
-      { kind: "reps", reps: "8", weight: "62.5", done: true, rir: 2 },
-    ])
+    expect(result["slot-1"]).toEqual({
+      0: { kind: "reps", reps: "8", weight: "62.5", done: true, rir: 2 },
+    })
+  })
+
+  it("keys each log by set_number - 1 so unlogged prescribed sets are preserved", () => {
+    const result = hydrateSetsDataFromLogs(
+      [makeExercise()],
+      [makeLog({ set_number: 3 })],
+      new Map(),
+      identity,
+    )
+
+    expect(result["slot-1"]).toEqual({
+      2: { kind: "reps", reps: "8", weight: "62.5", done: true, rir: 2 },
+    })
   })
 
   it("maps a duration log to a done duration row with loggedSeconds", () => {
@@ -111,10 +127,15 @@ describe("hydrateSetsDataFromLogs", () => {
       rir: null,
     })
 
-    const result = hydrateSetsDataFromLogs([makeExercise()], [log], new Map())
+    const result = hydrateSetsDataFromLogs(
+      [makeExercise()],
+      [log],
+      new Map(),
+      identity,
+    )
 
-    expect(result["slot-1"]).toEqual([
-      {
+    expect(result["slot-1"]).toEqual({
+      0: {
         kind: "duration",
         targetSeconds: 30,
         weight: "62.5",
@@ -122,7 +143,20 @@ describe("hydrateSetsDataFromLogs", () => {
         timerStartedAt: null,
         loggedSeconds: 45,
       },
-    ])
+    })
+  })
+
+  it("converts the persisted kg weight into the display unit", () => {
+    const toLbs = (kg: number) => kg * 2.20462
+
+    const result = hydrateSetsDataFromLogs(
+      [makeExercise()],
+      [makeLog()],
+      new Map(),
+      toLbs,
+    )
+
+    expect(result["slot-1"][0]?.weight).toBe("137.8")
   })
 
   it("omits slots with no logs", () => {
@@ -130,6 +164,7 @@ describe("hydrateSetsDataFromLogs", () => {
       [makeExercise(), makeExercise({ id: "slot-2", exercise_id: "ex-2" })],
       [makeLog()],
       new Map(),
+      identity,
     )
 
     expect(result["slot-2"]).toBeUndefined()
@@ -146,6 +181,7 @@ describe("hydrateSetsDataFromLogs", () => {
       [makeExercise()],
       [blockLog],
       new Map(),
+      identity,
     )
 
     expect(result).toEqual({})

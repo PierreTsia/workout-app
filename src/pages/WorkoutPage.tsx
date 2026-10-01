@@ -793,19 +793,22 @@ export function WorkoutPage() {
       exercises,
       activeSessionLogs,
       exerciseById,
+      toDisplay,
     )
     if (Object.keys(hydrated).length === 0) return
 
     setSession((prev) => {
-      const merged = Object.entries(hydrated).reduce(
-        (acc, [slotId, rows]) => {
-          // Never clobber a slot the user already logged locally this session.
-          if (prev.setsData[slotId]?.some((r) => r.done)) return acc
-          return { ...acc, [slotId]: rows }
-        },
-        prev.setsData,
-      )
-      return { ...prev, setsData: merged }
+      const setsData = { ...prev.setsData }
+      for (const [slotId, byIndex] of Object.entries(hydrated)) {
+        // Never clobber a slot the user already logged locally this session.
+        if (prev.setsData[slotId]?.some((r) => r.done)) continue
+        const base = prev.setsData[slotId] ? [...prev.setsData[slotId]] : []
+        for (const [index, row] of Object.entries(byIndex)) {
+          base[Number(index)] = row
+        }
+        setsData[slotId] = base
+      }
+      return { ...prev, setsData }
     })
   }, [
     session.isActive,
@@ -813,6 +816,7 @@ export function WorkoutPage() {
     activeSessionLogs,
     activeSessionLogsFetched,
     exerciseById,
+    toDisplay,
     setSession,
   ])
 
