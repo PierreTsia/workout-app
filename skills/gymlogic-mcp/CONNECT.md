@@ -31,12 +31,13 @@ Client config snippets:
 
 - Le Chat: Intelligence -> Connectors -> Add Connector -> Custom MCP Connector. Name "gymlogic", server URL above, auth method "API Key", paste the PAT. Then create an Agent and toggle the connector on (regular chats ignore connectors).
 
-- Hermes: run `hermes mcp add gymlogic --url https://mcp.gymlogic.me/functions/v1/mcp --auth header`, or edit ~/.hermes/config.yaml:
+- Hermes: put the PAT in ~/.hermes/.env as MCP_GYMLOGIC_API_KEY=glp_..., then edit ~/.hermes/config.yaml:
     mcp_servers:
       gymlogic:
         url: https://mcp.gymlogic.me/functions/v1/mcp
-        headers: { Authorization: "Bearer <YOUR_PAT>" }
-  Then `hermes mcp list` and restart the running agent. Do NOT set transport: sse.
+        headers: { Authorization: "Bearer ${MCP_GYMLOGIC_API_KEY}" }
+  Then run `hermes mcp list` and restart the running agent. Do NOT set transport: sse.
+  Do NOT use `hermes mcp add ... --auth header`: its discovery connect runs without the header, fails auth, and writes nothing — edit the file instead.
 
 - Other / generic HTTP agent: POST JSON-RPC 2.0 to the endpoint with Authorization: Bearer <PAT> and Content-Type: application/json. First call {"jsonrpc":"2.0","id":1,"method":"initialize", ...} then {"method":"tools/list"}.
 

@@ -23,23 +23,25 @@ Hermes connects to remote MCP servers over **Streamable HTTP** (POST). GymLogic 
 
 ### 2. Add the MCP server
 
-Let the CLI prompt for the token so it never lands in shell history:
+Put the token in `~/.hermes/.env` so it stays out of your config file and shell history:
 
 ```bash
-hermes mcp add gymlogic \
-  --url https://mcp.gymlogic.me/functions/v1/mcp \
-  --auth header
+echo 'MCP_GYMLOGIC_API_KEY=glp_…' >> ~/.hermes/.env
 ```
 
-Or edit `~/.hermes/config.yaml` directly:
+Then reference it from `~/.hermes/config.yaml`:
 
 ```yaml
 mcp_servers:
   gymlogic:
     url: https://mcp.gymlogic.me/functions/v1/mcp
     headers:
-      Authorization: "Bearer glp_…"
+      Authorization: "Bearer ${MCP_GYMLOGIC_API_KEY}"
 ```
+
+Hermes resolves a `${VAR}` in a server entry (`headers`, `url`, `env`, `args`) at connect time, reading `~/.hermes/.env` and the process environment. An unset variable keeps its literal placeholder — a typo fails loudly instead of sending `Bearer ${MCP_GYMLOGIC_API_KEY}` as the token.
+
+> ⚠️ **Don't use `hermes mcp add gymlogic --url … --auth header` for this one.** It asks "Does this server require authentication? [Y/n]", but the discovery connect runs **without** the header, fails with "Authentication required", then asks "Save config anyway? [y/N]" — answer **N**, because nothing useful gets written. Edit the config file directly.
 
 > **Schema gotcha** — the key is `mcp_servers` (Hermes' schema), NOT `mcpServers` (Cursor / Claude Desktop) and NOT OpenClaw's `mcp.servers`.
 
@@ -90,7 +92,7 @@ Hermes picks it up on the next skill scan; it triggers on training prompts in FR
 
 ## Rotating or revoking a token
 
-- **Rotate**: create a new token, swap it into `mcp_servers.gymlogic.headers.Authorization`, restart the agent, then revoke the old one.
+- **Rotate**: put the new token in `~/.hermes/.env` (`MCP_GYMLOGIC_API_KEY`), restart the agent, then revoke the old one.
 - **Revoke**: click **Revoke** next to the token at `/account/api-tokens`. Immediate and irreversible — the next call returns `401`.
 
 ## Troubleshooting
