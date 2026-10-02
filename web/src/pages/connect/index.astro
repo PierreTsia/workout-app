@@ -1,0 +1,55 @@
+---
+import { getCollection } from 'astro:content'
+import BaseLayout from '@/layouts/BaseLayout.astro'
+
+const clients = (await getCollection('connect')).sort(
+  (a, b) => a.data.pageOrder - b.data.pageOrder,
+)
+---
+
+<BaseLayout
+  title="Connect GymLogic to your agent — MCP connectors"
+  description="Wire the GymLogic MCP server into Claude, Cursor, Le Chat, Hermes — or hand the setup to any agent with one copy-paste prompt."
+  indexable
+>
+  <section class="mx-auto max-w-3xl px-4 pt-16 pb-8">
+    <p class="text-sm uppercase tracking-wider text-accent">MCP connectors</p>
+    <h1
+      class="mt-3 text-4xl md:text-5xl font-semibold tracking-tight text-foreground"
+    >
+      Connect GymLogic to your agent
+    </h1>
+    <p class="mt-6 text-lg text-muted leading-relaxed">
+      Pick your client for step-by-step setup, or let any agent walk you through
+      it with a single copy-paste prompt.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-4 pb-24">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {
+        clients.map((client) => (
+          <a
+            href={`/connect/${client.id}`}
+            class="group rounded-lg border border-border bg-card p-5 hover:border-accent transition-colors duration-150"
+          >
+            <div class="flex items-center justify-between">
+              <h2 class="text-foreground font-semibold">
+                {client.data.clientName}
+              </h2>
+              <span
+                class="text-muted group-hover:text-accent transition-colors"
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </div>
+            <p class="mt-2 text-sm text-muted leading-relaxed">
+              {client.data.tagline}
+            </p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
