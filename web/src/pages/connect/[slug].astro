@@ -5,6 +5,8 @@ import Callout from '@/components/mdx/Callout.astro'
 import TechHeavy from '@/components/mdx/TechHeavy.astro'
 import ComingSoon from '@/components/mdx/ComingSoon.astro'
 import Screenshot from '@/components/mdx/Screenshot.astro'
+import ConnectBreadcrumb from '@/components/ConnectBreadcrumb.astro'
+import ConnectClientCards from '@/components/ConnectClientCards.astro'
 
 export async function getStaticPaths() {
   const entries = await getCollection('connect')
@@ -17,6 +19,10 @@ export async function getStaticPaths() {
 const { entry } = Astro.props
 const { Content } = await render(entry)
 const { hero, title, description, ogImage } = entry.data
+
+const siblings = (await getCollection('connect')).sort(
+  (a, b) => a.data.pageOrder - b.data.pageOrder,
+)
 ---
 
 <BaseLayout
@@ -25,6 +31,7 @@ const { hero, title, description, ogImage } = entry.data
   indexable
   ogImage={ogImage}
 >
+  <ConnectBreadcrumb siblings={siblings} currentSlug={entry.id} />
   <section class="mx-auto max-w-3xl px-4 pt-16 pb-12">
     {
       hero.eyebrow && (
@@ -53,7 +60,9 @@ const { hero, title, description, ogImage } = entry.data
     }
   </section>
 
-  <article class="prose prose-invert mx-auto max-w-3xl px-4 pb-24">
+  <article class="prose prose-invert mx-auto max-w-3xl px-4 pb-12">
     <Content components={{ Callout, TechHeavy, ComingSoon, Screenshot }} />
   </article>
+
+  <ConnectClientCards siblings={siblings} currentSlug={entry.id} />
 </BaseLayout>

@@ -7,6 +7,7 @@ const connect = defineCollection({
   schema: z.object({
     clientName: z.string(),
     clientUrl: z.url(),
+    tagline: z.string(),
 
     title: z.string(),
     description: z.string(),

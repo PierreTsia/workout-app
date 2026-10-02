@@ -1,0 +1,46 @@
+---
+import type { CollectionEntry } from 'astro:content'
+
+interface Props {
+  siblings: CollectionEntry<'connect'>[]
+  currentSlug: string
+}
+
+const { siblings, currentSlug } = Astro.props
+const others = siblings.filter((s) => s.id !== currentSlug)
+---
+
+{
+  others.length > 0 && (
+    <section
+      aria-labelledby="other-clients-heading"
+      class="mx-auto max-w-3xl px-4 mt-16 pb-12"
+    >
+      <h2
+        id="other-clients-heading"
+        class="text-xs uppercase tracking-wider text-muted/80 mb-4"
+      >
+        Other AI clients
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {others.map((s) => (
+          <a
+            href={`/connect/${s.id}`}
+            class="group rounded-lg border border-border bg-card p-4 hover:border-accent transition-colors duration-150"
+          >
+            <div class="flex items-center justify-between">
+              <h3 class="text-foreground font-semibold">{s.data.clientName}</h3>
+              <span
+                class="text-muted group-hover:text-accent transition-colors"
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </div>
+            <p class="mt-2 text-sm text-muted leading-relaxed">{s.data.tagline}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )
+}
