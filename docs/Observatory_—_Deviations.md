@@ -2,8 +2,8 @@
 
 Working note, **not a spec**. Purpose: watch `session_deviation_events` while the
 sample is too thin to justify a load-management refactor, and pin down **how we
-will read it** the day it isn't. No engine change yet (T266/T267 shipped the
-capture only; ADR `file:docs/adr/0026-deviation-storage.md`).
+will read it** the day it isn't. No engine change yet (T266 shipped the capture,
+T267 the session debrief + session note; ADR `file:docs/adr/0026-deviation-storage.md`).
 
 **Privacy:** every query below is **aggregate only** — no `user_id`, no email,
 no `note` content. Catalog ids (`exercise_id`) are fine; they are not people.
@@ -11,7 +11,7 @@ Read-only.
 
 ## What we measure
 
-Run these in the Supabase SQL editor (project `favusepjwpcroiolvaz`). The first
+Run these in the Supabase SQL editor (project `favusepjqwpcroiolvaz`). The first
 two are the vital signs; the rest only once they have volume.
 
 ### 1. Daily volume — is capture alive and growing?
@@ -90,9 +90,9 @@ select
   e.events,
   s.sets,
   round(100.0 * e.events / nullif(s.sets, 0), 1) as pct_deviated
-from (select date_trunc('day', created_at)::date day, count(*) events
+from (select date_trunc('day', created_at)::date as day, count(*) as events
       from session_deviation_events group by 1) e
-left join (select date_trunc('day', logged_at)::date day, count(*) sets
+left join (select date_trunc('day', logged_at)::date as day, count(*) as sets
            from set_logs group by 1) s using (day)
 order by e.day desc;
 ```
@@ -134,9 +134,11 @@ wins. This is the one change that turns the *why* into a progression signal.
 
 ## Guardrails (hold before any refactor)
 
-- **Minimum sample per slot** before a reason gates a rule (define below).
+- **Minimum sample per slot** before a reason gates a rule (threshold: see Open
+  question 1).
 - `reason_code` nullable → its absence is a weak signal, never a hard trigger.
-- `pain` is health-adjacent: engine + analytics only, never shown as copy.
+- `pain` is health-adjacent: captured and shown as a chip, but it must not drive
+  an automated load penalty — route to safety handling, never a progression rule.
 - **Propose, never silently write.** Any auto-adjustment goes through the Manual
   Override Window (ADR 0006 lesson: no silent writeback into Template Prescription).
 - Exclude `no_prescription` rows (bootstrap, no snapshot).
