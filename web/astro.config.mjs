@@ -28,6 +28,13 @@ export default defineConfig({
     },
   },
   vite: {
+    // The /connect/agent page imports the canonical prompt from
+    // skills/gymlogic-mcp/CONNECT.md (?raw) — outside the web/ root.
+    server: {
+      fs: {
+        allow: ['..'],
+      },
+    },
     // Astro 6 + React 19 dev mode otherwise throws
     // `jsxDEV is not a function` on hydration of any React island.
     // See withastro/astro#13189 — pre-bundling the JSX runtimes pins

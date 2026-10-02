@@ -1,0 +1,42 @@
+---
+clientName: Any agent
+clientUrl: https://docs.gymlogic.me/connect/agent
+tagline: Paste one prompt into any agent — it walks you through the setup
+title: Connect GymLogic MCP to any agent — copy-paste prompt
+description: One agent-agnostic prompt that guides Hermes, Claude, an OpenAI agent, Cursor or any MCP client through connecting to the GymLogic MCP server.
+ogImage: /og/connect-agent.png
+hero:
+  eyebrow: Agent-agnostic
+  h1: One prompt, any agent
+  subheadlines:
+    - Paste it into Hermes, Claude, an OpenAI agent, Cursor — whatever you run.
+    - It asks which client you're on, walks you through the token and the config, then verifies the connection.
+    - No runtime-specific setup to remember.
+  ctaLabel: The prompt ↓
+  ctaAnchor: '#the-prompt'
+pageOrder: 5
+available:
+  oauth: false
+  pat: true
+  mcpRemote: false
+---
+
+import CopyPrompt from '@/components/CopyPrompt.astro'
+import connectPrompt from '../../../../skills/gymlogic-mcp/CONNECT.md?raw'
+
+You don't need a page per client if you'd rather let your agent do the work. Paste the prompt below as your first message, and the agent turns into a setup guide for GymLogic's MCP server: it asks what you're connecting from, walks you through creating a Personal Access Token, hands you the right config for your client, and checks that the tools actually load.
+
+It works because the GymLogic side is the same for everyone — create a PAT at [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens), present it as a Bearer token to `https://mcp.gymlogic.me/functions/v1/mcp`. Everything that changes between clients is a few lines of config the agent can adapt once it knows where you are.
+
+## The prompt
+
+<CopyPrompt text={connectPrompt} />
+
+## What it does
+
+- **Asks first.** It won't guess your client — it asks, then tailors the config (Claude Desktop, Cursor, Le Chat, Hermes, or a generic HTTP agent).
+- **Keeps the token out of the chat.** The prompt tells the agent to treat the PAT as a password: no echoing it back, no committing it.
+- **Verifies.** It reloads the client, lists the tools, and runs a first prompt to confirm the connection.
+- **Hands off.** On writes, it points you at the [GymLogic skill](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md) so the agent follows the propose-confirm-act handshake.
+
+The same text lives in the repo at [`skills/gymlogic-mcp/CONNECT.md`](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/CONNECT.md), so you can load it as a skill where your agent supports one instead of pasting it every time.

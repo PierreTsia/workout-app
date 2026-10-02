@@ -1,0 +1,46 @@
+---
+interface Props {
+  text: string
+  label?: string
+}
+
+const { text, label = 'Copy prompt' } = Astro.props
+---
+
+<div class="not-prose my-6" data-copy-prompt>
+  <div class="flex items-center justify-end">
+    <button
+      type="button"
+      data-copy-target
+      class="rounded-md border border-border px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-foreground transition-colors duration-150"
+    >
+      {label}
+    </button>
+  </div>
+  <pre
+    class="mt-2 max-h-[32rem] overflow-auto rounded-lg border border-border bg-card p-4 text-sm leading-relaxed whitespace-pre-wrap"
+  ><code>{text}</code></pre>
+</div>
+
+<script>
+  document.querySelectorAll('[data-copy-prompt]').forEach((root) => {
+    const button = root.querySelector('[data-copy-target]')
+    const code = root.querySelector('code')
+    if (!button || !code) return
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(code.textContent ?? '')
+        const previous = button.textContent
+        button.textContent = 'Copied ✓'
+        setTimeout(() => {
+          button.textContent = previous
+        }, 1500)
+      } catch {
+        button.textContent = 'Press ⌘C'
+        setTimeout(() => {
+          button.textContent = 'Copy prompt'
+        }, 1500)
+      }
+    })
+  })
+</script>
