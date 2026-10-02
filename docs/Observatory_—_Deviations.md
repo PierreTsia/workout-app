@@ -115,18 +115,19 @@ limit 20;
 
 ## How we will read it
 
-Working grid. Rows are filled by queries 3 + 5. The **effect** column is the
-future engine behavior, not built yet.
+Working grid. Rows are filled by queries 3 + 5. This is the **reading**; the
+engine behavior each reading would imply belongs to the future refactor epic,
+not here.
 
-| Reason (× direction) | Reading | Proposed effect on next prescription |
-|---|---|---|
-| `strong` + over | prescription too conservative for that slot | anchor on the **actual**, progress (`WEIGHT_UP` / larger increment) |
-| `strong` + under | rare; felt strong but dropped load | ignore for progression, flag for review |
-| `fatigue` + under | daily capacity, not the load target | `HOLD`, do not pull the anchor down |
-| `pain` + under | safety / technique, not progression | `HOLD`/deload + tag; **never** a failed-session penalty |
-| `form` + under | execution, not capability | `HOLD`, no anchor move |
-| `equipment` + under | external constraint | ignore for load progression |
-| *(skipped)* | ambiguous on purpose — missing why is data | neutral; low confidence, never sole trigger |
+| Reason (× direction) | Reading |
+|---|---|
+| `strong` + over | prescription too conservative for that slot |
+| `strong` + under | rare; felt strong but dropped load |
+| `fatigue` + under | daily capacity, not the load target |
+| `pain` + under | safety / technique, not progression |
+| `form` + under | execution, not capability |
+| `equipment` + under | external constraint |
+| *(skipped)* | ambiguous on purpose — missing why is data |
 
 **Anchor rule (target of the refactor):** baseline = Prescription Snapshot,
 **except** when the deviation is capability-driven (`strong` + over) → the actual
@@ -148,12 +149,9 @@ wins. This is the one change that turns the *why* into a progression signal.
 1. What sample threshold unlocks a rule — N sets/slot, N sessions, N athletes?
 2. Is `strong` just redundant with "over"? If yes, direction alone may carry the
    signal and the reason only matters for the *down* cases.
-3. `note` is rarely used so far — keep it, or is the reason code enough?
-4. Does overshoot concentrate in a few slots (→ slot calibration) or spread
+3. Does overshoot concentrate in a few slots (→ slot calibration) or spread
    across the whole session (→ the prescription is globally low)?
 
 ## Promotion trigger
 
-When the sample answers 1–4: open the refactor epic (reason-aware `Last
-Performance` anchor + slot calibration) with an ADR. Until then this file is
-read-only observation.
+When questions 1–3 are answered: open the refactor epic with an ADR.
