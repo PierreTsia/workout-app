@@ -641,6 +641,6 @@ If the program has an unfinished cycle, both dry_run and apply responses include
 
 ## References
 
-- Per-client setup guides: [Cursor](../../docs/mcp-connect/cursor.md), [Le Chat](../../docs/mcp-connect/le-chat.md), [Claude Desktop](../../docs/mcp-connect/claude-desktop.md), [OpenClaw](../../docs/mcp-connect/openclaw.md)
+- Per-client setup guides: [Cursor](../../docs/mcp-connect/cursor.md), [Le Chat](../../docs/mcp-connect/le-chat.md), [Claude Desktop](../../docs/mcp-connect/claude-desktop.md), [Hermes](../../docs/mcp-connect/hermes.md)
 - Project README: [README.md](../../README.md)
 - Issue [#261](https://github.com/PierreTsia/workout-app/issues/261) (this skill), [#263](https://github.com/PierreTsia/workout-app/issues/263) (per-side weight ambiguity), [#259](https://github.com/PierreTsia/workout-app/issues/259) (PAT epic).

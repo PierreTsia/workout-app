@@ -1,0 +1,137 @@
+---
+clientName: Le Chat
+clientUrl: https://chat.mistral.ai
+tagline: Mistral's assistant — API Key connector, OAuth as a fallback
+title: Connect GymLogic to Le Chat — Setup guide
+description: Use your full GymLogic training data inside Mistral's Le Chat via MCP. API Key connector setup; OAuth 2.1 as an alternative.
+ogImage: /og/connect-le-chat.png
+hero:
+  eyebrow: MCP Connector
+  h1: Use your training data inside Le Chat
+  subheadlines:
+    - Chat with your full training history, stats, and exercise catalog in Mistral's assistant.
+    - Generate or rewrite multi-day programs in seconds — Le Chat proposes, you approve, GymLogic writes.
+    - Connectors live on an Agent, not on regular chats. We'll set that up too.
+  ctaLabel: Setup guide ↓
+  ctaAnchor: '#setup'
+pageOrder: 3
+available:
+  oauth: true
+  pat: true
+  mcpRemote: false
+---
+
+## Prerequisites
+
+- A [GymLogic](https://gymlogic.me) account with at least one logged workout
+- A [Le Chat](https://chat.mistral.ai) account (the free tier works)
+
+## Setup — recommended path: Personal Access Token (API Key)
+
+Le Chat's Custom MCP Connector accepts a static API Key, which is the simplest and steadiest option here. You generate a long-lived Personal Access Token on GymLogic, paste it into Le Chat once, and you're done — no OAuth round-trip, no sessions to re-auth.
+
+### Step 1 — Create a Personal Access Token
+
+1. Go to [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens)
+2. Click **Create token**
+3. Name it (`Le Chat`) and pick a lifetime — the default is `30 days`; choose `Never` only if you understand the trade-off
+4. Click **Create**
+5. Copy it immediately. It starts with `glp_` and is shown once. Lose it and you revoke + recreate.
+
+### Step 2 — Create the Le Chat Connector
+
+1. Go to [chat.mistral.ai](https://chat.mistral.ai) and sign in
+2. Click **Intelligence** in the left sidebar, then **Connectors**
+3. Click **Add Connector** (top-right)
+4. Switch to the **Custom MCP Connector** tab
+5. Fill in:
+   - **Connector Name**: `gymlogic`
+   - **Connector Server**: `https://mcp.gymlogic.me/functions/v1/mcp`
+   - **Authentication Method**: **API Key**
+   - **API Key**: paste your `glp_…` token from step 1
+6. Click **Connect** — Le Chat probes the server and saves the connector
+
+### Step 3 — Create an Agent with the Connector
+
+Connectors don't work in regular chats. You need an Agent:
+
+1. Go to **Intelligence → Agents**
+2. Click **Create Agent**
+3. Name it (e.g. "Coach GymLogic")
+4. In the **Connectors** section, toggle on the **gymlogic** connector
+5. Optional system instructions: *"You are a personal training coach. Use the gymlogic tools for history, stats, catalog, and upcoming workouts; use `create_program` only after a clear dry-run preview and explicit user consent to apply."*
+6. Click **Save**
+
+### Step 4 — Start a conversation
+
+1. Go back to **Intelligence → Agents**
+2. Open your Agent, then **New Chat**
+3. Ask something — Le Chat discovers and calls the GymLogic tools on its own
+
+### Rotating or revoking the token
+
+- **Revoke**: any time at [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens). It's immediate (the token is hard-deleted) — Le Chat starts getting `401 Unauthorized` on the next tool call.
+- **Rotate**: create a new token, paste it into the connector (edit in place if Le Chat allows, otherwise delete + recreate), then revoke the old one.
+
+## Alternative path: OAuth 2.1
+
+If you'd rather not keep a long-lived token in Le Chat, the connector supports OAuth too. Fair warning: Mistral's OAuth client registration against GymLogic has been less stable than other MCP clients — see the troubleshooting row below before you commit to it.
+
+1. In step 2, pick **OAuth 2.1** instead of **API Key** and leave the API Key field empty.
+2. Click **Connect**. Le Chat opens the GymLogic consent screen.
+3. If you're not signed in to GymLogic, you'll hit the login page first — sign in with Google.
+4. Review the requested permissions and click **Approve**.
+5. You're redirected back to Le Chat — the connector shows as connected.
+
+The Agent + chat steps are identical.
+
+## Available tools
+
+| Tool | What it does |
+|---|---|
+| `search_exercises` | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty |
+| `resolve_exercises` | Resolve a batch of exercise names (up to 30) to catalog UUIDs in one call — bundles `weight_convention`, `measurement_type`, `default_duration_seconds` |
+| `get_exercise_details` | Full exercise info: instructions, muscles, equipment, media |
+| `get_workout_history` | Your past sessions with sets, weights, and PRs |
+| `get_training_stats` | Volume by muscle group, personal records, session frequency |
+| `get_upcoming_workouts` | Your programmed training days and exercises |
+| `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
+| `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on any program (active/draft/archived) |
+| `create_program` | **Create / replace your active program** (multi-day). Default **`dry_run: true`**; **`dry_run: false`** saves and activates |
+| `create_workout_day` | **Log a single ad-hoc session** without touching the active program. `dry_run` defaults to `true` |
+| `update_program` | **Edit an existing program in place** by `program_id` — preserves logged history. `dry_run` defaults to `true`; removing days also needs `confirm: true` |
+
+**Eleven tools** — eight reads, three writes.
+
+## Example prompts
+
+- "What did I train this week?"
+- "Search for chest exercises with dumbbells"
+- "How's my training volume this month?"
+- "What's my next workout?"
+- "Tell me about the Kroc Row"
+- "Based on my stats, propose a 3-day full-body refresh and save it with create_program (show dry run first)"
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `401 Unauthorized` from tool calls (API Key path) | Token revoked or expired. Mint a new PAT at `gymlogic.me/account/api-tokens` and update the connector |
+| OAuth consent fails with `validation_failed: authorization request cannot be processed` | Mistral's stored OAuth client registration on the GymLogic auth server may be stale. Simplest fix: switch the connector to **API Key**. To insist on OAuth, ask an admin to clean up the dynamic client registrations server-side, then re-add the connector |
+| OAuth consent page doesn't load | Sign in to GymLogic at `www.gymlogic.me` first, then retry |
+| `unauthorized request origin` | Your browser must be on `www.gymlogic.me` (not `gymlogic.me` without www). The Supabase Site URL must match |
+| Tools not appearing in chat | You must chat via an **Agent** with the gymlogic Connector enabled, not a regular chat |
+| Agent doesn't call tools | Make sure the Connector toggle is on in the Agent config. Try an explicit prompt: "Use gymlogic to show my last 5 workouts" |
+
+## Headless / scripted access (outside Le Chat)
+
+The same PAT works as a Bearer token for direct HTTP calls — handy for CI jobs, custom agents, or `curl` debugging:
+
+```bash
+curl -X POST https://mcp.gymlogic.me/functions/v1/mcp \
+  -H "Authorization: Bearer <YOUR_PAT>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Use the same token in Le Chat and in scripts, or mint separate tokens per use-case for cleaner audit and revocation.
