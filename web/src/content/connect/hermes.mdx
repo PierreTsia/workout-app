@@ -1,0 +1,142 @@
+---
+clientName: Hermes
+clientUrl: https://hermes-agent.nousresearch.com/
+tagline: HTTP MCP for the Hermes agent — Streamable HTTP, PAT auth
+title: Connect GymLogic to Hermes — Setup guide
+description: Wire the GymLogic MCP server into Hermes via mcp_servers. PAT auth over Streamable HTTP; no SSE, no OAuth round-trip.
+ogImage: /og/connect-hermes.png
+hero:
+  eyebrow: MCP Connector
+  h1: Use your training data inside Hermes
+  subheadlines:
+    - Give Hermes your training history, stats, and exercise catalog as tools.
+    - Generate or rewrite multi-day programs in a turn — Hermes proposes, you approve, GymLogic writes.
+    - Long-lived PAT auth, configured once in mcp_servers.
+  ctaLabel: Setup guide ↓
+  ctaAnchor: '#setup'
+pageOrder: 4
+available:
+  oauth: false
+  pat: true
+  mcpRemote: false
+---
+
+## Prerequisites
+
+- A [GymLogic](https://gymlogic.me) account with at least one logged workout
+- Hermes installed (verified against the `hermes` CLI with an HTTP MCP server)
+
+## Setup
+
+Hermes connects to remote MCP servers over **Streamable HTTP**. GymLogic accepts POST; it does not serve the GET-SSE handshake, so leave Hermes on its default transport (do not set `transport: sse` — that path gets a `405`, tracked in [#266](https://github.com/PierreTsia/workout-app/issues/266)).
+
+### Step 1 — Create a Personal Access Token
+
+1. Sign in at [gymlogic.me](https://gymlogic.me)
+2. Go to **Account → Security & access → Manage API tokens** (or [gymlogic.me/account/api-tokens](https://gymlogic.me/account/api-tokens))
+3. Click **Create token**
+4. Name it (`Hermes VPS`) and pick a lifetime
+5. Copy it now — `glp_…`, shown once, treat it like a password
+
+### Step 2 — Add the server
+
+Put the token in `~/.hermes/.env` so it stays out of your config file and your shell history:
+
+```bash
+echo 'MCP_GYMLOGIC_API_KEY=glp_…' >> ~/.hermes/.env
+```
+
+Then reference it from `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  gymlogic:
+    url: https://mcp.gymlogic.me/functions/v1/mcp
+    headers:
+      Authorization: "Bearer ${MCP_GYMLOGIC_API_KEY}"
+```
+
+Hermes resolves a `${VAR}` in a server entry (`headers`, `url`, `env`, `args`) at connect time, reading `~/.hermes/.env` and the process environment. An unset variable keeps its literal placeholder — so a typo fails loudly instead of sending `Bearer ${MCP_GYMLOGIC_API_KEY}` as the token.
+
+<Callout type="warning">
+  Don't use `hermes mcp add gymlogic --url … --auth header` for this one. It
+  asks "Does this server require authentication? [Y/n]", but the discovery
+  connect runs **without** the header, fails with "Authentication required",
+  and then asks "Save config anyway? [y/N]" — answer **N**, because nothing
+  useful gets written. Edit the config file directly.
+</Callout>
+
+The key is `mcp_servers` (Hermes' schema) — not `mcpServers` (Cursor / Claude Desktop) and not OpenClaw's `mcp.servers`.
+
+### Step 3 — Reload and verify
+
+```bash
+hermes mcp list          # gymlogic should be listed
+```
+
+Then ask Hermes something training-related ("what did I train this week?"). Tools are read at agent boot, so restart the running agent/gateway after the config change if it was already up.
+
+## Load the GymLogic Skill (recommended)
+
+The connector exposes the tools; the **Skill** teaches Hermes *how* to use them well — the propose-confirm-act handshake required on every write, the per-side weight convention for unilateral equipment ([#263](https://github.com/PierreTsia/workout-app/issues/263)), and bilingual French/English routing.
+
+Download [`skills/gymlogic-mcp/SKILL.md`](https://github.com/PierreTsia/workout-app/blob/main/skills/gymlogic-mcp/SKILL.md) and drop it into your Hermes skills tree:
+
+```bash
+mkdir -p ~/.hermes/skills/gymlogic-mcp
+curl -L https://raw.githubusercontent.com/PierreTsia/workout-app/main/skills/gymlogic-mcp/SKILL.md \
+  -o ~/.hermes/skills/gymlogic-mcp/SKILL.md
+```
+
+Hermes picks it up on the next skill scan. It triggers on training prompts in French or English — no need to invoke it by name.
+
+## Available tools
+
+| Tool | What it does |
+|---|---|
+| `search_exercises` | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty |
+| `resolve_exercises` | Resolve a batch of exercise names (up to 30) to catalog UUIDs in one call — bundles `weight_convention`, `measurement_type`, `default_duration_seconds` |
+| `get_exercise_details` | Full exercise info: instructions, muscles, equipment, media |
+| `get_workout_history` | Your past sessions with sets, weights, and PRs |
+| `get_training_stats` | Volume by muscle group, personal records, session frequency |
+| `get_upcoming_workouts` | Your programmed training days and exercises |
+| `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
+| `get_program_details` | Full structure of one program by UUID — works on any program (active/draft/archived) |
+| `create_program` | **Create / replace your active program** from structured days + exercise UUIDs. Default **`dry_run: true`**; **`dry_run: false`** writes and deactivates your other active programs |
+| `create_workout_day` | **Log a single ad-hoc session** without touching the active program. `dry_run` defaults to `true` |
+| `update_program` | **Edit an existing program in place** by `program_id` — preserves logged history. `dry_run` defaults to `true`; removing days also needs `confirm: true` |
+
+**Eleven tools** — eight reads, three writes.
+
+## Example prompts
+
+- "Montre-moi mes 5 dernières séances"
+- "Analyse mon équilibre push/pull sur le dernier mois"
+- "C'est quoi mon prochain training ?"
+- "Donne-moi les détails du Romanian Deadlift"
+- "Voici ma semaine type en 4 jours — enregistre ça comme programme actif (dry run puis apply avec create_program)"
+
+## Rotating or revoking a token
+
+- **Rotate**: put the new token in `~/.hermes/.env` (`MCP_GYMLOGIC_API_KEY`), restart the agent, then revoke the old one.
+- **Revoke**: click **Revoke** next to the token at `/account/api-tokens`. Immediate and irreversible — the next call returns `401`.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `405` / `SSE error` on connect | You (or a default) set `transport: sse`. Remove it so Hermes uses Streamable HTTP POST — GymLogic only serves POST ([#266](https://github.com/PierreTsia/workout-app/issues/266)) |
+| `401 Authentication required` | Token revoked, expired, or mistyped. Mint a fresh one and re-add the header |
+| `gymlogic` missing from `hermes mcp list` | Check the YAML path: `mcp_servers.gymlogic` with `url` + `headers`, then reload |
+| Tools not callable in a running session | Restart the agent/gateway — MCP tools are read at boot |
+
+## Headless / scripted access (outside Hermes)
+
+The same PAT works as a Bearer token for direct HTTP calls:
+
+```bash
+curl -X POST https://mcp.gymlogic.me/functions/v1/mcp \
+  -H "Authorization: Bearer <YOUR_PAT>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```

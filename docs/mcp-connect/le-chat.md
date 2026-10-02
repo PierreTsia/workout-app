@@ -72,6 +72,7 @@ The rest of the setup (Agent + chat) is identical.
 | Tool                    | What it does                                                                                                                 |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `search_exercises`      | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty                                          |
+| `resolve_exercises`     | Resolve a batch of exercise names (up to 30) to catalog UUIDs in one call — bundles `weight_convention`, `measurement_type`, `default_duration_seconds` |
 | `get_exercise_details`  | Full exercise info: instructions, muscles, equipment, media                                                                  |
 | `get_workout_history`   | Your past sessions with sets, weights, and PRs                                                                               |
 | `get_training_stats`    | Volume by muscle group, personal records, session frequency                                                                  |
@@ -79,9 +80,11 @@ The rest of the setup (Agent + chat) is identical.
 | `list_programs`         | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, cycle flag    |
 | `get_program_details`   | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on any program (active/draft/archived) |
 | `create_program`        | **Create / replace your active program** (multi-day). Default **`dry_run: true`**; **`dry_run: false`** saves and activates. |
+| `create_workout_day`    | **Log a single ad-hoc session** without touching the active program. `dry_run` defaults to `true`.                           |
+| `update_program`        | **Edit an existing program in place** by `program_id` — preserves logged history. `dry_run` defaults to `true`.              |
 
 
-**Eight tools** — seven reads, one write (`create_program`).
+**Eleven tools** — eight reads, three writes.
 
 ## Example prompts
 

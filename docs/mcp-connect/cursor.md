@@ -49,17 +49,20 @@ Replace `<YOUR_PAT>` with the token from step 1 (the full `glp_…` string).
 | Tool | What it does |
 |---|---|
 | `search_exercises` | Search the exercise catalog by name (FR/EN), muscle group, equipment, or difficulty |
+| `resolve_exercises` | Resolve a batch of exercise names (up to 30) to catalog UUIDs in one call — bundles `weight_convention`, `measurement_type`, `default_duration_seconds` |
 | `get_exercise_details` | Full exercise info: instructions, muscles, equipment, media |
 | `get_workout_history` | Your past sessions with sets, weights, and PRs |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Your programmed training days and exercises |
 | `list_programs` | List all your training programs (active, drafts, optionally archived) with id, name, day count, creation date, active-cycle flag |
 | `get_program_details` | Full structure of one program by UUID — days, exercises, sets/reps/weights/rest. Works on any program (active/draft/archived). Chain after `list_programs` to drill in |
-| `create_program` | **Create / replace your active program** from structured days + exercise UUIDs. Default **`dry_run: true`** returns the insert plan only; **`dry_run: false`** writes to Supabase (deactivates other active programs). Use after `search_exercises` / `get_exercise_details` to resolve IDs. |
+| `create_program` | **Create / replace your active program** from structured days + exercise UUIDs. Default **`dry_run: true`** returns the insert plan only; **`dry_run: false`** writes to Supabase (deactivates other active programs). Use after `search_exercises` / `resolve_exercises` to resolve IDs. |
+| `create_workout_day` | **Log a single ad-hoc session** without touching the active program. `dry_run` defaults to `true`. |
+| `update_program` | **Edit an existing program in place** by `program_id` — preserves logged history. `dry_run` defaults to `true`; removing days also needs `confirm: true`. |
 
 There is also **1 MCP Resource** (`exercise_catalog_schema`) that exposes the exercise taxonomy (muscle groups, equipment types, difficulty levels).
 
-**Eight tools** total — seven for reads/discovery/analysis, one for persisting a full program.
+**Eleven tools** total — eight reads, three writes.
 
 ## Example prompts
 

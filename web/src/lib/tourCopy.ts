@@ -15,7 +15,7 @@ export const tourDoors = {
   },
   secondary: {
     label: 'Connect your agent',
-    href: '/connect/claude',
+    href: '/connect',
     external: false,
   },
 } as const

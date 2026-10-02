@@ -1,0 +1,44 @@
+---
+import type { CollectionEntry } from 'astro:content'
+
+interface Props {
+  siblings: CollectionEntry<'connect'>[]
+  currentSlug: string
+}
+
+const { siblings, currentSlug } = Astro.props
+---
+
+<nav
+  aria-label="Connect GymLogic to other AI clients"
+  class="mx-auto max-w-3xl px-4 py-3 border-b border-border/30 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+>
+  <span class="text-muted">Connect GymLogic to</span>
+  <span class="text-muted" aria-hidden="true">→</span>
+  {
+    siblings.map((s, i) => {
+      const isActive = s.id === currentSlug
+      return (
+        <>
+          {i > 0 && <span class="text-border" aria-hidden="true">·</span>}
+          {isActive ? (
+            <span
+              aria-current="page"
+              class="text-accent underline underline-offset-4 decoration-1"
+            >
+              <span aria-hidden="true">✦</span>
+              {s.data.clientName}
+            </span>
+          ) : (
+            <a
+              href={`/connect/${s.id}`}
+              class="text-muted hover:text-foreground transition-colors duration-150"
+            >
+              {s.data.clientName}
+            </a>
+          )}
+        </>
+      )
+    })
+  }
+</nav>

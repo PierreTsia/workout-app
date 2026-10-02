@@ -17,7 +17,7 @@ describe('Product Tour copy', () => {
     })
     expect(tourDoors.secondary).toEqual({
       label: 'Connect your agent',
-      href: '/connect/claude',
+      href: '/connect',
       external: false,
     })
   })
