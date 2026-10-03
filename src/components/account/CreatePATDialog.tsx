@@ -69,6 +69,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
   const [success, setSuccess] = useState<CreatePATResponse | null>(null)
   const [copied, setCopied] = useState(false)
   const nameId = useId()
+  const lifetimeId = useId()
   const createMutation = useCreatePAT()
 
   const form = useForm<FormValues>({
@@ -205,12 +206,12 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
                 control={form.control}
                 name="lifetime"
                 render={({ field }) => (
-                  <Field label={t("api-tokens:lifetime")}>
+                  <Field htmlFor={lifetimeId} label={t("api-tokens:lifetime")}>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id={lifetimeId}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

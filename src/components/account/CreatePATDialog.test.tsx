@@ -86,6 +86,13 @@ describe("CreatePATDialog — form mode", () => {
     )
   })
 
+  it("associates the lifetime label with its select trigger", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Expires in")).toBe(
+      screen.getByRole("combobox"),
+    )
+  })
+
   it("blocks submit when name is empty", async () => {
     const user = userEvent.setup()
     renderDialog()
