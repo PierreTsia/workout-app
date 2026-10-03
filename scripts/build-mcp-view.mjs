@@ -13,6 +13,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { build } from 'esbuild'
+import { build as viteBuild } from 'vite'
 
 const require = createRequire(import.meta.url)
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -40,7 +41,32 @@ async function renderExample() {
   return mod.renderExampleSessionCard()
 }
 
+async function bundleClient() {
+  const outDir = path.join(TMP, 'client')
+  await viteBuild({
+    configFile: false,
+    root: ROOT,
+    logLevel: 'silent',
+    define: { 'process.env.NODE_ENV': '"production"' },
+    esbuild: { jsx: 'automatic' },
+    build: {
+      outDir,
+      emptyOutDir: true,
+      minify: true,
+      lib: {
+        entry: path.join(ROOT, 'src/mcp-views/session-card/entry.tsx'),
+        formats: ['iife'],
+        name: 'GymLogicSessionCardView',
+        fileName: () => 'view.js',
+      },
+      rollupOptions: { output: { inlineDynamicImports: true } },
+    },
+  })
+  return readFileSync(path.join(outDir, 'view.js'), 'utf8')
+}
+
 const markup = await renderExample()
+const clientJs = (await bundleClient()).replaceAll('</script', '<\\/script')
 const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -51,6 +77,7 @@ ${VIEW_CSS}</style>
 </head>
 <body>
 <div id="gl-view-root">${markup}</div>
+<script>${clientJs}</script>
 </body>
 </html>
 `
