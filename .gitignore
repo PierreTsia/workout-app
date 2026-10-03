@@ -40,3 +40,6 @@ test-results/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Build scratch for the MCP App view bundle
+.view-build/

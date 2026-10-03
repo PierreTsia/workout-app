@@ -13,6 +13,8 @@
     "test": "TZ=UTC vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "build:view": "node scripts/build-mcp-view.mjs",
+    "view:check": "node scripts/build-mcp-view.mjs --check",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",

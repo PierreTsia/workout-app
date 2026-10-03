@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import { exerciseCatalogSchema } from "./exerciseCatalogSchema.ts"
+import { sessionCardView } from "./sessionCardView.ts"
 
 export interface ResourceDefinition {
   uri: string
@@ -11,7 +12,7 @@ export interface ResourceDefinition {
   }>
 }
 
-const resources: ResourceDefinition[] = [exerciseCatalogSchema]
+const resources: ResourceDefinition[] = [exerciseCatalogSchema, sessionCardView]
 
 export const resourceRegistry = {
   list: () => resources.map(({ handler: _, ...meta }) => meta),

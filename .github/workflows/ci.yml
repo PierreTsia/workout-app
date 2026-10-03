@@ -92,6 +92,20 @@ jobs:
         env:
           DENO_NO_PACKAGE_JSON: "1"
 
+  # The committed MCP App view artifact must not drift from its source (ADR 0027).
+  # `view:check` regenerates the self-sufficient HTML and diffs it against the
+  # committed `sessionCard.generated.ts`.
+  view-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run view:check
+
   e2e:
     runs-on: ubuntu-latest
     steps:
@@ -260,7 +274,7 @@ jobs:
           fi
 
   gate:
-    needs: [lint, type-check, unit, deno-unit, e2e]
+    needs: [lint, type-check, unit, deno-unit, view-check, e2e]
     runs-on: ubuntu-latest
     steps:
       - run: echo "All checks passed"
