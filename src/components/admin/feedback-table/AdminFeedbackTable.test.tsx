@@ -158,6 +158,17 @@ describe("admin feedback table", () => {
     expect(screen.getByText("No feedback reports.")).toBeInTheDocument()
   })
 
+  // The core's FacetedDataTable always mounts its pagination footer — even on
+  // an empty queue, where it shows a meaningless "Page 0 of 0". The pre-Nomos
+  // baseline had no footer at all, so an empty queue skips the table.
+  it("hides the pagination footer when the queue is empty", () => {
+    mockedFeedback.mockReturnValue(mockQueryResult([]))
+    render()
+
+    expect(screen.queryByText("Page 0 of 0")).not.toBeInTheDocument()
+    expect(screen.queryByText("Rows per page")).not.toBeInTheDocument()
+  })
+
   // Feedback had no pagination; the core defaults to 25, so a >25 dataset pins
   // the page size that keeps every row on screen.
   it("keeps every row on screen", () => {

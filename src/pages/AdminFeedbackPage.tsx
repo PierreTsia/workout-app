@@ -1,7 +1,12 @@
 import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useAtomValue } from "jotai"
-import { FacetedDataTable, type RowDetail, type TableState } from "@nomosui/react"
+import {
+  EmptyState,
+  FacetedDataTable,
+  type RowDetail,
+  type TableState,
+} from "@nomosui/react"
 import { useAdminFeedback } from "@/hooks/useAdminFeedback"
 import { authAtom } from "@/store/atoms"
 import { buildDataTableLabels } from "@/components/admin/tableLabels"
@@ -35,6 +40,7 @@ const rowKey = (row: ExerciseContentFeedback) => row.id
 export function AdminFeedbackPage() {
   const { t, i18n } = useTranslation("admin")
   const { data: feedback, isLoading } = useAdminFeedback()
+  const reports = useMemo(() => feedback ?? [], [feedback])
   const adminEmail = useAtomValue(authAtom)?.email ?? "unknown"
 
   const [tableState, setTableState] = useState(INITIAL_TABLE_STATE)
@@ -48,7 +54,7 @@ export function AdminFeedbackPage() {
       }),
     [t],
   )
-  const facets = useMemo(() => [statusFacet(t, feedback ?? [])], [t, feedback])
+  const facets = useMemo(() => [statusFacet(t, reports)], [t, reports])
   const renderColumns = useCallback(
     (openDetail: (row: ExerciseContentFeedback) => void) =>
       getColumns(t, i18n.language, adminEmail, openDetail),
@@ -75,9 +81,13 @@ export function AdminFeedbackPage() {
         <div className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
+      ) : reports.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState title={t("feedback.noResults")} />
+        </div>
       ) : (
         <FacetedDataTable
-          data={feedback ?? []}
+          data={reports}
           renderColumns={renderColumns}
           facets={facets}
           globalFilterFn={feedbackGlobalFilterFn}
