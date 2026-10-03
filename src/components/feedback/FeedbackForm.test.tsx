@@ -79,6 +79,30 @@ describe("FeedbackForm", () => {
       renderAuthenticatedForm()
       expect(screen.getByPlaceholderText(/additional comment/i)).toBeInTheDocument()
     })
+
+    it("associates each field label with its control", () => {
+      renderAuthenticatedForm()
+      expect(screen.getByLabelText(/additional comment/i)).toBe(
+        screen.getByPlaceholderText(/additional comment/i),
+      )
+    })
+  })
+
+  describe("validation", () => {
+    it("keeps the zod 'other' required validation on submit", async () => {
+      const user = userEvent.setup()
+      renderAuthenticatedForm()
+
+      await user.click(screen.getByRole("button", { name: /illustration/i }))
+      await user.click(screen.getByRole("combobox"))
+      await user.click(screen.getByText(/^other$/i))
+      await user.click(screen.getByRole("button", { name: /submit report/i }))
+
+      expect(
+        await screen.findByText(/please describe when selecting/i),
+      ).toBeInTheDocument()
+      expect(mockSubmit).not.toHaveBeenCalled()
+    })
   })
 
   describe("Step 1 interaction", () => {
