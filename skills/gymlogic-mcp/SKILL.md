@@ -10,7 +10,7 @@ description: >
 
 # GymLogic MCP Skill
 
-This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **eleven tools** (eight reads, three writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
+This skill teaches an LLM how to be a competent training coach on top of the [GymLogic](https://gymlogic.me) MCP server. It covers when to invoke each of the **twelve tools** (nine reads, three writes), how to format their parameters, the **propose-confirm-act handshake** required on every write, and the non-obvious quirks that bite zero-shot agents — most importantly the **per-side weight convention for unilateral equipment** (issue [#263](https://github.com/PierreTsia/workout-app/issues/263)).
 
 GymLogic is a French/English workout tracker. The user logs sessions, weights, reps; you read this data and either analyze it (`get_*` reads), shape their multi-day plan with `create_program` (new) or `update_program` (in-place edits — preserves training history), or drop in a single ad-hoc session with `create_workout_day` (Quick Workout — leaves the active program untouched).
 
@@ -59,13 +59,13 @@ Dynamic client registration, browser consent at `www.gymlogic.me/oauth/consent`.
 https://mcp.gymlogic.me/functions/v1/mcp
 ```
 
-All eleven tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
+All twelve tools 401 if no auth context. The tool response will be `Authentication required — please provide a valid Bearer token.` — surface that to the user and ask them to (re)connect.
 
 ---
 
 ## Tool reference (intent → tool)
 
-Eleven tools total — eight reads, three writes.
+Twelve tools total — nine reads, three writes.
 
 ### Catalog tools — which one when
 
@@ -83,6 +83,7 @@ The catalog has three tools that look superficially similar. Pick by **what you 
 | User intent | Tool | Notes |
 |---|---|---|
 | "Show me my recent workouts / sessions / training history" | `get_workout_history` | Defaults to last 10 sessions. Filter by `from_date` / `to_date` (ISO 8601) or `exercise_name` (fuzzy). Each session header surfaces `*(program: <name>, id: <uuid>)*` for sessions that belong to a cycle — pass that `id` straight to `get_program_details` to chain into the program structure. Sessions without a cycle (legacy data) omit the annotation. |
+| "Show my last session as a card" / "montre ma dernière séance" | `render_session_card` | Read-only. In a host that supports **MCP Apps** (Claude Desktop / mobile), renders the latest finished session as a card in the conversation; other clients get a text summary. Optional `locale: en / fr` (defaults to the user's app locale). Never writes. |
 | "How am I doing / volume / PRs / muscle group balance / push-pull split" | `get_training_stats` | Defaults to last 30 days. Filter by `muscle_group` (FR name, e.g. `Pectoraux`, `Dos`). |
 | "What's my next workout / what's programmed for tomorrow" | `get_upcoming_workouts` | Default 3 days, max 7. Exercise lines use `**French name** (English name)` like `get_program_details`. Returns `No active program found` if user has none. The header surfaces `*(id: <uuid>)*` of the active program — pass that `id` straight to `get_program_details` if the user wants the full template instead of the next few scheduled days. |
 | "Find / search exercises for X muscle / with Y equipment" | `search_exercises` | FR + EN names. Use for exploration / browsing by filter. For "I already know the name(s) I want to put in a program" prefer `resolve_exercises` (one round-trip, returns everything `create_program` needs). Aliases: `chest`/`pecs` → `Pectoraux`, body regions like `push`/`pull`/`legs`/`core`/`upper_body`/`lower_body` work too. |
@@ -95,6 +96,8 @@ The catalog has three tools that look superficially similar. Pick by **what you 
 | "Quick workout for today / one ad-hoc session / extra workout this week" | `create_workout_day` | **Single ad-hoc day** — does NOT replace or deactivate the user's active program (the headline differentiator vs `create_program`). Persists as a standalone `workout_days` row with `program_id: NULL` and the visual identity emoji `⚡`. **`dry_run` defaults to `true`** — preview first, then re-call with `dry_run: false` to persist. Max **20 day items** per call (a Circuit counts as **one** item). Same `exercises[]` shape as `create_program` (bare UUID, solo object, or Circuit). |
 
 There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscle-group / equipment / difficulty taxonomy. Read it once at the start of a session if the runtime supports resources, otherwise rely on `search_exercises`'s built-in aliasing.
+
+And one **MCP App View**: `render_session_card` references `ui://gymlogic/session-card` (`text/html;profile=mcp-app`), a self-sufficient, **read-only** document an MCP Apps host renders in a sandboxed iframe. On a host that pushes the tool result, the card shows the athlete's latest finished session; on any other client, the tool falls back to its text summary.
 
 ---
 
