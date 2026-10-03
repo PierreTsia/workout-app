@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import '@nomosui/react/tokens/tokens.generated.css';
+@import '@nomosui/react/tokens/theme.css';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
