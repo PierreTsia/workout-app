@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
+import { Input } from "@nomosui/react"
 import type {
   ExerciseBlockMode,
   ExerciseBlockWithExercises,
@@ -19,7 +20,6 @@ import { UniformExerciseList } from "@/components/builder/UniformExerciseList"
 import { CircuitForkDialog } from "@/components/builder/CircuitForkDialog"
 import { SaveIndicator } from "@/components/builder/SaveIndicator"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 import {

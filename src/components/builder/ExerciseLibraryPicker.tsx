@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from "react"
 import { Loader2, RefreshCw, Search, SlidersHorizontal, ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { Input } from "@nomosui/react"
 import { CircuitSeedCard } from "@/components/builder/CircuitSeedCard"
 import { NewCircuitRow } from "@/components/builder/NewCircuitRow"
 import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
@@ -37,7 +38,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Command, CommandList } from "@/components/ui/command"
-import { Input } from "@/components/ui/input"
 
 const SEARCH_DEBOUNCE_MS = 300
 
