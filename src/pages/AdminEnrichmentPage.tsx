@@ -53,7 +53,12 @@ export function AdminEnrichmentPage() {
       ) : (
         <>
           <div className="flex items-center gap-3">
-            <ProgressBar value={done} max={total} className="flex-1" />
+            <ProgressBar
+              value={done}
+              max={total}
+              label={t("enrichment.progressLabel")}
+              className="flex-1"
+            />
             <span className="shrink-0 text-sm font-medium tabular-nums text-muted-foreground">
               {done}/{total}
             </span>

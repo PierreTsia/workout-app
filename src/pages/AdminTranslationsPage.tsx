@@ -55,7 +55,12 @@ export function AdminTranslationsPage() {
       ) : (
         <>
           <div className="flex items-center gap-3">
-            <ProgressBar value={position + 1} max={total} className="flex-1" />
+            <ProgressBar
+              value={position + 1}
+              max={total}
+              label={t("translations.progressLabel")}
+              className="flex-1"
+            />
             <Badge
               variant="outline"
               className="shrink-0 tabular-nums text-muted-foreground"

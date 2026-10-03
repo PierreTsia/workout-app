@@ -167,7 +167,9 @@ describe("AdminTranslationsPage", () => {
   it("renders the queue position as a semantic progress bar", () => {
     renderWithProviders(<AdminTranslationsPage />)
 
-    const bar = screen.getByRole("progressbar")
+    const bar = screen.getByRole("progressbar", {
+      name: "Translation progress",
+    })
     expect(bar).toHaveAttribute("aria-valuenow", "1")
     expect(bar).toHaveAttribute("aria-valuemax", "3")
   })

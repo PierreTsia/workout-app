@@ -11,6 +11,7 @@
     "title": "Enrichissement images",
     "navLabel": "Illustrations",
     "description": "Ajouter des illustrations aux exercices qui n'en ont pas encore.",
+    "progressLabel": "Progression des images",
     "allDone": "Tous les exercices ont une image !",
     "allDoneHint": "Plus rien dans la file — bien joué.",
     "backToAdmin": "Retour à l'admin"
@@ -19,6 +20,7 @@
     "title": "Relecture des traductions",
     "navLabel": "Traductions",
     "description": "Comparer la source française et sa traduction anglaise, phrase à phrase — les lignes signalées d'abord.",
+    "progressLabel": "Progression des traductions",
     "allDone": "Plus aucune traduction à relire !",
     "allDoneHint": "Tous les exercices traduits ont été lus — bien joué.",
     "backToAdmin": "Retour à l'admin",
@@ -91,6 +93,7 @@
     "title": "Revue des exercices",
     "navLabel": "Revue",
     "description": "Vérifier et valider le contenu des exercices — triés par fréquence d'utilisation.",
+    "progressLabel": "Progression de la revue",
     "allDone": "Tous les exercices sont vérifiés !",
     "allDoneHint": "Plus rien à vérifier — bien joué.",
     "backToAdmin": "Retour à l'admin",

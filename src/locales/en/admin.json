@@ -11,6 +11,7 @@
     "title": "Image Enrichment",
     "navLabel": "Illustrations",
     "description": "Batch-add illustrations to exercises that don't have one yet.",
+    "progressLabel": "Image progress",
     "allDone": "All exercises have images!",
     "allDoneHint": "Nothing left in the queue — nice work.",
     "backToAdmin": "Back to admin"
@@ -19,6 +20,7 @@
     "title": "Translation Review",
     "navLabel": "Translations",
     "description": "Compare the French source with its English translation, sentence by sentence — flagged rows first.",
+    "progressLabel": "Translation progress",
     "allDone": "No translation left to review!",
     "allDoneHint": "Every translated exercise has been read — nice work.",
     "backToAdmin": "Back to admin",
@@ -91,6 +93,7 @@
     "title": "Exercise Review",
     "navLabel": "Review",
     "description": "Review and validate exercise content — sorted by most used first.",
+    "progressLabel": "Review progress",
     "allDone": "All exercises reviewed!",
     "allDoneHint": "Nothing left to review — great job.",
     "backToAdmin": "Back to admin",
