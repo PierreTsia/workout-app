@@ -1,6 +1,15 @@
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Heading,
+  Text,
+} from "@nomosui/react"
 import { SentryTestErrorButton } from "@/components/admin/SentryTestErrorButton"
 
 export function AdminHomePage() {
@@ -9,8 +18,10 @@ export function AdminHomePage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("homeDescription")}</p>
+        <Heading level={1}>{t("title")}</Heading>
+        <Text size="body" className="text-muted-foreground">
+          {t("homeDescription")}
+        </Text>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -31,23 +42,26 @@ export function AdminHomePage() {
         </Button>
       </div>
 
-      <section
-        className="rounded-lg border border-border/80 border-dashed bg-muted/30 p-4"
+      <Card
+        role="region"
         aria-labelledby="admin-sentry-test-heading"
+        className="border-dashed bg-muted/30 p-4"
       >
-        <h2
-          id="admin-sentry-test-heading"
-          className="text-sm font-semibold text-foreground"
-        >
-          {t("sentryTest.heading")}
-        </h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("sentryTest.hint")}
-        </p>
-        <div className="mt-3">
+        <CardHeader className="p-0">
+          <CardTitle
+            id="admin-sentry-test-heading"
+            className="text-sm font-semibold text-foreground"
+          >
+            {t("sentryTest.heading")}
+          </CardTitle>
+          <CardDescription className="text-xs">
+            {t("sentryTest.hint")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 pt-3">
           <SentryTestErrorButton />
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   )
 }
