@@ -1,20 +1,13 @@
+import { useId } from "react"
 import { useNavigate } from "react-router-dom"
-import { useForm } from "react-hook-form"
+import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { Field, Input } from "@nomosui/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form"
 import { useCreateProgram } from "@/hooks/useCreateProgram"
 
 const schema = z.object({
@@ -27,6 +20,7 @@ export function BlankProgramStep() {
   const { t } = useTranslation("create-program")
   const navigate = useNavigate()
   const createProgram = useCreateProgram()
+  const nameId = useId()
 
   const form = useForm<BlankForm>({
     resolver: zodResolver(schema),
@@ -48,36 +42,35 @@ export function BlankProgramStep() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 flex-col gap-4 px-6 pt-4">
-        <h2 className="text-lg font-semibold">{t("pathBlank")}</h2>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 flex-col gap-4 px-6 pt-4">
+      <h2 className="text-lg font-semibold">{t("pathBlank")}</h2>
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("programName")}</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder={t("programNamePlaceholder")}
-                  autoFocus
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Controller
+        control={form.control}
+        name="name"
+        render={({ field, fieldState }) => (
+          <Field
+            htmlFor={nameId}
+            label={t("programName")}
+            error={fieldState.error?.message}
+          >
+            <Input
+              id={nameId}
+              {...field}
+              placeholder={t("programNamePlaceholder")}
+              autoFocus
+            />
+          </Field>
+        )}
+      />
 
-        <Button type="submit" disabled={createProgram.isPending} className="mt-2">
-          {createProgram.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            t("create")
-          )}
-        </Button>
-      </form>
-    </Form>
+      <Button type="submit" disabled={createProgram.isPending} className="mt-2">
+        {createProgram.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          t("create")
+        )}
+      </Button>
+    </form>
   )
 }
