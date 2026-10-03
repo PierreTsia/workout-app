@@ -14,14 +14,14 @@ Prouver de bout en bout la chaîne **build → artefact committé → ressource 
 
 ## Dependencies
 
-Aucune. Premier slice du chemin critique.
+**T289** (bump `@nomosui/react` `0.8.0` → `0.9.0`, qui apporte `view.css` et le dialecte MCP Apps). Premier slice du chemin critique après le bump.
 
 ## Scope
 
 ### Build de vue — `scripts/build-mcp-view.mjs`
 
-- Assemble un **HTML auto-suffisant** : markup **SSR** (`renderToStaticMarkup`) + **CSS Tailwind GL** + **bundle JS IIFE** (React + `@modelcontextprotocol/ext-apps` + `SessionCard`) minifié.
-- CSS : entrée dédiée important `tailwindcss`, `@nomosui/react/tokens/tokens.generated.css`, `@nomosui/react/tokens/theme.css`, avec `@source` sur `src/mcp-views/**` et sur les sources Nomos (l'app compile déjà via `postcss.config.js` / `@tailwindcss/postcss`).
+- Assemble un **HTML auto-suffisant** : markup **SSR** (`renderToStaticMarkup`) + **CSS = `@nomosui/react/view.css`** (utilitaires compilés, ADR 0034) + **bundle JS IIFE** (React + `@modelcontextprotocol/ext-apps` + `SessionCard`) minifié.
+- Le CSS de la vue est **inliné depuis le sub-export** `@nomosui/react/view.css` — **aucune** compilation Tailwind côté GL, aucun pipeline CSS maison.
 - Écrit `supabase/functions/mcp/resources/views/sessionCard.generated.ts` (constante string, **Deno-safe**) ; `--check` régénère en mémoire et diff, exit non-zéro si dérive.
 - npm : `"build:view": "node scripts/build-mcp-view.mjs"`, `"view:check": "node scripts/build-mcp-view.mjs --check"`.
 - **devDependency** `@modelcontextprotocol/ext-apps` (build-time only).
@@ -73,4 +73,5 @@ Aucune. Premier slice du chemin critique.
 - Epic Brief `file:docs/Epic_Brief_—_Surface_agentique_Nomos_#591.md` (stories 1, 2, 6, 7, 10, 11)
 - Tech Plan `file:docs/Tech_Plan_—_Surface_agentique_Nomos_#591.md` (§ Architectural Approach, Component Architecture)
 - ADR `file:docs/adr/0027-agentic-view-contract.md`
+- T289 `file:docs/T289_—_Adopter_@nomosui_react_0.9.0.md` (prérequis)
 - MCP Apps : https://modelcontextprotocol.io/extensions/apps/overview

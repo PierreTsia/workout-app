@@ -11,10 +11,11 @@
 | Donnée → vue | Le tool renvoie **`structuredContent`** (projection) **+** un texte markdown de repli ; le host pousse le tool result dans l'iframe | Marche sur les clients MCP Apps et non-MCP-Apps (story 6/7) |
 | Projection | **TS Edge** (`lib/sessionCard.ts`) réutilisant les ports `mcp/lib/*`, lisant `sessions`/`set_logs`/`block_*` sous RLS | Cohérent avec les 11 outils ; testable Deno **et** Vitest |
 | Rendu | **Nouveau composant Session Card** (briques Nomos `Card`/`Badge`/`Meter`) | N'embarque ni i18n, ni react-query, ni router de l'app ; l'app reste intacte |
-| CSS de la vue | **Tailwind GL compilé au build** (le `theme.css` de Nomos + `@source` + sources de la vue) | Les utilitaires Nomos ne sont **pas** publiés ([nomos#100](https://github.com/PierreTsia/nomos/issues/100)) |
+| CSS de la vue | **`@nomosui/react/view.css`** (utilitaires compilés, publiés) | Livré par Nomos 0.9.0 (ADR 0034) ; plus de Tailwind au runtime ni de pipeline CSS maison |
 | Locale | Argument **`locale: en\|fr`** optionnel sur l'outil ; défaut = `user_profiles.locale`, repli `en` | Même pattern que le **Program draft step** ; permet des noms catalogue localisés identiques à l'app |
 | Artefact | HTML **auto-suffisant committé** + `view:check` en CI | Même régime que les tokens Nomos ; l'artefact ne peut pas périmer en silence |
 | Site du source de vue | `src/mcp-views/session-card/` (couvert par `tsconfig.app.json`, non bundlé par le SPA car non importé) | Réutilise l'outillage TS/vitest existant ; les libellés importent `src/locales` au build |
+| Dépendance | Bump **`@nomosui/react` 0.9.0** (T289) — `renderView` / `view.css` + dialecte MCP Apps | Le paquet est pinné 0.8.0 ; 0.9.0 est un minor (breaking 0.x autorisé) |
 
 ### Critical Constraints
 
@@ -22,6 +23,7 @@
 - **Contrat public.** Ajouter `meta` et un outil est **additif** mais reste un changement de la surface MCP (AGENTS.md) : ADR 0027 + test.
 - **Lecture seule.** La vue n'a **aucun** chemin d'écriture ; `render_session_card` est `readOnlyHint: true` et n'appelle aucun tool mutateur. La ressource est servie sans auth.
 - **Deno n'importe pas `src/locales` à l'exécution.** Les libellés statiques de la carte sont **embarqués au build** dans le bundle de vue (importés des JSON de l'app) ; le serveur ne renvoie que `locale` + des chaînes **pré-formatées** (durée, date, tonnage).
+- **Consommation Nomos 0.9.0.** Le CSS de la vue vient de `@nomosui/react/view.css` (utilitaires compilés, publiés) ; `renderView` ne rend que des **briques/scènes du catalogue** (app-agnostique) et **pas** la carte produit GymLogic — le document est donc assemblé côté GL (SSR + bundle + `view.css`).
 - **L'artefact committé doit être Deno-safe** : un module TS exportant une simple constante string, importé par `resources/registry.ts`.
 - **L'app n'est pas refactorée.** `SessionHistoryBody` / `BlockHistoryCard` restent tels quels ; la carte est une seconde surface, la parité est tenue par **fixtures golden**, pas par import partagé.
 - **Widening du handler.** `ToolDefinition.handler` type aujourd'hui `content: Array<{type;text}>` (`file:supabase/functions/mcp/tools/registry.ts:47`) — élargir à `structuredContent?: unknown` sans casser les 11 outils.
@@ -135,7 +137,7 @@ flowchart TD
 | `src/mcp-views/session-card/SessionCard.tsx` | Le composant carte (briques Nomos), data-fed, i18n-neutre (libellés injectés) |
 | `src/mcp-views/session-card/labels.ts` | Importe les libellés EN/FR depuis `src/locales`, sélectionne par `locale` |
 | `src/mcp-views/session-card/render.ts` | `renderToStaticMarkup(<SessionCard …/>)` pour le repli sans JS |
-| `scripts/build-mcp-view.mjs` | Build Node : CSS Tailwind + SSR fallback + bundle IIFE → écrit l'artefact ; `--check` pour la dérive |
+| `scripts/build-mcp-view.mjs` | Build Node : SSR fallback + bundle IIFE + inline `@nomosui/react/view.css` → écrit l'artefact ; `--check` pour la dérive |
 | `src/test/mcpSessionCard.arch.test.ts` | Contrat : ressource `mime`/`_meta`, artefact non périmé, aucun chemin d'écriture |
 | `supabase/functions/mcp/lib/sessionCard_test.ts` / `.test.ts` | Parité projection vs fixtures golden (Deno + Vitest) |
 
@@ -201,7 +203,7 @@ flowchart TD
 ## Stress-Test
 
 1. **Parité des dérivations.** Tonnage/Tours/durée recalculés côté Edge peuvent diverger de `src/lib`. Mitigation : fixtures golden partagées + tests double-runner (pattern déjà en place). Coût accepté : deux implémentations.
-2. **Nomos n'expose pas ses utilitaires** → GL compile son Tailwind pour l'iframe : duplication assumée, trigger = [nomos#100](https://github.com/PierreTsia/nomos/issues/100).
+2. **Section risquée réduite.** Nomos 0.9.0 publie `view.css` (utilitaires compilés, ADR 0034) — GL n'a plus de pipeline CSS à maintenir ; le seul build restant est SSR + bundle GL.
 3. **`ext-apps` sur Claude mobile non vérifié** : Desktop validé d'abord, mobile suivi dans le même epic (décision).
 4. **`_meta` sur l'outil non rendu par certains hôtes** : repli texte garanti.
 5. **Incohérence assumée** : l'Epic dit « identique à l'app par construction » ; ce plan dégrade à « même grain de données + mêmes tokens, parité par test » (pas de skin GL nommé).

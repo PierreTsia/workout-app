@@ -14,16 +14,15 @@ Contrat tranché en amont : ADR `file:docs/adr/0027-agentic-view-contract.md`.
 
 **Current state:**
 - Le serveur MCP expose `tools` (11) + `resources` (`exercise_catalog_schema`), aucune vue, aucun prompt.
-- `@nomosui/react@0.8.0` est consommé app-side (phase 1 #583) ; sa surface agentique (`ui://nomos/…`) existe mais **Nomos n'expose ni son view builder ni ses utilitaires compilés** au paquet public.
-- Le contrat de pont de Nomos (ADR 0013, `{source:'nomos'}`) **diverge** du standard MCP Apps : une vue Nomos s'affiche dans Claude mais ne reçoit **jamais** de données et ne remonte aucune intention.
+- `@nomosui/react` est consommé app-side (phase 1 #583, pinné `0.8.0`). **Nomos 0.9.0** livre la surface agentique : le pont parle le dialecte MCP Apps standard (ADR 0033) et le paquet expose `@nomosui/react/view` (`renderView`) + `@nomosui/react/view.css` (utilitaires compilés, ADR 0034). Mais `renderView` ne rend que des **briques/scènes du catalogue** (app-agnostique), **pas** une carte produit GymLogic.
+- GymLogic doit donc **monter sa propre carte** à partir de ces briques partagées ; `_meta`, ressource et outil restent du MCP GL à écrire. Le paquet est pinné `0.8.0` → bump `0.9.0` requis.
 - GymLogic n'a **pas de skin** : `file:src/styles/globals.css` peint l'app depuis son `@theme` legacy vendoré, alors que les tokens **par défaut** du cœur portent déjà l'identité GL (teal `174 100% 39%`).
 
 **Pain points:**
 | Pain | Impact |
 |---|---|
 | Le produit ne rend rien dans la conversation | Le différenciateur MCP-native reste invisible ; l'agent décrit en prose ce qu'il pourrait montrer |
-| Le pont maison Nomos est un cul-de-sac | Adopter tel quel = vues sans données ni intentions dans un vrai hôte |
-| Nomos ne publie pas son pipeline de vue | GL doit porter son propre build (Vite + utilities) sans source partagée garantie |
+| Aucune carte produit dans Nomos | `renderView` ne rend que des briques/scènes app-agnostiques ; GL doit assembler sa propre carte et son document de vue |
 | Pas de skin GL nommé | La claim « identique à l'app par construction » est fausse aujourd'hui (coïncidence de valeurs) |
 
 ---
@@ -63,14 +62,15 @@ Contrat tranché en amont : ADR `file:docs/adr/0027-agentic-view-contract.md`.
 4. **Pont MCP Apps** : la vue est bâtie sur `@modelcontextprotocol/ext-apps` (`App`) — handshake `ui/initialize`, réception du tool result, rendu ; **aucun** `callTool` d'écriture.
 5. **Un composite vertical** : la **Session Card** (`Card` / `Badge` / `Meter` Nomos), alimentée par les données réelles.
 6. **i18n EN + FR** : libellés injectés, branchés sur les clés app existantes.
-7. **Build de vue GL** : artefact committé (`scripts/build-mcp-view.mjs`, Vite lib + `react-dom/server` + Tailwind GL) + `view:check` en CI.
+7. **Build de vue GL** : artefact committé (`scripts/build-mcp-view.mjs`, Vite lib + `react-dom/server` + **`@nomosui/react/view.css`**) + `view:check` en CI.
 8. **Skill** : `skills/gymlogic-mcp/SKILL.md` décrit la nouvelle surface (contrat public).
 9. **Tests** : contrat MCP (profil `mcp-app`, `_meta` présent, aucune écriture), dérive de l'artefact, et la vue reçoit bien le tool result et rend la donnée.
+10. **Dépendance** : bump `@nomosui/react` `0.8.0` → `0.9.0` (T289, prérequis).
 
 **Out of scope:**
 - Toute **interactivité / écriture** depuis une vue (« modifier séance ») — ADR + consentement #287 dédiés.
 - La **PWA/Jev comme hôte** MCP Apps ; SSE (#266) ; Jev (#552).
-- Le **cœur Nomos** (vit dans `PierreTsia/nomos`) — aligner son bridge sur MCP Apps ([nomos#99](https://github.com/PierreTsia/nomos/issues/99)) et publier view builder + utilitaires ([nomos#100](https://github.com/PierreTsia/nomos/issues/100)).
+- Le **cœur Nomos** lui-même (vit dans `PierreTsia/nomos`) : son bridge MCP Apps ([nomos#99](https://github.com/PierreTsia/nomos/issues/99), ADR 0033) et l'entrée de vue + utilitaires ([nomos#100](https://github.com/PierreTsia/nomos/issues/100), ADR 0034) sont **livrés en 0.9.0** — l'adoption du paquet côté GL est couverte ici (T289), le cœur ne bouge pas.
 - Le **vrai skin GL** (`resolveSkin` consommé par app **et** vue) — après retirement du `@theme` legacy.
 - Les autres composites (carte de programme, etc.).
 
