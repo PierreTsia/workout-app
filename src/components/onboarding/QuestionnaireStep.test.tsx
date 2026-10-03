@@ -46,6 +46,16 @@ describe("QuestionnaireStep", () => {
     expect(screen.getByPlaceholderText("e.g. 75")).toBeInTheDocument()
   })
 
+  it("associates each input label with its control", () => {
+    renderStep()
+    expect(screen.getByLabelText("Age")).toBe(
+      screen.getByPlaceholderText("e.g. 28"),
+    )
+    expect(screen.getByLabelText(/Weight/)).toBe(
+      screen.getByPlaceholderText("e.g. 75"),
+    )
+  })
+
   it("shows validation errors on submit with empty required fields", async () => {
     const user = userEvent.setup()
     renderStep()
