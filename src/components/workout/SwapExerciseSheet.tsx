@@ -9,7 +9,7 @@ import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 import {
   Sheet,
   SheetContent,

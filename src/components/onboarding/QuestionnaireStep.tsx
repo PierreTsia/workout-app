@@ -1,10 +1,9 @@
-import { useForm } from "react-hook-form"
+import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Form } from "@/components/ui/form"
 import {
   questionnaireSchema,
   toQuestionnaireOutput,
@@ -65,7 +64,7 @@ export function QuestionnaireStep({ onNext, error }: QuestionnaireStepProps) {
   }
 
   return (
-    <Form {...form}>
+    <FormProvider {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-1 flex-col gap-8 overflow-y-auto px-6 pb-8 pt-4"
@@ -91,6 +90,6 @@ export function QuestionnaireStep({ onNext, error }: QuestionnaireStepProps) {
           {t("next")}
         </Button>
       </form>
-    </Form>
+    </FormProvider>
   )
 }

@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@nomosui/react"
 import { publicSite } from "@/lib/publicSite"
 import { useExerciseFilterOptions } from "@/hooks/useExerciseFilterOptions"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"

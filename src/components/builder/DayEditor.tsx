@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/sortable"
 import { Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Input } from "@nomosui/react"
 import { useWorkoutDays } from "@/hooks/useWorkoutDays"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useDayItems } from "@/hooks/useDayItems"
@@ -30,7 +31,6 @@ import {
 import { dayItemId, dayItemSortUpdates, moveDayItems } from "@/lib/dayItems"
 import { toIntentDayFromDayItems } from "@/lib/programScore/toIntentDayFromDayItems"
 import type { Exercise, WorkoutExerciseWithExercise } from "@/types/database"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,

@@ -1,3 +1,4 @@
+import { useId } from "react"
 import type { LucideIcon } from "lucide-react"
 import {
   Mars,
@@ -19,20 +20,12 @@ import {
   Cake,
   Scale,
 } from "lucide-react"
-import { useFormContext } from "react-hook-form"
+import { Controller, useFormContext } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useAtomValue } from "jotai"
 import { weightUnitAtom } from "@/store/atoms"
-import { Input } from "@/components/ui/input"
+import { Field, Input } from "@nomosui/react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  useFormField,
-} from "@/components/ui/form"
 import {
   goalOptions,
   experienceOptions,
@@ -46,15 +39,6 @@ const validationKeys: Record<string, string> = {
   Required: "validation_required",
   "Must be positive": "validation_positive",
   "Must be a number": "validation_number",
-}
-
-function TranslatedFormMessage() {
-  const { t } = useTranslation("onboarding")
-  const { error } = useFormField()
-  const raw = error?.message
-  if (!raw) return null
-  const i18nKey = validationKeys[raw]
-  return <FormMessage>{i18nKey ? t(i18nKey) : raw}</FormMessage>
 }
 
 interface OptionMeta {
@@ -88,20 +72,41 @@ const equipMeta: Record<string, OptionMeta> = {
 const toggleItemClass =
   "rounded-lg border border-border px-4 py-2.5 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
 
+const fieldClass = "gap-3"
+
 /** Shared training questionnaire fields (onboarding + account settings). */
 export function QuestionnaireTrainingFields() {
   const { control } = useFormContext<QuestionnaireValues>()
   const { t } = useTranslation("onboarding")
   const weightUnit = useAtomValue(weightUnitAtom)
+  const ageId = useId()
+  const weightId = useId()
+  const daysId = useId()
+
+  const errorText = (message: string | undefined) =>
+    message ? t(validationKeys[message] ?? message) : null
+
+  const iconLabel = (icon: LucideIcon, text: string) => {
+    const Icon = icon
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <Icon className="h-4 w-4" />
+        {text}
+      </span>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-8">
-      <FormField
+      <Controller
         control={control}
         name="gender"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t("genderLabel")}</FormLabel>
+        render={({ field, fieldState }) => (
+          <Field
+            label={t("genderLabel")}
+            error={errorText(fieldState.error?.message)}
+            className={fieldClass}
+          >
             <ToggleGroup
               type="single"
               variant="outline"
@@ -121,64 +126,64 @@ export function QuestionnaireTrainingFields() {
                 )
               })}
             </ToggleGroup>
-            <TranslatedFormMessage />
-          </FormItem>
+          </Field>
         )}
       />
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField
+        <Controller
           control={control}
           name="age"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="inline-flex items-center gap-1.5">
-                <Cake className="h-4 w-4" />
-                {t("ageLabel")}
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder={t("agePlaceholder")}
-                  {...field}
-                />
-              </FormControl>
-              <TranslatedFormMessage />
-            </FormItem>
+          render={({ field, fieldState }) => (
+            <Field
+              htmlFor={ageId}
+              label={iconLabel(Cake, t("ageLabel"))}
+              error={errorText(fieldState.error?.message)}
+              className={fieldClass}
+            >
+              <Input
+                id={ageId}
+                type="number"
+                inputMode="numeric"
+                placeholder={t("agePlaceholder")}
+                {...field}
+              />
+            </Field>
           )}
         />
 
-        <FormField
+        <Controller
           control={control}
           name="weight"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="inline-flex items-center gap-1.5">
-                <Scale className="h-4 w-4" />
-                {t("weightLabel", { unit: weightUnit })}
-              </FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  placeholder={t("weightPlaceholder")}
-                  {...field}
-                />
-              </FormControl>
-              <TranslatedFormMessage />
-            </FormItem>
+          render={({ field, fieldState }) => (
+            <Field
+              htmlFor={weightId}
+              label={iconLabel(Scale, t("weightLabel", { unit: weightUnit }))}
+              error={errorText(fieldState.error?.message)}
+              className={fieldClass}
+            >
+              <Input
+                id={weightId}
+                type="number"
+                inputMode="decimal"
+                step="0.1"
+                placeholder={t("weightPlaceholder")}
+                {...field}
+              />
+            </Field>
           )}
         />
       </div>
 
-      <FormField
+      <Controller
         control={control}
         name="goal"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t("goalLabel")}</FormLabel>
+        render={({ field, fieldState }) => (
+          <Field
+            label={t("goalLabel")}
+            error={errorText(fieldState.error?.message)}
+            className={fieldClass}
+          >
             <ToggleGroup
               type="single"
               variant="outline"
@@ -198,17 +203,19 @@ export function QuestionnaireTrainingFields() {
                 )
               })}
             </ToggleGroup>
-            <TranslatedFormMessage />
-          </FormItem>
+          </Field>
         )}
       />
 
-      <FormField
+      <Controller
         control={control}
         name="experience"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t("experienceLabel")}</FormLabel>
+        render={({ field, fieldState }) => (
+          <Field
+            label={t("experienceLabel")}
+            error={errorText(fieldState.error?.message)}
+            className={fieldClass}
+          >
             <ToggleGroup
               type="single"
               variant="outline"
@@ -228,17 +235,19 @@ export function QuestionnaireTrainingFields() {
                 )
               })}
             </ToggleGroup>
-            <TranslatedFormMessage />
-          </FormItem>
+          </Field>
         )}
       />
 
-      <FormField
+      <Controller
         control={control}
         name="equipment"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t("equipmentLabel")}</FormLabel>
+        render={({ field, fieldState }) => (
+          <Field
+            label={t("equipmentLabel")}
+            error={errorText(fieldState.error?.message)}
+            className={fieldClass}
+          >
             <ToggleGroup
               type="single"
               variant="outline"
@@ -258,49 +267,46 @@ export function QuestionnaireTrainingFields() {
                 )
               })}
             </ToggleGroup>
-            <TranslatedFormMessage />
-          </FormItem>
+          </Field>
         )}
       />
 
-      <FormField
+      <Controller
         control={control}
         name="training_days_per_week"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel className="inline-flex items-center gap-1.5">
-              <CalendarDays className="h-4 w-4" />
-              {t("daysLabel")}
-            </FormLabel>
+          <Field
+            htmlFor={daysId}
+            label={iconLabel(CalendarDays, t("daysLabel"))}
+            className={fieldClass}
+          >
             <div className="flex items-center gap-4">
-              <FormControl>
-                <input
-                  type="range"
-                  min={2}
-                  max={6}
-                  step={1}
-                  className="h-2 flex-1 cursor-pointer accent-primary"
-                  value={field.value}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
-              </FormControl>
+              <input
+                id={daysId}
+                type="range"
+                min={2}
+                max={6}
+                step={1}
+                className="h-2 flex-1 cursor-pointer accent-primary"
+                value={field.value}
+                onChange={(e) => field.onChange(Number(e.target.value))}
+              />
               <span className="min-w-16 text-center text-sm font-medium">
                 {t("daysValue", { count: Number(field.value) })}
               </span>
             </div>
-          </FormItem>
+          </Field>
         )}
       />
 
-      <FormField
+      <Controller
         control={control}
         name="session_duration_minutes"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel className="inline-flex items-center gap-1.5">
-              <Timer className="h-4 w-4" />
-              {t("durationLabel")}
-            </FormLabel>
+          <Field
+            label={iconLabel(Timer, t("durationLabel"))}
+            className={fieldClass}
+          >
             <ToggleGroup
               type="single"
               variant="outline"
@@ -316,7 +322,7 @@ export function QuestionnaireTrainingFields() {
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
-          </FormItem>
+          </Field>
         )}
       />
     </div>

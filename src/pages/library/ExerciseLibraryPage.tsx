@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { getDifficultyColor } from "@/lib/difficulty"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 import { cn } from "@/lib/utils"
 
 const SEARCH_DEBOUNCE_MS = 300

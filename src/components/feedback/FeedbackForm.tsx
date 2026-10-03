@@ -2,21 +2,11 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslation } from "react-i18next"
 import { useAtomValue } from "jotai"
+import { Field, Input, Textarea } from "@nomosui/react"
 import { authAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  useFormField,
-} from "@/components/ui/form"
 import {
   feedbackFormSchema,
   formValuesToPayload,
@@ -49,23 +39,20 @@ function descriptionLabel(opt: (typeof DESCRIPTION_OPTIONS)[number]) {
   return opt === "unrelated" ? "unrelated" : opt === "wrong_muscle" ? "wrongMuscle" : opt === "missing_steps" ? "missingSteps" : "other"
 }
 
+function isIllustration(value: string): value is (typeof ILLUSTRATION_OPTIONS)[number] {
+  return ILLUSTRATION_OPTIONS.some((opt) => opt === value)
+}
+function isVideo(value: string): value is (typeof VIDEO_OPTIONS)[number] {
+  return VIDEO_OPTIONS.some((opt) => opt === value)
+}
+function isDescription(value: string): value is (typeof DESCRIPTION_OPTIONS)[number] {
+  return DESCRIPTION_OPTIONS.some((opt) => opt === value)
+}
+
 interface FeedbackFormProps {
   exerciseId: string
   sourceScreen: FeedbackSourceScreen
   onSuccess: () => void
-}
-
-/** Renders FormMessage with translated error key (feedback namespace). */
-function TranslatedFormMessage() {
-  const { t } = useTranslation("feedback")
-  const field = useFormField()
-  const error = "error" in field ? field.error : undefined
-  if (!error?.message) return null
-  return (
-    <p className="text-sm font-medium text-destructive">
-      {t(error.message as string)}
-    </p>
-  )
 }
 
 export function FeedbackForm({
@@ -94,6 +81,9 @@ export function FeedbackForm({
     },
   })
 
+  const trans = (message: string | undefined) => (message ? t(message) : undefined)
+  const errors = form.formState.errors
+
   // eslint-disable-next-line react-hooks/incompatible-library -- RHF watch() is inherently non-memoizable
   const watchWhat = form.watch([
     "whatIllustration",
@@ -105,13 +95,13 @@ export function FeedbackForm({
   const watchDescription = form.watch("description")
   const [whatIllustration, whatVideo, whatDescription] = watchWhat
   const whatValue = [
-    whatIllustration && "illustration",
-    whatVideo && "video",
-    whatDescription && "description",
-  ].filter(Boolean) as string[]
-  const hasOtherIllustration = (watchIllustration as string[])?.includes("other")
-  const hasOtherVideo = (watchVideo as string[])?.includes("other")
-  const hasOtherDescription = (watchDescription as string[])?.includes("other")
+    whatIllustration ? "illustration" : null,
+    whatVideo ? "video" : null,
+    whatDescription ? "description" : null,
+  ].filter((value): value is string => value !== null)
+  const hasOtherIllustration = watchIllustration.includes("other")
+  const hasOtherVideo = watchVideo.includes("other")
+  const hasOtherDescription = watchDescription.includes("other")
 
   async function handleSubmit(values: FeedbackFormValues) {
     if (!user?.email || !user?.id) return
@@ -153,11 +143,10 @@ export function FeedbackForm({
   const isSubmitDisabled = submitFeedback.isPending
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex min-h-0 flex-1 flex-col"
-      >
+    <form
+      onSubmit={form.handleSubmit(handleSubmit)}
+      className="flex min-h-0 flex-1 flex-col"
+    >
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
           <div className="flex flex-col gap-5 pt-2">
 
@@ -179,55 +168,46 @@ export function FeedbackForm({
                 </p>
               </div>
 
-              <FormField
-                control={form.control}
-                name="whatIllustration"
-                render={() => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="flex flex-wrap gap-2">
-                        {whatOptions.map((opt) => {
-                          const active = whatValue.includes(opt.value)
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => {
-                                const field = opt.value === "illustration"
-                                  ? "whatIllustration" as const
-                                  : opt.value === "video"
-                                    ? "whatVideo" as const
-                                    : "whatDescription" as const
-                                const nextActive = !active
-                                form.setValue(field, nextActive, { shouldValidate: true })
-                                if (!nextActive) {
-                                  const arrayField = opt.value as "illustration" | "video" | "description"
-                                  const otherField = opt.value === "illustration"
-                                    ? "other_illustration_text" as const
-                                    : opt.value === "video"
-                                      ? "other_video_text" as const
-                                      : "other_description_text" as const
-                                  form.setValue(arrayField, [] as never, { shouldValidate: true })
-                                  form.setValue(otherField, "", { shouldValidate: true })
-                                }
-                              }}
-                              className={cn(
-                                "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                                active
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </FormControl>
-                    <TranslatedFormMessage />
-                  </FormItem>
-                )}
-              />
+              <Field error={trans(errors.whatIllustration?.message)}>
+                <div className="flex flex-wrap gap-2">
+                  {whatOptions.map((opt) => {
+                    const active = whatValue.includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          const field = opt.value === "illustration"
+                            ? "whatIllustration" as const
+                            : opt.value === "video"
+                              ? "whatVideo" as const
+                              : "whatDescription" as const
+                          const nextActive = !active
+                          form.setValue(field, nextActive, { shouldValidate: true })
+                          if (!nextActive) {
+                            const arrayField = opt.value as "illustration" | "video" | "description"
+                            const otherField = opt.value === "illustration"
+                              ? "other_illustration_text" as const
+                              : opt.value === "video"
+                                ? "other_video_text" as const
+                                : "other_description_text" as const
+                            form.setValue(arrayField, [], { shouldValidate: true })
+                            form.setValue(otherField, "", { shouldValidate: true })
+                          }
+                        }}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                          active
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </Field>
             </div>
 
             {/* Step 2 */}
@@ -259,165 +239,120 @@ export function FeedbackForm({
 
                 {whatIllustration && (
                   <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
-                    <FormField
-                      control={form.control}
-                      name="illustration"
-                      render={() => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold text-foreground/80">
-                            {t("whatIllustration")}
-                          </FormLabel>
-                          <FormControl>
-                            <MultiSelect
-                              options={illustrationOptions}
-                              value={watchIllustration }
-                              onChange={(next) =>
-                                form.setValue("illustration", next as FeedbackFormValues["illustration"], {
-                                  shouldValidate: true,
-                                })
-                              }
-                            placeholder={t("selectIssues")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherIllustration && (
-                      <FormField
-                        control={form.control}
-                        name="other_illustration_text"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">{t("otherIllustrationLabel")} *</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={t("otherPlaceholder")}
-                                className={cn(
-                                  "h-9",
-                                  form.formState.errors.other_illustration_text && "border-destructive",
-                                )}
-                                {...field}
-                              />
-                            </FormControl>
-                            {form.formState.errors.other_illustration_text?.message && (
-                              <p className="text-sm font-medium text-destructive">
-                                {t(form.formState.errors.other_illustration_text.message as string)}
-                              </p>
-                            )}
-                          </FormItem>
-                        )}
+                    <Field
+                      htmlFor="illustration"
+                      label={
+                        <span className="text-xs font-semibold text-foreground/80">
+                          {t("whatIllustration")}
+                        </span>
+                      }
+                      error={trans(errors.illustration?.message)}
+                    >
+                      <MultiSelect
+                        id="illustration"
+                        options={illustrationOptions}
+                        value={watchIllustration}
+                        onChange={(next) =>
+                          form.setValue("illustration", next.filter(isIllustration), {
+                            shouldValidate: true,
+                          })
+                        }
+                        placeholder={t("selectIssues")}
                       />
+                    </Field>
+                    {hasOtherIllustration && (
+                      <Field
+                        htmlFor="other_illustration_text"
+                        label={<span className="text-xs">{t("otherIllustrationLabel")} *</span>}
+                        error={trans(errors.other_illustration_text?.message)}
+                      >
+                        <Input
+                          id="other_illustration_text"
+                          placeholder={t("otherPlaceholder")}
+                          className="h-9"
+                          {...form.register("other_illustration_text")}
+                        />
+                      </Field>
                     )}
                   </div>
                 )}
 
                 {whatVideo && (
                   <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
-                    <FormField
-                      control={form.control}
-                      name="video"
-                      render={() => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold text-foreground/80">
-                            {t("whatVideo")}
-                          </FormLabel>
-                          <FormControl>
-                            <MultiSelect
-                              options={videoOptions}
-                              value={watchVideo}
-                              onChange={(next) =>
-                                form.setValue("video", next as FeedbackFormValues["video"], {
-                                  shouldValidate: true,
-                                })
-                              }
-                            placeholder={t("selectIssues")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherVideo && (
-                      <FormField
-                        control={form.control}
-                        name="other_video_text"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">{t("otherVideoLabel")} *</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={t("otherPlaceholder")}
-                                className={cn(
-                                  "h-9",
-                                  form.formState.errors.other_video_text && "border-destructive",
-                                )}
-                                {...field}
-                              />
-                            </FormControl>
-                            {form.formState.errors.other_video_text?.message && (
-                              <p className="text-sm font-medium text-destructive">
-                                {t(form.formState.errors.other_video_text.message as string)}
-                              </p>
-                            )}
-                          </FormItem>
-                        )}
+                    <Field
+                      htmlFor="video"
+                      label={
+                        <span className="text-xs font-semibold text-foreground/80">
+                          {t("whatVideo")}
+                        </span>
+                      }
+                      error={trans(errors.video?.message)}
+                    >
+                      <MultiSelect
+                        id="video"
+                        options={videoOptions}
+                        value={watchVideo}
+                        onChange={(next) =>
+                          form.setValue("video", next.filter(isVideo), {
+                            shouldValidate: true,
+                          })
+                        }
+                        placeholder={t("selectIssues")}
                       />
+                    </Field>
+                    {hasOtherVideo && (
+                      <Field
+                        htmlFor="other_video_text"
+                        label={<span className="text-xs">{t("otherVideoLabel")} *</span>}
+                        error={trans(errors.other_video_text?.message)}
+                      >
+                        <Input
+                          id="other_video_text"
+                          placeholder={t("otherPlaceholder")}
+                          className="h-9"
+                          {...form.register("other_video_text")}
+                        />
+                      </Field>
                     )}
                   </div>
                 )}
 
                 {whatDescription && (
                   <div className="rounded-md bg-muted/30 p-3 flex flex-col gap-3">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={() => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-semibold text-foreground/80">
-                            {t("whatDescription")}
-                          </FormLabel>
-                          <FormControl>
-                            <MultiSelect
-                              options={descriptionOptions}
-                              value={watchDescription}
-                              onChange={(next) =>
-                                form.setValue("description", next as FeedbackFormValues["description"], {
-                                  shouldValidate: true,
-                                })
-                              }
-                            placeholder={t("selectIssues")}
-                          />
-                        </FormControl>
-                        <TranslatedFormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {hasOtherDescription && (
-                      <FormField
-                        control={form.control}
-                        name="other_description_text"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">{t("otherDescriptionLabel")} *</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder={t("otherPlaceholder")}
-                                className={cn(
-                                  "h-9",
-                                  form.formState.errors.other_description_text && "border-destructive",
-                                )}
-                                {...field}
-                              />
-                            </FormControl>
-                            {form.formState.errors.other_description_text?.message && (
-                              <p className="text-sm font-medium text-destructive">
-                                {t(form.formState.errors.other_description_text.message as string)}
-                              </p>
-                            )}
-                          </FormItem>
-                        )}
+                    <Field
+                      htmlFor="description"
+                      label={
+                        <span className="text-xs font-semibold text-foreground/80">
+                          {t("whatDescription")}
+                        </span>
+                      }
+                      error={trans(errors.description?.message)}
+                    >
+                      <MultiSelect
+                        id="description"
+                        options={descriptionOptions}
+                        value={watchDescription}
+                        onChange={(next) =>
+                          form.setValue("description", next.filter(isDescription), {
+                            shouldValidate: true,
+                          })
+                        }
+                        placeholder={t("selectIssues")}
                       />
+                    </Field>
+                    {hasOtherDescription && (
+                      <Field
+                        htmlFor="other_description_text"
+                        label={<span className="text-xs">{t("otherDescriptionLabel")} *</span>}
+                        error={trans(errors.other_description_text?.message)}
+                      >
+                        <Input
+                          id="other_description_text"
+                          placeholder={t("otherPlaceholder")}
+                          className="h-9"
+                          {...form.register("other_description_text")}
+                        />
+                      </Field>
                     )}
                   </div>
                 )}
@@ -426,23 +361,18 @@ export function FeedbackForm({
             </div>
 
             {/* Comment */}
-            <FormField
-              control={form.control}
-              name="comment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("commentPlaceholder")}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={t("commentPlaceholder")}
-                      rows={3}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Field
+              htmlFor="comment"
+              label={t("commentPlaceholder")}
+              error={trans(errors.comment?.message)}
+            >
+              <Textarea
+                id="comment"
+                placeholder={t("commentPlaceholder")}
+                rows={3}
+                {...form.register("comment")}
+              />
+            </Field>
           </div>
         </div>
 
@@ -455,7 +385,6 @@ export function FeedbackForm({
             {submitFeedback.isPending ? t("submitting") : t("submit")}
           </Button>
         </div>
-      </form>
-    </Form>
+    </form>
   )
 }

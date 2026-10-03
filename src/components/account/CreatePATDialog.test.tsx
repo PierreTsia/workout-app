@@ -79,6 +79,20 @@ describe("CreatePATDialog — form mode", () => {
     expect(native?.value).toBe("30")
   })
 
+  it("associates the name label with its input", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Name")).toBe(
+      screen.getByPlaceholderText("Cursor laptop"),
+    )
+  })
+
+  it("associates the lifetime label with its select trigger", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Expires in")).toBe(
+      screen.getByRole("combobox"),
+    )
+  })
+
   it("blocks submit when name is empty", async () => {
     const user = userEvent.setup()
     renderDialog()

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 
 interface SessionNoteProps {
   /** Existing note, if the session already carries one. */

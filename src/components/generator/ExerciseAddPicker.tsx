@@ -4,7 +4,7 @@ import { Search } from "lucide-react"
 import { cn, groupBy } from "@/lib/utils"
 import { normalizeForSearch } from "@/lib/search"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import type { ExerciseListItem } from "@/types/database"
 

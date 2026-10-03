@@ -2,17 +2,7 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertTriangle, Check, Clipboard, MessagesSquare } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Button, Dialog, Textarea } from "@nomosui/react"
 import { copyToClipboard } from "@/lib/clipboard"
 import {
   buildReviewRequest,
@@ -165,69 +155,79 @@ export function ReviewAssistDialog({
     })
   }
 
+  // The core dialog owns its trigger and exposes no `disabled`, so the fieldset
+  // carries the card's "verdict issued" lock: a disabled ancestor makes the
+  // trigger inert without unmounting the modal, and a correction still in
+  // flight keeps its diff on screen.
+  const footer =
+    result && result.ok ? (
+      <Button className="gap-2" onClick={() => onApply(result.instructions)}>
+        <Check className="h-4 w-4" />
+        {t("translations.assist.apply")}
+      </Button>
+    ) : undefined
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-2" disabled={disabled}>
-          <MessagesSquare className="h-4 w-4" />
-          {t("translations.assist.open")}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t("translations.assist.title")}</DialogTitle>
-          <DialogDescription>
-            {t("translations.assist.description")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <Button variant="outline" className="gap-2 self-start" onClick={copy}>
-          <Clipboard className="h-4 w-4" />
-          {t("translations.assist.copy")}
-        </Button>
-
-        <div className="flex flex-col gap-2">
-          <Textarea
-            value={pasted}
-            aria-label={t("translations.assist.pasteLabel")}
-            placeholder={t("translations.assist.pastePlaceholder")}
-            // Editing after a check invalidates it: leaving the old verdict on
-            // screen would let the reviewer apply a diff of text that is no
-            // longer in the box.
-            onChange={(event) => {
-              setPasted(event.target.value)
-              setResult(null)
-            }}
-            rows={6}
-            className="font-mono text-xs"
-          />
-          <Button
-            variant="secondary"
-            className="self-start"
-            disabled={pasted.trim() === ""}
-            onClick={() => setResult(readCorrection(pasted, subject.instructions))}
-          >
-            {t("translations.assist.check")}
-          </Button>
-        </div>
-
-        {result === null ? null : result.ok ? (
+    <fieldset disabled={disabled} className="m-0 min-w-0 border-0 p-0">
+      <Dialog
+        open={open}
+        onOpenChange={onOpenChange}
+        trigger={
           <>
-            <CorrectionDiff
-              current={subject.instructions_en}
-              proposed={result.instructions}
-            />
-            <DialogFooter>
-              <Button className="gap-2" onClick={() => onApply(result.instructions)}>
-                <Check className="h-4 w-4" />
-                {t("translations.assist.apply")}
-              </Button>
-            </DialogFooter>
+            <MessagesSquare className="h-4 w-4" />
+            {t("translations.assist.open")}
           </>
-        ) : (
-          <CorrectionRefusal problem={result} />
-        )}
-      </DialogContent>
-    </Dialog>
+        }
+        title={t("translations.assist.title")}
+        description={t("translations.assist.description")}
+        closeLabel={t("common:close")}
+        className="max-h-[85vh] max-w-3xl overflow-y-auto"
+        body={
+          <div className="flex flex-col gap-4">
+            <Button variant="outline" className="gap-2 self-start" onClick={copy}>
+              <Clipboard className="h-4 w-4" />
+              {t("translations.assist.copy")}
+            </Button>
+
+            <div className="flex flex-col gap-2">
+              <Textarea
+                value={pasted}
+                aria-label={t("translations.assist.pasteLabel")}
+                placeholder={t("translations.assist.pastePlaceholder")}
+                // Editing after a check invalidates it: leaving the old verdict on
+                // screen would let the reviewer apply a diff of text that is no
+                // longer in the box.
+                onChange={(event) => {
+                  setPasted(event.target.value)
+                  setResult(null)
+                }}
+                rows={6}
+                className="font-mono text-xs"
+              />
+              <Button
+                variant="secondary"
+                className="self-start"
+                disabled={pasted.trim() === ""}
+                onClick={() =>
+                  setResult(readCorrection(pasted, subject.instructions))
+                }
+              >
+                {t("translations.assist.check")}
+              </Button>
+            </div>
+
+            {result === null ? null : result.ok ? (
+              <CorrectionDiff
+                current={subject.instructions_en}
+                proposed={result.instructions}
+              />
+            ) : (
+              <CorrectionRefusal problem={result} />
+            )}
+          </div>
+        }
+        footer={footer}
+      />
+    </fieldset>
   )
 }
