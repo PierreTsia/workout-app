@@ -2,10 +2,10 @@ import type { TFunction } from "i18next"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, Check, X, Pencil } from "lucide-react"
 import { Link } from "react-router-dom"
+import type { DataTableFeatures } from "@nomosui/react"
 import type { Exercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import type { DataTableFeatures } from "./features"
 
 /**
  * Passed in rather than read from `useCatalogLabels` here: this is a plain

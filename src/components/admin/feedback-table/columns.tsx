@@ -2,13 +2,13 @@ import type { TFunction } from "i18next"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
+import type { DataTableFeatures } from "@nomosui/react"
 import type { ExerciseContentFeedback, FeedbackStatus } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { StatusDropdown } from "./StatusDropdown"
 import { feedbackStatusLabel } from "./facets"
-import type { DataTableFeatures } from "./features"
 
 const STATUS_BADGE_CLASSES: Record<FeedbackStatus, string> = {
   pending: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
