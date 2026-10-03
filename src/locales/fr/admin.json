@@ -191,6 +191,7 @@
     "totalCount": "{{count}} signalements",
     "pendingCount": "{{count}} en attente",
     "noResults": "Aucun signalement.",
+    "countUnit": "signalements",
     "unknownExercise": "Exercice inconnu",
     "columns": {
       "exercise": "Exercice",

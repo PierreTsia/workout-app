@@ -191,6 +191,7 @@
     "totalCount": "{{count}} reports",
     "pendingCount": "{{count}} pending",
     "noResults": "No feedback reports.",
+    "countUnit": "reports",
     "unknownExercise": "Unknown exercise",
     "columns": {
       "exercise": "Exercise",
