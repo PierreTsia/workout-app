@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertTriangle, Check, Pencil, SkipForward, Undo2 } from "lucide-react"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Badge, Button, Textarea } from "@nomosui/react"
 import { ReviewAssistDialog } from "@/components/admin/translations/ReviewAssistDialog"
 import {
   TranslationWriteRefusedError,
