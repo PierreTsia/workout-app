@@ -103,6 +103,24 @@ describe("FeedbackForm", () => {
       ).toBeInTheDocument()
       expect(mockSubmit).not.toHaveBeenCalled()
     })
+
+    it("associates the error message with the invalid control (a11y)", async () => {
+      const user = userEvent.setup()
+      renderAuthenticatedForm()
+
+      await user.click(screen.getByRole("button", { name: /illustration/i }))
+      await user.click(screen.getByRole("combobox"))
+      await user.click(screen.getByText(/^other$/i))
+      await user.click(screen.getByRole("button", { name: /submit report/i }))
+
+      const message = await screen.findByRole("alert")
+      expect(message).toHaveTextContent(/please describe when selecting/i)
+      expect(message).toHaveAttribute("id")
+
+      const control = document.querySelector(`[aria-describedby~="${message.id}"]`)
+      expect(control).not.toBeNull()
+      expect(control).toHaveAttribute("aria-invalid", "true")
+    })
   })
 
   describe("Step 1 interaction", () => {
