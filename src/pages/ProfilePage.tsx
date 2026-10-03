@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@nomosui/react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   PROFILE_WINDOW_SELECT_KINDS,
