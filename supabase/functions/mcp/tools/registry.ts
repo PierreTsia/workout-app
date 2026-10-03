@@ -10,6 +10,7 @@ import { createWorkoutDay } from "./createWorkoutDay.ts"
 import { updateProgram } from "./updateProgram.ts"
 import { listPrograms } from "./listPrograms.ts"
 import { getProgramDetails } from "./getProgramDetails.ts"
+import { renderSessionCard } from "./renderSessionCard.ts"
 
 /**
  * MCP-spec tool annotations (2025-03-26).
@@ -36,6 +37,11 @@ export interface ToolDefinition {
   name: string
   description: string
   annotations: ToolAnnotations
+  /**
+   * MCP Apps link (ADR 0027): `ui.resourceUri` points the host at the view to render
+   * alongside the tool result. Passed through verbatim by `tools/list`.
+   */
+  meta?: { ui?: { resourceUri: string } }
   inputSchema: {
     type: "object"
     properties: Record<string, unknown>
@@ -44,7 +50,12 @@ export interface ToolDefinition {
   handler: (
     args: Record<string, unknown>,
     supabase: SupabaseClient | null,
-  ) => Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }>
+  ) => Promise<{
+    content: Array<{ type: string; text: string }>
+    /** Structured data the host pushes into the MCP App view (ADR 0027). */
+    structuredContent?: unknown
+    isError?: boolean
+  }>
 }
 
 const tools: ToolDefinition[] = [
@@ -59,6 +70,7 @@ const tools: ToolDefinition[] = [
   updateProgram,
   listPrograms,
   getProgramDetails,
+  renderSessionCard,
 ]
 
 export const toolRegistry = {
