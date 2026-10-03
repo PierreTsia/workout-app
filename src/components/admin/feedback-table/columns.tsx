@@ -1,14 +1,14 @@
+import type { TFunction } from "i18next"
 import type { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react"
+import { ArrowUpDown, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
-import type { ExerciseContentFeedback } from "@/types/database"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Badge, Button, type DataTableFeatures } from "@nomosui/react"
+import type { ExerciseContentFeedback, FeedbackStatus } from "@/types/database"
 import { formatRelativeTime } from "@/lib/formatRelativeTime"
 import { StatusDropdown } from "./StatusDropdown"
-import type { FeedbackTableFeatures } from "./features"
+import { feedbackStatusLabel } from "./facets"
 
-const STATUS_BADGE_CLASSES: Record<string, string> = {
+const STATUS_BADGE_CLASSES: Record<FeedbackStatus, string> = {
   pending: "border-yellow-500/50 text-yellow-600 dark:text-yellow-400",
   in_review: "border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400",
   resolved: "border-transparent bg-green-600 text-white",
@@ -20,9 +20,11 @@ function truncate(text: string | null, max: number): string {
 }
 
 export function getColumns(
-  t: (key: string) => string,
+  t: TFunction<"admin">,
   locale: string,
-): ColumnDef<FeedbackTableFeatures, ExerciseContentFeedback>[] {
+  adminEmail: string,
+  openDetail: (row: ExerciseContentFeedback) => void,
+): ColumnDef<DataTableFeatures, ExerciseContentFeedback>[] {
   return [
     {
       id: "expand",
@@ -32,19 +34,19 @@ export function getColumns(
           variant="ghost"
           size="icon"
           className="h-7 w-7"
-          onClick={() => row.toggleExpanded()}
+          aria-label={t("feedback.actions.expand")}
+          onClick={(event) => {
+            event.stopPropagation()
+            openDetail(row.original)
+          }}
         >
-          {row.getIsExpanded() ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+          <ChevronRight className="h-4 w-4" />
         </Button>
       ),
     },
     {
       id: "exercise",
-      accessorKey: "exercise_id",
+      accessorFn: (row) => row.exercises?.name ?? "",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -75,11 +77,6 @@ export function getColumns(
           </Link>
         )
       },
-      sortFn: (a, b) => {
-        const nameA = a.original.exercises?.name ?? ""
-        const nameB = b.original.exercises?.name ?? ""
-        return nameA.localeCompare(nameB)
-      },
     },
     {
       accessorKey: "fields_reported",
@@ -93,10 +90,6 @@ export function getColumns(
           ))}
         </div>
       ),
-      filterFn: (row, _id, filterValue: string) => {
-        if (!filterValue) return true
-        return row.original.fields_reported.includes(filterValue)
-      },
     },
     {
       accessorKey: "source_screen",
@@ -111,7 +104,10 @@ export function getColumns(
       accessorKey: "user_email",
       header: t("feedback.columns.userEmail"),
       cell: ({ row }) => (
-        <span className="max-w-[160px] truncate text-sm text-muted-foreground" title={row.original.user_email}>
+        <span
+          className="max-w-[160px] truncate text-sm text-muted-foreground"
+          title={row.original.user_email}
+        >
           {row.original.user_email}
         </span>
       ),
@@ -120,7 +116,10 @@ export function getColumns(
       accessorKey: "comment",
       header: t("feedback.columns.comment"),
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground" title={row.original.comment ?? undefined}>
+        <span
+          className="text-sm text-muted-foreground"
+          title={row.original.comment ?? undefined}
+        >
           {truncate(row.original.comment, 60)}
         </span>
       ),
@@ -140,25 +139,20 @@ export function getColumns(
       ),
       cell: ({ row }) => {
         const status = row.original.status
-        const label =
-          status === "pending"
-            ? t("feedback.pending")
-            : status === "in_review"
-              ? t("feedback.inReview")
-              : t("feedback.resolved")
         return (
-          <Badge variant="outline" className={STATUS_BADGE_CLASSES[status] ?? ""}>
-            {label}
+          <Badge variant="outline" className={STATUS_BADGE_CLASSES[status]}>
+            {feedbackStatusLabel(t, status)}
           </Badge>
         )
       },
-      filterFn: (row, _id, filterValue: string) => {
-        if (filterValue === "all") return true
-        return row.original.status === filterValue
+      filterFn: (row, _id, values: string[]) => {
+        if (values.length === 0) return true
+        return values.includes(row.original.status)
       },
     },
     {
       accessorKey: "created_at",
+      meta: { defaultSort: "desc" },
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -179,11 +173,11 @@ export function getColumns(
     {
       id: "actions",
       header: t("feedback.columns.actions"),
-      cell: ({ row, table }) => (
+      cell: ({ row }) => (
         <StatusDropdown
           feedbackId={row.original.id}
           currentStatus={row.original.status}
-          adminEmail={table.options.meta?.adminEmail ?? "unknown"}
+          adminEmail={adminEmail}
         />
       ),
     },

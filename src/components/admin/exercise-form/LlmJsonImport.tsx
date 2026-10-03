@@ -3,13 +3,7 @@ import { useFormContext } from "react-hook-form"
 import { ClipboardPaste, ChevronDown } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import { Button, Collapsible, CollapsibleContent, CollapsibleTrigger, Textarea } from "@nomosui/react"
 import { fromLlmJson } from "./transforms"
 import type { ExerciseFormValues } from "./schema"
 

@@ -164,6 +164,16 @@ describe("AdminTranslationsPage", () => {
     expect(screen.getByRole("button", { name: /next/i })).toBeDisabled()
   })
 
+  it("renders the queue position as a semantic progress bar", () => {
+    renderWithProviders(<AdminTranslationsPage />)
+
+    const bar = screen.getByRole("progressbar", {
+      name: "Translation progress",
+    })
+    expect(bar).toHaveAttribute("aria-valuenow", "1")
+    expect(bar).toHaveAttribute("aria-valuemax", "3")
+  })
+
   it("shows the empty state when the queue is exhausted", () => {
     mockedQueue.mockReturnValue(
       mockQueryResult([]) as ReturnType<typeof useTranslationReviewQueue>,

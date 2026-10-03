@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useExerciseById } from "@/hooks/useExerciseById"
 import { useAdminUpdateExercise } from "@/hooks/useAdminUpdateExercise"
-import { Badge } from "@/components/ui/badge"
+import { Badge, Heading, Skeleton } from "@nomosui/react"
 import { ExerciseEditForm } from "@/components/admin/exercise-form/ExerciseEditForm"
 import { ExerciseReviewToolbar } from "@/components/admin/review/ExerciseReviewToolbar"
 import { fromFormValues } from "@/components/admin/exercise-form/transforms"
@@ -33,7 +33,7 @@ export function AdminExerciseEditPage() {
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <Skeleton className="h-8 w-8" />
       </div>
     )
   }
@@ -57,9 +57,9 @@ export function AdminExerciseEditPage() {
           {t("backToList")}
         </Link>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">
+          <Heading level={1}>
             {exercise.emoji} {exercise.name}
-          </h1>
+          </Heading>
           {exercise.reviewed_at ? (
             <Badge variant="default" className="bg-green-600 text-xs">
               {t("reviewed")}

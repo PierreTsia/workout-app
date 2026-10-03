@@ -11,6 +11,7 @@ import { RouterProvider } from "react-router-dom"
 import { router } from "@/router"
 import { queryClient } from "@/lib/queryClient"
 import { initSyncListeners } from "@/lib/syncService"
+import { TooltipProvider } from "@nomosui/react"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorFallback } from "@/components/ErrorFallback"
 import { AppErrorBoundary } from "@/components/AppErrorBoundary"
@@ -82,7 +83,9 @@ handleVersionUpgrade()
               />
             )}
           >
-            <RouterProvider router={router} />
+            <TooltipProvider>
+              <RouterProvider router={router} />
+            </TooltipProvider>
           </AppErrorBoundary>
           <Toaster />
           <Analytics />

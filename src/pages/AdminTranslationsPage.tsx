@@ -1,9 +1,16 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ChevronLeft, ChevronRight, Loader2, PartyPopper } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { ChevronLeft, ChevronRight, PartyPopper } from "lucide-react"
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Heading,
+  ProgressBar,
+  Skeleton,
+  Text,
+} from "@nomosui/react"
 import { TranslationReviewCard } from "@/components/admin/translations/TranslationReviewCard"
 import { useTranslationReviewQueue } from "@/hooks/useTranslationReviewQueue"
 
@@ -22,38 +29,38 @@ export function AdminTranslationsPage() {
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
       <div>
-        <h1 className="text-2xl font-bold">{t("translations.title")}</h1>
-        <p className="text-sm text-muted-foreground">
+        <Heading level={1}>{t("translations.title")}</Heading>
+        <Text size="body" className="text-muted-foreground">
           {t("translations.description")}
-        </p>
+        </Text>
       </div>
 
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Skeleton className="h-8 w-8" />
         </div>
       ) : row === null ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-          <PartyPopper className="h-12 w-12 text-primary" />
-          <div>
-            <p className="text-lg font-semibold">{t("translations.allDone")}</p>
-            <p className="text-sm text-muted-foreground">
-              {t("translations.allDoneHint")}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/admin">{t("translations.backToAdmin")}</Link>
-          </Button>
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState
+            icon={<PartyPopper className="h-12 w-12 text-primary" />}
+            title={t("translations.allDone")}
+            description={t("translations.allDoneHint")}
+            action={
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/admin">{t("translations.backToAdmin")}</Link>
+              </Button>
+            }
+          />
         </div>
       ) : (
         <>
           <div className="flex items-center gap-3">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${((position + 1) / total) * 100}%` }}
-              />
-            </div>
+            <ProgressBar
+              value={position + 1}
+              max={total}
+              label={t("translations.progressLabel")}
+              className="flex-1"
+            />
             <Badge
               variant="outline"
               className="shrink-0 tabular-nums text-muted-foreground"

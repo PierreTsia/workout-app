@@ -1,10 +1,78 @@
+import { useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useAtomValue } from "jotai"
+import {
+  EmptyState,
+  FacetedDataTable,
+  type RowDetail,
+  type TableState,
+} from "@nomosui/react"
 import { useAdminFeedback } from "@/hooks/useAdminFeedback"
-import { DataTable } from "@/components/admin/feedback-table/DataTable"
+import { authAtom } from "@/store/atoms"
+import { buildDataTableLabels } from "@/components/admin/tableLabels"
+import {
+  feedbackGlobalFilterFn,
+  statusFacet,
+} from "@/components/admin/feedback-table/facets"
+import { getColumns } from "@/components/admin/feedback-table/columns"
+import { FeedbackDetailRow } from "@/components/admin/feedback-table/FeedbackDetailRow"
+import type { ExerciseContentFeedback } from "@/types/database"
+
+/**
+ * Feedback reuses the exercises baseline but owns its copy. The core offers no
+ * "no pagination" switch and caps its page sizes at 100, so 100 alone would
+ * spill a 101st report onto a second page. The effective page size is lifted to
+ * the row count below, keeping the whole list on one page — the pre-migration
+ * behaviour — until the volume actually needs paging.
+ */
+const INITIAL_TABLE_STATE: TableState = {
+  sorting: [],
+  globalFilter: "",
+  columnFilters: [],
+  pagination: { pageIndex: 0, pageSize: 100 },
+  openedKey: null,
+  selection: [],
+  columnVisibility: {},
+  columnOrder: [],
+}
+
+const rowKey = (row: ExerciseContentFeedback) => row.id
 
 export function AdminFeedbackPage() {
-  const { t } = useTranslation("admin")
+  const { t, i18n } = useTranslation("admin")
   const { data: feedback, isLoading } = useAdminFeedback()
+  const reports = useMemo(() => feedback ?? [], [feedback])
+  const adminEmail = useAtomValue(authAtom)?.email ?? "unknown"
+
+  const [tableState, setTableState] = useState(INITIAL_TABLE_STATE)
+
+  const pageSize = Math.max(
+    INITIAL_TABLE_STATE.pagination.pageSize,
+    reports.length,
+  )
+
+  const labels = useMemo(
+    () =>
+      buildDataTableLabels(t, {
+        search: t("feedback.searchPlaceholder"),
+        empty: t("feedback.noResults"),
+        unit: t("feedback.countUnit"),
+      }),
+    [t],
+  )
+  const facets = useMemo(() => [statusFacet(t, reports)], [t, reports])
+  const renderColumns = useCallback(
+    (openDetail: (row: ExerciseContentFeedback) => void) =>
+      getColumns(t, i18n.language, adminEmail, openDetail),
+    [t, i18n.language, adminEmail],
+  )
+  const detail = useMemo<RowDetail<ExerciseContentFeedback>>(
+    () => ({
+      placement: "inline",
+      render: (row) => <FeedbackDetailRow feedback={row} />,
+    }),
+    [],
+  )
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
@@ -19,8 +87,25 @@ export function AdminFeedbackPage() {
         <div className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
+      ) : reports.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState title={t("feedback.noResults")} />
+        </div>
       ) : (
-        <DataTable data={feedback ?? []} />
+        <FacetedDataTable
+          data={reports}
+          renderColumns={renderColumns}
+          facets={facets}
+          globalFilterFn={feedbackGlobalFilterFn}
+          labels={labels}
+          detail={detail}
+          rowKey={rowKey}
+          state={{
+            ...tableState,
+            pagination: { ...tableState.pagination, pageSize },
+          }}
+          onStateChange={setTableState}
+        />
       )}
     </div>
   )
