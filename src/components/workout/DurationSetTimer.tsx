@@ -6,7 +6,7 @@ import { primeAudio, playWarningBeep, playFinishBeeps } from "@/lib/audio"
 import { buildBeepSchedule, type BeepFireSpec } from "@/lib/buildBeepSchedule"
 import { useKeepScreenAwake } from "@/hooks/useKeepScreenAwake"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 
 const VIBRATE_PATTERN = [200, 100, 200] as const
 

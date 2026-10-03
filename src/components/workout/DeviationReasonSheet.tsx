@@ -9,7 +9,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input } from "@nomosui/react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   DEVIATION_REASONS,
