@@ -143,17 +143,47 @@ wins. This is the one change that turns the *why* into a progression signal.
   Override Window (ADR 0006 lesson: no silent writeback into Template Prescription).
 - Exclude `no_prescription` rows (bootstrap, no snapshot).
 
+## Runs
+
+### Run #1 — 2026-10-03
+
+2 athletes, 4 sessions cumulated, **2 sessions carrying deviations**, 30 events.
+Queries 1–5 above, aggregate only.
+
+| Measure | Value |
+|---|---|
+| Tap adoption | 27/30 = **90 %** non-null reasons (3 skipped) — target 60 % exceeded |
+| `note` usage | 1/30 = **3 %** |
+| Reasons | `strong` 21 · `pain` 5 · skipped 3 · `other` 1 |
+| Direction × reason | `strong`+over 13 · `strong`+under 6 · `strong`+flat 2 · `pain`+under 5 · skipped+over 3 · `other`+over 1 |
+| Deviation rate | 76.5 % (10-02) · 81 % (10-03) |
+| Concentration | 9 exercises, 3–4 events each, **all in a single session** |
+
+**Anomalies to clear before trusting the sample** (tracked in #609):
+
+- `strong`+flat (2) — an event whose numbers match the Prescription Snapshot,
+  which the T266 AC says cannot happen. Suspect `isLoadDeviation` (display-unit
+  rounding / reps parsing) or an orphaned event from a set correction.
+- 76–81 % deviation rate — over-firing detection, or athletes ignoring the
+  prescription? Confront with a conforming athlete.
+
 ## Open questions (to settle while data accrues)
 
-1. What sample threshold unlocks a rule — N sets/slot, N sessions, N athletes?
-2. Is `strong` just redundant with "over"? If yes, direction alone may carry the
-   signal and the reason only matters for the *down* cases.
-3. `note` is rarely used so far — keep it, or is the reason code enough?
-4. Does overshoot concentrate in a few slots (→ slot calibration) or spread
-   across the whole session (→ the prescription is globally low)?
+1. **Answered (run #1).** Threshold unlocks a rule on **distinct sessions, not
+   sets** (one decision repeats per set). Per-slot, per-athlete: **≥ 3 distinct
+   sessions** carrying the same reason × direction on that slot. A change to a
+   **global default** needs **≥ 2 distinct athletes** each meeting their own
+   threshold. `pain` is exempt — `HOLD` + tag immediately, never a load penalty.
+2. **Answered (run #1): no.** `strong` is **not** redundant with "over" — it
+   appears in over, under and flat. The reason carries signal beyond direction,
+   so it stays.
+3. **Answered (run #1): keep, don't invest.** 3 % usage. The field costs nothing;
+   revisit only if it stays at zero after more volume.
+4. Still open — no slot yet has cross-session signal (every slot lives in one
+   session).
 
 ## Promotion trigger
 
-When the sample answers 1–4: open the refactor epic (reason-aware `Last
-Performance` anchor + slot calibration) with an ADR. Until then this file is
-read-only observation.
+When a slot meets the Q1 threshold **and** the run-#1 anomalies are cleared: open
+the refactor epic (reason-aware `Last Performance` anchor + slot calibration) with
+an ADR. Until then this file is read-only observation; the living tracker is #609.
