@@ -172,6 +172,18 @@ describe("AccountPage — danger zone", () => {
   })
 })
 
+describe("AccountPage — profile form", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockUpdateMutateAsync.mockResolvedValue(mockProfile)
+  })
+
+  it("associates the display name label with its input", () => {
+    renderPage()
+    expect(screen.getByLabelText("Display name")).toHaveValue("Pierre Test")
+  })
+})
+
 describe("AccountPage — release version", () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useForm, useWatch } from "react-hook-form"
+import { Controller, FormProvider, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { AlertTriangle, Check, Copy, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 
+import { Field, Input } from "@nomosui/react"
 import {
   Dialog,
   DialogContent,
@@ -15,15 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
 import {
   Select,
   SelectContent,
@@ -76,6 +68,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
   const { t } = useTranslation(["api-tokens", "common"])
   const [success, setSuccess] = useState<CreatePATResponse | null>(null)
   const [copied, setCopied] = useState(false)
+  const nameId = useId()
   const createMutation = useCreatePAT()
 
   const form = useForm<FormValues>({
@@ -166,7 +159,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
             t={t}
           />
         ) : (
-          <Form {...form}>
+          <FormProvider {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col gap-4"
@@ -181,49 +174,45 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
                 </DialogDescription>
               </DialogHeader>
 
-              <FormField
+              <Controller
                 control={form.control}
                 name="name"
                 render={({ field, fieldState }) => (
-                  <FormItem>
-                    <FormLabel>{t("api-tokens:name")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        autoFocus
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder={t("api-tokens:namePlaceholder")}
-                        maxLength={PAT_NAME_MAX_LENGTH}
-                        {...field}
-                      />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      {t("api-tokens:nameHint")}
-                    </p>
-                    {fieldState.error?.message ? (
-                      <FormMessage>
-                        {t(`api-tokens:${fieldState.error.message}`)}
-                      </FormMessage>
-                    ) : null}
-                  </FormItem>
+                  <Field
+                    htmlFor={nameId}
+                    label={t("api-tokens:name")}
+                    hint={t("api-tokens:nameHint")}
+                    error={
+                      fieldState.error?.message
+                        ? t(`api-tokens:${fieldState.error.message}`)
+                        : undefined
+                    }
+                  >
+                    <Input
+                      id={nameId}
+                      autoFocus
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder={t("api-tokens:namePlaceholder")}
+                      maxLength={PAT_NAME_MAX_LENGTH}
+                      {...field}
+                    />
+                  </Field>
                 )}
               />
 
-              <FormField
+              <Controller
                 control={form.control}
                 name="lifetime"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("api-tokens:lifetime")}</FormLabel>
+                  <Field label={t("api-tokens:lifetime")}>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="30">
                           {t("api-tokens:lifetime30")}
@@ -245,7 +234,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
                         <span>{t("api-tokens:lifetimeNeverWarning")}</span>
                       </div>
                     ) : null}
-                  </FormItem>
+                  </Field>
                 )}
               />
 
@@ -265,7 +254,7 @@ export function CreatePATDialog({ open, onClose }: CreatePATDialogProps) {
                 </Button>
               </DialogFooter>
             </form>
-          </Form>
+          </FormProvider>
         )}
       </DialogContent>
     </Dialog>

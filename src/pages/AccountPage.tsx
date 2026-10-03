@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useId, useRef, useState } from "react"
+import { Controller, FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { Field, Input } from "@nomosui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { ArrowLeft, ChevronRight, KeyRound, UserRound } from "lucide-react"
@@ -8,14 +9,12 @@ import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { accountProfileSchema, type AccountProfileFormValues } from "@/components/account/accountProfileSchema"
-import { AccountValidationMessage } from "@/components/account/AccountValidationMessage"
+import { accountValidationMessage } from "@/components/account/AccountValidationMessage"
 import { ProfileHeader } from "@/components/account/ProfileHeader"
 import { QuestionnaireTrainingFields } from "@/components/onboarding/QuestionnaireTrainingFields"
 import { toQuestionnaireOutput } from "@/components/onboarding/schema"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { assertAvatarFile, removeUserAvatarFiles, uploadUserAvatar } from "@/lib/avatarUpload"
 import { supabase } from "@/lib/supabase"
@@ -51,6 +50,7 @@ export function AccountPage() {
   const updateProfile = useUpdateUserProfile()
   const deleteAccount = useDeleteAccount()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const displayNameId = useId()
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -241,7 +241,7 @@ export function AccountPage() {
       <BadgeShowcase />
 
       {/* 3. Profile & Training settings */}
-      <Form {...form}>
+      <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="mb-4 text-sm font-semibold text-foreground">{t("account:identitySection")}</h2>
@@ -287,18 +287,18 @@ export function AccountPage() {
 
             <Separator className="my-6" />
 
-            <FormField
+            <Controller
               control={form.control}
               name="display_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("account:displayName")}</FormLabel>
-                  <FormControl>
-                    <Input autoComplete="nickname" placeholder="" {...field} />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">{t("account:displayNameHint")}</p>
-                  <AccountValidationMessage />
-                </FormItem>
+              render={({ field, fieldState }) => (
+                <Field
+                  htmlFor={displayNameId}
+                  label={t("account:displayName")}
+                  hint={t("account:displayNameHint")}
+                  error={accountValidationMessage(fieldState.error?.message, t)}
+                >
+                  <Input id={displayNameId} autoComplete="nickname" placeholder="" {...field} />
+                </Field>
               )}
             />
           </section>
@@ -312,7 +312,7 @@ export function AccountPage() {
             {updateProfile.isPending ? t("account:saving") : t("account:save")}
           </Button>
         </form>
-      </Form>
+      </FormProvider>
 
       {/* 4. Security & access */}
       <section
