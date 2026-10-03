@@ -79,6 +79,13 @@ describe("CreatePATDialog — form mode", () => {
     expect(native?.value).toBe("30")
   })
 
+  it("associates the name label with its input", () => {
+    renderDialog()
+    expect(screen.getByLabelText("Name")).toBe(
+      screen.getByPlaceholderText("Cursor laptop"),
+    )
+  })
+
   it("blocks submit when name is empty", async () => {
     const user = userEvent.setup()
     renderDialog()
