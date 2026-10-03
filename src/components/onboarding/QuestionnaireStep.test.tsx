@@ -54,6 +54,9 @@ describe("QuestionnaireStep", () => {
     expect(screen.getByLabelText(/Weight/)).toBe(
       screen.getByPlaceholderText("e.g. 75"),
     )
+    expect(screen.getByLabelText("Training days per week")).toBe(
+      screen.getByRole("slider"),
+    )
   })
 
   it("shows validation errors on submit with empty required fields", async () => {
