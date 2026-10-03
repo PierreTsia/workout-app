@@ -73,3 +73,5 @@ references — use the slug.
 | 0023 | Accepted | 2026-09-28 | Jev in GymLogic: verdicts only, entering by the Embedded Agent | [0023-jev-verdicts-only-embedded-agent.md](./0023-jev-verdicts-only-embedded-agent.md) |
 | 0024 | Accepted | 2026-09-30 | Session orphan self-heal: close at boot, never `now()` | [0024-session-orphan-self-heal.md](./0024-session-orphan-self-heal.md) |
 | 0025 | Accepted | 2026-10-01 | Release mechanism: release-please, deploy gated on the release | [0025-release-mechanism.md](./0025-release-mechanism.md) |
+| 0026 | Accepted | 2026-10-01 | Deviation storage: dedicated table, referenced set, Jev-agnostic | [0026-deviation-storage.md](./0026-deviation-storage.md) |
+| 0027 | Accepted | 2026-10-03 | MCP App views follow the standard MCP Apps contract, Nomos as visual source | [0027-agentic-view-contract.md](./0027-agentic-view-contract.md) |
