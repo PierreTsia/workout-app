@@ -81,6 +81,7 @@ export function QuestionnaireTrainingFields() {
   const weightUnit = useAtomValue(weightUnitAtom)
   const ageId = useId()
   const weightId = useId()
+  const daysId = useId()
 
   const errorText = (message: string | undefined) =>
     message ? t(validationKeys[message] ?? message) : null
@@ -275,11 +276,13 @@ export function QuestionnaireTrainingFields() {
         name="training_days_per_week"
         render={({ field }) => (
           <Field
+            htmlFor={daysId}
             label={iconLabel(CalendarDays, t("daysLabel"))}
             className={fieldClass}
           >
             <div className="flex items-center gap-4">
               <input
+                id={daysId}
                 type="range"
                 min={2}
                 max={6}
