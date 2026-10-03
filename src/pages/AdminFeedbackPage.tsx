@@ -20,9 +20,10 @@ import type { ExerciseContentFeedback } from "@/types/database"
 
 /**
  * Feedback reuses the exercises baseline but owns its copy. The core offers no
- * "no pagination" switch and its page sizes are 10/25/50/100, so 100 keeps the
- * whole feedback list on one page — the pre-migration behaviour — until the
- * volume actually needs paging.
+ * "no pagination" switch and caps its page sizes at 100, so 100 alone would
+ * spill a 101st report onto a second page. The effective page size is lifted to
+ * the row count below, keeping the whole list on one page — the pre-migration
+ * behaviour — until the volume actually needs paging.
  */
 const INITIAL_TABLE_STATE: TableState = {
   sorting: [],
@@ -44,6 +45,11 @@ export function AdminFeedbackPage() {
   const adminEmail = useAtomValue(authAtom)?.email ?? "unknown"
 
   const [tableState, setTableState] = useState(INITIAL_TABLE_STATE)
+
+  const pageSize = Math.max(
+    INITIAL_TABLE_STATE.pagination.pageSize,
+    reports.length,
+  )
 
   const labels = useMemo(
     () =>
@@ -94,7 +100,10 @@ export function AdminFeedbackPage() {
           labels={labels}
           detail={detail}
           rowKey={rowKey}
-          state={tableState}
+          state={{
+            ...tableState,
+            pagination: { ...tableState.pagination, pageSize },
+          }}
           onStateChange={setTableState}
         />
       )}

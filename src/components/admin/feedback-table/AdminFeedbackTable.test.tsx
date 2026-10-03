@@ -197,4 +197,24 @@ describe("admin feedback table", () => {
 
     expect(screen.getByText("Exercise 29")).toBeInTheDocument()
   })
+
+  // The core's largest page size is 100, so a longer queue would spill onto a
+  // second page — a regression against the pre-Nomos list, which showed all of
+  // it. The page derives its page size from the row count to keep one page.
+  it("keeps more than 100 rows on a single page", () => {
+    mockedFeedback.mockReturnValue(
+      mockQueryResult(
+        Array.from({ length: 130 }, (_, i) =>
+          feedback({
+            id: `f${i}`,
+            exercises: { name: `Exercise ${i}`, emoji: "🏋️" },
+          }),
+        ),
+      ),
+    )
+    render()
+
+    expect(screen.getByText("Exercise 129")).toBeInTheDocument()
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument()
+  })
 })
