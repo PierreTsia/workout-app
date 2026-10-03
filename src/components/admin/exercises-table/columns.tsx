@@ -1,24 +1,25 @@
+import type { TFunction } from "i18next"
 import type { ColumnDef } from "@tanstack/react-table"
 import { ArrowUpDown, Check, X, Pencil } from "lucide-react"
 import { Link } from "react-router-dom"
 import type { Exercise } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import type { ExercisesTableFeatures } from "./features"
+import type { DataTableFeatures } from "./features"
 
 /**
  * Passed in rather than read from `useCatalogLabels` here: this is a plain
  * factory, not a component, so the hook has to stay at the table level.
  */
-interface CatalogLabels {
+export interface CatalogLabels {
   muscleLabel: (value: string | null | undefined) => string
   equipmentLabel: (slug: string | null | undefined) => string
 }
 
 export function getColumns(
-  t: (key: string) => string,
+  t: TFunction<"admin">,
   { muscleLabel, equipmentLabel }: CatalogLabels,
-): ColumnDef<ExercisesTableFeatures, Exercise>[] {
+): ColumnDef<DataTableFeatures, Exercise>[] {
   return [
     {
       accessorKey: "name",
@@ -41,6 +42,7 @@ export function getColumns(
       ),
     },
     {
+      id: "muscle_group",
       accessorKey: "muscle_group",
       header: ({ column }) => (
         <Button
@@ -60,6 +62,7 @@ export function getColumns(
       ),
     },
     {
+      id: "equipment",
       accessorKey: "equipment",
       header: ({ column }) => (
         <Button
@@ -145,10 +148,10 @@ export function getColumns(
             {t("notReviewed")}
           </Badge>
         ),
-      filterFn: (row, _id, value) => {
-        if (value === "all") return true
-        const isReviewed = !!row.original.reviewed_at
-        return value === "reviewed" ? isReviewed : !isReviewed
+      filterFn: (row, _id, values: string[]) => {
+        if (values.length === 0 || values.includes("all")) return true
+        const status = row.original.reviewed_at ? "reviewed" : "not_reviewed"
+        return values.includes(status)
       },
     },
     {

@@ -116,6 +116,11 @@
   "reviewed": "Vérifié",
   "notReviewed": "Non vérifié",
   "reviewedFilter": "Statut de vérification",
+  "reset": "Réinitialiser",
+  "clear": "Effacer",
+  "noResults": "Aucun résultat.",
+  "exerciseCountUnit": "exercices",
+  "tableShown": "{{shown}} sur {{total}} {{unit}}",
   "columns": {
     "name": "Nom",
     "muscleGroup": "Groupe musculaire",
