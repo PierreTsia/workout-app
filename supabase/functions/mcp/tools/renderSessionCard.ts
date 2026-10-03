@@ -1,11 +1,12 @@
+import { buildSessionCardPayload } from "../lib/sessionCard.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 const URI = "ui://gymlogic/session-card"
 
 /**
  * Show the athlete's most recent finished session as an **MCP App View** (ADR 0027).
- * Read-only: the card never writes. T284 returns a text summary with example data; T285
- * binds it to the real last session.
+ * Read-only: the card never writes. The payload rides `structuredContent`, which the host
+ * pushes into the view; the text block is the fallback for clients that ignore `_meta`.
  */
 export const renderSessionCard: ToolDefinition = {
   name: "render_session_card",
@@ -22,14 +23,29 @@ export const renderSessionCard: ToolDefinition = {
     properties: {},
   },
 
-  async handler() {
-    return {
-      content: [
-        {
-          type: "text",
-          text: "## Last session\n\nThe Session Card is rendered in MCP Apps hosts.",
-        },
-      ],
+  async handler(_args, supabase) {
+    if (!supabase) {
+      return {
+        content: [{ type: "text", text: "Authentication required — please provide a valid Bearer token." }],
+        isError: true,
+      }
+    }
+
+    try {
+      const payload = await buildSessionCardPayload(supabase)
+      const text = payload.session
+        ? `## ${payload.session.label} — ${payload.session.finishedAtLabel}\n\n` +
+          `${payload.session.durationLabel} · ${payload.session.setsDone} sets · ${payload.tonnageKg} kg`
+        : "No workout sessions yet. Start logging workouts in the app!"
+      return {
+        content: [{ type: "text", text }],
+        structuredContent: payload,
+      }
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: `Error building session card: ${(error as Error).message}` }],
+        isError: true,
+      }
     }
   },
 }
