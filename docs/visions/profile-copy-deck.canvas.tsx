@@ -174,14 +174,13 @@ const SECTIONS: Section[] = [
     verdict: "keep",
     job: "Quels mouvements tu répètes vraiment — pas ceux du plan, pas tes PRs.",
     challenge:
-      "Cindy apparaît ici et dans Circuits. Ici c’est l’habitude (fréquence × récence). Là-bas c’est le score. Deux jobs, même nom : assumer, ne pas dédupliquer en cachant l’un.",
+      "Cindy apparaît ici et dans Circuits. Ici c’est l’habitude (rang = répétitions totales dans la fenêtre, ≥2 séances). Là-bas c’est le score. Deux jobs, même nom : assumer, ne pas dédupliquer en cachant l’un.",
     rows: [
       { slot: "H2", fr: "Récurrents", en: "Regulars" },
-      { slot: "Sous-titre", fr: "Les plus loggés · 100 jours", en: "Most logged · 100 days" },
-      { slot: "Badge on", fr: "Sur le programme", en: "On program" },
-      { slot: "Badge off", fr: "Hors plan", en: "Off program" },
-      { slot: "Colonne dernière", fr: "Dernière", en: "Last" },
-      { slot: "Vide", fr: "Pas assez de logs sur 100 jours.", en: "Not enough logs in 100 days." },
+      { slot: "Sous-titre", fr: "Les plus loggés · {{window}}", en: "Most logged · {{window}}" },
+      { slot: "Colonne reps", fr: "Répétitions dans la fenêtre", en: "Reps in window" },
+      { slot: "Évolution", fr: "Delta vs la 1ʳᵉ séance de la fenêtre", en: "Delta vs the first log in window" },
+      { slot: "Vide", fr: "Pas assez de logs sur cette période.", en: "Not enough logs in this period." },
     ],
   },
   {

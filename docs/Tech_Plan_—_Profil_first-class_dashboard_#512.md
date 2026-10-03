@@ -220,10 +220,10 @@ Orchestrator SSOT. Do not re-grill. Do not treat an open T237 file as a gate —
 | T231 Hero tenure + hop | AFK | **done** `9159733` |
 | T232 Regulars follow window | AFK | **done** `3a1966c` |
 | T234 all-time rollups | AFK | **done** `6b2c836` — RPC not applied to remote yet |
-| T235 copy-deck canvas | AFK | leftover editorial. **Not a gate** |
+| T235 copy-deck canvas | AFK | **done 2026-10-03** — Récurrents alignés sur la fenêtre (plus de « 100 jours » ni de badges plan) |
 | T236 ungate | HITL | **done** — `file:docs/done/T236_—_Ungate_Profil.md` |
 
-**Frontier:** none for #512. T235 leftover editorial. Prod still needs snapshot / ledger / all-time RPCs + optional `was_pr` backfill before merge.
+**Frontier:** none. **#512 closable.** RPCs `get_profile_snapshot` / `get_profile_circuit_ledger` / `get_profile_all_time_rollups` applied to prod (vérifié 2026-10-03). Optional: `scripts/backfill-was-pr.ts --apply` for old Circuit rows.
 
 ### Parked (not a ticket, not a derail)
 
