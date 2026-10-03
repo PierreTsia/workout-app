@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic · Home</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-fixed-variant": "#005142",
+            "tertiary-fixed": "#ffdbcb",
+            "surface": "#131317",
+            "on-secondary": "#303037",
+            "on-surface-variant": "#bacac3",
+            "inverse-on-surface": "#303034",
+            "rank-bronze": "#cd7f32",
+            "tertiary-container": "#ff9862",
+            "tertiary-fixed-dim": "#ffb692",
+            "surface-container-high": "#2a292e",
+            "on-surface": "#e4e1e7",
+            "on-primary-fixed": "#002019",
+            "secondary-fixed-dim": "#c8c5cf",
+            "primary": "#44e5c2",
+            "secondary": "#c8c5cf",
+            "on-tertiary-fixed": "#341100",
+            "on-secondary-fixed": "#1b1b22",
+            "outline": "#85948e",
+            "inverse-surface": "#e4e1e7",
+            "primary-fixed": "#5ffbd6",
+            "outline-variant": "#3c4a45",
+            "on-secondary-container": "#b9b7c1",
+            "on-error": "#690005",
+            "surface-container": "#1f1f23",
+            "on-tertiary": "#552000",
+            "on-secondary-fixed-variant": "#47464e",
+            "surface-bright": "#39393d",
+            "secondary-container": "#494850",
+            "surface-container-low": "#1b1b1f",
+            "surface-container-highest": "#353439",
+            "on-primary-container": "#004e40",
+            "background": "#0f0f13",
+            "inverse-primary": "#006b58",
+            "surface-container-lowest": "#0e0e12",
+            "surface-variant": "#353439",
+            "on-error-container": "#ffdad6",
+            "surface-tint": "#38debb",
+            "surface-dim": "#15151c",
+            "rank-platinum": "#e5e4e2",
+            "border": "#2d2d37",
+            "muted": "#999999",
+            "on-primary": "#000000",
+            "foreground": "#f2f2f2",
+            "card": "#1a1a22",
+            "rank-diamond": "#b9f2ff",
+            "secondary-fixed": "#e4e1eb",
+            "rank-silver": "#c0c0c0",
+            "error": "#ffb4ab",
+            "error-container": "#93000a",
+            "on-tertiary-container": "#762f00",
+            "tertiary": "#ffc0a1",
+            "primary-fixed-dim": "#38debb",
+            "on-background": "#e4e1e7",
+            "primary-container": "#00c9a7",
+            "rank-gold": "#ffd700",
+            "on-tertiary-fixed-variant": "#793100"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "stack-xs": "0.25rem",
+            "stack-sm": "0.5rem",
+            "gutter": "1rem",
+            "stack-md": "1rem",
+            "stack-lg": "1.5rem",
+            "stack-xl": "2rem",
+            "margin-mobile": "1rem"
+          },
+          fontFamily: {
+            "headline-md": ["Geist", "sans-serif"],
+            "body-lg": ["Geist", "sans-serif"],
+            "headline-lg": ["Geist", "sans-serif"],
+            "title-lg": ["Geist", "sans-serif"],
+            "label-md": ["Geist", "sans-serif"],
+            "headline-sm": ["Geist", "sans-serif"],
+            "body-md": ["Geist", "sans-serif"],
+            "label-sm": ["Geist", "sans-serif"],
+            "title-md": ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-lg": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "title-lg": ["18px", { lineHeight: "24px", fontWeight: "500" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+            "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "500" }],
+            "title-md": ["16px", { lineHeight: "24px", fontWeight: "500" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      background-color: #0f0f13;
+      color: #f2f2f2;
+      font-family: 'Geist', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-foreground antialiased selection:bg-primary-container selection:text-black min-h-screen flex flex-col justify-between items-center">
+<!-- Main Viewport Shell (390px mobile container constrained) -->
+<div class="w-full max-w-[390px] min-h-screen relative flex flex-col bg-background border-x border-border/40 pb-36">
+<!-- 1. Top Chrome (Shared Component: TopAppBar specification) -->
+<header class="fixed top-0 w-full max-w-[390px] z-40 h-16 bg-surface-dim border-b border-border flex items-center justify-between px-margin-mobile">
+<button aria-label="Menu principal" class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors duration-200" type="button">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-primary">GymLogic</span>
+<button aria-label="Compte utilisateur" class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors duration-200" type="button">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</header>
+<!-- Canvas Container (Offset top 64px) -->
+<main class="w-full px-margin-mobile pt-20 flex flex-col gap-stack-lg">
+<!-- 2. Cycle & Training Status Header -->
+<section class="flex flex-col gap-stack-sm pt-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-muted">MÉSO-CYCLE</span>
+<span class="font-title-md text-title-md font-semibold text-foreground">Cycle 3/6</span>
+</div>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container border border-border text-primary font-medium">
+            Semaine 3 · Séance du jour prête
+          </span>
+</div>
+<!-- Strict Progress Track (Flat, solid teal fill, rounded 8px track) -->
+<div class="w-full h-1.5 bg-surface-container-high rounded-lg overflow-hidden flex">
+<div class="w-1/2 h-full bg-primary-container"></div>
+</div>
+</section>
+<!-- 3. Home Resting Hero Card (Day Workout Preview) -->
+<section class="rounded-xl border border-border bg-surface-dim p-4 flex flex-col gap-stack-md">
+<!-- Header Info -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-semibold tracking-wide">PHASE HYPERTROPHIE</span>
+<span class="font-label-sm text-label-sm text-muted">REPOS ACTIF</span>
+</div>
+<h1 class="font-headline-sm text-headline-sm text-foreground font-semibold">
+            Push 1 · Pectoraux, Épaules, Triceps
+          </h1>
+<p class="font-body-md text-body-md text-muted">
+            Durée estimée : 55 min · 18 séries · 6 exercices
+          </p>
+</div>
+<!-- Hairline Divider -->
+<div class="h-px w-full bg-border"></div>
+<!-- Minimal Preview List of Upcoming Exercises -->
+<div class="flex flex-col gap-2">
+<!-- Exercise 1 -->
+<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-card border border-border/50">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-foreground">Développé couché barre</span>
+<span class="font-label-sm text-label-sm text-muted">RPE 8.5 · Repos 2:30</span>
+</div>
+<div class="text-right">
+<span class="font-title-md text-title-md font-medium text-primary">4 × 8</span>
+<span class="font-label-sm text-label-sm text-muted block">92.5 kg</span>
+</div>
+</div>
+<!-- Exercise 2 -->
+<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-card border border-border/50">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-foreground">Développé militaire haltères</span>
+<span class="font-label-sm text-label-sm text-muted">RPE 8.0 · Repos 2:00</span>
+</div>
+<div class="text-right">
+<span class="font-title-md text-title-md font-medium text-foreground">3 × 10</span>
+<span class="font-label-sm text-label-sm text-muted block">28.0 kg</span>
+</div>
+</div>
+<!-- Exercise 3 -->
+<div class="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-card border border-border/50">
+<div class="flex flex-col">
+<span class="font-body-md text-body-md font-medium text-foreground">Écartés poulie vis-à-vis</span>
+<span class="font-label-sm text-label-sm text-muted">RPE 9.0 · Repos 1:30</span>
+</div>
+<div class="text-right">
+<span class="font-title-md text-title-md font-medium text-foreground">3 × 12</span>
+<span class="font-label-sm text-label-sm text-muted block">14.0 kg</span>
+</div>
+</div>
+</div>
+<!-- Primary CTA Button (Visual Law: solid #00c9a7, black text, 8px radius) -->
+<button class="w-full h-12 bg-primary-container text-black font-title-md text-title-md font-semibold rounded-lg flex items-center justify-center gap-2 active:scale-[0.99] transition-transform" type="button">
+<span class="material-symbols-outlined" data-icon="play_arrow">play_arrow</span>
+<span>Démarrer la séance</span>
+</button>
+</section>
+<!-- 4. Secondary Resting Telemetry Widgets (Bento Pair) -->
+<section class="grid grid-cols-2 gap-stack-sm">
+<!-- Progression Widget -->
+<div class="rounded-xl border border-border bg-card p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="font-label-sm text-label-sm tracking-wider">PROGRESSION</span>
+<span class="material-symbols-outlined text-primary text-base" data-icon="trending_up">trending_up</span>
+</div>
+<div class="mt-3">
+<div class="font-title-md text-title-md font-semibold text-foreground">+2.5 kg prêts</div>
+<div class="font-label-sm text-label-sm text-muted mt-0.5">Surcharge calculée</div>
+</div>
+</div>
+<!-- Recovery Telemetry Widget -->
+<div class="rounded-xl border border-border bg-card p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="font-label-sm text-label-sm tracking-wider">RÉCUPÉRATION</span>
+<span class="material-symbols-outlined text-primary text-base" data-icon="bolt">bolt</span>
+</div>
+<div class="mt-3">
+<div class="font-title-md text-title-md font-semibold text-primary">Optimale (92%)</div>
+<div class="font-label-sm text-label-sm text-muted mt-0.5">Sommeil &amp; VFC validés</div>
+</div>
+</div>
+</section>
+<!-- Baseline Restful Status Indicator -->
+<div class="flex items-center justify-center gap-2 py-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm text-muted">Système télémétrique en veille active</span>
+</div>
+</main>
+<!-- 5. Ultra Minimal Coach Voice Trigger (Permanently Anchored strictly above Bottom Nav) -->
+<div class="fixed bottom-20 left-0 right-0 max-w-[390px] mx-auto z-40 flex flex-col items-center justify-center pointer-events-none">
+<button aria-label="Activer le coach vocal" class="pointer-events-auto w-[52px] h-[52px] rounded-full bg-card border border-border flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-primary text-[26px]" data-icon="mic">mic</span>
+</button>
+<span class="font-label-sm text-label-sm text-muted tracking-tight mt-1 select-none">
+        Dites : « Coach… »
+      </span>
+</div>
+<!-- 6. Bottom Navigation Bar (Shared Component: BottomNavBar destination_count=4) -->
+<nav class="fixed bottom-0 w-full max-w-[390px] z-50 bg-surface-dim border-t border-border flex justify-around items-center h-16 px-2">
+<!-- Training (Active) -->
+<a class="flex flex-col items-center justify-center text-primary font-bold active:scale-95 transition-transform flex-1 py-1" href="#training">
+<span class="material-symbols-outlined" data-icon="fitness_center">fitness_center</span>
+<span class="font-label-md text-label-md mt-0.5">Training</span>
+</a>
+<!-- Social / Programmes -->
+<a class="flex flex-col items-center justify-center text-muted hover:text-on-surface active:scale-95 transition-transform flex-1 py-1" href="#social">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-md text-label-md mt-0.5">Social</span>
+</a>
+<!-- Badges / Stats -->
+<a class="flex flex-col items-center justify-center text-muted hover:text-on-surface active:scale-95 transition-transform flex-1 py-1" href="#badges">
+<span class="material-symbols-outlined" data-icon="military_tech">military_tech</span>
+<span class="font-label-md text-label-md mt-0.5">Badges</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-muted hover:text-on-surface active:scale-95 transition-transform flex-1 py-1" href="#profile">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md mt-0.5">Profile</span>
+</a>
+</nav>
+</div>
+</body></html>
