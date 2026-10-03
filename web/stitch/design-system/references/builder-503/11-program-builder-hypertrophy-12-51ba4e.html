@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Program Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#2a292e",
+                        "surface-container": "#1f1f23",
+                        "outline-variant": "#3c4a45",
+                        "secondary-container": "#494851",
+                        "background": "#131317",
+                        "on-secondary": "#303038",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-primary": "#00382d",
+                        "on-surface": "#e4e1e7",
+                        "on-primary-container": "#004e40",
+                        "secondary-fixed": "#e4e1ec",
+                        "inverse-surface": "#e4e1e7",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-primary-fixed": "#002019",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#38debb",
+                        "error-container": "#93000a",
+                        "on-surface-variant": "#bacac3",
+                        "surface-dim": "#131317",
+                        "outline": "#85948e",
+                        "surface-container-lowest": "#0e0e12",
+                        "primary-container": "#00c9a7",
+                        "on-background": "#e4e1e7",
+                        "surface-bright": "#39393d",
+                        "on-tertiary-container": "#762f00",
+                        "tertiary": "#ffc0a1",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "primary-fixed": "#5ffbd6",
+                        "on-secondary-fixed": "#1b1b23",
+                        "on-secondary-container": "#b9b7c2",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#353439",
+                        "secondary": "#c7c5d0",
+                        "surface-container-highest": "#353439",
+                        "tertiary-container": "#ff9862",
+                        "muted": "#999999",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "on-tertiary-fixed": "#341100",
+                        "on-error": "#690005",
+                        "surface-tint": "#38debb",
+                        "surface": "#15151c",
+                        "on-primary-fixed-variant": "#005142",
+                        "foreground": "#f2f2f2",
+                        "on-tertiary": "#552000",
+                        "inverse-primary": "#006b58",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "inverse-on-surface": "#303034",
+                        "border": "#2d2d37",
+                        "primary": "#44e5c2",
+                        "surface-container-low": "#1b1b1f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap-mobile": "4rem",
+                        "section-gap": "6rem",
+                        "container-prose": "48rem",
+                        "unit-lg": "24px",
+                        "unit-sm": "8px",
+                        "container-media": "64rem",
+                        "unit-xs": "4px",
+                        "unit-xl": "32px",
+                        "gutter": "1rem",
+                        "unit-md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "label": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "body-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "headline-sm": ["Geist"],
+                        "mono": ["Geist Mono"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#0f0f13] text-foreground font-body-md antialiased min-h-screen flex items-center justify-center">
+<!-- Mobile Device Frame Constraint for visual presentation of the 390x884 screen -->
+<div class="w-[390px] h-[884px] bg-background relative overflow-hidden flex flex-col border border-border shadow-2xl rounded-[32px] md:rounded-[40px] md:border-surface-variant md:my-8 mx-auto">
+<!-- Header from Shared Components: TopAppBar -->
+<header class="flex justify-between items-center h-16 px-gutter w-full bg-background border-b border-border z-50">
+<div class="flex items-center gap-2">
+<button class="text-on-surface hover:opacity-80 transition-opacity flex items-center justify-center h-10 w-10">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-on-surface cursor-pointer">Hypertrophy 12</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container block"></span>
+<span class="font-label text-[10px] text-muted">Saved</span>
+</div>
+<button class="border border-border rounded text-[12px] font-label text-on-surface px-3 py-1.5 hover:bg-surface transition-colors">
+                    Activate
+                </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto px-gutter py-6 flex flex-col gap-6">
+<!-- Subhead -->
+<div>
+<p class="font-label text-[12px] text-muted uppercase tracking-widest">4 DAYS · THIS CYCLE</p>
+</div>
+<!-- Day List -->
+<div class="flex flex-col gap-[10px]">
+<!-- Card 1: Push A (Active/Selected state with mint border) -->
+<div class="bg-surface rounded-lg border border-primary-container p-[14px] flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:bg-surface-container transition-colors">
+<!-- Grip -->
+<span class="material-symbols-outlined text-muted/30 text-lg cursor-grab">drag_indicator</span>
+<!-- Index -->
+<span class="font-mono text-mono text-muted w-6 text-center">01</span>
+<!-- Text Content -->
+<div class="flex-1 flex flex-col">
+<span class="font-label text-[15px] font-semibold text-foreground">Push A</span>
+<span class="font-body-sm text-[12px] text-muted">6 movements · 21 sets</span>
+</div>
+<!-- Heatmap Image (Cropped quadrant 1) -->
+<div class="w-14 h-14 bg-background rounded overflow-hidden flex items-center justify-center shrink-0 border border-border relative">
+<!-- Using object-position to show top-left quadrant of the 2x2 grid -->
+<img alt="" class="absolute w-[200%] h-[200%] max-w-none object-cover left-0 top-0 pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDmvth67_ailu3J8GY9IYH6iSOelPX835LsavNYlYroFm8VLOyeQiYXoZTCHyhpXkFAlISKDXQOEmNndWmPgTdcrJVeUSBc-vtekFSBUZsQH22LU7a3Q1bBAX9MIi2uJ6qxUhwTMktsct-uQTVoA771qoVpm78RH84I9DJEtfOzBVXI-Jl7vXwtLYONWJJgWDFYPwkeOf-ItEOL3JvSUcRxSulF57un8LEkZcXRTPp_WmZ-0HOYflsHspsv5q5ZFbTZNwqNju39ns"/>
+</div>
+<!-- Action Menu -->
+<button class="text-muted hover:text-foreground p-1 transition-colors ml-1">
+<span class="material-symbols-outlined text-lg" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+<!-- Card 2: Pull A -->
+<div class="bg-surface rounded-lg border border-border p-[14px] flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-muted/30 text-lg cursor-grab">drag_indicator</span>
+<span class="font-mono text-mono text-muted w-6 text-center">02</span>
+<div class="flex-1 flex flex-col">
+<span class="font-label text-[15px] font-semibold text-foreground">Pull A</span>
+<span class="font-body-sm text-[12px] text-muted">5 movements · 18 sets</span>
+</div>
+<!-- Heatmap Image (Cropped quadrant 2 - top right) -->
+<div class="w-14 h-14 bg-background rounded overflow-hidden flex items-center justify-center shrink-0 border border-border relative">
+<img alt="" class="absolute w-[200%] h-[200%] max-w-none object-cover right-0 top-0 pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDmvth67_ailu3J8GY9IYH6iSOelPX835LsavNYlYroFm8VLOyeQiYXoZTCHyhpXkFAlISKDXQOEmNndWmPgTdcrJVeUSBc-vtekFSBUZsQH22LU7a3Q1bBAX9MIi2uJ6qxUhwTMktsct-uQTVoA771qoVpm78RH84I9DJEtfOzBVXI-Jl7vXwtLYONWJJgWDFYPwkeOf-ItEOL3JvSUcRxSulF57un8LEkZcXRTPp_WmZ-0HOYflsHspsv5q5ZFbTZNwqNju39ns"/>
+</div>
+<button class="text-muted/30 hover:text-foreground p-1 transition-colors ml-1 opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-lg" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+<!-- Card 3: Legs -->
+<div class="bg-surface rounded-lg border border-border p-[14px] flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-muted/30 text-lg cursor-grab">drag_indicator</span>
+<span class="font-mono text-mono text-muted w-6 text-center">03</span>
+<div class="flex-1 flex flex-col">
+<span class="font-label text-[15px] font-semibold text-foreground">Legs</span>
+<span class="font-body-sm text-[12px] text-muted">5 movements · 19 sets</span>
+</div>
+<!-- Heatmap Image (Cropped quadrant 3 - bottom left) -->
+<div class="w-14 h-14 bg-background rounded overflow-hidden flex items-center justify-center shrink-0 border border-border relative">
+<img alt="" class="absolute w-[200%] h-[200%] max-w-none object-cover left-0 bottom-0 pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDmvth67_ailu3J8GY9IYH6iSOelPX835LsavNYlYroFm8VLOyeQiYXoZTCHyhpXkFAlISKDXQOEmNndWmPgTdcrJVeUSBc-vtekFSBUZsQH22LU7a3Q1bBAX9MIi2uJ6qxUhwTMktsct-uQTVoA771qoVpm78RH84I9DJEtfOzBVXI-Jl7vXwtLYONWJJgWDFYPwkeOf-ItEOL3JvSUcRxSulF57un8LEkZcXRTPp_WmZ-0HOYflsHspsv5q5ZFbTZNwqNju39ns"/>
+</div>
+<button class="text-muted/30 hover:text-foreground p-1 transition-colors ml-1 opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-lg" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+<!-- Card 4: Upper Pump -->
+<div class="bg-surface rounded-lg border border-border p-[14px] flex items-center gap-3 relative overflow-hidden group cursor-pointer hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-muted/30 text-lg cursor-grab">drag_indicator</span>
+<span class="font-mono text-mono text-muted w-6 text-center">04</span>
+<div class="flex-1 flex flex-col">
+<span class="font-label text-[15px] font-semibold text-foreground">Upper Pump</span>
+<span class="font-body-sm text-[12px] text-muted">7 movements · 24 sets</span>
+</div>
+<!-- Heatmap Image (Cropped quadrant 4 - bottom right) -->
+<div class="w-14 h-14 bg-background rounded overflow-hidden flex items-center justify-center shrink-0 border border-border relative">
+<img alt="" class="absolute w-[200%] h-[200%] max-w-none object-cover right-0 bottom-0 pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDmvth67_ailu3J8GY9IYH6iSOelPX835LsavNYlYroFm8VLOyeQiYXoZTCHyhpXkFAlISKDXQOEmNndWmPgTdcrJVeUSBc-vtekFSBUZsQH22LU7a3Q1bBAX9MIi2uJ6qxUhwTMktsct-uQTVoA771qoVpm78RH84I9DJEtfOzBVXI-Jl7vXwtLYONWJJgWDFYPwkeOf-ItEOL3JvSUcRxSulF57un8LEkZcXRTPp_WmZ-0HOYflsHspsv5q5ZFbTZNwqNju39ns"/>
+</div>
+<button class="text-muted/30 hover:text-foreground p-1 transition-colors ml-1 opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-lg" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- Add Day Button -->
+<button class="w-full h-[44px] rounded-lg border border-border bg-transparent text-foreground font-label text-label hover:bg-surface transition-colors mt-2">
+                + Add day
+            </button>
+</main>
+<!-- BottomNav - Suppressed for Builder View as per relevance check rules (Task-focused context) -->
+</div>
+</body></html>

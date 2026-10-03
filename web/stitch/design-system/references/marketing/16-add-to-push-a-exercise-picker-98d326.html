@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Exercise Picker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#131317",
+                        "on-tertiary": "#552000",
+                        "surface-container-high": "#2a292e",
+                        "surface-container-low": "#1b1b1f",
+                        "outline": "#85948e",
+                        "on-primary-container": "#004e40",
+                        "primary-fixed": "#5ffbd6",
+                        "tertiary-fixed": "#ffdbcb",
+                        "outline-variant": "#3c4a45",
+                        "border": "#27272a",
+                        "muted": "#999999",
+                        "on-background": "#e4e1e7",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#38debb",
+                        "surface-tint": "#38debb",
+                        "surface-variant": "#353439",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#353439",
+                        "on-primary": "#00382d",
+                        "secondary-container": "#454747",
+                        "on-secondary-fixed-variant": "#454747",
+                        "tertiary": "#ffc0a1",
+                        "inverse-primary": "#006b58",
+                        "primary": "#44e5c2",
+                        "secondary": "#c6c6c7",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "on-secondary": "#2f3131",
+                        "secondary-fixed": "#e2e2e2",
+                        "surface-bright": "#39393d",
+                        "primary-container": "#00c9a7",
+                        "on-surface-variant": "#bacac3",
+                        "surface": "#121212",
+                        "on-error": "#690005",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "background": "#131317",
+                        "on-primary-fixed-variant": "#005142",
+                        "on-surface": "#e4e1e7",
+                        "surface-container": "#1f1f23",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-surface": "#e4e1e7",
+                        "surface-container-lowest": "#0e0e12",
+                        "inverse-on-surface": "#303034",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "on-tertiary-container": "#762f00",
+                        "tertiary-container": "#ff9862",
+                        "on-secondary-container": "#b4b5b5",
+                        "on-primary-fixed": "#002019"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "section-gap-lg": "8rem",
+                        "content-stack": "1.5rem",
+                        "container-max-prose": "48rem",
+                        "section-gap-sm": "4rem",
+                        "gutter-base": "1rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Geist"],
+                        "headline-h1": ["Geist"],
+                        "headline-h1-mobile": ["Geist"],
+                        "headline-h2": ["Geist"],
+                        "code-snippet": ["Geist"],
+                        "body-main": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["0.75rem", { "lineHeight": "1rem", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-h1": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "600" }],
+                        "headline-h1-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600" }],
+                        "headline-h2": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "code-snippet": ["0.875rem", { "lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "body-main": ["1rem", { "lineHeight": "1.65", "letterSpacing": "0em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #0f0f13; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        /* Checkbox styling */
+        .custom-checkbox { appearance: none; background-color: transparent; border: 1px solid #27272a; border-radius: 0.125rem; width: 1.25rem; height: 1.25rem; display: inline-block; position: relative; cursor: pointer; }
+        .custom-checkbox:checked { background-color: #00c9a7; border-color: #00c9a7; }
+        .custom-checkbox:checked::after { content: ''; position: absolute; left: 0.375rem; top: 0.1875rem; width: 0.375rem; height: 0.625rem; border: solid black; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface antialiased flex justify-center items-start min-h-screen">
+<!-- Mobile Container (390x884 roughly) -->
+<main class="w-full max-w-[390px] h-screen max-h-[884px] bg-[#0f0f13] flex flex-col relative overflow-hidden border-x border-border md:my-8 md:h-[884px] md:border-y md:rounded-xl">
+<!-- 1. Top Bar -->
+<header class="flex justify-between items-center px-4 py-4 w-full bg-[#0f0f13] border-b border-border sticky top-0 z-50">
+<button aria-label="Close" class="text-on-surface hover:text-primary transition-colors flex items-center justify-center p-1">
+<span class="material-symbols-outlined text-xl">close</span>
+</button>
+<h1 class="font-headline-h2 text-[1.125rem] leading-tight tracking-tight text-on-surface font-semibold absolute left-1/2 -translate-x-1/2">
+                Add to Push A
+            </h1>
+<div class="w-6 h-6"></div> <!-- Spacer for alignment -->
+</header>
+<!-- 2. Search & Filter Area (Sticky below header) -->
+<div class="bg-[#0f0f13] z-40 pb-2 border-b border-border">
+<!-- Search -->
+<div class="px-4 py-3">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted text-[1.25rem]">search</span>
+<input class="w-full bg-surface border border-border rounded-DEFAULT py-2 pl-10 pr-4 text-sm font-body-main text-on-surface placeholder:text-muted focus:outline-none focus:border-primary focus:ring-0 transition-colors" placeholder="Search catalog" type="text"/>
+</div>
+</div>
+<!-- 3. Segmented Control -->
+<div class="px-4 pb-3 flex w-full gap-4">
+<button class="flex-1 pb-2 border-b-2 border-primary-container text-primary-container font-label-caps text-label-caps text-center transition-colors">
+                    EXERCISES
+                </button>
+<button class="flex-1 pb-2 border-b-2 border-transparent text-muted hover:text-on-surface font-label-caps text-label-caps text-center transition-colors">
+                    CIRCUITS
+                </button>
+</div>
+<!-- 4. Filter Chips (Scrollable) -->
+<div class="px-4 pb-2 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap">
+<button class="px-3 py-1.5 bg-on-surface text-[#0f0f13] font-body-main text-sm font-semibold rounded-DEFAULT border border-transparent">
+                    All
+                </button>
+<button class="px-3 py-1.5 bg-surface text-on-surface font-body-main text-sm rounded-DEFAULT border border-border hover:border-muted transition-colors">
+                    Chest
+                </button>
+<button class="px-3 py-1.5 bg-surface text-on-surface font-body-main text-sm rounded-DEFAULT border border-border hover:border-muted transition-colors">
+                    Shoulders
+                </button>
+<button class="px-3 py-1.5 bg-surface text-on-surface font-body-main text-sm rounded-DEFAULT border border-border hover:border-muted transition-colors">
+                    Triceps
+                </button>
+</div>
+</div>
+<!-- 5. Exercise List -->
+<div class="flex-1 overflow-y-auto pt-2 pb-24">
+<!-- Item: Bench Press -->
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-main text-base text-on-surface">Bench Press</span>
+</div>
+</label>
+<!-- Item: Incline DB Press -->
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-main text-base text-on-surface">Incline DB Press</span>
+</div>
+</label>
+<!-- Item: Overhead Press -->
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-main text-base text-on-surface">Overhead Press</span>
+<span class="font-label-caps text-[0.65rem] text-primary-container mt-0.5 inline-block w-max px-1.5 py-0.5 border border-primary-container/30 rounded-sm bg-primary-container/10">ON DAY</span>
+</div>
+</div>
+</label>
+<!-- Unselected items to fill space -->
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input class="custom-checkbox" type="checkbox"/>
+<span class="font-body-main text-base text-muted">Lateral Raise</span>
+</div>
+</label>
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input class="custom-checkbox" type="checkbox"/>
+<span class="font-body-main text-base text-muted">Tricep Pushdown</span>
+</div>
+</label>
+<label class="flex items-center justify-between px-4 py-3.5 hover:bg-surface transition-colors cursor-pointer border-b border-border/50">
+<div class="flex items-center gap-3">
+<input class="custom-checkbox" type="checkbox"/>
+<span class="font-body-main text-base text-muted">Cable Crossover</span>
+</div>
+</label>
+</div>
+<!-- 6. Bottom Sticky Action -->
+<div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#0f0f13] via-[#0f0f13] to-transparent pt-8">
+<button class="w-full bg-primary-container text-[#000000] font-body-main text-sm font-semibold py-3.5 rounded-lg active:opacity-80 transition-opacity">
+                Add 3
+            </button>
+</div>
+</main>
+</body></html>

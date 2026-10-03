@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic Friends Feed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary": "#552000",
+                "inverse-surface": "#e4e1e7",
+                "on-secondary-fixed-variant": "#47464c",
+                "surface-container": "#1f1f23",
+                "on-error": "#690005",
+                "surface-container-lowest": "#0e0e12",
+                "tertiary-fixed-dim": "#ffb692",
+                "secondary": "#c8c5cc",
+                "primary": "#44e5c2",
+                "on-secondary-fixed": "#1b1b20",
+                "inverse-primary": "#006b58",
+                "surface-container-highest": "#353439",
+                "primary-fixed-dim": "#38debb",
+                "error": "#ffb4ab",
+                "primary-fixed": "#5ffbd6",
+                "on-error-container": "#ffdad6",
+                "surface-variant": "#353439",
+                "outline": "#85948e",
+                "secondary-fixed": "#e4e1e8",
+                "on-surface": "#e4e1e7",
+                "on-tertiary-container": "#762f00",
+                "secondary-container": "#47464c",
+                "on-primary-fixed-variant": "#005142",
+                "outline-variant": "#3c4a45",
+                "on-secondary": "#303035",
+                "background": "#131317",
+                "tertiary": "#ffc0a1",
+                "on-primary-fixed": "#002019",
+                "error-container": "#93000a",
+                "surface-tint": "#38debb",
+                "secondary-fixed-dim": "#c8c5cc",
+                "tertiary-container": "#ff9862",
+                "on-tertiary-fixed-variant": "#793100",
+                "surface-dim": "#131317",
+                "surface": "#131317",
+                "on-primary-container": "#004e40",
+                "on-surface-variant": "#bacac3",
+                "inverse-on-surface": "#303034",
+                "tertiary-fixed": "#ffdbcb",
+                "surface-container-low": "#1b1b1f",
+                "on-tertiary-fixed": "#341100",
+                "on-secondary-container": "#b6b4bb",
+                "primary-container": "#00c9a7",
+                "on-primary": "#00382d",
+                "surface-bright": "#39393d",
+                "on-background": "#e4e1e7",
+                "surface-container-high": "#2a292e"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "stack-sm": "8px",
+                "gutter": "16px",
+                "margin-desktop": "32px",
+                "unit": "4px",
+                "margin-mobile": "16px",
+                "stack-lg": "32px",
+                "stack-md": "16px"
+        },
+        "fontFamily": {
+                "display-lg": [
+                        "Geist"
+                ],
+                "mono-data": [
+                        "Geist"
+                ],
+                "label-sm": [
+                        "Geist"
+                ],
+                "headline-lg-mobile": [
+                        "Geist"
+                ],
+                "title-md": [
+                        "Geist"
+                ],
+                "body-md": [
+                        "Geist"
+                ],
+                "headline-lg": [
+                        "Geist"
+                ],
+                "label-lg": [
+                        "Geist"
+                ]
+        },
+        "fontSize": {
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.04em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "mono-data": [
+                        "18px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "700"
+                        }
+                ],
+                "title-md": [
+                        "20px",
+                        {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-lg": [
+                        "14px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+  body {
+    background-color: #0f0f13;
+    font-family: 'Geist', sans-serif;
+  }
+  .accent-mint {
+    color: #00c9a7;
+  }
+  .bg-accent-mint {
+    background-color: #00c9a7;
+  }
+  .border-accent-mint {
+    border-color: #00c9a7;
+  }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-background max-w-[390px] mx-auto min-h-screen relative overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile h-16 bg-background dark:bg-background border-b-2 border-outline-variant dark:border-outline-variant max-w-[390px] mx-auto left-1/2 -translate-x-1/2">
+<div class="relative">
+<span class="material-symbols-outlined text-primary dark:text-primary text-2xl cursor-pointer" data-icon="menu">menu</span>
+<div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary-container rounded-full border-2 border-background"></div>
+</div>
+<h1 class="font-display-lg text-headline-lg-mobile uppercase tracking-tighter text-on-surface dark:text-on-surface text-center flex-1">AMIS</h1>
+<div class="w-6 h-6"></div> <!-- Spacer for center alignment -->
+</header>
+<main class="pt-20 pb-8 px-margin-mobile flex flex-col gap-gutter">
+<!-- Incoming Request Card -->
+<div class="bg-surface-container border border-outline-variant rounded-none p-4 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-secondary-container rounded-none flex items-center justify-center font-mono-data text-on-surface">M</div>
+<div>
+<p class="font-body-md text-on-surface leading-tight"><strong>Marie</strong> t’a demandé.</p>
+<p class="font-body-md text-on-surface-variant text-sm mt-1">Elle verra tes séances.</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 bg-primary-container text-black font-label-lg uppercase py-2 px-4 rounded-none border border-primary-container active:scale-95 transition-transform">Accepter</button>
+<button class="flex-1 bg-transparent text-primary-container font-label-lg uppercase py-2 px-4 rounded-none border-2 border-primary-container active:scale-95 transition-transform">Refuser</button>
+</div>
+</div>
+<!-- Friends Feed Timeline -->
+<div class="flex flex-col gap-gutter relative">
+<div class="absolute left-5 top-8 bottom-4 w-px bg-outline-variant -z-10"></div>
+<!-- Item 1: Alex (Collapsed) -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 bg-surface-container border border-outline-variant rounded-none flex items-center justify-center font-mono-data text-on-surface shrink-0 z-10 mt-1">A</div>
+<div class="bg-surface-container border border-outline-variant rounded-none p-4 flex-1 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<h3 class="font-title-md text-on-surface">Lower A</h3>
+<span class="font-label-sm text-on-surface-variant">2h</span>
+</div>
+<div class="flex gap-4 font-mono-data text-sm text-on-surface-variant">
+<span>52 min</span>
+<span>8 exos</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="bg-primary-container text-black font-label-sm uppercase px-2 py-0.5 rounded-none">PR</span>
+</div>
+<div class="flex items-center gap-2 mt-2 pt-2 border-t border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant text-sm" data-icon="thumb_up">thumb_up</span>
+<span class="font-mono-data text-sm text-on-surface-variant">2</span>
+<div class="flex -space-x-1">
+<div class="w-4 h-4 bg-secondary-container rounded-full border border-surface-container flex items-center justify-center text-[8px] font-mono-data text-on-surface">J</div>
+<div class="w-4 h-4 bg-secondary-container rounded-full border border-surface-container flex items-center justify-center text-[8px] font-mono-data text-on-surface">S</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Item 2: Pierre (You) -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 bg-surface-container border-2 border-primary-container rounded-none flex items-center justify-center font-mono-data text-on-surface shrink-0 z-10 mt-1">P</div>
+<div class="bg-surface-container border border-outline-variant rounded-none p-4 flex-1 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-title-md text-on-surface flex items-center gap-2">
+                Quick Workout 
+                <span class="bg-surface-variant text-on-surface-variant font-label-sm uppercase px-1.5 py-0.5 rounded-none text-xs">Privée</span>
+</h3>
+</div>
+<span class="font-label-sm text-on-surface-variant">Today</span>
+</div>
+<div class="flex gap-4 font-mono-data text-sm text-on-surface-variant">
+<span>18 min</span>
+<span>5 exos</span>
+</div>
+<button class="mt-2 bg-transparent text-primary-container font-label-lg uppercase py-1.5 px-3 rounded-none border border-primary-container self-start active:scale-95 transition-transform text-xs">Rendre visible</button>
+</div>
+</div>
+<!-- Item 3: Marie (Expanded) -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 bg-surface-container border border-outline-variant rounded-none flex items-center justify-center font-mono-data text-on-surface shrink-0 z-10 mt-1">M</div>
+<div class="bg-surface-container border border-outline-variant rounded-none p-4 flex-1 flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<h3 class="font-title-md text-on-surface">Push</h3>
+<span class="font-label-sm text-on-surface-variant">Hier</span>
+</div>
+<div class="flex gap-4 font-mono-data text-sm text-on-surface-variant">
+<span>61 min</span>
+<span>9 exos</span>
+</div>
+<div class="flex items-center gap-4 mt-1 border-y border-outline-variant py-2">
+<button class="flex items-center gap-1.5 text-primary-container active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="thumb_up" style="font-variation-settings: 'FILL' 1;">thumb_up</span>
+<span class="font-mono-data text-sm">1</span>
+</button>
+<button class="flex items-center gap-1.5 text-on-surface-variant active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg" data-icon="chat_bubble_outline">chat_bubble_outline</span>
+<span class="font-mono-data text-sm">1</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 mt-1">
+<div class="flex gap-2 items-start">
+<div class="w-6 h-6 bg-secondary-container rounded-none flex items-center justify-center font-mono-data text-xs text-on-surface mt-0.5 shrink-0">L</div>
+<div>
+<span class="font-label-sm text-on-surface-variant mr-2">Luc</span>
+<span class="font-body-md text-on-surface text-sm">Allez.</span>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<input class="flex-1 bg-background border border-outline-variant rounded-none px-3 py-2 text-on-surface font-body-md focus:border-primary-container focus:ring-0 text-sm" placeholder="Une phrase..." type="text"/>
+<button class="w-10 h-10 bg-primary-container flex items-center justify-center rounded-none shrink-0 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-black" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymLogic - The Gym Floor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#00c9a7",
+                      "primary": "#44e5c2",
+                      "on-tertiary-container": "#762f00",
+                      "secondary": "#c6c6c7",
+                      "surface-tint": "#38debb",
+                      "surface-container": "#1f1f23",
+                      "on-secondary-fixed-variant": "#454747",
+                      "outline": "#85948e",
+                      "on-primary-fixed": "#002019",
+                      "tertiary-container": "#ff9862",
+                      "surface-container-low": "#1b1b1f",
+                      "inverse-primary": "#006b58",
+                      "on-secondary-fixed": "#1a1c1c",
+                      "secondary-container": "#454747",
+                      "on-error": "#690005",
+                      "on-tertiary": "#552000",
+                      "on-tertiary-fixed-variant": "#793100",
+                      "tertiary-fixed-dim": "#ffb692",
+                      "surface": "#121212",
+                      "border": "#27272a",
+                      "surface-dim": "#131317",
+                      "surface-container-high": "#2a292e",
+                      "on-error-container": "#ffdad6",
+                      "primary-fixed-dim": "#38debb",
+                      "muted": "#999999",
+                      "on-secondary-container": "#b4b5b5",
+                      "on-surface-variant": "#bacac3",
+                      "surface-container-highest": "#353439",
+                      "on-primary-fixed-variant": "#005142",
+                      "surface-bright": "#39393d",
+                      "primary-fixed": "#5ffbd6",
+                      "outline-variant": "#3c4a45",
+                      "on-background": "#e4e1e7",
+                      "on-secondary": "#2f3131",
+                      "tertiary": "#ffc0a1",
+                      "on-primary": "#00382d",
+                      "error-container": "#93000a",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-surface": "#e4e1e7",
+                      "error": "#ffb4ab",
+                      "inverse-on-surface": "#303034",
+                      "on-tertiary-fixed": "#341100",
+                      "secondary-fixed-dim": "#c6c6c7",
+                      "background": "#131317",
+                      "on-primary-container": "#004e40",
+                      "surface-variant": "#353439",
+                      "secondary-fixed": "#e2e2e2",
+                      "inverse-surface": "#e4e1e7",
+                      "surface-container-lowest": "#0e0e12"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter-base": "1rem",
+                      "section-gap-lg": "8rem",
+                      "content-stack": "1.5rem",
+                      "section-gap-sm": "4rem",
+                      "container-max-prose": "48rem"
+              },
+              "fontFamily": {
+                      "label-caps": [
+                              "Geist"
+                      ],
+                      "code-snippet": [
+                              "Geist"
+                      ],
+                      "body-main": [
+                              "Geist"
+                      ],
+                      "headline-h1": [
+                              "Geist"
+                      ],
+                      "headline-h2": [
+                              "Geist"
+                      ],
+                      "headline-h1-mobile": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "label-caps": [
+                              "0.75rem",
+                              {
+                                      "lineHeight": "1rem",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-snippet": [
+                              "0.875rem",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-main": [
+                              "1rem",
+                              {
+                                      "lineHeight": "1.65",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-h1": [
+                              "3rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-h2": [
+                              "1.875rem",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-h1-mobile": [
+                              "2.25rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: #0f0f13; /* Forcing the requested specific dark background */
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f13; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46; 
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body-main antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-background/80 backdrop-blur-md fixed top-0 w-full z-50 border-b border-border">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-container-max-prose mx-auto">
+<div class="flex items-center gap-2 font-headline-h2 text-headline-h2 text-on-surface tracking-tighter">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">exercise</span>
+<span>GymLogic</span>
+</div>
+<button class="text-on-surface hover:text-primary transition-colors active:scale-95 duration-200 font-label-caps text-label-caps uppercase tracking-widest flex items-center gap-1">
+                Open the app →
+            </button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow pt-[80px] pb-section-gap-sm md:pb-section-gap-lg flex flex-col items-center justify-center">
+<section class="w-full px-gutter-base max-w-container-max-prose mx-auto mt-section-gap-sm md:mt-section-gap-lg flex flex-col md:flex-row items-center gap-8 md:gap-16">
+<!-- Text Column -->
+<div class="w-full md:w-1/2 flex flex-col gap-content-stack order-2 md:order-1">
+<h2 class="font-headline-h2 text-headline-h2 text-on-surface">Precise tracking on the floor.</h2>
+<p class="font-body-main text-body-main text-muted max-w-prose">
+                    Phone mocks optimized for 9:19 portrait. Dark mode UI with teal accents.
+                </p>
+<ul class="mt-4 flex flex-col gap-3">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 0; font-size: 20px;">timer</span>
+<span class="font-body-main text-body-main text-on-surface">Integrated rest timers that sync with your sets.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 0; font-size: 20px;">edit_document</span>
+<span class="font-body-main text-body-main text-on-surface">Frictionless weight input via unified numpad.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1" style="font-variation-settings: 'FILL' 0; font-size: 20px;">bar_chart</span>
+<span class="font-body-main text-body-main text-on-surface">Volume accumulation analytics in real-time.</span>
+</li>
+</ul>
+</div>
+<!-- Visual Column (Phone Mockup) -->
+<div class="w-full md:w-1/2 flex justify-center order-1 md:order-2">
+<!-- CSS Phone Frame -->
+<div class="relative w-[300px] h-[633px] bg-surface rounded-[40px] border-[8px] border-[#27272a] overflow-hidden shadow-none flex flex-col">
+<!-- Top Notch Area -->
+<div class="absolute top-0 w-full h-[30px] flex justify-center z-10">
+<div class="w-[120px] h-[24px] bg-[#27272a] rounded-b-xl"></div>
+</div>
+<!-- Mock UI Header -->
+<div class="pt-[40px] px-4 pb-4 border-b border-border bg-surface flex justify-between items-center">
+<span class="material-symbols-outlined text-on-surface">arrow_back</span>
+<div class="font-label-caps text-label-caps text-on-surface uppercase text-center">Bench Press</div>
+<span class="material-symbols-outlined text-on-surface">more_horiz</span>
+</div>
+<!-- Mock UI Content -->
+<div class="flex-grow p-4 flex flex-col gap-4 overflow-hidden bg-background">
+<!-- History Graph Placeholder -->
+<div class="w-full h-[120px] bg-surface border border-border rounded-lg relative overflow-hidden">
+<img class="w-full h-full object-cover opacity-60" data-alt="A minimalist data visualization showing a line graph trending upward. The background is dark grey, the line is a vibrant teal, and the axes are a muted grey. The overall aesthetic is highly technical, flat, and stoic, resembling a premium analytics dashboard in dark mode." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSkgwqRRMhFja6CH2uOZE1XjKn-aQ0oa5QzcOAl9dxpkTDrT3l9tbk6NlCt01Da8BpdfQGMS50IzDub3_UiUzvp9aduh6Dcsus4i5xjyOIJtKzpWOo4RvrK-e11pe6CRZbSBx774usuDm4OljIXaFFnEBrTSRDltfo17SxCPpDEd1w-N8PUKxp7c2rtANVlQmRXEu6KeG_DnSpgZnXYoQAWjj_MtgYCk8htbNQWWJ2hzIhrGF9cyLA">
+</div>
+<!-- Set Rows -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-4 py-2 border-b border-border">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-surface border border-border text-xs text-muted font-label-caps">1</div>
+<div class="flex-grow font-code-snippet text-code-snippet text-on-surface">135 lbs <span class="text-muted mx-2">×</span> 10</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary text-black">
+<span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+</div>
+</div>
+<div class="flex items-center gap-4 py-2 border-b border-border">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-surface border border-border text-xs text-muted font-label-caps">2</div>
+<div class="flex-grow font-code-snippet text-code-snippet text-on-surface">185 lbs <span class="text-muted mx-2">×</span> 8</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary text-black">
+<span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+</div>
+</div>
+<div class="flex items-center gap-4 py-2 border-b border-primary/30 bg-primary/5 -mx-4 px-4">
+<div class="w-6 h-6 rounded flex items-center justify-center bg-primary/20 border border-primary text-xs text-primary font-label-caps">3</div>
+<div class="flex-grow font-code-snippet text-code-snippet text-primary">225 lbs <span class="text-muted mx-2">×</span> 5</div>
+<div class="w-6 h-6 rounded flex items-center justify-center bg-surface border border-border text-muted">
+</div>
+</div>
+</div>
+<!-- Active Timer -->
+<div class="mt-auto flex justify-center items-center gap-2 py-4">
+<span class="material-symbols-outlined text-primary">timer</span>
+<span class="font-code-snippet text-code-snippet text-on-surface text-xl">01:45</span>
+</div>
+</div>
+<!-- Mock UI Footer/Action -->
+<div class="p-4 border-t border-border bg-surface">
+<button class="w-full py-3 bg-primary text-black font-label-caps text-label-caps rounded-lg uppercase tracking-wider">
+                            Log Set
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-background w-full py-section-gap-sm border-t border-border">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-container-max-prose mx-auto gap-4">
+<div class="font-headline-h2 text-headline-h2 text-on-surface">
+                © 2024 GymLogic. All rights reserved.
+            </div>
+<div class="flex gap-4">
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Privacy</a>
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Terms</a>
+<a class="font-body-main text-body-main text-muted hover:text-on-surface transition-colors" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

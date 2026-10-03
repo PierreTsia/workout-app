@@ -1,0 +1,377 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>GymLogic - Product Tour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#e4e1e7",
+                      "secondary-fixed-dim": "#c6c6c7",
+                      "inverse-on-surface": "#303034",
+                      "on-error": "#690005",
+                      "on-secondary-fixed-variant": "#454747",
+                      "on-tertiary": "#552000",
+                      "background": "#131317",
+                      "surface-container": "#1f1f23",
+                      "secondary": "#c6c6c7",
+                      "error-container": "#93000a",
+                      "surface": "#121212",
+                      "primary": "#44e5c2",
+                      "secondary-fixed": "#e2e2e2",
+                      "on-primary-fixed-variant": "#005142",
+                      "surface-variant": "#353439",
+                      "on-primary-fixed": "#002019",
+                      "primary-container": "#00c9a7",
+                      "surface-container-high": "#2a292e",
+                      "on-tertiary-container": "#762f00",
+                      "surface-tint": "#38debb",
+                      "outline-variant": "#3c4a45",
+                      "on-secondary": "#2f3131",
+                      "primary-fixed": "#5ffbd6",
+                      "surface-dim": "#131317",
+                      "secondary-container": "#454747",
+                      "primary-fixed-dim": "#38debb",
+                      "on-tertiary-fixed": "#341100",
+                      "tertiary-container": "#ff9862",
+                      "on-background": "#e4e1e7",
+                      "border": "#27272a",
+                      "on-primary": "#00382d",
+                      "error": "#ffb4ab",
+                      "on-secondary-fixed": "#1a1c1c",
+                      "on-secondary-container": "#b4b5b5",
+                      "on-tertiary-fixed-variant": "#793100",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-fixed-dim": "#ffb692",
+                      "outline": "#85948e",
+                      "muted": "#999999",
+                      "on-surface-variant": "#bacac3",
+                      "on-surface": "#e4e1e7",
+                      "surface-bright": "#39393d",
+                      "on-primary-container": "#004e40",
+                      "tertiary": "#ffc0a1",
+                      "surface-container-lowest": "#0e0e12",
+                      "inverse-primary": "#006b58",
+                      "surface-container-low": "#1b1b1f",
+                      "surface-container-highest": "#353439",
+                      "tertiary-fixed": "#ffdbcb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "section-gap-lg": "8rem",
+                      "container-max-prose": "48rem",
+                      "content-stack": "1.5rem",
+                      "section-gap-sm": "4rem",
+                      "gutter-base": "1rem"
+              },
+              "fontFamily": {
+                      "headline-h2": [
+                              "Geist"
+                      ],
+                      "body-main": [
+                              "Geist"
+                      ],
+                      "headline-h1": [
+                              "Geist"
+                      ],
+                      "code-snippet": [
+                              "Geist"
+                      ],
+                      "headline-h1-mobile": [
+                              "Geist"
+                      ],
+                      "label-caps": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "headline-h2": [
+                              "1.875rem",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-main": [
+                              "1rem",
+                              {
+                                      "lineHeight": "1.65",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-h1": [
+                              "3rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-snippet": [
+                              "0.875rem",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-h1-mobile": [
+                              "2.25rem",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "0.75rem",
+                              {
+                                      "lineHeight": "1rem",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;600&display=swap');
+        body { font-family: 'Geist', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary-container selection:text-black">
+<!-- Top Navigation -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-border">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-screen-xl mx-auto">
+<div class="flex items-center gap-4">
+<span class="font-headline-h2 text-headline-h2 font-semibold text-on-background dark:text-on-background">GymLogic</span>
+</div>
+<!-- Mobile Menu Toggle -->
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors duration-200">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</button>
+<!-- Desktop Nav Links -->
+<div class="hidden md:flex items-center gap-6">
+<a class="text-primary font-semibold hover:text-primary transition-colors duration-200" href="/tour">Tour</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="/claude">Claude Connector</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="/blog">Blog</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="/about">About</a>
+</div>
+<!-- Trailing Action -->
+<a class="hidden md:flex items-center gap-2 bg-primary-container text-black font-semibold text-sm px-4 py-2 rounded-lg hover:bg-surface-tint transition-colors" href="#">
+                Open app <span aria-hidden="true">→</span>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pt-24 pb-section-gap-sm px-gutter-base md:px-0">
+<!-- Hero Section -->
+<section class="max-w-container-max-prose mx-auto text-center mb-section-gap-sm md:mb-section-gap-lg pt-12 md:pt-24 flex flex-col items-center">
+<h1 class="font-headline-h1-mobile text-headline-h1-mobile md:font-headline-h1 md:text-headline-h1 mb-content-stack text-balance">What GymLogic actually does</h1>
+<p class="font-body-main text-body-main text-muted max-w-lg mb-8 text-balance">Program, train, progress, ask an agent, see the truth over time.</p>
+<div class="w-full max-w-sm aspect-[9/19] rounded-3xl border-4 border-border overflow-hidden bg-surface flex items-center justify-center relative shadow-[0_0_0_1px_rgba(39,39,42,1)]">
+<!-- Device Mockup Inner -->
+<div class="absolute inset-0 bg-gradient-to-b from-surface to-background"></div>
+<img class="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen" data-alt="A high-resolution, photorealistic mockup of a modern smartphone displaying a sleek, dark-mode fitness application dashboard. The UI features stark geometric shapes, flat panels in near-black, and stark mint-teal (#00c9a7) accent lines for data visualization. The lighting is studio-quality, emphasizing the premium, technical, and stoic aesthetic of a professional tool without any gradients or soft shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWLMZpIWY9pyhXAnaCxBPdkYpEySxdDMZh_ZMu1o3sBmua1awSgzhw0ATHjN6FroZ3XQ8_Oe-z3n401p9jgFtM0Z8S0_L9k5OTvwtdD45uvBz5nKkM2-k_w-JJ3s3ZNYafUv_6Sv4gKWwcDj0gyDP3faRm7UEFP2-i0x6UYdIP-DYyygDkVK02DMOjQxALZc-lf3rfaxfpts9ctBHXedFRmd1NUoEEKxKutKWUDf13lHZNMVj-AW8i">
+</div>
+</section>
+<!-- Journey Scenes -->
+<div class="max-w-container-max-prose mx-auto flex flex-col gap-section-gap-sm md:gap-section-gap-lg">
+<!-- Scene 01 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">01. Draft</h2>
+<p class="font-body-main text-body-main text-muted">Constructing the initial program architecture.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4 relative">
+<img class="w-full h-auto rounded border border-border/50" data-alt="A stylized, flat-design UI snippet showing a workout program drafting screen in a dark mode application. The layout consists of sharp rectangular blocks representing exercises in deep charcoal (#121212) against a pitch-black background. A prominent mint-teal (#00c9a7) 'Add Block' button anchors the bottom. The visual style is strictly editorial, minimalist, and technical, resembling a developer interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArT6GlbFWEyp8QYFLdHthgfQncFLI2CMSKjr_4iR1Xeshl6_EhMxnDy-0zqNRFtDiJO0dbQ8yWUgMiquMBNEAsXf4TW3vUlZz66-h7nKIsyRPNUigdcjwbdFYlZcJGu7F33glpvQjS5GhNS5KjPFrked7_p2jbbu61BsfN0PlnZmAlDxQ4rR0E-DbCOUue8-2qBBKcaL1BEKsjfr6QQViPcyhu7G3PvQ9AkYErujm_wnk9uZsIpUJE">
+<!-- Annotation -->
+<div class="absolute top-4 right-4 bg-primary-container text-black font-label-caps text-label-caps px-2 py-1 rounded">Focus: Structure</div>
+</div>
+</section>
+<!-- Scene 02 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">02. Execution Details</h2>
+<p class="font-body-main text-body-main text-muted">Defining precise parameters: Sets, Reps, Weight, RIR.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-border text-muted font-label-caps text-label-caps">
+<th class="py-2 px-1">Set</th>
+<th class="py-2 px-1">Target</th>
+<th class="py-2 px-1">Actual</th>
+<th class="py-2 px-1">RIR</th>
+</tr>
+</thead>
+<tbody class="font-code-snippet text-code-snippet">
+<tr class="border-b border-border/50">
+<td class="py-3 px-1 text-on-surface-variant">1</td>
+<td class="py-3 px-1 text-on-surface">10x100kg</td>
+<td class="py-3 px-1 text-primary">10x100kg</td>
+<td class="py-3 px-1 text-muted">2</td>
+</tr>
+<tr class="border-b border-border/50">
+<td class="py-3 px-1 text-on-surface-variant">2</td>
+<td class="py-3 px-1 text-on-surface">10x100kg</td>
+<td class="py-3 px-1 text-primary">9x100kg</td>
+<td class="py-3 px-1 text-muted">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Scene 03 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">03. Progression Logic</h2>
+<p class="font-body-main text-body-main text-muted">System-suggested load adjustments based on performance history.</p>
+</div>
+<div class="bg-surface border border-primary/30 rounded-xl p-6 flex flex-col gap-4">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-2xl mt-1">auto_graph</span>
+<div>
+<div class="font-body-main text-body-main text-on-surface mb-1">Suggested Increase: +2.5kg</div>
+<div class="font-code-snippet text-code-snippet text-muted">Based on previous session RIR 0 achievement.</div>
+</div>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="bg-primary-container text-black font-semibold text-sm px-4 py-2 rounded-lg flex-1">Apply</button>
+<button class="border border-border text-on-background font-semibold text-sm px-4 py-2 rounded-lg flex-1 hover:border-muted transition-colors">Dismiss</button>
+</div>
+</div>
+</section>
+<!-- Scene 04 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">04. Quick Generation</h2>
+<p class="font-body-main text-body-main text-muted">Rapid session generation via AI when constraints apply.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4">
+<div class="bg-background border border-border rounded-lg p-3 flex items-center justify-between">
+<span class="font-body-main text-body-main text-on-surface-variant">"45 min, upper body, hotel gym"</span>
+<span class="material-symbols-outlined text-muted">send</span>
+</div>
+<img class="w-full h-32 object-cover rounded border border-border/50" data-alt="A technical, wireframe-style illustration of an AI generating a workout block. The visual relies on stark, flat geometry in deep greys and blacks (#121212, #0f0f13) with sharp mint-teal (#00c9a7) lines connecting different exercise nodes. The style is highly technical, lacking shadows or depth, evoking a serious data-driven developer tool aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTwjAhmLxZ8KksmGapoWhPnywaV88dJokgcVblHEJFayfiJ00gtifHl9jdbfk32ZfwFfDs0ASmR61pNdHrgTlE_e-a_iALIsnfVFk3RwMoLerTDpnjUM4bUjtnEsHlUD8nLCYeU-QZ5Ks03_tN8vTfWHlOFgqNwMuIsGP8G1771SYHlE8_-LZ2W8fccgV6wWHam6S1QkxEZnbAg8rnZzNm-E3yZGcRArRVOkV0lEkoUemc5UJ9sfwy">
+</div>
+</section>
+<!-- Scene 05 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">05. Agent Interaction</h2>
+<p class="font-body-main text-body-main text-muted">Direct querying of personal performance data.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 flex flex-col gap-4">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-border flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-sm">person</span>
+</div>
+<div class="bg-background p-3 rounded-lg rounded-tl-none border border-border/50 font-body-main text-body-main text-on-surface-variant">
+                             Why did my bench press stall this month?
+                         </div>
+</div>
+<div class="flex items-start gap-3 flex-row-reverse">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center shrink-0 text-black">
+<span class="material-symbols-outlined text-sm">smart_toy</span>
+</div>
+<div class="bg-surface-variant p-3 rounded-lg rounded-tr-none border border-border/50 font-body-main text-body-main text-on-surface text-right">
+                             Analysis indicates insufficient sleep logging and a 15% drop in total training volume over the last 3 weeks compared to the prior block.
+                         </div>
+</div>
+</div>
+</section>
+<!-- Scene 06 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">06. Technique Library</h2>
+<p class="font-body-main text-body-main text-muted">Reference mechanics and cues instantly.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl overflow-hidden flex flex-col">
+<div class="aspect-video bg-background relative flex items-center justify-center border-b border-border">
+<span class="material-symbols-outlined text-4xl text-muted">play_circle</span>
+<img class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity" data-alt="A stark, high-contrast, black-and-white still image of a technical barbell lift, heavily processed to look like a high-end printed manual. There are precise, thin mint-teal (#00c9a7) vector lines overlaid on the image indicating joint angles and bar path, reinforcing the technical, analytical, and stoic brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkEDd4Cn1Br9rXrnOJzQAdyhYw4r66m3LilWffMB9H7eTMaOBF6n1uT-zR-AU5L7INmKKjqwJxY-7Ya1vKi5-63BbJTYTWd8EzcWeehGYYk-heb_BlIr_5QTRj4bM5Wd-Fv-0BlxqzIG56dKAjB41kFWzPPegx30GB2eXQMv5Y63xRZjJpM4uAFtwV6ryWLdipGr7GYkPfXwApA88PFIeMxqpFiuwL2PufEu3tbw2eL0vd-upaeuuH">
+</div>
+<div class="p-4 flex flex-col gap-2">
+<div class="font-body-main text-body-main font-semibold text-on-surface">Low Bar Squat</div>
+<div class="font-code-snippet text-code-snippet text-muted">Focus on mid-foot balance. Drive hips back, not down.</div>
+</div>
+</div>
+</section>
+<!-- Scene 07 -->
+<section class="flex flex-col gap-content-stack">
+<div class="text-left">
+<h2 class="font-headline-h2 text-headline-h2 mb-2 text-on-surface">07. The Truth</h2>
+<p class="font-body-main text-body-main text-muted">Long-term compliance and volume visualization.</p>
+</div>
+<div class="bg-surface border border-border rounded-xl p-4 flex flex-col items-center justify-center min-h-[160px]">
+<!-- Abstract Heatmap representation -->
+<div class="grid grid-cols-7 gap-1 w-full max-w-[200px]">
+<!-- Row 1 -->
+<div class="aspect-square bg-border rounded-sm"></div>
+<div class="aspect-square bg-primary/20 rounded-sm"></div>
+<div class="aspect-square bg-primary/60 rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+<div class="aspect-square bg-primary/90 rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+<!-- Row 2 -->
+<div class="aspect-square bg-primary/40 rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+<div class="aspect-square bg-primary rounded-sm"></div>
+<div class="aspect-square bg-primary/30 rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+<div class="aspect-square bg-primary/70 rounded-sm"></div>
+<div class="aspect-square bg-border rounded-sm"></div>
+</div>
+<div class="mt-4 font-label-caps text-label-caps text-muted">Rolling 14-Day View</div>
+</div>
+</section>
+</div>
+<!-- Closing CTA Band -->
+<section class="mt-section-gap-lg bg-surface border-y border-border py-12 px-gutter-base text-center">
+<h2 class="font-headline-h2 text-headline-h2 mb-6 text-on-surface">Ready to formalize your training?</h2>
+<div class="flex flex-col gap-3 max-w-xs mx-auto">
+<button class="w-full bg-primary-container text-black font-semibold py-3 rounded-lg hover:bg-surface-tint transition-colors">
+                    Open the app
+                </button>
+<button class="w-full border border-border text-on-surface font-semibold py-3 rounded-lg hover:border-muted transition-colors">
+                    Connect your agent
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-section-gap-sm border-t border-border bg-background dark:bg-background">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-screen-xl mx-auto gap-content-stack text-center md:text-left">
+<div class="font-headline-h2 text-headline-h2 font-semibold text-on-background dark:text-on-background">
+                GymLogic
+            </div>
+<div class="flex gap-4 font-label-caps text-label-caps">
+<a class="text-muted hover:text-primary transition-colors" href="/github">GitHub</a>
+<a class="text-muted hover:text-primary transition-colors" href="/blog">Blog</a>
+<a class="text-muted hover:text-primary transition-colors" href="/about">About</a>
+<a class="text-muted hover:text-primary transition-colors" href="/privacy">Privacy</a>
+</div>
+<div class="font-body-main text-body-main text-muted text-sm">
+                © 2024 GymLogic. Precision performance.
+            </div>
+</div>
+</footer>
+</body></html>

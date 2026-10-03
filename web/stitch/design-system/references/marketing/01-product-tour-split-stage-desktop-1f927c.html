@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic Tour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-container": "#762f00",
+                      "inverse-on-surface": "#303034",
+                      "on-primary-fixed": "#002019",
+                      "muted": "#999999",
+                      "secondary": "#c6c6c7",
+                      "surface-container": "#1f1f23",
+                      "surface-container-highest": "#353439",
+                      "surface-container-lowest": "#0e0e12",
+                      "on-secondary-container": "#b4b5b5",
+                      "secondary-container": "#454747",
+                      "primary-container": "#00c9a7",
+                      "outline-variant": "#3c4a45",
+                      "on-error": "#690005",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-secondary": "#2f3131",
+                      "surface-bright": "#39393d",
+                      "error-container": "#93000a",
+                      "error": "#ffb4ab",
+                      "primary-fixed-dim": "#38debb",
+                      "surface-dim": "#131317",
+                      "surface-container-low": "#1b1b1f",
+                      "on-surface-variant": "#bacac3",
+                      "on-tertiary": "#552000",
+                      "surface-variant": "#353439",
+                      "on-primary-fixed-variant": "#005142",
+                      "inverse-surface": "#e4e1e7",
+                      "secondary-fixed": "#e2e2e2",
+                      "tertiary": "#ffc0a1",
+                      "tertiary-fixed-dim": "#ffb692",
+                      "on-error-container": "#ffdad6",
+                      "secondary-fixed-dim": "#c6c6c7",
+                      "on-primary-container": "#004e40",
+                      "primary-fixed": "#5ffbd6",
+                      "tertiary-container": "#ff9862",
+                      "on-secondary-fixed": "#1a1c1c",
+                      "primary": "#44e5c2",
+                      "border": "#27272a",
+                      "on-background": "#e4e1e7",
+                      "on-tertiary-fixed": "#341100",
+                      "inverse-primary": "#006b58",
+                      "on-surface": "#e4e1e7",
+                      "surface-tint": "#38debb",
+                      "outline": "#85948e",
+                      "on-primary": "#00382d",
+                      "surface-container-high": "#2a292e",
+                      "on-tertiary-fixed-variant": "#793100",
+                      "surface": "#121212",
+                      "on-secondary-fixed-variant": "#454747",
+                      "background": "#131317"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "section-gap-sm": "4rem",
+                      "content-stack": "1.5rem",
+                      "section-gap-lg": "8rem",
+                      "gutter-base": "1rem",
+                      "container-max-prose": "48rem"
+              },
+              "fontFamily": {
+                      "code-snippet": ["Geist"],
+                      "headline-h1-mobile": ["Geist"],
+                      "body-main": ["Geist"],
+                      "headline-h2": ["Geist"],
+                      "headline-h1": ["Geist"],
+                      "label-caps": ["Geist"]
+              },
+              "fontSize": {
+                      "code-snippet": ["0.875rem", {"lineHeight": "1.5", "letterSpacing": "0em", "fontWeight": "400"}],
+                      "headline-h1-mobile": ["2.25rem", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "600"}],
+                      "body-main": ["1rem", {"lineHeight": "1.65", "letterSpacing": "0em", "fontWeight": "400"}],
+                      "headline-h2": ["1.875rem", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                      "headline-h1": ["3rem", {"lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "600"}],
+                      "label-caps": ["0.75rem", {"lineHeight": "1rem", "letterSpacing": "0.1em", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0f0f13;
+            color: #e4e1e7;
+            font-family: 'Geist', sans-serif;
+        }
+        /* Hide scrollbar for clean aesthetic */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary-container selection:text-black">
+<!-- TopNavBar (From JSON) -->
+<nav class="fixed top-0 w-full z-50 bg-transparent dark:bg-transparent bg-surface/80 backdrop-blur-md border-b border-border flat no shadows">
+<div class="flex justify-between items-center px-gutter-base py-4 max-w-screen-xl mx-auto">
+<div class="font-headline-h2 text-headline-h2 font-semibold text-on-background dark:text-on-background">
+                GymLogic
+            </div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-label-caps text-label-caps text-primary font-semibold scale-95 transition-transform duration-150" href="#">Tour</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Claude Connector</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Blog</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">About</a>
+</div>
+<button class="bg-primary-container text-black font-label-caps text-label-caps px-4 py-2 rounded-DEFAULT font-semibold hover:bg-primary transition-colors duration-200">
+                Open app →
+            </button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-32 pb-section-gap-lg max-w-screen-xl mx-auto px-gutter-base min-h-screen flex flex-col gap-section-gap-lg">
+<!-- Hero Section -->
+<section class="max-w-container-max-prose mx-auto text-center pt-16">
+<h1 class="font-headline-h1 text-headline-h1-mobile md:text-headline-h1 text-on-background mb-6">
+                What GymLogic actually does
+            </h1>
+<p class="font-body-main text-body-main text-muted max-w-2xl mx-auto">
+                Program, train, progress, ask an agent, see the truth over time.
+            </p>
+</section>
+<!-- Split Stage Section -->
+<section class="flex flex-col md:flex-row gap-12 relative w-full h-[600px] border border-border rounded-lg bg-surface overflow-hidden">
+<!-- Left Rail (Sticky) -->
+<div class="w-full md:w-[40%] p-8 border-r border-border flex flex-col overflow-y-auto">
+<div class="text-xs text-muted font-code-snippet mb-8">
+                    Note: Scroll advances rail 01→07; stage crossfades — implemented in code.
+                </div>
+<ul class="flex flex-col gap-8">
+<!-- Inactive 01 -->
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">01.</span>
+<div class="font-body-main text-body-main font-semibold">Get a program</div>
+</li>
+<!-- Active 02 -->
+<li class="flex flex-col gap-3 group relative pl-2">
+<!-- Active Indicator Bar -->
+<div class="absolute left-[-16px] top-0 bottom-0 w-[2px] bg-primary-container"></div>
+<div class="flex gap-4 items-center">
+<span class="font-code-snippet text-code-snippet text-primary-container">02.</span>
+<div class="font-headline-h2 text-headline-h2 text-on-surface">Train the session</div>
+</div>
+<p class="font-body-main text-body-main text-muted pl-10">
+                            Log the work without a spreadsheet brain.
+                        </p>
+<ul class="pl-10 font-code-snippet text-code-snippet text-muted flex flex-col gap-2 mt-2">
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">done</span> Auto-fill past sets</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">timer</span> Integrated rest timers</li>
+<li class="flex items-center gap-2"><span class="material-symbols-outlined text-[16px]">trending_up</span> Live RIR tracking</li>
+</ul>
+</li>
+<!-- Inactive 03 - 07 -->
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">03.</span>
+<div class="font-body-main text-body-main font-semibold">Progress on purpose</div>
+</li>
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">04.</span>
+<div class="font-body-main text-body-main font-semibold">One-off days</div>
+</li>
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">05.</span>
+<div class="font-body-main text-body-main font-semibold">Bring your agent</div>
+</li>
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">06.</span>
+<div class="font-body-main text-body-main font-semibold">Know the movement</div>
+</li>
+<li class="opacity-40 hover:opacity-100 transition-opacity cursor-pointer flex gap-4">
+<span class="font-code-snippet text-code-snippet text-muted">07.</span>
+<div class="font-body-main text-body-main font-semibold">See yourself over time</div>
+</li>
+</ul>
+</div>
+<!-- Right Stage (Image Mockup) -->
+<div class="w-full md:w-[60%] bg-surface-container-lowest flex items-center justify-center p-8 relative">
+<!-- Mockup Image Placeholder -->
+<div class="relative w-full max-w-[320px] aspect-[9/19] rounded-[2rem] border-8 border-[#27272a] bg-black overflow-hidden shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="A hyper-realistic, dark-mode mobile UI mockup of a fitness tracking app screen. The interface shows a minimalist 'sets table' mid-workout, featuring clean rows tracking reps, weight, and RIR (Reps in Reserve). The design uses strict monochromatic tones with a single stark teal (#00c9a7) accent highlighting the active set. The aesthetic is extremely technical, flat, and stoic, resembling a high-end developer tool rather than a typical fitness app. Soft, clinical lighting highlights the device bezel against a pitch-black background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBc0B_rkVj5ytqObnXjbVkDJ2j3HbBS4XUDBnbBzxHMWEtmcmnlbuxGBFvZfD4KIvSAfFLjbwt5fQd4Rw-L7OtHrhIZJUUzwqyTKZ-ts5v3tHFMhqsjQdF3Dv2gHCJUPRbbCpTCuy8CJBx0OAhM7zlieBUnlDpLVdsn1gPybwGhoQLvKW1Vkhsj4ZdQaes6L3jTOqKGD3kxciJL1H24uiyAqljT0CFV3kB5LaI1_Dd1aizserfec-iX"/>
+<!-- Overlay UI hints purely for the mock feel -->
+<div class="absolute bottom-4 left-0 w-full flex justify-center">
+<div class="w-1/3 h-1 bg-surface-bright rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Dual Doors CTA -->
+<section class="w-full bg-surface-container py-16 px-8 rounded-lg border border-border text-center max-w-container-max-prose mx-auto">
+<h2 class="font-headline-h2 text-headline-h2 text-on-surface mb-8">Ready to begin?</h2>
+<div class="flex flex-col sm:flex-row justify-center gap-4">
+<button class="bg-primary-container text-black font-label-caps text-label-caps px-8 py-4 rounded-DEFAULT font-semibold hover:bg-primary transition-colors duration-200 w-full sm:w-auto">
+                    Open the app
+                </button>
+<button class="bg-transparent border border-border text-on-background font-label-caps text-label-caps px-8 py-4 rounded-DEFAULT font-semibold hover:border-muted transition-colors duration-200 w-full sm:w-auto">
+                    Connect your agent
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer (From JSON) -->
+<footer class="w-full py-section-gap-sm border-t border-border bg-background dark:bg-background flat no shadows">
+<div class="flex flex-col md:flex-row justify-between items-center px-gutter-base max-w-screen-xl mx-auto gap-content-stack transition-all duration-300">
+<div class="font-headline-h2 text-headline-h2 font-semibold text-on-background dark:text-on-background">
+                GymLogic
+            </div>
+<div class="flex gap-6 font-body-main text-body-main text-muted">
+<a class="hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="hover:text-primary transition-colors" href="#">Blog</a>
+<a class="hover:text-primary transition-colors" href="#">About</a>
+<a class="hover:text-primary transition-colors" href="#">Privacy</a>
+</div>
+<div class="font-body-main text-body-main text-muted text-sm">
+                © 2024 GymLogic. Precision performance.
+            </div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic PWA - Program Builder Day Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#353439",
+                        "on-primary": "#000000",
+                        "surface-tint": "#38debb",
+                        "error-container": "#93000a",
+                        "primary": "#44e5c2",
+                        "on-surface": "#e4e1e7",
+                        "muted": "#999999",
+                        "on-tertiary": "#552000",
+                        "surface-container-high": "#2a292e",
+                        "primary-container": "#00c9a7",
+                        "on-background": "#e4e1e7",
+                        "on-error-container": "#ffdad6",
+                        "inverse-on-surface": "#303034",
+                        "surface-container-highest": "#353439",
+                        "tertiary-container": "#ff9862",
+                        "border": "#2d2d37",
+                        "tertiary-fixed": "#ffdbcb",
+                        "secondary-fixed": "#e4e1ec",
+                        "inverse-surface": "#e4e1e7",
+                        "on-tertiary-fixed-variant": "#793100",
+                        "secondary": "#c7c5d0",
+                        "tertiary": "#ffc0a1",
+                        "primary-fixed-dim": "#38debb",
+                        "background": "#131317",
+                        "on-tertiary-container": "#762f00",
+                        "on-surface-variant": "#bacac3",
+                        "surface": "#15151c",
+                        "tertiary-fixed-dim": "#ffb692",
+                        "surface-container-lowest": "#0e0e12",
+                        "on-primary-fixed-variant": "#005142",
+                        "secondary-container": "#494851",
+                        "error": "#ffb4ab",
+                        "surface-container": "#1f1f23",
+                        "on-tertiary-fixed": "#341100",
+                        "foreground": "#f2f2f2",
+                        "on-secondary-fixed": "#1b1b23",
+                        "on-primary-container": "#004e40",
+                        "surface-container-low": "#1b1b1f",
+                        "secondary-fixed-dim": "#c7c5d0",
+                        "surface-dim": "#131317",
+                        "on-primary-fixed": "#002019",
+                        "on-secondary-container": "#b9b7c2",
+                        "outline-variant": "#3c4a45",
+                        "outline": "#85948e",
+                        "primary-fixed": "#5ffbd6",
+                        "on-secondary": "#303038",
+                        "on-secondary-fixed-variant": "#46464f",
+                        "on-error": "#690005",
+                        "surface-bright": "#39393d",
+                        "inverse-primary": "#006b58"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "6rem",
+                        "unit-sm": "8px",
+                        "unit-xl": "32px",
+                        "unit-md": "16px",
+                        "container-prose": "48rem",
+                        "gutter": "1rem",
+                        "unit-xs": "4px",
+                        "section-gap-mobile": "4rem",
+                        "unit-lg": "24px",
+                        "container-media": "64rem"
+                    },
+                    "fontFamily": {
+                        "label": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "mono": ["Geist Mono"],
+                        "headline-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-md": ["Geist"],
+                        "body-sm": ["Geist"],
+                        "body-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label": ["0.875rem", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "headline-md": ["1.875rem", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "mono": ["0.875rem", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-sm": ["1.125rem", { "lineHeight": "1.35", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["3rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["2.25rem", { "lineHeight": "1.1", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+                        "body-md": ["1rem", { "lineHeight": "1.65", "fontWeight": "400" }],
+                        "body-sm": ["0.875rem", { "lineHeight": "1.55", "fontWeight": "400" }],
+                        "body-lg": ["1.125rem", { "lineHeight": "1.65", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-foreground font-body-md h-screen w-full flex flex-col overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-background border-b border-border flex items-center justify-between px-gutter w-full z-50 fixed top-0 h-[56px]">
+<div class="flex items-center gap-unit-md">
+<button class="text-muted hover:text-foreground transition-colors flex items-center justify-center h-8 w-8 rounded hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="menu">menu</span>
+</button>
+<span class="font-label text-label text-muted tracking-wide">GymLogic</span>
+</div>
+<div class="flex items-center gap-unit-md">
+<div class="flex items-center gap-2 bg-surface-container rounded-full px-3 py-1 border border-border">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label text-label text-muted text-xs">Synced</span>
+</div>
+<button class="text-muted hover:text-foreground transition-colors flex items-center justify-center h-8 w-8 rounded hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="sync">sync</span>
+</button>
+<button class="text-muted hover:text-foreground transition-colors flex items-center justify-center h-8 w-8 rounded hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<div class="flex flex-1 pt-[56px] h-full overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-surface border-r border-border w-[280px] h-[calc(100vh-56px)] flex flex-col flex-shrink-0 hidden md:flex z-40">
+<div class="p-unit-lg border-b border-border flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Hypertrophy 12</h2>
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+</div>
+</div>
+<button class="w-full py-2 px-4 rounded border border-border text-foreground hover:bg-surface-container-low transition-colors font-label text-label flex items-center justify-center gap-2">
+                    Activate Program
+                </button>
+</div>
+<div class="flex-1 overflow-y-auto py-unit-md flex flex-col gap-1 px-2">
+<!-- Day 1 (Active) -->
+<button class="w-full text-left bg-surface-container-high text-primary border-l-2 border-primary rounded-r p-3 flex items-center justify-between group transition-all duration-150 ease-in-out">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-mono text-mono text-xs opacity-70">01</span>
+<span class="font-label text-label font-bold">Program Days</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5">12 sets</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border flex items-center justify-center overflow-hidden relative">
+<img alt="Heatmap" class="w-full h-full object-cover opacity-80" data-alt="A highly detailed miniature minimalist 3D rendering of a human anatomy figure focusing on the upper body push muscles (chest, triceps, front deltoids). The figure is stark white or dark grey against a pure black background (#0f0f13). The push muscles are glowing intensely with a vibrant mint-teal heatmap (#00c9a7). The rendering is precise, technical, and medical-grade, fitting a professional fitness app UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7uDNZU4pKn_MkeJtdEkvfdblz0AGHwHo5kKCx0HRjCyuVwKHrqMJDajd796MhbwUxQcu7Wivj92XM3BC5v5zpgBrkalMOLPg-h6jdfG6nt_QP12GcqDYBCVtCl9Ao5_8Y75f5G_Uh-FSRzAlqRXRT3wiFcz2xQ2mFlN4KJKNif1x1I-Lkby7SnIRm-k6xfPJipqKdon44ECbcFO1LJP5CHmrVbieL6EGhmGM2VBVz_xNN44ERY7Z_kTylTri0qqtRmAtfqwLJ7Ok"/>
+</div>
+</button>
+<!-- Day 2 -->
+<button class="w-full text-left text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface border-l-2 border-transparent rounded-r p-3 flex items-center justify-between group transition-all duration-150 ease-in-out">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-mono text-mono text-xs opacity-50">02</span>
+<span class="font-label text-label">Template Library</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5">14 sets</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border flex items-center justify-center overflow-hidden relative opacity-50 group-hover:opacity-100 transition-opacity">
+<img alt="Heatmap" class="w-full h-full object-cover opacity-80" data-alt="A highly detailed miniature minimalist 3D rendering of a human anatomy figure focusing on the upper body pull muscles (back, biceps). The figure is stark white or dark grey against a pure black background. The pull muscles are glowing softly with a mint-teal heatmap. The rendering is precise, technical, and medical-grade." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQYKuOKgoeSjUblnumDLghp-GC_53vouGFxMqqWP5zmnacVvbK3Q_dhfu7ejKbsqOlHxbY8KLfP8FipvLYaV8A60mvzyD6qfBMjlc0wHu5xxOQNx316wUm2F-561AbfNgu3zettSQxxKYAWYcU5kum47omyDh8IuemlVFwuMaM3ix9OmhywVwJ1NsMSlWbABqjxfQT5pB2B8MJQk_MfMlzoqFq_AfI8d-Hj_matC-mIODLXAeGiVKCBHkMoHJkjHlm7M7Wh12qSdU"/>
+</div>
+</button>
+<!-- Day 3 -->
+<button class="w-full text-left text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface border-l-2 border-transparent rounded-r p-3 flex items-center justify-between group transition-all duration-150 ease-in-out">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-mono text-mono text-xs opacity-50">03</span>
+<span class="font-label text-label">Muscle Volume</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5">16 sets</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border flex items-center justify-center overflow-hidden relative opacity-50 group-hover:opacity-100 transition-opacity">
+<img alt="Heatmap" class="w-full h-full object-cover opacity-80" data-alt="A highly detailed miniature minimalist 3D rendering of a human anatomy figure focusing on the lower body leg muscles (quads, hamstrings, calves). The figure is dark grey against a pure black background. The leg muscles are glowing softly with a mint-teal heatmap. The rendering is precise and technical." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1kcpWwFodbm86BMR46BnKAPg80p8uVvqtzYrDs_Ki-D5hFiN-_vT-QEIeLOE00K4gFUstdbWSLqx3LzT_4xGCelf2d2lvb5ReEn2I-IZrQPzKgCc8yV4p9GV4ghlOUj8QPcIyQt0dXvuniO94tl399qqYSRxyiWyWd0di-ibqg7q6A452gCW0BvwuH5Be8VDydQ_NStGQPTNomGd0XDdZoPZuQeRo_9d8FWtSdyFdacqDmSf1PqzHZ8OEfFXqitY_Lkdvm9MKpUc"/>
+</div>
+</button>
+<!-- Day 4 -->
+<button class="w-full text-left text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface border-l-2 border-transparent rounded-r p-3 flex items-center justify-between group transition-all duration-150 ease-in-out">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-mono text-mono text-xs opacity-50">04</span>
+<span class="font-label text-label">Client View</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5">8 sets</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border flex items-center justify-center overflow-hidden relative opacity-50 group-hover:opacity-100 transition-opacity">
+<img alt="Heatmap" class="w-full h-full object-cover opacity-80" data-alt="A highly detailed miniature minimalist 3D rendering of a human anatomy figure focusing on upper body muscles. The figure is dark grey against a pure black background. The muscles are glowing softly with a mint-teal heatmap. The rendering is precise and technical." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtGp-KuvXTubUbCgjORqoDVUIa8q7jmxccqcpiZvpUPo-YrmyfY5MmIry2uYvMygGo4Lx-9jty3I-pGjHL0wlQ2oV0OsHTIDRDmFOZCFqS8H6fnUfMRwPPgRgI5frjkyICPNraImi60hUpiXKgd1JUPp0AW-BwesBjNYqYEUoiFIz21NY4LFMUOqrD7ADn1rHu4hJNMIVImzS-6Zzo2zhK0BHXXg6MAm1YPoceuvWfyUDC634K_5A8wAk0THYowdJBu4jfu55-dDs"/>
+</div>
+</button>
+</div>
+<div class="p-unit-md border-t border-border mt-auto">
+<button class="w-full py-2 px-4 rounded bg-transparent border border-border border-dashed text-muted hover:text-foreground hover:border-muted transition-colors font-label text-label flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span> Add New Day
+                </button>
+</div>
+</nav>
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto bg-background p-unit-lg md:p-unit-xl pb-[120px]">
+<div class="max-w-[1120px] mx-auto w-full flex flex-col gap-unit-xl">
+<!-- Header -->
+<header class="flex flex-col gap-2 border-b border-border pb-unit-lg">
+<h1 class="font-headline-md text-headline-md text-foreground">Push A</h1>
+<p class="font-body-sm text-body-sm text-muted">6 movements · 21 sets</p>
+</header>
+<!-- Body Map Panel -->
+<section class="bg-surface border border-border rounded-lg p-unit-lg flex flex-col md:flex-row gap-unit-xl items-start">
+<div class="flex gap-4 shrink-0">
+<div class="w-[120px] h-[160px] bg-background rounded border border-border overflow-hidden relative">
+<img alt="Front Anatomy" class="w-full h-full object-cover" data-alt="A detailed, sleek minimalist 3D rendering of a human anatomy figure (front view) emphasizing the chest and front deltoids. The figure is a technical dark material against a stark black background (#0f0f13). The targeted push muscles emit a high-contrast, technical mint-teal (#00c9a7) glow representing a heatmap. The lighting is dramatic and focused, highlighting the precise muscle definition in a professional, scientific style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVkWwWJhSsBmxIfySPZkQOe5PDK3E7zpfnUsumiuou0sR6NtFxr3wIz95VzcDgHmNKCJpxW-0YovYElv7uM7VoIbV6Kfe9S2Znat5K_ykV_CIL_L4geFMp58f0eQsqYAzYraXkpb33NFxB2c4IWBZ09gJcA-1U-Qy_Yl8Kv-4cPTcCzxzmVoTymedKqkRDXkbSh-q2q1ZRlclSQPMfasStdaLOhRsJEwBTBvtJ-C6MhIEP9u6ULiqa-uumlahNxsqamDquaECHSsg"/>
+</div>
+<div class="w-[120px] h-[160px] bg-background rounded border border-border overflow-hidden relative">
+<img alt="Back Anatomy" class="w-full h-full object-cover opacity-70" data-alt="A detailed, sleek minimalist 3D rendering of a human anatomy figure (back view) emphasizing the triceps. The figure is a technical dark material against a stark black background (#0f0f13). The targeted tricep muscles emit a high-contrast, technical mint-teal (#00c9a7) glow representing a heatmap. The lighting is dramatic and focused, highlighting the precise muscle definition in a professional, scientific style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOKaiHpv1UBDr6Me2QqBE5wAD7QmPf2G9E03swL4dX9C1zrnpiDPqwsAYg6DUuv5uenAd-lJwakXxKzu5QAWtdTrttArLmVV84F5wUZjXscjKLRnMAX31rGKzTxaZ9g_a0ET_aAIAUs_y-8A34VNxLlFALOILUuYjzFZMUV2tW9ACtAGESsoyn-bAoguAHXCDRnLJiqZXc22S-TeDL1jGHNbEXhOp--XhuhB3Eedqq_F4BEF9lyotVDKZOc3zpbuhz2aMvAUI5qBg"/>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-4 w-full pt-2">
+<h3 class="font-label text-label text-muted uppercase tracking-wider text-xs">Target Volume</h3>
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-4">
+<span class="font-label text-label w-[80px]">Chest</span>
+<div class="flex-1 h-1 bg-background rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 75%;"></div>
+</div>
+<span class="font-mono text-mono text-primary-container w-[60px] text-right">12 sets</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label text-label w-[80px]">Shoulders</span>
+<div class="flex-1 h-1 bg-background rounded-full overflow-hidden">
+<div class="h-full bg-primary-container/70 rounded-full" style="width: 50%;"></div>
+</div>
+<span class="font-mono text-mono text-primary-container/70 w-[60px] text-right">8 sets</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label text-label w-[80px]">Triceps</span>
+<div class="flex-1 h-1 bg-background rounded-full overflow-hidden">
+<div class="h-full bg-primary-container/50 rounded-full" style="width: 35%;"></div>
+</div>
+<span class="font-mono text-mono text-primary-container/50 w-[60px] text-right">6 sets</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Exercise List -->
+<section class="flex flex-col gap-4">
+<!-- Column Headers -->
+<div class="flex items-center px-4 py-2 border-b border-border">
+<div class="flex-1"></div>
+<div class="w-[300px] flex gap-2">
+<div class="w-1/4 font-label text-label text-muted text-xs uppercase text-center tracking-wider">Sets</div>
+<div class="w-1/4 font-label text-label text-muted text-xs uppercase text-center tracking-wider">Reps</div>
+<div class="w-1/4 font-label text-label text-muted text-xs uppercase text-center tracking-wider">KG</div>
+<div class="w-1/4 font-label text-label text-muted text-xs uppercase text-center tracking-wider">Rest</div>
+</div>
+</div>
+<!-- Row 1 -->
+<div class="group flex items-center gap-4 bg-surface border border-border rounded-lg p-2 pr-4 hover:border-muted/50 transition-colors">
+<div class="flex items-center justify-center w-8 cursor-grab text-border group-hover:text-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border overflow-hidden shrink-0">
+<img alt="Bench Press" class="w-full h-full object-cover" data-alt="A stark, minimalist icon or highly stylized 3D render of a barbell bench press setup. The equipment is dark metallic against a pure black background. A subtle, precise mint-teal accent line highlights the barbell. The aesthetic is clean, technical, and stripped down, resembling a professional engineering schematic or high-end fitness UI component." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHMjbGt6MUF4OJoxPZlFqAdnFY8HkXsgDMTvQAoOu1HYWqtaBLBJVCNLh1pvxN2NUI9x_sZp0jwPXWcKff8nTmxLQz3XOQI0_5FAZjmkfhgx3JunSWJpioxZ6Mj_B2lX8Z_Li3jypoDpvtxDW7amEtty--PLRsjgi9ZJaHfiP7-yRQcJCYeA4Zj3q1TvMdH_6WnNBHIVqE_TEAP-b1AXSMyawVUiZUqxeUM5cJKM5_1BLBUm4JqZEVduEs0fek4M8U9-k9m2_KzQQ"/>
+</div>
+<div class="flex-1 flex flex-col justify-center min-w-[200px]">
+<span class="font-label text-label text-foreground">Bench Press</span>
+<span class="font-body-sm text-body-sm text-muted text-xs">Chest, Triceps</span>
+</div>
+<div class="w-[300px] flex gap-2 shrink-0">
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="4"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="8-10"/>
+<input class="w-1/4 bg-background border border-primary-container rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container shadow-[0_0_0_1px_rgba(0,201,167,0.2)]" type="text" value="80"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="120s"/>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="group flex items-center gap-4 bg-surface border border-border rounded-lg p-2 pr-4 hover:border-muted/50 transition-colors">
+<div class="flex items-center justify-center w-8 cursor-grab text-border group-hover:text-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border overflow-hidden shrink-0">
+<img alt="Incline DB Press" class="w-full h-full object-cover" data-alt="A stark, minimalist icon or highly stylized 3D render of an incline dumbbell press setup. The equipment is dark metallic against a pure black background. A subtle, precise mint-teal accent line highlights the dumbbells. Clean, technical, schematic style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTazJx1TwtSZhsIjVhmve_5sUu6nThXj4YTEXls9tofPGYTWn7hxyPy9noNb1VBidYmyWOOarwlVyNQFuAT40a75VFws702cg5sjMpbV-GS1rOySsb3JItyd5Ngouh_Uplnev66oPVODFJPe3kVdhevA2pw11kVDr-BrfDVIS4EHkOrzeAOoZb51sJelRGaom2yXDWV8GRLUw2Hbm95hFTseDEwuOQKTXlPAbP4HHv-c3_cp_r0wrJ-M-7T89gF2Ze9eKbEFh54MY"/>
+</div>
+<div class="flex-1 flex flex-col justify-center min-w-[200px]">
+<span class="font-label text-label text-foreground">Incline Dumbbell Press</span>
+<span class="font-body-sm text-body-sm text-muted text-xs">Upper Chest</span>
+</div>
+<div class="w-[300px] flex gap-2 shrink-0">
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="3"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="10-12"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="30"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="90s"/>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="group flex items-center gap-4 bg-surface border border-border rounded-lg p-2 pr-4 hover:border-muted/50 transition-colors">
+<div class="flex items-center justify-center w-8 cursor-grab text-border group-hover:text-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="drag_indicator">drag_indicator</span>
+</div>
+<div class="w-10 h-10 rounded bg-background border border-border overflow-hidden shrink-0">
+<img alt="Overhead Press" class="w-full h-full object-cover" data-alt="A stark, minimalist icon or highly stylized 3D render of a seated overhead press setup. The equipment is dark metallic against a pure black background. A subtle, precise mint-teal accent line highlights the bar. Clean, technical, schematic style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnhmD5qIWTngy49r1-EST0Jljc_Pb0xIkg_y82Kb_uUNXX1PTsg104pvhwEvhLEEgQvPIgKvWa5Vl2S97UPPCnXj8gybWzdWixiQzSbTPhZmGa15Qw-j1tARhmMaknq9MQU9rDBrzT4jFSHtrsvMbShcbNOMkFAbrLir1pwz6gUsZ3MHTV1uay0oOuE3dhVLzCb7tLj9QTBQKnrRlbhVpmU7nTvyPkhL58eMcGI81B6c8Ne3Bab8h_ZwN2Xj0y2yokvl0F2jsBAmM"/>
+</div>
+<div class="flex-1 flex flex-col justify-center min-w-[200px]">
+<span class="font-label text-label text-foreground">Overhead Press</span>
+<span class="font-body-sm text-body-sm text-muted text-xs">Shoulders</span>
+</div>
+<div class="w-[300px] flex gap-2 shrink-0">
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="3"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="8-12"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="50"/>
+<input class="w-1/4 bg-background border border-border rounded px-2 py-1.5 font-mono text-mono text-center text-foreground focus:outline-none focus:border-border focus:ring-0" type="text" value="90s"/>
+</div>
+</div>
+<!-- Circuit Card -->
+<div class="mt-4 bg-surface border border-border border-l-4 border-l-primary-container rounded-lg p-4 flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-border pb-3">
+<div class="flex flex-col">
+<span class="font-label text-label text-foreground">Metcon Finisher</span>
+<span class="font-body-sm text-body-sm text-muted text-xs">3 rounds · Minimal rest</span>
+</div>
+<div class="flex items-center justify-center w-8 cursor-grab text-border hover:text-muted transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="drag_indicator">drag_indicator</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 pl-4 border-l border-border/50 ml-2">
+<!-- Nested Row 1 -->
+<div class="flex items-center gap-4">
+<div class="flex-1">
+<span class="font-label text-label text-foreground">Push-up</span>
+</div>
+<div class="w-[220px] flex gap-2">
+<input class="w-1/3 bg-transparent border-none px-2 py-1 font-mono text-mono text-center text-muted" disabled="" type="text" value="1"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="AMRAP"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="BW"/>
+</div>
+</div>
+<!-- Nested Row 2 -->
+<div class="flex items-center gap-4">
+<div class="flex-1">
+<span class="font-label text-label text-foreground">Dip</span>
+</div>
+<div class="w-[220px] flex gap-2">
+<input class="w-1/3 bg-transparent border-none px-2 py-1 font-mono text-mono text-center text-muted" disabled="" type="text" value="1"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="10-15"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="BW"/>
+</div>
+</div>
+<!-- Nested Row 3 -->
+<div class="flex items-center gap-4">
+<div class="flex-1">
+<span class="font-label text-label text-foreground">Band Flye</span>
+</div>
+<div class="w-[220px] flex gap-2">
+<input class="w-1/3 bg-transparent border-none px-2 py-1 font-mono text-mono text-center text-muted" disabled="" type="text" value="1"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="20"/>
+<input class="w-1/3 bg-background border border-border rounded px-2 py-1 font-mono text-mono text-center text-foreground text-xs focus:outline-none focus:border-border" type="text" value="Red"/>
+</div>
+</div>
+</div>
+</div>
+<!-- CTA -->
+<div class="mt-4">
+<button class="bg-primary-container text-on-primary font-label text-label px-4 py-2 rounded flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span> Add Exercise
+                        </button>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>
