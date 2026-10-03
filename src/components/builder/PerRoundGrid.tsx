@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Input } from "@nomosui/react"
 import type {
   BlockExerciseWithExercise,
   ExerciseBlockWithExercises,
@@ -14,7 +15,6 @@ import {
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
-import { Input } from "@/components/ui/input"
 
 interface PerRoundGridProps {
   block: ExerciseBlockWithExercises

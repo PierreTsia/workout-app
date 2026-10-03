@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown } from "lucide-react"
+import { Input } from "@nomosui/react"
 import type {
   WorkoutExercise,
   WorkoutExerciseWithExercise,
@@ -8,7 +9,6 @@ import type {
 import { useUpdateExercise } from "@/hooks/useBuilderMutations"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import type { useExerciseFromLibrary } from "@/hooks/useExerciseFromLibrary"
-import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ExerciseInstructionsPanel } from "@/components/exercise/ExerciseInstructionsPanel"

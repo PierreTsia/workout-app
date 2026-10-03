@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Input } from "@nomosui/react"
 import type {
   BlockExerciseWithExercise,
   ExerciseBlockWithExercises,
@@ -13,7 +14,6 @@ import {
 } from "@/hooks/useCircuitForkGate"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { useWeightUnit } from "@/hooks/useWeightUnit"
-import { Input } from "@/components/ui/input"
 
 interface UniformExerciseListProps {
   block: ExerciseBlockWithExercises
