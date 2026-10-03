@@ -42,9 +42,12 @@ export type SessionCardLabels = {
   sets: string
   pr: string
   circuit: string
-  time: string
-  rounds: string
   amrapGloss: string
+  /** Template with `{{time}}`, from `history:circuit.completionTime`. */
+  completionTime: string
+  /** Templates with `{{count}}`, from `history:circuit.rounds_one` / `_other`. */
+  roundsOne: string
+  roundsOther: string
   empty: string
   emptyHint: string
 }

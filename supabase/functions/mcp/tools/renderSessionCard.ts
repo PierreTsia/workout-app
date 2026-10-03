@@ -1,4 +1,4 @@
-import { buildSessionCardPayload } from "../lib/sessionCard.ts"
+import { buildSessionCardPayload, resolveCardLocale } from "../lib/sessionCard.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 const URI = "ui://gymlogic/session-card"
@@ -20,10 +20,17 @@ export const renderSessionCard: ToolDefinition = {
   meta: { ui: { resourceUri: URI } },
   inputSchema: {
     type: "object",
-    properties: {},
+    properties: {
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the card's exercise names and labels. Defaults to the athlete's app locale, then English.",
+      },
+    },
   },
 
-  async handler(_args, supabase) {
+  async handler(args, supabase) {
     if (!supabase) {
       return {
         content: [{ type: "text", text: "Authentication required — please provide a valid Bearer token." }],
@@ -32,7 +39,11 @@ export const renderSessionCard: ToolDefinition = {
     }
 
     try {
-      const payload = await buildSessionCardPayload(supabase)
+      const { data: profile } = await supabase.from("user_profiles").select("locale").maybeSingle()
+      const profileLocale: unknown = profile?.locale
+
+      const locale = resolveCardLocale(args.locale, profileLocale)
+      const payload = await buildSessionCardPayload(supabase, locale)
       const text = payload.session
         ? `## ${payload.session.label} — ${payload.session.finishedAtLabel}\n\n` +
           `${payload.session.durationLabel} · ${payload.session.setsDone} sets · ${payload.tonnageKg} kg`

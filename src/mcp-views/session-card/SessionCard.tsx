@@ -75,12 +75,17 @@ export function SessionCard({
                       </span>
                     ) : item.completionSeconds != null ? (
                       <span>
-                        {labels.time} {Math.floor(item.completionSeconds / 60)}:
-                        {String(item.completionSeconds % 60).padStart(2, '0')}
+                        {labels.completionTime.replace(
+                          '{{time}}',
+                          `${Math.floor(item.completionSeconds / 60)}:${String(item.completionSeconds % 60).padStart(2, '0')}`,
+                        )}
                       </span>
                     ) : (
                       <span>
-                        {item.rounds} {labels.rounds}
+                        {(item.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace(
+                          '{{count}}',
+                          String(item.rounds),
+                        )}
                       </span>
                     )}
                   </div>
