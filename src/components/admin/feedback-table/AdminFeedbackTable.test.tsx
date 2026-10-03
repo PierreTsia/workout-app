@@ -65,18 +65,29 @@ describe("admin feedback table", () => {
   })
 
   // The old toolbar had a bespoke segmented control; the status filter now
-  // lives in the core's FacetDef.
-  it("filters by status through the facet", async () => {
+  // lives in the core's FacetDef. No "all" wildcard on a multi-select facet:
+  // it unioned with a real value and silently cancelled the filter. Clear is
+  // how the unfiltered state is reached.
+  it("filters by status through the facet and clears it", async () => {
     const user = userEvent.setup()
     render()
 
     expect(screen.getByText("Curl biceps")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Status", expanded: false }))
+
+    expect(
+      screen.queryByRole("menuitem", { name: /^All/ }),
+    ).not.toBeInTheDocument()
+
     await user.click(screen.getByRole("menuitem", { name: /^Resolved/ }))
 
     expect(screen.getByText("Curl biceps")).toBeInTheDocument()
     expect(screen.queryByText("Développé couché")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("menuitem", { name: "Clear" }))
+
+    expect(screen.getByText("Développé couché")).toBeInTheDocument()
   })
 
   it("searches by exercise name", async () => {

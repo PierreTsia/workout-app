@@ -109,18 +109,29 @@ describe("admin exercises table", () => {
   })
 
   // The review tri-state now lives in the core's FacetDef, not a bespoke
-  // segmented control.
-  it("filters by review status through the facet", async () => {
+  // segmented control. Multi-select facets have no "all" wildcard: it combined
+  // with a real value into a union that silently cancelled the filter. The
+  // unfiltered state is the facet's Clear action.
+  it("filters by review status and clears through the facet", async () => {
     const user = userEvent.setup()
     render()
 
     expect(screen.getByText("Curl biceps")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: /review status/i }))
+
+    expect(
+      screen.queryByRole("menuitem", { name: /^All/ }),
+    ).not.toBeInTheDocument()
+
     await user.click(screen.getByRole("menuitem", { name: /^Reviewed/ }))
 
     expect(screen.getByText("Développé couché")).toBeInTheDocument()
     expect(screen.queryByText("Curl biceps")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("menuitem", { name: "Clear" }))
+
+    expect(screen.getByText("Curl biceps")).toBeInTheDocument()
   })
 
   // The baseline showed 50 rows per page (`Page 1 of 2`); the core defaults to

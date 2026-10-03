@@ -146,7 +146,7 @@ export function getColumns(
         )
       },
       filterFn: (row, _id, values: string[]) => {
-        if (values.length === 0 || values.includes("all")) return true
+        if (values.length === 0) return true
         return values.includes(row.original.status)
       },
     },

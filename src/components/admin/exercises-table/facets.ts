@@ -7,8 +7,9 @@ import type { CatalogLabels } from "./columns"
 
 /**
  * The review tri-state as a core facet. Id matches the `reviewed` column so the
- * shell routes the selection into that column's filter; `all` is the wildcard
- * option the old segmented control exposed.
+ * shell routes the selection into that column's filter. No "all" wildcard: the
+ * facet is multi-select, so `all` unioned with a real value and silently
+ * cancelled the filter. The unfiltered state is the facet's Clear action.
  */
 export function reviewStatusFacet(
   t: TFunction<"admin">,
@@ -19,7 +20,6 @@ export function reviewStatusFacet(
     id: "reviewed",
     label: t("reviewedFilter"),
     options: [
-      { value: "all", label: t("allReviewStatus"), count: exercises.length },
       {
         value: "not_reviewed",
         label: t("notReviewed"),

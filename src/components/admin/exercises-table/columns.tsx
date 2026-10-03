@@ -147,7 +147,7 @@ export function getColumns(
           </Badge>
         ),
       filterFn: (row, _id, values: string[]) => {
-        if (values.length === 0 || values.includes("all")) return true
+        if (values.length === 0) return true
         const status = row.original.reviewed_at ? "reviewed" : "not_reviewed"
         return values.includes(status)
       },

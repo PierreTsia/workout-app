@@ -24,9 +24,10 @@ export function feedbackStatusLabel(
 
 /**
  * The status filter as a core facet. Id matches the `status` column so the
- * shell routes the selection into that column's filter; `all` is the wildcard
- * option the old segmented control exposed. Counts come from the loaded rows,
- * like the exercises review facet.
+ * shell routes the selection into that column's filter. No "all" wildcard: the
+ * facet is multi-select, so `all` unioned with a real value and silently
+ * cancelled the filter. Counts come from the loaded rows, like the exercises
+ * review facet; the unfiltered state is the facet's Clear action.
  */
 export function statusFacet(
   t: TFunction<"admin">,
@@ -35,14 +36,11 @@ export function statusFacet(
   return {
     id: "status",
     label: t("feedback.columns.status"),
-    options: [
-      { value: "all", label: t("feedback.allStatus"), count: rows.length },
-      ...FEEDBACK_STATUSES.map((status) => ({
-        value: status,
-        label: feedbackStatusLabel(t, status),
-        count: rows.filter((row) => row.status === status).length,
-      })),
-    ],
+    options: FEEDBACK_STATUSES.map((status) => ({
+      value: status,
+      label: feedbackStatusLabel(t, status),
+      count: rows.filter((row) => row.status === status).length,
+    })),
   }
 }
 
