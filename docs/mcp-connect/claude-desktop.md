@@ -61,6 +61,8 @@ The skill triggers automatically on training-related prompts (FR or EN); no need
 
 **Nine tools** — seven reads, two writes.
 
+On Claude (Desktop and mobile) `update_program`'s dry run also renders a **card** of the change with an **Apply** button — approve the edit right in the conversation instead of typing “apply”. On hosts without MCP Apps, the classic `dry_run: true → false` flow still works unchanged.
+
 ## Example conversation
 
 Try this sequence to test the full coaching experience:

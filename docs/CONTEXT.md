@@ -43,15 +43,27 @@ Third variant in a day's MCP `exercises[]` array (alongside bare UUID and solo p
 → `file:supabase/functions/mcp/tools/createProgram.ts`, ADR `file:docs/adr/0011-mcp-circuit-items-in-exercises-array.md`
 
 **Write Consent**:
-The handshake an **External MCP Client** must complete before a write persists: a first call with `dry_run: true`, then a commit call whose payload **echoes the previewed payload unchanged**, guarded by a **Jev** Noul on that payload. Consent is the echoed payload itself — not a token, not a second concept; a differently-shaped second payload is a different operation and must be previewed again. Same shape as the app's own two-phase flows (`generate-quick-workout` → `commit-quick-workout`). v1 contract decision: [#287](https://github.com/PierreTsia/workout-app/issues/287), ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`.
+The handshake an **External MCP Client** must complete before a write persists: a first call with `dry_run: true`, then a commit call whose payload **echoes the previewed payload unchanged**, guarded by a **Jev** Noul on that payload. Consent is the echoed payload itself — not a token, not a second concept; a differently-shaped second payload is a different operation and must be previewed again. Same shape as the app's own two-phase flows (`generate-quick-workout` → `commit-quick-workout`). v1 contract decision: [#287](https://github.com/PierreTsia/workout-app/issues/287), ADR `file:docs/adr/0023-jev-verdicts-only-embedded-agent.md`. **Two roads since ADR `file:docs/adr/0028-view-intention-and-consent-token.md`:** (a) the model echo + **Jev** Noul above — the classic path; (b) a **Decision Card**'s click, materialised by a server-signed **Preview Token** — the view path. A token is not a forbidden second concept there; it is the material proof of the click.
 
 **MCP App View**:
-A read-only GymLogic composite served as a self-sufficient resource (`ui://gymlogic/…`, `text/html;profile=mcp-app`) that a tool references through `_meta.ui.resourceUri` and the host renders in a sandboxed iframe. It **emits intentions, never writes** (same invariant as **Write Consent**), speaks the standard MCP Apps dialect (not Nomos's in-house bridge), and derives its CSS from the same Nomos tokens as the app. Contract: ADR `file:docs/adr/0027-agentic-view-contract.md`.
+A read-only GymLogic composite served as a self-sufficient resource (`ui://gymlogic/…`, `text/html;profile=mcp-app`) that a tool references through `_meta.ui.resourceUri` and the host renders in a sandboxed iframe. It **emits intentions, never writes *directly*** (same invariant as **Write Consent**), speaks the standard MCP Apps dialect (not Nomos's in-house bridge), and derives its CSS from the same Nomos tokens as the app. Contract: ADR `file:docs/adr/0027-agentic-view-contract.md`.
 → `file:supabase/functions/mcp/resources/registry.ts`
 
 **Session Card**:
 The first **MCP App View** (`ui://gymlogic/session-card`): a read-only card of the athlete's most recent finished **Session** — day label, exercises / **Circuits**, **Tonnage** — assembled from Nomos `Card` / `Badge` / `Meter`, triggered by the `render_session_card` tool (`readOnlyHint: true`). Example data first; bound to `get_workout_history` in a later increment.
 → `file:docs/adr/0027-agentic-view-contract.md`
+
+**Decision Card** (UI: FR **Modification du programme** / EN **Program change**):
+The second **MCP App View** (`ui://gymlogic/program-patch`): renders an `update_program` `dry_run` preview — the program as it would be after the patch (`rendered`), removed / added days, warnings — with an **Apply** button. The button asks the host to call **`apply_program_patch`** (`tools/call`); the view never writes directly, the click is the consent. Consent is materialised by the **Preview Token** carried in the tool result.
+→ `file:supabase/functions/mcp/tools/updateProgram.ts`, ADR `file:docs/adr/0028-view-intention-and-consent-token.md`
+
+**Preview Token**:
+A short-TTL HMAC-signed string minted by `update_program` `dry_run:true` and required by **`apply_program_patch`**. It carries the exact previewed patch + user id + expiry, so "what was shown is what applies" holds by construction. It rides `structuredContent` (SEP-1865: outside model context), so the model can neither read nor forge it — the **server** guard a host's `visibility:["app"]` cannot provide alone. Not stored: signed, stateless, idempotent on replay.
+→ `file:supabase/functions/mcp/lib/previewToken.ts`, ADR `file:docs/adr/0028-view-intention-and-consent-token.md`
+
+**App-Only Tool**:
+An MCP tool whose `_meta.ui.visibility` excludes the model (`["app"]`): hidden from the agent's tool list and callable only by a view through the host's `tools/call` (SEP-1865). **Host-enforced, not a server guard** — pair it with a **Preview Token**. Cross-server calls are always blocked for app-only tools. First instance: `apply_program_patch`.
+→ `file:supabase/functions/mcp/tools/registry.ts`
 
 ---
 

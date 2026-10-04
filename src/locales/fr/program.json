@@ -67,5 +67,16 @@
     "edit": "Éditer {{day}}"
   },
   "edit": "Éditer",
-  "pageTitle": "Programme"
+  "pageTitle": "Programme",
+  "mcpView": {
+    "title": "Modification du programme",
+    "apply": "Appliquer",
+    "applying": "Application…",
+    "applied": "Appliqué",
+    "error": "Impossible d'appliquer. Réessaie, ou modifie dans l'app.",
+    "removedDays_one": "Supprime {{count}} jour",
+    "removedDays_other": "Supprime {{count}} jours",
+    "addedDays_one": "Ajoute {{count}} jour",
+    "addedDays_other": "Ajoute {{count}} jours"
+  }
 }

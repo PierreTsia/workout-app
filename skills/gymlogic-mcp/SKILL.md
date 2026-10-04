@@ -99,6 +99,8 @@ There's also one **MCP resource** (`exercise_catalog_schema`) exposing the muscl
 
 And one **MCP App View**: `render_session_card` references `ui://gymlogic/session-card` (`text/html;profile=mcp-app`), a self-sufficient, **read-only** document an MCP Apps host renders in a sandboxed iframe. On a host that pushes the tool result, the card shows the athlete's latest finished session; on any other client, the tool falls back to its text summary.
 
+`update_program`'s `dry_run` links a second view, `ui://gymlogic/program-patch` — a **Decision Card** that renders the change and offers an **Apply** button. On an MCP Apps host, the athlete can approve the edit *in the conversation*: the card asks the host to call **`apply_program_patch`** (an app-only tool, hidden from you) with a server-signed preview token. **You never call `apply_program_patch` yourself** — you propose (dry run), the human applies. On a host without MCP Apps, nothing changes: keep the classic `dry_run: true → false` handshake below.
+
 ---
 
 ## Discovery flow — read & inspect a program
@@ -148,6 +150,7 @@ Agent: calls the tool, echoes back the created ID + canonical fields.
 - ❌ Skipping the echo step. The server may have applied a default the user didn't notice (e.g. `dry_run` left at `true` and nothing actually persisted — see Pattern 4 below).
 - ❌ Stitching two propose steps without intermediate consent (e.g. *"I see a calendar event for gym at 7am, I'll pre-create the session and log my best guess"* — no, ask first, then ask again before logging).
 - ❌ Re-using a payload the user confirmed 5 turns ago for a *different* tool. Each `act` step needs its own fresh `propose` + `confirm`.
+- ❌ Calling `apply_program_patch`. It is **app-only** — the Decision Card calls it on the athlete's click, carrying a preview token only the view receives. If you can see the tool at all, that is a host bug: do not call it, and do not try to guess a token.
 
 ---
 
