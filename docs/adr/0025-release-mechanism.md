@@ -1,8 +1,8 @@
 # ADR 0025 — Release mechanism: release-please, deploy gated on the release
 
-- **Status:** Accepted
+- **Status:** Accepted · amended by 0028 (§4, for `web/**` only)
 - **Date:** 2026-10-01
-- **Decided in:** grilling session (`grill-with-docs`) for [#328](https://github.com/PierreTsia/workout-app/issues/328); amended 2026-10-01 for [#584](https://github.com/PierreTsia/workout-app/issues/584) (SPA displays the release version)
+- **Decided in:** grilling session (`grill-with-docs`) for [#328](https://github.com/PierreTsia/workout-app/issues/328); amended 2026-10-01 for [#584](https://github.com/PierreTsia/workout-app/issues/584) (SPA displays the release version); amended 2026-10-04 by [ADR 0028](./0028-docs-site-deploys-on-merge.md) — the `web/` mini-site deploys on merge, because a `docs` commit can never cut the release this section gates it on
 
 ## Context
 

@@ -20,8 +20,7 @@ issue that measured them).
   ADR wins there.
 - **Superseded by ADR NNNN** — no longer in force; the replacing ADR wins.
 
-As of 2026-09-28 no ADR in this corpus is fully **Superseded**. Three carry a
-partial amendment, recorded inline as `Amended by`: 0007, 0008, 0016.
+As of 2026-10-04 no ADR in this corpus is fully **Superseded**. Four carry a partial amendment: 0007, 0008, 0016, and 0025 (§4, for `web/**` only, by 0028).
 
 ## Numbering: the `0006` collision
 
@@ -75,3 +74,4 @@ references — use the slug.
 | 0025 | Accepted | 2026-10-01 | Release mechanism: release-please, deploy gated on the release | [0025-release-mechanism.md](./0025-release-mechanism.md) |
 | 0026 | Accepted | 2026-10-01 | Deviation storage: dedicated table, referenced set, Jev-agnostic | [0026-deviation-storage.md](./0026-deviation-storage.md) |
 | 0027 | Accepted | 2026-10-03 | MCP App views follow the standard MCP Apps contract, Nomos as visual source | [0027-agentic-view-contract.md](./0027-agentic-view-contract.md) |
+| 0028 | Accepted · amends 0025 | 2026-10-04 | The docs mini-site deploys on merge, not on a release | [0028-docs-site-deploys-on-merge.md](./0028-docs-site-deploys-on-merge.md) |

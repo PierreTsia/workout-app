@@ -1,0 +1,40 @@
+name: deploy-web
+
+# The docs mini-site (web/) deploys on merge — ADR 0028, which amends ADR 0025 §4
+# for this artefact only. The SPA and the Supabase Edge Functions keep the release
+# gate, for the reasons ADR 0025 §4 gives: the SPA is a versioned artefact whose
+# service-worker precache a byte-identical redeploy busts, and SERVER_INFO.version
+# must name the release that shipped it. The mini-site is static content with no
+# version and no runtime contract, so none of that applies.
+#
+# Same secrets and the same Vercel path as the `deploy-web` job in
+# release-deploy.yml — the only difference is the trigger. `vercel deploy` runs
+# from the repository root because the Vercel project's Root Directory is `web/`.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+  workflow_dispatch:
+
+# Deliberately the same group as release-deploy: a release and a content merge
+# must never deploy the same Vercel project at the same time.
+concurrency:
+  group: release-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
