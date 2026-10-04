@@ -24,6 +24,7 @@ if (rootElement) {
 
   connectAppBridge(window, {
     appInfo: { name: 'gymlogic-session-card', version: '1.0.0' },
+    observeSize: rootElement,
     onToolResult: (structuredContent) => {
       if (structuredContent && typeof structuredContent === 'object' && 'session' in structuredContent) {
         render(structuredContent as SessionCardPayload)
