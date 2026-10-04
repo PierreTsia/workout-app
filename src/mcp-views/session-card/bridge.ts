@@ -1,7 +1,7 @@
 /**
  * Minimal, dependency-free **MCP Apps view bridge** (ADR 0027, SEP-1865). The view's own
- * contract is tiny — a handshake and receiving the tool result — so we implement it
- * directly instead of pulling the `@modelcontextprotocol/ext-apps` SDK (+ its
+ * contract is tiny — a handshake, receiving the tool result, and reporting its size — so we
+ * implement it directly instead of pulling the `@modelcontextprotocol/ext-apps` SDK (+ its
  * `client`/`core`/`zod` tree) into every host's sandboxed iframe.
  *
  * The bridge only speaks JSON-RPC 2.0 over `postMessage`; it never mutates anything the
@@ -16,6 +16,11 @@ export type AppBridgeOptions = {
   onToolResult: (structuredContent: unknown) => void
   /** Optional host appearance (theme) pushed after the handshake. */
   onHostContext?: (context: { theme?: string }) => void
+  /**
+   * Element whose size is reported to the host (`ui/notifications/size-changed`). Without
+   * it the host keeps a default iframe height and **clips** tall views.
+   */
+  observeSize?: HTMLElement
 }
 
 type JsonRpcMessage = {
@@ -26,7 +31,7 @@ type JsonRpcMessage = {
   result?: unknown
 }
 
-export function connectAppBridge(win: Window, { appInfo, onToolResult, onHostContext }: AppBridgeOptions): void {
+export function connectAppBridge(win: Window, { appInfo, onToolResult, onHostContext, observeSize }: AppBridgeOptions): void {
   const pending = new Map<number, (result: unknown) => void>()
   let seq = 0
 
@@ -59,11 +64,24 @@ export function connectAppBridge(win: Window, { appInfo, onToolResult, onHostCon
       post({ jsonrpc: '2.0', id, method, params })
     })
 
+  const reportSize = () => {
+    if (!observeSize) return
+    post({
+      jsonrpc: '2.0',
+      method: 'ui/notifications/size-changed',
+      params: { width: observeSize.scrollWidth, height: observeSize.scrollHeight },
+    })
+  }
+
   void request('ui/initialize', {
     appInfo,
     appCapabilities: {},
     protocolVersion: PROTOCOL_VERSION,
   }).then(() => {
     post({ jsonrpc: '2.0', method: 'ui/notifications/initialized' })
+    reportSize()
+    if (observeSize && typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(reportSize).observe(observeSize)
+    }
   })
 }

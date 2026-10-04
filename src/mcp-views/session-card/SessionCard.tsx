@@ -3,12 +3,14 @@ import { Badge, Card, CardContent, CardHeader, CardTitle, Meter } from '@nomosui
 import type { SessionCardLabels, SessionCardPayload } from './types'
 
 const panel = {
+  width: '100%',
   maxWidth: 520,
   margin: '0 auto',
-  padding: 16,
+  padding: 12,
+  boxSizing: 'border-box' as const,
   display: 'flex',
   flexDirection: 'column' as const,
-  gap: 12,
+  gap: 10,
 }
 
 export function SessionCard({
