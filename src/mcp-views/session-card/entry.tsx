@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 
-import { connectAppBridge } from './bridge'
+import { connectAppBridge } from '../bridge'
 import { SessionCard } from './SessionCard'
 import { examplePayload } from './example'
 import { labelsFor } from './labels'

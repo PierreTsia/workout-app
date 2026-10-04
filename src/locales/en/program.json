@@ -67,5 +67,16 @@
     "edit": "Edit {{day}}"
   },
   "edit": "Edit",
-  "pageTitle": "Program"
+  "pageTitle": "Program",
+  "mcpView": {
+    "title": "Program change",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "applied": "Applied",
+    "error": "Couldn't apply. Try again, or edit in the app.",
+    "removedDays_one": "Removes {{count}} day",
+    "removedDays_other": "Removes {{count}} days",
+    "addedDays_one": "Adds {{count}} day",
+    "addedDays_other": "Adds {{count}} days"
+  }
 }
