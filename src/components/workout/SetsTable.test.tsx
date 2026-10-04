@@ -416,6 +416,52 @@ describe("SetsTable", () => {
     expect(enqueueDeviationMock).toHaveBeenCalledTimes(2)
   })
 
+  // A re-log that merges into the previous set's decision drops this set's own
+// stale event (it is no longer a decision of its own).
+  it("tombstones a set's event when a re-log merges it into the previous decision", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    // Set 1 → 72.5 (decision A), set 2 → 80 (decision B).
+    const firstWeight = screen.getAllByRole("textbox")[1]
+    await user.clear(firstWeight)
+    await user.type(firstWeight, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+
+    const secondWeight = screen.getAllByRole("textbox")[3]
+    await user.clear(secondWeight)
+    await user.type(secondWeight, "80")
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(2)
+
+    // Uncheck set 2 and re-log it at 72.5 — it now merges into decision A.
+    await user.click(screen.getAllByRole("checkbox")[1])
+    const secondAgain = screen.getAllByRole("textbox")[3]
+    await user.clear(secondAgain)
+    await user.type(secondAgain, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueDeviationDeleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        workoutExerciseId: "workout-ex-1",
+        exerciseId: "library-ex-1",
+        setNumber: 2,
+        kind: "load_deviation",
+      }),
+    )
+  })
+
   // Cycle 13: SetsTable must populate the Prescription Snapshot fields on
   // every enqueueSetLog so the server-side processSetLog can persist them
   // to set_logs.prescribed_*. Engine reads them on subsequent sessions to

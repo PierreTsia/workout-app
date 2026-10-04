@@ -85,7 +85,7 @@ graph TD
 | Set returns to prescription | stale event tombstoned (unchanged) |
 | First set conforms, second deviates | prompt on the second set (previous conforms ≠ current) |
 | Reps change, weight unchanged | treated as a new decision → prompt |
-| Previous set unchecked / removed | previous row is no longer `done`; predicate sees the row as-is — a removed set is popped from the array, so the comparison falls back to the new last row |
+| Previous set unchecked | the row stays in the array with `done: false`; the predicate requires a **logged** anchor, so it does not match and the set is treated as a new decision |
 
 ---
 

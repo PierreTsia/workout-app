@@ -479,10 +479,13 @@ export function SetsTable({
       const previousSet = setIdx > 0 ? exerciseSets[setIdx - 1] : null
       // A run of consecutive sets at the same load is ONE load decision: capture
       // the reason on the first set, don't re-ask while the load repeats. The
-      // prompt returns only when the load changes again (a new decision).
+      // prompt returns only when the load changes again (a new decision). The
+      // anchor must be a *logged* set — an unlogged neighbour is not a decision.
       const continuesPrevious = sameLoadAsPrevious(
         { reps: currentSet.reps, weight: currentSet.weight },
-        previousSet && isRepsRow(previousSet) ? previousSet : null,
+        previousSet && previousSet.done && isRepsRow(previousSet)
+          ? previousSet
+          : null,
       )
       if (
         !continuesPrevious &&

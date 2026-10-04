@@ -67,6 +67,18 @@ describe("sameLoadAsPrevious", () => {
       sameLoadAsPrevious(makeRow({ weight: "60" }), makeRow({ weight: "60.0" })),
     ).toBe(true)
   })
+
+  it("is false when either weight is blank — an unfinished input is no decision", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ weight: "" }), makeRow({ weight: "" })),
+    ).toBe(false)
+  })
+
+  it("is false when either reps value is blank", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ reps: "" }), makeRow({ reps: "" })),
+    ).toBe(false)
+  })
 })
 
 describe("buildLoadDeviationPayload", () => {

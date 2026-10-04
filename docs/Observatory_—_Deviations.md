@@ -9,6 +9,12 @@ T267 the session debrief + session note; ADR `file:docs/adr/0026-deviation-stora
 no `note` content. Catalog ids (`exercise_id`) are fine; they are not people.
 Read-only.
 
+**Semantics change (#638, 2026-10-04):** `session_deviation_events` now holds **one
+row per load decision**, not per set — a run of consecutive sets at the same load
+prompts once and writes one event. Raw event counts (and the 30-event run #1
+baseline) are therefore **not comparable** across the boundary; the per-session
+rate and the tap-adoption share stay comparable. Start a new run boundary here.
+
 ## What we measure
 
 Run these in the Supabase SQL editor (project `favusepjqwpcroiolvaz`). The first
