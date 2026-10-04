@@ -6,6 +6,7 @@ import {
   buildBlockMetaMap,
   groupSessionHistory,
   type BlockExerciseMetaRow,
+  type BlockHistoryCell,
   type BlockHistoryGroup,
   type HistoryBlockRun,
   type HistorySetLog,
@@ -106,14 +107,22 @@ function blockCells(group: BlockHistoryGroup): CompletionCell[] {
   )
 }
 
+/** The tool's `locale` argument wins, then the athlete's stored locale, then English. */
+export function resolveCardLocale(arg: unknown, profileLocale: unknown): SessionCardLocale {
+  if (arg === "en" || arg === "fr") return arg
+  if (profileLocale === "en" || profileLocale === "fr") return profileLocale
+  return "en"
+}
+
 function toItem(
   item: SessionHistoryItem,
   modeByBlockId: Map<string, "rounds" | "amrap">,
+  nameById: Map<string, string>,
 ): SessionCardItem {
   if (item.kind === "solo") {
     return {
       kind: "solo",
-      name: item.exercise_name_snapshot,
+      name: nameById.get(item.key) ?? item.exercise_name_snapshot,
       sets: item.sets.map((log) => ({
         measure: measureLabel(log),
         weightKg: log.weight_logged,
@@ -125,12 +134,21 @@ function toItem(
   const mode = modeByBlockId.get(item.key) ?? "rounds"
   const base = { kind: "circuit" as const, label: item.label ?? "", mode, rounds: item.rounds.length }
   if (mode === "amrap" && item.amrapScore) {
+    const leftover = item.rounds
+      .flatMap((round) => round.cells)
+      .reduce<BlockHistoryCell | null>((best, cell) => {
+        if (best == null) return cell
+        if (cell.log.set_number !== best.log.set_number) {
+          return cell.log.set_number > best.log.set_number ? cell : best
+        }
+        return cell.log.logged_at > best.log.logged_at ? cell : best
+      }, null)
     return {
       ...base,
       amrap: {
         fullRounds: item.amrapScore.fullRounds,
         leftover: item.amrapScore.leftover,
-        leftoverName: item.amrapScore.leftoverName,
+        leftoverName: (leftover && nameById.get(leftover.log.exercise_id)) ?? item.amrapScore.leftoverName,
       },
     }
   }
@@ -214,6 +232,19 @@ export async function buildSessionCardPayload(
   const grouped = groupSessionHistory(logs, metaById)
   const items = attachAmrapScores(grouped, runs, sessionId)
 
+  const nameById = new Map<string, string>()
+  const exerciseIds = [...new Set(logs.map((log) => log.exercise_id))]
+  if (exerciseIds.length > 0) {
+    const { data, error } = await supabase
+      .from("exercises")
+      .select("id, name, name_en")
+      .in("id", exerciseIds)
+    if (error) throw new Error(`exercises: ${error.message}`)
+    for (const row of data ?? []) {
+      nameById.set(String(row.id), locale === "fr" ? String(row.name) : String(row.name_en ?? row.name))
+    }
+  }
+
   return {
     locale,
     session: {
@@ -231,6 +262,6 @@ export async function buildSessionCardPayload(
       setsDone: Number(session.total_sets_done),
     },
     tonnageKg: Math.round(sessionTonnageKg(logs)),
-    items: items.map((item) => toItem(item, modeByBlockId)),
+    items: items.map((item) => toItem(item, modeByBlockId, nameById)),
   }
 }
