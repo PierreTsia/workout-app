@@ -17,6 +17,7 @@ const payload = (over: Partial<PreviewPayload> = {}): PreviewPayload => ({
   u: "11111111-1111-4111-8111-111111111111",
   exp: Math.floor(Date.now() / 1000) + 60,
   p: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  confirm: false,
   patch: { program_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", name: "Push" },
   ...over,
 })

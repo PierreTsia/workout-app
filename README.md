@@ -24,13 +24,21 @@ GymLogic exposes your training data as an [MCP (Model Context Protocol)](https:/
 | Tool | What it does |
 |---|---|
 | `search_exercises` | Search 360+ exercises by name (FR/EN), muscle group, equipment, difficulty |
+| `resolve_exercises` | Resolve several exercise names to UUIDs in one call, with `weight_convention` / `measurement_type` |
 | `get_exercise_details` | Full exercise metadata: instructions, muscles, equipment, media |
 | `get_workout_history` | Past sessions with sets, weights, and PR flags |
 | `get_training_stats` | Volume by muscle group, personal records, session frequency |
 | `get_upcoming_workouts` | Programmed training days and exercises |
-| `create_program` | **Create or replace** your active multi-day program: persist `programs` + `workout_days` + `workout_exercises` (same row rules as the in-app AI preview). Defaults to **`dry_run: true`** (JSON preview only); **`dry_run: false`** commits, deactivates other active programs, and sets this one active so it shows up in the app. |
+| `list_programs` | All your programs (active / drafts / archived) with id, day count, active-cycle flag |
+| `get_program_details` | One program's full structure by UUID — days, exercises, sets / reps / weights / rest |
+| `create_program` | **Create or replace** your active multi-day program. Defaults to **`dry_run: true`** (JSON preview only); **`dry_run: false`** commits and sets it active |
+| `update_program` | **Edit an existing program in place** by `program_id` — rename, add / remove / reorder days, swap exercises, revise prescriptions. Preserves logged history. `dry_run: true` by default |
+| `create_workout_day` | One **ad-hoc session** (`program_id: null`) without touching the active program. `dry_run: true` by default |
+| `render_session_card` | Show the latest finished session as a **card** in an MCP Apps host (Claude Desktop / mobile); a text summary elsewhere |
 
-**Six tools** and **one MCP Resource** (`exercise_catalog_schema`) exposing the domain taxonomy so agents understand the vocabulary without burning tool calls.
+Plus an app-only **`apply_program_patch`** (hidden from the model) that a conversation **Decision Card** calls when the athlete clicks Apply.
+
+**Twelve tools**, one app-only apply tool, **one MCP Resource** (`exercise_catalog_schema`), and **two MCP App Views** (`ui://gymlogic/session-card`, `ui://gymlogic/program-patch`).
 
 The MCP server runs as a single Supabase Edge Function with hand-rolled JSON-RPC 2.0, **OAuth 2.1 for in-app client auth** *or* **Personal Access Tokens for headless / long-lived auth**, and RLS-scoped queries so each user only sees their own data (reads and writes).
 

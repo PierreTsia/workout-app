@@ -71,10 +71,11 @@ export const applyProgramPatch: ToolDefinition = {
       }
     }
 
-    // The click is the consent: the card showed the preview (including any removed days),
-    // so confirm is implied. `update_program` stays the single write implementation.
+    // The click is the consent — but only for the change the athlete was shown. `confirm`
+    // is the preview's own destructiveness, replayed: if the program changed since and the
+    // diff became destructive, `update_program` blocks instead of deleting an unseen day.
     return updateProgram.handler(
-      { ...payload.patch, dry_run: false, confirm: true },
+      { ...payload.patch, dry_run: false, confirm: payload.confirm },
       supabase,
     )
   },
