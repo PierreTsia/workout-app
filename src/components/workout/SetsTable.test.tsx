@@ -347,6 +347,121 @@ describe("SetsTable", () => {
     )
   })
 
+  it("does not re-prompt when the next set repeats the same deviated load", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    // Set 1 deviates to 72.5 and captures a reason.
+    const firstWeight = screen.getAllByRole("textbox")[1]
+    await user.clear(firstWeight)
+    await user.type(firstWeight, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(1)
+
+    // Set 2 keeps the exact same 72.5 — same decision, no second prompt.
+    const secondWeight = screen.getAllByRole("textbox")[3]
+    await user.clear(secondWeight)
+    await user.type(secondWeight, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(screen.queryByTestId("deviation-sheet")).not.toBeInTheDocument()
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("re-prompts when the load changes again after a repeated set", async () => {
+    const user = userEvent.setup()
+    const threeSets: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, threeSets)
+    })
+
+    // Set 1 → 72.5, set 2 → 72.5 (one decision), set 3 → 80 (a new decision).
+    for (const [idx, weight] of [
+      [0, "72.5"],
+      [1, "72.5"],
+      [2, "80"],
+    ] as const) {
+      const input = screen.getAllByRole("textbox")[idx * 2 + 1]
+      await user.clear(input)
+      await user.type(input, weight)
+      await user.click(screen.getAllByRole("checkbox")[idx])
+      await user.click(screen.getByTestId("rir-confirm"))
+      if (idx < 2 && screen.queryByTestId("deviation-sheet")) {
+        await user.click(screen.getByTestId("deviation-save"))
+      }
+    }
+
+    expect(screen.getByTestId("deviation-sheet")).toBeInTheDocument()
+    await user.click(screen.getByTestId("deviation-save"))
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(2)
+  })
+
+  // A re-log that merges into the previous set's decision drops this set's own
+// stale event (it is no longer a decision of its own).
+  it("tombstones a set's event when a re-log merges it into the previous decision", async () => {
+    const user = userEvent.setup()
+    const { store } = renderWithProviders(
+      <SetsTable exercise={EXERCISE} sessionId="session-1" isReadOnly={false} />,
+    )
+    act(() => {
+      store.set(sessionAtom, BASE_SESSION)
+    })
+
+    // Set 1 → 72.5 (decision A), set 2 → 80 (decision B).
+    const firstWeight = screen.getAllByRole("textbox")[1]
+    await user.clear(firstWeight)
+    await user.type(firstWeight, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+
+    const secondWeight = screen.getAllByRole("textbox")[3]
+    await user.clear(secondWeight)
+    await user.type(secondWeight, "80")
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+    await user.click(screen.getByTestId("deviation-save"))
+    expect(enqueueDeviationMock).toHaveBeenCalledTimes(2)
+
+    // Uncheck set 2 and re-log it at 72.5 — it now merges into decision A.
+    await user.click(screen.getAllByRole("checkbox")[1])
+    const secondAgain = screen.getAllByRole("textbox")[3]
+    await user.clear(secondAgain)
+    await user.type(secondAgain, "72.5")
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueDeviationDeleteMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        workoutExerciseId: "workout-ex-1",
+        exerciseId: "library-ex-1",
+        setNumber: 2,
+        kind: "load_deviation",
+      }),
+    )
+  })
+
   // Cycle 13: SetsTable must populate the Prescription Snapshot fields on
   // every enqueueSetLog so the server-side processSetLog can persist them
   // to set_logs.prescribed_*. Engine reads them on subsequent sessions to

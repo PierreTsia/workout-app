@@ -237,6 +237,34 @@ export function isLoadDeviation(
   )
 }
 
+/**
+ * True when this set merely repeats the previous logged set's load — the same
+ * decision, not a new one. A run of identical sets captures the Deviation Reason
+ * once; the prompt returns only when the load changes again. A blank or
+ * unparseable value never counts as "same": an unfinished input is not a decision.
+ */
+export function sameLoadAsPrevious(
+  current: LoggedSet,
+  previous: LoggedSet | null,
+): boolean {
+  if (!previous) return false
+  const blank = (value: string) => value.trim() === ""
+  if (
+    blank(current.weight) ||
+    blank(previous.weight) ||
+    blank(current.reps) ||
+    blank(previous.reps)
+  ) {
+    return false
+  }
+  const currentWeight = Number(current.weight)
+  const previousWeight = Number(previous.weight)
+  const currentReps = parseInt(current.reps, 10)
+  const previousReps = parseInt(previous.reps, 10)
+  if (Number.isNaN(currentReps) || Number.isNaN(previousReps)) return false
+  return currentWeight === previousWeight && currentReps === previousReps
+}
+
 /** Shape a load-deviation event. Trims the note; a blank note collapses to null. */
 export function buildLoadDeviationPayload(
   input: LoadDeviationInput,

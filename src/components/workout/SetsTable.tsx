@@ -32,6 +32,7 @@ import {
 import {
   buildLoadDeviationPayload,
   isLoadDeviation,
+  sameLoadAsPrevious,
 } from "@/lib/deviationCapture"
 import { DurationSetTimer } from "@/components/workout/DurationSetTimer"
 import {
@@ -475,7 +476,19 @@ export function SetsTable({
       const prescribedReps = prescriptionForLog.reps ?? 0
       const actualReps = parseInt(currentSet.reps, 10)
       const identity = `${exercise.id}|${setIdx + 1}`
+      const previousSet = setIdx > 0 ? exerciseSets[setIdx - 1] : null
+      // A run of consecutive sets at the same load is ONE load decision: capture
+      // the reason on the first set, don't re-ask while the load repeats. The
+      // prompt returns only when the load changes again (a new decision). The
+      // anchor must be a *logged* set — an unlogged neighbour is not a decision.
+      const continuesPrevious = sameLoadAsPrevious(
+        { reps: currentSet.reps, weight: currentSet.weight },
+        previousSet && previousSet.done && isRepsRow(previousSet)
+          ? previousSet
+          : null,
+      )
       if (
+        !continuesPrevious &&
         isLoadDeviation(
           { reps: currentSet.reps, weight: currentSet.weight },
           { reps: prescribedReps, weight: prescribedDisplay },
@@ -492,7 +505,8 @@ export function SetsTable({
           actualReps: currentSet.reps,
         })
       } else if (recordedDeviationsRef.current.has(identity)) {
-        // Re-log returned to the prescription: drop the stale deviation.
+        // The set no longer stands on its own: it returned to the prescription,
+        // or it merged into the previous set's decision. Drop its stale event.
         recordedDeviationsRef.current.delete(identity)
         enqueueDeviationDelete({
           sessionId,
