@@ -935,25 +935,31 @@ export function drainQueue(userId: string): Promise<void> {
 // Supabase operations
 // ---------------------------------------------------------------------------
 
-async function upsertSession(row: {
-  id: string
-  user_id: string
-  workout_day_id: string | null
-  workout_label_snapshot: string
-  started_at: string
-  finished_at?: string
-  active_duration_ms?: number
-  total_sets_done?: number
-  has_skipped_sets?: boolean
-  cycle_id?: string | null
-}) {
-  const first = await supabase.from("sessions").upsert(row, { onConflict: "id" })
+async function upsertSession(
+  row: {
+    id: string
+    user_id: string
+    workout_day_id: string | null
+    workout_label_snapshot: string
+    started_at: string
+    finished_at?: string
+    active_duration_ms?: number
+    total_sets_done?: number
+    has_skipped_sets?: boolean
+    cycle_id?: string | null
+  },
+  // The partial branch only needs the row to exist (FK): DO NOTHING on conflict
+  // so it can never mutate a row it does not own — a closed session included.
+  ignoreDuplicates = false,
+) {
+  const opts = { onConflict: "id", ignoreDuplicates }
+  const first = await supabase.from("sessions").upsert(row, opts)
   if (first.error?.code !== "23503" || row.workout_day_id == null) {
     return first
   }
   return supabase.from("sessions").upsert(
     { ...row, workout_day_id: null },
-    { onConflict: "id" },
+    opts,
   )
 }
 
@@ -1022,20 +1028,23 @@ async function ensureSession(
         return false
       }
     } else {
-      // Partial session (mid-session drain — no finish yet). `total_sets_done`
-      // and `has_skipped_sets` are owned by the finish (#571): omitting them
-      // means ON CONFLICT leaves a finished row's count intact (DB default 0 on
-      // insert) instead of a later drain — a note, a stray set_log — zeroing it.
-      const { error } = await upsertSession({
-        id: realSessionId,
-        user_id: userId,
-        workout_day_id: meta?.workoutDayId ?? null,
-        workout_label_snapshot:
-          meta?.workoutLabelSnapshot || "Workout",
-        started_at: new Date(
-          meta?.startedAt ?? Date.now(),
-        ).toISOString(),
-      })
+      // Partial session (mid-session drain — no finish yet). Insert-only:
+      // DO NOTHING on conflict, so a later drain — a note, a stray set_log —
+      // can never mutate a closed row (total_sets_done, has_skipped_sets,
+      // and any finish-owned column added later). See #635.
+      const { error } = await upsertSession(
+        {
+          id: realSessionId,
+          user_id: userId,
+          workout_day_id: meta?.workoutDayId ?? null,
+          workout_label_snapshot:
+            meta?.workoutLabelSnapshot || "Workout",
+          started_at: new Date(
+            meta?.startedAt ?? Date.now(),
+          ).toISOString(),
+        },
+        true,
+      )
       if (error) {
         console.error("[SyncService] partial session upsert failed", error)
         return false

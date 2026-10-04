@@ -1534,13 +1534,17 @@ describe("SyncService", () => {
     it("does not zero a finished session's total_sets_done on a later drain", async () => {
       enqueueSessionFinish(makeSessionFinishPayload({ totalSetsDone: 18 }))
       await drainQueue(USER_ID)
+      const finishRow = sessionsChain.upsert.mock.calls[0]?.[0]
+      expect(finishRow.total_sets_done).toBe(18)
       sessionsChain.upsert.mockClear()
 
       enqueueSessionNote("local-session-1", "note after finish")
       await drainQueue(USER_ID)
 
-      const partialRow = sessionsChain.upsert.mock.calls[0]?.[0]
-      expect(partialRow.total_sets_done).not.toBe(0)
+      const [partialRow, partialOpts] = sessionsChain.upsert.mock.calls[0] ?? []
+      expect(partialRow).not.toHaveProperty("total_sets_done")
+      expect(partialRow).not.toHaveProperty("has_skipped_sets")
+      expect(partialOpts).toEqual({ onConflict: "id", ignoreDuplicates: true })
     })
   })
 
