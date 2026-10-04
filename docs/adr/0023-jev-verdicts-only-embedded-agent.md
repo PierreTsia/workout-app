@@ -4,6 +4,7 @@
 - **Date:** 2026-09-28
 - **Decided in:** grilling round, HITL direction-lock on [#552](https://github.com/PierreTsia/workout-app/issues/552)
 - **Amended:** 2026-09-28 (see § Correction) — credential state corrected; consent decision reconciled with [#287](https://github.com/PierreTsia/workout-app/issues/287)
+- **Amended:** 2026-10-04 — the signed token is reopened **for the view path** ([#643](https://github.com/PierreTsia/workout-app/issues/643), ADR `file:docs/adr/0028-view-intention-and-consent-token.md`); the *model* path keeps the stored-preview echo. The "signed token rejected" line in § Alternatives applies to the model two-call shape only.
 
 ## Correction (2026-09-28, follow-up to #552)
 

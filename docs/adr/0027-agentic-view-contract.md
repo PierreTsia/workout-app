@@ -54,6 +54,10 @@ visual source only**, and prove it with the thinnest read-only vertical.
 3. **A view never writes.** It emits intentions the host arbitrates, consistent with
    **Write Consent** ([#287](https://github.com/PierreTsia/workout-app/issues/287)). The
    MCP App View is read-only in v1; intensity is the invariant, not a preference.
+   *(Amended by [ADR 0028](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0028-view-intention-and-consent-token.md):
+   a view never writes **directly** — it asks the host to call a tool via `tools/call`,
+   and the user's click is the consent, materialised by a server-signed **Preview Token**.
+   The v1 **Session Card** stays read-only.)*
 4. **First vertical: a read-only Session Card.** `ui://gymlogic/session-card` renders the
    athlete's most recent finished **Session** (day label, exercises/Circuits, tonnage) from
    Nomos `Card` / `Badge` / `Meter`, triggered by a dedicated tool `render_session_card`
