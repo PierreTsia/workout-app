@@ -11,6 +11,7 @@ import { updateProgram } from "./updateProgram.ts"
 import { listPrograms } from "./listPrograms.ts"
 import { getProgramDetails } from "./getProgramDetails.ts"
 import { renderSessionCard } from "./renderSessionCard.ts"
+import { applyProgramPatch } from "./applyProgramPatch.ts"
 
 /**
  * MCP-spec tool annotations (2025-03-26).
@@ -38,11 +39,12 @@ export interface ToolDefinition {
   description: string
   annotations: ToolAnnotations
   /**
-   * MCP Apps link (ADR 0027): `_meta.ui.resourceUri` points the host at the view to render
-   * alongside the tool result. The underscore-prefixed `_meta` is the MCP-reserved field;
-   * it is passed through verbatim by `tools/list`.
+   * MCP Apps link (ADR 0027/0028): `_meta.ui.resourceUri` points the host at the view to
+   * render alongside the tool result; `_meta.ui.visibility: ["app"]` marks an **App-Only
+   * Tool** (hidden from the model, view-callable via `tools/call`). The underscore-prefixed
+   * `_meta` is the MCP-reserved field; it is passed through verbatim by `tools/list`.
    */
-  _meta?: { ui?: { resourceUri: string } }
+  _meta?: { ui?: { resourceUri?: string; visibility?: Array<"model" | "app"> } }
   inputSchema: {
     type: "object"
     properties: Record<string, unknown>
@@ -72,6 +74,7 @@ const tools: ToolDefinition[] = [
   listPrograms,
   getProgramDetails,
   renderSessionCard,
+  applyProgramPatch,
 ]
 
 export const toolRegistry = {

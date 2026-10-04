@@ -40,6 +40,7 @@ import {
   formatActiveCycleWarning,
   formatProgramAfterUpdate,
 } from "../lib/format.ts"
+import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -48,21 +49,17 @@ import type {
 } from "../lib/updateProgramTypes.ts"
 
 type ErrorReply = { content: [{ type: "text"; text: string }]; isError: true }
-type SuccessReply = { content: [{ type: "text"; text: string }]; isError?: false }
-type ToolReply = ErrorReply | SuccessReply
 
 function err(text: string): ErrorReply {
   return { content: [{ type: "text", text }], isError: true }
 }
 
-function ok(text: string, isError = false): ToolReply {
-  return isError
-    ? { content: [{ type: "text", text }], isError: true }
-    : { content: [{ type: "text", text }] }
-}
-
-function jsonReply(payload: unknown, isError = false): ToolReply {
-  return ok(JSON.stringify(payload, null, 2), isError)
+/** The previewed patch, stripped of the control fields the apply path owns. */
+function patchOnly(args: Record<string, unknown>): Record<string, unknown> {
+  const patch = { ...args }
+  delete patch.dry_run
+  delete patch.confirm
+  return patch
 }
 
 interface RawProgramRow {
@@ -151,6 +148,7 @@ export const updateProgram: ToolDefinition = {
     idempotentHint: true,
   },
   description: TOOL_DESCRIPTION,
+  _meta: { ui: { resourceUri: "ui://gymlogic/program-patch" } },
   inputSchema: {
     type: "object",
     properties: {
@@ -374,7 +372,30 @@ export const updateProgram: ToolDefinition = {
           "Dry run preview only — no writes performed. Re-call with `dry_run: false` to apply.",
       }
 
-      return jsonReply(payload, false)
+      // The Decision Card's consent guard (ADR 0028): a signed token carrying the exact
+      // previewed patch. It rides `structuredContent` — outside model context — so the
+      // model can neither read nor forge it. Omitted when no secret is configured.
+      const secret = previewSecret()
+      const preview_token = secret
+        ? await mintPreviewToken(
+            {
+              u: userId,
+              exp: Math.floor(Date.now() / 1000) + PREVIEW_TTL_SECONDS,
+              p: parsedPatch.program_id,
+              patch: patchOnly(args),
+            },
+            secret,
+          )
+        : undefined
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+        structuredContent: {
+          status: "preview",
+          ...payload,
+          ...(preview_token ? { preview_token } : {}),
+        },
+      }
     }
 
     const confirmResult = requireConfirmForDestructive(diff, parsedPatch.confirm)
@@ -392,6 +413,10 @@ export const updateProgram: ToolDefinition = {
       warnings,
       message: applyResult.message,
     }
-    return jsonReply(responsePayload, applyResult.failed_at !== null)
+    return {
+      content: [{ type: "text", text: JSON.stringify(responsePayload, null, 2) }],
+      structuredContent: { status: "applied", ...responsePayload },
+      ...(applyResult.failed_at !== null ? { isError: true } : {}),
+    }
   },
 }
