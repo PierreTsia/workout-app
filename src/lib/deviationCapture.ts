@@ -237,6 +237,22 @@ export function isLoadDeviation(
   )
 }
 
+/**
+ * True when this set merely repeats the previous logged set's load — the same
+ * decision, not a new one. A run of identical sets captures the Deviation Reason
+ * once; the prompt returns only when the load changes again.
+ */
+export function sameLoadAsPrevious(
+  current: LoggedSet,
+  previous: LoggedSet | null,
+): boolean {
+  if (!previous) return false
+  return (
+    Number(current.weight) === Number(previous.weight) &&
+    parseInt(current.reps, 10) === parseInt(previous.reps, 10)
+  )
+}
+
 /** Shape a load-deviation event. Trims the note; a blank note collapses to null. */
 export function buildLoadDeviationPayload(
   input: LoadDeviationInput,

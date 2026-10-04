@@ -5,6 +5,7 @@ import {
   deviationReasonKey,
   isLoadDeviation,
   mergeSessionDeviations,
+  sameLoadAsPrevious,
 } from "@/lib/deviationCapture"
 
 type Row = { reps: string; weight: string }
@@ -35,6 +36,36 @@ describe("isLoadDeviation", () => {
     expect(isLoadDeviation(makeRow({ reps: "6" }), makePrescription())).toBe(
       true,
     )
+  })
+})
+
+describe("sameLoadAsPrevious", () => {
+  it("is false with no previous set", () => {
+    expect(sameLoadAsPrevious(makeRow(), null)).toBe(false)
+  })
+
+  it("is true when weight and reps are unchanged", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ weight: "72.5" }), makeRow({ weight: "72.5" })),
+    ).toBe(true)
+  })
+
+  it("is false when the weight changed", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ weight: "72.5" }), makeRow({ weight: "80" })),
+    ).toBe(false)
+  })
+
+  it("is false when the reps changed", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ reps: "10" }), makeRow({ reps: "8" })),
+    ).toBe(false)
+  })
+
+  it("compares numerically, so formatting noise is not a new decision", () => {
+    expect(
+      sameLoadAsPrevious(makeRow({ weight: "60" }), makeRow({ weight: "60.0" })),
+    ).toBe(true)
   })
 })
 
