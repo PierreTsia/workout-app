@@ -1,0 +1,53 @@
+---
+import { Image } from 'astro:assets'
+
+interface Item {
+  name: string
+  what: string
+}
+
+interface Props {
+  name: string
+  role: string
+  src: ImageMetadata
+  alt: string
+  reads: Item[]
+  runs: Item[]
+}
+
+const { name, role, src, alt, reads, runs } = Astro.props
+---
+
+<aside class="not-prose my-8 grid gap-5 rounded-lg border border-border bg-card p-5 md:grid-cols-[190px_1fr] md:items-start">
+  <div class="mx-auto w-full max-w-[190px] overflow-hidden rounded-md bg-[#f2f2f2] p-2">
+    <Image src={src} alt={alt} widths={[190, 380]} sizes="190px" class="h-auto w-full" />
+  </div>
+
+  <div>
+    <p class="font-mono text-sm text-accent">{name}</p>
+    <p class="mt-1 mb-4 text-sm text-foreground">{role}</p>
+
+    <ul class="space-y-5">
+      {
+        [
+          { label: 'Reads', items: reads },
+          { label: 'Runs', items: runs },
+        ].map((group) => (
+          <li class="list-none">
+            <p class="mb-2 font-mono text-xs tracking-wide text-muted uppercase">
+              {group.label}
+            </p>
+            <div class="space-y-2">
+              {group.items.map((item) => (
+                <div class="grid gap-0.5 md:grid-cols-[minmax(0,13rem)_1fr] md:gap-3">
+                  <code class="font-mono text-xs break-words text-foreground">{item.name}</code>
+                  <span class="text-sm text-muted">{item.what}</span>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</aside>
