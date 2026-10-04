@@ -15,6 +15,50 @@ prompts once and writes one event. Raw event counts (and the 30-event run #1
 baseline) are therefore **not comparable** across the boundary; the per-session
 rate and the tap-adoption share stay comparable. Start a new run boundary here.
 
+**Boundary precision:** the semantics change ships with the PWA, i.e. it lands when
+**#639 (merged 2026-10-04 11:33 UTC) / release 1.5.4 (11:44 UTC)** deploys — not at
+midnight. Any event `created_at < 2026-10-04T11:44Z` is **old semantics**. The
+run below predates it and is *not* the new-boundary run.
+
+## Run log
+
+### Run #1.5 — 2026-10-04, pre-#638 (agrégé, lecture seule)
+
+Full-table dump taken before the 1.5.4 deploy (latest event 10:00:40 UTC). It is
+**run #1 extended**, not a new boundary: same two athletes, now 5 sessions. Kept
+because it is the **repro evidence** for #638 (repeated reason prompt on an
+identical-load run) — not a post-fix sample.
+
+| day | events | sessions | skipped | with_note |
+|---|---|---|---|---|
+| 2026-10-02 | 13 | 1 | 0 | 0 |
+| 2026-10-03 | 17 | 1 | 3 | 1 |
+| 2026-10-04 | 42 | 3 | 15 | 3 |
+| **total** | **72** | **5** | **18** | **4** |
+
+| reason | all | 2026-10-04 only |
+|---|---|---|
+| `strong` | 24 | 3 |
+| *(skipped)* | 18 | 15 |
+| `fatigue` | 10 | 10 |
+| `equipment` | 8 | 8 |
+| `other` | 7 | 6 |
+| `pain` | 5 | 0 |
+
+- **Adoption:** 54/72 = 75 % overall; **27/42 = 64 % on 10-04** (barely over the
+  60 % target, down from run #1's 90 %). Note usage 4/72 = 6 %. Skipped tripled
+  (3/30 → 15/42) — prompt fatigue from the re-ask, not a vocabulary problem.
+- **Repeated-prompt signature (the #638 bug):** identical-load runs wrote one row
+  per set — `192fbeea` `equipment`×4, `dbfb1939` `fatigue`×3, `9b67f8af`
+  `equipment`×3, `e9d79779` `other`×3, `0dd7b758` `other`×3; session `3717a790`
+  wrote exactly 3 rows for each of its 5 exercises (`32708a30` skipped all three).
+- **`strong` collapsed** (21 → 3 on the day). Run #1's `strong`+over signal is not
+  re-testable here (no `set_logs` join in the dump) and the post-fix sample is empty.
+- **Direction × reason and deviation rate:** `indisponible` — need the `set_logs`
+  join (ADR 0026 stores no numbers). Gap, not a zero.
+
+**No promotion movement:** threshold untouched, `pain` untouched, no engine refactor.
+
 ## What we measure
 
 Run these in the Supabase SQL editor (project `favusepjqwpcroiolvaz`). The first
