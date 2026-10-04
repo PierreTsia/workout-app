@@ -38,10 +38,11 @@ export interface ToolDefinition {
   description: string
   annotations: ToolAnnotations
   /**
-   * MCP Apps link (ADR 0027): `ui.resourceUri` points the host at the view to render
-   * alongside the tool result. Passed through verbatim by `tools/list`.
+   * MCP Apps link (ADR 0027): `_meta.ui.resourceUri` points the host at the view to render
+   * alongside the tool result. The underscore-prefixed `_meta` is the MCP-reserved field;
+   * it is passed through verbatim by `tools/list`.
    */
-  meta?: { ui?: { resourceUri: string } }
+  _meta?: { ui?: { resourceUri: string } }
   inputSchema: {
     type: "object"
     properties: Record<string, unknown>

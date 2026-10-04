@@ -17,7 +17,7 @@ export const renderSessionCard: ToolDefinition = {
     readOnlyHint: true,
     idempotentHint: true,
   },
-  meta: { ui: { resourceUri: URI } },
+  _meta: { ui: { resourceUri: URI } },
   inputSchema: {
     type: "object",
     properties: {

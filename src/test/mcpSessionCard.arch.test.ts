@@ -39,6 +39,7 @@ describe("Session Card MCP App View", () => {
   })
 
   it("references the view from the tool via _meta.ui.resourceUri", () => {
+    expect(toolSource).toMatch(/_meta:\s*\{\s*ui:/)
     expect(toolSource).toMatch(/resourceUri:\s*URI/)
     expect(toolSource).toMatch(/ui:\/\/gymlogic\/session-card/)
     expect(toolsRegistry).toMatch(/renderSessionCard/)
