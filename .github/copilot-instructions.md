@@ -1,6 +1,6 @@
 # GymLogic — Copilot instructions
 
-MCP-native workout tracker (React 19 + TypeScript PWA, Supabase Edge/MCP, Vitest). Cursor house rules live in `.cursor/rules/` — do not contradict them. There is no `AGENTS.md` on purpose.
+MCP-native workout tracker (React 19 + TypeScript PWA, Supabase Edge/MCP, Vitest). Cursor house rules live in `.cursor/rules/` — do not contradict them. `file:AGENTS.md` is the entry file for agents working in this repo; the canonical docs below remain the sources of truth.
 
 ## Canonical docs
 
