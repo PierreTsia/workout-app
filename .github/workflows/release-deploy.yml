@@ -36,7 +36,6 @@ jobs:
     outputs:
       tag: ${{ steps.diff.outputs.tag }}
       spa: ${{ steps.diff.outputs.spa }}
-      web: ${{ steps.diff.outputs.web }}
       functions: ${{ steps.diff.outputs.functions }}
       functions_list: ${{ steps.diff.outputs.functions_list }}
     steps:
@@ -79,7 +78,6 @@ jobs:
           {
             echo "tag=$TAG"
             echo "spa=$(has "$SPA_RE" && echo true || echo false)"
-            echo "web=$(has '^web/' && echo true || echo false)"
             echo "functions=$([ -n "$FUNCS" ] && echo true || echo false)"
             echo "functions_list=$FUNCS"
           } >> "$GITHUB_OUTPUT"
@@ -105,24 +103,6 @@ jobs:
       - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
       - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-  deploy-web:
-    needs: [targets]
-    if: needs.targets.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.targets.outputs.tag }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm i -g vercel@latest
-      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
 
   deploy-functions:
     needs: [targets]

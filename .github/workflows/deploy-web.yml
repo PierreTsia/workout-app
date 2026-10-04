@@ -7,9 +7,9 @@ name: deploy-web
 # must name the release that shipped it. The mini-site is static content with no
 # version and no runtime contract, so none of that applies.
 #
-# Same secrets and the same Vercel path as the `deploy-web` job in
-# release-deploy.yml — the only difference is the trigger. `vercel deploy` runs
-# from the repository root because the Vercel project's Root Directory is `web/`.
+# Same secrets, same Vercel project and same CLI path the release used to run for
+# this artefact. Previews are unaffected: `preview-deploy-web` in ci.yml still
+# deploys one per `web/**` PR with a sticky comment.
 
 on:
   push:
@@ -18,10 +18,14 @@ on:
       - 'web/**'
   workflow_dispatch:
 
-# Deliberately the same group as release-deploy: a release and a content merge
-# must never deploy the same Vercel project at the same time.
+# Deliberately its own group, NOT the release-deploy group. Sharing that lock
+# would let a content merge cancel a *pending* release deploy — cancel-in-progress
+# protects running runs, not queued ones — which would skip the SPA and Edge
+# Function deployments and break ADR 0025 §7. The docs site has exactly one
+# deployment path (ADR 0028): release-deploy no longer touches web/. Within this
+# group, a newer merge replaces a pending deploy, which is what content wants.
 concurrency:
-  group: release-deploy
+  group: deploy-web
   cancel-in-progress: false
 
 jobs:
