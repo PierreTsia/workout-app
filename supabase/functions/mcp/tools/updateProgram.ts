@@ -382,6 +382,9 @@ export const updateProgram: ToolDefinition = {
               u: userId,
               exp: Math.floor(Date.now() / 1000) + PREVIEW_TTL_SECONDS,
               p: parsedPatch.program_id,
+              // Destructive previews carry the confirmation; a non-destructive one must NOT
+              // confirm a later diff that became destructive (ADR 0028 consent).
+              confirm: diff.days_to_delete.length > 0,
               patch: patchOnly(args),
             },
             secret,

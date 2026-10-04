@@ -24,6 +24,8 @@ export type PreviewPayload = {
   exp: number
   /** Program being patched. */
   p: string
+  /** Whether the preview was destructive (removed ≥1 day) — replayed at apply as `confirm`. */
+  confirm: boolean
   /** The exact `update_program` arguments the model sent, minus `dry_run` / `confirm`. */
   patch: Record<string, unknown>
 }
@@ -93,13 +95,20 @@ export async function verifyPreviewToken(
       typeof json.u !== "string" ||
       typeof json.exp !== "number" ||
       typeof json.p !== "string" ||
+      typeof json.confirm !== "boolean" ||
       typeof json.patch !== "object" ||
       json.patch === null
     ) {
       return null
     }
     if (json.exp <= nowSeconds) return null
-    return { u: json.u, exp: json.exp, p: json.p, patch: json.patch as Record<string, unknown> }
+    return {
+      u: json.u,
+      exp: json.exp,
+      p: json.p,
+      confirm: json.confirm,
+      patch: json.patch as Record<string, unknown>,
+    }
   } catch {
     return null
   }

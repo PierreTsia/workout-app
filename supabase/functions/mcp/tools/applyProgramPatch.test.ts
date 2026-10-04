@@ -30,9 +30,15 @@ const makeSupabase = (userId: string) => ({
   auth: { getUser: async () => ({ data: { user: { id: userId } }, error: null }) },
 })
 
-const tokenFor = (userId: string) =>
+const tokenFor = (userId: string, confirm = true) =>
   mintPreviewToken(
-    { u: userId, exp: Math.floor(Date.now() / 1000) + 60, p: PATCH.program_id, patch: PATCH },
+    {
+      u: userId,
+      exp: Math.floor(Date.now() / 1000) + 60,
+      p: PATCH.program_id,
+      confirm,
+      patch: PATCH,
+    },
     "test-secret",
   )
 
@@ -72,10 +78,16 @@ describe("apply_program_patch", () => {
     expect(handlerSpy).not.toHaveBeenCalled()
   })
 
-  it("delegates the echoed patch with confirm implied on a valid token", async () => {
+  it("delegates the echoed patch with the previewed confirm", async () => {
     const supabase = makeSupabase(USER)
-    const result = await call({ preview_token: await tokenFor(USER) }, supabase)
+    const result = await call({ preview_token: await tokenFor(USER, true) }, supabase)
     expect(handlerSpy).toHaveBeenCalledWith({ ...PATCH, dry_run: false, confirm: true }, supabase)
     expect(result.structuredContent).toEqual({ status: "applied" })
+  })
+
+  it("does not confirm a destructive diff the preview did not show", async () => {
+    const supabase = makeSupabase(USER)
+    await call({ preview_token: await tokenFor(USER, false) }, supabase)
+    expect(handlerSpy).toHaveBeenCalledWith({ ...PATCH, dry_run: false, confirm: false }, supabase)
   })
 })

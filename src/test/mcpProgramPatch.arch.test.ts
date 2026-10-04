@@ -66,7 +66,7 @@ describe("Decision Card MCP App View", () => {
     expect(applySource).toMatch(/visibility:\s*\["app"\]/)
     expect(applySource).not.toMatch(/resourceUri/)
     expect(applySource).toMatch(/preview_token/)
-    expect(applySource).toMatch(/dry_run:\s*false,\s*confirm:\s*true/)
+    expect(applySource).toMatch(/dry_run:\s*false,\s*confirm:\s*payload\.confirm/)
     expect(toolsRegistry).toMatch(/applyProgramPatch/)
   })
 
