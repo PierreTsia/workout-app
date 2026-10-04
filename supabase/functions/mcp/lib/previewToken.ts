@@ -59,7 +59,8 @@ export async function mintPreviewToken(
 ): Promise<string> {
   const body = base64urlEncode(encoder.encode(JSON.stringify(payload)))
   const key = await hmacKey(secret, ["sign"])
-  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body)))
+  // WebCrypto wants a BufferSource; the lib types TextEncoder's output as ArrayBufferLike.
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body) as BufferSource))
   return `${body}.${base64urlEncode(sig)}`
 }
 
@@ -81,7 +82,7 @@ export async function verifyPreviewToken(
   }
 
   const key = await hmacKey(secret, ["verify"])
-  const ok = await crypto.subtle.verify("HMAC", key, sig, encoder.encode(body))
+  const ok = await crypto.subtle.verify("HMAC", key, sig as BufferSource, encoder.encode(body) as BufferSource)
   if (!ok) return null
 
   try {
