@@ -943,8 +943,8 @@ async function upsertSession(row: {
   started_at: string
   finished_at?: string
   active_duration_ms?: number
-  total_sets_done: number
-  has_skipped_sets: boolean
+  total_sets_done?: number
+  has_skipped_sets?: boolean
   cycle_id?: string | null
 }) {
   const first = await supabase.from("sessions").upsert(row, { onConflict: "id" })
@@ -1022,7 +1022,10 @@ async function ensureSession(
         return false
       }
     } else {
-      // Partial session (mid-session drain — no finish yet)
+      // Partial session (mid-session drain — no finish yet). `total_sets_done`
+      // and `has_skipped_sets` are owned by the finish (#571): omitting them
+      // means ON CONFLICT leaves a finished row's count intact (DB default 0 on
+      // insert) instead of a later drain — a note, a stray set_log — zeroing it.
       const { error } = await upsertSession({
         id: realSessionId,
         user_id: userId,
@@ -1032,8 +1035,6 @@ async function ensureSession(
         started_at: new Date(
           meta?.startedAt ?? Date.now(),
         ).toISOString(),
-        total_sets_done: 0,
-        has_skipped_sets: false,
       })
       if (error) {
         console.error("[SyncService] partial session upsert failed", error)

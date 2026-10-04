@@ -1530,6 +1530,18 @@ describe("SyncService", () => {
 
       expect(sessionsChain.update).toHaveBeenCalledWith({ session_note: null })
     })
+
+    it("does not zero a finished session's total_sets_done on a later drain", async () => {
+      enqueueSessionFinish(makeSessionFinishPayload({ totalSetsDone: 18 }))
+      await drainQueue(USER_ID)
+      sessionsChain.upsert.mockClear()
+
+      enqueueSessionNote("local-session-1", "note after finish")
+      await drainQueue(USER_ID)
+
+      const partialRow = sessionsChain.upsert.mock.calls[0]?.[0]
+      expect(partialRow.total_sets_done).not.toBe(0)
+    })
   })
 
   describe("discardBlockRun", () => {
