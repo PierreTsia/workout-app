@@ -1,6 +1,6 @@
-import { Badge, Card, CardContent, CardHeader, CardTitle, Meter } from '@nomosui/react'
+import { Badge, Card, CardContent } from '@nomosui/react'
 
-import type { SessionCardLabels, SessionCardPayload } from './types'
+import type { SessionCardLabels, SessionCardItem, SessionCardPayload } from './types'
 
 const panel = {
   width: '100%',
@@ -8,9 +8,19 @@ const panel = {
   margin: '0 auto',
   padding: 12,
   boxSizing: 'border-box' as const,
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: 10,
+}
+
+const muted = { opacity: 0.7 } as const
+
+function setLine(item: SessionCardItem): string {
+  if (item.kind !== 'solo') return ''
+  return item.sets
+    .map((set) => (set.weightKg > 0 ? `${set.measure} × ${set.weightKg} kg` : set.measure))
+    .join(' · ')
+}
+
+function hasPr(item: SessionCardItem): boolean {
+  return item.kind === 'solo' && item.sets.some((set) => set.isPr)
 }
 
 export function SessionCard({
@@ -24,12 +34,9 @@ export function SessionCard({
     return (
       <div data-theme="dark" data-density="comfortable" style={panel}>
         <Card>
-          <CardHeader>
-            <CardTitle>{labels.title}</CardTitle>
-          </CardHeader>
           <CardContent>
             <p style={{ margin: 0, fontWeight: 600 }}>{labels.empty}</p>
-            <p style={{ margin: '4px 0 0', opacity: 0.7 }}>{labels.emptyHint}</p>
+            <p style={{ margin: '4px 0 0', ...muted }}>{labels.emptyHint}</p>
           </CardContent>
         </Card>
       </div>
@@ -41,53 +48,49 @@ export function SessionCard({
   return (
     <div data-theme="dark" data-density="comfortable" style={panel}>
       <Card>
-        <CardHeader>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <CardTitle>{session.label}</CardTitle>
-            <span style={{ opacity: 0.7 }}>{session.finishedAtLabel}</span>
-          </div>
-        </CardHeader>
         <CardContent>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+            <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.25 }}>{session.label}</span>
+            <span style={{ fontSize: 12, whiteSpace: 'nowrap', ...muted }}>{session.finishedAtLabel}</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <Badge variant="secondary">{session.durationLabel}</Badge>
-            <span>
+            <span style={{ fontSize: 13, ...muted }}>
               {session.setsDone} {labels.sets}
             </span>
           </div>
 
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ height: 1, background: 'color-mix(in srgb, currentColor 12%, transparent)', margin: '12px 0' }} />
+
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {payload.items.map((item, index) => (
               <li key={index}>
                 {item.kind === 'solo' ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                    <strong>{item.name}</strong>
-                    {item.sets.map((set, setIndex) => (
-                      <span key={setIndex} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        {set.measure} × {set.weightKg} kg
-                        {set.isPr ? <Badge>{labels.pr}</Badge> : null}
-                      </span>
-                    ))}
-                  </div>
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</span>
+                      {hasPr(item) ? <Badge>{labels.pr}</Badge> : null}
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 2, ...muted }}>{setLine(item)}</div>
+                  </>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                    <strong>{item.label || labels.circuit}</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{item.label || labels.circuit}</span>
                     {item.mode === 'amrap' && item.amrap ? (
-                      <span>
-                        {item.amrap.fullRounds}+{item.amrap.leftover} · {item.amrap.leftoverName} — {labels.amrapGloss}
+                      <span style={{ fontSize: 13, ...muted }}>
+                        {item.amrap.fullRounds}+{item.amrap.leftover} · {item.amrap.leftoverName}
                       </span>
                     ) : item.completionSeconds != null ? (
-                      <span>
+                      <span style={{ fontSize: 13, ...muted }}>
                         {labels.completionTime.replace(
                           '{{time}}',
                           `${Math.floor(item.completionSeconds / 60)}:${String(item.completionSeconds % 60).padStart(2, '0')}`,
                         )}
                       </span>
                     ) : (
-                      <span>
-                        {(item.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace(
-                          '{{count}}',
-                          String(item.rounds),
-                        )}
+                      <span style={{ fontSize: 13, ...muted }}>
+                        {(item.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace('{{count}}', String(item.rounds))}
                       </span>
                     )}
                   </div>
@@ -96,8 +99,21 @@ export function SessionCard({
             ))}
           </ul>
 
-          <div style={{ marginTop: 16 }}>
-            <Meter label={labels.tonnage} value={payload.tonnageKg} max={10000} />
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, ...muted }}>
+              <span>{labels.tonnage}</span>
+              <span>{payload.tonnageKg.toLocaleString('fr-FR')} kg</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 999, marginTop: 6, background: 'color-mix(in srgb, currentColor 14%, transparent)' }}>
+              <div
+                style={{
+                  height: '100%',
+                  borderRadius: 999,
+                  background: 'var(--nomos-color-primary)',
+                  width: `${Math.min(100, Math.round((payload.tonnageKg / 10000) * 100))}%`,
+                }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
