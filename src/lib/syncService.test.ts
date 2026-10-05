@@ -459,16 +459,6 @@ describe("SyncService", () => {
       )
     })
 
-    it("never lets the finish write own total_sets_done — the DB derives it from set_logs (#654)", async () => {
-      enqueueSessionFinish(makeSessionFinishPayload({ totalSetsDone: 18 }))
-
-      await drainQueue(USER_ID)
-
-      for (const [row] of sessionsChain.upsert.mock.calls) {
-        expect(row).not.toHaveProperty("total_sets_done")
-      }
-    })
-
     it("retries session upsert without workout_day_id when the day row is gone", async () => {
       enqueueSessionFinish(makeSessionFinishPayload())
       let upserts = 0
@@ -1541,13 +1531,14 @@ describe("SyncService", () => {
       expect(sessionsChain.update).toHaveBeenCalledWith({ session_note: null })
     })
 
-    it("does not zero a finished session's set count on a later drain", async () => {
+    it("does not zero a finished session's total_sets_done on a later drain", async () => {
       enqueueSessionFinish(makeSessionFinishPayload({ totalSetsDone: 18 }))
       await drainQueue(USER_ID)
       const finishRow = sessionsChain.upsert.mock.calls[0]?.[0]
-      // #654: the count is derived from set_logs by a DB trigger; the finish
-      // write must not race it with a transient local count.
-      expect(finishRow).not.toHaveProperty("total_sets_done")
+      // #654: the DB owns this column and overrides the write, but the client
+      // still carries it so a release that outruns the migration cannot regress
+      // to 0.
+      expect(finishRow.total_sets_done).toBe(18)
       sessionsChain.upsert.mockClear()
 
       enqueueSessionNote("local-session-1", "note after finish")

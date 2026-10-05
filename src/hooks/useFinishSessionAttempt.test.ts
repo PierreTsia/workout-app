@@ -94,6 +94,21 @@ describe("useFinishSessionAttempt", () => {
     expect(result.current.confirmOpen).toBe(false)
   })
 
+  it("does not abandon while session logs are still hydrating (#654)", () => {
+    const { result, store, onFinish } = renderAttempt({
+      setsDone: 0,
+      onAbandon: undefined,
+    })
+
+    act(() => {
+      store.set(sessionAtom, { ...BASE_SESSION, exerciseIndex: 0 })
+    })
+    act(() => result.current.attempt())
+
+    expect(result.current.confirmOpen).toBe(true)
+    expect(onFinish).not.toHaveBeenCalled()
+  })
+
   it("finishes directly when nothing is left", () => {
     const { result, store, onFinish } = renderAttempt()
 

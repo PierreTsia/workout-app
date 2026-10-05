@@ -36,9 +36,15 @@ describe("session finish integrity migration (#654)", () => {
 
   it("derives total_sets_done from set_logs with a row trigger", () => {
     expect(sql).toMatch(
-      /CREATE TRIGGER\s+\w+\s+AFTER INSERT OR DELETE(?: OR UPDATE)?\s+ON public\.set_logs/i,
+      /CREATE TRIGGER\s+\w+\s+AFTER INSERT OR DELETE OR UPDATE\s+ON public\.set_logs/i,
     )
     expect(sql).toMatch(/EXECUTE FUNCTION public\.\w+/i)
+  })
+
+  it("recomputes both sessions when a set_log changes session", () => {
+    expect(sql).toMatch(
+      /WHERE s\.id IN \(NEW\.session_id, OLD\.session_id\)/i,
+    )
   })
 
   it("overrides the writer's count on every session write — order-independent", () => {

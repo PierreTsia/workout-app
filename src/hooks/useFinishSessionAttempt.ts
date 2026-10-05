@@ -11,14 +11,18 @@ interface UseFinishSessionAttemptArgs {
   /** Number of incomplete circuits remaining. Circuit progress never lands in solo `setsData`. */
   incompleteBlockCount?: number
   /**
-   * Logged sets so far, solos + circuits. `0` means nothing was logged: the
-   * attempt abandons the session (cancel) instead of closing an empty row (#654).
+   * Logged sets so far, solos + circuits. `0` means nothing was logged, but it
+   * is only trustworthy once the server state is known — the caller must pass
+   * `onAbandon` only then (#654).
    */
   setsDone?: number
   onFinish: () => void
   /** When the workout timer is paused, a finish attempt calls this instead. */
   onBlockedByPause?: () => void
-  /** Called instead of `onFinish` when there is nothing to finish (#654). */
+  /**
+   * Called instead of `onFinish` when nothing was logged and the server state
+   * is known. Omitted while session logs are still hydrating (#654).
+   */
   onAbandon?: () => void
 }
 

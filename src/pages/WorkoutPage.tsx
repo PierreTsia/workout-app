@@ -940,9 +940,17 @@ export function WorkoutPage() {
       setsDone: dayProgress.setsDone,
       onFinish: handleFinish,
       onBlockedByPause: openPauseBlocked,
-      onAbandon: () => {
-        void cancelActiveSession()
-      },
+      // Only abandon when we actually know the server state (#654): with no real
+      // session yet there are no server-side logs, and once one exists we wait
+      // for its logs to hydrate. Otherwise `setsDone` can read 0 while real
+      // set_logs exist (circuit day after a reload) and a Finish tap would
+      // delete training data.
+      onAbandon:
+        activeRealId == null || activeSessionLogsFetched
+          ? () => {
+              void cancelActiveSession()
+            }
+          : undefined,
     })
 
   // The header finish control (#571) bumps a transient counter. Consume it once
