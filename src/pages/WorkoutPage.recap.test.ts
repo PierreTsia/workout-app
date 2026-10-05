@@ -10,6 +10,18 @@ describe("WorkoutPage done-day recap", () => {
   })
 })
 
+describe("WorkoutPage empty-session abandon gate", () => {
+  it("gates on a successful logs load, not isFetched (#654)", () => {
+    // `isFetched` is true after a failed fetch too; wiring the gate to it would
+    // re-arm the destructive abandon path on a transient 5xx.
+    expect(source).toMatch(
+      /canAbandonEmptySession\(\s*activeRealId,\s*activeSessionLogsLoaded\s*\)/,
+    )
+    expect(source).toMatch(/isSuccess:\s*activeSessionLogsLoaded/)
+    expect(source).not.toMatch(/activeRealId\s*==\s*null\s*\|\|\s*activeSessionLogsFetched/)
+  })
+})
+
 describe("WorkoutPage live session start", () => {
   it("wipes leftover PR flags when a live session starts (#533)", () => {
     // #571 split `startSession` into a guard + `commitStartSession`; the

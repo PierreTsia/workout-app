@@ -49,15 +49,17 @@ function renderAttempt(
 ) {
   const onFinish = vi.fn()
   const onBlockedByPause = vi.fn()
+  const onAbandon = vi.fn()
   const rendered = renderHookWithProviders(() =>
     useFinishSessionAttempt({
       exercises: EXERCISES,
       onFinish,
       onBlockedByPause,
+      onAbandon,
       ...overrides,
     }),
   )
-  return { ...rendered, onFinish, onBlockedByPause }
+  return { ...rendered, onFinish, onBlockedByPause, onAbandon }
 }
 
 describe("useFinishSessionAttempt", () => {
@@ -72,6 +74,34 @@ describe("useFinishSessionAttempt", () => {
           "ex-1": [{ kind: "reps", reps: "10", weight: "60", done: false }],
         },
       })
+    })
+    act(() => result.current.attempt())
+
+    expect(result.current.confirmOpen).toBe(true)
+    expect(onFinish).not.toHaveBeenCalled()
+  })
+
+  it("abandons instead of finishing when no set was logged (#654)", () => {
+    const { result, store, onFinish, onAbandon } = renderAttempt({ setsDone: 0 })
+
+    act(() => {
+      store.set(sessionAtom, { ...BASE_SESSION, exerciseIndex: 0 })
+    })
+    act(() => result.current.attempt())
+
+    expect(onAbandon).toHaveBeenCalledOnce()
+    expect(onFinish).not.toHaveBeenCalled()
+    expect(result.current.confirmOpen).toBe(false)
+  })
+
+  it("does not abandon while session logs are still hydrating (#654)", () => {
+    const { result, store, onFinish } = renderAttempt({
+      setsDone: 0,
+      onAbandon: undefined,
+    })
+
+    act(() => {
+      store.set(sessionAtom, { ...BASE_SESSION, exerciseIndex: 0 })
     })
     act(() => result.current.attempt())
 

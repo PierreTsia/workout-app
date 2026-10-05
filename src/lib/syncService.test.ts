@@ -1535,6 +1535,9 @@ describe("SyncService", () => {
       enqueueSessionFinish(makeSessionFinishPayload({ totalSetsDone: 18 }))
       await drainQueue(USER_ID)
       const finishRow = sessionsChain.upsert.mock.calls[0]?.[0]
+      // #654: the DB owns this column and overrides the write, but the client
+      // still carries it so a release that outruns the migration cannot regress
+      // to 0.
       expect(finishRow.total_sets_done).toBe(18)
       sessionsChain.upsert.mockClear()
 

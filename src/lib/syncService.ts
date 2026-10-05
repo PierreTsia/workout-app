@@ -1019,6 +1019,9 @@ async function ensureSession(
         started_at: new Date(p.startedAt).toISOString(),
         finished_at: new Date(p.finishedAt).toISOString(),
         active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
+        // Kept for backward compatibility: the DB derives this from set_logs
+        // and overrides whatever is sent (#654), so the value is harmless and
+        // a release that outruns the migration does not regress to 0.
         total_sets_done: p.totalSetsDone,
         has_skipped_sets: p.hasSkippedSets,
         cycle_id: p.cycleId ?? null,
@@ -1240,6 +1243,7 @@ async function processSessionFinish(
       started_at: new Date(p.startedAt).toISOString(),
       finished_at: new Date(p.finishedAt).toISOString(),
       active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
+      // Derived by the DB from set_logs; sending it is tolerated and ignored (#654).
       total_sets_done: p.totalSetsDone,
       has_skipped_sets: p.hasSkippedSets,
       cycle_id: p.cycleId ?? null,
