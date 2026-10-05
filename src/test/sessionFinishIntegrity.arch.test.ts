@@ -34,6 +34,14 @@ describe("session finish integrity migration (#654)", () => {
     expect(migration).toBeDefined()
   })
 
+  it("delimits every function body with $$ (not $)", () => {
+    expect(sql).not.toMatch(/AS\s+\$(?!\$)/i)
+    const opened = sql.match(/\bAS\s\$\$/gi) ?? []
+    const closed = sql.match(/\n\$\$;/g) ?? []
+    expect(opened.length).toBeGreaterThanOrEqual(3)
+    expect(closed.length).toBe(opened.length)
+  })
+
   it("derives total_sets_done from set_logs with a row trigger", () => {
     expect(sql).toMatch(
       /CREATE TRIGGER\s+\w+\s+AFTER INSERT OR DELETE OR UPDATE\s+ON public\.set_logs/i,

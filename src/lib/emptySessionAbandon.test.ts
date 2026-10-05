@@ -10,13 +10,10 @@ describe("canAbandonEmptySession (#654)", () => {
     expect(canAbandonEmptySession("real-1", true)).toBe(true)
   })
 
-  it("refuses abandon while the logs are still loading", () => {
-    expect(canAbandonEmptySession("real-1", false)).toBe(false)
-  })
-
-  it("refuses abandon after a failed logs fetch — unknown state must confirm", () => {
-    // `isFetched` is true after an error too; the gate must use success, not
-    // fetched, or a Finish tap deletes a real session on a transient 5xx.
+  it("refuses abandon while the logs are loading or after a failed fetch", () => {
+    // Caller passes the *success* signal, so both loading and error arrive as
+    // false — a real session with unknown server state must confirm, never
+    // delete. (The isSuccess-vs-isFetched wiring is pinned by the WorkoutPage test.)
     expect(canAbandonEmptySession("real-1", false)).toBe(false)
   })
 })
