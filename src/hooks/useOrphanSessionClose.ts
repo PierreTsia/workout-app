@@ -12,6 +12,8 @@ import {
 } from "@/lib/openSessions"
 import { resumeOrphanSession } from "@/lib/resumeSession"
 import { trackSessionEvent } from "@/lib/sessionEvents"
+import { pushAchievementsToQueue } from "@/lib/syncService"
+import { grantAchievementsForUser } from "@/lib/grantAchievements"
 
 /** A recent (< 3 h idle) orphan the app-open prompt can offer to resume or finish. */
 export interface RecentOrphan {
@@ -122,7 +124,13 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
         }
       }
 
-      if (closed > 0) invalidateClosedQueries(queryClient)
+      if (closed > 0) {
+        invalidateClosedQueries(queryClient)
+        // Credit the recovered sessions' achievements (ADR 0024 amended, #660).
+        // One call per boot, not per row; idempotent and non-critical.
+        const unlocked = await grantAchievementsForUser(user.id)
+        if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+      }
 
       if (recent) {
         recentRowRef.current = recent.row
@@ -192,9 +200,14 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
     })
     invalidateClosedQueries(queryClient)
 
+    if (user?.id) {
+      const unlocked = await grantAchievementsForUser(user.id)
+      if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+    }
+
     recentRowRef.current = null
     setRecentOrphan(null)
-  }, [queryClient])
+  }, [queryClient, user])
 
   return { recentOrphan, dismiss, resume, finish }
 }

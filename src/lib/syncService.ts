@@ -12,7 +12,7 @@ import {
   achievementShownIdsAtom,
   lastSessionBadgesAtom,
 } from "@/store/atoms"
-import { coerceNumeric } from "@/lib/achievementUtils"
+import { grantAchievementsForUser } from "@/lib/grantAchievements"
 import type { UnlockedAchievement } from "@/types/achievements"
 import type { WorkoutDay } from "@/types/database"
 import type { DeviationKind, DeviationPayload } from "@/lib/deviationCapture"
@@ -1279,25 +1279,10 @@ async function processSessionFinish(
       }
     }
 
-    try {
-      const { data, error } = await supabase
-        .rpc("check_and_grant_achievements", {
-          p_user_id: userId,
-        })
-        .returns<UnlockedAchievement[]>()
-      if (error) throw error
-      const grantedAt = new Date().toISOString()
-      const unlocked = (Array.isArray(data) ? data : []).map((row) => ({
-        ...row,
-        threshold_value: coerceNumeric(row.threshold_value),
-        granted_at: row.granted_at ?? grantedAt,
-      }))
-      if (unlocked.length > 0) {
-        pushAchievementsToQueue(unlocked)
-        store.set(lastSessionBadgesAtom, unlocked)
-      }
-    } catch (e) {
-      console.warn("[SyncService] badge check failed (non-critical)", e)
+    const unlocked = await grantAchievementsForUser(userId)
+    if (unlocked.length > 0) {
+      pushAchievementsToQueue(unlocked)
+      store.set(lastSessionBadgesAtom, unlocked)
     }
 
     return true
