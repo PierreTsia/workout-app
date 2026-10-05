@@ -12,6 +12,8 @@ import {
 } from "@/lib/openSessions"
 import { resumeOrphanSession } from "@/lib/resumeSession"
 import { trackSessionEvent } from "@/lib/sessionEvents"
+import { pushAchievementsToQueue } from "@/lib/syncService"
+import { grantAchievementsForUser } from "@/lib/grantAchievements"
 
 /** A recent (< 3 h idle) orphan the app-open prompt can offer to resume or finish. */
 export interface RecentOrphan {
@@ -136,6 +138,15 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
         })
         trackSessionEvent("session_orphan_prompted", { surface: "app_open" })
       }
+
+      // Credit the recovered sessions' achievements (ADR 0024 amended, #660).
+      // Fire-and-forget: one call per close, idempotent, non-critical — it must
+      // never gate the resume/finish prompt above.
+      if (closed > 0) {
+        void grantAchievementsForUser(user.id).then((unlocked) => {
+          if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+        })
+      }
     })()
   }, [user, data, session, queryClient])
 
@@ -194,7 +205,15 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
 
     recentRowRef.current = null
     setRecentOrphan(null)
-  }, [queryClient])
+
+    // Fire-and-forget so a slow badge check never leaves the prompt on screen
+    // with a seemingly dead button (ADR 0024 amended, #660).
+    if (user?.id) {
+      void grantAchievementsForUser(user.id).then((unlocked) => {
+        if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+      })
+    }
+  }, [queryClient, user])
 
   return { recentOrphan, dismiss, resume, finish }
 }

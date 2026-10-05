@@ -20,11 +20,14 @@ const pruneCancelledSessions = vi.hoisted(() =>
 )
 const trackSessionEvent = vi.hoisted(() => vi.fn())
 const resumeOrphanSession = vi.hoisted(() => vi.fn())
+const pushAchievementsToQueue = vi.hoisted(() => vi.fn())
+const grantRpc = vi.hoisted(() => vi.fn())
 
 vi.mock("@/lib/syncService", () => ({
   queuedRealSessionIds,
   peekSessionRealId,
   pruneCancelledSessions,
+  pushAchievementsToQueue,
 }))
 
 vi.mock("@/lib/sessionEvents", () => ({ trackSessionEvent }))
@@ -54,6 +57,10 @@ vi.mock("@/lib/supabase", () => {
   return {
     supabase: {
       from: () => ({ select: selectChain.select, update: updateChain.update }),
+      rpc: (name: string, args: unknown) => {
+        grantRpc(name, args)
+        return { returns: () => Promise.resolve({ data: [], error: null }) }
+      },
     },
   }
 })
@@ -89,6 +96,8 @@ describe("useOrphanSessionClose", () => {
     pruneCancelledSessions.mockReturnValue(new Set())
     trackSessionEvent.mockClear()
     resumeOrphanSession.mockClear()
+    pushAchievementsToQueue.mockClear()
+    grantRpc.mockClear()
   })
 
   it("closes a stale orphan with the last set — never now()", async () => {
@@ -111,6 +120,40 @@ describe("useOrphanSessionClose", () => {
       idle_ms: expect.any(Number),
       total_sets_done: 1,
     })
+  })
+
+  it("grants achievements once after an auto-close", async () => {
+    spies.rows = [orphan("s1", oldIso())]
+
+    mount()
+
+    await waitFor(() => expect(spies.updates).toHaveLength(1))
+    await waitFor(() => expect(grantRpc).toHaveBeenCalledTimes(1))
+    expect(grantRpc).toHaveBeenCalledWith("check_and_grant_achievements", {
+      p_user_id: "u1",
+    })
+  })
+
+  it("does not grant when nothing is closed", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    mount()
+
+    await waitFor(() => expect(queuedRealSessionIds).toHaveBeenCalled())
+    expect(grantRpc).not.toHaveBeenCalled()
+  })
+
+  it("grants after finish() of a recent orphan", async () => {
+    spies.rows = [orphan("s1", recentIso())]
+
+    const { result } = mount()
+    await waitFor(() => expect(result.current.recentOrphan?.id).toBe("s1"))
+
+    await act(async () => {
+      await result.current.finish()
+    })
+
+    await waitFor(() => expect(grantRpc).toHaveBeenCalledTimes(1))
   })
 
   it("exposes a recent orphan, emits the prompt, and does not close it", async () => {
@@ -296,5 +339,7 @@ describe("useOrphanSessionClose", () => {
 
     await waitFor(() => expect(spies.ids).toEqual(["s1", "s2"]))
     expect(spies.updates).toHaveLength(2)
+    // One grant per close batch, not per row.
+    await waitFor(() => expect(grantRpc).toHaveBeenCalledTimes(1))
   })
 })
