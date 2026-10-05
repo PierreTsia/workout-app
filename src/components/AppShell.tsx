@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { drawerOpenAtom } from "@/store/atoms"
 import { useHydrateLocaleFromProfile } from "@/hooks/useProfileLocale"
 import { useSessionOrientationGuard } from "@/hooks/useSessionOrientationGuard"
+import { useSessionVisibilityAutoPause } from "@/hooks/useSessionVisibilityAutoPause"
 import { useOrphanSessionClose } from "@/hooks/useOrphanSessionClose"
 import { OrphanSessionPrompt } from "@/components/workout/OrphanSessionPrompt"
 import { SessionTimerChip } from "@/components/SessionTimerChip"
@@ -26,6 +27,8 @@ export function AppShell() {
   // Session-scoped orientation policy (#501): OS lock + landscape CSS fallback
   // live off <html> marker classes, so they must survive WorkoutPage unmounts.
   useSessionOrientationGuard()
+  // Excludes time with the app hidden/closed from the session duration (#655).
+  useSessionVisibilityAutoPause()
   // Orphan-session self-heal (#568): close sessions whose finish never landed.
   // A recent one is offered as Resume / Finish instead (#571).
   const { recentOrphan, resume, finish, dismiss } = useOrphanSessionClose()

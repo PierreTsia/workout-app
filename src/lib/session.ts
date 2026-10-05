@@ -20,6 +20,19 @@ export function resumeSessionFromPause(prev: SessionState): SessionState {
   return {
     ...prev,
     pausedAt: null,
+    pausedByVisibility: undefined,
     accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
   }
+}
+
+/**
+ * Auto-pauses an active session when the app goes hidden (#655). Never clobbers
+ * a pause the user set, so a manual pause survives an app background/foreground.
+ */
+export function pauseSessionForVisibility(
+  prev: SessionState,
+  now = Date.now(),
+): SessionState {
+  if (!prev.isActive || prev.pausedAt != null) return prev
+  return { ...prev, pausedAt: now, pausedByVisibility: true }
 }

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
 import type { SessionState } from "@/store/atoms"
-import { getEffectiveElapsed, resumeSessionFromPause } from "./session"
+import {
+  getEffectiveElapsed,
+  pauseSessionForVisibility,
+  resumeSessionFromPause,
+} from "./session"
 
 const BASE_SESSION: SessionState = {
   currentDayId: "d",
@@ -69,6 +73,24 @@ describe("getEffectiveElapsed", () => {
   })
 })
 
+describe("pauseSessionForVisibility", () => {
+  it("pauses an active, unpaused session and flags it as visibility-paused", () => {
+    const out = pauseSessionForVisibility({ ...BASE_SESSION, startedAt: 1000 }, 5000)
+    expect(out.pausedAt).toBe(5000)
+    expect(out.pausedByVisibility).toBe(true)
+  })
+
+  it("never clobbers a manual pause", () => {
+    const manual = { ...BASE_SESSION, pausedAt: 2000, accumulatedPause: 100 }
+    expect(pauseSessionForVisibility(manual, 5000)).toBe(manual)
+  })
+
+  it("no-ops on an inactive session", () => {
+    const inactive = { ...BASE_SESSION, isActive: false }
+    expect(pauseSessionForVisibility(inactive, 5000)).toBe(inactive)
+  })
+})
+
 describe("resumeSessionFromPause", () => {
   afterEach(() => {
     vi.useRealTimers()
@@ -85,5 +107,17 @@ describe("resumeSessionFromPause", () => {
     const out = resumeSessionFromPause(paused)
     expect(out.pausedAt).toBeNull()
     expect(out.accumulatedPause).toBe(100 + 3000)
+  })
+
+  it("clears the visibility auto-pause flag on resume", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(5000)
+    const paused = {
+      ...BASE_SESSION,
+      pausedAt: 2000,
+      pausedByVisibility: true,
+    }
+    const out = resumeSessionFromPause(paused)
+    expect(out.pausedByVisibility).toBeFalsy()
   })
 })
