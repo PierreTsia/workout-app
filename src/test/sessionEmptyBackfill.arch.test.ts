@@ -33,6 +33,12 @@ const gapMigration = Object.entries(migrationSources).find(([path]) =>
 
 const gapSql = stripComments(gapMigration?.[1] ?? "")
 
+const orphanMigration = Object.entries(migrationSources).find(([path]) =>
+  path.includes("close_stale_orphan_sessions"),
+)
+
+const orphanSql = stripComments(orphanMigration?.[1] ?? "")
+
 describe("session empty backfill migration (#654 follow-up)", () => {
   it("ships the migration", () => {
     expect(migration).toBeDefined()
@@ -89,6 +95,25 @@ describe("session duration gap backfill migration (#654 follow-up)", () => {
   it("stays scoped to rows still over the 12 h ceiling", () => {
     expect(gapSql).toMatch(
       /s\.active_duration_ms > 12 \* 60 \* 60 \* 1000/i,
+    )
+  })
+})
+
+describe("close stale orphan sessions backfill (#654 follow-up)", () => {
+  it("ships the migration", () => {
+    expect(orphanMigration).toBeDefined()
+  })
+
+  it("closes only still-open sessions idle beyond the 3 h threshold", () => {
+    expect(orphanSql).toMatch(/s\.finished_at IS NULL/i)
+    expect(orphanSql).toMatch(/interval '3 hours'/i)
+  })
+
+  it("writes the last set as finished_at, the set count, and last − first", () => {
+    expect(orphanSql).toMatch(/MAX\(sl\.logged_at\) AS finished_at/i)
+    expect(orphanSql).toMatch(/COUNT\(\*\) AS total_sets_done/i)
+    expect(orphanSql).toMatch(
+      /EXTRACT\(EPOCH FROM \(MAX\(sl\.logged_at\) - MIN\(sl\.logged_at\)\)\)/i,
     )
   })
 })
