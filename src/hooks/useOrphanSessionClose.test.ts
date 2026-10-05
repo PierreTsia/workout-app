@@ -339,5 +339,7 @@ describe("useOrphanSessionClose", () => {
 
     await waitFor(() => expect(spies.ids).toEqual(["s1", "s2"]))
     expect(spies.updates).toHaveLength(2)
+    // One grant per close batch, not per row.
+    await waitFor(() => expect(grantRpc).toHaveBeenCalledTimes(1))
   })
 })

@@ -124,13 +124,7 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
         }
       }
 
-      if (closed > 0) {
-        invalidateClosedQueries(queryClient)
-        // Credit the recovered sessions' achievements (ADR 0024 amended, #660).
-        // One call per boot, not per row; idempotent and non-critical.
-        const unlocked = await grantAchievementsForUser(user.id)
-        if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
-      }
+      if (closed > 0) invalidateClosedQueries(queryClient)
 
       if (recent) {
         recentRowRef.current = recent.row
@@ -143,6 +137,15 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
           lastSetAt: recent.lastSetAt,
         })
         trackSessionEvent("session_orphan_prompted", { surface: "app_open" })
+      }
+
+      // Credit the recovered sessions' achievements (ADR 0024 amended, #660).
+      // Fire-and-forget: one call per close, idempotent, non-critical — it must
+      // never gate the resume/finish prompt above.
+      if (closed > 0) {
+        void grantAchievementsForUser(user.id).then((unlocked) => {
+          if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+        })
       }
     })()
   }, [user, data, session, queryClient])
@@ -200,13 +203,16 @@ export function useOrphanSessionClose(): UseOrphanSessionCloseResult {
     })
     invalidateClosedQueries(queryClient)
 
-    if (user?.id) {
-      const unlocked = await grantAchievementsForUser(user.id)
-      if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
-    }
-
     recentRowRef.current = null
     setRecentOrphan(null)
+
+    // Fire-and-forget so a slow badge check never leaves the prompt on screen
+    // with a seemingly dead button (ADR 0024 amended, #660).
+    if (user?.id) {
+      void grantAchievementsForUser(user.id).then((unlocked) => {
+        if (unlocked.length > 0) pushAchievementsToQueue(unlocked)
+      })
+    }
   }, [queryClient, user])
 
   return { recentOrphan, dismiss, resume, finish }
