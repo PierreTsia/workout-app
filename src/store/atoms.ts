@@ -19,6 +19,8 @@ export interface SessionState {
   totalSetsDone: number
   pausedAt: number | null
   accumulatedPause: number
+  /** True when `pausedAt` was set because the app went hidden (auto-pause), not by the user. */
+  pausedByVisibility?: boolean
   cycleId: string | null
   /** Ids of Exercise Blocks fully completed this session (#351). Optional for back-compat. */
   completedBlockIds?: string[]
