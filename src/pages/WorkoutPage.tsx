@@ -1120,6 +1120,7 @@ export function WorkoutPage() {
         activeDayId: prev.currentDayId,
         startedAt: Date.now(),
         pausedAt: null,
+        pausedByVisibility: undefined,
         accumulatedPause: 0,
         cycleId,
         completedBlockIds: [],
