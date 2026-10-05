@@ -20,7 +20,7 @@ const AUTH_ISSUER = `${SUPABASE_URL}/auth/v1`
 // The version string is rewritten by release-please in the release PR
 // (`extra-files` generic updater) so the number an External MCP Client reads
 // equals the released version. Keep the annotation on this line.
-const SERVER_INFO = { name: "gymlogic", version: "1.6.1" } // x-release-please-version
+const SERVER_INFO = { name: "gymlogic", version: "1.6.2" } // x-release-please-version
 const PROTOCOL_VERSION = "2025-03-26"
 
 function ok(id: string | number | null, result: unknown) {
