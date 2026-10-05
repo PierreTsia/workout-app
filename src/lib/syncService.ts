@@ -1019,7 +1019,6 @@ async function ensureSession(
         started_at: new Date(p.startedAt).toISOString(),
         finished_at: new Date(p.finishedAt).toISOString(),
         active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
-        total_sets_done: p.totalSetsDone,
         has_skipped_sets: p.hasSkippedSets,
         cycle_id: p.cycleId ?? null,
       })
@@ -1240,7 +1239,6 @@ async function processSessionFinish(
       started_at: new Date(p.startedAt).toISOString(),
       finished_at: new Date(p.finishedAt).toISOString(),
       active_duration_ms: Math.max(0, Math.round(p.activeDurationMs)),
-      total_sets_done: p.totalSetsDone,
       has_skipped_sets: p.hasSkippedSets,
       cycle_id: p.cycleId ?? null,
     })

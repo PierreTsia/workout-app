@@ -49,15 +49,17 @@ function renderAttempt(
 ) {
   const onFinish = vi.fn()
   const onBlockedByPause = vi.fn()
+  const onAbandon = vi.fn()
   const rendered = renderHookWithProviders(() =>
     useFinishSessionAttempt({
       exercises: EXERCISES,
       onFinish,
       onBlockedByPause,
+      onAbandon,
       ...overrides,
     }),
   )
-  return { ...rendered, onFinish, onBlockedByPause }
+  return { ...rendered, onFinish, onBlockedByPause, onAbandon }
 }
 
 describe("useFinishSessionAttempt", () => {
@@ -77,6 +79,19 @@ describe("useFinishSessionAttempt", () => {
 
     expect(result.current.confirmOpen).toBe(true)
     expect(onFinish).not.toHaveBeenCalled()
+  })
+
+  it("abandons instead of finishing when no set was logged (#654)", () => {
+    const { result, store, onFinish, onAbandon } = renderAttempt({ setsDone: 0 })
+
+    act(() => {
+      store.set(sessionAtom, { ...BASE_SESSION, exerciseIndex: 0 })
+    })
+    act(() => result.current.attempt())
+
+    expect(onAbandon).toHaveBeenCalledOnce()
+    expect(onFinish).not.toHaveBeenCalled()
+    expect(result.current.confirmOpen).toBe(false)
   })
 
   it("finishes directly when nothing is left", () => {

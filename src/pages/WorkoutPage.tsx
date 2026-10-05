@@ -75,7 +75,11 @@ import {
   getInitialPreSessionPatchForHydration,
   saveSessionExercisePatch,
 } from "@/lib/sessionExercisePatchStorage"
-import { resetSessionAtoms, beginLiveSession } from "@/lib/cancelSession"
+import {
+  resetSessionAtoms,
+  beginLiveSession,
+  cancelActiveSession,
+} from "@/lib/cancelSession"
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { buildSessionItems } from "@/lib/sessionItems"
 import { sessionProgress } from "@/lib/sessionFinishStats"
@@ -933,8 +937,12 @@ export function WorkoutPage() {
       exercises,
       itemCount: items.length,
       incompleteBlockCount,
+      setsDone: dayProgress.setsDone,
       onFinish: handleFinish,
       onBlockedByPause: openPauseBlocked,
+      onAbandon: () => {
+        void cancelActiveSession()
+      },
     })
 
   // The header finish control (#571) bumps a transient counter. Consume it once

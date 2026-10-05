@@ -10,9 +10,16 @@ interface UseFinishSessionAttemptArgs {
   itemCount?: number
   /** Number of incomplete circuits remaining. Circuit progress never lands in solo `setsData`. */
   incompleteBlockCount?: number
+  /**
+   * Logged sets so far, solos + circuits. `0` means nothing was logged: the
+   * attempt abandons the session (cancel) instead of closing an empty row (#654).
+   */
+  setsDone?: number
   onFinish: () => void
   /** When the workout timer is paused, a finish attempt calls this instead. */
   onBlockedByPause?: () => void
+  /** Called instead of `onFinish` when there is nothing to finish (#654). */
+  onAbandon?: () => void
 }
 
 /**
@@ -27,8 +34,10 @@ export function useFinishSessionAttempt({
   exercises,
   itemCount,
   incompleteBlockCount = 0,
+  setsDone,
   onFinish,
   onBlockedByPause,
+  onAbandon,
 }: UseFinishSessionAttemptArgs) {
   const { t } = useTranslation("workout")
   const session = useAtomValue(sessionAtom)
@@ -56,6 +65,12 @@ export function useFinishSessionAttempt({
       onBlockedByPause?.()
       return
     }
+    // Nothing logged: finishing would close an empty session row (#654).
+    // Abandon — delete the session and its queue — instead.
+    if (setsDone === 0 && onAbandon) {
+      onAbandon()
+      return
+    }
     const leavingWork = skippedCount > 0 || !isLast || incompleteBlockCount > 0
     if (leavingWork) {
       setConfirmOpen(true)
@@ -64,6 +79,8 @@ export function useFinishSessionAttempt({
     }
   }, [
     session.pausedAt,
+    setsDone,
+    onAbandon,
     skippedCount,
     isLast,
     incompleteBlockCount,
