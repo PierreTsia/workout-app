@@ -83,6 +83,7 @@ import {
 import { canStartPreSession } from "@/lib/canStartPreSession"
 import { buildSessionItems } from "@/lib/sessionItems"
 import { sessionProgress } from "@/lib/sessionFinishStats"
+import { canAbandonEmptySession } from "@/lib/emptySessionAbandon"
 import { WorkoutDayCarousel } from "@/components/workout/WorkoutDayCarousel"
 import { CycleProgressHeader } from "@/components/workout/CycleProgressHeader"
 import { WorkoutHomeSkeleton } from "@/components/workout/WorkoutHomeSkeleton"
@@ -699,8 +700,11 @@ export function WorkoutPage() {
 
   const activeRealId =
     user != null ? peekSessionRealId(user.id, sessionId) : null
-  const { data: activeSessionLogs = [], isFetched: activeSessionLogsFetched } =
-    useSessionSetLogs(activeRealId)
+  const {
+    data: activeSessionLogs = [],
+    isFetched: activeSessionLogsFetched,
+    isSuccess: activeSessionLogsLoaded,
+  } = useSessionSetLogs(activeRealId)
   const { data: sessionBlockRuns } = useSessionBlockRuns(
     activeRealId ?? undefined,
   )
@@ -940,17 +944,15 @@ export function WorkoutPage() {
       setsDone: dayProgress.setsDone,
       onFinish: handleFinish,
       onBlockedByPause: openPauseBlocked,
-      // Only abandon when we actually know the server state (#654): with no real
+      // Only abandon when the server state is known (#654): with no real
       // session yet there are no server-side logs, and once one exists we wait
-      // for its logs to hydrate. Otherwise `setsDone` can read 0 while real
-      // set_logs exist (circuit day after a reload) and a Finish tap would
-      // delete training data.
-      onAbandon:
-        activeRealId == null || activeSessionLogsFetched
-          ? () => {
-              void cancelActiveSession()
-            }
-          : undefined,
+      // for a *successful* load — `isFetched` is true after an error too, so a
+      // transient 5xx would otherwise arm a Finish tap to delete real data.
+      onAbandon: canAbandonEmptySession(activeRealId, activeSessionLogsLoaded)
+        ? () => {
+            void cancelActiveSession()
+          }
+        : undefined,
     })
 
   // The header finish control (#571) bumps a transient counter. Consume it once

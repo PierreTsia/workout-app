@@ -27,7 +27,8 @@
 CREATE OR REPLACE FUNCTION public.derive_session_total_sets_done()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $$
+SET search_path = public
+AS $
 BEGIN
   NEW.total_sets_done := (
     SELECT COUNT(*) FROM public.set_logs sl WHERE sl.session_id = NEW.id
@@ -44,7 +45,8 @@ FOR EACH ROW EXECUTE FUNCTION public.derive_session_total_sets_done();
 CREATE OR REPLACE FUNCTION public.sync_session_total_sets_done()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $$
+SET search_path = public
+AS $
 BEGIN
   -- `IN (NEW.session_id, OLD.session_id)` recomputes both the old and the new
   -- session on an UPDATE, so a (rare) session_id change leaves neither stale;
@@ -74,7 +76,8 @@ SET total_sets_done = (
 CREATE OR REPLACE FUNCTION public.sessions_keep_latest_finish()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $$
+SET search_path = public
+AS $
 BEGIN
   IF OLD.finished_at IS NOT NULL
      AND (NEW.finished_at IS NULL OR NEW.finished_at < OLD.finished_at) THEN
