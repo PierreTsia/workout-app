@@ -45,18 +45,17 @@ export function pauseSessionForVisibility(
 
 /**
  * Resolves a guard-placed pause on return (#664). The hidden span counts when
- * it is at or below `thresholdMs`; above it, the whole span is folded into
- * `accumulatedPause` so it never reaches `active_duration_ms`. A manual pause
- * (no `pausedByVisibility`) is never touched.
+ * it is at or below `VISIBILITY_GUARD_MS`; above it, the whole span is folded
+ * into `accumulatedPause` so it never reaches `active_duration_ms`. A manual
+ * pause (no `pausedByVisibility`) is never touched.
  */
 export function resumeSessionFromVisibilityPause(
   prev: SessionState,
   now = Date.now(),
-  thresholdMs = VISIBILITY_GUARD_MS,
 ): SessionState {
   if (!prev.pausedByVisibility || prev.pausedAt == null) return prev
   const hiddenDuration = now - prev.pausedAt
-  const excluded = hiddenDuration > thresholdMs ? hiddenDuration : 0
+  const excluded = hiddenDuration > VISIBILITY_GUARD_MS ? hiddenDuration : 0
   return {
     ...prev,
     pausedAt: null,

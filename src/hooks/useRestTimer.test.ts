@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "@testing-library/react"
-import { renderHookWithProviders } from "@/test/utils"
+import { renderHookWithProviders, setVisibility } from "@/test/utils"
 import { restAtom, sessionAtom } from "@/store/atoms"
 import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
 import { VISIBILITY_GUARD_MS } from "@/lib/session"
@@ -15,14 +15,6 @@ vi.mock("@/lib/audio", () => ({
   playFinishBeeps: mockPlayFinishBeeps,
   playWarningBeep: mockPlayWarningBeep,
 }))
-
-function setVisibility(state: "visible" | "hidden") {
-  Object.defineProperty(document, "visibilityState", {
-    configurable: true,
-    get: () => state,
-  })
-  document.dispatchEvent(new Event("visibilitychange"))
-}
 
 describe("useRestTimer", () => {
   beforeEach(() => {
@@ -240,6 +232,52 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.remaining).toBe(1790)
+  })
+
+  it("shows a short rest as finished on return when the hidden span exceeded 15 min", () => {
+    vi.useFakeTimers()
+    mockPlayFinishBeeps.mockClear()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 10,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+
+    // App hidden mid-rest, then returns well past the guard and the rest's end.
+    act(() => {
+      vi.setSystemTime(t0 + 5_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 5_000,
+        pausedByVisibility: true,
+      }))
+    })
+    act(() => {
+      vi.setSystemTime(t0 + VISIBILITY_GUARD_MS + 60_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    // Terminal: finished on return, not still running from the fold.
+    expect(result.current.remaining).toBe(0)
+    expect(result.current.isActive).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(1_200)
+    })
+    expect(result.current.isActive).toBe(false)
   })
 
   it("forces a tick on visibilitychange to visible", () => {

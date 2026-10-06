@@ -36,8 +36,12 @@ We will:
    pause, so a user's pause is never overwritten.
 4. **Make the rest timer count a short hidden span too.** `RestState` gains
    `pausedForVisibility`; on resume the rest folds the pause only when it is a
-   manual session pause or the span exceeds the threshold. A rest that finished
-   in the background shows as finished on return, without restarting.
+   manual session pause or the span exceeds the threshold. A rest whose
+   wall-clock end has already passed is **terminal** on return — it shows as
+   finished, without restarting — **even when the hidden span exceeded the
+   threshold**: terminality is decided on wall-clock, and the long-span fold
+   only applies to a rest still running on return. The fold excludes the span
+   from session time, never resurrects a finished rest.
 5. **Force a tick on `visibilitychange` → `visible`** for both the session timer
    (`SessionTimerChip`) and the rest timer (`useRestTimer`), so the displays
    recalc from the timestamp immediately. The rest tick also fires the
@@ -56,8 +60,10 @@ We will:
     the persisted `pausedByVisibility` to resolve at the next mount; a span that
     crosses the threshold while the tab is dead is resolved on reopen, not at the
     exact 15-minute mark.
-  - A rest longer than 15 min hidden is excluded (folded) rather than counted;
-    rest durations are far below that in practice.
+  - A rest still running after a hidden span longer than 15 min is excluded
+    (folded) rather than counted; rest durations are far below that in practice.
+    A rest that had already ended within that span is terminal and shows as
+    finished on return.
   - The alert is best-effort: if the OS never wakes the page, the cue arrives on
     return, not at T-0.
 - **Follow-ups:** Web Push for the rest-finished alert is explicitly out of v1;

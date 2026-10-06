@@ -108,6 +108,15 @@ const testResources = {
   },
 }
 
+/** Flips `document.visibilityState` and dispatches the matching event. */
+export function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  })
+  document.dispatchEvent(new Event("visibilitychange"))
+}
+
 export type TestLocale = keyof typeof testResources
 
 export function createTestI18n({ lng = "en" }: { lng?: TestLocale } = {}) {

@@ -1,17 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { getDefaultStore } from "jotai"
+import { setVisibility } from "@/test/utils"
 import { sessionAtom, defaultSessionState, type SessionState } from "@/store/atoms"
 import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import { useSessionVisibilityAutoPause } from "./useSessionVisibilityAutoPause"
-
-function setVisibility(state: "visible" | "hidden") {
-  Object.defineProperty(document, "visibilityState", {
-    configurable: true,
-    get: () => state,
-  })
-  document.dispatchEvent(new Event("visibilitychange"))
-}
 
 function seedSession(overrides: Partial<SessionState> = {}) {
   const store = getDefaultStore()
@@ -110,5 +103,17 @@ describe("useSessionVisibilityAutoPause", () => {
     const session = getDefaultStore().get(sessionAtom)
     expect(session.pausedAt).toBeNull()
     expect(session.accumulatedPause).toBe(0)
+  })
+
+  it("resumes a persisted guard pause on mount while visible, excluding a long span", () => {
+    seedSession({ pausedAt: 5_000, pausedByVisibility: true })
+    const hidden = VISIBILITY_GUARD_MS + 60_000
+    vi.setSystemTime(5_000 + hidden)
+
+    renderHook(() => useSessionVisibilityAutoPause())
+
+    const session = getDefaultStore().get(sessionAtom)
+    expect(session.pausedAt).toBeNull()
+    expect(session.accumulatedPause).toBe(hidden)
   })
 })

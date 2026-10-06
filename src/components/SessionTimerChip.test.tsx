@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { screen, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { renderWithProviders } from "@/test/utils"
+import { renderWithProviders, setVisibility } from "@/test/utils"
 import { sessionAtom, type SessionState } from "@/store/atoms"
 
 const { mockCancelActiveSession } = vi.hoisted(() => ({
@@ -13,14 +13,6 @@ vi.mock("@/lib/cancelSession", () => ({
 }))
 
 import { SessionTimerChip } from "./SessionTimerChip"
-
-function setVisibility(state: "visible" | "hidden") {
-  Object.defineProperty(document, "visibilityState", {
-    configurable: true,
-    get: () => state,
-  })
-  document.dispatchEvent(new Event("visibilitychange"))
-}
 
 const BASE_SESSION: SessionState = {
   currentDayId: "day-1",

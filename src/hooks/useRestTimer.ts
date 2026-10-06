@@ -95,11 +95,20 @@ export function useRestTimer() {
     }
     setRest((r) => {
       if (!r || !r.pausedForWorkoutSession || r.pausedAt == null) return r
-      const pauseDuration = Date.now() - r.pausedAt
+      const now = Date.now()
+      const pauseDuration = now - r.pausedAt
+      // A rest whose wall-clock end has already passed is terminal, even when
+      // the hidden span exceeded the guard: the fold only touches session time,
+      // it must not resurrect a finished rest (#664).
+      const finishedWhileHidden =
+        r.pausedForVisibility === true &&
+        now - r.startedAt - (r.accumulatedPause ?? 0) >=
+          r.durationSeconds * 1000
       // A short visibility pause counts as rest time (#664); a manual session
-      // pause, or a long hidden span, is excluded.
+      // pause, or a long hidden span on a still-running rest, is excluded.
       const excluded =
-        r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS
+        finishedWhileHidden ||
+        (r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS)
           ? 0
           : pauseDuration
       return {
@@ -189,6 +198,7 @@ export function useRestTimer() {
         ...prev,
         pausedAt: null,
         pausedForWorkoutSession: undefined,
+        pausedForVisibility: undefined,
         accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
       }
     })
