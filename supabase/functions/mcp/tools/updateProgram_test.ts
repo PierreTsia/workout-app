@@ -349,6 +349,12 @@ class MockBuilder {
       )
     }
 
+    if (t === "user_profiles") {
+      // ADR 0031 — the handler reads the athlete's locale for the Decision Card.
+      // No fixture by default → locale falls back to the arg / "en".
+      return finalizeSelect([], this.entry.terminal)
+    }
+
     throw new Error(`MockSupabase.select: unsupported table "${t}"`)
   }
 
@@ -772,6 +778,65 @@ Deno.test("update_program defaults to dry_run when the flag is omitted — no wr
   assertEquals(added, [{ label: "Legs" }])
   // Zero writes recorded.
   assertEquals(writeOps(mock.callLog).length, 0)
+})
+
+Deno.test("update_program dry_run carries a structured program + locale in structuredContent only (ADR 0031)", async () => {
+  const mock = new MockSupabase(makeBaseState())
+
+  const reply = await updateProgram.handler(
+    {
+      program_id: ID_PROGRAM,
+      name: "PPL v2",
+      days: [
+        {
+          id: ID_DAY_PUSH,
+          label: "Push v2",
+          emoji: "💪",
+          exercises: [
+            {
+              exercise_id: ID_BENCH,
+              sets: 5,
+              reps: "5",
+              weight_kg: 100,
+              rest_seconds: 180,
+            },
+          ],
+        },
+      ],
+    },
+    mock as never,
+  )
+
+  assertEquals(reply.isError ?? false, false)
+
+  // The view payload rides structuredContent, outside model context.
+  const structured = reply.structuredContent as {
+    locale: string
+    program: { name: string; days: Array<{ label: string; exercises: unknown[] }> }
+  }
+  assertExists(structured)
+  assertEquals(structured.locale, "en")
+  assertEquals(structured.program.name, "PPL v2")
+  assertEquals(structured.program.days[0].label, "Push v2")
+  assertEquals(structured.program.days[0].exercises.length, 1)
+
+  // Additivity: the model-visible payload does not gain program/locale.
+  const body = parseReply(reply)
+  assertEquals("program" in body, false)
+  assertEquals("locale" in body, false)
+})
+
+Deno.test("update_program honors the locale argument for the Decision Card", async () => {
+  const mock = new MockSupabase(makeBaseState())
+
+  const reply = await updateProgram.handler(
+    { program_id: ID_PROGRAM, name: "PPL v2", locale: "fr" },
+    mock as never,
+  )
+
+  assertEquals(reply.isError ?? false, false)
+  const structured = reply.structuredContent as { locale: string }
+  assertEquals(structured.locale, "fr")
 })
 
 Deno.test("update_program surfaces the active-cycle warning in BOTH dry_run and apply responses", async () => {
