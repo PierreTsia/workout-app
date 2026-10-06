@@ -54,8 +54,8 @@ The first **MCP App View** (`ui://gymlogic/session-card`): a read-only card of t
 → `file:docs/adr/0027-agentic-view-contract.md`
 
 **Decision Card** (UI: FR **Modification du programme** / EN **Program change**):
-The second **MCP App View** (`ui://gymlogic/program-patch`): renders an `update_program` `dry_run` preview — the program as it would be after the patch (`rendered`), removed / added days, warnings — with an **Apply** button. The button asks the host to call **`apply_program_patch`** (`tools/call`); the view never writes directly, the click is the consent. Consent is materialised by the **Preview Token** carried in the tool result.
-→ `file:supabase/functions/mcp/tools/updateProgram.ts`, ADR `file:docs/adr/0028-view-intention-and-consent-token.md`
+The second **MCP App View** (`ui://gymlogic/program-patch`): renders an `update_program` `dry_run` preview as a structured program — the days and their exercises (typed prescription, per-exercise change fields) carried in `structuredContent.program` plus a `locale`, alongside the markdown `rendered` fallback, `removed_days` / `added_days`, and warnings — with an **Apply** button. The button asks the host to call **`apply_program_patch`** (`tools/call`); the view never writes directly, the click is the consent. Consent is materialised by the **Preview Token** carried in the tool result.
+→ `file:supabase/functions/mcp/tools/updateProgram.ts`, ADR `file:docs/adr/0028-view-intention-and-consent-token.md`, ADR `file:docs/adr/0031-decision-card-structured-program.md`
 
 **Preview Token**:
 A short-TTL HMAC-signed string minted by `update_program` `dry_run:true` and required by **`apply_program_patch`**. It carries the exact previewed patch + user id + expiry, so "what was shown is what applies" holds by construction. It rides `structuredContent` (SEP-1865: outside model context), so the model can neither read nor forge it — the **server** guard a host's `visibility:["app"]` cannot provide alone. Not stored: signed, stateless, idempotent on replay.

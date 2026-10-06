@@ -10,6 +10,12 @@
  */
 
 import type { ParsedExercise } from "./createProgramValidation.ts"
+import {
+  APPLY_DEFAULT_DURATION_SECONDS,
+  APPLY_DEFAULT_REPS,
+  APPLY_DEFAULT_REST_SECONDS,
+  APPLY_DEFAULT_SETS,
+} from "./format.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
 import { reconcileSolos } from "./slotReconciliation.ts"
 import type {
@@ -21,7 +27,6 @@ import type {
   ProgramDiff,
 } from "./updateProgramTypes.ts"
 
-export type PatchLocale = "en" | "fr"
 export type PatchChangeField = "sets" | "reps" | "weight" | "rest"
 
 export type PatchSoloExercise = {
@@ -55,7 +60,6 @@ export type PatchProgram = { name: string; days: PatchDay[] }
 const DEFAULT_INSERT_EMOJI = "🏋️"
 const DEFAULT_CIRCUIT_LABEL = "Circuit"
 const DEFAULT_AMRAP_CAP_MINUTES = 20
-const BARE_DEFAULTS = { sets: 3, reps: "10", weightKg: 0, restSeconds: 90 } as const
 
 const normalizeReps = (value: string): string => value.trim().toLowerCase()
 
@@ -85,11 +89,20 @@ function soloFromParsed(
   const name = catalog?.name ?? existing?.name_snapshot ?? "(unknown exercise)"
 
   if (parsed.kind === "bare") {
+    // Mirror renderParsedLine: a duration-measured exercise bootstraps to the catalog's
+    // default hold, not to a reps prescription — card and `rendered` must agree.
+    const targetDurationSeconds =
+      catalog?.measurement_type === "duration"
+        ? (catalog.default_duration_seconds ?? APPLY_DEFAULT_DURATION_SECONDS)
+        : null
     return {
       kind: "solo",
       name,
-      ...BARE_DEFAULTS,
-      targetDurationSeconds: null,
+      sets: APPLY_DEFAULT_SETS,
+      reps: APPLY_DEFAULT_REPS,
+      weightKg: 0,
+      restSeconds: APPLY_DEFAULT_REST_SECONDS,
+      targetDurationSeconds,
       isNew: existing === undefined,
       change: null,
     }

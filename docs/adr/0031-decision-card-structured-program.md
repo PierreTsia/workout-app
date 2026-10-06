@@ -26,7 +26,7 @@ We will:
 ## Consequences
 
 - **Positive:** the click path (ADR 0028) is unchanged and still enforced by the Preview Token; the card gains a real, localized rendering with zero new write path; the same `ProgramDiff` + snapshot are reused — no schema, no migration, no state. Non-MCP-Apps clients are untouched (`rendered` and the model result are byte-identical).
-- **Negative:** `structuredContent` grows (program days on every preview) — accepted, it is out of model context. The change detection is a **heuristic**: matching is by `exercise_id` then `sort_order` (index fallback), so a reordered day with duplicate `exercise_id`s can produce a spurious "changed" — accepted as a UI annotation, never authoritative (the `rendered`/apply remain the source of truth).
+- **Negative:** `structuredContent` grows (program days on every preview) — accepted, it is out of model context. The change detection is a **heuristic**: matching is by `exercise_id` (greedy, in order of appearance — `reconcileSolos`), so a reordered day with duplicate `exercise_id`s can produce a spurious "changed" — accepted as a UI annotation, never authoritative (the `rendered`/apply remain the source of truth).
 - **Follow-ups:** a dedicated read-only Program Card (`get_program_details`) is a separate epic — it needs a new tool + ADR; this ADR only structures the patch preview.
 
 ## Alternatives considered

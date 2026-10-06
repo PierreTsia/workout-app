@@ -8,7 +8,7 @@
 |---|---|---|
 | Source des `days[]` | Module **pur** `supabase/functions/mcp/lib/programPatchCard.ts` : `diff` + `currentProgram` + `catalogById` (déjà en scope handler) | zéro requête, zéro changement du contrat `ProgramDiff` |
 | Placement du payload | `program` + `locale` **uniquement dans `structuredContent`** | additivité maximale ; `payload` / `content[].text` (contexte modèle) et `rendered` inchangés |
-| Détection de changement | Comparer `currentProgram.days[].workout_exercises` ↔ `diff.days_to_update[].parsed_exercises`, appariement par **`exercise_id` puis `sort_order`** (repli index), champ par champ | réutilise `reconcileSolos` (`file:supabase/functions/mcp/lib/slotReconciliation.ts`) ; l'« avant » est reconstruit sans toucher `ProgramDiff` |
+| Détection de changement | Comparer `currentProgram.days[].workout_exercises` ↔ `diff.days_to_update[].parsed_exercises`, appariement par **`exercise_id`** (glouton, par ordre d'apparition), champ par champ | réutilise `reconcileSolos` (`file:supabase/functions/mcp/lib/slotReconciliation.ts`) ; l'« avant » est reconstruit sans toucher `ProgramDiff` |
 | Grain d'annotation | **Exercice** : liste des champs changés (`sets`/`reps`/`weight`/`rest`), copie composée côté vue | l'i18n se reconstruit depuis les champs typés, pas depuis le markdown EN-only |
 | Exercices retirés d'un jour | **Non annotés** dans la carte (v1) ; couverts par les `warnings` de détachement | périmètre borné, pas de bruit visuel |
 | Nom du programme | `program.name` = `diff.name_change?.to ?? currentProgram.name` | la maquette affiche le nom en `Heading` |
@@ -107,7 +107,7 @@ graph LR
 - `change` est calculé **par exercice apparié** : on compare `sets`, `reps` (normalisé), `weight` (string → nombre), `rest_seconds`. Une valeur absente d'un côté n'est pas une modification.
 - Un exercice d'un **jour inséré** porte `isNew: true, change: null` (tout est nouveau, pas « modifié »).
 - Un exercice d'un **jour inchangé** porte `change: null`.
-- Les solos appariés par `exercise_id` + `sort_order` (repli index) ; un `bare` parsed est traité `change: null`.
+- Les solos appariés par `exercise_id` (glouton, par ordre d'apparition) ; un `bare` parsed est traité `change: null`.
 - `days_to_delete` n'apparaît jamais dans `program.days` (il vit dans `removed_days`).
 
 ---
@@ -142,7 +142,7 @@ graph TD
 
 ### Component Responsibilities
 
-**`buildPatchProgram(diff, current, catalog)`** — pure, sans I/O. Mappe `days_to_update` / `days_to_insert` / `days_unchanged` (exclut `days_to_delete`), trie par `sort_order`. Nom = `diff.name_change?.to ?? current.name`. Pour un jour modifié : apparie solos `current`↔`parsed` (`exercise_id` puis `sort_order`, repli index), calcule `change` (champs distincts normalisés) ; inséré → `isNew: true, change: null` ; inchangé → `change: null`. Circuits → `kind: "circuit"` compact.
+**`buildPatchProgram(diff, current, catalog)`** — pure, sans I/O. Mappe `days_to_update` / `days_to_insert` / `days_unchanged` (exclut `days_to_delete`), trie par `sort_order`. Nom = `diff.name_change?.to ?? current.name`. Pour un jour modifié : apparie solos `current`↔`parsed` (`exercise_id`, glouton), calcule `change` (champs distincts normalisés) ; `isNew` = aucun solos existant apparié ; inchangé → `change: null`. Circuits → `kind: "circuit"` compact.
 
 **`updateProgram`** — résout `locale` (`resolveCardLocale`), ajoute `program` + `locale` au seul `structuredContent`. `payload` / `rendered` intacts.
 
@@ -158,7 +158,7 @@ graph TD
 
 | Failure | Behavior |
 |---|---|
-| Jour id de `days_to_update` absent de `currentProgram` | pas d'annotation, exercices `isNew:false, change:null` (carte dégradée, jamais fausse) |
+| Jour id de `days_to_update` absent de `currentProgram` | pas d'annotation, exercices `change:null` (carte dégradée, jamais fausse) |
 | Poids `"80"` vs `80` / reps `"8-12"` vs `"10"` | comparaison normalisée ; jamais de faux « changé » |
 | `bare` exercise (UUID seul) | traité inchangé, pas d'annotation |
 | Hôte non-MCP-Apps | pas de carte ; `update_program{dry_run:false}` reste le chemin (non-régression) |
@@ -211,7 +211,7 @@ Ordre rouge→vert (TDD) :
 
 ## Stress-Test List
 
-1. **Appariement** : `exercise_id` + `sort_order` (repli index) — un jour réordonné à ids dupliqués peut créer de faux « changé » ; couvert par test, accepté comme heuristique.
+1. **Appariement** : `exercise_id` (glouton, par ordre d'apparition) — un jour réordonné à ids dupliqués peut créer de faux « changé » ; accepté comme heuristique.
 2. **Plages/format** : `weight` string, `reps` `"8-12"` → normalisation obligatoire sinon faux positifs.
 3. **`bare`** : défauts `3×10@0` ≠ modification → skip annotation.
 4. **Cap unités** : cap AMRAP en secondes côté données → formater `20 min`, jamais `1200`.

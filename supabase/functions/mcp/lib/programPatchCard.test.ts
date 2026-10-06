@@ -13,10 +13,23 @@ const ID_DAY_A = "11111111-1111-1111-1111-111111111111"
 const ID_DAY_B = "22222222-2222-2222-2222-222222222222"
 const ID_BENCH = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 const ID_SQUAT = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+const ID_PLANK = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
 
 const catalog = new Map<string, CatalogExerciseForProgram>([
   [ID_BENCH, { id: ID_BENCH, name: "Bench Press", muscle_group: "chest", emoji: "💪", equipment: "barbell" }],
   [ID_SQUAT, { id: ID_SQUAT, name: "Squat", muscle_group: "legs", emoji: "🦵", equipment: "barbell" }],
+  [
+    ID_PLANK,
+    {
+      id: ID_PLANK,
+      name: "Planche",
+      muscle_group: "core",
+      emoji: null,
+      equipment: "bodyweight",
+      measurement_type: "duration",
+      default_duration_seconds: 45,
+    },
+  ],
 ])
 
 function makeCurrent(): CurrentProgramSnapshot {
@@ -131,6 +144,21 @@ describe("buildPatchProgram", () => {
     })
     const day = buildPatchProgram(diff, makeCurrent(), catalog).days[0]
     expect(day.exercises[0]).toMatchObject({ kind: "solo", change: null, isNew: false })
+  })
+
+  it("bootstraps a bare duration exercise from the catalog hold, not a reps default", () => {
+    const diff = emptyDiff({
+      days_to_insert: [
+        {
+          label: "Core",
+          emoji: "🔥",
+          sort_order: 0,
+          parsed_exercises: [{ kind: "bare", exerciseId: ID_PLANK }],
+        },
+      ],
+    })
+    const day = buildPatchProgram(diff, makeCurrent(), catalog).days[0]
+    expect(day.exercises[0]).toMatchObject({ kind: "solo", sets: 3, targetDurationSeconds: 45 })
   })
 
   it("marks every exercise of an inserted day as new", () => {

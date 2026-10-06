@@ -244,16 +244,6 @@ export const updateProgram: ToolDefinition = {
     }
     const userId = userData.user.id
 
-    // The Decision Card's copy locale (ADR 0031): tool arg → athlete locale → en.
-    const { data: profileRow } = await supabase
-      .from("user_profiles")
-      .select("locale")
-      .maybeSingle()
-    const locale = resolveCardLocale(
-      (args as Record<string, unknown>).locale,
-      (profileRow as { locale?: unknown } | null)?.locale,
-    )
-
     const parseResult = parsePatchShape(args)
     if (!parseResult.ok) {
       return err(parseResult.error)
@@ -385,6 +375,16 @@ export const updateProgram: ToolDefinition = {
     warnings.push(...detachmentWarnings)
 
     if (parsedPatch.dry_run) {
+      // The Decision Card's copy locale (ADR 0031): tool arg → athlete locale → en.
+      // Resolved only on the preview path, where the structured payload is emitted.
+      const { data: profileRow } = await supabase
+        .from("user_profiles")
+        .select("locale")
+        .maybeSingle()
+      const locale = resolveCardLocale(
+        (args as Record<string, unknown>).locale,
+        (profileRow as { locale?: unknown } | null)?.locale,
+      )
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
       const removed_days = diff.days_to_delete.map((d) => ({
         id: d.id,
