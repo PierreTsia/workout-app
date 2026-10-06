@@ -7,6 +7,7 @@ import {
   formatProgramListEntry,
   formatSessionHistory,
   formatSessionSummary,
+  formatSlotDetachmentWarning,
   formatWeightConvention,
   type WeightConvention,
 } from "./format"
@@ -1003,6 +1004,14 @@ describe("formatActiveCycleWarning (T81)", () => {
   it("strips the time portion regardless of timezone offset (uses the literal date prefix of the ISO)", () => {
     const warning = formatActiveCycleWarning({ started_at: "2026-12-31T23:59:59+02:00" })
     expect(warning).toContain("Cycle actif depuis 2026-12-31")
+  })
+})
+
+describe("formatSlotDetachmentWarning (#666)", () => {
+  it("names the movement and states the progression consequence", () => {
+    expect(formatSlotDetachmentWarning("Bench Press")).toBe(
+      "Historique détaché : « Bench Press » est retiré ou remplacé — sa progression repart de la prescription du template.",
+    )
   })
 })
 

@@ -644,9 +644,18 @@ export function formatProgramAfterUpdate(
  */
 export function formatActiveCycleWarning(cycle: { started_at: string }): string {
   // started_at is an ISO-8601 timestamp; the literal YYYY-MM-DD prefix is enough
-  // and avoids any timezone surprises.
+  // and avoids any timezone surprise.
   const date = cycle.started_at.slice(0, 10)
   return `Cycle actif depuis ${date} — cette modification affecte vos workouts restants dans ce cycle.`
+}
+
+/**
+ * Informative `dry_run` warning when a solo slot's history detaches because the
+ * exercise is removed or swapped (ADR 0030). A swap is an expected identity
+ * reset (#463) — this is a signal, not a confirmation gate.
+ */
+export function formatSlotDetachmentWarning(exerciseName: string): string {
+  return `Historique détaché : « ${exerciseName} » est retiré ou remplacé — sa progression repart de la prescription du template.`
 }
 
 function renderableFromUpdate(

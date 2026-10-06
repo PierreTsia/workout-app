@@ -36,9 +36,11 @@ import {
 } from "../lib/updateProgramValidation.ts"
 import { computeProgramDiff } from "../lib/updateProgramDiff.ts"
 import { applyProgramDiff } from "../lib/updateProgramApply.ts"
+import { detachedSoloExerciseIds } from "../lib/slotReconciliation.ts"
 import {
   formatActiveCycleWarning,
   formatProgramAfterUpdate,
+  formatSlotDetachmentWarning,
 } from "../lib/format.ts"
 import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
 import type {
@@ -119,7 +121,7 @@ function buildSnapshot(row: RawProgramRow): CurrentProgramSnapshot {
 const PROGRAM_SELECT =
   "id, name, workout_days(id, label, emoji, sort_order, workout_exercises(exercise_id, name_snapshot, sets, reps, weight, rest_seconds, target_duration_seconds, sort_order))"
 
-const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (logged set_logs are preserved via wipe-and-reinsert of the Unified Day Sequence: solos + Circuits).
+const TOOL_DESCRIPTION = `Edit an existing program in place — rename it, add/remove/reorder days, swap exercises/Circuits, or revise prescriptions — without breaking session history (the Unified Day Sequence — solos + Circuits — is reconciled in place, so a targeted prescription change keeps the slot's progression; swapping a movement starts a fresh slot).
 
 Patch shape:
   - Top level: PATCH semantics. Omit a field → leave it unchanged. Pass \`name\` → rename. Pass \`days\` → declarative PUT inside that field (see below).
@@ -349,6 +351,19 @@ export const updateProgram: ToolDefinition = {
         : null
 
     const warnings = activeCycleWarning ? [activeCycleWarning] : []
+
+    // Informative signal (ADR 0030): a solo slot whose exercise is removed or
+    // swapped loses its history — the new slot bootstraps from the template.
+    // Not a gate: the flow already has consent (echoed payload / Preview Token).
+    const detachmentWarnings = diff.days_to_update.flatMap((update) => {
+      const currentDay = currentProgram.days.find((d) => d.id === update.id)
+      if (!currentDay) return []
+      const existingIds = currentDay.workout_exercises.map((ex) => ex.exercise_id)
+      return detachedSoloExerciseIds(existingIds, update.parsed_exercises).map((id) =>
+        formatSlotDetachmentWarning(catalogById.get(id)?.name ?? id),
+      )
+    })
+    warnings.push(...detachmentWarnings)
 
     if (parsedPatch.dry_run) {
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)

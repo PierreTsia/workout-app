@@ -1296,3 +1296,82 @@ Deno.test(
     assertEquals(state.setLogs[0].workout_exercise_id, null)
   },
 )
+
+Deno.test(
+  "regression #666: a dry_run swap warns that the slot's history detaches",
+  async () => {
+    const mock = new MockSupabase(makeBaseState())
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            // Bench swapped out for Push-up → the Bench slot detaches.
+            exercises: [ID_PUSHUP],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+    const body = parseReply(reply)
+    const warnings = body.warnings as string[]
+    const detachment = warnings.find((w) => w.includes("Historique détaché"))
+    assertExists(detachment)
+    assertStringIncludes(detachment!, "Bench Press")
+    // Still a preview — no writes.
+    assertEquals(writeOps(mock.callLog).length, 0)
+  },
+)
+
+Deno.test(
+  "regression #666: a dry_run weight-only change adds no detachment warning",
+  async () => {
+    const mock = new MockSupabase(makeBaseState())
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [
+              {
+                exercise_id: ID_BENCH,
+                sets: 4,
+                reps: "8",
+                weight_kg: 60,
+                rest_seconds: 120,
+              },
+            ],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+    const body = parseReply(reply)
+    const warnings = body.warnings as string[]
+    assertEquals(warnings.some((w) => w.includes("Historique détaché")), false)
+  },
+)
