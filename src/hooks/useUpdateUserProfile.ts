@@ -3,7 +3,7 @@ import { useAtomValue } from "jotai"
 import { supabase } from "@/lib/supabase"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import type { UserGender, UserGoal, UserExperience, UserEquipment } from "@/types/onboarding"
-import { DisplayNameTakenError } from "@/hooks/profileErrors"
+import { DisplayNameTakenError } from "@/lib/profileErrors"
 
 const LBS_TO_KG = 0.453592
 

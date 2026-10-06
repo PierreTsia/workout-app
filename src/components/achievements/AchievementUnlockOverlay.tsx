@@ -9,9 +9,9 @@ import { Link } from "react-router-dom"
 import { useAtom, useSetAtom } from "jotai"
 import { useTranslation } from "react-i18next"
 import { ChevronRight } from "lucide-react"
-import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
   Dialog,
+  DialogPrimitive,
   DialogDescription,
   DialogOverlay,
   DialogPortal,
@@ -270,7 +270,7 @@ export function AchievementUnlockOverlay() {
     >
       <DialogPortal>
         <DialogOverlay
-          className="bg-[#0f0f13]/90 backdrop-blur-[2px]"
+          className="bg-black/90 backdrop-blur-[2px]"
           onClick={dismiss}
         />
         <DialogPrimitive.Content

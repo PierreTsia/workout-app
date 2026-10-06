@@ -14,7 +14,8 @@
     "progressLabel": "Image progress",
     "allDone": "All exercises have images!",
     "allDoneHint": "Nothing left in the queue — nice work.",
-    "backToAdmin": "Back to admin"
+    "backToAdmin": "Back to admin",
+    "viewDetails": "Details"
   },
   "translations": {
     "title": "Translation Review",
@@ -114,6 +115,7 @@
   "exercisesDescription": "Manage exercise content — instructions, videos, images",
   "backToList": "Back to list",
   "editExercise": "Edit Exercise",
+  "exerciseNotFound": "Exercise not found",
   "searchPlaceholder": "Search exercises…",
   "reviewed": "Reviewed",
   "notReviewed": "Not reviewed",
@@ -160,6 +162,7 @@
     "defaultDuration": "Default duration (seconds)",
     "selectPlaceholder": "Select…",
     "nonePlaceholder": "None",
+    "instructions": "Instructions",
     "setup": "Setup",
     "movement": "Movement",
     "breathing": "Breathing",

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
+import { Button } from "@nomosui/react"
 
 /** Throws on click — for verifying Sentry from the admin-only /admin page. */
 export function SentryTestErrorButton() {

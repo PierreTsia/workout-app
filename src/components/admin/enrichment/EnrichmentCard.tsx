@@ -2,9 +2,10 @@ import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { Copy, Check, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
+import { Button } from "@nomosui/react"
 import { ImageDropZone } from "@/components/admin/enrichment/ImageDropZone"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { uploadExerciseImage } from "@/lib/imageUpload"
@@ -19,6 +20,7 @@ interface EnrichmentCardProps {
 
 export function EnrichmentCard({ exercise }: EnrichmentCardProps) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation("admin")
   const user = useAtomValue(authAtom)
   const { muscleLabel, equipmentLabel } = useCatalogLabels()
   const [copied, setCopied] = useState(false)
@@ -86,7 +88,7 @@ export function EnrichmentCard({ exercise }: EnrichmentCardProps) {
         <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" asChild>
           <Link to={`/admin/exercises/${exercise.id}`}>
             <ExternalLink className="h-3.5 w-3.5" />
-            Details
+            {t("enrichment.viewDetails")}
           </Link>
         </Button>
       </div>

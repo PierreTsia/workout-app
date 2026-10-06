@@ -14,7 +14,8 @@
     "progressLabel": "Progression des images",
     "allDone": "Tous les exercices ont une image !",
     "allDoneHint": "Plus rien dans la file — bien joué.",
-    "backToAdmin": "Retour à l'admin"
+    "backToAdmin": "Retour à l'admin",
+    "viewDetails": "Détails"
   },
   "translations": {
     "title": "Relecture des traductions",
@@ -114,6 +115,7 @@
   "exercisesDescription": "Gérer le contenu des exercices — instructions, vidéos, images",
   "backToList": "Retour à la liste",
   "editExercise": "Modifier l'exercice",
+  "exerciseNotFound": "Exercice introuvable",
   "searchPlaceholder": "Rechercher des exercices…",
   "reviewed": "Vérifié",
   "notReviewed": "Non vérifié",
@@ -160,6 +162,7 @@
     "defaultDuration": "Durée par défaut (secondes)",
     "selectPlaceholder": "Sélectionner…",
     "nonePlaceholder": "Aucun",
+    "instructions": "Instructions",
     "setup": "Mise en place",
     "movement": "Mouvement",
     "breathing": "Respiration",

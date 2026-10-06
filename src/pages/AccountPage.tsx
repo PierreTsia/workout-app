@@ -20,7 +20,7 @@ import { assertAvatarFile, removeUserAvatarFiles, uploadUserAvatar } from "@/lib
 import { supabase } from "@/lib/supabase"
 import { resolveAvatarUrl } from "@/lib/userDisplay"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
-import { isDisplayNameTakenError } from "@/hooks/profileErrors"
+import { isDisplayNameTakenError } from "@/lib/profileErrors"
 import { useDeleteAccount } from "@/hooks/useDeleteAccount"
 import {
   AlertDialog,
