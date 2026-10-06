@@ -18,7 +18,6 @@ const nomosPublic = {
     '@nomosui/react/*',
     '!@nomosui/react/view',
     '!@nomosui/react/view.css',
-    '!@nomosui/react/tokens/*',
   ],
   message:
     'Nomos : surface publique seulement (@nomosui/react, /view, /tokens/*) — jamais dist/… ou src/…',
@@ -68,8 +67,8 @@ const restricted = ({ patterns = [], createClient = true, radix = true } = {}) =
 
 const COLOR_CLASS =
   /\b(?:bg|text|border|from|to|via|ring|fill|stroke)-\[(?:#|rgba?\(|hsla?\(|oklch\()/
-const colorSelector = (node) =>
-  `JSXAttribute[name.name="className"] ${node}[value=/${COLOR_CLASS.source}/]`
+const colorSelector = (node, attr = 'value') =>
+  `JSXAttribute[name.name="className"] ${node}[${attr}=/${COLOR_CLASS.source}/]`
 const COLOR_MESSAGE =
   'Couleurs : utilise un token (bg-primary, text-muted-foreground…) — pas de couleur en dur.'
 const STYLE_MESSAGE =
@@ -137,7 +136,9 @@ export default defineConfig([
   {
     // Seul fichier autorisé à instancier le client.
     files: ['src/lib/supabase.ts'],
-    rules: { [RESTRICT]: restricted({ createClient: false }) },
+    rules: {
+      [RESTRICT]: restricted({ createClient: false, patterns: [forbidUiAndHooks] }),
+    },
   },
   {
     files: ['src/hooks/**/*.{ts,tsx}'],
@@ -150,6 +151,12 @@ export default defineConfig([
   },
   {
     files: ['src/components/admin/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.*'],
+    rules: { [RESTRICT]: restricted({ patterns: [vendoredUi, forbidPages] }) },
+  },
+  {
+    // Les pages admin sont aussi une surface migrée vers Nomos.
+    files: ['src/pages/Admin*.tsx'],
     ignores: ['**/*.test.*'],
     rules: { [RESTRICT]: restricted({ patterns: [vendoredUi] }) },
   },
@@ -242,7 +249,7 @@ export default defineConfig([
           message: COLOR_MESSAGE,
         },
         {
-          selector: colorSelector('TemplateElement'),
+          selector: colorSelector('TemplateElement', 'value.raw'),
           message: COLOR_MESSAGE,
         },
         {
