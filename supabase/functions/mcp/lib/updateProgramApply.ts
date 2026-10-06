@@ -11,11 +11,12 @@
  *   - "default":      [...deletes, ...updates, ...inserts]
  *   - "insert_first": [...inserts, ...deletes, ...updates]   (drain-to-0 escape hatch)
  *
- * Every UPDATE-day flow ALWAYS replaces its exercises (idempotent
- * wipe-and-reinsert via `applyDayUpdate`); meta is updated only when the
- * label/emoji/sort_order actually changed. Every INSERT-day flow inserts
- * `workout_days` first, captures the returned id, then bulk-inserts the
- * exercise rows directly (no DELETE needed for a fresh day).
+ * Every UPDATE-day flow reconciles its exercises in place (ADR 0030) via
+ * `applyDayUpdate` — matching incoming items to the existing slots so
+ * `workout_exercises.id` / `exercise_blocks.id` survive; meta is updated only
+ * when the label/emoji/sort_order actually changed. Every INSERT-day flow
+ * inserts `workout_days` first, captures the returned id, then bulk-inserts the
+ * exercise rows directly (no reconciliation needed for a fresh day).
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
