@@ -218,7 +218,7 @@ One pass through every day of a **Program**. The open **Cycle** is the `cycles` 
 ## Workout execution
 
 **Session time** (UI: FR **Temps de séance** / EN **Session time**):
-Sum of `sessions.active_duration_ms` over finished **Sessions** in the current Profil window (7j / 30j / 100j / 1 an / depuis toujours). When `active_duration_ms` is null, fall back to wall-clock `(finished_at − started_at)` — same rule as `get_cycle_stats`. Pause-excluded when the finish path wrote the column. **Not** `get_training_activity_by_day.minutes`, which is always wall-clock including pauses; the Profil pulse must not bind that field. The UI used to say “time under the bar”; the metric did not change. All-time has no vs-préc. delta.
+Sum of `sessions.active_duration_ms` over finished **Sessions** in the current Profil window (7j / 30j / 100j / 1 an / depuis toujours). When `active_duration_ms` is null, fall back to wall-clock `(finished_at − started_at)` — same rule as `get_cycle_stats`. Pause-excluded when the finish path wrote the column. A background / screen-locked span of **15 min or less counts** (a phone-in-pocket rest is session time); a longer hidden span is **excluded whole** — the 15-minute hidden-time guard, ADR `file:docs/adr/0029-inactivity-guard-15min.md`. **Not** `get_training_activity_by_day.minutes`, which is always wall-clock including pauses; the Profil pulse must not bind that field. The UI used to say “time under the bar”; the metric did not change. All-time has no vs-préc. delta.
 → `file:supabase/migrations/20260324140000_sessions_active_duration_ms.sql`, `file:supabase/migrations/20260802170000_secure_definer_rpcs.sql`
 
 **RIR 0 rate** (UI: **% RIR 0**):
