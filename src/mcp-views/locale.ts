@@ -1,5 +1,7 @@
 export type ViewLocale = 'en' | 'fr'
 
+type LocaleFields = { locale?: ViewLocale; profile_locale?: ViewLocale }
+
 /**
  * Maps a BCP-47 tag onto a supported locale, or `null`.
  *
@@ -31,3 +33,21 @@ export function resolveViewLocale(
     'en'
   )
 }
+
+/**
+ * Carries the preview's locale metadata onto a refresh that omits it — the
+ * `update_program` **apply** response has no `locale` / `profile_locale`, so without this
+ * the card would flip to the host/English language the moment the athlete clicks Apply.
+ */
+export function preserveLocale<T extends object>(
+  next: T,
+  previous: LocaleFields,
+): T & LocaleFields {
+  const carried = next as LocaleFields
+  return {
+    ...next,
+    locale: carried.locale ?? previous.locale,
+    profile_locale: carried.profile_locale ?? previous.profile_locale,
+  }
+}
+

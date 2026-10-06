@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { normalizeLocale, resolveViewLocale } from "./locale"
+import { normalizeLocale, preserveLocale, resolveViewLocale } from "./locale"
 
 describe("normalizeLocale", () => {
   it("maps a BCP-47 tag to its supported base locale", () => {
@@ -35,5 +35,18 @@ describe("resolveViewLocale", () => {
   it("defaults to English when no source is usable", () => {
     expect(resolveViewLocale(undefined, undefined, undefined)).toBe("en")
     expect(resolveViewLocale("de", "es", "it")).toBe("en")
+  })
+})
+
+describe("preserveLocale", () => {
+  it("keeps the preview's locale metadata when the refresh omits it (Apply)", () => {
+    const applied = preserveLocale({ status: "applied" }, { locale: "fr", profile_locale: "fr" })
+    expect(applied.locale).toBe("fr")
+    expect(applied.profile_locale).toBe("fr")
+  })
+
+  it("never overrides locale metadata the refresh does carry", () => {
+    const next = preserveLocale({ status: "applied", locale: "en" }, { locale: "fr" })
+    expect(next.locale).toBe("en")
   })
 })
