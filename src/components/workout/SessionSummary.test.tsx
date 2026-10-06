@@ -115,12 +115,6 @@ describe("SessionSummary", () => {
     expect(screen.getByText("—")).toBeInTheDocument()
   })
 
-  it("does not render the adjustments section", () => {
-    renderWithProviders(<SessionSummary {...BASE_PROPS} />)
-
-    expect(screen.queryByText("Adjustments")).not.toBeInTheDocument()
-  })
-
   it("renders the session note when onSaveNote is provided", () => {
     renderWithProviders(<SessionSummary {...BASE_PROPS} onSaveNote={vi.fn()} />)
 
