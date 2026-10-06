@@ -86,6 +86,12 @@ Cycle rouge → vert → refactor. `npm run lint` avant de pousser.
   de PR), `review:*`, `epic`. Les issues sont en français.
 - `public/`, `node_modules/`, `.env*` et les exports de données brutes
   (`*-export-*.csv`, `delete_candidates.csv`) ne sont jamais committés.
+- `npm run lint` porte les **règles maison** (`eslint.config.js`) : zéro littéral JSX (i18n),
+  Nomos/`@nomosui/react` par sa seule surface publique, Radix confiné à `src/components/ui/**`,
+  pas de primitive vendorée dans les surfaces migrées (`admin/`, `mcp-views/`), couleurs par
+  tokens, et frontières de couches (`lib/store/types/data` sans UI ni hooks, pas de `pages`
+  depuis `hooks`/`components`, `mcp-views` autonome, un seul client Supabase). Exemptions
+  commentées dans le fichier.
 
 ## Release
 

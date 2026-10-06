@@ -25,7 +25,7 @@ export function MuscleSetRanks({ values }: { values: MuscleRadarValues }) {
               <span className="truncate">{muscleLabel(row.muscle)}</span>
               <span className="h-1 min-w-4 flex-1 overflow-hidden rounded-full bg-muted">
                 <span
-                  className="block h-full origin-left rounded-full bg-[hsl(174_100%_39%)]"
+                  className="block h-full origin-left rounded-full bg-primary"
                   style={{ transform: `scaleX(${row.fill})` }}
                 />
               </span>

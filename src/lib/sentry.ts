@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/react"
-import { isAuthExpiredError, isDisplayNameTakenError } from "@/hooks/profileErrors"
+import { isAuthExpiredError, isDisplayNameTakenError } from "@/lib/profileErrors"
 import type { EmbeddedAgentError } from "@/hooks/useEmbeddedAgentThread"
 
 let initialized = false

@@ -280,7 +280,7 @@ export function ExerciseEditForm({
         </div>
 
         <div className="flex flex-col gap-6 md:col-span-2">
-          <h3 className="text-lg font-semibold">Instructions</h3>
+          <h3 className="text-lg font-semibold">{t("form.instructions")}</h3>
           <InstructionFieldArray
             name="setup"
             label={t("form.setup")}

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { normalizeLocale } from "@/lib/persistedLocale"
 import { authAtom, weightUnitAtom } from "@/store/atoms"
 import { getResolvedIANATimeZone } from "@/lib/trainingActivityTimezone"
-import { AuthExpiredError, DisplayNameTakenError } from "@/hooks/profileErrors"
+import { AuthExpiredError, DisplayNameTakenError } from "@/lib/profileErrors"
 import type { UserGoal, UserExperience, UserEquipment, UserGender } from "@/types/onboarding"
 
 interface ProfileInput {

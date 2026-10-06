@@ -13,7 +13,7 @@ import {
   AuthExpiredError,
   DisplayNameTakenError,
   isAuthExpiredError,
-} from "@/hooks/profileErrors"
+} from "@/lib/profileErrors"
 import { supabase } from "@/lib/supabase"
 import { captureOnboardingError, type OnboardingRoute } from "@/lib/sentry"
 import { WelcomeStep } from "@/components/onboarding/WelcomeStep"

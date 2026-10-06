@@ -41,7 +41,7 @@ export function AdminExerciseEditPage() {
   if (!exercise) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-muted-foreground">Exercise not found</p>
+        <p className="text-muted-foreground">{t("exerciseNotFound")}</p>
       </div>
     )
   }
