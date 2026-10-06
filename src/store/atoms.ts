@@ -81,6 +81,8 @@ export interface RestState {
   accumulatedPause: number
   /** True when `pausedAt` was set because the workout session was paused (not the rest drawer). */
   pausedForWorkoutSession?: boolean
+  /** True when that session pause came from the visibility guard (#664), not a manual pause. */
+  pausedForVisibility?: boolean
 }
 
 export const restAtom = atomWithStorage<RestState | null>("rest", null)

@@ -10,6 +10,7 @@ import { useAtom, useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
 import { restAtom, sessionAtom, type RestState } from "@/store/atoms"
 import { playWarningBeep, playFinishBeeps } from "@/lib/audio"
+import { VISIBILITY_GUARD_MS } from "@/lib/session"
 
 export function formatSeconds(s: number): string {
   const mins = Math.floor(s / 60)
@@ -87,6 +88,7 @@ export function useRestTimer() {
           ...r,
           pausedAt: sessionPausedAt,
           pausedForWorkoutSession: true,
+          pausedForVisibility: session.pausedByVisibility,
         }
       })
       return
@@ -94,14 +96,21 @@ export function useRestTimer() {
     setRest((r) => {
       if (!r || !r.pausedForWorkoutSession || r.pausedAt == null) return r
       const pauseDuration = Date.now() - r.pausedAt
+      // A short visibility pause counts as rest time (#664); a manual session
+      // pause, or a long hidden span, is excluded.
+      const excluded =
+        r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS
+          ? 0
+          : pauseDuration
       return {
         ...r,
         pausedAt: null,
         pausedForWorkoutSession: undefined,
-        accumulatedPause: (r.accumulatedPause ?? 0) + pauseDuration,
+        pausedForVisibility: undefined,
+        accumulatedPause: (r.accumulatedPause ?? 0) + excluded,
       }
     })
-  }, [sessionPausedAt, setRest])
+  }, [sessionPausedAt, session.pausedByVisibility, setRest])
 
   useEffect(() => {
     if (!rest) {
@@ -149,9 +158,17 @@ export function useRestTimer() {
     }
 
     tick()
-    if (!isTimerFrozen) {
-      const id = setInterval(tick, 250)
-      return () => clearInterval(id)
+    // The interval is throttled/frozen while backgrounded; recalc from the
+    // timestamp the moment the app is visible again (#664), which also fires
+    // the finish alert best-effort if the rest ended in the background.
+    function handleVisibility() {
+      if (document.visibilityState === "visible") tick()
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    const id = isTimerFrozen ? null : setInterval(tick, 250)
+    return () => {
+      if (id) clearInterval(id)
+      document.removeEventListener("visibilitychange", handleVisibility)
     }
   }, [rest, setRest, t, isTimerFrozen, sessionPausedAt])
 

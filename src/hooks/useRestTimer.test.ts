@@ -3,7 +3,16 @@ import { act } from "@testing-library/react"
 import { renderHookWithProviders } from "@/test/utils"
 import { restAtom, sessionAtom } from "@/store/atoms"
 import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
+import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import type { RestState } from "@/store/atoms"
+
+function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  })
+  document.dispatchEvent(new Event("visibilitychange"))
+}
 
 describe("useRestTimer", () => {
   beforeEach(() => {
@@ -138,6 +147,117 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.remaining).toBe(75)
+  })
+
+  it("counts a short visibility pause (≤ 15 min) in the rest timer", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+        pausedByVisibility: true,
+      }))
+    })
+    expect(result.current.isPaused).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    expect(result.current.isPaused).toBe(false)
+    expect(result.current.remaining).toBe(70)
+  })
+
+  it("excludes a long visibility pause (> 15 min) from the rest timer", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 1800,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(1790)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+        pausedByVisibility: true,
+      }))
+    })
+
+    const hidden = VISIBILITY_GUARD_MS + 60_000
+    act(() => {
+      vi.advanceTimersByTime(hidden)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    expect(result.current.remaining).toBe(1790)
+  })
+
+  it("forces a tick on visibilitychange to visible", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+    expect(result.current.remaining).toBe(90)
+
+    // Time passes while the interval is throttled (timers not advanced).
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(result.current.remaining).toBe(80)
   })
 
   it("keeps user rest pause when session resumes if rest was paused before session", () => {
