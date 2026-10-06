@@ -47,15 +47,15 @@ pass `locale` for `update_program` (only `render_session_card` documented it), a
 profile is a cross-device **seed**, not the device's Display Locale. Result: a French
 athlete saw an English Decision Card.
 
-The precedence is unchanged down to the stored seed — **tool `locale` argument →
-`user_profiles.locale`** — but when neither is usable `resolveCardLocale` now returns
-`null`, and `update_program` **omits** `locale` from `structuredContent`. The view then
-falls back to the **host's own language** (`HostContext.locale`, SEP-1865) before `en`.
-This is faithful to **Display Locale** for a sandboxed card: the app's
-`localStorage["locale"]` is out of reach, so the host locale is the device signal, and the
-profile only seeds a host that exposes none. `render_session_card` keeps its `?? "en"`
-because it localizes exercise names server-side — its locale stays decided server-side
-(and is fixed by the same documented `locale` argument).
+The view own language now ranks above the stored seed. Precedence for the card:
+**explicit tool `locale` argument → host language → `user_profiles.locale` seed → `en`**
+(Display Locale: the device value wins, the profile only seeds a host that exposes none).
+`update_program` therefore emits the two server-side sources **separately** — `locale`
+(explicit argument only) and `profile_locale` (the seed) — and omits each when absent, so
+the view can slot the **host's own language** (`HostContext.locale`, SEP-1865) between
+them. This refines decision 3, which is otherwise unchanged. `render_session_card` keeps
+its `?? "en"` because it localizes exercise names server-side — its locale stays decided
+server-side (and is fixed by the same documented `locale` argument).
 
 Warnings are carried **typed** (`warning_details`) and composed in the view's locale; the
 French `warnings[]` strings stay for non-UI clients.

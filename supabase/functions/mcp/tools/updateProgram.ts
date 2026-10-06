@@ -43,7 +43,7 @@ import {
   formatSlotDetachmentWarning,
 } from "../lib/format.ts"
 import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
-import { resolveCardLocale } from "../lib/sessionCard.ts"
+import { asCardLocale } from "../lib/sessionCard.ts"
 import { buildPatchProgram, type PatchWarning } from "../lib/programPatchCard.ts"
 import type {
   CurrentProgramSnapshot,
@@ -227,7 +227,7 @@ export const updateProgram: ToolDefinition = {
         type: "string",
         enum: ["en", "fr"],
         description:
-          "Language of the Decision Card's labels, prescription copy, and warnings — pass the language the user is speaking. Defaults to the athlete's stored locale, then the host's language, then English.",
+          "Language of the Decision Card's labels, prescription copy, and warnings — pass the language the user is speaking. Defaults to the host's language, then the athlete's stored locale, then English.",
       },
     },
     required: ["program_id"],
@@ -383,15 +383,16 @@ export const updateProgram: ToolDefinition = {
     })
 
     if (parsedPatch.dry_run) {
-      // The Decision Card's copy locale (ADR 0031/#677): tool arg → athlete seed → host.
-      // `null` means neither the argument nor the profile gave a value, so we OMIT `locale`
-      // and let the view fall back to the host's own language (Display Locale).
+      // The Decision Card's copy locale (ADR 0031/#677). The two sources are emitted
+      // SEPARATELY so the view can rank the host's own language between them:
+      //   explicit tool argument → host locale → user_profiles seed → en
+      // (Display Locale: the device signal wins over the cross-device seed.)
       const { data: profileRow } = await supabase
         .from("user_profiles")
         .select("locale")
         .maybeSingle()
-      const locale = resolveCardLocale(
-        (args as Record<string, unknown>).locale,
+      const explicitLocale = asCardLocale((args as Record<string, unknown>).locale)
+      const profileLocale = asCardLocale(
         (profileRow as { locale?: unknown } | null)?.locale,
       )
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
@@ -440,7 +441,8 @@ export const updateProgram: ToolDefinition = {
           status: "preview",
           ...payload,
           warning_details,
-          ...(locale ? { locale } : {}),
+          ...(explicitLocale ? { locale: explicitLocale } : {}),
+          ...(profileLocale ? { profile_locale: profileLocale } : {}),
           program: buildPatchProgram(diff, currentProgram, catalogById),
           ...(preview_token ? { preview_token } : {}),
         },

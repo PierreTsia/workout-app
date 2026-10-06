@@ -125,6 +125,8 @@ interface MockState {
   setLogs: SetLogRow[]
   cycles: CycleRow[]
   catalog: typeof BENCH[]
+  /** #677 — the athlete's stored locale seed for the Decision Card. */
+  userProfiles: { locale: string | null }[]
 }
 
 interface CallEntry {
@@ -350,9 +352,9 @@ class MockBuilder {
     }
 
     if (t === "user_profiles") {
-      // ADR 0031 — the handler reads the athlete's locale for the Decision Card.
-      // No fixture by default → locale falls back to the arg / "en".
-      return finalizeSelect([], this.entry.terminal)
+      // ADR 0031/#677 — the handler reads the athlete's locale seed for the Decision Card.
+      // Empty by default → no seed, so the view falls back to the host locale.
+      return finalizeSelect(this.mock.state.userProfiles, this.entry.terminal)
     }
 
     throw new Error(`MockSupabase.select: unsupported table "${t}"`)
@@ -571,6 +573,7 @@ function makeBaseState(): MockState {
     setLogs: [],
     cycles: [],
     catalog: [BENCH, PUSHUP],
+    userProfiles: [],
   }
 }
 
@@ -811,11 +814,15 @@ Deno.test("update_program dry_run carries a structured program + locale in struc
 
   // The view payload rides structuredContent, outside model context.
   const structured = reply.structuredContent as {
-    locale: string
+    locale?: string
+    profile_locale?: string
     program: { name: string; days: Array<{ label: string; exercises: unknown[] }> }
   }
   assertExists(structured)
-  assertEquals(structured.locale, "en")
+  // #677 — with no tool argument and no profile seed, both locale fields are OMITTED so
+  // the view can fall back to the host's own language (Display Locale).
+  assertEquals("locale" in structured, false)
+  assertEquals("profile_locale" in structured, false)
   assertEquals(structured.program.name, "PPL v2")
   assertEquals(structured.program.days[0].label, "Push v2")
   assertEquals(structured.program.days[0].exercises.length, 1)
@@ -824,6 +831,7 @@ Deno.test("update_program dry_run carries a structured program + locale in struc
   const body = parseReply(reply)
   assertEquals("program" in body, false)
   assertEquals("locale" in body, false)
+  assertEquals("profile_locale" in body, false)
 })
 
 Deno.test("update_program honors the locale argument for the Decision Card", async () => {
@@ -835,8 +843,26 @@ Deno.test("update_program honors the locale argument for the Decision Card", asy
   )
 
   assertEquals(reply.isError ?? false, false)
-  const structured = reply.structuredContent as { locale: string }
+  const structured = reply.structuredContent as { locale?: string; profile_locale?: string }
   assertEquals(structured.locale, "fr")
+  assertEquals("profile_locale" in structured, false)
+})
+
+Deno.test("update_program emits the profile locale as a SEPARATE seed (#677)", async () => {
+  const state = makeBaseState()
+  state.userProfiles.push({ locale: "fr" })
+  const mock = new MockSupabase(state)
+
+  const reply = await updateProgram.handler(
+    { program_id: ID_PROGRAM, name: "PPL v2" },
+    mock as never,
+  )
+
+  assertEquals(reply.isError ?? false, false)
+  const structured = reply.structuredContent as { locale?: string; profile_locale?: string }
+  // The seed rides its own field so the view can rank the host language ABOVE it.
+  assertEquals("locale" in structured, false)
+  assertEquals(structured.profile_locale, "fr")
 })
 
 Deno.test("update_program surfaces the active-cycle warning in BOTH dry_run and apply responses", async () => {
@@ -876,6 +902,12 @@ Deno.test("update_program surfaces the active-cycle warning in BOTH dry_run and 
   const dryWarnings = dryBody.warnings as string[]
   assertEquals(dryWarnings.length, 1)
   assertStringIncludes(dryWarnings[0], "Cycle actif depuis 2026-04-15")
+
+  // #677 — the card's copy is composed view-side from the locale-neutral details.
+  const dryStructured = dryReply.structuredContent as {
+    warning_details?: Array<{ kind: string; date?: string }>
+  }
+  assertEquals(dryStructured.warning_details, [{ kind: "active_cycle", date: "2026-04-15" }])
 })
 
 Deno.test("update_program returns a partial-success report when a mid-flight day INSERT fails", async () => {

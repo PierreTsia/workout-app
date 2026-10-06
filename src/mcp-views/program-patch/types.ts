@@ -58,8 +58,10 @@ export type ProgramPatchPayload = {
   warnings?: string[]
   /** Locale-neutral warnings the card composes in the view's Display Locale. */
   warning_details?: PatchWarning[]
-  /** ADR 0031 — the copy locale and the structured program. */
+  /** ADR 0031/#677 — the explicit tool `locale`, ranked ABOVE the host language. */
   locale?: 'en' | 'fr'
+  /** The `user_profiles.locale` seed, ranked BELOW the host language (Display Locale). */
+  profile_locale?: 'en' | 'fr'
   program?: PatchProgram
   /** Present on a preview only; the view's Apply hands it back to `apply_program_patch`. */
   preview_token?: string

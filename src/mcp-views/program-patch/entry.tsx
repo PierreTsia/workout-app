@@ -29,7 +29,7 @@ if (rootElement) {
     root.render(
       <ProgramPatchCard
         payload={payload}
-        labels={labelsFor(resolveViewLocale(payload.locale, hostLocale))}
+        labels={labelsFor(resolveViewLocale(payload.locale, hostLocale, payload.profile_locale))}
         state={state}
         onApply={apply}
         theme={theme}

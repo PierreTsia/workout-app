@@ -23,18 +23,18 @@ Le seul signal **fiable et joignable** par la carte est la **locale de l'hôte M
 (`HostContext.locale`, BCP-47, SEP-1865). La vue lit donc `ui/initialize` /
 `ui/host-context-changed` et retombe dessus quand `payload.locale` est **absent**.
 
-Précédence retenue pour une carte : **argument d'outil explicite → `user_profiles.locale`
-(seed) → locale de l'hôte → `en`**. On **ne reordonne pas** la chaîne d'ADR 0031 ; on
-remplace seulement son défaut terminal `en` par un défaut **hôte → `en`**, ce qui est
-exactement ce que propose #677 et ce que dit **Display Locale** (le profil amorce, le
-navigateur/l'hôte décide en dernier).
+Précédence retenue pour une carte : **argument d'outil explicite → locale de l'hôte →
+`user_profiles.locale` (seed) → `en`**. On **ne reordonne pas** la chaîne d'ADR 0031 ; on
+remplace seulement son défaut terminal `en` par un défaut **hôte → seed → `en`**, ce qui est
+exactement ce que propose #677 et ce que dit **Display Locale** (la valeur de l'appareil
+gagne, le profil n'amorce qu'un hôte qui n'expose aucune langue).
 
-Conséquence serveur : `resolveCardLocale` retourne `null` (et non plus `"en"`) quand ni
-l'argument ni le profil ne donnent de valeur. `update_program` **omet** alors `locale` du
-`structuredContent`, laissant la vue décider. `render_session_card` garde `?? "en"` : ses
-**noms d'exercices** sont localisés côté serveur, donc sa locale doit rester décidée
-serveur (sinon noms et libellés divergeraient). Sa correction passe par le même argument
-`locale` documenté et transmis par le modèle.
+Conséquence serveur : `update_program` émet les deux sources **séparément** — `locale`
+(argument explicite seul) et `profile_locale` (le seed) — et omet chaque champ absent, pour
+que la vue puisse intercaler la locale de l'hôte entre les deux. `render_session_card` garde
+`?? "en"` : ses **noms d'exercices** sont localisés côté serveur, donc sa locale doit rester
+décidée serveur (sinon noms et libellés divergeraient). Sa correction passe par le même
+argument `locale` documenté et transmis par le modèle.
 
 ## Cas inverse — warnings
 

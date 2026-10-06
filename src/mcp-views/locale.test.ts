@@ -18,18 +18,22 @@ describe("normalizeLocale", () => {
 })
 
 describe("resolveViewLocale", () => {
-  it("prefers the payload locale (explicit arg or profile seed)", () => {
-    expect(resolveViewLocale("fr", "en-US")).toBe("fr")
-    expect(resolveViewLocale("en", "fr-FR")).toBe("en")
+  it("prefers the explicit tool argument above everything", () => {
+    expect(resolveViewLocale("fr", "en-US", "en")).toBe("fr")
+    expect(resolveViewLocale("en", "fr-FR", "fr")).toBe("en")
   })
 
-  it("falls back to the host locale when the payload carries none", () => {
-    expect(resolveViewLocale(undefined, "fr-FR")).toBe("fr")
-    expect(resolveViewLocale(null, "en-GB")).toBe("en")
+  it("ranks the host locale above the profile seed (Display Locale)", () => {
+    expect(resolveViewLocale(undefined, "fr-FR", "en")).toBe("fr")
+    expect(resolveViewLocale(null, "en-GB", "fr")).toBe("en")
   })
 
-  it("defaults to English when neither source is usable", () => {
-    expect(resolveViewLocale(undefined, undefined)).toBe("en")
-    expect(resolveViewLocale("de", "es")).toBe("en")
+  it("falls back to the profile seed when the host carries none", () => {
+    expect(resolveViewLocale(undefined, undefined, "fr")).toBe("fr")
+  })
+
+  it("defaults to English when no source is usable", () => {
+    expect(resolveViewLocale(undefined, undefined, undefined)).toBe("en")
+    expect(resolveViewLocale("de", "es", "it")).toBe("en")
   })
 })

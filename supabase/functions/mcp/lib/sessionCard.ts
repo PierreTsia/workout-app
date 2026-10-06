@@ -107,19 +107,23 @@ function blockCells(group: BlockHistoryGroup): CompletionCell[] {
   )
 }
 
+/** Narrows an unknown value to a supported card locale. */
+export function asCardLocale(value: unknown): SessionCardLocale | null {
+  return value === "en" || value === "fr" ? value : null
+}
+
 /**
  * The tool's `locale` argument wins, then the athlete's stored seed. Returns `null` when
  * neither is usable — the caller decides the fallback: `render_session_card` pins English
- * (it localizes names server-side), while the Decision Card omits `locale` so the view can
- * fall back to the host's own language (Display Locale, ADR 0031/#677).
+ * (it localizes names server-side), while the Decision Card emits the two sources
+ * separately (`locale` / `profile_locale`) so the view can rank the **host** locale above
+ * the seed (Display Locale, ADR 0031/#677).
  */
 export function resolveCardLocale(
   arg: unknown,
   profileLocale: unknown,
 ): SessionCardLocale | null {
-  if (arg === "en" || arg === "fr") return arg
-  if (profileLocale === "en" || profileLocale === "fr") return profileLocale
-  return null
+  return asCardLocale(arg) ?? asCardLocale(profileLocale)
 }
 
 function toItem(

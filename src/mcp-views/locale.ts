@@ -1,7 +1,5 @@
 export type ViewLocale = 'en' | 'fr'
 
-const SUPPORTED = new Set<ViewLocale>(['en', 'fr'])
-
 /**
  * Maps a BCP-47 tag onto a supported locale, or `null`.
  *
@@ -13,14 +11,23 @@ const SUPPORTED = new Set<ViewLocale>(['en', 'fr'])
 export function normalizeLocale(language: unknown): ViewLocale | null {
   if (typeof language !== 'string') return null
   const base = language.toLowerCase().split('-')[0]
-  return SUPPORTED.has(base as ViewLocale) ? (base as ViewLocale) : null
+  return base === 'en' || base === 'fr' ? base : null
 }
 
 /**
- * The card's Display Locale (ADR 0031 + Display Locale): the payload's explicit locale
- * (tool argument, or the athlete's stored seed) wins, then the **host** language — the
- * only reliable device signal reachable from the sandboxed view — then English.
+ * The card's Display Locale (ADR 0031 + Display Locale). Precedence: the tool's explicit
+ * argument → the **host** language (the device signal reachable from the sandboxed view,
+ * which outranks the cross-device seed) → the `user_profiles.locale` seed → English.
  */
-export function resolveViewLocale(payloadLocale: unknown, hostLocale: unknown): ViewLocale {
-  return normalizeLocale(payloadLocale) ?? normalizeLocale(hostLocale) ?? 'en'
+export function resolveViewLocale(
+  explicitLocale: unknown,
+  hostLocale: unknown,
+  profileLocale: unknown,
+): ViewLocale {
+  return (
+    normalizeLocale(explicitLocale) ??
+    normalizeLocale(hostLocale) ??
+    normalizeLocale(profileLocale) ??
+    'en'
+  )
 }
