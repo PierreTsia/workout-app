@@ -133,6 +133,7 @@ interface CallEntry {
   payload?: unknown
   filters?: Filter[]
   returning?: string
+  orderBy?: string
   terminal?: "single" | "maybeSingle"
 }
 
@@ -251,6 +252,11 @@ class MockBuilder {
     return this
   }
 
+  order(col: string): this {
+    this.entry.orderBy = col
+    return this
+  }
+
   // --- terminals ---
 
   single(): Promise<{ data: unknown; error: { message: string } | null }> {
@@ -327,7 +333,11 @@ class MockBuilder {
     }
 
     if (t === "block_exercises") {
-      const rows = this.mock.state.blockExercises.filter((b) => matchAll(b, f))
+      let rows = this.mock.state.blockExercises.filter((b) => matchAll(b, f))
+      if (this.entry.orderBy) {
+        const col = this.entry.orderBy
+        rows = rows.slice().sort((a, b) => Number(a[col]) - Number(b[col]))
+      }
       return finalizeSelect(rows, this.entry.terminal)
     }
 

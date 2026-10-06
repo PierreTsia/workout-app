@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-06
 - **Decided in:** grill session for [#666](https://github.com/PierreTsia/workout-app/issues/666)
+- **Amends:** ADR [0011](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0011-mcp-circuit-items-in-exercises-array.md) — its `update_program` apply strategy (wipe-and-reinsert) is replaced by in-place reconciliation; the rest of 0011 stands.
 - **Relates to:** ADR [0012](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0012-slot-scoped-last-performance.md) (slot-scoped **Last Performance**), ADR [0006](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0006-decouple-template-from-progression-engine.md) (**Manual Override Window**)
 
 ## Context

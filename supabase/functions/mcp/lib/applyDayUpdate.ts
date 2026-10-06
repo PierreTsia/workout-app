@@ -48,6 +48,7 @@ interface ExistingBlockRow {
 interface ExistingBlockCellRow {
   id: string
   exercise_id: string
+  position: number
 }
 
 /** All catalog UUIDs referenced by solos or nested Circuit exercises. */
@@ -75,10 +76,15 @@ async function reconcileBlockCells(
 ): Promise<{ error: string | null }> {
   const { data, error } = await supabase
     .from("block_exercises")
-    .select("id, exercise_id")
+    .select("id, exercise_id, position")
     .eq("block_id", blockId)
+    .order("position")
   if (error) return { error: error.message }
 
+  // Duplicate `exercise_id`s are allowed (ADR 0011). `ORDER BY position` makes
+  // the greedy match pair each incoming occurrence with the existing cell at the
+  // same position, so a duplicate's id — and its `set_logs.block_exercise_id`
+  // history — never lands on the wrong occurrence.
   const existing = (data ?? []) as ExistingBlockCellRow[]
   const plan = matchByKey(
     existing,

@@ -1,6 +1,6 @@
 # ADR 0011 — MCP Circuits via additive `exercises[]` Circuit Items
 
-- **Status:** Accepted
+- **Status:** Accepted · amended by [ADR 0030](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0030-update-program-slot-reconciliation.md) (the `update_program` apply strategy: wipe-and-reinsert → in-place reconciliation)
 - **Date:** 2026-08-04
 - **Decided in:** grilling session (`grill-with-docs`) for issue [#452](https://github.com/PierreTsia/workout-app/issues/452)
 
@@ -45,7 +45,7 @@ We will expose Circuits on MCP as an additive third variant in each day's `exerc
 - **Native block prescriptions** on the wire: `{ amount, weight_kg }` (flat) or `per_round: [{ amount, weight_kg }, …]`. Never solo `sets` / `reps` / per-exercise `rest_seconds` — those are hard rejects with structured errors.
 - **Hybrid richness:** flat path required for the common case; server propagates to all rounds (Builder default). Optional `per_round` for pyramids; if both flat fields and `per_round` are present → reject (no silent winner).
 - **Defaults** mirror `file:src/lib/blockPersistence.ts`: rounds=3, rest=90, transition=0, label=null. Bounds: rounds [1,10], 2–8 exercises per Circuit, rest/transition [0,600], weight_kg [0,500], amount reps [1,50] / duration [5,600] by catalog `measurement_type`. A Circuit counts as **one** slot toward the day item cap. Duplicate `exercise_id`s allowed. Array order = **Unified Day Sequence** `sort_order`.
-- **`update_program`:** a patched day's `exercises[]` fully replaces that day's Unified Day Sequence (wipe-and-reinsert solos **and** blocks).
+- **`update_program`:** a patched day's `exercises[]` fully replaces that day's Unified Day Sequence. The apply path reconciles in place rather than wiping and reinserting, so `workout_exercises.id` / `exercise_blocks.id` (and the `set_logs` / `block_runs` history they anchor) survive an edit — see [ADR 0030](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0030-update-program-slot-reconciliation.md).
 - **Read path:** `get_program_details`, `get_upcoming_workouts`, and `get_workout_history` are Circuit-aware. Details/upcoming must be **echo-ready** into write tools. History is round-major grouped actuals (not Circuit Completion Time / PB — follow-up).
 - **Naming:** agents and user-facing copy say **Circuit**; persistence stays **Exercise Block**. Superset = Circuit with `transition_seconds: 0`.
 - **AI scope (same epic, phased):** Phase 1 = MCP read/write + Program draft / Embedded Agent prompts (onboarding more conservative; Additional program + External MCP fully proactive on training patterns). Phase 2 = Quick Workout AI day-items reshape. No product feature flag — ship ungated when merged; fix bad prompts by revert.

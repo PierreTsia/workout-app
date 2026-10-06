@@ -47,6 +47,7 @@ interface CallEntry {
   payload?: unknown
   filters: Filter[]
   returning?: string
+  orderBy?: string
   terminal?: "single"
 }
 
@@ -73,7 +74,13 @@ function makeMockSupabase(config: MockConfig = {}) {
     if (message) return { data: null, error: { message } }
 
     if (entry.op === "select") {
-      const rows = selectData[entry.table] ?? []
+      let rows = selectData[entry.table] ?? []
+      if (entry.orderBy) {
+        const col = entry.orderBy
+        rows = rows
+          .slice()
+          .sort((a, b) => Number((a as Record<string, unknown>)[col]) - Number((b as Record<string, unknown>)[col]))
+      }
       return { data: entry.terminal === "single" ? (rows[0] ?? null) : rows, error: null }
     }
     if (entry.op === "insert" && entry.table === "exercise_blocks" && entry.terminal === "single") {
@@ -112,6 +119,10 @@ function makeMockSupabase(config: MockConfig = {}) {
         },
         in(col: string, val: unknown[]) {
           entry.filters.push({ type: "in", col, val })
+          return builder
+        },
+        order(col: string) {
+          entry.orderBy = col
           return builder
         },
         single() {
@@ -300,6 +311,52 @@ describe("applyDayUpdate — in-place reconciliation", () => {
     const beUpdates = opsOn(supabase.calls, "block_exercises", "update")
     expect(beUpdates).toHaveLength(1)
     expect(beUpdates[0].filters).toEqual([{ type: "eq", col: "id", val: "be-1" }])
+  })
+
+  it("pairs duplicate-exercise block cells by position, preserving each cell's identity", async () => {
+    const supabase = makeMockSupabase({
+      selectData: {
+        workout_exercises: [],
+        exercise_blocks: [{ id: "block-1", benchmark_circuit_id: null, sort_order: 0 }],
+        // Returned out of order on purpose: PostgreSQL gives no order without ORDER BY.
+        block_exercises: [
+          { id: "be-second", exercise_id: ID_PUSHUP, position: 1 },
+          { id: "be-first", exercise_id: ID_PUSHUP, position: 0 },
+        ],
+      },
+    })
+
+    const duplicateCircuit: ParsedExercise = {
+      kind: "circuit",
+      label: "Finisher",
+      rounds: 3,
+      restSeconds: 90,
+      transitionSeconds: 0,
+      exercises: [
+        { mode: "flat", exerciseId: ID_PUSHUP, amount: 10, weightKg: 0 },
+        { mode: "flat", exerciseId: ID_PUSHUP, amount: 12, weightKg: 0 },
+      ],
+      benchmarkCircuitId: null,
+    }
+
+    const result = await applyDayUpdate(
+      supabase as never,
+      DAY_ID,
+      [duplicateCircuit],
+      CATALOG,
+      USER_ID,
+    )
+
+    expect(result).toEqual({ ok: true, inserted_count: 1 })
+    const beUpdates = opsOn(supabase.calls, "block_exercises", "update")
+    expect(beUpdates).toHaveLength(2)
+    // position 0 pairs with be-first, position 1 with be-second — not the raw fetch order.
+    expect(beUpdates[0].filters).toEqual([{ type: "eq", col: "id", val: "be-first" }])
+    expect(beUpdates[0].payload).toMatchObject({ position: 0 })
+    expect(beUpdates[1].filters).toEqual([{ type: "eq", col: "id", val: "be-second" }])
+    expect(beUpdates[1].payload).toMatchObject({ position: 1 })
+    expect(opsOn(supabase.calls, "block_exercises", "delete")).toEqual([])
+    expect(opsOn(supabase.calls, "block_exercises", "insert")).toEqual([])
   })
 
   it("inserts a new block and its cells when no existing block matches", async () => {

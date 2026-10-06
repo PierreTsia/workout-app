@@ -20,7 +20,7 @@ issue that measured them).
   ADR wins there.
 - **Superseded by ADR NNNN** — no longer in force; the replacing ADR wins.
 
-As of 2026-10-04 no ADR in this corpus is fully **Superseded**. Four carry a partial amendment: 0007, 0008, 0016, and 0025 (§4, for `web/**` only, by 0028).
+As of 2026-10-06 no ADR in this corpus is fully **Superseded**. Five carry a partial amendment: 0007, 0008, 0011, 0016, and 0025 (§4, for `web/**` only, by 0028).
 
 ## Numbering: the `0006` collision
 
@@ -57,7 +57,7 @@ references — use the slug.
 | 0008 | Accepted · amended by 0014 | 2026-06-17 | Circuit completion time: derived, not scored (v1) | [0008-circuit-completion-time-derived-not-scored.md](./0008-circuit-completion-time-derived-not-scored.md) |
 | 0009 | Accepted | 2026-06-30 | AI Provider Fallback: Groq on Gemini unavailability only (v1) | [0009-ai-provider-fallback.md](./0009-ai-provider-fallback.md) |
 | 0010 | Accepted | 2026-07-31 | Localize catalog labels at display time, not in snapshots | [0010-localize-catalog-at-display-time.md](./0010-localize-catalog-at-display-time.md) |
-| 0011 | Accepted | 2026-08-04 | MCP Circuits via additive `exercises[]` Circuit Items | [0011-mcp-circuit-items-in-exercises-array.md](./0011-mcp-circuit-items-in-exercises-array.md) |
+| 0011 | Accepted · amended by 0030 | 2026-08-04 | MCP Circuits via additive `exercises[]` Circuit Items | [0011-mcp-circuit-items-in-exercises-array.md](./0011-mcp-circuit-items-in-exercises-array.md) |
 | 0012 | Accepted | 2026-08-07 | Scope Last Performance to the Exercise Slot | [0012-slot-scoped-last-performance.md](./0012-slot-scoped-last-performance.md) |
 | 0013 | Accepted | 2026-08-11 | Product Tour is a separate `/tour` surface | [0013-product-tour-separate-from-homepage.md](./0013-product-tour-separate-from-homepage.md) |
 | 0014 | Accepted | 2026-08-15 | AMRAP mode and persisted Block Runs | [0014-amrap-mode-and-block-runs.md](./0014-amrap-mode-and-block-runs.md) |
@@ -76,4 +76,4 @@ references — use the slug.
 | 0027 | Accepted | 2026-10-03 | MCP App views follow the standard MCP Apps contract, Nomos as visual source | [0027-agentic-view-contract.md](./0027-agentic-view-contract.md) |
 | 0028 | Accepted · amends 0025 | 2026-10-04 | The docs mini-site deploys on merge, not on a release | [0028-docs-site-deploys-on-merge.md](./0028-docs-site-deploys-on-merge.md) |
 | 0029 | Accepted | 2026-10-06 | Inactivity guard: 15 min of hidden time, not an immediate auto-pause | [0029-inactivity-guard-15min.md](./0029-inactivity-guard-15min.md) |
-| 0030 | Accepted | 2026-10-06 | `update_program` preserves Exercise Slot identity by in-place reconciliation | [0030-update-program-slot-reconciliation.md](./0030-update-program-slot-reconciliation.md) |
+| 0030 | Accepted · amends 0011 | 2026-10-06 | `update_program` preserves Exercise Slot identity by in-place reconciliation | [0030-update-program-slot-reconciliation.md](./0030-update-program-slot-reconciliation.md) |
