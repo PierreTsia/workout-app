@@ -17,8 +17,8 @@ export type AppBridgeOptions = {
   appInfo: { name: string; version: string }
   /** The host pushed a tool result — its `structuredContent` carries the view's payload. */
   onToolResult: (structuredContent: unknown) => void
-  /** Optional host appearance (theme) pushed after the handshake. */
-  onHostContext?: (context: { theme?: string }) => void
+  /** Optional host appearance (theme) and locale pushed after the handshake. */
+  onHostContext?: (context: { theme?: string; locale?: string }) => void
   /**
    * Element whose size is reported to the host (`ui/notifications/size-changed`). Without
    * it the host keeps a default iframe height and **clips** tall views.
@@ -80,7 +80,7 @@ export function connectAppBridge(
     }
 
     if (message.method === 'ui/notifications/host-context-changed') {
-      onHostContext?.(message.params as { theme?: string })
+      onHostContext?.(message.params as { theme?: string; locale?: string })
     }
   })
 
@@ -111,10 +111,10 @@ export function connectAppBridge(
     protocolVersion: PROTOCOL_VERSION,
   })
     .then((result) => {
-      // SEP-1865: the initial host context (including the theme) rides the initialize result.
-      const theme = (result as { hostContext?: { theme?: string } } | undefined)?.hostContext
-        ?.theme
-      if (theme) onHostContext?.({ theme })
+      // SEP-1865: the initial host context (theme + locale) rides the initialize result.
+      const hostContext = (result as { hostContext?: { theme?: string; locale?: string } } | undefined)
+        ?.hostContext
+      if (hostContext) onHostContext?.(hostContext)
       post({ jsonrpc: '2.0', method: 'ui/notifications/initialized' })
       reportSize()
       if (observeSize && typeof ResizeObserver !== 'undefined') {

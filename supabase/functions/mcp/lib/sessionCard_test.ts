@@ -11,8 +11,8 @@ Deno.test("resolveCardLocale: falls back to the athlete's stored locale", () => 
   assertEquals(resolveCardLocale(undefined, "fr"), "fr")
 })
 
-Deno.test("resolveCardLocale: defaults to English for anything unusable", () => {
-  assertEquals(resolveCardLocale(undefined, null), "en")
-  assertEquals(resolveCardLocale("de", "es"), "en")
-  assertEquals(resolveCardLocale(42, {}), "en")
+Deno.test("resolveCardLocale: returns null for anything unusable", () => {
+  assertEquals(resolveCardLocale(undefined, null), null)
+  assertEquals(resolveCardLocale("de", "es"), null)
+  assertEquals(resolveCardLocale(42, {}), null)
 })

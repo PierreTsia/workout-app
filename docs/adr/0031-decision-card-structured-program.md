@@ -38,3 +38,25 @@ We will:
 | **Put `program` in the model-visible `payload`** | Bloats the agent context with data only the view needs, and duplicates what `rendered` already gives the model. |
 | **Per-set change granularity** | The mockup shows "sets 2-3 changed", but per-set structure is heavier for marginal value; exercise-grain field markers are enough to guide the eye. |
 | **New read-only Program Card in this epic** | Out of scope: a new tool + ADR is its own epic; the patch preview is the job here. |
+
+## Amendment — card locale falls back to the host (#677)
+
+Decision 3's terminal default (`→ en`) was wrong in practice: the model was never told to
+pass `locale` for `update_program` (only `render_session_card` documented it), and
+`user_profiles.locale` is **NULL** for every account created before its migration — the
+profile is a cross-device **seed**, not the device's Display Locale. Result: a French
+athlete saw an English Decision Card.
+
+The precedence is unchanged down to the stored seed — **tool `locale` argument →
+`user_profiles.locale`** — but when neither is usable `resolveCardLocale` now returns
+`null`, and `update_program` **omits** `locale` from `structuredContent`. The view then
+falls back to the **host's own language** (`HostContext.locale`, SEP-1865) before `en`.
+This is faithful to **Display Locale** for a sandboxed card: the app's
+`localStorage["locale"]` is out of reach, so the host locale is the device signal, and the
+profile only seeds a host that exposes none. `render_session_card` keeps its `?? "en"`
+because it localizes exercise names server-side — its locale stays decided server-side
+(and is fixed by the same documented `locale` argument).
+
+Warnings are carried **typed** (`warning_details`) and composed in the view's locale; the
+French `warnings[]` strings stay for non-UI clients.
+

@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 
 import { connectAppBridge } from '../bridge'
+import { resolveViewLocale } from '../locale'
 import { ProgramPatchCard } from './ProgramPatchCard'
 import { examplePayload } from './example'
 import { labelsFor } from './labels'
@@ -11,8 +12,9 @@ import type { ProgramPatchPayload, ProgramPatchViewState } from './types'
  * The Decision Card view entry (ADR 0028/0031): it receives the `update_program` preview
  * through the bridge, renders the structured program, and on **Apply** asks the host to call
  * `apply_program_patch` with the preview token. It never writes directly — the host
- * arbitrates (SEP-1865 `tools/call`). Copy locale comes from the payload; the host theme
- * drives `data-theme`.
+ * arbitrates (SEP-1865 `tools/call`). Copy locale comes from the payload; when the payload
+ * carries none (no explicit argument, no stored seed) the **host** locale decides (Display
+ * Locale). The host theme drives `data-theme`.
  */
 const rootElement = document.getElementById('gl-view-root')
 
@@ -21,12 +23,13 @@ if (rootElement) {
   let payload: ProgramPatchPayload = examplePayload
   let state: ProgramPatchViewState = 'preview'
   let theme: ViewTheme = 'dark'
+  let hostLocale: string | undefined
 
   const render = () => {
     root.render(
       <ProgramPatchCard
         payload={payload}
-        labels={labelsFor(payload.locale ?? 'en')}
+        labels={labelsFor(resolveViewLocale(payload.locale, hostLocale))}
         state={state}
         onApply={apply}
         theme={theme}
@@ -49,7 +52,9 @@ if (rootElement) {
       }
     },
     onHostContext: (context) => {
-      theme = context.theme === 'light' ? 'light' : 'dark'
+      // Partial updates (SEP-1865): merge, never reset a field the host didn't send.
+      if (context.theme) theme = context.theme === 'light' ? 'light' : 'dark'
+      if (context.locale) hostLocale = context.locale
       render()
     },
   })

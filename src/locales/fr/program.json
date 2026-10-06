@@ -87,6 +87,8 @@
     "reps": "reps",
     "rest": "repos",
     "circuitExercises_one": "{{count}} exercice",
-    "circuitExercises_other": "{{count}} exercices"
+    "circuitExercises_other": "{{count}} exercices",
+    "warnActiveCycle": "Cycle actif depuis {{date}} — cette modification affecte vos workouts restants dans ce cycle.",
+    "warnSlotDetachment": "Historique détaché : « {{exercise}} » est retiré ou remplacé — sa progression repart de la prescription du template."
   }
 }
