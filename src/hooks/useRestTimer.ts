@@ -8,7 +8,7 @@ import {
 } from "react"
 import { useAtom, useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
-import { restAtom, sessionAtom, type RestState } from "@/store/atoms"
+import { restAtom, sessionAtom, visibilityGuardAtom, type RestState } from "@/store/atoms"
 import { playWarningBeep, playFinishBeeps } from "@/lib/audio"
 import { VISIBILITY_GUARD_MS } from "@/lib/session"
 
@@ -66,6 +66,7 @@ export function useRestTimer() {
   const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)
   const session = useAtomValue(sessionAtom)
+  const visibilityResolution = useAtomValue(visibilityGuardAtom)
   const sessionPausedAt = session.pausedAt
   const [now, setNow] = useState(Date.now)
   const hasNotifiedRef = useRef(false)
@@ -106,11 +107,25 @@ export function useRestTimer() {
           r.durationSeconds * 1000
       // A short visibility pause counts as rest time (#664); a manual session
       // pause, or a long hidden span on a still-running rest, is excluded.
-      const excluded =
-        finishedWhileHidden ||
-        (r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS)
-          ? 0
-          : pauseDuration
+      // For a visibility pause, consume the decision the session resolved once
+      // at return — re-measuring here with a later `Date.now()` could flip the
+      // boundary and make the two timers disagree. Fall back to measuring only
+      // when no matching resolution exists (isolated rest, no session hook).
+      const resolved =
+        r.pausedForVisibility === true &&
+        visibilityResolution != null &&
+        visibilityResolution.pausedAt === r.pausedAt
+          ? visibilityResolution
+          : null
+      const excluded = finishedWhileHidden
+        ? 0
+        : resolved
+          ? resolved.excluded
+            ? resolved.hiddenMs
+            : 0
+          : r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS
+            ? 0
+            : pauseDuration
       return {
         ...r,
         pausedAt: null,
@@ -119,7 +134,7 @@ export function useRestTimer() {
         accumulatedPause: (r.accumulatedPause ?? 0) + excluded,
       }
     })
-  }, [sessionPausedAt, session.pausedByVisibility, setRest])
+  }, [sessionPausedAt, session.pausedByVisibility, setRest, visibilityResolution])
 
   useEffect(() => {
     if (!rest) {

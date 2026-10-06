@@ -134,13 +134,18 @@ describe("resumeSessionFromVisibilityPause", () => {
       pausedByVisibility: true,
       accumulatedPause: 100,
     }
-    const out = resumeSessionFromVisibilityPause(
+    const { session, resolution } = resumeSessionFromVisibilityPause(
       paused,
       T0 + VISIBILITY_GUARD_MS,
     )
-    expect(out.pausedAt).toBeNull()
-    expect(out.pausedByVisibility).toBeFalsy()
-    expect(out.accumulatedPause).toBe(100)
+    expect(session.pausedAt).toBeNull()
+    expect(session.pausedByVisibility).toBeFalsy()
+    expect(session.accumulatedPause).toBe(100)
+    expect(resolution).toEqual({
+      pausedAt: T0,
+      hiddenMs: VISIBILITY_GUARD_MS,
+      excluded: false,
+    })
   })
 
   it("excludes the whole hidden span when it exceeds 15 min", () => {
@@ -151,19 +156,31 @@ describe("resumeSessionFromVisibilityPause", () => {
       pausedByVisibility: true,
       accumulatedPause: 100,
     }
-    const out = resumeSessionFromVisibilityPause(paused, T0 + hidden)
-    expect(out.pausedAt).toBeNull()
-    expect(out.accumulatedPause).toBe(100 + hidden)
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      paused,
+      T0 + hidden,
+    )
+    expect(session.pausedAt).toBeNull()
+    expect(session.accumulatedPause).toBe(100 + hidden)
+    expect(resolution).toEqual({ pausedAt: T0, hiddenMs: hidden, excluded: true })
   })
 
   it("never touches a manual pause", () => {
     const manual = { ...BASE_SESSION, pausedAt: T0, accumulatedPause: 100 }
-    expect(resumeSessionFromVisibilityPause(manual, T0 + 60_000)).toBe(manual)
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      manual,
+      T0 + 60_000,
+    )
+    expect(session).toBe(manual)
+    expect(resolution).toBeNull()
   })
 
   it("no-ops when the session is not paused", () => {
-    expect(
-      resumeSessionFromVisibilityPause(BASE_SESSION, T0 + 60_000),
-    ).toBe(BASE_SESSION)
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      BASE_SESSION,
+      T0 + 60_000,
+    )
+    expect(session).toBe(BASE_SESSION)
+    expect(resolution).toBeNull()
   })
 })

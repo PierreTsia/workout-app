@@ -42,11 +42,19 @@ We will:
    threshold**: terminality is decided on wall-clock, and the long-span fold
    only applies to a rest still running on return. The fold excludes the span
    from session time, never resurrects a finished rest.
-5. **Force a tick on `visibilitychange` → `visible`** for both the session timer
+5. **Resolve the guard once and share the decision.** `useSessionVisibilityAutoPause`
+   is the single `visibilitychange` owner: on return it measures the hidden span
+   once and publishes a `VisibilityGuardResolution` (`pausedAt`, `hiddenMs`,
+   `excluded`) on `visibilityGuardAtom`. `useRestTimer` consumes that resolution
+   instead of re-measuring with its own later `Date.now()`, so the session and
+   the rest cannot disagree at the 15-minute boundary (a span of exactly
+   `VISIBILITY_GUARD_MS` counts for both). The rest falls back to measuring only
+   when no matching resolution exists (isolated rest, no session hook mounted).
+6. **Force a tick on `visibilitychange` → `visible`** for both the session timer
    (`SessionTimerChip`) and the rest timer (`useRestTimer`), so the displays
    recalc from the timestamp immediately. The rest tick also fires the
    finish alert best-effort — **no Web Push in v1**.
-6. **Leave the 3 h orphan self-heal unchanged** (`orphanSessionClose.ts`,
+7. **Leave the 3 h orphan self-heal unchanged** (`orphanSessionClose.ts`,
    `ORPHAN_SESSION_THRESHOLD_MS`). It handles a different failure (a close that
    never landed), not a long-but-live session.
 

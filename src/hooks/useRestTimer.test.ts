@@ -3,6 +3,7 @@ import { act } from "@testing-library/react"
 import { renderHookWithProviders, setVisibility } from "@/test/utils"
 import { restAtom, sessionAtom } from "@/store/atoms"
 import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
+import { useSessionVisibilityAutoPause } from "./useSessionVisibilityAutoPause"
 import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import type { RestState } from "@/store/atoms"
 
@@ -278,6 +279,55 @@ describe("useRestTimer", () => {
       vi.advanceTimersByTime(1_200)
     })
     expect(result.current.isActive).toBe(false)
+  })
+
+  it("agrees with the session at the 15-minute boundary when the rest effect runs a tick later", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => ({
+      rest: useRestTimer(),
+      session: useSessionVisibilityAutoPause(),
+    }))
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 1800,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        isActive: true,
+        startedAt: t0,
+        pausedAt: null,
+      }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.rest.remaining).toBe(1790)
+
+    // App hidden mid-rest.
+    act(() => {
+      setVisibility("hidden")
+    })
+    expect(store.get(sessionAtom).pausedAt).toBe(10_000)
+
+    // Return exactly at the guard boundary; the rest layout effect runs 1 ms
+    // later, so a re-measure would see 900001 ms and exclude the whole span.
+    act(() => {
+      vi.setSystemTime(10_000 + VISIBILITY_GUARD_MS)
+      setVisibility("visible")
+      vi.setSystemTime(10_000 + VISIBILITY_GUARD_MS + 1)
+    })
+
+    // Session counts the span (≤ guard)...
+    expect(store.get(sessionAtom).accumulatedPause).toBe(0)
+    // ...and the rest must count it too, not exclude it.
+    expect(result.current.rest.remaining).toBe(890)
   })
 
   it("forces a tick on visibilitychange to visible", () => {

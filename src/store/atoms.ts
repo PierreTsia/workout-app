@@ -87,6 +87,23 @@ export interface RestState {
 
 export const restAtom = atomWithStorage<RestState | null>("rest", null)
 
+/**
+ * The guard decision for the most recent hidden span, resolved **once** by
+ * `useSessionVisibilityAutoPause` on return (#664). `useRestTimer` consumes it
+ * instead of re-measuring with its own later `Date.now()`, so the session and
+ * the rest cannot disagree at the 15-minute boundary.
+ */
+export interface VisibilityGuardResolution {
+  /** `pausedAt` of the session pause this resolution belongs to. */
+  pausedAt: number
+  /** Hidden span in ms, measured once at return. */
+  hiddenMs: number
+  /** True when the span exceeded `VISIBILITY_GUARD_MS` and is excluded whole. */
+  excluded: boolean
+}
+
+export const visibilityGuardAtom = atom<VisibilityGuardResolution | null>(null)
+
 export const syncStatusAtom = atom<"idle" | "syncing" | "failed" | "synced">(
   "idle",
 )

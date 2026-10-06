@@ -1,4 +1,4 @@
-import type { SessionState } from "@/store/atoms"
+import type { SessionState, VisibilityGuardResolution } from "@/store/atoms"
 
 /**
  * Hidden-time guard (#664): a background/locked span longer than this is
@@ -48,18 +48,27 @@ export function pauseSessionForVisibility(
  * it is at or below `VISIBILITY_GUARD_MS`; above it, the whole span is folded
  * into `accumulatedPause` so it never reaches `active_duration_ms`. A manual
  * pause (no `pausedByVisibility`) is never touched.
+ *
+ * Returns the resolved {@link VisibilityGuardResolution} alongside the new
+ * session so the caller can share the single decision with the rest timer
+ * instead of letting it re-measure with a later `Date.now()`.
  */
 export function resumeSessionFromVisibilityPause(
   prev: SessionState,
   now = Date.now(),
-): SessionState {
-  if (!prev.pausedByVisibility || prev.pausedAt == null) return prev
-  const hiddenDuration = now - prev.pausedAt
-  const excluded = hiddenDuration > VISIBILITY_GUARD_MS ? hiddenDuration : 0
+): { session: SessionState; resolution: VisibilityGuardResolution | null } {
+  if (!prev.pausedByVisibility || prev.pausedAt == null) {
+    return { session: prev, resolution: null }
+  }
+  const hiddenMs = now - prev.pausedAt
+  const excluded = hiddenMs > VISIBILITY_GUARD_MS
   return {
-    ...prev,
-    pausedAt: null,
-    pausedByVisibility: undefined,
-    accumulatedPause: (prev.accumulatedPause ?? 0) + excluded,
+    session: {
+      ...prev,
+      pausedAt: null,
+      pausedByVisibility: undefined,
+      accumulatedPause: (prev.accumulatedPause ?? 0) + (excluded ? hiddenMs : 0),
+    },
+    resolution: { pausedAt: prev.pausedAt, hiddenMs, excluded },
   }
 }
