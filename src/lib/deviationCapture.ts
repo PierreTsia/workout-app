@@ -38,7 +38,7 @@ export function isDeviationReason(value: string): value is DeviationReason {
 /**
  * Whether a deviation row should render the weight line. A reps-only deviation
  * shows reps alone; anything else (weight changed, or no reps signal) shows the
- * weight line. One rule, shared by the sheet and the debrief.
+ * weight line. One rule, used by the in-session capture sheet.
  */
 export function showsWeightAxis(axes: {
   weightChanged: boolean
@@ -54,11 +54,13 @@ export interface CatalogName {
 }
 
 /**
- * One line of the S3 debrief (T267). Display-ready for weights; the exercise
- * name is resolved at render (ADR 0010) from `catalogExercise` with
- * `exerciseNameSnapshot` as fallback — never from the frozen snapshot alone.
- * `weightChanged` / `repsChanged` tell the UI which axis actually deviated, so
- * a reps-only deviation never renders as `60 → 60 kg`.
+ * One display-ready deviation row. Weights are formatted for the athlete's
+ * unit; the exercise name is resolved at render (ADR 0010) from
+ * `catalogExercise` with `exerciseNameSnapshot` as fallback — never from the
+ * frozen snapshot alone. `weightChanged` / `repsChanged` tell a consumer which
+ * axis actually deviated, so a reps-only deviation never renders as
+ * `60 → 60 kg`. Kept read-only for the observatory: the app no longer surfaces
+ * deviations after the session (#665), so nothing consumes these rows in-app.
  */
 export interface DebriefAdjustment {
   id: string
@@ -104,9 +106,10 @@ const asReps = (value: string | number | null | undefined): string | null => {
 }
 
 /**
- * Join a captured deviation with its logged set into a display-ready debrief
- * row. `toDisplay` converts the stored kg to the athlete's unit; a missing log
- * (e.g. drain not finished) degrades to an em dash rather than hiding the row.
+ * Join a captured deviation with its logged set into a display-ready row for
+ * the observatory. `toDisplay` converts the stored kg to the athlete's unit; a
+ * missing log (e.g. drain not finished) degrades to an em dash rather than
+ * hiding the row. No in-app surface calls this since #665.
  */
 export function buildAdjustment(
   deviation: Pick<
@@ -161,7 +164,7 @@ export type DeviationRow = {
   note: string | null
 }
 
-/** A `set_logs` row reduced to what the debrief needs. */
+/** A `set_logs` row reduced to what the deviation join needs. */
 export type SessionLogRow = {
   workoutExerciseId: string | null
   exerciseId: string | null
@@ -175,10 +178,10 @@ export type SessionLogRow = {
 }
 
 /**
- * Join deviation rows to their logged sets for the S3 debrief (T267). Reads the
- * table, not the offline queue — the queue is drained before the finish screen
- * renders. A deviation whose set log cannot be matched still appears, numbers
- * degraded to an em dash, so the reason is never hidden.
+ * Join deviation rows to their logged sets — the read path kept for the
+ * observatory. Reads the table, not the offline queue. A deviation whose set
+ * log cannot be matched still appears, numbers degraded to an em dash, so the
+ * reason is never hidden. No in-app surface calls this since #665.
  */
 export function mergeSessionDeviations(
   deviations: DeviationRow[],

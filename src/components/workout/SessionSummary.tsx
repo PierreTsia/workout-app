@@ -5,10 +5,6 @@ import { Button } from "@/components/ui/button"
 import { ExerciseThumbnail } from "@/components/exercise/ExerciseThumbnail"
 import { SaveAsProgramPrompt } from "@/components/generator/SaveAsProgramPrompt"
 import { SessionBadges } from "@/components/achievements/SessionBadges"
-import {
-  SessionAdjustments,
-  type DebriefAdjustment,
-} from "@/components/workout/SessionAdjustments"
 import { SessionNote } from "@/components/workout/SessionNote"
 
 function formatDuration(ms: number): string {
@@ -37,8 +33,6 @@ interface SessionSummaryProps {
   quickWorkoutName?: string
   cycleComplete?: boolean
   cycleId?: string | null
-  /** Captured load deviations for this session (T267). Hidden when omitted. */
-  adjustments?: DebriefAdjustment[]
   /** Persists the optional one-line session note. Hidden when omitted. */
   onSaveNote?: (note: string) => void
 }
@@ -54,7 +48,6 @@ export function SessionSummary({
   quickWorkoutName,
   cycleComplete,
   cycleId,
-  adjustments,
   onSaveNote,
 }: SessionSummaryProps) {
   const { t } = useTranslation("workout")
@@ -115,8 +108,6 @@ export function SessionSummary({
       )}
 
       <SessionBadges />
-
-      {adjustments && <SessionAdjustments adjustments={adjustments} />}
 
       {onSaveNote && <SessionNote onSave={onSaveNote} />}
 

@@ -114,4 +114,12 @@ describe("SessionSummary", () => {
     renderWithProviders(<SessionSummary {...BASE_PROPS} />)
     expect(screen.getByText("—")).toBeInTheDocument()
   })
+
+  it("renders the session note when onSaveNote is provided", () => {
+    renderWithProviders(<SessionSummary {...BASE_PROPS} onSaveNote={vi.fn()} />)
+
+    expect(
+      screen.getByPlaceholderText("One line about your session (optional)"),
+    ).toBeInTheDocument()
+  })
 })

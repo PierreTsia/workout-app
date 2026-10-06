@@ -3,7 +3,7 @@
 Working note, **not a spec**. Purpose: watch `session_deviation_events` while the
 sample is too thin to justify a load-management refactor, and pin down **how we
 will read it** the day it isn't. No engine change yet (T266 shipped the capture,
-T267 the session debrief + session note; ADR `file:docs/adr/0026-deviation-storage.md`).
+T267 the session note; the recap's deviation section was removed by #665; ADR `file:docs/adr/0026-deviation-storage.md`).
 
 **Privacy:** every query below is **aggregate only** — no `user_id`, no email,
 no `note` content. Catalog ids (`exercise_id`) are fine; they are not people.
