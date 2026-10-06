@@ -76,3 +76,4 @@ references — use the slug.
 | 0027 | Accepted | 2026-10-03 | MCP App views follow the standard MCP Apps contract, Nomos as visual source | [0027-agentic-view-contract.md](./0027-agentic-view-contract.md) |
 | 0028 | Accepted · amends 0025 | 2026-10-04 | The docs mini-site deploys on merge, not on a release | [0028-docs-site-deploys-on-merge.md](./0028-docs-site-deploys-on-merge.md) |
 | 0029 | Accepted | 2026-10-06 | Inactivity guard: 15 min of hidden time, not an immediate auto-pause | [0029-inactivity-guard-15min.md](./0029-inactivity-guard-15min.md) |
+| 0030 | Accepted | 2026-10-06 | `update_program` preserves Exercise Slot identity by in-place reconciliation | [0030-update-program-slot-reconciliation.md](./0030-update-program-slot-reconciliation.md) |

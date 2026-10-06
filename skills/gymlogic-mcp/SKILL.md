@@ -466,6 +466,8 @@ Use `update_program` whenever the user wants to **modify** an existing program �
 1. **Inside `days[]`, the array is declarative — not a partial patch.** A day with `id` matching a current day is an UPDATE; without `id` is an INSERT; **a current day NOT in `days[]` is a DELETE**. So if the user wants to edit one day, you echo *every* current day, modifying only the affected one.
 2. **`days` is itself optional.** Omit the field entirely if you only want to rename. Pass `name` only → no day touched, no destructive guard, single PATCH.
 
+**Slot identity is preserved.** A targeted prescription change (e.g. a new weight) keeps the exercise's slot and its progression; swapping the movement starts a fresh slot (expected reset). The `dry_run` preview adds a warning when a slot's history will detach — surface it to the athlete before applying.
+
 Always `dry_run: true` first. The preview returns:
 - `rendered`: human-readable markdown of the program *as it will be after apply*
 - `removed_days[]`: every day that would be deleted (with `session_count` and `blocking` flag)
