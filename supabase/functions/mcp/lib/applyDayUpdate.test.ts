@@ -186,6 +186,45 @@ describe("applyDayUpdate — in-place reconciliation", () => {
     })
   })
 
+  it("preserves Builder-set progression/config columns on a matched in-place UPDATE", async () => {
+    const supabase = makeMockSupabase({
+      selectData: {
+        workout_exercises: [{ id: "slot-1", exercise_id: ID_BENCH, sort_order: 0 }],
+        exercise_blocks: [],
+      },
+    })
+
+    await applyDayUpdate(supabase as never, DAY_ID, [benchObject], CATALOG, USER_ID)
+
+    const updates = opsOn(supabase.calls, "workout_exercises", "update")
+    expect(updates).toHaveLength(1)
+    const payload = updates[0].payload as Record<string, unknown>
+    // The prescription and its snapshots are written…
+    expect(payload).toMatchObject({
+      sets: 4,
+      reps: "8",
+      weight: "60",
+      rest_seconds: 120,
+      target_duration_seconds: null,
+      sort_order: 0,
+      name_snapshot: "Bench Press",
+      muscle_snapshot: "chest",
+    })
+    // …but the derived/config columns are left untouched (Builder owns them).
+    for (const col of [
+      "max_weight_reached",
+      "rep_range_min",
+      "rep_range_max",
+      "set_range_min",
+      "set_range_max",
+      "duration_range_min_seconds",
+      "duration_range_max_seconds",
+      "duration_increment_seconds",
+    ]) {
+      expect(payload).not.toHaveProperty(col)
+    }
+  })
+
   it("inserts a solo that matches no existing slot", async () => {
     const supabase = makeMockSupabase({
       selectData: { workout_exercises: [], exercise_blocks: [] },

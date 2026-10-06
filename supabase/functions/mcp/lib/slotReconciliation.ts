@@ -94,6 +94,11 @@ export function reconcileSolos<T extends { exercise_id: string }>(
 /**
  * Match incoming Circuits to existing blocks: first by `benchmark_circuit_id`
  * (a named Circuit keeps identity across reorder), then by order for the rest.
+ *
+ * The order fallback pairs **generic-to-generic only** (both sides without a
+ * `benchmark_circuit_id`). A named Circuit that finds no identity match is a
+ * genuine swap — it must not reuse an unrelated block's identity, so it is
+ * INSERTed and the old block DELETEd (mirroring the solo swap path).
  */
 export function reconcileBlocks<T extends { benchmark_circuit_id: string | null }>(
   existing: T[],
@@ -102,7 +107,7 @@ export function reconcileBlocks<T extends { benchmark_circuit_id: string | null 
   const used = new Set<number>()
   const matched: MatchPlan<T, CircuitParsed>["matched"] = []
   const inserted: MatchPlan<T, CircuitParsed>["inserted"] = []
-  const pending: Array<{ incoming: CircuitParsed; index: number }> = []
+  const pendingGeneric: Array<{ incoming: CircuitParsed; index: number }> = []
 
   items.forEach((item, index) => {
     if (!isCircuit(item)) return
@@ -114,14 +119,18 @@ export function reconcileBlocks<T extends { benchmark_circuit_id: string | null 
       if (idx >= 0) {
         used.add(idx)
         matched.push({ existing: existing[idx], incoming: item, index })
-        return
+      } else {
+        inserted.push({ incoming: item, index })
       }
+      return
     }
-    pending.push({ incoming: item, index })
+    pendingGeneric.push({ incoming: item, index })
   })
 
-  for (const { incoming, index } of pending) {
-    const idx = existing.findIndex((_, i) => !used.has(i))
+  for (const { incoming, index } of pendingGeneric) {
+    const idx = existing.findIndex(
+      (row, i) => !used.has(i) && (row.benchmark_circuit_id ?? null) === null,
+    )
     if (idx >= 0) {
       used.add(idx)
       matched.push({ existing: existing[idx], incoming, index })

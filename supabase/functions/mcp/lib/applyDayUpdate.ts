@@ -48,7 +48,6 @@ interface ExistingBlockRow {
 interface ExistingBlockCellRow {
   id: string
   exercise_id: string
-  position: number
 }
 
 /** All catalog UUIDs referenced by solos or nested Circuit exercises. */
@@ -76,7 +75,7 @@ async function reconcileBlockCells(
 ): Promise<{ error: string | null }> {
   const { data, error } = await supabase
     .from("block_exercises")
-    .select("id, exercise_id, position")
+    .select("id, exercise_id")
     .eq("block_id", blockId)
   if (error) return { error: error.message }
 
@@ -156,10 +155,24 @@ export async function applyDayUpdate(
   for (const { existing, incoming, index } of soloPlan.matched) {
     const generated = buildGeneratedExercise(incoming, catalogById.get(incoming.exerciseId)!)
     const [row] = buildWorkoutExerciseInsertRowsForDay(dayId, [generated])
-    const { workout_day_id, ...fields } = row
+    // A matched solo keeps its identity: write the prescription and its
+    // snapshots only. The derived/config columns (ranges, max_weight_reached,
+    // duration ranges) are Builder-owned and must survive an MCP edit.
+    const {
+      workout_day_id: _dayId,
+      rep_range_min: _repRangeMin,
+      rep_range_max: _repRangeMax,
+      set_range_min: _setRangeMin,
+      set_range_max: _setRangeMax,
+      max_weight_reached: _maxWeightReached,
+      duration_range_min_seconds: _durationRangeMin,
+      duration_range_max_seconds: _durationRangeMax,
+      duration_increment_seconds: _durationIncrement,
+      ...prescription
+    } = row
     const { error } = await supabase
       .from("workout_exercises")
-      .update({ ...fields, sort_order: index })
+      .update({ ...prescription, sort_order: index })
       .eq("id", existing.id)
     if (error) return { ok: false, error: error.message }
   }

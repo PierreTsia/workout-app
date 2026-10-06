@@ -33,10 +33,14 @@ We will:
    - **Solos** — greedy by `exercise_id`, order of appearance → `UPDATE` in
      place (id preserved); unmatched incoming → `INSERT`; leftover existing →
      `DELETE`.
-   - **Blocks** — match by `benchmark_circuit_id` first, else by order →
-     `UPDATE` in place (`exercise_blocks.id` preserved); unmatched → `INSERT`;
-     leftover → `DELETE`. A matched block's `block_exercises` are reconciled in
-     place too, so `set_logs.block_exercise_id` survives.
+   - **Blocks** — match by `benchmark_circuit_id` first; the order fallback
+     pairs **generic-to-generic only** (both sides without a
+     `benchmark_circuit_id`) → `UPDATE` in place (`exercise_blocks.id`
+     preserved). A named Circuit with no identity match is a genuine swap: it
+     is `INSERT`ed and the old block `DELETE`d, minting a new identity — the
+     same rule as a solo movement swap. Unmatched generic → `INSERT`; leftover
+     → `DELETE`. A matched block's `block_exercises` are reconciled in place
+     too, so `set_logs.block_exercise_id` survives.
 2. **Keep the public MCP `exercises[]` contract unchanged.** No ids are exposed;
    reconciliation is server-side.
 3. **Treat a movement swap as a new slot.** A different `exercise_id` does not
@@ -72,5 +76,6 @@ We will:
 | **Keep wipe + reinsert, backfill the FK after** | The new ids are minted before the backfill; matching old logs to new slots is ambiguous when the same exercise appears twice — reintroduces #463. |
 | **Match solos by `sort_order` instead of `exercise_id`** | A reorder would then preserve identity across a movement swap, attaching the previous movement's logs to the new one. |
 | **Match blocks by order only** | A reordered named Circuit would lose its `block_id`; benchmark identity is the stable key. |
+| **Fall back to order for any unmatched Circuit** | A named swap (Cindy → Murph) or a named Circuit dropped beside a generic one would silently reuse the old block's identity and rewrite `benchmark_circuit_id`; a swap must mint a new identity. The fallback is therefore generic-to-generic only. |
 | **Add a confirmation gate for swaps** | The flow already has consent (echoed payload / Preview Token); a swap is an expected reset, not a destructive surprise. |
 | **Expose slot ids in `exercises[]`** | Breaks the public MCP contract for third-party agents; reconciliation is a server concern. |
