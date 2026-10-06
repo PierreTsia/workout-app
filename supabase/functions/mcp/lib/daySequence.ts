@@ -1,6 +1,9 @@
 /**
  * Unified Day Sequence persistence for MCP writes (T163 / ADR 0011).
- * Wipe solos + blocks, then insert interleaved by sort_order = array index.
+ * Insert solos + blocks interleaved by sort_order = array index.
+ *
+ * Replacing an existing day is handled by `applyDayUpdate`'s in-place
+ * reconciliation (ADR 0030), not by a wipe here.
  */
 
 import { buildCircuitInsertRows } from "./blockPersistence.ts"
@@ -20,30 +23,9 @@ import {
 type SupabaseLike = { from: (table: string) => any }
 
 /**
- * Delete all solos and Circuits for a day. Safe to call on a fresh day (no-op deletes).
- */
-export async function wipeDaySequence(
-  supabase: SupabaseLike,
-  dayId: string,
-): Promise<{ error: string | null }> {
-  const { error: exErr } = await supabase
-    .from("workout_exercises")
-    .delete()
-    .eq("workout_day_id", dayId)
-  if (exErr) return { error: exErr.message }
-
-  const { error: blockErr } = await supabase
-    .from("exercise_blocks")
-    .delete()
-    .eq("workout_day_id", dayId)
-  if (blockErr) return { error: blockErr.message }
-
-  return { error: null }
-}
-
-/**
  * Insert parsed day items (solos + Circuits) with shared sort_order namespace.
- * Caller must wipe first when replacing an existing day.
+ * Caller must ensure the day is empty (fresh INSERT day) — replacing an
+ * existing day goes through `applyDayUpdate`.
  */
 export async function insertDaySequence(
   supabase: SupabaseLike,

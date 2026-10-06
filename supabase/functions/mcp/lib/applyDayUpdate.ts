@@ -11,33 +11,46 @@
  *
  * Web parity note: this module has no web mirror by design — `update_program`
  * is MCP-only.
+ *
+ * Apply strategy (ADR 0030): **in-place reconciliation**, not wipe + reinsert.
+ * Incoming day items are matched to the existing slots of the day so the
+ * `workout_exercises.id` / `exercise_blocks.id` survive an edit — preserving
+ * `set_logs.workout_exercise_id` / `block_runs.block_id` (both
+ * `ON DELETE SET NULL`). Unmatched incoming → INSERT; leftover existing →
+ * DELETE.
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
 import type { ParsedExercise } from "./createProgramValidation.ts"
-import { insertDaySequence, wipeDaySequence } from "./daySequence.ts"
 import {
-  parseRepsBounds,
+  buildCircuitInsertRows,
+  type BlockExerciseInsertRow,
+} from "./blockPersistence.ts"
+import { buildGeneratedExercise } from "./exerciseConversion.ts"
+import {
+  buildWorkoutExerciseInsertRowsForDay,
   type CatalogExerciseForProgram,
-  type GeneratedExerciseForProgram,
 } from "./programPersistence.ts"
+import { matchByKey, reconcileBlocks, reconcileSolos } from "./slotReconciliation.ts"
 
-/**
- * Defaults applied to bare-string entries that lack an explicit prescription.
- * Mirror of `createProgram.ts` constants — duplicated intentionally to keep
- * `applyDayUpdate` self-contained on the Edge side.
- */
-const APPLY_DEFAULT_SETS = 3
-const APPLY_DEFAULT_REPS = "10"
-const APPLY_DEFAULT_REST_SECONDS = 90
+interface ExistingSoloRow {
+  id: string
+  exercise_id: string
+  sort_order: number
+}
 
-/**
- * Build the `GeneratedExerciseForProgram` shape for an `update_program` apply
- * step. Mirror of the equivalent helper in `tools/createProgram.ts` —
- * duplicated intentionally to keep the apply pipeline self-contained on the
- * Edge side (no cross-tool import). Throws on catalog miss; callers MUST
- * pre-flight via `catalogById.has(...)`.
- */
+interface ExistingBlockRow {
+  id: string
+  benchmark_circuit_id: string | null
+  sort_order: number
+}
+
+interface ExistingBlockCellRow {
+  id: string
+  exercise_id: string
+  position: number
+}
+
 /** All catalog UUIDs referenced by solos or nested Circuit exercises. */
 export function collectParsedCatalogIds(items: ParsedExercise[]): string[] {
   return items.flatMap((p) => {
@@ -48,50 +61,62 @@ export function collectParsedCatalogIds(items: ParsedExercise[]): string[] {
   })
 }
 
-export function parsedExerciseToGeneratedForApply(
-  parsed: ParsedExercise,
-  catalogById: Map<string, CatalogExerciseForProgram>,
-): GeneratedExerciseForProgram {
-  if (parsed.kind === "circuit") {
-    throw new Error("Circuit items must be persisted via daySequence / applyDayUpdate")
-  }
-
-  const catalogEx = catalogById.get(parsed.exerciseId)
-  if (!catalogEx) {
-    throw new Error(`Catalog miss for exercise_id ${parsed.exerciseId}`)
-  }
-
-  if (parsed.kind === "bare") {
-    const isDuration = catalogEx.measurement_type === "duration"
-    return {
-      exercise: catalogEx,
-      sets: APPLY_DEFAULT_SETS,
-      reps: isDuration ? "0" : APPLY_DEFAULT_REPS,
-      restSeconds: APPLY_DEFAULT_REST_SECONDS,
-      isCompound: false,
-    }
-  }
-
-  const bounds = parseRepsBounds(parsed.reps)
-  return {
-    exercise: catalogEx,
-    sets: parsed.sets,
-    reps: parsed.reps,
-    restSeconds: parsed.restSeconds,
-    isCompound: false,
-    weightKg: parsed.weightKg,
-    repRangeMin: bounds.min,
-    repRangeMax: bounds.max,
-    setRangeMin: parsed.sets,
-    setRangeMax: parsed.sets,
-    targetDurationSeconds: parsed.targetDurationSeconds ?? undefined,
-  }
+function bySortOrder<T extends { sort_order: number }>(rows: T[]): T[] {
+  return rows.slice().sort((a, b) => a.sort_order - b.sort_order)
 }
 
 /**
- * Wipe-and-reinsert the Unified Day Sequence for a single day (solos + Circuits).
- * Pre-flight: every catalog id (incl. nested Circuit exercises) must be present
- * before any DELETE — we never wipe rows we cannot reinsert.
+ * Reconcile a matched block's nested cells in place, preserving
+ * `block_exercises.id` (and therefore `set_logs.block_exercise_id`).
+ */
+async function reconcileBlockCells(
+  supabase: SupabaseClient,
+  blockId: string,
+  incoming: BlockExerciseInsertRow[],
+): Promise<{ error: string | null }> {
+  const { data, error } = await supabase
+    .from("block_exercises")
+    .select("id, exercise_id, position")
+    .eq("block_id", blockId)
+  if (error) return { error: error.message }
+
+  const existing = (data ?? []) as ExistingBlockCellRow[]
+  const plan = matchByKey(
+    existing,
+    incoming,
+    (row) => row.exercise_id,
+    (cell) => cell.exercise_id,
+  )
+
+  for (const { existing: cell, incoming: next } of plan.matched) {
+    const { error: updateErr } = await supabase
+      .from("block_exercises")
+      .update(next)
+      .eq("id", cell.id)
+    if (updateErr) return { error: updateErr.message }
+  }
+
+  if (plan.inserted.length > 0) {
+    const rows = plan.inserted.map(({ incoming: cell }) => ({ ...cell, block_id: blockId }))
+    const { error: insertErr } = await supabase.from("block_exercises").insert(rows)
+    if (insertErr) return { error: insertErr.message }
+  }
+
+  if (plan.deleted.length > 0) {
+    const { error: deleteErr } = await supabase
+      .from("block_exercises")
+      .delete()
+      .in("id", plan.deleted.map((row) => row.id))
+    if (deleteErr) return { error: deleteErr.message }
+  }
+
+  return { error: null }
+}
+
+/**
+ * Reconcile the Unified Day Sequence for a single day (solos + Circuits) in
+ * place. Pre-flight: every catalog id (incl. nested Circuit exercises) must be
+ * present before any write — we never delete rows we cannot reinsert.
  */
 export async function applyDayUpdate(
   supabase: SupabaseClient,
@@ -106,16 +131,93 @@ export async function applyDayUpdate(
     return { ok: false, error: `Catalog miss for exercise_id ${missingId}` }
   }
 
-  const { error: wipeErr } = await wipeDaySequence(supabase, dayId)
-  if (wipeErr) return { ok: false, error: wipeErr }
+  const { data: soloRows, error: soloFetchErr } = await supabase
+    .from("workout_exercises")
+    .select("id, exercise_id, sort_order")
+    .eq("workout_day_id", dayId)
+  if (soloFetchErr) return { ok: false, error: soloFetchErr.message }
 
-  const { error: insertErr } = await insertDaySequence(
-    supabase,
-    dayId,
+  const { data: blockRows, error: blockFetchErr } = await supabase
+    .from("exercise_blocks")
+    .select("id, benchmark_circuit_id, sort_order")
+    .eq("workout_day_id", dayId)
+  if (blockFetchErr) return { ok: false, error: blockFetchErr.message }
+
+  const soloPlan = reconcileSolos(
+    bySortOrder((soloRows ?? []) as ExistingSoloRow[]),
     parsedExercises,
-    catalogById,
   )
-  if (insertErr) return { ok: false, error: insertErr }
+  const blockPlan = reconcileBlocks(
+    bySortOrder((blockRows ?? []) as ExistingBlockRow[]),
+    parsedExercises,
+  )
+
+  // --- Solos ---------------------------------------------------------------
+  for (const { existing, incoming, index } of soloPlan.matched) {
+    const generated = buildGeneratedExercise(incoming, catalogById.get(incoming.exerciseId)!)
+    const [row] = buildWorkoutExerciseInsertRowsForDay(dayId, [generated])
+    const { workout_day_id, ...fields } = row
+    const { error } = await supabase
+      .from("workout_exercises")
+      .update({ ...fields, sort_order: index })
+      .eq("id", existing.id)
+    if (error) return { ok: false, error: error.message }
+  }
+
+  if (soloPlan.inserted.length > 0) {
+    const rows = soloPlan.inserted.map(({ incoming, index }) => {
+      const generated = buildGeneratedExercise(incoming, catalogById.get(incoming.exerciseId)!)
+      const [row] = buildWorkoutExerciseInsertRowsForDay(dayId, [generated])
+      return { ...row, sort_order: index }
+    })
+    const { error } = await supabase.from("workout_exercises").insert(rows)
+    if (error) return { ok: false, error: error.message }
+  }
+
+  if (soloPlan.deleted.length > 0) {
+    const { error } = await supabase
+      .from("workout_exercises")
+      .delete()
+      .in("id", soloPlan.deleted.map((row) => row.id))
+    if (error) return { ok: false, error: error.message }
+  }
+
+  // --- Blocks --------------------------------------------------------------
+  for (const { existing, incoming, index } of blockPlan.matched) {
+    const { block, blockExercises } = buildCircuitInsertRows(dayId, index, incoming, catalogById)
+    const { workout_day_id, ...fields } = block
+    const { error } = await supabase
+      .from("exercise_blocks")
+      .update(fields)
+      .eq("id", existing.id)
+    if (error) return { ok: false, error: error.message }
+
+    const cellResult = await reconcileBlockCells(supabase, existing.id, blockExercises)
+    if (cellResult.error) return { ok: false, error: cellResult.error }
+  }
+
+  for (const { incoming, index } of blockPlan.inserted) {
+    const { block, blockExercises } = buildCircuitInsertRows(dayId, index, incoming, catalogById)
+    const { data: created, error: blockError } = await supabase
+      .from("exercise_blocks")
+      .insert(block)
+      .select("id")
+      .single()
+    if (blockError || !created?.id) {
+      return { ok: false, error: blockError?.message ?? "exercise_blocks insert returned no id" }
+    }
+    const rows = blockExercises.map((be) => ({ ...be, block_id: created.id }))
+    const { error: beErr } = await supabase.from("block_exercises").insert(rows)
+    if (beErr) return { ok: false, error: beErr.message }
+  }
+
+  if (blockPlan.deleted.length > 0) {
+    const { error } = await supabase
+      .from("exercise_blocks")
+      .delete()
+      .in("id", blockPlan.deleted.map((row) => row.id))
+    if (error) return { ok: false, error: error.message }
+  }
 
   return { ok: true, inserted_count: parsedExercises.length }
 }

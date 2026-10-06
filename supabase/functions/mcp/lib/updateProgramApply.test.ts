@@ -148,12 +148,20 @@ class MockBuilder {
     const last = this.mock.callLog[idx]
     last.filter = [...(last.filter ?? []), { col, val }]
     const message = this.mock.scripted.get(idx)
-    return Promise.resolve(message ? { data: null, error: { message } } : { data: null, error: null })
+    if (message) return Promise.resolve({ data: null, error: { message } })
+    // SELECTs (existing-slot fetch in applyDayUpdate) resolve to an empty set:
+    // every incoming item is then INSERTed, which is what these tests assert.
+    if (last.op === "select") return Promise.resolve({ data: [], error: null })
+    return Promise.resolve({ data: null, error: null })
   }
 
   select(cols: string) {
-    const idx = this.mock.callLog.length - 1
-    this.mock.callLog[idx].returning = cols
+    const last = this.mock.callLog[this.mock.callLog.length - 1]
+    if (last && (last.op === "insert" || last.op === "update")) {
+      last.returning = cols
+      return this
+    }
+    this.mock.callLog.push({ table: this.table, op: "select", returning: cols })
     return this
   }
 

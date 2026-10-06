@@ -100,6 +100,12 @@ interface SessionRow {
   user_id: string
 }
 
+interface SetLogRow {
+  id: string
+  workout_exercise_id: string | null
+  exercise_id: string
+}
+
 interface CycleRow {
   id: string
   program_id: string
@@ -115,6 +121,8 @@ interface MockState {
   blocks: Record<string, unknown>[]
   blockExercises: Record<string, unknown>[]
   sessions: SessionRow[]
+  /** #666 — models set_logs.workout_exercise_id ON DELETE SET NULL. */
+  setLogs: SetLogRow[]
   cycles: CycleRow[]
   catalog: typeof BENCH[]
 }
@@ -308,6 +316,21 @@ class MockBuilder {
       )
     }
 
+    if (t === "workout_exercises") {
+      const rows = this.mock.state.exercises.filter((e) => matchAll(e, f))
+      return finalizeSelect(rows, this.entry.terminal)
+    }
+
+    if (t === "exercise_blocks") {
+      const rows = this.mock.state.blocks.filter((b) => matchAll(b, f))
+      return finalizeSelect(rows, this.entry.terminal)
+    }
+
+    if (t === "block_exercises") {
+      const rows = this.mock.state.blockExercises.filter((b) => matchAll(b, f))
+      return finalizeSelect(rows, this.entry.terminal)
+    }
+
     if (t === "cycles") {
       const rows = this.mock.state.cycles.filter((c) => matchAll(c, f))
       return finalizeSelect(
@@ -335,9 +358,20 @@ class MockBuilder {
     const f = this.filters
     const key = stateKeyForTable(t)
     const arr = this.mock.state[key] as Record<string, unknown>[]
+    const removed = arr.filter((r) => matchAll(r, f))
     const remaining = arr.filter((r) => !matchAll(r, f))
     ;(this.mock.state[key] as Record<string, unknown>[]).length = 0
     ;(this.mock.state[key] as Record<string, unknown>[]).push(...remaining)
+
+    // Model set_logs.workout_exercise_id ON DELETE SET NULL (#463 / ADR 0012).
+    if (t === "workout_exercises") {
+      const removedIds = new Set(removed.map((r) => r.id))
+      this.mock.state.setLogs.forEach((log) => {
+        if (log.workout_exercise_id !== null && removedIds.has(log.workout_exercise_id)) {
+          log.workout_exercise_id = null
+        }
+      })
+    }
     return { data: null, error: null }
   }
 
@@ -518,6 +552,7 @@ function makeBaseState(): MockState {
       },
     ],
     sessions: [],
+    setLogs: [],
     cycles: [],
     catalog: [BENCH, PUSHUP],
   }
@@ -932,7 +967,7 @@ Deno.test("T164: dry_run Circuit preview includes Circuit lines and writes nothi
 })
 
 Deno.test(
-  "T164: apply replaces day sequence — wipes orphan blocks and inserts Circuit",
+  "T164/#666: apply reconciles the day sequence — reuses a matched block and inserts new cells",
   async () => {
     const state = makeBaseState()
     state.blocks.push({
@@ -946,7 +981,7 @@ Deno.test(
       id: "orphan-be",
       block_id: "orphan-block",
       exercise_id: ID_PUSHUP,
-      sort_order: 0,
+      position: 0,
     })
     const mock = new MockSupabase(state)
 
@@ -983,22 +1018,25 @@ Deno.test(
     )
 
     assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
-    assertEquals(
-      mock.state.blocks.some((b) => b.id === "orphan-block"),
-      false,
-      "orphan exercise_blocks row must be wiped",
-    )
-    const newBlock = mock.state.blocks.find((b) => b.workout_day_id === ID_DAY_PUSH)
-    assertExists(newBlock)
-    assertEquals(newBlock!.label, "Finisher")
-    assertEquals(newBlock!.rounds, 3)
+    // The matched block keeps its id (block_id history preserved) and is updated.
+    const reusedBlock = mock.state.blocks.find((b) => b.id === "orphan-block")
+    assertExists(reusedBlock, "matched exercise_blocks row must be reused, not wiped")
+    assertEquals(reusedBlock!.label, "Finisher")
+    assertEquals(reusedBlock!.rounds, 3)
 
+    // The existing cell is reconciled in place; the new Bench cell is inserted.
+    assertEquals(
+      mock.state.blockExercises.some((b) => b.id === "orphan-be"),
+      true,
+      "matched block_exercises row must be reused",
+    )
     const beInsert = mock.callLog.find(
       (e) => e.op === "insert" && e.table === "block_exercises",
     )
     assertExists(beInsert)
     const beRows = beInsert!.payload as Array<Record<string, unknown>>
-    assertEquals(beRows.length, 2)
+    assertEquals(beRows.length, 1)
+    assertEquals(beRows[0].exercise_id, ID_BENCH)
   },
 )
 
@@ -1149,5 +1187,112 @@ Deno.test(
     const body = parseReply(reply)
     assertEquals(body.dry_run, true)
     assertEquals(writeOps(mock.callLog).length, 0)
+  },
+)
+
+// ---------------------------------------------------------------------------
+// #666 — update_program preserves Exercise Slot identity (ADR 0030)
+// ---------------------------------------------------------------------------
+
+Deno.test(
+  "regression #666: a targeted weight change preserves workout_exercises.id and set_logs.workout_exercise_id",
+  async () => {
+    const state = makeBaseState()
+    // Prior progression: a logged set attached to the live Bench slot.
+    state.setLogs.push({
+      id: "log-1",
+      workout_exercise_id: "seed-ex-1",
+      exercise_id: ID_BENCH,
+    })
+    const mock = new MockSupabase(state)
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            exercises: [
+              {
+                exercise_id: ID_BENCH,
+                sets: 4,
+                reps: "8",
+                weight_kg: 60,
+                rest_seconds: 120,
+              },
+            ],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+        dry_run: false,
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+    // The slot id survives the weight change.
+    const benchSlot = state.exercises.find((e) => e.id === "seed-ex-1")
+    assertExists(benchSlot)
+    assertEquals(benchSlot!.weight, "60")
+    // The FK on the live slot is untouched — Last Performance still anchors.
+    assertEquals(state.setLogs[0].workout_exercise_id, "seed-ex-1")
+    // No slot was deleted for the Push day.
+    const deletes = mock.callLog.filter(
+      (c) => c.op === "delete" && c.table === "workout_exercises",
+    )
+    assertEquals(deletes.length, 0)
+  },
+)
+
+Deno.test(
+  "regression #666: a movement swap mints a new slot and detaches the old set_logs FK",
+  async () => {
+    const state = makeBaseState()
+    state.setLogs.push({
+      id: "log-1",
+      workout_exercise_id: "seed-ex-1",
+      exercise_id: ID_BENCH,
+    })
+    const mock = new MockSupabase(state)
+
+    const reply = await updateProgram.handler(
+      {
+        program_id: ID_PROGRAM,
+        days: [
+          {
+            id: ID_DAY_PUSH,
+            label: "Push",
+            emoji: "💪",
+            // Bench swapped out for Push-up → new slot, expected identity reset.
+            exercises: [ID_PUSHUP],
+          },
+          {
+            id: ID_DAY_PULL,
+            label: "Pull",
+            emoji: "🪝",
+            exercises: [ID_PUSHUP],
+          },
+        ],
+        dry_run: false,
+      },
+      mock as never,
+    )
+
+    assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
+    // The old Bench slot is gone; a fresh Push-up slot exists on the Push day.
+    assertEquals(state.exercises.some((e) => e.id === "seed-ex-1"), false)
+    const newPushSlot = state.exercises.find(
+      (e) => e.workout_day_id === ID_DAY_PUSH && e.exercise_id === ID_PUSHUP,
+    )
+    assertExists(newPushSlot)
+    // The old FK detached (ON DELETE SET NULL) — the new slot starts fresh.
+    assertEquals(state.setLogs[0].workout_exercise_id, null)
   },
 )
