@@ -16,6 +16,7 @@ const sources = import.meta.glob(
     "../../supabase/functions/mcp/tools/renderSessionCard.ts",
     "../../scripts/build-mcp-view.mjs",
     "../../package.json",
+    "../../src/mcp-views/session-card/SessionCard.tsx",
   ],
   { query: "?raw", eager: true, import: "default" },
 ) as Record<string, string>
@@ -27,6 +28,7 @@ const toolSource = sources["../../supabase/functions/mcp/tools/renderSessionCard
 const toolsRegistry = sources["../../supabase/functions/mcp/tools/registry.ts"]
 const buildScript = sources["../../scripts/build-mcp-view.mjs"]
 const packageJson = sources["../../package.json"]
+const cardSource = sources["../mcp-views/session-card/SessionCard.tsx"]
 
 describe("Session Card MCP App View", () => {
   it("serves ui://gymlogic/session-card as text/html;profile=mcp-app", () => {
@@ -60,5 +62,13 @@ describe("Session Card MCP App View", () => {
     expect(buildScript).toMatch(/--check/)
     expect(buildScript).toMatch(/@nomosui\/react\/view\.css/)
     expect(packageJson).toMatch(/"view:check":/)
+  })
+
+  it("is built from Nomos primitives, with no invented tonnage bar (ADR 0031)", () => {
+    expect(cardSource).toMatch(/\bCounter\b/)
+    expect(cardSource).toMatch(/\bEmptyState\b/)
+    expect(cardSource).toMatch(/\bHeading\b/)
+    expect(cardSource).not.toMatch(/\bProgressBar\b/)
+    expect(cardSource).not.toMatch(/\/ 10000/)
   })
 })
