@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 
 import { connectAppBridge } from '../bridge'
-import { preserveLocale, resolveViewLocale } from '../locale'
+import { preservePreviewLocale, resolveViewLocale } from '../locale'
 import { ProgramPatchCard } from './ProgramPatchCard'
 import { examplePayload } from './example'
 import { labelsFor } from './labels'
@@ -46,7 +46,7 @@ if (rootElement) {
         typeof structuredContent === 'object' &&
         'status' in structuredContent
       ) {
-        payload = preserveLocale(structuredContent as ProgramPatchPayload, payload)
+        payload = preservePreviewLocale(structuredContent as ProgramPatchPayload, payload)
         state = payload.status === 'applied' ? 'applied' : 'preview'
         render()
       }
@@ -71,7 +71,7 @@ if (rootElement) {
           state = 'error'
         } else {
           if (res?.structuredContent) {
-            payload = preserveLocale(res.structuredContent, payload)
+            payload = preservePreviewLocale(res.structuredContent, payload)
           }
           state = 'applied'
         }

@@ -35,14 +35,16 @@ export function resolveViewLocale(
 }
 
 /**
- * Carries the preview's locale metadata onto a refresh that omits it — the
- * `update_program` **apply** response has no `locale` / `profile_locale`, so without this
- * the card would flip to the host/English language the moment the athlete clicks Apply.
+ * Carries the open preview's locale metadata onto the **apply** response, which omits
+ * `locale` / `profile_locale` — without this the card would flip to the host/English
+ * language the moment the athlete clicks Apply. Scoped to `status: "applied"` so a fresh
+ * preview never inherits the pre-rendered example's English and shadow the host fallback.
  */
-export function preserveLocale<T extends object>(
+export function preservePreviewLocale<T extends { status?: string } & object>(
   next: T,
   previous: LocaleFields,
 ): T & LocaleFields {
+  if (next.status !== 'applied') return next as T & LocaleFields
   const carried = next as LocaleFields
   return {
     ...next,

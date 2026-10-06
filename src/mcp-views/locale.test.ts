@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { normalizeLocale, preserveLocale, resolveViewLocale } from "./locale"
+import { normalizeLocale, preservePreviewLocale, resolveViewLocale } from "./locale"
 
 describe("normalizeLocale", () => {
   it("maps a BCP-47 tag to its supported base locale", () => {
@@ -38,15 +38,27 @@ describe("resolveViewLocale", () => {
   })
 })
 
-describe("preserveLocale", () => {
-  it("keeps the preview's locale metadata when the refresh omits it (Apply)", () => {
-    const applied = preserveLocale({ status: "applied" }, { locale: "fr", profile_locale: "fr" })
+describe("preservePreviewLocale", () => {
+  it("keeps the preview's locale metadata when the Apply response omits it", () => {
+    const applied = preservePreviewLocale(
+      { status: "applied" },
+      { locale: "fr", profile_locale: "fr" },
+    )
     expect(applied.locale).toBe("fr")
     expect(applied.profile_locale).toBe("fr")
   })
 
-  it("never overrides locale metadata the refresh does carry", () => {
-    const next = preserveLocale({ status: "applied", locale: "en" }, { locale: "fr" })
-    expect(next.locale).toBe("en")
+  it("never overrides locale metadata the Apply response does carry", () => {
+    const applied = preservePreviewLocale({ status: "applied", locale: "en" }, { locale: "fr" })
+    expect(applied.locale).toBe("en")
+  })
+
+  it("lets a fresh preview through untouched so the example's English never leaks", () => {
+    const preview = preservePreviewLocale(
+      { status: "preview" },
+      { locale: "en" },
+    )
+    expect(preview.locale).toBeUndefined()
+    expect(preview.profile_locale).toBeUndefined()
   })
 })
