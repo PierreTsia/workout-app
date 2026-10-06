@@ -4,6 +4,8 @@ import {
   getEffectiveElapsed,
   pauseSessionForVisibility,
   resumeSessionFromPause,
+  resumeSessionFromVisibilityPause,
+  VISIBILITY_GUARD_MS,
 } from "./session"
 
 const BASE_SESSION: SessionState = {
@@ -119,5 +121,49 @@ describe("resumeSessionFromPause", () => {
     }
     const out = resumeSessionFromPause(paused)
     expect(out.pausedByVisibility).toBeFalsy()
+  })
+})
+
+describe("resumeSessionFromVisibilityPause", () => {
+  const T0 = 1_000_000
+
+  it("counts a hidden span of 15 min or less (no exclusion)", () => {
+    const paused = {
+      ...BASE_SESSION,
+      pausedAt: T0,
+      pausedByVisibility: true,
+      accumulatedPause: 100,
+    }
+    const out = resumeSessionFromVisibilityPause(
+      paused,
+      T0 + VISIBILITY_GUARD_MS,
+    )
+    expect(out.pausedAt).toBeNull()
+    expect(out.pausedByVisibility).toBeFalsy()
+    expect(out.accumulatedPause).toBe(100)
+  })
+
+  it("excludes the whole hidden span when it exceeds 15 min", () => {
+    const hidden = VISIBILITY_GUARD_MS + 1
+    const paused = {
+      ...BASE_SESSION,
+      pausedAt: T0,
+      pausedByVisibility: true,
+      accumulatedPause: 100,
+    }
+    const out = resumeSessionFromVisibilityPause(paused, T0 + hidden)
+    expect(out.pausedAt).toBeNull()
+    expect(out.accumulatedPause).toBe(100 + hidden)
+  })
+
+  it("never touches a manual pause", () => {
+    const manual = { ...BASE_SESSION, pausedAt: T0, accumulatedPause: 100 }
+    expect(resumeSessionFromVisibilityPause(manual, T0 + 60_000)).toBe(manual)
+  })
+
+  it("no-ops when the session is not paused", () => {
+    expect(
+      resumeSessionFromVisibilityPause(BASE_SESSION, T0 + 60_000),
+    ).toBe(BASE_SESSION)
   })
 })

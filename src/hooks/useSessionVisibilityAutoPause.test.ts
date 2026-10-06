@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { getDefaultStore } from "jotai"
 import { sessionAtom, defaultSessionState, type SessionState } from "@/store/atoms"
+import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import { useSessionVisibilityAutoPause } from "./useSessionVisibilityAutoPause"
 
 function setVisibility(state: "visible" | "hidden") {
@@ -47,13 +48,13 @@ describe("useSessionVisibilityAutoPause", () => {
     expect(session.pausedByVisibility).toBe(true)
   })
 
-  it("folds the hidden span into accumulatedPause and resumes on return", () => {
+  it("counts a hidden span of 15 min or less on return", () => {
     renderHook(() => useSessionVisibilityAutoPause())
 
     act(() => {
       setVisibility("hidden")
     })
-    vi.setSystemTime(40_000)
+    vi.setSystemTime(10_000 + VISIBILITY_GUARD_MS)
     act(() => {
       setVisibility("visible")
     })
@@ -61,7 +62,24 @@ describe("useSessionVisibilityAutoPause", () => {
     const session = getDefaultStore().get(sessionAtom)
     expect(session.pausedAt).toBeNull()
     expect(session.pausedByVisibility).toBeFalsy()
-    expect(session.accumulatedPause).toBe(30_000)
+    expect(session.accumulatedPause).toBe(0)
+  })
+
+  it("excludes the whole hidden span when it exceeds 15 min", () => {
+    renderHook(() => useSessionVisibilityAutoPause())
+
+    act(() => {
+      setVisibility("hidden")
+    })
+    const hidden = VISIBILITY_GUARD_MS + 60_000
+    vi.setSystemTime(10_000 + hidden)
+    act(() => {
+      setVisibility("visible")
+    })
+
+    const session = getDefaultStore().get(sessionAtom)
+    expect(session.pausedAt).toBeNull()
+    expect(session.accumulatedPause).toBe(hidden)
   })
 
   it("never clobbers a manual pause on hide, and does not resume it on return", () => {
@@ -83,7 +101,7 @@ describe("useSessionVisibilityAutoPause", () => {
     expect(session.accumulatedPause).toBe(0)
   })
 
-  it("resumes a persisted auto-pause on mount while visible", () => {
+  it("resumes a persisted guard pause on mount while visible, counting a short span", () => {
     seedSession({ pausedAt: 5_000, pausedByVisibility: true })
     vi.setSystemTime(20_000)
 
@@ -91,6 +109,6 @@ describe("useSessionVisibilityAutoPause", () => {
 
     const session = getDefaultStore().get(sessionAtom)
     expect(session.pausedAt).toBeNull()
-    expect(session.accumulatedPause).toBe(15_000)
+    expect(session.accumulatedPause).toBe(0)
   })
 })

@@ -1,6 +1,12 @@
 import type { SessionState } from "@/store/atoms"
 
 /**
+ * Hidden-time guard (#664): a background/locked span longer than this is
+ * excluded from `active_duration_ms`; at or below it, the span counts.
+ */
+export const VISIBILITY_GUARD_MS = 15 * 60 * 1000
+
+/**
  * Computes effective training time in ms, excluding any paused durations.
  */
 export function getEffectiveElapsed(
@@ -35,4 +41,26 @@ export function pauseSessionForVisibility(
 ): SessionState {
   if (!prev.isActive || prev.pausedAt != null) return prev
   return { ...prev, pausedAt: now, pausedByVisibility: true }
+}
+
+/**
+ * Resolves a guard-placed pause on return (#664). The hidden span counts when
+ * it is at or below `thresholdMs`; above it, the whole span is folded into
+ * `accumulatedPause` so it never reaches `active_duration_ms`. A manual pause
+ * (no `pausedByVisibility`) is never touched.
+ */
+export function resumeSessionFromVisibilityPause(
+  prev: SessionState,
+  now = Date.now(),
+  thresholdMs = VISIBILITY_GUARD_MS,
+): SessionState {
+  if (!prev.pausedByVisibility || prev.pausedAt == null) return prev
+  const hiddenDuration = now - prev.pausedAt
+  const excluded = hiddenDuration > thresholdMs ? hiddenDuration : 0
+  return {
+    ...prev,
+    pausedAt: null,
+    pausedByVisibility: undefined,
+    accumulatedPause: (prev.accumulatedPause ?? 0) + excluded,
+  }
 }

@@ -14,6 +14,14 @@ vi.mock("@/lib/cancelSession", () => ({
 
 import { SessionTimerChip } from "./SessionTimerChip"
 
+function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  })
+  document.dispatchEvent(new Event("visibilitychange"))
+}
+
 const BASE_SESSION: SessionState = {
   currentDayId: "day-1",
   activeDayId: null,
@@ -121,6 +129,30 @@ describe("SessionTimerChip", () => {
     const updated = store.get(sessionAtom)
     expect(updated.pausedAt).toBeNull()
     expect(updated.accumulatedPause).toBeGreaterThan(0)
+  })
+
+  it("forces a tick on visibilitychange to visible", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:30.000Z"))
+    const { store } = renderWithProviders(<SessionTimerChip />)
+
+    act(() => {
+      store.set(sessionAtom, {
+        ...BASE_SESSION,
+        isActive: true,
+        startedAt: Date.now() - 65_000,
+      })
+    })
+
+    expect(screen.getByText("01:05")).toBeInTheDocument()
+
+    // Time passes while the interval is throttled (timers not advanced).
+    vi.setSystemTime(Date.now() + 10_000)
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(screen.getByText("01:15")).toBeInTheDocument()
   })
 
   it("freezes display while paused", () => {
