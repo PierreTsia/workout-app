@@ -43,7 +43,7 @@ séries suivantes.
 3. As an athlete, I want no prompt when I merely repeat the previous set's load,
    so that logging a straight-set run is uninterrupted.
 4. As an athlete who returns to the prescription, I want the stale deviation to be
-   dropped, so that my debrief doesn't show an adjustment I undid.
+   dropped, so that a discarded adjustment doesn't linger.
 5. As an athlete, I want a reps-only deviation to follow the same rule as a
    weight deviation, so that the behavior is consistent across axes.
 6. As the Observatory owner, I want one event per load decision (not per set), so

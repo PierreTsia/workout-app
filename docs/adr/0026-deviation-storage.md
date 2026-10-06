@@ -29,7 +29,7 @@ We will:
 
 - **Positive:** the "reason" concept never forks into two storage shapes; no duplicated numbers to keep in sync; new kinds are additive; a future Jev reads one table.
 - **Negative:** a new table plus RLS, an arch test, and a queue type, where two `set_logs` columns would have covered the present; the deviation's numbers require a join.
-- **Follow-ups:** T266 (capture `load_deviation` end-to-end), T267 (session debrief + session note).
+- **Follow-ups:** T266 (capture `load_deviation` end-to-end), T267 (session debrief + session note; the recap's deviation section was later removed by [#665](https://github.com/PierreTsia/workout-app/issues/665)).
 
 ## Alternatives considered
 
