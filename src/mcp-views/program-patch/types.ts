@@ -9,15 +9,50 @@ export type AddedDay = { label: string }
 
 export type ProgramPatchStatus = 'preview' | 'applied'
 
-/** The `structuredContent` an `update_program` result carries into the view (ADR 0028). */
+export type PatchChangeField = 'sets' | 'reps' | 'weight' | 'rest'
+
+export type PatchSoloExercise = {
+  kind: 'solo'
+  name: string
+  sets: number
+  reps: string
+  weightKg: number
+  restSeconds: number
+  targetDurationSeconds: number | null
+  isNew: boolean
+  change: PatchChangeField[] | null
+}
+
+export type PatchCircuitExercise = {
+  kind: 'circuit'
+  label: string
+  mode: 'rounds' | 'amrap'
+  capSeconds: number | null
+  rounds: number
+  exerciseCount: number
+  isNew: boolean
+}
+
+export type PatchExercise = PatchSoloExercise | PatchCircuitExercise
+
+export type PatchDay = { label: string; emoji: string; exercises: PatchExercise[] }
+
+/** The structured program carried in `structuredContent` (ADR 0031). */
+export type PatchProgram = { name: string; days: PatchDay[] }
+
+/** The `structuredContent` an `update_program` result carries into the view (ADR 0028/0031). */
 export type ProgramPatchPayload = {
   status: ProgramPatchStatus
   dry_run?: boolean
   program_id?: string
+  /** Markdown fallback; used only when `program` is absent. */
   rendered?: string
   removed_days?: RemovedDay[]
   added_days?: AddedDay[]
   warnings?: string[]
+  /** ADR 0031 — the copy locale and the structured program. */
+  locale?: 'en' | 'fr'
+  program?: PatchProgram
   /** Present on a preview only; the view's Apply hands it back to `apply_program_patch`. */
   preview_token?: string
   /** Present after an apply. */
@@ -32,8 +67,22 @@ export type ProgramPatchLabels = {
   applying: string
   applied: string
   error: string
+  statusPreview: string
+  consentNote: string
   removedOne: string
   removedOther: string
   addedOne: string
   addedOther: string
+  changedSets: string
+  changedReps: string
+  changedWeight: string
+  changedRest: string
+  reps: string
+  rest: string
+  circuit: string
+  amrapGloss: string
+  roundsOne: string
+  roundsOther: string
+  circuitExercisesOne: string
+  circuitExercisesOther: string
 }

@@ -1,82 +1,190 @@
-import { Badge, Button, Card, CardContent } from '@nomosui/react'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Heading,
+  Kicker,
+  Text,
+} from '@nomosui/react'
 
+import { panel, type ViewTheme } from '../styles'
 import type {
+  PatchCircuitExercise,
+  PatchSoloExercise,
   ProgramPatchLabels,
   ProgramPatchPayload,
   ProgramPatchViewState,
 } from './types'
 
-const panel = {
-  width: '100%',
-  maxWidth: 520,
-  margin: '0 auto',
-  padding: 12,
-  boxSizing: 'border-box' as const,
-}
-
-const muted = { opacity: 0.7 } as const
-
 const plural = (one: string, other: string, n: number): string =>
   (n === 1 ? one : other).replace('{{count}}', String(n))
 
+function prescription(ex: PatchSoloExercise, labels: ProgramPatchLabels): string {
+  const parts: string[] = []
+  if (ex.targetDurationSeconds != null) parts.push(`${ex.sets} × ${ex.targetDurationSeconds}s`)
+  else parts.push(`${ex.sets} × ${ex.reps} ${labels.reps}`)
+  if (ex.weightKg > 0) parts.push(`${ex.weightKg} kg`)
+  parts.push(`${labels.rest} ${ex.restSeconds} s`)
+  return parts.join(' · ')
+}
+
+function changeNote(ex: PatchSoloExercise, labels: ProgramPatchLabels): string | null {
+  if (!ex.change || ex.change.length === 0) return null
+  const byField = {
+    sets: labels.changedSets,
+    reps: labels.changedReps,
+    weight: labels.changedWeight,
+    rest: labels.changedRest,
+  } as const
+  return ex.change.map((field) => byField[field]).join(' · ')
+}
+
+function circuitLine(ex: PatchCircuitExercise, labels: ProgramPatchLabels): string {
+  if (ex.mode === 'amrap') {
+    const capMinutes = ex.capSeconds ? Math.round(ex.capSeconds / 60) : 20
+    return `AMRAP ${capMinutes} min · ${labels.amrapGloss}`
+  }
+  return (ex.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace(
+    '{{count}}',
+    String(ex.rounds),
+  )
+}
+
 /**
- * The **Decision Card** (ADR 0028): an `update_program` preview the athlete approves in the
- * conversation. It renders the change and a single **Apply** button; it never writes — the
- * button asks the host to call `apply_program_patch`.
+ * The **Decision Card** (ADR 0028/0031): an `update_program` preview the athlete approves in
+ * the conversation. It renders the structured program (days, exercises, changed fields) from
+ * `structuredContent`, and a single **Apply** button; it never writes — the button asks the
+ * host to call `apply_program_patch`.
  */
 export function ProgramPatchCard({
   payload,
   labels,
   state,
   onApply,
+  theme = 'dark',
 }: {
   payload: ProgramPatchPayload
   labels: ProgramPatchLabels
   state: ProgramPatchViewState
   onApply: () => void
+  theme?: ViewTheme
 }) {
   const removed = payload.removed_days ?? []
   const added = payload.added_days ?? []
   const warnings = payload.warnings ?? []
+  const program = payload.program
   const applied = state === 'applied' || payload.status === 'applied'
 
   return (
-    <div data-theme="dark" data-density="comfortable" style={panel}>
+    <div data-theme={theme} data-density="comfortable" style={panel}>
       <Card>
         <CardContent>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.25 }}>{labels.title}</span>
-            {applied ? <Badge>{labels.applied}</Badge> : null}
+          <Kicker>{labels.title}</Kicker>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              gap: 12,
+            }}
+          >
+            <Heading level={3}>{program?.name ?? labels.title}</Heading>
+            <Badge variant={applied ? 'secondary' : 'outline'}>
+              {applied ? labels.applied : labels.statusPreview}
+            </Badge>
           </div>
 
           {state === 'error' ? (
-            <p style={{ margin: '8px 0 0', fontSize: 13, ...muted }}>{labels.error}</p>
+            <Text size="caption" className="text-muted-foreground" style={{ marginTop: 8 }}>
+              {labels.error}
+            </Text>
           ) : applied ? (
-            <p style={{ margin: '8px 0 0', fontSize: 13, ...muted }}>{payload.message ?? ''}</p>
+            <Text size="caption" className="text-muted-foreground" style={{ marginTop: 8 }}>
+              {payload.message ?? ''}
+            </Text>
           ) : (
             <>
               {removed.length > 0 || added.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                   {removed.length > 0 ? (
-                    <Badge variant="destructive">
+                    <Chip tone="danger">
                       {plural(labels.removedOne, labels.removedOther, removed.length)}
-                    </Badge>
+                    </Chip>
                   ) : null}
                   {added.length > 0 ? (
-                    <Badge variant="secondary">
+                    <Chip tone="success">
                       {plural(labels.addedOne, labels.addedOther, added.length)}
-                    </Badge>
+                    </Chip>
                   ) : null}
                 </div>
               ) : null}
 
+              <Text size="caption" className="text-muted-foreground" style={{ marginTop: 8 }}>
+                {labels.consentNote}
+              </Text>
+
               {warnings.map((warning, index) => (
-                <p key={index} style={{ margin: '8px 0 0', fontSize: 12, ...muted }}>
-                  {warning}
-                </p>
+                <div key={index} style={{ marginTop: 8 }}>
+                  <Alert tone="warning" title={warning} />
+                </div>
               ))}
 
-              {payload.rendered ? (
+              {program ? (
+                <div>
+                  {program.days.map((day, dayIndex) => (
+                    <div key={dayIndex} style={{ marginTop: 14 }}>
+                      <Kicker>{`${day.emoji} ${day.label}`}</Kicker>
+                      <ul
+                        style={{
+                          listStyle: 'none',
+                          margin: 0,
+                          padding: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                        }}
+                      >
+                        {day.exercises.map((ex, exIndex) => {
+                          const note = ex.kind === 'solo' ? changeNote(ex, labels) : null
+                          return (
+                            <li key={exIndex}>
+                              <Text as="span" style={{ fontWeight: 600 }}>
+                                {ex.kind === 'solo' ? ex.name : ex.label || labels.circuit}
+                              </Text>
+                              <Text
+                                size="caption"
+                                className="text-muted-foreground"
+                                style={{ display: 'block', marginTop: 2 }}
+                              >
+                                {ex.kind === 'solo'
+                                  ? prescription(ex, labels)
+                                  : `${circuitLine(ex, labels)} · ${plural(
+                                      labels.circuitExercisesOne,
+                                      labels.circuitExercisesOther,
+                                      ex.exerciseCount,
+                                    )}`}
+                              </Text>
+                              {note ? (
+                                <Text
+                                  size="caption"
+                                  className="text-muted-foreground"
+                                  style={{ display: 'block' }}
+                                >
+                                  {note}
+                                </Text>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : payload.rendered ? (
                 <pre
                   style={{
                     margin: '10px 0 0',
@@ -94,7 +202,11 @@ export function ProgramPatchCard({
               ) : null}
 
               <div style={{ marginTop: 12 }}>
-                <Button type="button" onClick={onApply} disabled={state === 'applying' || !payload.preview_token}>
+                <Button
+                  type="button"
+                  onClick={onApply}
+                  disabled={state === 'applying' || !payload.preview_token}
+                >
                   {state === 'applying' ? labels.applying : labels.apply}
                 </Button>
               </div>

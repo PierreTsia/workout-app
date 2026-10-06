@@ -40,6 +40,7 @@ const applySource = sources["../../supabase/functions/mcp/tools/applyProgramPatc
 const toolsRegistry = sources["../../supabase/functions/mcp/tools/registry.ts"]
 const buildScript = sources["../../scripts/build-mcp-view.mjs"]
 const packageJson = sources["../../package.json"]
+const cardSource = sources["../mcp-views/program-patch/ProgramPatchCard.tsx"]
 
 const viewFiles = Object.entries(sources).filter(([path]) => path.includes("mcp-views"))
 
@@ -89,5 +90,19 @@ describe("Decision Card MCP App View", () => {
     expect(buildScript).toMatch(/SESSION_CARD_HTML/)
     expect(buildScript).toMatch(/PROGRAM_PATCH_HTML/)
     expect(packageJson).toMatch(/"view:check":/)
+  })
+
+  it("carries the structured program + locale in structuredContent only (ADR 0031)", () => {
+    expect(updateSource).toMatch(/buildPatchProgram/)
+    expect(updateSource).toMatch(/program:\s*buildPatchProgram/)
+    expect(viewFiles.length).toBeGreaterThan(0)
+    expect(cardSource).toMatch(/payload\.program/)
+  })
+
+  it("renders with Nomos primitives and tones (ADR 0031)", () => {
+    expect(cardSource).toMatch(/\bChip\b/)
+    expect(cardSource).toMatch(/tone="danger"|tone="success"/)
+    expect(cardSource).toMatch(/\bAlert\b/)
+    expect(cardSource).toMatch(/\bKicker\b/)
   })
 })
