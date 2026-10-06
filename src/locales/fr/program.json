@@ -77,6 +77,16 @@
     "removedDays_one": "Supprime {{count}} jour",
     "removedDays_other": "Supprime {{count}} jours",
     "addedDays_one": "Ajoute {{count}} jour",
-    "addedDays_other": "Ajoute {{count}} jours"
+    "addedDays_other": "Ajoute {{count}} jours",
+    "statusPreview": "À approuver",
+    "consentNote": "Rien n'est écrit avant ta validation.",
+    "changedSets": "Séries modifiées",
+    "changedReps": "Reps modifiées",
+    "changedWeight": "Poids modifié",
+    "changedRest": "Repos modifié",
+    "reps": "reps",
+    "rest": "repos",
+    "circuitExercises_one": "{{count}} exercice",
+    "circuitExercises_other": "{{count}} exercices"
   }
 }

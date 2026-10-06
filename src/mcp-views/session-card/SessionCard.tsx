@@ -1,16 +1,16 @@
-import { Badge, Card, CardContent } from '@nomosui/react'
+import {
+  Badge,
+  Card,
+  CardContent,
+  Counter,
+  EmptyState,
+  Heading,
+  Separator,
+  Text,
+} from '@nomosui/react'
 
+import { panel, type ViewTheme } from '../styles'
 import type { SessionCardLabels, SessionCardItem, SessionCardPayload } from './types'
-
-const panel = {
-  width: '100%',
-  maxWidth: 520,
-  margin: '0 auto',
-  padding: 12,
-  boxSizing: 'border-box' as const,
-}
-
-const muted = { opacity: 0.7 } as const
 
 function setLine(item: SessionCardItem): string {
   if (item.kind !== 'solo') return ''
@@ -23,20 +23,26 @@ function hasPr(item: SessionCardItem): boolean {
   return item.kind === 'solo' && item.sets.some((set) => set.isPr)
 }
 
+/**
+ * The **Session Card** (ADR 0027): a read-only card of the athlete's most recent finished
+ * **Session**, built from Nomos primitives. Tones and the type scale come from the design
+ * system; the outer panel box comes from `../styles`.
+ */
 export function SessionCard({
   payload,
   labels,
+  theme = 'dark',
 }: {
   payload: SessionCardPayload
   labels: SessionCardLabels
+  theme?: ViewTheme
 }) {
   if (!payload.session) {
     return (
-      <div data-theme="dark" data-density="comfortable" style={panel}>
+      <div data-theme={theme} data-density="comfortable" style={panel}>
         <Card>
           <CardContent>
-            <p style={{ margin: 0, fontWeight: 600 }}>{labels.empty}</p>
-            <p style={{ margin: '4px 0 0', ...muted }}>{labels.emptyHint}</p>
+            <EmptyState title={labels.empty} description={labels.emptyHint} />
           </CardContent>
         </Card>
       </div>
@@ -46,52 +52,85 @@ export function SessionCard({
   const session = payload.session
 
   return (
-    <div data-theme="dark" data-density="comfortable" style={panel}>
+    <div data-theme={theme} data-density="comfortable" style={panel}>
       <Card>
         <CardContent>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-            <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.25 }}>{session.label}</span>
-            <span style={{ fontSize: 12, whiteSpace: 'nowrap', ...muted }}>{session.finishedAtLabel}</span>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              alignItems: 'baseline',
+            }}
+          >
+            <Heading level={3}>{session.label}</Heading>
+            <Text size="caption" className="text-muted-foreground" style={{ whiteSpace: 'nowrap' }}>
+              {session.finishedAtLabel}
+            </Text>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
             <Badge variant="secondary">{session.durationLabel}</Badge>
-            <span style={{ fontSize: 13, ...muted }}>
+            <Text size="caption" className="text-muted-foreground">
               {session.setsDone} {labels.sets}
-            </span>
+            </Text>
           </div>
 
-          <div style={{ height: 1, background: 'color-mix(in srgb, currentColor 12%, transparent)', margin: '12px 0' }} />
+          <Separator style={{ margin: '12px 0' }} decorative />
 
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <ul
+            style={{
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
             {payload.items.map((item, index) => (
               <li key={index}>
                 {item.kind === 'solo' ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{item.name}</span>
+                      <Text as="span" style={{ fontWeight: 600 }}>
+                        {item.name}
+                      </Text>
                       {hasPr(item) ? <Badge>{labels.pr}</Badge> : null}
                     </div>
-                    <div style={{ fontSize: 13, marginTop: 2, ...muted }}>{setLine(item)}</div>
+                    <Text
+                      size="caption"
+                      className="text-muted-foreground"
+                      style={{ marginTop: 2 }}
+                    >
+                      {setLine(item)}
+                    </Text>
                   </>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>{item.label || labels.circuit}</span>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                  >
+                    <Text as="span" style={{ fontWeight: 600 }}>
+                      {item.label || labels.circuit}
+                    </Text>
                     {item.mode === 'amrap' && item.amrap ? (
-                      <span style={{ fontSize: 13, ...muted }}>
+                      <Text as="span" size="caption" className="text-muted-foreground">
                         {item.amrap.fullRounds}+{item.amrap.leftover} · {item.amrap.leftoverName}
-                      </span>
+                      </Text>
                     ) : item.completionSeconds != null ? (
-                      <span style={{ fontSize: 13, ...muted }}>
+                      <Text as="span" size="caption" className="text-muted-foreground">
                         {labels.completionTime.replace(
                           '{{time}}',
                           `${Math.floor(item.completionSeconds / 60)}:${String(item.completionSeconds % 60).padStart(2, '0')}`,
                         )}
-                      </span>
+                      </Text>
                     ) : (
-                      <span style={{ fontSize: 13, ...muted }}>
-                        {(item.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace('{{count}}', String(item.rounds))}
-                      </span>
+                      <Text as="span" size="caption" className="text-muted-foreground">
+                        {(item.rounds === 1 ? labels.roundsOne : labels.roundsOther).replace(
+                          '{{count}}',
+                          String(item.rounds),
+                        )}
+                      </Text>
                     )}
                   </div>
                 )}
@@ -99,21 +138,18 @@ export function SessionCard({
             ))}
           </ul>
 
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, ...muted }}>
-              <span>{labels.tonnage}</span>
-              <span>{payload.tonnageKg.toLocaleString('fr-FR')} kg</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 999, marginTop: 6, background: 'color-mix(in srgb, currentColor 14%, transparent)' }}>
-              <div
-                style={{
-                  height: '100%',
-                  borderRadius: 999,
-                  background: 'var(--nomos-color-primary)',
-                  width: `${Math.min(100, Math.round((payload.tonnageKg / 10000) * 100))}%`,
-                }}
-              />
-            </div>
+          <div
+            style={{
+              marginTop: 14,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+            }}
+          >
+            <Text size="caption" className="text-muted-foreground">
+              {labels.tonnage}
+            </Text>
+            <Counter value={payload.tonnageKg} suffix="kg" />
           </div>
         </CardContent>
       </Card>

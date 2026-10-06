@@ -36,6 +36,17 @@ describe("MCP Apps view bridge", () => {
     expect(posted[1]).toMatchObject({ jsonrpc: "2.0", method: "ui/notifications/initialized" })
   })
 
+  it("forwards the host theme carried by the ui/initialize result", async () => {
+    const { win, posted, emit } = fakeWindow()
+    const onHostContext = vi.fn()
+    connect(win, { onHostContext })
+
+    emit({ jsonrpc: "2.0", id: posted[0].id, result: { hostContext: { theme: "light" } } })
+    await Promise.resolve()
+
+    expect(onHostContext).toHaveBeenCalledWith({ theme: "light" })
+  })
+
   it("reports the view size so the host does not clip it", async () => {
     const { win, posted, emit } = fakeWindow()
     const observeSize = { scrollWidth: 400, scrollHeight: 900 } as HTMLElement

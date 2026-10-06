@@ -77,6 +77,16 @@
     "removedDays_one": "Removes {{count}} day",
     "removedDays_other": "Removes {{count}} days",
     "addedDays_one": "Adds {{count}} day",
-    "addedDays_other": "Adds {{count}} days"
+    "addedDays_other": "Adds {{count}} days",
+    "statusPreview": "To approve",
+    "consentNote": "Nothing is written until you approve it.",
+    "changedSets": "Sets changed",
+    "changedReps": "Reps changed",
+    "changedWeight": "Weight changed",
+    "changedRest": "Rest changed",
+    "reps": "reps",
+    "rest": "rest",
+    "circuitExercises_one": "{{count}} exercise",
+    "circuitExercises_other": "{{count}} exercises"
   }
 }

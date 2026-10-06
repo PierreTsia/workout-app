@@ -110,7 +110,11 @@ export function connectAppBridge(
     appCapabilities: {},
     protocolVersion: PROTOCOL_VERSION,
   })
-    .then(() => {
+    .then((result) => {
+      // SEP-1865: the initial host context (including the theme) rides the initialize result.
+      const theme = (result as { hostContext?: { theme?: string } } | undefined)?.hostContext
+        ?.theme
+      if (theme) onHostContext?.({ theme })
       post({ jsonrpc: '2.0', method: 'ui/notifications/initialized' })
       reportSize()
       if (observeSize && typeof ResizeObserver !== 'undefined') {

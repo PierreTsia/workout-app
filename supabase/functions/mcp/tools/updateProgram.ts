@@ -43,6 +43,8 @@ import {
   formatSlotDetachmentWarning,
 } from "../lib/format.ts"
 import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
+import { resolveCardLocale } from "../lib/sessionCard.ts"
+import { buildPatchProgram } from "../lib/programPatchCard.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -61,6 +63,7 @@ function patchOnly(args: Record<string, unknown>): Record<string, unknown> {
   const patch = { ...args }
   delete patch.dry_run
   delete patch.confirm
+  delete patch.locale
   return patch
 }
 
@@ -220,6 +223,12 @@ export const updateProgram: ToolDefinition = {
         type: "boolean",
         description: "Default false. REQUIRED when the patch removes ≥1 day.",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the Decision Card's labels and prescription copy. Defaults to the athlete's app locale, then English.",
+      },
     },
     required: ["program_id"],
   },
@@ -366,6 +375,16 @@ export const updateProgram: ToolDefinition = {
     warnings.push(...detachmentWarnings)
 
     if (parsedPatch.dry_run) {
+      // The Decision Card's copy locale (ADR 0031): tool arg → athlete locale → en.
+      // Resolved only on the preview path, where the structured payload is emitted.
+      const { data: profileRow } = await supabase
+        .from("user_profiles")
+        .select("locale")
+        .maybeSingle()
+      const locale = resolveCardLocale(
+        (args as Record<string, unknown>).locale,
+        (profileRow as { locale?: unknown } | null)?.locale,
+      )
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
       const removed_days = diff.days_to_delete.map((d) => ({
         id: d.id,
@@ -411,6 +430,8 @@ export const updateProgram: ToolDefinition = {
         structuredContent: {
           status: "preview",
           ...payload,
+          locale,
+          program: buildPatchProgram(diff, currentProgram, catalogById),
           ...(preview_token ? { preview_token } : {}),
         },
       }

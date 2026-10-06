@@ -573,10 +573,10 @@ export function formatWorkoutDay(
 // T81 — update_program dry_run rendering helpers
 // ---------------------------------------------------------------------------
 
-const APPLY_DEFAULT_SETS = 3
-const APPLY_DEFAULT_REPS = "10"
-const APPLY_DEFAULT_REST_SECONDS = 90
-const APPLY_DEFAULT_DURATION_SECONDS = 30
+export const APPLY_DEFAULT_SETS = 3
+export const APPLY_DEFAULT_REPS = "10"
+export const APPLY_DEFAULT_REST_SECONDS = 90
+export const APPLY_DEFAULT_DURATION_SECONDS = 30
 const DEFAULT_INSERT_EMOJI = "🏋️"
 
 interface RenderableDay {

@@ -4,47 +4,55 @@ import { connectAppBridge } from '../bridge'
 import { ProgramPatchCard } from './ProgramPatchCard'
 import { examplePayload } from './example'
 import { labelsFor } from './labels'
+import type { ViewTheme } from '../styles'
 import type { ProgramPatchPayload, ProgramPatchViewState } from './types'
 
 /**
- * The Decision Card view entry (ADR 0028): it receives the `update_program` preview through
- * the bridge, and on **Apply** asks the host to call `apply_program_patch` with the preview
- * token. It never writes directly — the host arbitrates (SEP-1865 `tools/call`).
+ * The Decision Card view entry (ADR 0028/0031): it receives the `update_program` preview
+ * through the bridge, renders the structured program, and on **Apply** asks the host to call
+ * `apply_program_patch` with the preview token. It never writes directly — the host
+ * arbitrates (SEP-1865 `tools/call`). Copy locale comes from the payload; the host theme
+ * drives `data-theme`.
  */
 const rootElement = document.getElementById('gl-view-root')
 
 if (rootElement) {
   const root = createRoot(rootElement)
-  const locale: 'en' | 'fr' =
-    typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('fr')
-      ? 'fr'
-      : 'en'
-
   let payload: ProgramPatchPayload = examplePayload
   let state: ProgramPatchViewState = 'preview'
+  let theme: ViewTheme = 'dark'
+
+  const render = () => {
+    root.render(
+      <ProgramPatchCard
+        payload={payload}
+        labels={labelsFor(payload.locale ?? 'en')}
+        state={state}
+        onApply={apply}
+        theme={theme}
+      />,
+    )
+  }
 
   const bridge = connectAppBridge(window, {
     appInfo: { name: 'gymlogic-program-patch', version: '1.0.0' },
     observeSize: rootElement,
     onToolResult: (structuredContent) => {
-      if (structuredContent && typeof structuredContent === 'object' && 'status' in structuredContent) {
+      if (
+        structuredContent &&
+        typeof structuredContent === 'object' &&
+        'status' in structuredContent
+      ) {
         payload = structuredContent as ProgramPatchPayload
         state = payload.status === 'applied' ? 'applied' : 'preview'
         render()
       }
     },
+    onHostContext: (context) => {
+      theme = context.theme === 'light' ? 'light' : 'dark'
+      render()
+    },
   })
-
-  function render() {
-    root.render(
-      <ProgramPatchCard
-        payload={payload}
-        labels={labelsFor(locale)}
-        state={state}
-        onApply={apply}
-      />,
-    )
-  }
 
   function apply() {
     if (!payload.preview_token) return
