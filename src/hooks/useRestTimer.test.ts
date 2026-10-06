@@ -6,6 +6,16 @@ import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
 import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import type { RestState } from "@/store/atoms"
 
+const { mockPlayFinishBeeps, mockPlayWarningBeep } = vi.hoisted(() => ({
+  mockPlayFinishBeeps: vi.fn(),
+  mockPlayWarningBeep: vi.fn(),
+}))
+
+vi.mock("@/lib/audio", () => ({
+  playFinishBeeps: mockPlayFinishBeeps,
+  playWarningBeep: mockPlayWarningBeep,
+}))
+
 function setVisibility(state: "visible" | "hidden") {
   Object.defineProperty(document, "visibilityState", {
     configurable: true,
@@ -258,6 +268,67 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.remaining).toBe(80)
+  })
+
+  it("shows a rest finished in the background as finished on return, without restarting", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 5,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+
+    // The rest ends while backgrounded; the interval never ticks.
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(result.current.remaining).toBe(0)
+    expect(result.current.isActive).toBe(true)
+
+    // Clears after the grace delay — no new countdown.
+    act(() => {
+      vi.advanceTimersByTime(1_200)
+    })
+    expect(result.current.isActive).toBe(false)
+  })
+
+  it("fires the finish alert on return when the rest ended in the background", () => {
+    vi.useFakeTimers()
+    mockPlayFinishBeeps.mockClear()
+    const { store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 5,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(mockPlayFinishBeeps).toHaveBeenCalledTimes(1)
   })
 
   it("keeps user rest pause when session resumes if rest was paused before session", () => {
