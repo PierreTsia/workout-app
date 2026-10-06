@@ -12,9 +12,9 @@ describe("resolveCardLocale", () => {
     expect(resolveCardLocale(undefined, "fr")).toBe("fr")
   })
 
-  it("defaults to English for anything unusable", () => {
-    expect(resolveCardLocale(undefined, null)).toBe("en")
-    expect(resolveCardLocale("de", "es")).toBe("en")
-    expect(resolveCardLocale(42, {})).toBe("en")
+  it("returns null for anything unusable, so the caller can pick a fallback", () => {
+    expect(resolveCardLocale(undefined, null)).toBeNull()
+    expect(resolveCardLocale("de", "es")).toBeNull()
+    expect(resolveCardLocale(42, {})).toBeNull()
   })
 })

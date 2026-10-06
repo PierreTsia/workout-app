@@ -14,6 +14,7 @@ import { panel, type ViewTheme } from '../styles'
 import type {
   PatchCircuitExercise,
   PatchSoloExercise,
+  PatchWarning,
   ProgramPatchLabels,
   ProgramPatchPayload,
   ProgramPatchViewState,
@@ -21,6 +22,12 @@ import type {
 
 const plural = (one: string, other: string, n: number): string =>
   (n === 1 ? one : other).replace('{{count}}', String(n))
+
+function warningText(warning: PatchWarning, labels: ProgramPatchLabels): string {
+  return warning.kind === 'active_cycle'
+    ? labels.warnActiveCycle.replace('{{date}}', warning.date)
+    : labels.warnSlotDetachment.replace('{{exercise}}', warning.exercise)
+}
 
 function prescription(ex: PatchSoloExercise, labels: ProgramPatchLabels): string {
   const parts: string[] = []
@@ -74,7 +81,9 @@ export function ProgramPatchCard({
 }) {
   const removed = payload.removed_days ?? []
   const added = payload.added_days ?? []
-  const warnings = payload.warnings ?? []
+  const warnings = payload.warning_details?.length
+    ? payload.warning_details.map((warning) => warningText(warning, labels))
+    : payload.warnings ?? []
   const program = payload.program
   const applied = state === 'applied' || payload.status === 'applied'
 

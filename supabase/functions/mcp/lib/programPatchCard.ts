@@ -57,6 +57,14 @@ export type PatchDay = { label: string; emoji: string; exercises: PatchExercise[
 
 export type PatchProgram = { name: string; days: PatchDay[] }
 
+/**
+ * A `dry_run` warning in a locale-neutral shape, so the **Decision Card** composes it in
+ * the view's Display Locale (the text `warnings[]` stay French for non-UI clients).
+ */
+export type PatchWarning =
+  | { kind: "active_cycle"; date: string }
+  | { kind: "slot_detachment"; exercise: string }
+
 const DEFAULT_INSERT_EMOJI = "🏋️"
 const DEFAULT_CIRCUIT_LABEL = "Circuit"
 const DEFAULT_AMRAP_CAP_MINUTES = 20

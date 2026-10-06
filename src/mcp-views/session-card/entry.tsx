@@ -42,7 +42,8 @@ if (rootElement) {
       }
     },
     onHostContext: (context) => {
-      theme = context.theme === 'light' ? 'light' : 'dark'
+      // Partial updates (SEP-1865): merge, never reset a field the host didn't send.
+      if (context.theme) theme = context.theme === 'light' ? 'light' : 'dark'
       render()
     },
   })

@@ -40,6 +40,11 @@ export type PatchDay = { label: string; emoji: string; exercises: PatchExercise[
 /** The structured program carried in `structuredContent` (ADR 0031). */
 export type PatchProgram = { name: string; days: PatchDay[] }
 
+/** Typed `dry_run` warning, composed in the view's Display Locale (#677). */
+export type PatchWarning =
+  | { kind: 'active_cycle'; date: string }
+  | { kind: 'slot_detachment'; exercise: string }
+
 /** The `structuredContent` an `update_program` result carries into the view (ADR 0028/0031). */
 export type ProgramPatchPayload = {
   status: ProgramPatchStatus
@@ -49,9 +54,14 @@ export type ProgramPatchPayload = {
   rendered?: string
   removed_days?: RemovedDay[]
   added_days?: AddedDay[]
+  /** French fallback strings for non-UI clients; the card prefers `warning_details`. */
   warnings?: string[]
-  /** ADR 0031 — the copy locale and the structured program. */
+  /** Locale-neutral warnings the card composes in the view's Display Locale. */
+  warning_details?: PatchWarning[]
+  /** ADR 0031/#677 — the explicit tool `locale`, ranked ABOVE the host language. */
   locale?: 'en' | 'fr'
+  /** The `user_profiles.locale` seed, ranked BELOW the host language (Display Locale). */
+  profile_locale?: 'en' | 'fr'
   program?: PatchProgram
   /** Present on a preview only; the view's Apply hands it back to `apply_program_patch`. */
   preview_token?: string
@@ -85,4 +95,7 @@ export type ProgramPatchLabels = {
   roundsOther: string
   circuitExercisesOne: string
   circuitExercisesOther: string
+  /** Templates with `{{date}}` / `{{exercise}}`. */
+  warnActiveCycle: string
+  warnSlotDetachment: string
 }

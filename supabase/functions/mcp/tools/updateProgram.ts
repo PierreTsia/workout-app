@@ -43,8 +43,8 @@ import {
   formatSlotDetachmentWarning,
 } from "../lib/format.ts"
 import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
-import { resolveCardLocale } from "../lib/sessionCard.ts"
-import { buildPatchProgram } from "../lib/programPatchCard.ts"
+import { asCardLocale } from "../lib/sessionCard.ts"
+import { buildPatchProgram, type PatchWarning } from "../lib/programPatchCard.ts"
 import type {
   CurrentProgramSnapshot,
   CurrentProgramSnapshotDay,
@@ -227,7 +227,7 @@ export const updateProgram: ToolDefinition = {
         type: "string",
         enum: ["en", "fr"],
         description:
-          "Language of the Decision Card's labels and prescription copy. Defaults to the athlete's app locale, then English.",
+          "Language of the Decision Card's labels, prescription copy, and warnings — pass the language the user is speaking. Defaults to the host's language, then the athlete's stored locale, then English.",
       },
     },
     required: ["program_id"],
@@ -354,35 +354,45 @@ export const updateProgram: ToolDefinition = {
       .eq("program_id", parsedPatch.program_id)
       .is("finished_at", null)
       .maybeSingle()
-    const activeCycleWarning =
+    const cycleStartedAt =
       cycleData && typeof (cycleData as { started_at?: unknown }).started_at === "string"
-        ? formatActiveCycleWarning({ started_at: (cycleData as { started_at: string }).started_at })
+        ? (cycleData as { started_at: string }).started_at
         : null
 
-    const warnings = activeCycleWarning ? [activeCycleWarning] : []
+    // The text `warnings` stay French (non-UI clients); `warning_details` carry the same
+    // signals in a locale-neutral shape so the Decision Card composes them in its locale.
+    const warnings: string[] = []
+    const warning_details: PatchWarning[] = []
+    if (cycleStartedAt) {
+      warnings.push(formatActiveCycleWarning({ started_at: cycleStartedAt }))
+      warning_details.push({ kind: "active_cycle", date: cycleStartedAt.slice(0, 10) })
+    }
 
     // Informative signal (ADR 0030): a solo slot whose exercise is removed or
     // swapped loses its history — the new slot bootstraps from the template.
     // Not a gate: the flow already has consent (echoed payload / Preview Token).
-    const detachmentWarnings = diff.days_to_update.flatMap((update) => {
+    diff.days_to_update.forEach((update) => {
       const currentDay = currentProgram.days.find((d) => d.id === update.id)
-      if (!currentDay) return []
+      if (!currentDay) return
       const existingIds = currentDay.workout_exercises.map((ex) => ex.exercise_id)
-      return detachedSoloExerciseIds(existingIds, update.parsed_exercises).map((id) =>
-        formatSlotDetachmentWarning(catalogById.get(id)?.name ?? id),
-      )
+      detachedSoloExerciseIds(existingIds, update.parsed_exercises).forEach((id) => {
+        const name = catalogById.get(id)?.name ?? id
+        warnings.push(formatSlotDetachmentWarning(name))
+        warning_details.push({ kind: "slot_detachment", exercise: name })
+      })
     })
-    warnings.push(...detachmentWarnings)
 
     if (parsedPatch.dry_run) {
-      // The Decision Card's copy locale (ADR 0031): tool arg → athlete locale → en.
-      // Resolved only on the preview path, where the structured payload is emitted.
+      // The Decision Card's copy locale (ADR 0031/#677). The two sources are emitted
+      // SEPARATELY so the view can rank the host's own language between them:
+      //   explicit tool argument → host locale → user_profiles seed → en
+      // (Display Locale: the device signal wins over the cross-device seed.)
       const { data: profileRow } = await supabase
         .from("user_profiles")
         .select("locale")
         .maybeSingle()
-      const locale = resolveCardLocale(
-        (args as Record<string, unknown>).locale,
+      const explicitLocale = asCardLocale((args as Record<string, unknown>).locale)
+      const profileLocale = asCardLocale(
         (profileRow as { locale?: unknown } | null)?.locale,
       )
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
@@ -430,7 +440,9 @@ export const updateProgram: ToolDefinition = {
         structuredContent: {
           status: "preview",
           ...payload,
-          locale,
+          warning_details,
+          ...(explicitLocale ? { locale: explicitLocale } : {}),
+          ...(profileLocale ? { profile_locale: profileLocale } : {}),
           program: buildPatchProgram(diff, currentProgram, catalogById),
           ...(preview_token ? { preview_token } : {}),
         },

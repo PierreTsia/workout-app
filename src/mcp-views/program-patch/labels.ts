@@ -41,6 +41,8 @@ const build = (
     roundsOther: h.circuit.rounds_other,
     circuitExercisesOne: m.circuitExercises_one,
     circuitExercisesOther: m.circuitExercises_other,
+    warnActiveCycle: m.warnActiveCycle,
+    warnSlotDetachment: m.warnSlotDetachment,
   }
 }
 

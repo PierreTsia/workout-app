@@ -47,6 +47,35 @@ describe("MCP Apps view bridge", () => {
     expect(onHostContext).toHaveBeenCalledWith({ theme: "light" })
   })
 
+  it("forwards the host locale alongside the theme", async () => {
+    const { win, posted, emit } = fakeWindow()
+    const onHostContext = vi.fn()
+    connect(win, { onHostContext })
+
+    emit({
+      jsonrpc: "2.0",
+      id: posted[0].id,
+      result: { hostContext: { theme: "dark", locale: "fr-FR" } },
+    })
+    await Promise.resolve()
+
+    expect(onHostContext).toHaveBeenCalledWith({ theme: "dark", locale: "fr-FR" })
+  })
+
+  it("forwards locale-only host-context changes", () => {
+    const { win, emit } = fakeWindow()
+    const onHostContext = vi.fn()
+    connect(win, { onHostContext })
+
+    emit({
+      jsonrpc: "2.0",
+      method: "ui/notifications/host-context-changed",
+      params: { locale: "fr-FR" },
+    })
+
+    expect(onHostContext).toHaveBeenCalledWith({ locale: "fr-FR" })
+  })
+
   it("reports the view size so the host does not clip it", async () => {
     const { win, posted, emit } = fakeWindow()
     const observeSize = { scrollWidth: 400, scrollHeight: 900 } as HTMLElement

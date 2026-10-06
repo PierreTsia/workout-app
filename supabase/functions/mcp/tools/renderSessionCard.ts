@@ -42,7 +42,7 @@ export const renderSessionCard: ToolDefinition = {
       const { data: profile } = await supabase.from("user_profiles").select("locale").maybeSingle()
       const profileLocale: unknown = profile?.locale
 
-      const locale = resolveCardLocale(args.locale, profileLocale)
+      const locale = resolveCardLocale(args.locale, profileLocale) ?? "en"
       const payload = await buildSessionCardPayload(supabase, locale)
       const text = payload.session
         ? `## ${payload.session.label} — ${payload.session.finishedAtLabel}\n\n` +
