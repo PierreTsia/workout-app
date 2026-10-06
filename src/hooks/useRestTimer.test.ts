@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "@testing-library/react"
-import { renderHookWithProviders } from "@/test/utils"
+import { renderHookWithProviders, setVisibility } from "@/test/utils"
 import { restAtom, sessionAtom } from "@/store/atoms"
 import { useRestTimer, getRestElapsedSeconds } from "./useRestTimer"
+import { useSessionVisibilityAutoPause } from "./useSessionVisibilityAutoPause"
+import { VISIBILITY_GUARD_MS } from "@/lib/session"
 import type { RestState } from "@/store/atoms"
+
+const { mockPlayFinishBeeps, mockPlayWarningBeep } = vi.hoisted(() => ({
+  mockPlayFinishBeeps: vi.fn(),
+  mockPlayWarningBeep: vi.fn(),
+}))
+
+vi.mock("@/lib/audio", () => ({
+  playFinishBeeps: mockPlayFinishBeeps,
+  playWarningBeep: mockPlayWarningBeep,
+}))
 
 describe("useRestTimer", () => {
   beforeEach(() => {
@@ -138,6 +150,273 @@ describe("useRestTimer", () => {
     })
 
     expect(result.current.remaining).toBe(75)
+  })
+
+  it("counts a short visibility pause (≤ 15 min) in the rest timer", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(80)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+        pausedByVisibility: true,
+      }))
+    })
+    expect(result.current.isPaused).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    expect(result.current.isPaused).toBe(false)
+    expect(result.current.remaining).toBe(70)
+  })
+
+  it("excludes a long visibility pause (> 15 min) from the rest timer", () => {
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 1800,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.remaining).toBe(1790)
+
+    act(() => {
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 10_000,
+        pausedByVisibility: true,
+      }))
+    })
+
+    const hidden = VISIBILITY_GUARD_MS + 60_000
+    act(() => {
+      vi.advanceTimersByTime(hidden)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    expect(result.current.remaining).toBe(1790)
+  })
+
+  it("shows a short rest as finished on return when the hidden span exceeded 15 min", () => {
+    vi.useFakeTimers()
+    mockPlayFinishBeeps.mockClear()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 10,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({ ...prev, pausedAt: null }))
+    })
+
+    // App hidden mid-rest, then returns well past the guard and the rest's end.
+    act(() => {
+      vi.setSystemTime(t0 + 5_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: t0 + 5_000,
+        pausedByVisibility: true,
+      }))
+    })
+    act(() => {
+      vi.setSystemTime(t0 + VISIBILITY_GUARD_MS + 60_000)
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        pausedAt: null,
+        pausedByVisibility: undefined,
+      }))
+    })
+
+    // Terminal: finished on return, not still running from the fold.
+    expect(result.current.remaining).toBe(0)
+    expect(result.current.isActive).toBe(true)
+
+    act(() => {
+      vi.advanceTimersByTime(1_200)
+    })
+    expect(result.current.isActive).toBe(false)
+  })
+
+  it("agrees with the session at the 15-minute boundary when the rest effect runs a tick later", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => ({
+      rest: useRestTimer(),
+      session: useSessionVisibilityAutoPause(),
+    }))
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 1800,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+      store.set(sessionAtom, (prev) => ({
+        ...prev,
+        isActive: true,
+        startedAt: t0,
+        pausedAt: null,
+      }))
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(result.current.rest.remaining).toBe(1790)
+
+    // App hidden mid-rest.
+    act(() => {
+      setVisibility("hidden")
+    })
+    expect(store.get(sessionAtom).pausedAt).toBe(10_000)
+
+    // Return exactly at the guard boundary; the rest layout effect runs 1 ms
+    // later, so a re-measure would see 900001 ms and exclude the whole span.
+    act(() => {
+      vi.setSystemTime(10_000 + VISIBILITY_GUARD_MS)
+      setVisibility("visible")
+      vi.setSystemTime(10_000 + VISIBILITY_GUARD_MS + 1)
+    })
+
+    // Session counts the span (≤ guard)...
+    expect(store.get(sessionAtom).accumulatedPause).toBe(0)
+    // ...and the rest must count it too, not exclude it.
+    expect(result.current.rest.remaining).toBe(890)
+  })
+
+  it("forces a tick on visibilitychange to visible", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 90,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+    expect(result.current.remaining).toBe(90)
+
+    // Time passes while the interval is throttled (timers not advanced).
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(result.current.remaining).toBe(80)
+  })
+
+  it("shows a rest finished in the background as finished on return, without restarting", () => {
+    vi.useFakeTimers()
+    const { result, store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 5,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+
+    // The rest ends while backgrounded; the interval never ticks.
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(result.current.remaining).toBe(0)
+    expect(result.current.isActive).toBe(true)
+
+    // Clears after the grace delay — no new countdown.
+    act(() => {
+      vi.advanceTimersByTime(1_200)
+    })
+    expect(result.current.isActive).toBe(false)
+  })
+
+  it("fires the finish alert on return when the rest ended in the background", () => {
+    vi.useFakeTimers()
+    mockPlayFinishBeeps.mockClear()
+    const { store } = renderHookWithProviders(() => useRestTimer())
+    const t0 = 0
+    act(() => {
+      vi.setSystemTime(t0)
+    })
+    act(() => {
+      store.set(restAtom, {
+        startedAt: t0,
+        durationSeconds: 5,
+        pausedAt: null,
+        accumulatedPause: 0,
+      })
+    })
+
+    act(() => {
+      vi.setSystemTime(t0 + 10_000)
+    })
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(mockPlayFinishBeeps).toHaveBeenCalledTimes(1)
   })
 
   it("keeps user rest pause when session resumes if rest was paused before session", () => {

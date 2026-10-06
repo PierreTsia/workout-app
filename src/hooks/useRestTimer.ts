@@ -8,8 +8,9 @@ import {
 } from "react"
 import { useAtom, useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
-import { restAtom, sessionAtom, type RestState } from "@/store/atoms"
+import { restAtom, sessionAtom, visibilityGuardAtom, type RestState } from "@/store/atoms"
 import { playWarningBeep, playFinishBeeps } from "@/lib/audio"
+import { VISIBILITY_GUARD_MS } from "@/lib/session"
 
 export function formatSeconds(s: number): string {
   const mins = Math.floor(s / 60)
@@ -65,6 +66,7 @@ export function useRestTimer() {
   const { t } = useTranslation("workout")
   const [rest, setRest] = useAtom(restAtom)
   const session = useAtomValue(sessionAtom)
+  const visibilityResolution = useAtomValue(visibilityGuardAtom)
   const sessionPausedAt = session.pausedAt
   const [now, setNow] = useState(Date.now)
   const hasNotifiedRef = useRef(false)
@@ -87,21 +89,52 @@ export function useRestTimer() {
           ...r,
           pausedAt: sessionPausedAt,
           pausedForWorkoutSession: true,
+          pausedForVisibility: session.pausedByVisibility,
         }
       })
       return
     }
     setRest((r) => {
       if (!r || !r.pausedForWorkoutSession || r.pausedAt == null) return r
-      const pauseDuration = Date.now() - r.pausedAt
+      const now = Date.now()
+      const pauseDuration = now - r.pausedAt
+      // A rest whose wall-clock end has already passed is terminal, even when
+      // the hidden span exceeded the guard: the fold only touches session time,
+      // it must not resurrect a finished rest (#664).
+      const finishedWhileHidden =
+        r.pausedForVisibility === true &&
+        now - r.startedAt - (r.accumulatedPause ?? 0) >=
+          r.durationSeconds * 1000
+      // A short visibility pause counts as rest time (#664); a manual session
+      // pause, or a long hidden span on a still-running rest, is excluded.
+      // For a visibility pause, consume the decision the session resolved once
+      // at return — re-measuring here with a later `Date.now()` could flip the
+      // boundary and make the two timers disagree. Fall back to measuring only
+      // when no matching resolution exists (isolated rest, no session hook).
+      const resolved =
+        r.pausedForVisibility === true &&
+        visibilityResolution != null &&
+        visibilityResolution.pausedAt === r.pausedAt
+          ? visibilityResolution
+          : null
+      const excluded = finishedWhileHidden
+        ? 0
+        : resolved
+          ? resolved.excluded
+            ? resolved.hiddenMs
+            : 0
+          : r.pausedForVisibility && pauseDuration <= VISIBILITY_GUARD_MS
+            ? 0
+            : pauseDuration
       return {
         ...r,
         pausedAt: null,
         pausedForWorkoutSession: undefined,
-        accumulatedPause: (r.accumulatedPause ?? 0) + pauseDuration,
+        pausedForVisibility: undefined,
+        accumulatedPause: (r.accumulatedPause ?? 0) + excluded,
       }
     })
-  }, [sessionPausedAt, setRest])
+  }, [sessionPausedAt, session.pausedByVisibility, setRest, visibilityResolution])
 
   useEffect(() => {
     if (!rest) {
@@ -149,9 +182,17 @@ export function useRestTimer() {
     }
 
     tick()
-    if (!isTimerFrozen) {
-      const id = setInterval(tick, 250)
-      return () => clearInterval(id)
+    // The interval is throttled/frozen while backgrounded; recalc from the
+    // timestamp the moment the app is visible again (#664), which also fires
+    // the finish alert best-effort if the rest ended in the background.
+    function handleVisibility() {
+      if (document.visibilityState === "visible") tick()
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    const id = isTimerFrozen ? null : setInterval(tick, 250)
+    return () => {
+      if (id) clearInterval(id)
+      document.removeEventListener("visibilitychange", handleVisibility)
     }
   }, [rest, setRest, t, isTimerFrozen, sessionPausedAt])
 
@@ -172,6 +213,7 @@ export function useRestTimer() {
         ...prev,
         pausedAt: null,
         pausedForWorkoutSession: undefined,
+        pausedForVisibility: undefined,
         accumulatedPause: (prev.accumulatedPause ?? 0) + pauseDuration,
       }
     })

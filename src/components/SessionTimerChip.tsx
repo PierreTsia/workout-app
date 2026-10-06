@@ -51,6 +51,17 @@ export function SessionTimerChip() {
     }
   }, [session.startedAt, session.isActive, isPaused])
 
+  // The interval is throttled/frozen while backgrounded; recalc from the
+  // timestamp the moment the app is visible again (#664).
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") setNow(Date.now())
+    }
+    document.addEventListener("visibilitychange", handleVisibility)
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility)
+  }, [])
+
   const display = useMemo(() => {
     if (!session.startedAt || !session.isActive) return ""
     const accPause = session.accumulatedPause ?? 0

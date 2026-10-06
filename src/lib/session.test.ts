@@ -4,6 +4,8 @@ import {
   getEffectiveElapsed,
   pauseSessionForVisibility,
   resumeSessionFromPause,
+  resumeSessionFromVisibilityPause,
+  VISIBILITY_GUARD_MS,
 } from "./session"
 
 const BASE_SESSION: SessionState = {
@@ -119,5 +121,66 @@ describe("resumeSessionFromPause", () => {
     }
     const out = resumeSessionFromPause(paused)
     expect(out.pausedByVisibility).toBeFalsy()
+  })
+})
+
+describe("resumeSessionFromVisibilityPause", () => {
+  const T0 = 1_000_000
+
+  it("counts a hidden span of 15 min or less (no exclusion)", () => {
+    const paused = {
+      ...BASE_SESSION,
+      pausedAt: T0,
+      pausedByVisibility: true,
+      accumulatedPause: 100,
+    }
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      paused,
+      T0 + VISIBILITY_GUARD_MS,
+    )
+    expect(session.pausedAt).toBeNull()
+    expect(session.pausedByVisibility).toBeFalsy()
+    expect(session.accumulatedPause).toBe(100)
+    expect(resolution).toEqual({
+      pausedAt: T0,
+      hiddenMs: VISIBILITY_GUARD_MS,
+      excluded: false,
+    })
+  })
+
+  it("excludes the whole hidden span when it exceeds 15 min", () => {
+    const hidden = VISIBILITY_GUARD_MS + 1
+    const paused = {
+      ...BASE_SESSION,
+      pausedAt: T0,
+      pausedByVisibility: true,
+      accumulatedPause: 100,
+    }
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      paused,
+      T0 + hidden,
+    )
+    expect(session.pausedAt).toBeNull()
+    expect(session.accumulatedPause).toBe(100 + hidden)
+    expect(resolution).toEqual({ pausedAt: T0, hiddenMs: hidden, excluded: true })
+  })
+
+  it("never touches a manual pause", () => {
+    const manual = { ...BASE_SESSION, pausedAt: T0, accumulatedPause: 100 }
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      manual,
+      T0 + 60_000,
+    )
+    expect(session).toBe(manual)
+    expect(resolution).toBeNull()
+  })
+
+  it("no-ops when the session is not paused", () => {
+    const { session, resolution } = resumeSessionFromVisibilityPause(
+      BASE_SESSION,
+      T0 + 60_000,
+    )
+    expect(session).toBe(BASE_SESSION)
+    expect(resolution).toBeNull()
   })
 })

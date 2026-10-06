@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { screen, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { renderWithProviders } from "@/test/utils"
+import { renderWithProviders, setVisibility } from "@/test/utils"
 import { sessionAtom, type SessionState } from "@/store/atoms"
 
 const { mockCancelActiveSession } = vi.hoisted(() => ({
@@ -121,6 +121,30 @@ describe("SessionTimerChip", () => {
     const updated = store.get(sessionAtom)
     expect(updated.pausedAt).toBeNull()
     expect(updated.accumulatedPause).toBeGreaterThan(0)
+  })
+
+  it("forces a tick on visibilitychange to visible", () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:30.000Z"))
+    const { store } = renderWithProviders(<SessionTimerChip />)
+
+    act(() => {
+      store.set(sessionAtom, {
+        ...BASE_SESSION,
+        isActive: true,
+        startedAt: Date.now() - 65_000,
+      })
+    })
+
+    expect(screen.getByText("01:05")).toBeInTheDocument()
+
+    // Time passes while the interval is throttled (timers not advanced).
+    vi.setSystemTime(Date.now() + 10_000)
+    act(() => {
+      setVisibility("visible")
+    })
+
+    expect(screen.getByText("01:15")).toBeInTheDocument()
   })
 
   it("freezes display while paused", () => {
