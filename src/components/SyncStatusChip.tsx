@@ -29,9 +29,12 @@ const dotConfig: Record<
   },
   syncing: {
     key: "syncing",
-    className: "rounded-full bg-amber-500 animate-pulse",
+    className: "rounded-full bg-amber-600 animate-pulse dark:bg-amber-500",
   },
-  synced: { key: "synced", className: "rounded-full bg-green-500" },
+  synced: {
+    key: "synced",
+    className: "rounded-full bg-green-600 dark:bg-green-500",
+  },
   failed: { key: "syncFailed", className: "rounded-[2px] bg-destructive" },
 }
 
@@ -44,22 +47,19 @@ export function SyncStatusChip() {
     status === "idle" ? (online ? null : "offline") : status
 
   return (
-    // The live region stays mounted even when idle so the first state change is
-    // announced; only the visible dot/appearance is conditional.
-    <span
-      role="status"
-      data-testid="sync-status"
-      className="inline-flex items-center"
-    >
+    <>
+      {/* Live region stays mounted — and out of the header's flex `gap` (sr-only
+          is absolutely positioned) — so the first state change is announced. */}
+      <span role="status" className="sr-only">
+        {state ? t(dotConfig[state].key) : ""}
+      </span>
       {state ? (
-        <>
-          <span
-            aria-hidden="true"
-            className={`h-2.5 w-2.5 shrink-0 ${dotConfig[state].className}`}
-          />
-          <span className="sr-only">{t(dotConfig[state].key)}</span>
-        </>
+        <span
+          aria-hidden="true"
+          data-testid="sync-status-dot"
+          className={`h-2.5 w-2.5 shrink-0 ${dotConfig[state].className}`}
+        />
       ) : null}
-    </span>
+    </>
   )
 }

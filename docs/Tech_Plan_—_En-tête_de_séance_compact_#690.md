@@ -11,7 +11,7 @@
 | Nom accessible de fin | `aria-label={t("finish")}` (`workout`) | Réutilise la clé existante ; le nom accessible « Finish » reste identique → tests existants inchangés |
 | Témoin de sync | `<span>` dot `h-2.5 w-2.5 rounded-full` à la place du `Badge` texte | Plus gros gain de largeur, signal ambiant mieux adapté qu'un mot |
 | États du dot | `offline` → anneau vide gris, `syncing` → dot ambre (pulse), `synced` → dot plein vert, `failed` → carré rouge | Les 4 états existants de `syncStatusAtom` + `navigator.onLine` sont conservés 1:1 ; **forme + animation distinguent les états sans dépendre de la couleur** (WCAG 1.4.1) |
-| Nom accessible du dot | wrapper `role="status"` (live region, monté en permanence) + texte `sr-only` ; dot en `aria-hidden` | Le dot ne doit pas être un signal couleur-seul ; la live region doit exister avant le changement d'état pour annoncer le libellé traduit |
+| Nom accessible du dot | live region `role="status"` `sr-only` montée en permanence, hors flux ; dot visible en `aria-hidden` | Le dot n'est pas un signal couleur-seul ; la live region doit exister avant le changement d'état (annonce initiale) sans ajouter de `gap` dans l'en-tête |
 | Layout de l'en-tête | Inchangé | Décision de grill : le compactage A+B suffit, pas de `shrink-0` |
 
 ### Critical Constraints
@@ -19,7 +19,7 @@
 - **Aucune modification de `syncStatusAtom` ni de `finishRequestAtom`.** On ne touche qu'à la présentation ; la logique de fin (`file:src/components/workout/FinishSessionButton.tsx:27-30`) et d'état de sync (`file:src/store/atoms.ts`) est figée.
 - **Le nom accessible du bouton de fin ne doit pas changer.** `FinishSessionButton.test.tsx` interroge `getByRole("button", { name: "Finish" })` ; on conserve donc `aria-label={t("finish")}`, pas un libellé d'icône inventé.
 - **`idle` + en ligne reste invisible.** Comportement actuel (`file:src/components/SyncStatusChip.tsx:25-34`) : ne rien afficher quand rien ne se passe. On garde ce contrat, seul `idle` + hors ligne produit le dot gris.
-- **Pas de couleur arbitraire.** Les classes `bg-green-500` / `bg-amber-500` suivent l'usage existant (`text-green-500` dans `file:src/components/builder/SaveIndicator.tsx:41`, `bg-green-500/15` dans `file:src/components/workout/BlockSessionCard.tsx:82`) ; `bg-destructive` et `border-muted-foreground` sont des tokens. La règle eslint ne bannit que `bg-[#…]` (`file:eslint.config.js:68-71`).
+- **Pas de couleur arbitraire.** `bg-green-600` / `bg-amber-600` en thème clair (contraste ≥ 3:1 sur fond blanc, WCAG 1.4.11), `dark:bg-green-500` / `dark:bg-amber-500` en sombre ; `bg-destructive` et `border-muted-foreground` sont des tokens. La règle eslint ne bannit que `bg-[#…]` (`file:eslint.config.js:68-71`).
 - **`RestTimerPill` non touché.** Il reste dans la grappe droite ; son coexistence avec le dot est couverte par le test de largeur.
 
 ---
@@ -70,7 +70,7 @@ chemin et leur nom. Un fichier de test unitaire est ajouté et la suite e2e gagn
 
 **`SyncStatusChip`**
 - Résout un état unique : `offline` si `status === "idle" && !online` ; sinon l'un de `syncing` / `synced` / `failed` ; `null` si `idle && online`.
-- Rend un wrapper `<span role="status">` **monté en permanence** (la live region existe avant le premier changement d'état, sinon l'annonce initiale est manquée) ; le dot `aria-hidden` et le label `sr-only` ne sont rendus que lorsqu'un état est visible. Le contenu est annoncé aux lecteurs d'écran. Forme par état : anneau vide (`rounded-full border border-muted-foreground`) / pulse (`rounded-full bg-amber-500 animate-pulse`) / dot plein (`rounded-full bg-green-500`) / carré (`rounded-[2px] bg-destructive`). Le radius vit sur chaque état, jamais sur la base (conflit Tailwind `rounded-full` émis après `rounded-[2px]`).
+- Rend une live region `role="status"` **`sr-only` montée en permanence et hors flux flex** (pas de `gap` parasite quand vide) ; le libellé traduit y est écrit quand un état est actif. Le dot visible (`aria-hidden`, `data-testid="sync-status-dot"`) n'est rendu que lorsqu'un état est actif. Forme par état : anneau vide (`rounded-full border border-muted-foreground`) / pulse (`rounded-full bg-amber-600 animate-pulse dark:bg-amber-500`) / dot plein (`rounded-full bg-green-600 dark:bg-green-500`) / carré (`rounded-[2px] bg-destructive`). Le radius vit sur chaque état, jamais sur la base (conflit Tailwind `rounded-full` émis après `rounded-[2px]`).
 - Aucun abonnement supplémentaire : conserve `useSyncExternalStore(subscribeOnline, getOnlineSnapshot)` et `useAtomValue(syncStatusAtom)`.
 
 ### Failure Mode Analysis

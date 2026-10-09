@@ -11,13 +11,9 @@ function setOnline(value: boolean) {
   })
 }
 
-/** The status region stays mounted; the visible shape is its aria-hidden child. */
 function dotFor(label: string) {
-  const status = screen.getByTestId("sync-status")
-  expect(status).toHaveTextContent(label)
-  const dot = status.querySelector("[aria-hidden='true']")
-  if (!dot) throw new Error("sync dot shape not rendered")
-  return dot
+  expect(screen.getByRole("status")).toHaveTextContent(label)
+  return screen.getByTestId("sync-status-dot")
 }
 
 describe("SyncStatusChip", () => {
@@ -25,12 +21,12 @@ describe("SyncStatusChip", () => {
     setOnline(true)
   })
 
-  it("keeps the live region mounted but empty while idle and online", () => {
+  it("keeps the live region mounted but empty, and no dot, while idle and online", () => {
     setOnline(true)
     renderWithProviders(<SyncStatusChip />)
 
-    const status = screen.getByTestId("sync-status")
-    expect(status).toBeEmptyDOMElement()
+    expect(screen.getByRole("status")).toBeEmptyDOMElement()
+    expect(screen.queryByTestId("sync-status-dot")).not.toBeInTheDocument()
   })
 
   it("shows a hollow ring when offline while idle", () => {
@@ -49,7 +45,7 @@ describe("SyncStatusChip", () => {
     act(() => store.set(syncStatusAtom, "syncing"))
 
     const dot = dotFor("Syncing…")
-    expect(dot).toHaveClass("bg-amber-500")
+    expect(dot).toHaveClass("bg-amber-600")
     expect(dot).toHaveClass("animate-pulse")
   })
 
@@ -60,7 +56,7 @@ describe("SyncStatusChip", () => {
     act(() => store.set(syncStatusAtom, "synced"))
 
     const dot = dotFor("Synced")
-    expect(dot).toHaveClass("bg-green-500")
+    expect(dot).toHaveClass("bg-green-600")
     expect(dot).toHaveClass("rounded-full")
   })
 
