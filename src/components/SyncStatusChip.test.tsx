@@ -63,5 +63,6 @@ describe("SyncStatusChip", () => {
     const dot = screen.getByRole("img", { name: "Sync failed" })
     expect(dot).toHaveClass("bg-destructive")
     expect(dot).toHaveClass("rounded-[2px]")
+    expect(dot).not.toHaveClass("rounded-full")
   })
 })

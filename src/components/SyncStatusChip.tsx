@@ -19,9 +19,15 @@ function getOnlineSnapshot() {
 type DotState = "offline" | "syncing" | "synced" | "failed"
 
 const dotConfig: Record<DotState, { key: string; className: string }> = {
-  offline: { key: "offline", className: "border border-muted-foreground" },
-  syncing: { key: "syncing", className: "bg-amber-500 animate-pulse" },
-  synced: { key: "synced", className: "bg-green-500" },
+  offline: {
+    key: "offline",
+    className: "rounded-full border border-muted-foreground",
+  },
+  syncing: {
+    key: "syncing",
+    className: "rounded-full bg-amber-500 animate-pulse",
+  },
+  synced: { key: "synced", className: "rounded-full bg-green-500" },
   failed: { key: "syncFailed", className: "rounded-[2px] bg-destructive" },
 }
 
@@ -41,7 +47,7 @@ export function SyncStatusChip() {
     <span
       role="img"
       aria-label={t(config.key)}
-      className={`h-2.5 w-2.5 shrink-0 rounded-full ${config.className}`}
+      className={`h-2.5 w-2.5 shrink-0 ${config.className}`}
     />
   )
 }
