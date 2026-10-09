@@ -6,44 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import type { BuilderLocationState } from "@/lib/builderLocationState"
 import { compactNumberSequence } from "@/lib/blockPrescription"
+import type { DayCardItem, DayCircuitStation } from "@/lib/dayCardItems"
 import { cn } from "@/lib/utils"
-
-/** Solo line in a library day summary. */
-export interface DayExercise {
-  id: string
-  emoji: string
-  name: string
-  sets: number
-  reps: string
-  restSeconds: number
-  sortOrder: number
-  /** Catalog id — set when the line can open instructions. */
-  exerciseId?: string | null
-}
-
-/** One station inside a Circuit summary. */
-export interface DayCircuitStation {
-  id: string
-  name: string
-  emoji: string
-  amounts: number[]
-  isDuration: boolean
-  exerciseId?: string | null
-}
-
-/** Circuit line in a library day summary (#454). */
-export interface DayCircuitSummary {
-  id: string
-  label: string | null
-  rounds: number
-  exerciseCount: number
-  sortOrder: number
-  stations?: readonly DayCircuitStation[]
-}
-
-export type DayCardItem =
-  | ({ kind: "solo" } & DayExercise)
-  | ({ kind: "circuit" } & DayCircuitSummary)
 
 export function DayItemLines({
   items,

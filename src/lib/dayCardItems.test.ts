@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { toDayCardItems } from "./toDayCardItems"
+import { toDayCardItems } from "./dayCardItems"
 
 describe("toDayCardItems", () => {
   it("interleaves solos and circuits by sort order", () => {
