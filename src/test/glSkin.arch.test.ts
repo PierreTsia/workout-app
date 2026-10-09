@@ -78,4 +78,20 @@ describe("glSkin — named GymLogic skin", () => {
       .map(([path]) => path)
     expect(offenders).toEqual([])
   })
+
+  it("globals.css defines no legacy `--color-*` slot (T306)", () => {
+    // The colour mapping now lives in `@nomosui/react/tokens/theme.css`; the GL
+    // `@theme` block keeps only `--animate-*`. A stray semantic slot here would
+    // shadow the skin. `--color-gray-200` (Tailwind's own) is not a legacy slot.
+    const legacyColorSlot =
+      /--color-(border|input|ring|background|foreground|primary|secondary|destructive|muted|accent|popover|card|teal)\b/
+    expect(globalsCss).not.toMatch(legacyColorSlot)
+  })
+
+  it("globals.css reads no legacy HSL variable (T306)", () => {
+    // Reads go through `--nomos-color-*`, or the GL-owned `--heatmap-*` ramp.
+    // `--animate-*` is not a colour; `--nomos-color-*` must not be caught.
+    const legacyVar = /var\(--(primary|muted|border|input|ring|card|background|foreground)\b/
+    expect(globalsCss).not.toMatch(legacyVar)
+  })
 })
