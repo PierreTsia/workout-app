@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { Square } from "lucide-react"
 import { sessionAtom, finishRequestAtom } from "@/store/atoms"
 import { Button } from "@/components/ui/button"
 
@@ -21,15 +22,16 @@ export function FinishSessionButton() {
 
   return (
     <Button
-      variant="outline"
-      size="sm"
-      className="h-7 rounded-full px-3 text-xs"
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 shrink-0 rounded-full text-destructive hover:bg-destructive/20 hover:text-destructive"
+      aria-label={t("finish")}
       onClick={() => {
         if (pathname !== "/") navigate("/")
         setFinishRequest((n) => n + 1)
       }}
     >
-      {t("finish")}
+      <Square className="h-3.5 w-3.5 fill-current" />
     </Button>
   )
 }

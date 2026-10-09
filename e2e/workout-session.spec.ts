@@ -284,4 +284,75 @@ test.describe("Workout session — full flow", () => {
     const quickWorkoutDrawer = page.getByRole("dialog", { name: /quick workout/i })
     await expect(quickWorkoutDrawer).toBeVisible({ timeout: 5_000 })
   })
+
+  test("session header fits a 360px viewport with rest timer and sync state", async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 800 })
+    await page.goto("/")
+
+    const notifDialog = page.getByRole("dialog", {
+      name: /enable notifications/i,
+    })
+    try {
+      await expect(notifDialog).toBeVisible({ timeout: 2_500 })
+      await notifDialog.getByRole("button", { name: /not now/i }).click()
+      await expect(notifDialog).not.toBeVisible()
+    } catch {
+      /* dialog didn't appear */
+    }
+
+    // Pick a day that isn't already done in this cycle: the full-flow test above
+    // finishes Lundi, so the home's default day may offer no "Start workout".
+    const dayButton = page.getByRole("button", { name: /Go to Mercredi/i })
+    await expect(dayButton).toBeVisible({ timeout: 30_000 })
+    await dayButton.click()
+
+    const startButton = page.getByRole("button", { name: /start workout/i })
+    await expect(startButton).toBeVisible({ timeout: 15_000 })
+    await startButton.click()
+    await expect(page.getByTestId("session-timer-chip")).toBeVisible({
+      timeout: 5_000,
+    })
+
+    // Log a set so the rest timer pill appears — maximum header pressure (#690).
+    const checkboxes = page.getByRole("checkbox")
+    await expect(checkboxes.first()).toBeVisible()
+    await checkboxes.first().click()
+    const rirConfirm = page.getByRole("button", { name: /confirm/i })
+    await expect(rirConfirm).toBeVisible({ timeout: 3_000 })
+    await rirConfirm.click()
+    await expect(
+      page.getByRole("button", { name: /open rest timer/i }),
+    ).toBeVisible({ timeout: 3_000 })
+
+    // Force a visible sync chip so it is part of the row being measured.
+    await context.setOffline(true)
+    await expect(page.getByTestId("sync-status-dot")).toBeVisible()
+
+    // The regression: the header (and page) must not overflow a 360px viewport.
+    const overflow = await page.evaluate(() => {
+      const header = document.querySelector("header")
+      return {
+        page: document.documentElement.scrollWidth - window.innerWidth,
+        header: header ? header.scrollWidth - header.clientWidth : 0,
+      }
+    })
+    expect(overflow.page).toBeLessThanOrEqual(1)
+    expect(overflow.header).toBeLessThanOrEqual(1)
+
+    // Finish control (header icon) and sync dot stay inside the viewport.
+    for (const target of [
+      page.locator("header").getByRole("button", { name: "Finish" }),
+      page.getByTestId("sync-status-dot"),
+    ]) {
+      await expect(target).toBeVisible()
+      const box = await target.boundingBox()
+      expect(box).not.toBeNull()
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(360)
+    }
+
+    await context.setOffline(false)
+  })
 })
