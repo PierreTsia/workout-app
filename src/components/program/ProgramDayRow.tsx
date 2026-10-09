@@ -2,10 +2,11 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ChevronDown, Dumbbell, Pencil, Repeat } from "lucide-react"
-import { DayItemLines, type DayCardItem } from "@/components/library/DayCard"
+import { DayItemLines } from "@/components/library/DayCard"
 import { ExerciseDetailSheet } from "@/components/generator/ExerciseDetailSheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import type { DayCardItem } from "@/lib/dayCardItems"
 import {
   Collapsible,
   CollapsibleContent,

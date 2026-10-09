@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest"
 import { screen } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
-import { DayCard, type DayCardItem, type DayExercise } from "./DayCard"
+import { DayCard } from "./DayCard"
+import type { DayCardItem, DayExercise } from "@/lib/dayCardItems"
 
 function asItems(exercises: DayExercise[]): DayCardItem[] {
   return exercises.map((ex) => ({ kind: "solo" as const, ...ex }))

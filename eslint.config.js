@@ -41,6 +41,12 @@ const forbidPages = {
     'Inversion de couche : cette couche ne dépend pas des pages (couche supérieure).',
 }
 
+const forbidComponents = {
+  group: ['@/components/*', '@/components/**'],
+  message:
+    'Inversion de couche : un hook ne dépend pas des composants (couche UI supérieure).',
+}
+
 const forbidUiAndHooks = {
   group: [
     '@/components/*',
@@ -142,7 +148,7 @@ export default defineConfig([
   },
   {
     files: ['src/hooks/**/*.{ts,tsx}'],
-    rules: { [RESTRICT]: restricted({ patterns: [forbidPages] }) },
+    rules: { [RESTRICT]: restricted({ patterns: [forbidPages, forbidComponents] }) },
   },
   {
     files: ['src/components/**/*.{ts,tsx}'],

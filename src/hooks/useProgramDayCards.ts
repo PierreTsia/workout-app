@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
-import type { DayCardItem } from "@/components/library/DayCard"
 import {
   toDayCardItems,
   type DayCardBlock,
   type DayCardExercise,
-} from "@/components/library/toDayCardItems"
+  type DayCardItem,
+} from "@/lib/dayCardItems"
 import { LABEL_EXERCISE_SELECT } from "@/lib/exerciseSelects"
 import { supabase } from "@/lib/supabase"
 
