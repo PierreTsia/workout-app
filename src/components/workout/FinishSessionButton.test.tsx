@@ -46,6 +46,22 @@ describe("FinishSessionButton", () => {
     expect(screen.getByRole("button", { name: "Finish" })).toBeInTheDocument()
   })
 
+  it("renders as an icon-only control with no visible label", () => {
+    const { store } = renderButton("/")
+
+    act(() => {
+      store.set(sessionAtom, {
+        ...defaultSessionState,
+        isActive: true,
+        startedAt: Date.now(),
+      })
+    })
+
+    const button = screen.getByRole("button", { name: "Finish" })
+    expect(button.textContent).toBe("")
+    expect(button.querySelector("svg")).not.toBeNull()
+  })
+
   it("requests a finish on tap", async () => {
     const user = userEvent.setup()
     const { store } = renderButton("/")

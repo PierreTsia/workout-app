@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react"
 import { useAtomValue } from "jotai"
 import { useTranslation } from "react-i18next"
-import { Badge } from "@/components/ui/badge"
 import { syncStatusAtom } from "@/store/atoms"
 
 function subscribeOnline(cb: () => void) {
@@ -17,34 +16,33 @@ function getOnlineSnapshot() {
   return navigator.onLine
 }
 
+type DotState = "offline" | "syncing" | "synced" | "failed"
+
+const dotConfig: Record<DotState, { key: string; className: string }> = {
+  offline: { key: "offline", className: "bg-muted-foreground" },
+  syncing: { key: "syncing", className: "bg-amber-500 animate-pulse" },
+  synced: { key: "synced", className: "bg-green-500" },
+  failed: { key: "syncFailed", className: "bg-destructive" },
+}
+
 export function SyncStatusChip() {
   const { t } = useTranslation()
   const status = useAtomValue(syncStatusAtom)
   const online = useSyncExternalStore(subscribeOnline, getOnlineSnapshot)
 
-  if (status === "idle") {
-    if (!online) {
-      return (
-        <Badge variant="outline" className="text-xs">
-          {t("offline")}
-        </Badge>
-      )
-    }
-    return null
-  }
+  const state: DotState | null =
+    status === "idle" ? (online ? null : "offline") : status
 
-  const configMap = {
-    syncing: { key: "syncing" as const, variant: "secondary" as const },
-    synced: { key: "synced" as const, variant: "default" as const },
-    failed: { key: "syncFailed" as const, variant: "destructive" as const },
-  }
+  if (!state) return null
 
-  const config = configMap[status]
-  if (!config) return null
+  const config = dotConfig[state]
 
   return (
-    <Badge variant={config.variant} className="text-xs">
-      {t(config.key)}
-    </Badge>
+    <span
+      role="status"
+      aria-label={t(config.key)}
+      data-testid="sync-status-dot"
+      className={`h-2.5 w-2.5 shrink-0 rounded-full ${config.className}`}
+    />
   )
 }
