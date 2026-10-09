@@ -1,0 +1,289 @@
+{
+  "$description": "Le skin GL nommé (ADR 0027, T303) : un overlay sémantique DTCG d'identité GymLogic posé par-dessus le défaut de @nomosui/react. Valeurs littérales par mode, aucun `primitive` — le cœur garde les valeurs brutes (Nomos ADR 0022). Le CSS de l'app est dérivé par `renderCss(resolveSkin(default, glSkin))` (scripts/build-gl-skin.mjs) ; ne pas consommer directement.",
+  "semantic": {
+    "color": {
+      "background": {
+        "$value": {
+          "dark": "240 7% 8%",
+          "light": "0 0% 100%"
+        }
+      },
+      "foreground": {
+        "$value": {
+          "dark": "240 10% 94%",
+          "light": "240 10% 10%"
+        }
+      },
+      "card": {
+        "$value": {
+          "dark": "240 17% 12%",
+          "light": "0 0% 98%"
+        }
+      },
+      "card-foreground": {
+        "$value": {
+          "dark": "240 10% 94%",
+          "light": "240 10% 10%"
+        }
+      },
+      "popover": {
+        "$value": {
+          "dark": "240 17% 12%",
+          "light": "0 0% 100%"
+        }
+      },
+      "popover-foreground": {
+        "$value": {
+          "dark": "240 10% 94%",
+          "light": "240 10% 10%"
+        }
+      },
+      "primary": {
+        "$value": {
+          "dark": "174 100% 39%",
+          "light": "174 100% 35%"
+        }
+      },
+      "primary-foreground": {
+        "$value": {
+          "dark": "0 0% 0%",
+          "light": "0 0% 100%"
+        }
+      },
+      "secondary": {
+        "$value": {
+          "dark": "240 8% 16%",
+          "light": "240 5% 92%"
+        }
+      },
+      "secondary-foreground": {
+        "$value": {
+          "dark": "240 10% 94%",
+          "light": "240 10% 10%"
+        }
+      },
+      "muted": {
+        "$value": {
+          "dark": "240 8% 19%",
+          "light": "240 5% 92%"
+        }
+      },
+      "muted-foreground": {
+        "$value": {
+          "dark": "0 0% 60%",
+          "light": "240 4% 46%"
+        }
+      },
+      "accent": {
+        "$value": {
+          "dark": "240 8% 16%",
+          "light": "240 5% 92%"
+        }
+      },
+      "accent-foreground": {
+        "$value": {
+          "dark": "240 10% 94%",
+          "light": "240 10% 10%"
+        }
+      },
+      "destructive": {
+        "$value": {
+          "dark": "0 72% 71%",
+          "light": "0 72% 51%"
+        }
+      },
+      "destructive-foreground": {
+        "$value": {
+          "dark": "0 0% 0%",
+          "light": "0 0% 100%"
+        }
+      },
+      "border": {
+        "$value": {
+          "dark": "240 8% 19%",
+          "light": "240 6% 85%"
+        }
+      },
+      "input": {
+        "$value": {
+          "dark": "240 8% 19%",
+          "light": "240 6% 85%"
+        }
+      },
+      "ring": {
+        "$value": {
+          "dark": "174 100% 39%",
+          "light": "174 100% 35%"
+        }
+      },
+      "brand": {
+        "$value": "#00c9b1"
+      },
+      "scrim": {
+        "$value": "0 0% 0% / 0.8"
+      },
+      "status-info": {
+        "$value": "199 89% 48%"
+      },
+      "status-info-surface": {
+        "$value": {
+          "dark": "202 49% 14%",
+          "light": "199 82% 92%"
+        }
+      },
+      "status-info-ink": {
+        "$value": {
+          "dark": "198 93% 74%",
+          "light": "201 96% 32%"
+        }
+      },
+      "status-progress": {
+        "$value": "258 90% 66%"
+      },
+      "status-progress-surface": {
+        "$value": {
+          "dark": "256 30% 17%",
+          "light": "258 90% 95%"
+        }
+      },
+      "status-progress-ink": {
+        "$value": {
+          "dark": "255 92% 85%",
+          "light": "263 70% 50%"
+        }
+      },
+      "status-attention": {
+        "$value": "38 92% 50%"
+      },
+      "status-attention-surface": {
+        "$value": {
+          "dark": "36 45% 14%",
+          "light": "38 92% 93%"
+        }
+      },
+      "status-attention-ink": {
+        "$value": {
+          "dark": "46 97% 65%",
+          "light": "26 90% 37%"
+        }
+      },
+      "status-warning": {
+        "$value": "25 95% 53%"
+      },
+      "status-warning-surface": {
+        "$value": {
+          "dark": "22 42% 15%",
+          "light": "25 95% 93%"
+        }
+      },
+      "status-warning-ink": {
+        "$value": {
+          "dark": "31 97% 72%",
+          "light": "17 88% 40%"
+        }
+      },
+      "status-danger": {
+        "$value": "0 84% 60%"
+      },
+      "status-danger-surface": {
+        "$value": {
+          "dark": "354 33% 15%",
+          "light": "0 84% 94%"
+        }
+      },
+      "status-danger-ink": {
+        "$value": {
+          "dark": "0 94% 82%",
+          "light": "0 74% 42%"
+        }
+      },
+      "status-success": {
+        "$value": "160 84% 39%"
+      },
+      "status-success-surface": {
+        "$value": {
+          "dark": "166 40% 12%",
+          "light": "160 54% 91%"
+        }
+      },
+      "status-success-ink": {
+        "$value": {
+          "dark": "156 72% 67%",
+          "light": "161 94% 25%"
+        }
+      }
+    },
+    "radius": {
+      "pill": {
+        "$value": "9999px"
+      },
+      "control": {
+        "$value": "0.625rem"
+      },
+      "field": {
+        "$value": "0.5rem"
+      },
+      "chip": {
+        "$value": "0.375rem"
+      }
+    },
+    "type": {
+      "family": {
+        "sans": {
+          "$value": "ui-sans-serif, system-ui, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif"
+        }
+      },
+      "weight": {
+        "regular": {
+          "$value": "400"
+        },
+        "medium": {
+          "$value": "500"
+        },
+        "strong": {
+          "$value": "600"
+        }
+      },
+      "size": {
+        "micro": {
+          "$value": "0.6875rem"
+        },
+        "caption": {
+          "$value": "0.75rem"
+        },
+        "body": {
+          "$value": "0.875rem"
+        },
+        "lead": {
+          "$value": "1rem"
+        },
+        "title": {
+          "$value": "1.125rem"
+        },
+        "display": {
+          "$value": "1.5rem"
+        }
+      },
+      "leading": {
+        "micro": {
+          "$value": "0.875rem"
+        },
+        "caption": {
+          "$value": "1rem"
+        },
+        "body": {
+          "$value": "1.25rem"
+        },
+        "lead": {
+          "$value": "1.5rem"
+        },
+        "title": {
+          "$value": "1.75rem"
+        },
+        "display": {
+          "$value": "2rem"
+        }
+      }
+    }
+  }
+}

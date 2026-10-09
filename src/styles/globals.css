@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@nomosui/react/tokens/tokens.generated.css';
+@import './glSkin.generated.css';
 @import '@nomosui/react/tokens/theme.css';
 @import 'tw-animate-css';
 
