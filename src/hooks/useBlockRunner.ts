@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useReducer, useState } from "react"
+import { useCallback, useEffect, useReducer } from "react"
+import { useNow } from "@/hooks/useNow"
 import {
   blockRunnerReducer,
   initialRunnerState,
@@ -47,20 +48,13 @@ export function useBlockRunner({
       ? state.endsAt
       : null
 
-  const [now, setNow] = useState(() => Date.now())
+  const now = useNow(endsAt != null, TICK_MS)
 
-  // Drive the active timer: tick a local clock for the countdown and fire
-  // TIMER_DONE once the deadline passes. Re-arms whenever `endsAt` changes.
+  // Fire TIMER_DONE once the armed deadline has passed. The clock itself comes
+  // from `useNow`; this only reacts to it (dispatch is not a cascading render).
   useEffect(() => {
-    if (endsAt == null) return
-    setNow(Date.now())
-    const id = setInterval(() => {
-      const t = Date.now()
-      setNow(t)
-      if (t >= endsAt) dispatch({ type: "TIMER_DONE" })
-    }, TICK_MS)
-    return () => clearInterval(id)
-  }, [endsAt])
+    if (endsAt != null && now >= endsAt) dispatch({ type: "TIMER_DONE" })
+  }, [endsAt, now])
 
   const remainingSeconds =
     endsAt == null ? null : Math.max(0, Math.ceil((endsAt - now) / 1000))

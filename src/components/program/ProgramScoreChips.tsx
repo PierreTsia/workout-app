@@ -1,8 +1,6 @@
 import { useTranslation } from "react-i18next"
-import {
-  BodyMap,
-  BODY_MAP_INTENSITY_COLORS,
-} from "@/components/body-map/BodyMap"
+import { BodyMap } from "@/components/body-map/BodyMap"
+import { BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/bodyMapColors"
 import { DayOutlinePopover } from "@/components/program/DayOutlinePopover"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { Skeleton } from "@/components/ui/skeleton"

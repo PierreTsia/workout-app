@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { Controller, FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Field, Input } from "@nomosui/react"
@@ -52,7 +52,11 @@ export function AccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const displayNameId = useId()
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
-  const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null)
+  // Derived object URL for the pending avatar preview, revoked when it changes.
+  const previewObjectUrl = useMemo(
+    () => (pendingAvatarFile ? URL.createObjectURL(pendingAvatarFile) : null),
+    [pendingAvatarFile],
+  )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   /** Avoid resetting the form on every render / query refetch with the same server row (wipes edits & breaks submit). */
@@ -103,14 +107,9 @@ export function AccountPage() {
   }, [profile, weightUnit])
 
   useEffect(() => {
-    if (!pendingAvatarFile) {
-      setPreviewObjectUrl(null)
-      return
-    }
-    const url = URL.createObjectURL(pendingAvatarFile)
-    setPreviewObjectUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [pendingAvatarFile])
+    if (previewObjectUrl == null) return
+    return () => URL.revokeObjectURL(previewObjectUrl)
+  }, [previewObjectUrl])
 
   const removeCustomAvatar = useMutation({
     mutationFn: async () => {

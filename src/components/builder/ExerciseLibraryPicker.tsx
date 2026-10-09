@@ -9,9 +9,9 @@ import { ExerciseFilterPanel } from "@/components/builder/ExerciseFilterPanel"
 import {
   ExerciseSelectionList,
   ExerciseSelectionActions,
-  useExerciseSelection,
 } from "@/components/builder/ExerciseSelectionContent"
 import type { ExistingDayExercise } from "@/components/builder/ExerciseSelectionContent"
+import { useExerciseSelection } from "@/components/builder/useExerciseSelection"
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useBenchmarkSeeds } from "@/hooks/useBenchmarkSeeds"

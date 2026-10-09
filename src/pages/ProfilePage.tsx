@@ -12,10 +12,8 @@ import { RhythmBlock } from "@/components/profile/RhythmBlock"
 import { SuccesBlock } from "@/components/profile/SuccesBlock"
 import { ProfileHint } from "@/components/profile/ProfileHint"
 import { RegularsBlock } from "@/components/profile/RegularsBlock"
-import {
-  ProfileWindowProvider,
-  useProfileWindow,
-} from "@/components/profile/ProfileWindowContext"
+import { useProfileWindow } from "@/components/profile/ProfileWindowContext"
+import { ProfileWindowProvider } from "@/components/profile/ProfileWindowProvider"
 import {
   Select,
   SelectContent,

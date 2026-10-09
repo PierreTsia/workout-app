@@ -109,6 +109,7 @@ const Carousel = React.forwardRef<
         return
       }
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- vendored shadcn/embla: initial selection sync; the callback sets the arrow-button state.
       onSelect(api)
       api.on("reInit", onSelect)
       api.on("select", onSelect)

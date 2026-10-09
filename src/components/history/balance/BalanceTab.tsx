@@ -13,7 +13,8 @@ import {
   bodyMapDataFromMuscleVolume,
   hasEnoughBalanceData,
 } from "@/lib/volumeByMuscleGroup"
-import { BodyMap, BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/BodyMap"
+import { BodyMap } from "@/components/body-map/BodyMap"
+import { BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/bodyMapColors"
 import { BalanceGauge } from "./BalanceGauge"
 import { BalanceInsights } from "./BalanceInsights"
 import { MuscleBreakdownTable } from "./MuscleBreakdownTable"

@@ -45,16 +45,19 @@ export function DurationSetTimer({
   const firedBeepIndicesRef = useRef<Set<number>>(new Set())
   // Local edit state for the target input (seconds as string)
   const [editValue, setEditValue] = useState(String(targetSeconds))
+  const [prevTarget, setPrevTarget] = useState(targetSeconds)
+
+  // Keep editValue in sync when targetSeconds changes externally (adjust state
+  // during render — React's recommended reset for a changed input).
+  if (targetSeconds !== prevTarget) {
+    setPrevTarget(targetSeconds)
+    setEditValue(String(targetSeconds))
+  }
 
   const schedule = useMemo(
     () => buildBeepSchedule(targetSeconds),
     [targetSeconds],
   )
-
-  // Keep editValue in sync when targetSeconds changes externally
-  useEffect(() => {
-    setEditValue(String(targetSeconds))
-  }, [targetSeconds])
 
   useEffect(() => {
     if (timerStartedAt == null || isWorkoutPaused) return

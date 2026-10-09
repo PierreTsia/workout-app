@@ -30,10 +30,8 @@ import {
 import { dayIntentToHeatmap } from "@/lib/programScore/dayIntentToHeatmap"
 import type { ProgramIntentDay } from "@/lib/programScore/types"
 import { DayListSkeleton } from "./DayListSkeleton"
-import {
-  BodyMap,
-  BODY_MAP_INTENSITY_COLORS,
-} from "@/components/body-map/BodyMap"
+import { BodyMap } from "@/components/body-map/BodyMap"
+import { BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/bodyMapColors"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {

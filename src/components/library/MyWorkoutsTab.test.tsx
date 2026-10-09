@@ -12,7 +12,6 @@ vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
 vi.mock("@/components/body-map/BodyMap", () => ({
   BodyMap: () => null,
-  BODY_MAP_INTENSITY_COLORS: [],
 }))
 
 const mockUseUserPrograms = vi.fn()

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   PROFILE_CHART_TOOLTIP_PROPS,
   profileTooltipReverseDirection,
-} from "./ProfileChartTooltip"
+} from "./profileChartTooltipProps"
 
 const PLOT = { x: 0, y: 0, width: 200, height: 100 }
 

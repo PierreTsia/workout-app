@@ -27,11 +27,15 @@ export function ActivityTab() {
   const wide = useMediaQuery("(min-width: 768px)")
   const [summaryOpen, setSummaryOpen] = useState(wide)
   const [heatmapOpen, setHeatmapOpen] = useState(wide)
+  const [prevWide, setPrevWide] = useState(wide)
 
-  useEffect(() => {
+  // Re-seed the collapsible defaults when crossing the mobile/desktop breakpoint
+  // (adjust state during render — React's recommended reset for a changed input).
+  if (wide !== prevWide) {
+    setPrevWide(wide)
     setSummaryOpen(wide)
     setHeatmapOpen(wide)
-  }, [wide])
+  }
 
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()))
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
@@ -60,11 +64,6 @@ export function ActivityTab() {
   )
 
   const { data: rangeSessions = [] } = useSessionsForDateRange(monthStart, monthEnd)
-
-  useEffect(() => {
-    userPickedDayRef.current = false
-    setSelectedDate(undefined)
-  }, [visibleKey])
 
   useEffect(() => {
     if (!monthSuccess) return
@@ -136,7 +135,11 @@ export function ActivityTab() {
 
       <TrainingCalendarCard
         visibleMonth={visibleMonth}
-        onVisibleMonthChange={(m) => setVisibleMonth(startOfMonth(m))}
+        onVisibleMonthChange={(m) => {
+          userPickedDayRef.current = false
+          setSelectedDate(undefined)
+          setVisibleMonth(startOfMonth(m))
+        }}
         selectedDate={selectedDate}
         onSelectDate={(d) => {
           userPickedDayRef.current = true

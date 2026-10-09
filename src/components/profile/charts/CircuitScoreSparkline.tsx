@@ -4,20 +4,12 @@ import {
   ChartContainer,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { formatDate, formatSecondsMMSS } from "@/lib/formatters"
+import { formatDate } from "@/lib/formatters"
 import {
   ProfileChartTooltip,
   ProfileChartTooltipLayer,
 } from "./ProfileChartTooltip"
-
-export function formatCircuitSparkScore(
-  score: number,
-  mode: "amrap" | "rounds",
-  roundsLabel: (count: number) => string,
-): string {
-  if (mode === "rounds") return formatSecondsMMSS(score)
-  return roundsLabel(score)
-}
+import { formatCircuitSparkScore } from "./circuitScore"
 
 function sparkPointDay(payload: ReadonlyArray<unknown> | undefined): string | undefined {
   const item = payload?.[0]
