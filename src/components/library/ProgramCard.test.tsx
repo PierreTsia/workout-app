@@ -11,7 +11,6 @@ vi.mock("@/lib/supabase", () => ({ supabase: { from: vi.fn() } }))
 
 vi.mock("@/components/body-map/BodyMap", () => ({
   BodyMap: () => <div data-testid="program-card-body-map-model" />,
-  BODY_MAP_INTENSITY_COLORS: [],
 }))
 
 function makeScore(overrides: Partial<ProgramScore> = {}): ProgramScore {

@@ -350,17 +350,15 @@ export function WorkoutPage() {
 
   // If the query resolves to null (orphan FK, RLS filter, deleted catalog row),
   // the detail sheet returns null and has no way to dismiss itself. Clear the
-  // id so the parent stays in a consistent state.
-  useEffect(() => {
-    if (
-      inspectedExerciseId &&
-      !inspectedExercisePending &&
-      inspectedExercise === null
-    ) {
-      setInspectedExerciseId(null)
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reflect unreachable-exercise async result into id state; no safer place to run this.
-  }, [inspectedExerciseId, inspectedExercisePending, inspectedExercise])
+  // id so the parent stays in a consistent state (adjust state during render —
+  // the async result can't be handled any earlier).
+  if (
+    inspectedExerciseId &&
+    !inspectedExercisePending &&
+    inspectedExercise === null
+  ) {
+    setInspectedExerciseId(null)
+  }
 
   const exerciseIds = useMemo(
     () => exercises.map((ex) => ex.exercise_id),

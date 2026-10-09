@@ -1,8 +1,6 @@
 import { Badge } from "@/components/ui/badge"
-import {
-  BodyMap,
-  BODY_MAP_INTENSITY_COLORS,
-} from "@/components/body-map/BodyMap"
+import { BodyMap } from "@/components/body-map/BodyMap"
+import { BODY_MAP_INTENSITY_COLORS } from "@/components/body-map/bodyMapColors"
 import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { dayIntentToHeatmap } from "@/lib/programScore/dayIntentToHeatmap"
 import type { ProgramIntentDay } from "@/lib/programScore/types"

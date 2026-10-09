@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatCircuitSparkScore } from "./CircuitScoreSparkline"
+import { formatCircuitSparkScore } from "./circuitScore"
 
 const tours = (count: number) => (count === 1 ? `${count} tour` : `${count} tours`)
 

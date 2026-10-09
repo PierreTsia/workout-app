@@ -95,19 +95,25 @@ export function OnboardingPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // `useOnboardingEntry` latches one decision once both the program and resume
-  // probes have settled, so each effect below fires exactly once and neither
-  // needs a re-entry guard. User-driven `setStep` calls later in the session
-  // can no longer be clobbered by a late-arriving probe.
+  // probes have settled, so this redirect fires at most once. User-driven
+  // `setStep` calls later in the session can no longer be clobbered by a
+  // late-arriving probe.
   useEffect(() => {
     if (entry.status !== "redirect") return
     navigate("/", { replace: true })
   }, [entry, navigate])
 
-  useEffect(() => {
-    if (entry.status !== "resume") return
-    if (entry.profile) setProfileData(entry.profile)
-    if (entry.step !== "welcome") setStep(entry.step)
-  }, [entry])
+  // Seed the wizard from the server-derived resume once the entry decision
+  // latches (adjust state during render — React's recommended sync for a
+  // changed input, avoids the extra pass an effect would add).
+  const [prevEntry, setPrevEntry] = useState(entry)
+  if (entry !== prevEntry) {
+    setPrevEntry(entry)
+    if (entry.status === "resume") {
+      if (entry.profile) setProfileData(entry.profile)
+      if (entry.step !== "welcome") setStep(entry.step)
+    }
+  }
 
   function trackStepCompleted(name: AnalyticsStepName, extra?: Record<string, unknown>) {
     trackEvent.mutate({

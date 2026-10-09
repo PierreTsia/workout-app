@@ -147,7 +147,7 @@ export function SetsTable({
     sessionId: string
     byExercise: Map<string, typeof sessionPrescription>
   } | null>(null)
-  const readLockedPrescription = (): typeof sessionPrescription => {
+  const readLockedPrescription = useCallback((): typeof sessionPrescription => {
     const locked = lockedPrescriptionRef.current
     if (!locked || locked.sessionId !== sessionId) {
       lockedPrescriptionRef.current = {
@@ -160,7 +160,7 @@ export function SetsTable({
     if (existing) return existing
     locked.byExercise.set(exercise.id, sessionPrescription)
     return sessionPrescription
-  }
+  }, [sessionId, exercise.id, sessionPrescription])
 
   const [pendingSetIdx, setPendingSetIdx] = useState<number | null>(null)
   const [deviationInfo, setDeviationInfo] = useState<DeviationSetInfo | null>(
@@ -596,7 +596,7 @@ export function SetsTable({
       onBlockedByPause,
       session.pausedAt,
       restSnapshot,
-      sessionPrescription,
+      readLockedPrescription,
     ],
   )
 
@@ -715,7 +715,7 @@ export function SetsTable({
       session.pausedAt,
       onBlockedByPause,
       restSnapshot,
-      sessionPrescription,
+      readLockedPrescription,
     ],
   )
 

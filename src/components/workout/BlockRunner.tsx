@@ -163,15 +163,19 @@ function BlockRunnerReady({
     setHoldDone(true)
   })
 
-  // Reset any running hold whenever the cursor/phase moves to a different cell.
+  // Reset any running hold whenever the cursor/phase moves to a different cell
+  // (adjust state during render — React's recommended reset for a changed input;
+  // `hold.cancel()` clears the same component's countdown state).
   const cursorKey =
     state.phase === "done"
       ? "done"
       : `${state.phase}:${state.cursor.round}:${state.cursor.exerciseIdx}`
-  useEffect(() => {
-    hold.cancel()
+  const [prevCursorKey, setPrevCursorKey] = useState(cursorKey)
+  if (cursorKey !== prevCursorKey) {
+    setPrevCursorKey(cursorKey)
     setHoldDone(false)
-  }, [cursorKey, hold.cancel])
+    hold.cancel()
+  }
 
   const exCount = block.exercises.length
   // The bars track the cell you're at (exercise phase) or heading to (rest/done).

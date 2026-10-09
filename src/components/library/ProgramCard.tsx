@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ProgramScoreChips } from "@/components/program/ProgramScoreChips"
-import { ProgramCardLayerProvider } from "@/components/library/programCardLayer"
+import { ProgramCardLayerProvider } from "@/components/library/ProgramCardLayerProvider"
 import { cn } from "@/lib/utils"
 import type { ProgramBodyMap } from "@/lib/programScore/bodyMapFromIntent"
 import type { ProgramDayOutline, ProgramScore } from "@/lib/programScore/types"

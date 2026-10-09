@@ -18,7 +18,6 @@ export function useCountdown(onComplete: () => void) {
 
   useEffect(() => {
     if (endsAt == null) return
-    setNow(Date.now())
     const id = setInterval(() => {
       const t = Date.now()
       setNow(t)

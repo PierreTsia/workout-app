@@ -53,13 +53,13 @@ export function WorkoutDayCarousel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days])
 
-  // When API initializes or selectedDayId changes, scroll carousel to match
+  // When the API initializes or selectedDayId changes, scroll the carousel to
+  // match. Embla emits `select` on scrollTo, which drives `activeSlide`.
   useEffect(() => {
     if (!api || !selectedDayId) return
     const idx = days.findIndex((d) => d.id === selectedDayId)
     if (idx >= 0 && idx !== api.selectedScrollSnap()) {
       api.scrollTo(idx, true)
-      setActiveSlide(idx)
     }
   }, [api, selectedDayId, days])
 

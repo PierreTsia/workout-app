@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { renderWithProviders } from "@/test/utils"
 import { BalanceTonnageRow } from "@/components/profile/BalanceTonnageRow"
-import { ProfileWindowProvider } from "@/components/profile/ProfileWindowContext"
+import { ProfileWindowProvider } from "@/components/profile/ProfileWindowProvider"
 import {
   restoreChartLayout,
   stubChartLayout,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft, Loader2 } from "lucide-react"
@@ -37,6 +37,17 @@ export function AddExerciseToDaySheet({
 
   const [step, setStep] = useState<Step>("program")
   const [programId, setProgramId] = useState<string | null>(null)
+  const [prevOpen, setPrevOpen] = useState(open)
+
+  // Reset the wizard when the sheet closes (adjust state during render —
+  // React's recommended reset for a changed input, no extra render pass).
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (!open) {
+      setStep("program")
+      setProgramId(null)
+    }
+  }
 
   const visiblePrograms = useMemo(
     () => programs.filter((p) => p.archived_at === null),
@@ -44,13 +55,6 @@ export function AddExerciseToDaySheet({
   )
 
   const { data: days = [], isLoading: daysLoading } = useWorkoutDays(programId)
-
-  useEffect(() => {
-    if (!open) {
-      setStep("program")
-      setProgramId(null)
-    }
-  }, [open])
 
   const handleSelectProgram = useCallback((p: Program) => {
     setProgramId(p.id)

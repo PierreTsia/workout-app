@@ -99,12 +99,11 @@ export function EmbeddedAgentChatStep({
   const [hasReadySignal, setHasReadySignal] = useState(false)
 
   // Pulse the CTA the moment the model emits READY_FOR_PROGRAM_DRAFT.
-  // Mutating state inside an effect (vs. derived from `sendMessage.data`
-  // directly) keeps the latch sticky across follow-up turns.
-  // NOTE: must stay above the early-return for React's hook-order rule.
-  useEffect(() => {
-    if (sendMessage.data?.ready_for_draft) setHasReadySignal(true)
-  }, [sendMessage.data])
+  // Latching it during render (rather than deriving from `sendMessage.data`)
+  // keeps the pulse sticky across follow-up turns.
+  if (sendMessage.data?.ready_for_draft === true && !hasReadySignal) {
+    setHasReadySignal(true)
+  }
 
   // PR review #7: report /thread fetch failures to Sentry once per error
   // (not on every re-render). Friendly UX kinds are filtered out by
