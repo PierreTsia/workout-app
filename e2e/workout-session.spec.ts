@@ -329,7 +329,7 @@ test.describe("Workout session — full flow", () => {
 
     // Force a visible sync chip so it is part of the row being measured.
     await context.setOffline(true)
-    await expect(page.getByTestId("sync-status-dot")).toBeVisible()
+    await expect(page.getByTestId("sync-status")).toBeVisible()
 
     // The regression: the header (and page) must not overflow a 360px viewport.
     const overflow = await page.evaluate(() => {
@@ -345,7 +345,7 @@ test.describe("Workout session — full flow", () => {
     // Finish control (header icon) and sync dot stay inside the viewport.
     for (const target of [
       page.locator("header").getByRole("button", { name: "Finish" }),
-      page.getByTestId("sync-status-dot"),
+      page.getByTestId("sync-status"),
     ]) {
       await expect(target).toBeVisible()
       const box = await target.boundingBox()

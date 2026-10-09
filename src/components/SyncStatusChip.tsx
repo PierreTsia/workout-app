@@ -39,21 +39,23 @@ export function SyncStatusChip() {
   const state: DotState | null =
     status === "idle" ? (online ? null : "offline") : status
 
-  if (!state) return null
-
-  const config = dotConfig[state]
-
   return (
+    // The live region stays mounted even when idle so the first state change is
+    // announced; only the visible dot/appearance is conditional.
     <span
       role="status"
-      data-testid="sync-status-dot"
+      data-testid="sync-status"
       className="inline-flex items-center"
     >
-      <span
-        aria-hidden="true"
-        className={`h-2.5 w-2.5 shrink-0 ${config.className}`}
-      />
-      <span className="sr-only">{t(config.key)}</span>
+      {state ? (
+        <>
+          <span
+            aria-hidden="true"
+            className={`h-2.5 w-2.5 shrink-0 ${dotConfig[state].className}`}
+          />
+          <span className="sr-only">{t(dotConfig[state].key)}</span>
+        </>
+      ) : null}
     </span>
   )
 }

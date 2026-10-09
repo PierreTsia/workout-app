@@ -11,9 +11,9 @@ function setOnline(value: boolean) {
   })
 }
 
-/** The visible shape is the aria-hidden child; the wrapper carries the status role. */
+/** The status region stays mounted; the visible shape is its aria-hidden child. */
 function dotFor(label: string) {
-  const status = screen.getByTestId("sync-status-dot")
+  const status = screen.getByTestId("sync-status")
   expect(status).toHaveTextContent(label)
   const dot = status.querySelector("[aria-hidden='true']")
   if (!dot) throw new Error("sync dot shape not rendered")
@@ -25,11 +25,12 @@ describe("SyncStatusChip", () => {
     setOnline(true)
   })
 
-  it("renders nothing while idle and online", () => {
+  it("keeps the live region mounted but empty while idle and online", () => {
     setOnline(true)
     renderWithProviders(<SyncStatusChip />)
 
-    expect(screen.queryByTestId("sync-status-dot")).not.toBeInTheDocument()
+    const status = screen.getByTestId("sync-status")
+    expect(status).toBeEmptyDOMElement()
   })
 
   it("shows a hollow ring when offline while idle", () => {
