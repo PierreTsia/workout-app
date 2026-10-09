@@ -64,11 +64,6 @@ describe("Session Card MCP App View", () => {
     expect(packageJson).toMatch(/"view:check":/)
   })
 
-  it("derives its CSS from the same named GL skin as the app (T304)", () => {
-    expect(buildScript).toMatch(/glSkin\.generated\.css/)
-    expect(buildScript).not.toMatch(/tokens\.generated\.css/)
-  })
-
   it("is built from Nomos primitives, with no invented tonnage bar (ADR 0031)", () => {
     expect(cardSource).toMatch(/\bCounter\b/)
     expect(cardSource).toMatch(/\bEmptyState\b/)

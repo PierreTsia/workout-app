@@ -75,9 +75,13 @@ visual source only**, and prove it with the thinnest read-only vertical.
    `src/styles/glSkin.json`) is merged by `resolveSkin(default, glSkin)` and consumed by
    **both** the app CSS (`src/styles/glSkin.generated.css`, imported by `globals.css`) and
    the view CSS (`scripts/build-mcp-view.mjs` inlines the same artifact). The "identical to
-   the app by construction" criterion is **held**: one resolved skin, two renders, proven by
-   `src/test/glSkin.arch.test.ts`. The legacy vendored `@theme` in `src/styles/globals.css`
-   is retired (T306).
+   the app by construction" criterion is **held**: one resolved skin, two renders — the
+   committed artifact is the single source, and the `glSkin:check` / `view:check` CI guards
+   (pinned at source level by `src/test/glSkin.arch.test.ts`) keep the two renders from
+   drifting. For a root with no mode class the artifact follows `prefers-color-scheme`
+   (Nomos ADR 0009) where the removed legacy `:root` was hard dark; the app's boot script
+   always sets `.dark` / `.light` before paint, so the visible app is unchanged. The legacy
+   vendored `@theme` in `src/styles/globals.css` is retired (T306).
 
 ## Consequences
 
@@ -90,13 +94,14 @@ visual source only**, and prove it with the thinnest read-only vertical.
 - **Negative:** GymLogic still assembles its own view document (SSR markup + bundle + the
   shared utilities) because its Session Card is a product component, not a Nomos brick — a
   small, GL-owned build, not a duplicated design-system pipeline.
-- **Follow-ups:** bump `@nomosui/react` to `0.9.0` (T289); add the `_meta` field to
-  `ToolDefinition` and surface it in `tools/list`; register `ui://gymlogic/session-card` in
-  the resource registry; add `scripts/build-mcp-view.mjs` + `view:check`; write the
-  `render_session_card` tool; extend the arch tests (resource mime, `_meta` present, artifact
-  not stale, no write). Nomos upstream is **delivered in 0.9.0**: nomos#99 (bridge on MCP
-  Apps, ADR 0033) and nomos#100 (view entry + compiled utilities, ADR 0034). Close agent-os
-  #75 (base adoption is done in code).
+- **Follow-ups:** bind the Session Card to real data (`get_workout_history`) instead of the
+  baked example payload; close agent-os #75 (base adoption is done in code). The former
+  items are **shipped**: the `@nomosui/react` `0.9.0` bump (T289), the `_meta` field on
+  `ToolDefinition`, `scripts/build-mcp-view.mjs` + `view:check`, the `render_session_card`
+  tool, the `ui://gymlogic/session-card` resource registration, and the arch tests (resource
+  mime, `_meta` present, artifact not stale, no write). Nomos upstream delivered in `0.9.0`:
+  nomos#99 (bridge on MCP Apps, ADR 0033) and nomos#100 (view entry + compiled utilities,
+  ADR 0034). The named skin (§6) closes the last former follow-up (T303–T307).
 
 ## Alternatives considered
 

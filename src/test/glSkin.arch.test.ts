@@ -1,7 +1,13 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs"
+import { createRequire } from "node:module"
 
 import { describe, expect, it } from "vitest"
+
+import { renderCss, resolveSkin } from "@nomosui/react"
+import type { TokensDocument } from "@nomosui/react"
+
+const require = createRequire(import.meta.url)
 
 /**
  * The named GymLogic **skin** contract (ADR 0027, T303): a DTCG *semantic overlay*
@@ -100,7 +106,8 @@ describe("glSkin — named GymLogic skin", () => {
   })
 
   it("no source file reads a legacy HSL variable directly", () => {
-    const legacyVar = /var\(--(primary|muted|border|input|ring|card|background|foreground)\b/
+    const legacyVar =
+      /var\(--(primary|secondary|muted|accent|destructive|popover|card|background|foreground|border|input|ring|radius)\b/
     const offenders = Object.entries(allSourceFiles)
       .filter(([, content]) => legacyVar.test(content))
       .map(([path]) => path)
@@ -119,7 +126,24 @@ describe("glSkin — named GymLogic skin", () => {
   it("globals.css reads no legacy HSL variable (T306)", () => {
     // Reads go through `--nomos-color-*`, or the GL-owned `--heatmap-*` ramp.
     // `--animate-*` is not a colour; `--nomos-color-*` must not be caught.
-    const legacyVar = /var\(--(primary|muted|border|input|ring|card|background|foreground)\b/
+    const legacyVar =
+      /var\(--(primary|secondary|muted|accent|destructive|popover|card|background|foreground|border|input|ring|radius)\b/
     expect(globalsCss).not.toMatch(legacyVar)
+  })
+
+  it("pins the GL identity so the heart default cannot repaint it (story 10)", () => {
+    // The skin is an *overlay* (ADR 0022): corrupting the default's pinned slots must
+    // not leak into the resolved GL palette, or the app↔view parity would still depend
+    // on the heart default's values.
+    const skin = JSON.parse(skinJson) as unknown as TokensDocument
+    const neutralised = JSON.parse(
+      readFileSync(require.resolve("@nomosui/react/tokens/tokens.json"), "utf8"),
+    ) as unknown as { semantic: { color: { primary: { $value: Record<string, string> } } } }
+    for (const mode of ["dark", "light"]) {
+      neutralised.semantic.color.primary.$value[mode] = "0 0% 0%"
+    }
+    const css = renderCss(resolveSkin(neutralised as unknown as TokensDocument, skin))
+    expect(css).toMatch(/--nomos-color-primary: 174 100% 39%/)
+    expect(css).not.toMatch(/--nomos-color-primary: 0 0% 0%/)
   })
 })

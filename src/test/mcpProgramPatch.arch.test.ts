@@ -92,11 +92,6 @@ describe("Decision Card MCP App View", () => {
     expect(packageJson).toMatch(/"view:check":/)
   })
 
-  it("derives its CSS from the same named GL skin as the app (T304)", () => {
-    expect(buildScript).toMatch(/glSkin\.generated\.css/)
-    expect(buildScript).not.toMatch(/tokens\.generated\.css/)
-  })
-
   it("carries the structured program + locale in structuredContent only (ADR 0031)", () => {
     expect(updateSource).toMatch(/buildPatchProgram/)
     expect(updateSource).toMatch(/program:\s*buildPatchProgram/)
