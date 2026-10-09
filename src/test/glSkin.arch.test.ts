@@ -12,18 +12,26 @@ import { describe, expect, it } from "vitest"
  * derived artifact instead of the heart default.
  */
 const sources = import.meta.glob(
-  ["../styles/glSkin.json", "../../scripts/build-gl-skin.mjs", "../../package.json"],
+  [
+    "../styles/glSkin.json",
+    "../../scripts/build-gl-skin.mjs",
+    "../../scripts/build-mcp-view.mjs",
+    "../../package.json",
+  ],
   { query: "?raw", eager: true, import: "default" },
 ) as Record<string, string>
 
 const skinJson = sources["../styles/glSkin.json"]
 const buildScript = sources["../../scripts/build-gl-skin.mjs"]
+const viewBuildScript = sources["../../scripts/build-mcp-view.mjs"]
 const packageJson = sources["../../package.json"]
 
 // CSS is not readable through `?raw` under Vitest (CSS transforms win), so the two
-// stylesheets are read from disk relative to the repo root (Vitest's cwd).
+// stylesheets are read from disk relative to the repo root (Vitest's cwd). The CI
+// workflow is read the same way (dotfile path, not glob-able through `?raw`).
 const generatedCss = readFileSync("src/styles/glSkin.generated.css", "utf8")
 const globalsCss = readFileSync("src/styles/globals.css", "utf8")
+const ciYml = readFileSync(".github/workflows/ci.yml", "utf8")
 
 // Every `src/**` source file, to prove no component reads a legacy HSL variable
 // directly (T305). TS/TSX come through `?raw`; CSS is read from disk (see above),
@@ -69,6 +77,26 @@ describe("glSkin — named GymLogic skin", () => {
   it("guards the artifact against drift (glSkin:check)", () => {
     expect(packageJson).toMatch(/"glSkin":\s*"node scripts\/build-gl-skin\.mjs"/)
     expect(packageJson).toMatch(/"glSkin:check":\s*"node scripts\/build-gl-skin\.mjs --check"/)
+  })
+
+  it("the view build inlines the same derived artifact, not the heart default", () => {
+    // The parity claim (ADR 0027 §6): the app CSS and the view CSS are the *same*
+    // resolved skin. Repointing this read to `tokens.generated.css` must fail here.
+    expect(viewBuildScript).toMatch(/src\/styles\/glSkin\.generated\.css/)
+    expect(viewBuildScript).not.toMatch(/tokens\.generated\.css/)
+  })
+
+  it("neither build script sources tokens from the heart default", () => {
+    expect(buildScript).not.toMatch(/tokens\.generated\.css/)
+    expect(viewBuildScript).not.toMatch(/tokens\.generated\.css/)
+  })
+
+  it("CI runs glSkin:check before view:check", () => {
+    const glIndex = ciYml.indexOf("npm run glSkin:check")
+    const viewIndex = ciYml.indexOf("npm run view:check")
+    expect(glIndex).toBeGreaterThan(-1)
+    expect(viewIndex).toBeGreaterThan(-1)
+    expect(glIndex).toBeLessThan(viewIndex)
   })
 
   it("no source file reads a legacy HSL variable directly", () => {

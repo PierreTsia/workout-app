@@ -49,6 +49,10 @@ The handshake an **External MCP Client** must complete before a write persists: 
 A GymLogic composite served as a self-sufficient resource (`ui://gymlogic/…`, `text/html;profile=mcp-app`) that a tool references through `_meta.ui.resourceUri` and the host renders in a sandboxed iframe. It **emits intentions, never writes *directly*** (same invariant as **Write Consent**), speaks the standard MCP Apps dialect (not Nomos's in-house bridge), and derives its CSS from the same Nomos tokens as the app. Contract: ADR `file:docs/adr/0027-agentic-view-contract.md`.
 → `file:supabase/functions/mcp/resources/registry.ts`
 
+**Skin GL** (`glSkin`):
+The GymLogic identity DTCG overlay merged by `resolveSkin` on the heart default; the single source of the app CSS and the MCP view CSS (ADR 0027 §6).
+→ `file:src/styles/glSkin.json`
+
 **Session Card**:
 The first **MCP App View** (`ui://gymlogic/session-card`): a read-only card of the athlete's most recent finished **Session** — day label, exercises / **Circuits**, **Tonnage** — assembled from Nomos `Card` / `Badge` / `Meter`, triggered by the `render_session_card` tool (`readOnlyHint: true`). Example data first; bound to `get_workout_history` in a later increment.
 → `file:docs/adr/0027-agentic-view-contract.md`

@@ -29,11 +29,11 @@ Nomos ADR 0034). `renderView` renders a **catalogue brick or scene** — app-agn
 ADR 0002) — so it cannot render a GymLogic product card; GymLogic still assembles its own
 view document from those shared parts.
 
-One fact constrains the fabric: GymLogic has **no skin**. `src/styles/globals.css` still
-paints the app from its legacy vendored `@theme` (`--primary`, `--border`…), while the
-heart's **default tokens** already carry GymLogic's identity
-(`--nomos-color-primary: 174 100% 39%`, the teal). App and view agree by coincidence of
-values, not by construction.
+At decision time, one fact constrained the fabric: GymLogic had **no skin**.
+`src/styles/globals.css` painted the app from its legacy vendored `@theme` (`--primary`,
+`--border`…), while the heart's **default tokens** already carried GymLogic's identity
+(`--nomos-color-primary: 174 100% 39%`, the teal), so app and view agreed by coincidence of
+values, not by construction. A named GymLogic skin now closes that gap (§6).
 
 ## Decision
 
@@ -71,25 +71,25 @@ visual source only**, and prove it with the thinnest read-only vertical.
    committed generated module, guarded by a `view:check` in CI. The MCP handler returns that
    committed string with `mimeType: 'text/html;profile=mcp-app'`. No `@mcp-ui/server`
    dependency: the hand-rolled registry already returns `{uri, mimeType, text}`.
-6. **Skin: ride the heart's default tokens for v1, claim degraded.** The view is styled
-   from the heart's default tokens, which carry GymLogic's identity, for the skeleton. The
-   "identical to the app by construction" criterion is **explicitly degraded** to "same
-   source (the heart default)": a named GymLogic skin (`resolveSkin(default, glSkin)`)
-   consumed by **both** app CSS and view CSS is a follow-up, **gated on retiring the legacy
-   vendored `@theme`** in `src/styles/globals.css`. Trigger to revisit: GymLogic's brand
-   diverges from the heart's default, or Nomos neutralises that default.
+6. **Skin: a named GymLogic skin, held.** A named GymLogic skin (`glSkin`,
+   `src/styles/glSkin.json`) is merged by `resolveSkin(default, glSkin)` and consumed by
+   **both** the app CSS (`src/styles/glSkin.generated.css`, imported by `globals.css`) and
+   the view CSS (`scripts/build-mcp-view.mjs` inlines the same artifact). The "identical to
+   the app by construction" criterion is **held**: one resolved skin, two renders, proven by
+   `src/test/glSkin.arch.test.ts`. The legacy vendored `@theme` in `src/styles/globals.css`
+   is retired (T306).
 
 ## Consequences
 
 - **Positive:** GymLogic gains the agentic differentiator on the standard rails — one
   contract (MCP Apps) shared with Claude and every conforming host, no bespoke protocol to
   maintain. The view bundle is a build artifact, so it cannot silently drift (same regime as
-  the arch tests). Read-only stays true: no write from a view, consent unchanged.
-- **Negative:** the "one source, two renders" promise is only half-honoured until a real
-  skin exists; the app still has two colour layers (legacy `@theme` + heart tokens). GymLogic
-  still assembles its own view document (SSR markup + bundle + the shared utilities) because
-  its Session Card is a product component, not a Nomos brick — a small, GL-owned build, not
-  a duplicated design-system pipeline.
+  the arch tests). Read-only stays true: no write from a view, consent unchanged. The "one
+  source, two renders" promise is **held**: a single named skin (`glSkin`) drives both the
+  app CSS and the view CSS.
+- **Negative:** GymLogic still assembles its own view document (SSR markup + bundle + the
+  shared utilities) because its Session Card is a product component, not a Nomos brick — a
+  small, GL-owned build, not a duplicated design-system pipeline.
 - **Follow-ups:** bump `@nomosui/react` to `0.9.0` (T289); add the `_meta` field to
   `ToolDefinition` and surface it in `tools/list`; register `ui://gymlogic/session-card` in
   the resource registry; add `scripts/build-mcp-view.mjs` + `view:check`; write the
