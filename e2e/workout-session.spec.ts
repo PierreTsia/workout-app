@@ -303,8 +303,14 @@ test.describe("Workout session — full flow", () => {
       /* dialog didn't appear */
     }
 
+    // Pick a day that isn't already done in this cycle: the full-flow test above
+    // finishes Lundi, so the home's default day may offer no "Start workout".
+    const dayButton = page.getByRole("button", { name: /Go to Mercredi/i })
+    await expect(dayButton).toBeVisible({ timeout: 30_000 })
+    await dayButton.click()
+
     const startButton = page.getByRole("button", { name: /start workout/i })
-    await expect(startButton).toBeVisible({ timeout: 30_000 })
+    await expect(startButton).toBeVisible({ timeout: 15_000 })
     await startButton.click()
     await expect(page.getByTestId("session-timer-chip")).toBeVisible({
       timeout: 5_000,
