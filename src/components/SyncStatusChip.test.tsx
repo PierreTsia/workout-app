@@ -11,6 +11,15 @@ function setOnline(value: boolean) {
   })
 }
 
+/** The visible shape is the aria-hidden child; the wrapper carries the status role. */
+function dotFor(label: string) {
+  const status = screen.getByTestId("sync-status-dot")
+  expect(status).toHaveTextContent(label)
+  const dot = status.querySelector("[aria-hidden='true']")
+  if (!dot) throw new Error("sync dot shape not rendered")
+  return dot
+}
+
 describe("SyncStatusChip", () => {
   afterEach(() => {
     setOnline(true)
@@ -20,14 +29,14 @@ describe("SyncStatusChip", () => {
     setOnline(true)
     renderWithProviders(<SyncStatusChip />)
 
-    expect(screen.queryByRole("img")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("sync-status-dot")).not.toBeInTheDocument()
   })
 
   it("shows a hollow ring when offline while idle", () => {
     setOnline(false)
     renderWithProviders(<SyncStatusChip />)
 
-    const dot = screen.getByRole("img", { name: "Offline" })
+    const dot = dotFor("Offline")
     expect(dot).toHaveClass("rounded-full")
     expect(dot).toHaveClass("border-muted-foreground")
   })
@@ -38,7 +47,7 @@ describe("SyncStatusChip", () => {
 
     act(() => store.set(syncStatusAtom, "syncing"))
 
-    const dot = screen.getByRole("img", { name: "Syncing…" })
+    const dot = dotFor("Syncing…")
     expect(dot).toHaveClass("bg-amber-500")
     expect(dot).toHaveClass("animate-pulse")
   })
@@ -49,7 +58,7 @@ describe("SyncStatusChip", () => {
 
     act(() => store.set(syncStatusAtom, "synced"))
 
-    const dot = screen.getByRole("img", { name: "Synced" })
+    const dot = dotFor("Synced")
     expect(dot).toHaveClass("bg-green-500")
     expect(dot).toHaveClass("rounded-full")
   })
@@ -60,7 +69,7 @@ describe("SyncStatusChip", () => {
 
     act(() => store.set(syncStatusAtom, "failed"))
 
-    const dot = screen.getByRole("img", { name: "Sync failed" })
+    const dot = dotFor("Sync failed")
     expect(dot).toHaveClass("bg-destructive")
     expect(dot).toHaveClass("rounded-[2px]")
     expect(dot).not.toHaveClass("rounded-full")

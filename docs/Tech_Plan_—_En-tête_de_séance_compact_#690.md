@@ -11,7 +11,7 @@
 | Nom accessible de fin | `aria-label={t("finish")}` (`workout`) | Réutilise la clé existante ; le nom accessible « Finish » reste identique → tests existants inchangés |
 | Témoin de sync | `<span>` dot `h-2.5 w-2.5 rounded-full` à la place du `Badge` texte | Plus gros gain de largeur, signal ambiant mieux adapté qu'un mot |
 | États du dot | `offline` → anneau vide gris, `syncing` → dot ambre (pulse), `synced` → dot plein vert, `failed` → carré rouge | Les 4 états existants de `syncStatusAtom` + `navigator.onLine` sont conservés 1:1 ; **forme + animation distinguent les états sans dépendre de la couleur** (WCAG 1.4.1) |
-| Nom accessible du dot | `role="img"` + `aria-label={t(key)}` (`common`) | Le dot ne doit pas être un signal couleur-seul ; `role="img"` porte un nom fiable sans bruit de live region |
+| Nom accessible du dot | wrapper `role="status"` (live region) + texte `sr-only` ; dot en `aria-hidden` | Le dot ne doit pas être un signal couleur-seul ; `role="status"` annonce les changements d'état, le `sr-only` porte le libellé traduit |
 | Layout de l'en-tête | Inchangé | Décision de grill : le compactage A+B suffit, pas de `shrink-0` |
 
 ### Critical Constraints
@@ -48,14 +48,16 @@ graph TD
 
 ### New Files & Responsibilities
 
-Aucun fichier nouveau. Les deux composants modifiés gardent leur chemin et leur nom.
+Aucun fichier **de production** nouveau : les deux composants modifiés gardent leur
+chemin et leur nom. Un fichier de test unitaire est ajouté et la suite e2e gagne un cas.
 
 | File | Change |
 |---|---|
 | `file:src/components/workout/FinishSessionButton.tsx` | Bouton texte → bouton icône (`Square`), `aria-label={t("finish")}` |
-| `file:src/components/SyncStatusChip.tsx` | `Badge` texte → dot coloré 4 états, `role="status"` + `aria-label` |
-| `file:src/components/workout/FinishSessionButton.test.tsx` | Ajouter l'assertion d'icône / classe (les 4 tests existants restent valides) |
-| `file:src/components/SyncStatusChip.test.tsx` | **Nouveau** : couvre les 4 états, `idle`+online → absent, labels traduits |
+| `file:src/components/SyncStatusChip.tsx` | `Badge` texte → dot 4 états ; `role="status"` (live region) + texte `sr-only` ; forme par état |
+| `file:src/components/workout/FinishSessionButton.test.tsx` | Assertion d'icône (contenu vide + `<svg>`) ; 4 tests existants conservés |
+| `file:src/components/SyncStatusChip.test.tsx` | **Nouveau** : 4 états, `idle`+online → absent, label traduit, forme par état |
+| `file:e2e/workout-session.spec.ts` | **Ajout** : en-tête sans overflow à 360 px (session + rest pill + dot), Finish + dot dans le viewport |
 
 ### Component Responsibilities
 
@@ -68,7 +70,7 @@ Aucun fichier nouveau. Les deux composants modifiés gardent leur chemin et leur
 
 **`SyncStatusChip`**
 - Résout un état unique : `offline` si `status === "idle" && !online` ; sinon l'un de `syncing` / `synced` / `failed` ; `null` si `idle && online`.
-- Rend `<span role="img" aria-label={t(key)} className="h-2.5 w-2.5 shrink-0 rounded-full …" />` — anneau vide (`border border-muted-foreground`) / pulse (`bg-amber-500 animate-pulse`) / dot plein (`bg-green-500`) / carré (`rounded-[2px] bg-destructive`).
+- Rend un wrapper `<span role="status">` (live region) contenant le dot `aria-hidden` (`h-2.5 w-2.5 shrink-0 …`) et un label `sr-only` — le contenu est annoncé aux lecteurs d'écran. Forme par état : anneau vide (`rounded-full border border-muted-foreground`) / pulse (`rounded-full bg-amber-500 animate-pulse`) / dot plein (`rounded-full bg-green-500`) / carré (`rounded-[2px] bg-destructive`). Le radius vit sur chaque état, jamais sur la base (conflit Tailwind `rounded-full` émis après `rounded-[2px]`).
 - Aucun abonnement supplémentaire : conserve `useSyncExternalStore(subscribeOnline, getOnlineSnapshot)` et `useAtomValue(syncStatusAtom)`.
 
 ### Failure Mode Analysis

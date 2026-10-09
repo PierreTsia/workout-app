@@ -45,9 +45,15 @@ export function SyncStatusChip() {
 
   return (
     <span
-      role="img"
-      aria-label={t(config.key)}
-      className={`h-2.5 w-2.5 shrink-0 ${config.className}`}
-    />
+      role="status"
+      data-testid="sync-status-dot"
+      className="inline-flex items-center"
+    >
+      <span
+        aria-hidden="true"
+        className={`h-2.5 w-2.5 shrink-0 ${config.className}`}
+      />
+      <span className="sr-only">{t(config.key)}</span>
+    </span>
   )
 }

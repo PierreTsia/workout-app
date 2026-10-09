@@ -76,8 +76,8 @@ l'en-tête en cours de séance, en particulier sur un téléphone étroit (≤ 3
   `aria-label` depuis `workout.finish`.
 - `SyncStatusChip` → dot compact 4 états distingués **par la forme autant que par la couleur** :
   anneau vide `offline`, dot ambre (pulse) `syncing`, dot plein vert `synced`,
-  carré rouge `failed` ; `idle` + online → rien. `role="img"` + `aria-label` par
-  état depuis les clés `common` existantes.
+  carré rouge `failed` ; `idle` + online → rien. `role="status"` (live region) +
+  libellé `sr-only` traduit depuis les clés `common` existantes.
 - Tests unitaires des deux composants (états, labels, comportements).
 
 **Out of scope:**
