@@ -10,8 +10,8 @@
 | Icône de fin | `Square` (lucide) avec `fill-current` | Carré rouge = métaphore « stop / terminer » reconnue ; `fill-current` hérite de `text-destructive` |
 | Nom accessible de fin | `aria-label={t("finish")}` (`workout`) | Réutilise la clé existante ; le nom accessible « Finish » reste identique → tests existants inchangés |
 | Témoin de sync | `<span>` dot `h-2.5 w-2.5 rounded-full` à la place du `Badge` texte | Plus gros gain de largeur, signal ambiant mieux adapté qu'un mot |
-| États du dot | `offline` → gris, `syncing` → ambre (pulse), `synced` → vert, `failed` → rouge | Les 4 états existants de `syncStatusAtom` + `navigator.onLine` sont conservés 1:1, sans nouvelle sémantique |
-| Nom accessible du dot | `role="status"` + `aria-label={t(key)}` (`common`) | Le dot ne doit pas être un signal couleur-seul ; `role="status"` annonce les changements |
+| États du dot | `offline` → anneau vide gris, `syncing` → dot ambre (pulse), `synced` → dot plein vert, `failed` → carré rouge | Les 4 états existants de `syncStatusAtom` + `navigator.onLine` sont conservés 1:1 ; **forme + animation distinguent les états sans dépendre de la couleur** (WCAG 1.4.1) |
+| Nom accessible du dot | `role="img"` + `aria-label={t(key)}` (`common`) | Le dot ne doit pas être un signal couleur-seul ; `role="img"` porte un nom fiable sans bruit de live region |
 | Layout de l'en-tête | Inchangé | Décision de grill : le compactage A+B suffit, pas de `shrink-0` |
 
 ### Critical Constraints
@@ -19,7 +19,7 @@
 - **Aucune modification de `syncStatusAtom` ni de `finishRequestAtom`.** On ne touche qu'à la présentation ; la logique de fin (`file:src/components/workout/FinishSessionButton.tsx:27-30`) et d'état de sync (`file:src/store/atoms.ts`) est figée.
 - **Le nom accessible du bouton de fin ne doit pas changer.** `FinishSessionButton.test.tsx` interroge `getByRole("button", { name: "Finish" })` ; on conserve donc `aria-label={t("finish")}`, pas un libellé d'icône inventé.
 - **`idle` + en ligne reste invisible.** Comportement actuel (`file:src/components/SyncStatusChip.tsx:25-34`) : ne rien afficher quand rien ne se passe. On garde ce contrat, seul `idle` + hors ligne produit le dot gris.
-- **Pas de nouvelle couleur arbitraire.** Les classes `bg-green-500` / `bg-amber-500` suivent l'usage existant (`file:src/components/builder/SaveIndicator.tsx:41`) ; `bg-destructive` et `bg-muted-foreground` sont des tokens. La règle eslint ne bannit que `bg-[#…]` (`file:eslint.config.js:68-71`).
+- **Pas de couleur arbitraire.** Les classes `bg-green-500` / `bg-amber-500` suivent l'usage existant (`text-green-500` dans `file:src/components/builder/SaveIndicator.tsx:41`, `bg-green-500/15` dans `file:src/components/workout/BlockSessionCard.tsx:82`) ; `bg-destructive` et `border-muted-foreground` sont des tokens. La règle eslint ne bannit que `bg-[#…]` (`file:eslint.config.js:68-71`).
 - **`RestTimerPill` non touché.** Il reste dans la grappe droite ; son coexistence avec le dot est couverte par le test de largeur.
 
 ---
@@ -68,7 +68,7 @@ Aucun fichier nouveau. Les deux composants modifiés gardent leur chemin et leur
 
 **`SyncStatusChip`**
 - Résout un état unique : `offline` si `status === "idle" && !online` ; sinon l'un de `syncing` / `synced` / `failed` ; `null` si `idle && online`.
-- Rend `<span role="status" aria-label={t(key)} className="h-2.5 w-2.5 rounded-full …" />` avec la couleur de l'état (`bg-muted-foreground` / `bg-amber-500 animate-pulse` / `bg-green-500` / `bg-destructive`).
+- Rend `<span role="img" aria-label={t(key)} className="h-2.5 w-2.5 shrink-0 rounded-full …" />` — anneau vide (`border border-muted-foreground`) / pulse (`bg-amber-500 animate-pulse`) / dot plein (`bg-green-500`) / carré (`rounded-[2px] bg-destructive`).
 - Aucun abonnement supplémentaire : conserve `useSyncExternalStore(subscribeOnline, getOnlineSnapshot)` et `useAtomValue(syncStatusAtom)`.
 
 ### Failure Mode Analysis

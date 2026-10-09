@@ -63,7 +63,7 @@ l'en-tête en cours de séance, en particulier sur un téléphone étroit (≤ 3
 | Story # | Measure |
 |---|---|
 | 1, 6, 7 | Header fits without horizontal overflow at 360 px, with and without `RestTimerPill` |
-| 3, 5 | Each of the four states renders a distinct colour class + a translated `aria-label` |
+| 3, 5 | Chaque état rend une forme/teint distincte **non couleur-seul** + un `aria-label` traduit |
 | 8, 9 | Finish icon has accessible name `Finish` and still bumps `finishRequestAtom` |
 
 ---
@@ -74,9 +74,10 @@ l'en-tête en cours de séance, en particulier sur un téléphone étroit (≤ 3
 - `FinishSessionButton` → bouton icône `variant="ghost" size="icon"`,
   `h-7 w-7 rounded-full text-destructive`, icône carré rouge (`Square`),
   `aria-label` depuis `workout.finish`.
-- `SyncStatusChip` → dot coloré 4 états : gris `offline`, ambre (pulse)
-  `syncing`, vert `synced`, rouge `failed` ; `idle` + online → rien. `aria-label`
-  par état depuis les clés `common` existantes.
+- `SyncStatusChip` → dot compact 4 états distingués **par la forme autant que par la couleur** :
+  anneau vide `offline`, dot ambre (pulse) `syncing`, dot plein vert `synced`,
+  carré rouge `failed` ; `idle` + online → rien. `role="img"` + `aria-label` par
+  état depuis les clés `common` existantes.
 - Tests unitaires des deux composants (états, labels, comportements).
 
 **Out of scope:**
