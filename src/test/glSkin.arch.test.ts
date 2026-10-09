@@ -25,6 +25,21 @@ const packageJson = sources["../../package.json"]
 const generatedCss = readFileSync("src/styles/glSkin.generated.css", "utf8")
 const globalsCss = readFileSync("src/styles/globals.css", "utf8")
 
+// Every `src/**` source file, to prove no component reads a legacy HSL variable
+// directly (T305). TS/TSX come through `?raw`; CSS is read from disk (see above),
+// `globals.css` excluded since it is the legacy `@theme` definition itself.
+const sourceFiles = import.meta.glob("../**/*.{ts,tsx}", {
+  query: "?raw",
+  eager: true,
+  import: "default",
+}) as Record<string, string>
+const cssFiles = Object.fromEntries(
+  Object.keys(import.meta.glob("../**/*.css"))
+    .filter((path) => !path.endsWith("/globals.css"))
+    .map((path) => [path, readFileSync(path.replace(/^\.\.\//, "src/"), "utf8")]),
+)
+const allSourceFiles = { ...sourceFiles, ...cssFiles }
+
 describe("glSkin — named GymLogic skin", () => {
   it("carries semantic slots only, never a `primitive`", () => {
     const skin = JSON.parse(skinJson) as { primitive?: unknown; semantic?: Record<string, unknown> }
@@ -54,5 +69,13 @@ describe("glSkin — named GymLogic skin", () => {
   it("guards the artifact against drift (glSkin:check)", () => {
     expect(packageJson).toMatch(/"glSkin":\s*"node scripts\/build-gl-skin\.mjs"/)
     expect(packageJson).toMatch(/"glSkin:check":\s*"node scripts\/build-gl-skin\.mjs --check"/)
+  })
+
+  it("no source file reads a legacy HSL variable directly", () => {
+    const legacyVar = /var\(--(primary|muted|border|input|ring|card|background|foreground)\b/
+    const offenders = Object.entries(allSourceFiles)
+      .filter(([, content]) => legacyVar.test(content))
+      .map(([path]) => path)
+    expect(offenders).toEqual([])
   })
 })

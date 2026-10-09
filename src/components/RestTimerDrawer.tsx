@@ -46,7 +46,7 @@ export function RestTimerDrawer({ open, onOpenChange }: RestTimerDrawerProps) {
                 cy="110"
                 r={CIRCLE_RADIUS}
                 fill="none"
-                stroke="hsl(var(--muted))"
+                stroke="hsl(var(--nomos-color-muted))"
                 strokeWidth="8"
               />
               <circle
@@ -54,7 +54,7 @@ export function RestTimerDrawer({ open, onOpenChange }: RestTimerDrawerProps) {
                 cy="110"
                 r={CIRCLE_RADIUS}
                 fill="none"
-                stroke="hsl(var(--primary))"
+                stroke="hsl(var(--nomos-color-primary))"
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={CIRCLE_CIRCUMFERENCE}

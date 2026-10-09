@@ -108,8 +108,8 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
 
   const chartConfigReps = useMemo<ChartConfig>(
     () => ({
-      value: { label: t("maxReps"), color: "hsl(var(--primary))" },
-      trend: { label: t("trend"), color: "hsl(var(--primary))" },
+      value: { label: t("maxReps"), color: "hsl(var(--nomos-color-primary))" },
+      trend: { label: t("trend"), color: "hsl(var(--nomos-color-primary))" },
     }),
     [t],
   )
@@ -118,17 +118,17 @@ export function ExerciseChart({ exerciseId }: { exerciseId: string }) {
     () => ({
       value: {
         label: `${t("oneRm")} (${unit})`,
-        color: "hsl(var(--primary))",
+        color: "hsl(var(--nomos-color-primary))",
       },
-      trend: { label: t("trend"), color: "hsl(var(--primary))" },
+      trend: { label: t("trend"), color: "hsl(var(--nomos-color-primary))" },
     }),
     [t, unit],
   )
 
   const chartConfigDuration = useMemo<ChartConfig>(
     () => ({
-      value: { label: t("holdDuration"), color: "hsl(var(--primary))" },
-      trend: { label: t("trend"), color: "hsl(var(--primary))" },
+      value: { label: t("holdDuration"), color: "hsl(var(--nomos-color-primary))" },
+      trend: { label: t("trend"), color: "hsl(var(--nomos-color-primary))" },
     }),
     [t],
   )

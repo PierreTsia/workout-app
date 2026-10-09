@@ -3,11 +3,11 @@ import Model from "react-body-highlighter"
 import type { IExerciseData } from "react-body-highlighter"
 import { buildSingleExerciseData } from "@/lib/muscleMapping"
 
-const BODY_COLOR = "hsl(var(--muted))"
+const BODY_COLOR = "hsl(var(--nomos-color-muted))"
 const HIGHLIGHTED_COLORS = [
-  "hsl(var(--primary) / 0.3)",
-  "hsl(var(--primary) / 0.65)",
-  "hsl(var(--primary))",
+  "hsl(var(--nomos-color-primary) / 0.3)",
+  "hsl(var(--nomos-color-primary) / 0.65)",
+  "hsl(var(--nomos-color-primary))",
 ]
 
 const SILHOUETTE_MAX_WIDTH = {
