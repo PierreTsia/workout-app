@@ -17,8 +17,12 @@ function getOnlineSnapshot() {
 }
 
 type DotState = "offline" | "syncing" | "synced" | "failed"
+type DotLabelKey = "offline" | "syncing" | "synced" | "syncFailed"
 
-const dotConfig: Record<DotState, { key: string; className: string }> = {
+const dotConfig: Record<
+  DotState,
+  { key: DotLabelKey; className: string }
+> = {
   offline: {
     key: "offline",
     className: "rounded-full border border-muted-foreground",
