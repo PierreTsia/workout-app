@@ -212,7 +212,7 @@ export function ExerciseHistoryTrendChart({
                   x2={innerX + innerW}
                   y1={y}
                   y2={y}
-                  stroke="hsl(var(--border))"
+                  stroke="hsl(var(--nomos-color-border))"
                   strokeWidth="1"
                   vectorEffect="non-scaling-stroke"
                 />

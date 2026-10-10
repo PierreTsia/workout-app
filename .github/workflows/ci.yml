@@ -104,6 +104,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run glSkin:check
       - run: npm run view:check
 
   e2e:

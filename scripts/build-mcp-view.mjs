@@ -20,7 +20,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..')
 const TMP = path.join(ROOT, '.view-build')
 
-const TOKENS_CSS = readFileSync(require.resolve('@nomosui/react/tokens/tokens.generated.css'), 'utf8')
+const TOKENS_CSS = readFileSync(path.join(ROOT, 'src/styles/glSkin.generated.css'), 'utf8')
 const VIEW_CSS = readFileSync(require.resolve('@nomosui/react/view.css'), 'utf8')
 
 const VIEWS = [

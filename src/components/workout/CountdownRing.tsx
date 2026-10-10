@@ -48,7 +48,7 @@ export function CountdownRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="hsl(var(--muted))"
+          stroke="hsl(var(--nomos-color-muted))"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -56,7 +56,7 @@ export function CountdownRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="hsl(var(--primary))"
+          stroke="hsl(var(--nomos-color-primary))"
           strokeOpacity={active ? 1 : 0.3}
           strokeWidth={active ? strokeWidth : strokeWidth - 2}
           strokeLinecap="round"
