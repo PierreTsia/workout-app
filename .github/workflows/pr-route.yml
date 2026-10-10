@@ -1,0 +1,125 @@
+name: PR Routing
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to route'
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+  issues: read
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pr-route-workout
+        run: |
+          pipx install git+https://github.com/PierreTsia/ai-pr-routing-workout.git
+      - name: Run routing
+        id: route
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR_URL="https://github.com/${{ github.repository }}/pull/${{ github.event.inputs.pr_number }}"
+            PR_NUM="${{ github.event.inputs.pr_number }}"
+          else
+            PR_URL="${{ github.event.pull_request.html_url }}"
+            PR_NUM="${{ github.event.pull_request.number }}"
+          fi
+          pr-route-workout "$PR_URL" --json > routing_result.json
+          echo "result_path=routing_result.json" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+      - name: Post routing comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          RESULT_PATH: ${{ github.workspace }}/routing_result.json
+          PR_NUMBER: ${{ steps.route.outputs.pr_number }}
+        with:
+          script: |
+            const fs = require('fs');
+            const content = fs.readFileSync(process.env.RESULT_PATH, 'utf8');
+            const result = JSON.parse(content);
+            const disposition = result.disposition?.value;
+            const emoji = {
+              blocked: '🔴', needs_author: '🟠', agent_ready: '🔵',
+              ready_for_hitl: '🟡', waiting_for_checks: '🔵', ready_for_merge: '🟢'
+            }[disposition] || '⚪';
+            const armed = result.ai_review?.skills?.filter(s => s.noul !== null) || [];
+            const skills = armed.map(s => s.id).join(', ') || 'none';
+            const task = result.ai_review?.task || '—';
+            const policy = result.disposition?.policy_id || '—';
+            const body = `## ${emoji} PR Routing: \`${disposition}\`\n\n**Winning policy**: ${policy}\n**Armed skills**: ${skills}\n**Task**: ${task}\n\n<details><summary>Full JSON</summary>\n\n\`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\`\n\n</details>`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: parseInt(process.env.PR_NUMBER),
+              body
+            });
+      - name: Set routing labels
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          RESULT_PATH: ${{ github.workspace }}/routing_result.json
+          PR_NUMBER: ${{ steps.route.outputs.pr_number }}
+        with:
+          script: |
+            const fs = require('fs');
+            const content = fs.readFileSync(process.env.RESULT_PATH, 'utf8');
+            const result = JSON.parse(content);
+            const disposition = result.disposition?.value;
+            const labelMap = {
+              blocked: 'routing:blocked',
+              needs_author: 'routing:needs-author',
+              agent_ready: 'routing:agent-ready',
+              ready_for_hitl: 'routing:hitl',
+              waiting_for_checks: 'routing:waiting',
+              ready_for_merge: 'routing:auto-merge'
+            };
+            const label = labelMap[disposition];
+            if (!label) return;
+            const prNum = parseInt(process.env.PR_NUMBER);
+            // Remove other routing labels
+            const existingLabels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNum
+            });
+            const routingLabels = existingLabels.data
+              .filter(l => l.name.startsWith('routing:'))
+              .map(l => l.name);
+            for (const l of routingLabels) {
+              if (l !== label) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNum,
+                  name: l
+                });
+              }
+            }
+            // Add current label if not present
+            if (!routingLabels.includes(label)) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNum,
+                labels: [label]
+              });
+            }
