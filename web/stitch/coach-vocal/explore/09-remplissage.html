@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic · Qualification Vocale</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-tint": "#38debb",
+            "on-surface-variant": "#bacac3",
+            "secondary": "#c8c5cf",
+            "on-tertiary": "#552000",
+            "error": "#ffb4ab",
+            "surface-container-highest": "#353439",
+            "tertiary-fixed-dim": "#ffb692",
+            "tertiary-fixed": "#ffdbcb",
+            "secondary-fixed-dim": "#c8c5cf",
+            "surface-dim": "#131317",
+            "inverse-on-surface": "#303034",
+            "tertiary-container": "#ff9862",
+            "surface-container-lowest": "#0e0e12",
+            "rank-silver": "#c0c0c0",
+            "on-secondary-fixed-variant": "#47464e",
+            "muted": "#999999",
+            "on-tertiary-fixed": "#341100",
+            "on-secondary-fixed": "#1b1b22",
+            "rank-diamond": "#b9f2ff",
+            "card": "#1a1a22",
+            "on-surface": "#e4e1e7",
+            "on-tertiary-fixed-variant": "#793100",
+            "on-secondary-container": "#b9b7c1",
+            "rank-gold": "#ffd700",
+            "outline-variant": "#3c4a45",
+            "inverse-surface": "#e4e1e7",
+            "surface-container": "#1f1f23",
+            "on-error": "#690005",
+            "on-background": "#e4e1e7",
+            "surface-container-low": "#1b1b1f",
+            "primary": "#44e5c2",
+            "background": "#0f0f13",
+            "surface": "#15151c",
+            "on-secondary": "#303037",
+            "on-primary-fixed": "#002019",
+            "inverse-primary": "#006b58",
+            "rank-bronze": "#cd7f32",
+            "on-primary-container": "#004e40",
+            "outline": "#85948e",
+            "surface-variant": "#353439",
+            "surface-bright": "#39393d",
+            "on-error-container": "#ffdad6",
+            "rank-platinum": "#e5e4e2",
+            "surface-container-high": "#2a292e",
+            "error-container": "#93000a",
+            "tertiary": "#ffc0a1",
+            "primary-fixed-dim": "#38debb",
+            "border": "#2d2d37",
+            "secondary-fixed": "#e4e1eb",
+            "secondary-container": "#494850",
+            "on-tertiary-container": "#762f00",
+            "on-primary-fixed-variant": "#005142",
+            "primary-fixed": "#5ffbd6",
+            "on-primary": "#000000",
+            "primary-container": "#00c9a7",
+            "foreground": "#f2f2f2"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "stack-xs": "0.25rem",
+            "stack-sm": "0.5rem",
+            "stack-md": "1rem",
+            "stack-lg": "1.5rem",
+            "stack-xl": "2rem",
+            "margin-mobile": "1rem",
+            "gutter": "1rem"
+          },
+          fontFamily: {
+            "headline-sm": ["Geist", "sans-serif"],
+            "body-md": ["Geist", "sans-serif"],
+            "body-lg": ["Geist", "sans-serif"],
+            "headline-lg": ["Geist", "sans-serif"],
+            "title-lg": ["Geist", "sans-serif"],
+            "label-md": ["Geist", "sans-serif"],
+            "label-sm": ["Geist", "sans-serif"],
+            "title-md": ["Geist", "sans-serif"],
+            "headline-md": ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-lg": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "title-lg": ["18px", { lineHeight: "24px", fontWeight: "500" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+            "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "500" }],
+            "title-md": ["16px", { lineHeight: "24px", fontWeight: "500" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      background-color: #0f0f13;
+      color: #f2f2f2;
+      width: 390px;
+      height: 844px;
+      margin: 0 auto;
+      overflow: hidden;
+      font-family: 'Geist', sans-serif;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Scrollbar hide for strict compact UI */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="flex flex-col h-[844px] w-[390px] bg-background text-foreground antialiased relative">
+<!-- TOP APP BAR / CONTEXT CHROME (Task-Focused: Fermer suppresses generic bottom tabs) -->
+<header class="h-14 bg-surface px-margin-mobile flex items-center justify-between border-b border-border z-30 shrink-0">
+<button aria-label="Fermer la session" class="flex items-center gap-1.5 text-muted hover:text-foreground transition-colors duration-150 py-1">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+<span class="font-label-md text-label-md font-medium tracking-tight">Fermer</span>
+</button>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-semibold text-foreground tracking-tight">Coach Vocal</span>
+<span class="bg-primary-container/15 text-primary-container font-label-sm text-[10px] px-1.5 py-0.5 rounded-[4px] font-semibold border border-primary-container/30 uppercase tracking-widest">QUALIFICATION</span>
+</div>
+<!-- Discrete Dev Telemetry: JEV Indicators -->
+<div class="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-[6px] border border-border" title="Télémétrie JEV (Routage / Qualif / Sécurité)">
+<span class="w-1.5 h-1.5 rounded-full bg-primary" title="Routage: Actif"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400" title="Qualification: 2/4"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary" title="Sécurité: OK"></span>
+<span class="font-label-sm text-[10px] text-muted ml-0.5 font-mono">JEV</span>
+</div>
+</header>
+<!-- PROGRESSION SLOTS / DETERMINISTIC CONTEXT CARD -->
+<section class="bg-surface px-margin-mobile pt-3 pb-3.5 border-b border-border shrink-0">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-foreground font-semibold">Contexte · 2/4</span>
+<span class="text-muted text-[11px] font-body-md">Encore 2 informations requises</span>
+</div>
+<span class="font-label-md text-label-md font-mono text-primary font-semibold">50%</span>
+</div>
+<!-- Segmented Strict Progress Bar -->
+<div class="grid grid-cols-4 gap-1.5 mb-3 h-1.5 w-full">
+<div class="h-full bg-primary-container rounded-[2px]"></div>
+<div class="h-full bg-primary-container rounded-[2px]"></div>
+<div class="h-full bg-border rounded-[2px]"></div>
+<div class="h-full bg-border rounded-[2px]"></div>
+</div>
+<!-- 4 Parameter Chips (Deterministic Slot State) -->
+<div class="grid grid-cols-2 gap-1.5">
+<!-- Slot 1: Programme Validated -->
+<div class="flex items-center gap-1.5 px-2 py-1.5 bg-card border border-primary/30 rounded-lg">
+<span class="material-symbols-outlined text-primary text-[15px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[10px] text-muted uppercase tracking-wider leading-none">Programme</span>
+<span class="font-label-md text-label-md text-foreground truncate font-medium">PPL (Push/Pull/Legs)</span>
+</div>
+</div>
+<!-- Slot 2: Type Validated -->
+<div class="flex items-center gap-1.5 px-2 py-1.5 bg-card border border-primary/30 rounded-lg">
+<span class="material-symbols-outlined text-primary text-[15px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[10px] text-muted uppercase tracking-wider leading-none">Type d'action</span>
+<span class="font-label-md text-label-md text-foreground truncate font-medium">Ajustement charge</span>
+</div>
+</div>
+<!-- Slot 3: Pending Target Session (Current Active Focus) -->
+<div class="flex items-center gap-1.5 px-2 py-1.5 bg-card border border-amber-500/50 rounded-lg bg-amber-500/5">
+<span class="material-symbols-outlined text-amber-400 text-[15px]" data-icon="help">help</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[10px] text-amber-400/80 uppercase tracking-wider leading-none">Cible</span>
+<span class="font-label-md text-label-md text-foreground truncate font-medium">Séance cible</span>
+</div>
+</div>
+<!-- Slot 4: Pending Movement -->
+<div class="flex items-center gap-1.5 px-2 py-1.5 bg-card border border-border rounded-lg opacity-60">
+<span class="material-symbols-outlined text-muted text-[15px]" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-[10px] text-muted uppercase tracking-wider leading-none">Paramètre</span>
+<span class="font-label-md text-label-md text-muted truncate">Mouvement &amp; variation</span>
+</div>
+</div>
+</div>
+</section>
+<!-- CHAT / QUALIFICATION THREAD (Conversational turns, strictly technical) -->
+<main class="flex-1 overflow-y-auto px-margin-mobile py-4 space-y-4 flex flex-col justify-start">
+<!-- Turn 1 (Coach) -->
+<div class="flex flex-col max-w-[310px] self-start space-y-1">
+<div class="flex items-center gap-1.5 text-muted px-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="smart_toy">smart_toy</span>
+<span class="font-label-sm text-[11px] font-medium tracking-wide">Moteur d'arbitrage</span>
+<span class="text-muted text-[10px]">10:41</span>
+</div>
+<div class="bg-card border border-border p-3 rounded-xl text-foreground font-body-md text-body-md leading-relaxed">
+        Sur quel programme ou bloc d'entraînement se porte ta demande ?
+      </div>
+</div>
+<!-- Turn 2 (Athlète Audio Transcrit) -->
+<div class="flex flex-col max-w-[325px] self-end space-y-1 items-end">
+<div class="flex items-center gap-1.5 text-muted px-1">
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="mic">mic</span>
+<span class="font-label-sm text-[11px] font-medium tracking-wide">Transcription vocale</span>
+<span class="text-muted text-[10px]">10:42</span>
+</div>
+<div class="bg-surface-container-high border border-border p-3 rounded-xl text-foreground font-body-md text-body-md leading-relaxed relative">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5" data-icon="graphic_eq">graphic_eq</span>
+<p class="italic text-foreground">« Sur mon programme PPL, je veux modifier les charges de ma prochaine séance. »</p>
+</div>
+<div class="mt-2.5 pt-2 border-t border-border flex items-center justify-between">
+<span class="font-label-sm text-[10px] text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="done_all">done_all</span>
+            Programme PPL &amp; Type Charge détectés (2/4)
+          </span>
+<span class="font-label-sm text-[10px] text-muted font-mono">0.8s</span>
+</div>
+</div>
+</div>
+<!-- Turn 3 (Coach - Question Ciblée Active) -->
+<div class="flex flex-col max-w-[340px] self-start space-y-2 mt-1">
+<div class="flex items-center gap-1.5 text-muted px-1">
+<span class="material-symbols-outlined text-[14px] text-primary" data-icon="smart_toy">smart_toy</span>
+<span class="font-label-sm text-[11px] font-medium tracking-wide">Moteur d'arbitrage</span>
+<span class="bg-primary/10 text-primary text-[10px] px-1 rounded font-mono">En attente slot 3</span>
+</div>
+<div class="bg-card border border-border p-3 rounded-xl text-foreground font-body-md text-body-md leading-relaxed">
+<p class="font-medium text-foreground">Quelle séance exacte du cycle PPL souhaites-tu cibler aujourd'hui ?</p>
+<div class="mt-3 pt-2.5 border-t border-border/80">
+<span class="font-label-sm text-[10px] text-muted uppercase tracking-wider block mb-2 font-medium">Sélections directes détectées :</span>
+<!-- Shortcut options (Deterministic slots) -->
+<div class="flex flex-col gap-1.5">
+<button class="flex items-center justify-between w-full px-3 py-2 bg-surface hover:bg-surface-container-high border border-border rounded-lg text-left transition-colors duration-150 active:scale-[0.99]">
+<span class="font-body-md text-body-md font-medium text-foreground">Push 1</span>
+<span class="font-label-sm text-[11px] text-muted">Pecs / Épaules / Triceps</span>
+</button>
+<button class="flex items-center justify-between w-full px-3 py-2 bg-surface hover:bg-surface-container-high border border-border rounded-lg text-left transition-colors duration-150 active:scale-[0.99]">
+<span class="font-body-md text-body-md font-medium text-foreground">Pull 1</span>
+<span class="font-label-sm text-[11px] text-muted">Dos / Biceps / Arrière d'épaule</span>
+</button>
+<button class="flex items-center justify-between w-full px-3 py-2 bg-surface hover:bg-surface-container-high border border-border rounded-lg text-left transition-colors duration-150 active:scale-[0.99]">
+<span class="font-body-md text-body-md font-medium text-foreground">Legs 1</span>
+<span class="font-label-sm text-[11px] text-muted">Quads / Ischios / Mollets</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1.5 px-2">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+<span class="font-label-sm text-[11px] text-amber-400 font-medium">Prochaine variable attendue : Séance cible (Push / Pull / Legs)</span>
+</div>
+</div>
+</main>
+<!-- BOTTOM INPUT DOCK (Audio + Text Fallback + Active Listening State) -->
+<footer class="bg-surface border-t border-border px-margin-mobile pt-3 pb-4 shrink-0 flex flex-col gap-3">
+<!-- Text Input Bar with Submit Glyph -->
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low border border-border rounded-lg pl-3 pr-10 py-2.5 text-foreground font-body-md text-body-md placeholder:text-muted focus:outline-none focus:border-primary-container transition-colors" placeholder="Répondre ou dicter une précision..." type="text"/>
+<button aria-label="Envoyer la précision" class="absolute right-2 p-1 text-muted hover:text-primary transition-colors duration-150">
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Active Voice Controls Cluster -->
+<div class="flex items-center justify-between gap-3 pt-1">
+<!-- Ghost/Cancel Button -->
+<button class="px-4 py-2.5 rounded-lg border border-border hover:bg-card text-foreground font-label-md text-label-md font-medium transition-colors duration-150 active:opacity-75">
+        Annuler
+      </button>
+<!-- Prominent Listening Indicator Button (Strict Teal Flat Plane) -->
+<button class="flex-1 flex items-center justify-center gap-2.5 bg-primary-container text-on-primary py-2.5 px-4 rounded-lg font-title-md text-title-md font-semibold tracking-tight active:scale-[0.98] transition-transform duration-100">
+<span class="material-symbols-outlined text-[20px]" data-icon="mic" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span>Écoute active...</span>
+<!-- Acoustic Level Indicator bars -->
+<span class="flex items-center gap-0.5 ml-1">
+<span class="w-1 h-2.5 bg-black rounded-full animate-pulse"></span>
+<span class="w-1 h-4 bg-black rounded-full animate-pulse delay-75"></span>
+<span class="w-1 h-2 bg-black rounded-full animate-pulse delay-150"></span>
+</span>
+</button>
+<!-- Keyboard Toggle Shortcut Button -->
+<button aria-label="Clavier" class="p-2.5 rounded-lg border border-border hover:bg-card text-muted hover:text-foreground transition-colors duration-150">
+<span class="material-symbols-outlined" data-icon="keyboard">keyboard</span>
+</button>
+</div>
+<!-- Telemetry Footer Sub-line (Strict Flat Tone) -->
+<div class="flex items-center justify-between text-muted text-[10px] font-mono border-t border-border/50 pt-2 px-0.5">
+<span>Latence 42ms</span>
+<span class="text-muted/60">·</span>
+<span>Moteur GymLogic JEV</span>
+<span class="text-muted/60">·</span>
+<span class="text-primary-container">Session déterministe</span>
+</div>
+</footer>
+</body></html>

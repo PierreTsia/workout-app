@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic - Programme PPL</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            outline: "#85948e",
+            "outline-variant": "#3c4a45",
+            "surface-container-low": "#1b1b1f",
+            "on-secondary-fixed-variant": "#464650",
+            "surface-tint": "#38debb",
+            "tertiary-fixed-dim": "#ffb692",
+            secondary: "#c7c5d2",
+            "on-tertiary": "#552000",
+            "surface-bright": "#39393d",
+            "on-secondary-fixed": "#1b1b24",
+            background: "#131317",
+            "tertiary-fixed": "#ffdbcb",
+            "on-tertiary-fixed-variant": "#793100",
+            "secondary-container": "#484853",
+            "on-primary": "#00382d",
+            "on-tertiary-container": "#762f00",
+            "surface-variant": "#353439",
+            "error-container": "#93000a",
+            "on-error-container": "#ffdad6",
+            "on-primary-container": "#004e40",
+            "surface-container": "#1f1f23",
+            "surface-container-lowest": "#0e0e12",
+            "secondary-fixed": "#e3e1ee",
+            "primary-fixed-dim": "#38debb",
+            primary: "#44e5c2",
+            "on-surface": "#e4e1e7",
+            tertiary: "#ffc0a1",
+            "primary-container": "#00c9a7",
+            surface: "#131317",
+            "on-background": "#e4e1e7",
+            "on-secondary": "#302f3a",
+            "on-primary-fixed-variant": "#005142",
+            "surface-container-high": "#2a292e",
+            "on-error": "#690005",
+            error: "#ffb4ab",
+            "on-primary-fixed": "#002019",
+            "on-surface-variant": "#bacac3",
+            "on-secondary-container": "#b9b7c4",
+            "tertiary-container": "#ff9862",
+            "inverse-surface": "#e4e1e7",
+            "on-tertiary-fixed": "#341100",
+            "secondary-fixed-dim": "#c7c5d2",
+            "surface-dim": "#131317",
+            "surface-container-highest": "#353439",
+            "inverse-primary": "#006b58",
+            "primary-fixed": "#5ffbd6",
+            "inverse-on-surface": "#303034"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          spacing: {
+            "space-xs": "0.25rem",
+            "space-xl": "1.5rem",
+            "space-md": "0.75rem",
+            margin: "1rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1rem",
+            gutter: "0.75rem"
+          },
+          fontFamily: {
+            "headline-lg": ["Geist"],
+            "body-lg": ["Geist"],
+            "body-sm": ["Geist"],
+            "headline-xl": ["Geist"],
+            "metric-display": ["Geist"],
+            "headline-lg-mobile": ["Geist"],
+            "label-md": ["Geist"],
+            "title-md": ["Geist"],
+            "label-sm": ["Geist"],
+            "body-md": ["Geist"],
+            "label-lg": ["Geist"],
+            "headline-md": ["Geist"]
+          },
+          fontSize: {
+            "headline-lg": ["28px", { lineHeight: "32px", letterSpacing: "-0.025em", fontWeight: "600" }],
+            "body-lg": ["16px", { lineHeight: "22px", letterSpacing: "0em", fontWeight: "400" }],
+            "body-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "400" }],
+            "headline-xl": ["36px", { lineHeight: "40px", letterSpacing: "-0.03em", fontWeight: "700" }],
+            "metric-display": ["32px", { lineHeight: "32px", letterSpacing: "-0.03em", fontWeight: "700" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "28px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "label-md": ["12px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "600" }],
+            "title-md": ["16px", { lineHeight: "20px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-sm": ["10px", { lineHeight: "12px", letterSpacing: "0.06em", fontWeight: "600" }],
+            "body-md": ["14px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }],
+            "label-lg": ["14px", { lineHeight: "16px", letterSpacing: "0.01em", fontWeight: "500" }],
+            "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.015em", fontWeight: "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased font-body-md select-none overflow-x-hidden min-h-screen">
+<div class="relative w-full max-w-[480px] mx-auto min-h-screen bg-background border-x border-outline-variant flex flex-col justify-between pb-24">
+<!-- TOP APP BAR (Shared Components Exact Blueprint) -->
+<header class="bg-surface-container-low border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center justify-between w-full max-w-[480px] mx-auto px-margin h-14">
+<div class="flex items-center space-x-2">
+<button aria-label="Retour" class="flex items-center justify-center p-1 rounded hover:bg-surface-variant active:scale-[0.98] transition-transform duration-150">
+<span class="material-symbols-outlined text-on-surface text-lg">arrow_back_ios_new</span>
+</button>
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-outline tracking-wider">PROGRAMME</span>
+<div class="flex items-center space-x-1.5">
+<span class="text-title-md font-title-md font-semibold text-on-surface">PPL (Push/Pull/Legs)</span>
+<span class="text-[10px] leading-none font-semibold px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container">Actif</span>
+</div>
+</div>
+</div>
+<button aria-label="Modifier" class="p-1 rounded text-on-surface-variant hover:bg-surface-variant active:scale-[0.98] transition-transform duration-150">
+<span class="material-symbols-outlined text-lg">edit</span>
+</button>
+</div>
+</header>
+<!-- MAIN SCROLLABLE CONTENT: Underneath Program Information -->
+<main class="flex-1 px-margin pt-space-md space-y-space-md opacity-35 filter pointer-events-none">
+<!-- Program Facts Metric Card (3 Columns) -->
+<section class="bg-surface-container rounded-xl border border-outline-variant p-space-md">
+<div class="grid grid-cols-3 divide-x divide-outline-variant">
+<div class="flex flex-col items-center justify-center px-1">
+<span class="text-label-sm font-label-sm text-outline">CADENCE</span>
+<span class="text-title-md font-title-md font-semibold text-on-surface mt-0.5">6 Jours</span>
+</div>
+<div class="flex flex-col items-center justify-center px-1">
+<span class="text-label-sm font-label-sm text-outline">VOLUME</span>
+<span class="text-title-md font-title-md font-semibold text-on-surface mt-0.5">116 Séries</span>
+</div>
+<div class="flex flex-col items-center justify-center px-1">
+<span class="text-label-sm font-label-sm text-outline">CIRCUITS</span>
+<span class="text-title-md font-title-md font-semibold text-on-surface mt-0.5">0 Circuits</span>
+</div>
+</div>
+</section>
+<!-- Routine Sequence Listing (Push 1, Pull 1, Legs 1) -->
+<section class="space-y-space-sm">
+<div class="flex items-center justify-between px-0.5">
+<span class="text-label-sm font-label-sm text-outline">SÉQUENCE DU CYCLE</span>
+<span class="text-label-sm font-label-sm text-outline">RÉPARTITION</span>
+</div>
+<!-- Push 1 -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-space-md flex items-center justify-between">
+<div class="flex items-center space-x-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-base">fitness_center</span>
+</div>
+<div>
+<p class="text-body-md font-title-md font-semibold text-on-surface">Push 1 (Pectoraux Focus)</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">5 exercices • 22 séries</p>
+</div>
+</div>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded border border-outline-variant text-on-surface-variant">Valide</span>
+</div>
+<!-- Pull 1 -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-space-md flex items-center justify-between">
+<div class="flex items-center space-x-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-base">view_timeline</span>
+</div>
+<div>
+<p class="text-body-md font-title-md font-semibold text-on-surface">Pull 1 (Dorsaux / Épaisseur)</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">6 exercices • 24 séries</p>
+</div>
+</div>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded border border-outline-variant text-on-surface-variant">En cours</span>
+</div>
+<!-- Legs 1 -->
+<div class="bg-surface-container rounded-xl border border-outline-variant p-space-md flex items-center justify-between">
+<div class="flex items-center space-x-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-base">lock</span>
+</div>
+<div>
+<p class="text-body-md font-title-md font-semibold text-on-surface">Legs 1 (Quadriceps / Mollets)</p>
+<p class="text-body-sm font-body-sm text-outline">5 exercices • 20 séries</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-base">lock</span>
+</div>
+</section>
+</main>
+<!-- CORE VOCAL RESPONSE OVERLAY (Single card overlay, technical minimalism) -->
+<div class="absolute inset-x-0 bottom-24 px-margin z-30 flex flex-col justify-end">
+<!-- DEV DEBUG JEV BAR (Above voice card / coach zone) -->
+<div class="flex items-center justify-between px-2 py-1 mb-2 bg-surface-container-lowest border border-outline-variant rounded">
+<span class="text-[10px] leading-tight font-mono tracking-wider text-outline font-medium">JEV CORE V2.4</span>
+<div class="flex items-center space-x-2.5">
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-[9px] font-mono leading-none text-on-surface-variant">Routage</span>
+</div>
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-[9px] font-mono leading-none text-on-surface-variant">Qualification</span>
+</div>
+<div class="flex items-center space-x-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-[9px] font-mono leading-none text-on-surface-variant">Sécurité</span>
+</div>
+</div>
+</div>
+<!-- Coach Vocal Card -->
+<section class="bg-surface-container border border-outline-variant rounded-xl p-space-md space-y-space-md">
+<!-- Header: Audio Wave, Title, Dismiss -->
+<div class="flex items-center justify-between border-b border-outline-variant pb-space-sm">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-xl">graphic_eq</span>
+<span class="text-label-md font-label-md tracking-wider text-primary">COACH VOCAL</span>
+</div>
+<button aria-label="Fermer la vue" class="p-1 rounded text-on-surface-variant hover:bg-surface-variant active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<!-- Transcribed User Query -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-sm flex items-start space-x-2">
+<span class="material-symbols-outlined text-outline text-sm mt-0.5">record_voice_over</span>
+<p class="text-body-md font-body-md italic text-on-surface">« Où j'en suis cette semaine ? »</p>
+</div>
+<!-- Coach Analysis Response Stats Grid -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-outline">POINT HEBDOMADAIRE</span>
+<span class="text-[10px] font-mono text-primary font-semibold">SYNCHRONISÉ</span>
+</div>
+<div class="grid grid-cols-2 gap-space-sm">
+<!-- Box 1: Sessions -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-sm">
+<span class="text-label-sm font-label-sm text-outline">Séances</span>
+<div class="text-headline-md font-headline-md text-on-surface font-bold mt-0.5">3 Séances</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Objectif 6 j</span>
+</div>
+<!-- Box 2: Total Sets -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-sm">
+<span class="text-label-sm font-label-sm text-outline">Volume validé</span>
+<div class="text-headline-md font-headline-md text-on-surface font-bold mt-0.5">116 Séries</div>
+<span class="text-body-sm font-body-sm text-on-surface-variant">Cycle en cours</span>
+</div>
+</div>
+<!-- Full Width Box: Tonnage -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-sm flex items-center justify-between">
+<div>
+<span class="text-label-sm font-label-sm text-outline">Tonnage cumulé</span>
+<div class="text-title-md font-title-md font-bold text-on-surface">14 820 kg</div>
+</div>
+<div class="px-2 py-1 rounded bg-surface-container-highest border border-outline-variant text-[11px] font-mono text-primary font-semibold">
+              +6% vs cycle
+            </div>
+</div>
+</div>
+<!-- 4-Week Flat Progression Sparkline Matrix -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-sm space-y-space-xs">
+<div class="flex items-center justify-between text-label-sm font-label-sm text-outline mb-1">
+<span>PROGRESSION 4 SEMAINES</span>
+<span class="text-primary font-mono">+490 kg net</span>
+</div>
+<!-- Micro Tabular Bar Visualizer -->
+<div class="grid grid-cols-4 gap-2 pt-1">
+<div class="flex flex-col items-center">
+<div class="w-full bg-surface-container-highest h-10 rounded-sm flex items-end p-0.5">
+<div class="w-full bg-outline-variant h-[72%] rounded-xs"></div>
+</div>
+<span class="text-[10px] font-mono text-on-surface-variant mt-1">S1</span>
+<span class="text-[10px] font-mono text-outline">3.45t</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-full bg-surface-container-highest h-10 rounded-sm flex items-end p-0.5">
+<div class="w-full bg-outline-variant h-[78%] rounded-xs"></div>
+</div>
+<span class="text-[10px] font-mono text-on-surface-variant mt-1">S2</span>
+<span class="text-[10px] font-mono text-outline">3.62t</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-full bg-surface-container-highest h-10 rounded-sm flex items-end p-0.5">
+<div class="w-full bg-outline-variant h-[86%] rounded-xs"></div>
+</div>
+<span class="text-[10px] font-mono text-on-surface-variant mt-1">S3</span>
+<span class="text-[10px] font-mono text-outline">3.81t</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-full bg-surface-container-highest h-10 rounded-sm flex items-end p-0.5">
+<div class="w-full bg-primary-container h-[94%] rounded-xs"></div>
+</div>
+<span class="text-[10px] font-mono text-primary font-semibold mt-1">S4</span>
+<span class="text-[10px] font-mono text-primary font-semibold">3.94t</span>
+</div>
+</div>
+</div>
+<!-- Single Primary Flat Action Button -->
+<button class="w-full h-12 rounded-lg bg-surface-container-highest border border-outline-variant text-on-surface font-title-md font-semibold hover:bg-surface-variant active:scale-[0.98] transition-transform duration-150 flex items-center justify-center">
+          Fermer
+        </button>
+</section>
+</div>
+<!-- DOCKED ACTION FAB: PERSISTENT COACH MIC -->
+<div class="fixed bottom-[4.5rem] inset-x-0 max-w-[480px] mx-auto px-margin pointer-events-none z-50 flex justify-center">
+<button aria-label="Microphone Coach" class="pointer-events-auto w-12 h-12 rounded-full bg-surface-container border-2 border-primary-container flex items-center justify-center text-primary-container hover:bg-surface-container-high active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl">mic</span>
+</button>
+</div>
+<!-- BOTTOM NAVIGATION (Shared Components Exact Blueprint) -->
+<nav class="fixed bottom-0 left-0 right-0 w-full max-w-[480px] mx-auto z-50 flex justify-around items-center h-16 pb-[env(safe-area-inset-bottom)] bg-surface-container-low border-t border-outline-variant">
+<!-- Destination 1: Entraînement (Active) -->
+<a class="flex flex-col items-center justify-center text-primary font-semibold active:scale-[0.96] transition-transform duration-150 w-16" href="#entrainement">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="text-label-sm font-label-sm mt-0.5">Entraînement</span>
+</a>
+<!-- Destination 2: Programmes (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-[0.96] transition-transform duration-150 w-16" href="#programmes">
+<span class="material-symbols-outlined text-xl">view_timeline</span>
+<span class="text-label-sm font-label-sm mt-0.5">Programmes</span>
+</a>
+<!-- Spacer for docked micro action balance -->
+<div class="w-8"></div>
+<!-- Destination 3: Stats (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-[0.96] transition-transform duration-150 w-16" href="#stats">
+<span class="material-symbols-outlined text-xl">query_stats</span>
+<span class="text-label-sm font-label-sm mt-0.5">Stats</span>
+</a>
+<!-- Destination 4: Profil (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary active:scale-[0.96] transition-transform duration-150 w-16" href="#profil">
+<span class="material-symbols-outlined text-xl">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">Profil</span>
+</a>
+</nav>
+</div>
+</body></html>
