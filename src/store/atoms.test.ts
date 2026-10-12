@@ -6,6 +6,7 @@ import {
   completedBlockIdsAtom,
   prFlagsAtom,
   sessionBestPerformanceAtom,
+  type SessionState,
 } from "./atoms"
 
 describe("completedExerciseIdsAtom", () => {
@@ -118,6 +119,23 @@ describe("completedExerciseIdsAtom", () => {
     expect(completed.has("exercise-1")).toBe(true)
     expect(completed.has("exercise-2")).toBe(true)
     expect(completed.has("exercise-3")).toBe(false)
+  })
+  it("returns empty set when the persisted session has no setsData (#695)", () => {
+    const store = createStore()
+    store.set(sessionAtom, {
+      currentDayId: "day-1",
+      activeDayId: "day-1",
+      exerciseIndex: 0,
+      startedAt: Date.now(),
+      isActive: true,
+      totalSetsDone: 0,
+      pausedAt: null,
+      accumulatedPause: 0,
+      cycleId: null,
+    } as unknown as SessionState)
+
+    const completed = store.get(completedExerciseIdsAtom)
+    expect(completed.size).toBe(0)
   })
 })
 

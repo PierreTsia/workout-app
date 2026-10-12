@@ -61,7 +61,7 @@ export const sessionAtom = atomWithStorage<SessionState>(
 export const completedExerciseIdsAtom = atom((get) => {
   const session = get(sessionAtom)
   const completed = new Set<string>()
-  for (const [exerciseId, sets] of Object.entries(session.setsData)) {
+  for (const [exerciseId, sets] of Object.entries(session.setsData ?? {})) {
     if (sets.length > 0 && sets.every((s) => s.done)) {
       completed.add(exerciseId)
     }
