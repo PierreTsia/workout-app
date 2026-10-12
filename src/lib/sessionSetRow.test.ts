@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   buildInitialSetRowsForExercise,
+  migrateSessionSetsData,
   resolveSlotDisplayWeight,
   type SessionSetRowReps,
 } from "./sessionSetRow"
@@ -69,6 +70,20 @@ describe("buildInitialSetRowsForExercise — safeReps fallback", () => {
       expect(r.weight).toBe("60")
       expect(r.done).toBe(false)
     }
+  })
+})
+
+describe("migrateSessionSetsData — defensive shape (#695)", () => {
+  it("returns an empty map when setsData is undefined", () => {
+    expect(
+      migrateSessionSetsData(undefined as unknown as Record<string, unknown[]>),
+    ).toEqual({})
+  })
+
+  it("returns an empty map when setsData is null", () => {
+    expect(
+      migrateSessionSetsData(null as unknown as Record<string, unknown[]>),
+    ).toEqual({})
   })
 })
 

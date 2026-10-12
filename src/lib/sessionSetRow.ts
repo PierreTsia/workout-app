@@ -31,7 +31,7 @@ export function migrateSessionSetsData(
   setsData: Record<string, unknown[]>,
 ): Record<string, SessionSetRow[]> {
   const out: Record<string, SessionSetRow[]> = {}
-  for (const [k, rows] of Object.entries(setsData)) {
+  for (const [k, rows] of Object.entries(setsData ?? {})) {
     out[k] = rows.map((raw) => normalizeSessionSetRow(raw))
   }
   return out
