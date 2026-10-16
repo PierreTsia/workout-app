@@ -25,6 +25,7 @@
     --nomos-color-border: 240 8% 19%;
     --nomos-color-input: 240 8% 19%;
     --nomos-color-ring: 174 100% 39%;
+    --nomos-color-outline: 0 0% 60%;
     --nomos-color-brand: #00c9b1;
     --nomos-color-scrim: 0 0% 0% / 0.8;
     --nomos-color-status-info: 199 89% 48%;
@@ -59,6 +60,9 @@
     --nomos-motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
     --nomos-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
     --nomos-motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --nomos-elevation-sm: 0px 1px 3px 0px rgb(0 0 0 / 0.1), 0px 1px 2px -1px rgb(0 0 0 / 0.1);
+    --nomos-elevation-md: 0px 4px 6px -1px rgb(0 0 0 / 0.1), 0px 2px 4px -2px rgb(0 0 0 / 0.1);
+    --nomos-elevation-lg: 0px 10px 15px -3px rgb(0 0 0 / 0.1), 0px 4px 6px -4px rgb(0 0 0 / 0.1);
     --nomos-space-hairline: 2px;
     --nomos-space-tight: 4px;
     --nomos-space-snug: 8px;
@@ -107,6 +111,7 @@
       --nomos-color-border: 240 6% 85%;
       --nomos-color-input: 240 6% 85%;
       --nomos-color-ring: 174 100% 35%;
+      --nomos-color-outline: 240 4% 46%;
       --nomos-color-brand: #00c9b1;
       --nomos-color-scrim: 0 0% 0% / 0.8;
       --nomos-color-status-info: 199 89% 48%;
@@ -141,6 +146,9 @@
       --nomos-motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
       --nomos-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
       --nomos-motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --nomos-elevation-sm: 0px 1px 3px 0px rgb(0 0 0 / 0.1), 0px 1px 2px -1px rgb(0 0 0 / 0.1);
+      --nomos-elevation-md: 0px 4px 6px -1px rgb(0 0 0 / 0.1), 0px 2px 4px -2px rgb(0 0 0 / 0.1);
+      --nomos-elevation-lg: 0px 10px 15px -3px rgb(0 0 0 / 0.1), 0px 4px 6px -4px rgb(0 0 0 / 0.1);
       --nomos-space-hairline: 2px;
       --nomos-space-tight: 4px;
       --nomos-space-snug: 8px;
@@ -188,6 +196,7 @@
     --nomos-color-border: 240 8% 19%;
     --nomos-color-input: 240 8% 19%;
     --nomos-color-ring: 174 100% 39%;
+    --nomos-color-outline: 0 0% 60%;
     --nomos-color-brand: #00c9b1;
     --nomos-color-scrim: 0 0% 0% / 0.8;
     --nomos-color-status-info: 199 89% 48%;
@@ -222,6 +231,9 @@
     --nomos-motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
     --nomos-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
     --nomos-motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --nomos-elevation-sm: 0px 1px 3px 0px rgb(0 0 0 / 0.1), 0px 1px 2px -1px rgb(0 0 0 / 0.1);
+    --nomos-elevation-md: 0px 4px 6px -1px rgb(0 0 0 / 0.1), 0px 2px 4px -2px rgb(0 0 0 / 0.1);
+    --nomos-elevation-lg: 0px 10px 15px -3px rgb(0 0 0 / 0.1), 0px 4px 6px -4px rgb(0 0 0 / 0.1);
     --nomos-space-hairline: 2px;
     --nomos-space-tight: 4px;
     --nomos-space-snug: 8px;
@@ -268,6 +280,7 @@
     --nomos-color-border: 240 6% 85%;
     --nomos-color-input: 240 6% 85%;
     --nomos-color-ring: 174 100% 35%;
+    --nomos-color-outline: 240 4% 46%;
     --nomos-color-brand: #00c9b1;
     --nomos-color-scrim: 0 0% 0% / 0.8;
     --nomos-color-status-info: 199 89% 48%;
@@ -302,6 +315,9 @@
     --nomos-motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
     --nomos-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
     --nomos-motion-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --nomos-elevation-sm: 0px 1px 3px 0px rgb(0 0 0 / 0.1), 0px 1px 2px -1px rgb(0 0 0 / 0.1);
+    --nomos-elevation-md: 0px 4px 6px -1px rgb(0 0 0 / 0.1), 0px 2px 4px -2px rgb(0 0 0 / 0.1);
+    --nomos-elevation-lg: 0px 10px 15px -3px rgb(0 0 0 / 0.1), 0px 4px 6px -4px rgb(0 0 0 / 0.1);
     --nomos-space-hairline: 2px;
     --nomos-space-tight: 4px;
     --nomos-space-snug: 8px;
