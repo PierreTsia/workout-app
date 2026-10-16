@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic - Programme PPL</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-primary": "#006b58",
+            "inverse-surface": "#e4e1e7",
+            "background": "#131317",
+            "on-error-container": "#ffdad6",
+            "on-secondary": "#303037",
+            "secondary-fixed-dim": "#c8c5cf",
+            "rank-gold": "#ffd700",
+            "surface-container-high": "#2a292e",
+            "on-primary-container": "#004e40",
+            "error": "#ffb4ab",
+            "tertiary-fixed-dim": "#ffb692",
+            "primary": "#44e5c2",
+            "primary-fixed": "#5ffbd6",
+            "primary-container": "#00c9a7",
+            "primary-fixed-dim": "#38debb",
+            "surface-tint": "#38debb",
+            "card": "#1a1a22",
+            "foreground": "#f2f2f2",
+            "inverse-on-surface": "#303034",
+            "on-primary": "#000000",
+            "rank-bronze": "#cd7f32",
+            "on-background": "#e4e1e7",
+            "on-tertiary-fixed": "#341100",
+            "muted": "#999999",
+            "border": "#2d2d37",
+            "surface-bright": "#39393d",
+            "surface-dim": "#131317",
+            "surface-container": "#1f1f23",
+            "on-primary-fixed-variant": "#005142",
+            "surface-container-low": "#1b1b1f",
+            "on-tertiary": "#552000",
+            "secondary": "#c8c5cf",
+            "tertiary-fixed": "#ffdbcb",
+            "surface": "#131317",
+            "on-surface-variant": "#bacac3",
+            "tertiary-container": "#ff9862",
+            "surface-container-lowest": "#0e0e12",
+            "rank-platinum": "#e5e4e2",
+            "on-tertiary-container": "#762f00",
+            "on-primary-fixed": "#002019",
+            "rank-diamond": "#b9f2ff",
+            "surface-variant": "#353439",
+            "on-secondary-container": "#b9b7c1",
+            "on-secondary-fixed-variant": "#47464e",
+            "surface-container-highest": "#353439",
+            "rank-silver": "#c0c0c0",
+            "secondary-container": "#494850",
+            "outline-variant": "#3c4a45",
+            "outline": "#85948e",
+            "tertiary": "#ffc0a1",
+            "on-secondary-fixed": "#1b1b22",
+            "on-error": "#690005",
+            "error-container": "#93000a",
+            "secondary-fixed": "#e4e1eb",
+            "on-tertiary-fixed-variant": "#793100",
+            "on-surface": "#e4e1e7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-lg": "1.5rem",
+            "stack-xs": "0.25rem",
+            "stack-xl": "2rem",
+            "margin-mobile": "1rem",
+            "stack-sm": "0.5rem",
+            "stack-md": "1rem",
+            "gutter": "1rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Geist"],
+            "label-sm": ["Geist"],
+            "headline-lg": ["Geist"],
+            "title-md": ["Geist"],
+            "body-lg": ["Geist"],
+            "label-md": ["Geist"],
+            "title-lg": ["Geist"],
+            "body-md": ["Geist"],
+            "headline-md": ["Geist"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-foreground antialiased font-body-md select-none overflow-x-hidden min-h-screen">
+<div class="mx-auto w-full max-w-[390px] min-h-screen relative bg-surface-container-lowest flex flex-col justify-between border-x border-border">
+<!-- Top Navigation Chrome -->
+<header class="fixed top-0 w-full max-w-[390px] z-30 bg-surface dark:bg-surface border-b border-border flex items-center justify-between px-margin-mobile h-14">
+<button aria-label="Retour" class="text-on-surface-variant hover:bg-surface-container-highest transition-colors p-1.5 rounded-lg active:scale-95 duration-100 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="chevron_left">chevron_left</span>
+</button>
+<div class="flex flex-col items-center justify-center">
+<span class="font-label-sm text-label-sm tracking-widest text-muted">PROGRAMME</span>
+<div class="flex items-center gap-1.5">
+<h1 class="font-headline-sm text-headline-sm text-on-surface tracking-tight">PPL (Push/Pull/Legs)</h1>
+<span class="bg-primary-container text-on-primary font-label-sm text-label-sm px-1.5 py-0.5 rounded font-semibold tracking-wide">Actif</span>
+</div>
+</div>
+<button aria-label="Modifier" class="text-on-surface-variant hover:bg-surface-container-highest transition-colors p-1.5 rounded-lg active:scale-95 duration-100 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+</button>
+</header>
+<!-- Underlying Contextual Content (Workout Plan) -->
+<main class="pt-16 pb-24 px-margin-mobile flex-1 flex flex-col gap-stack-md opacity-40">
+<!-- Metrics Strip -->
+<section class="grid grid-cols-3 bg-card border border-border rounded-xl p-3 text-center">
+<div class="border-r border-border">
+<p class="font-label-sm text-label-sm text-muted">CYCLE</p>
+<p class="font-title-md text-title-md text-foreground tabular-nums">6 Jours</p>
+</div>
+<div class="border-r border-border">
+<p class="font-label-sm text-label-sm text-muted">VOLUME</p>
+<p class="font-title-md text-title-md text-foreground tabular-nums">116 Séries</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-muted">CIRCUIT</p>
+<p class="font-title-md text-title-md text-foreground tabular-nums">0 Actif</p>
+</div>
+</section>
+<!-- Sub Navigation Tabs -->
+<div class="flex border-b border-border font-label-md text-label-md text-muted pt-1">
+<button class="pb-2 px-3 text-primary border-b-2 border-primary font-medium">Push 1</button>
+<button class="pb-2 px-3 text-muted hover:text-foreground">Pull 1</button>
+<button class="pb-2 px-3 text-muted hover:text-foreground">Legs 1</button>
+<button class="pb-2 px-3 text-muted hover:text-foreground">Push 2</button>
+</div>
+<!-- Workout Block: Push 1 -->
+<section class="space-y-stack-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-title-md text-title-md text-foreground font-semibold">Push - Jour 1</h2>
+<span class="font-label-sm text-label-sm text-muted">Durée estimée : 55 min</span>
+</div>
+<!-- Exercise 1 -->
+<div class="bg-card border border-border rounded-xl p-3 space-y-2">
+<div class="flex items-start justify-between">
+<div>
+<p class="font-body-md text-body-md text-foreground font-medium">Développé couché barre</p>
+<p class="font-label-sm text-label-sm text-muted">Pectoraux majeurs, Deltoïde antérieur</p>
+</div>
+<span class="bg-surface border border-border px-2 py-0.5 rounded text-muted font-label-sm text-label-sm tabular-nums">4 séries</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded border border-border flex justify-between items-center text-muted font-label-sm text-label-sm tabular-nums">
+<span>Dernière session : 4 × 8 @ 85 kg</span>
+<span class="text-primary font-medium">RPE 9</span>
+</div>
+</div>
+<!-- Exercise 2 -->
+<div class="bg-card border border-border rounded-xl p-3 space-y-2">
+<div class="flex items-start justify-between">
+<div>
+<p class="font-body-md text-body-md text-foreground font-medium">Développé militaire haltères</p>
+<p class="font-label-sm text-label-sm text-muted">Deltoïdes antérieur et latéral</p>
+</div>
+<span class="bg-surface border border-border px-2 py-0.5 rounded text-muted font-label-sm text-label-sm tabular-nums">3 séries</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded border border-border flex justify-between items-center text-muted font-label-sm text-label-sm tabular-nums">
+<span>Dernière session : 3 × 10 @ 24 kg</span>
+<span>RPE 8.5</span>
+</div>
+</div>
+<!-- Exercise 3 -->
+<div class="bg-card border border-border rounded-xl p-3 space-y-2">
+<div class="flex items-start justify-between">
+<div>
+<p class="font-body-md text-body-md text-foreground font-medium">Dips barres parallèles</p>
+<p class="font-label-sm text-label-sm text-muted">Triceps brachial, Bas des pectoraux</p>
+</div>
+<span class="bg-surface border border-border px-2 py-0.5 rounded text-muted font-label-sm text-label-sm tabular-nums">3 séries</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Modal Overlay HUD: Voice Assistant Quick Response -->
+<div class="fixed inset-x-0 bottom-16 mx-auto w-full max-w-[390px] px-margin-mobile z-40 pb-2" id="coach-hud"><div class="bg-card border border-border rounded-xl p-4 shadow-none space-y-3">
+<div class="flex items-center justify-between pb-2 border-b border-border">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="graphic_eq">graphic_eq</span>
+<span class="font-label-sm text-label-sm tracking-wider text-muted font-semibold">COACH VOCAL</span>
+</div>
+<button aria-label="Fermer la réponse" class="text-muted hover:text-foreground active:scale-95 duration-100 p-0.5" onclick="document.getElementById('coach-hud').style.display='none'" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+</button>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-muted italic">« Rappelle-moi mon dernier développé couché »</p>
+</div>
+<div class="bg-surface-container-low border border-border rounded-lg p-3 space-y-2">
+<div class="flex justify-between items-baseline">
+<h3 class="font-title-md text-title-md font-semibold text-foreground">Développé couché</h3>
+<span class="font-label-sm text-label-sm bg-surface-container border border-border px-2 py-0.5 rounded text-on-surface-variant">Pectoraux · Triceps</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<div>
+<span class="font-label-sm text-label-sm text-muted block">PERF VALIDÉE</span>
+<span class="font-headline-sm text-headline-sm font-semibold tabular-nums text-foreground">4 × 8 @ 85 kg</span>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-muted block">RÉSERVE</span>
+<span class="inline-block bg-surface border border-border text-primary font-label-md text-label-md px-2 py-0.5 rounded font-semibold tabular-nums">RIR 1</span>
+</div>
+</div>
+</div>
+<div class="pt-1">
+<button class="w-full h-9 rounded-lg border border-border bg-surface text-foreground font-label-md text-label-md font-medium hover:bg-surface-container-highest transition-colors active:scale-95 duration-100 flex items-center justify-center" onclick="document.getElementById('coach-hud').style.display='none'" type="button">
+      Fermer
+    </button>
+</div>
+</div></div>
+<!-- Voice Control Persistent Micro Trigger -->
+<div class="fixed bottom-20 right-4 max-w-[390px] z-50">
+<button aria-label="Microphone Assistant Vocal" class="w-11 h-11 rounded-lg bg-card border border-border flex items-center justify-center text-primary hover:bg-surface-container-high active:scale-90 duration-150 relative" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="mic">mic</span>
+<span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+</button>
+</div>
+<!-- Shared BottomNavBar Component -->
+<nav class="fixed bottom-0 w-full max-w-[390px] z-30 bg-surface-container dark:bg-surface-container border-t border-border flex justify-around items-center h-16 px-2">
+<!-- Destination 1: Entraînement (Active match for current Program/Workout execution) -->
+<a class="flex flex-col items-center justify-center text-primary hover:text-on-surface transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="fitness_center">fitness_center</span>
+<span class="font-label-md text-label-md">Entraînement</span>
+</a>
+<!-- Destination 2: Programmes -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="list_alt">list_alt</span>
+<span class="font-label-md text-label-md">Programmes</span>
+</a>
+<!-- Destination 3: Stats -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-md text-label-md">Stats</span>
+</a>
+<!-- Destination 4: Profil -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="person">person</span>
+<span class="font-label-md text-label-md">Profil</span>
+</a>
+</nav>
+</div>
+</body></html>
