@@ -24,8 +24,8 @@ export function AppShell() {
   // Runs where auth is already resolved, which is the earliest the profile's
   // language is readable at all.
   useHydrateLocaleFromProfile()
-  // Session-scoped orientation policy (#501): OS lock + landscape CSS fallback
-  // live off <html> marker classes, so they must survive WorkoutPage unmounts.
+  // Session-scoped orientation policy (#701): best-effort portrait lock while a
+  // Session is live. Mounted here so it survives WorkoutPage unmounts.
   useSessionOrientationGuard()
   // Excludes time with the app hidden/closed from the session duration (#655).
   useSessionVisibilityAutoPause()
