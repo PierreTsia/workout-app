@@ -4,7 +4,7 @@
 
 #501 shipped **Prevent** with two layers: a best-effort `screen.orientation.lock("portrait")` **and** a CSS fallback that rotates `<html>` ±90° when the device reports landscape on a coarse pointer. In practice the CSS layer is worse than either extreme: the browser reflows to landscape first, the transform snaps back after, producing a **blink** and a broken view with a **black band**. The athlete wants the two clean ends — *hold the device in portrait*, or *accept landscape* — not the flickering in-between.
 
-This corrective keeps the **lock** layer, **removes the CSS rotate hack**, and promotes the OS-level guarantee to the **manifest** (`orientation: "portrait"`) so rotation is prevented app-wide wherever the platform allows it. Where it does not (older iOS, browser tabs), the app degrades to plain landscape — no blink, no half-drawn portrait box. ADR `file:docs/adr/0022-session-orientation-policy.md` is amended (its "iOS ignores every lock API" premise is stale: Safari iOS 16.4+ supports `screen.orientation`, per caniuse). Vehicle: [#701](https://github.com/PierreTsia/workout-app/issues/701).
+This corrective keeps the **lock** layer, **removes the CSS rotate hack**, and promotes the OS-level guarantee to the **manifest** (`orientation: "portrait"`) so rotation is prevented app-wide on the platform that honours it (Android). Where it does not (iOS, browser tabs), the app degrades to plain landscape — no blink, no half-drawn portrait box. ADR `file:docs/adr/0022-session-orientation-policy.md` is amended. Vehicle: [#701](https://github.com/PierreTsia/workout-app/issues/701).
 
 ---
 
@@ -25,13 +25,13 @@ This corrective keeps the **lock** layer, **removes the CSS rotate hack**, and p
 | Black band / broken view | The transform geometry leaves part of the viewport unpainted |
 | Fragile transform hack | Geometry depends on a readable angle; upside-down content is possible (ADR 0022 consequence) |
 
-**Premise correction:** ADR 0022 assumed iOS ignores every lock lever. caniuse now reports Safari iOS **16.4+** supports the Screen Orientation API, so a lock-only + manifest strategy is credible on the device that reported the original issue.
+**Premise check:** ADR 0022 assumed iOS ignores every lock lever. That holds for `lock()` itself — `ScreenOrientation.lock()` is **not supported** on Safari iOS (only the interface, `angle`, `type` and the `change` event landed in 16.4), and Safari ignores the manifest `orientation` member too. So a manifest + lock strategy prevents rotation on **Android** only; on iOS the accepted outcome is plain landscape.
 
 ---
 
 ## User Stories
 
-1. As an **athlete** on an installed PWA (Android, or iOS 16.4+), I want the device held in portrait while I train, so that tipping the phone never rotates the UI.
+1. As an **athlete** on an installed Android PWA, I want the device held in portrait while I train, so that tipping the phone never rotates the UI.
 2. As an **athlete** on a platform that refuses the lock, I want the app to simply show its normal landscape layout, so that I never see a blink or a black band.
 3. As an **athlete** who finishes / cancels a **Session**, I want the orientation policy released, so that the rest of the app behaves as today.
 4. As a **desktop** user, I want no rotation hack, so that a wide monitor is never transformed.

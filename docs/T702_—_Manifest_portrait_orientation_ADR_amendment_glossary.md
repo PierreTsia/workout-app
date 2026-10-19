@@ -8,12 +8,12 @@
 
 ## Goal
 
-Promote the prevention to the OS level (app-wide) and record the reversal of #501's "no manifest" decision and its stale iOS premise.
+Promote the prevention to the OS level (app-wide, Android) and record the reversal of #501's "no manifest" decision plus the corrected iOS reality (no `lock()`, no manifest `orientation`).
 
 ## Scope
 
 - Add `orientation: "portrait"` to the `VitePWA` manifest in `file:vite.config.ts`.
-- Amend `file:docs/adr/0022-session-orientation-policy.md`: withdraw decision 3b (CSS rotate fallback), reverse decision 4 (manifest untouched), correct the "iOS ignores every lock API" premise (Safari iOS 16.4+ supports `screen.orientation`), add an amendment note with the #701 date.
+- Amend `file:docs/adr/0022-session-orientation-policy.md`: withdraw decision 3b (CSS rotate fallback), reverse decision 4 (manifest untouched), correct the iOS claim (`lock()` unsupported on Safari iOS; manifest `orientation` ignored there ⇒ iOS uncovered, landscape accepted), add an amendment note with the #701 date.
 - Rewrite the **Session Orientation Guard** term in `file:docs/CONTEXT.md` without the CSS layer; mention the manifest.
 
 ## Out of Scope
@@ -24,7 +24,7 @@ Promote the prevention to the OS level (app-wide) and record the reversal of #50
 ## Acceptance Criteria
 
 - [ ] `vite.config.ts` manifest declares `orientation: "portrait"`.
-- [ ] ADR 0022 reflects the new tactic and no longer claims iOS ignores all locks.
+- [ ] ADR 0022 reflects the new tactic and states that iOS is uncovered (`lock()` unsupported, manifest `orientation` ignored) ⇒ landscape accepted.
 - [ ] `docs/CONTEXT.md` **Session Orientation Guard** matches the implementation.
 - [ ] `npm run lint` green.
 
