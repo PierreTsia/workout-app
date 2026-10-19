@@ -2,7 +2,18 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-24
+- **Amended:** 2026-10-19 ([#701](https://github.com/PierreTsia/workout-app/issues/701)) — CSS rotate fallback withdrawn, manifest `orientation: portrait` adopted
 - **Decided in:** HITL direction-lock on [#501](https://github.com/PierreTsia/workout-app/issues/501)
+
+## Amendment (#701, 2026-10-19)
+
+The CSS rotate fallback (decision 3b) **blinks**: the browser reflows to landscape before the `transform` snaps the root back, leaving a black band and a broken view. It is **withdrawn**. Prevention is now OS-level:
+
+- **(a)** `orientation: "portrait"` added to the PWA manifest (`file:vite.config.ts`) — app-wide, OS-enforced on installed PWAs. **This reverses decision 4 below.**
+- **(b)** the best-effort `screen.orientation.lock("portrait")` stays (session-scoped reinforcement, browser tabs).
+- Where the platform refuses, the app shows its **normal landscape layout** — the two clean ends, never the in-between.
+
+The "iOS ignores every lock API" premise below is **stale**: Safari iOS 16.4+ supports `screen.orientation` (caniuse). Everything else (Prevent fork, not Floor HUD; **Eyes-off Feedback** owns the eyes-off story) stands.
 
 ## Context
 
