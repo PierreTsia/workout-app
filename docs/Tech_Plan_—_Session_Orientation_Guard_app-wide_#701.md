@@ -12,14 +12,14 @@
 |---|---|---|
 | Kill the blink | Delete the `@media (orientation: landscape) and (pointer: coarse)` guard block in `file:src/styles/globals.css` | The transform hack is the sole source of the blink and black band (reflow-then-rotate). Nothing else consumes the block. |
 | OS-level prevention | Add `orientation: "portrait"` to the VitePWA manifest (`file:vite.config.ts`) | App-wide, OS-enforced on installed PWAs (Android; iOS 16.4+ standalone). The cleanest "hold portrait" lever available to a web app. |
-| Session-scoped reinforcement | Keep `useSessionOrientationGuard`, reduced to `screen.orientation.lock("portrait")` / `unlock()` | Covers browser tabs and reinforces the manifest during the training beat; best-effort, silent (mirrors `useKeepScreenAwake`). |
+| Session-scoped reinforcement | Keep `useSessionOrientationGuard`, reduced to `screen.orientation.lock("portrait")` / `unlock()` | Reinforces the manifest on Android during the training beat; best-effort, silent (mirrors `useKeepScreenAwake`). Not a general browser-tab lever — `lock()` typically needs fullscreen / installed-standalone. |
 | DOM contract | The hook touches **nothing** on `<html>` | No consumer remains once the CSS block is gone. Removing the class/attribute/listeners deletes dead surface. |
 | Graceful degradation | If the platform refuses the lock, the app shows its normal landscape layout | The two acceptable ends of the athlete's ask; never the in-between. |
 | ADR | Amend `0022` in place (status stays Accepted, add an amendment note) | The policy is the same fork (Prevent); only the *tactic* changes. The stale iOS premise is corrected. |
 
 ### Critical Constraints
 
-**No transform on `<html>` anywhere.** After this change, grep must find no `gl-session-orientation-guard`, no `data-gl-rot`, no root `transform` for orientation.
+**No transform on `<html>` anywhere.** After this change, grep over `src/` must find no `gl-session-orientation-guard`, no `data-gl-rot`, no root `transform` for orientation (the hook test keeps the two names only as negative assertions).
 
 **StrictMode symmetry.** `file:src/main.tsx` wraps in `StrictMode` — lock/unlock must stay idempotent with symmetric cleanup (unchanged from #501's hook).
 

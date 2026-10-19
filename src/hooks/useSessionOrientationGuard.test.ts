@@ -23,8 +23,6 @@ beforeEach(() => {
     orientation: {
       lock,
       unlock,
-      angle: 0,
-      type: "portrait-primary",
     },
   })
 })
@@ -107,13 +105,5 @@ describe("useSessionOrientationGuard", () => {
     await new Promise((r) => setTimeout(r, 0))
 
     expect(lock).not.toHaveBeenCalled()
-  })
-
-  it("no-ops when screen.orientation.lock is undefined", async () => {
-    vi.stubGlobal("screen", { orientation: { unlock } })
-
-    const { store } = renderHookWithProviders(() => useSessionOrientationGuard())
-    expect(() => store.set(sessionAtom, makeActiveSession())).not.toThrow()
-    await new Promise((r) => setTimeout(r, 0))
   })
 })

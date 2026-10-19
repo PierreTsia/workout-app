@@ -1,5 +1,7 @@
 # Epic Brief — Session Portrait Guard (#501)
 
+> **Superseded by [#701](https://github.com/PierreTsia/workout-app/issues/701)** — the CSS rotate fallback described here blinked; it was withdrawn and replaced by an app-wide manifest `orientation: "portrait"` + best-effort lock. See `file:docs/Epic_Brief_—_Session_Orientation_Guard_app-wide_#701.md` and the amendment in `file:docs/adr/0022-session-orientation-policy.md`.
+
 ## Summary
 
 During an in-progress **Session**, dropping the phone on the floor often rotates the PWA into landscape, and the portrait-only session UI reflows into an accidental, broken layout. This epic ships the **Prevent** v1: while a **Session** is live (or paused), the app keeps a usable portrait visual — best-effort OS orientation lock where the platform allows it, and a no-reflow CSS fallback where it does not (iOS). Not a Floor HUD, not a bit of "responsive CSS" — a deliberate orientation policy scoped to the training beat. GitHub [#501](https://github.com/PierreTsia/workout-app/issues/501) stays the vehicle.
