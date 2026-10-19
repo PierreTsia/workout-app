@@ -1,5 +1,7 @@
 # T249 — Landscape rotate CSS fallback
 
+> **Superseded by [#701](https://github.com/PierreTsia/workout-app/issues/701)** — this CSS fallback blinked and was withdrawn; the block it describes no longer exists in `file:src/styles/globals.css`.
+
 **Epic:** `file:docs/Epic_Brief_—_Session_Portrait_Guard_#501.md` · **Tech Plan:** `file:docs/Tech_Plan_—_Session_Portrait_Guard_#501.md`
 
 - **Mode:** AFK — CSS is fully specified (gates, geometry, overrides) in the Tech Plan; only the final phone-eyeball is manual.

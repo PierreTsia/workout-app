@@ -1,5 +1,7 @@
 # Tech Plan — Session Portrait Guard (#501)
 
+> **Superseded by [#701](https://github.com/PierreTsia/workout-app/issues/701)** — the CSS rotate fallback (T249) blinked; it was withdrawn and replaced by an app-wide manifest `orientation: "portrait"` + best-effort lock. Current plan: `file:docs/Tech_Plan_—_Session_Orientation_Guard_app-wide_#701.md`; amendment in `file:docs/adr/0022-session-orientation-policy.md`.
+
 > Implements `file:docs/Epic_Brief_—_Session_Portrait_Guard_#501.md`. Glossary: `file:docs/CONTEXT.md` (**Session**, **Eyes-off Feedback**, **Duration Set Timer**). ADR to write: `file:docs/adr/0022-session-orientation-policy.md`. HITL direction-lock: prevent, simplest, session-scoped — no Floor HUD, no manifest change.
 
 ---

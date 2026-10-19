@@ -283,8 +283,8 @@ The product-level promise that during a held isometric (plank, hollow hold, etc.
 → `file:src/components/workout/DurationSetTimer.tsx`, `file:src/lib/audio.ts`, `file:src/hooks/useKeepScreenAwake.ts`
 
 **Session Orientation Guard**:
-The session-scoped orientation policy that stops the phone-on-the-floor beat from reflowing the PWA into landscape: while a **Session** is live or paused (`sessionAtom.isActive && startedAt != null`, mounted in `AppShell`), `<html>` carries `gl-session-orientation-guard` + `data-gl-rot`, a best-effort `screen.orientation.lock("portrait")` runs where the platform allows it (installed Android PWAs — silent failure like **Eyes-off Feedback**'s wake lock), and on `(orientation: landscape) and (pointer: coarse)` a CSS block rotates the root box back to an upright portrait visual (iOS, where every lock API is ignored). Session-only by design: no guard pre-session, on other screens, or on desktop (fine pointer). The PWA manifest deliberately has no `orientation` field.
-→ `file:src/hooks/useSessionOrientationGuard.ts`, `file:src/styles/globals.css`, ADR `file:docs/adr/0022-session-orientation-policy.md`
+The orientation policy that stops the phone-on-the-floor beat from reflowing the PWA into landscape. App-wide prevention via the PWA manifest `orientation: "portrait"` (`file:vite.config.ts`, honoured by **Android** installed PWAs), reinforced while a **Session** is live or paused (`sessionAtom.isActive && startedAt != null`, mounted in `AppShell`) by a best-effort `screen.orientation.lock("portrait")` — silent failure like **Eyes-off Feedback**'s wake lock. **No CSS fallback:** the earlier `transform`-based root-rotate hack was withdrawn (#701) because it blinked and left a black band. **iOS is uncovered** (`lock()` unsupported on Safari iOS; manifest `orientation` ignored there), so on iPhone the app shows its normal landscape layout. Amended in ADR `file:docs/adr/0022-session-orientation-policy.md`.
+→ `file:src/hooks/useSessionOrientationGuard.ts`, `file:vite.config.ts`, ADR `file:docs/adr/0022-session-orientation-policy.md`
 
 ---
 
