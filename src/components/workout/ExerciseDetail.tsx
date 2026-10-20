@@ -89,6 +89,7 @@ export function ExerciseDetail({
     libExercise?.equipment,
     sessionStartedAt,
     libExercise,
+    sessionId,
   )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)

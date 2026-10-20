@@ -23,6 +23,12 @@ vi.mock("@/hooks/useLastSessionDetail", () => ({
   }),
 }))
 
+const { trackRuleMock } = vi.hoisted(() => ({ trackRuleMock: vi.fn() }))
+
+vi.mock("@/lib/progressionRuleTelemetry", () => ({
+  trackProgressionRuleServed: (...args: unknown[]) => trackRuleMock(...args),
+}))
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -221,5 +227,45 @@ describe("useProgressionSuggestion", () => {
     )
     expect(result.current).not.toBeNull()
     expect(result.current!.rule).toBe("HOLD_INCOMPLETE")
+  })
+})
+
+describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
+  beforeEach(() => {
+    mockLastPerformance = null
+    trackRuleMock.mockClear()
+  })
+
+  it("emits one progression_rule_served event per slot and session", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    const { result, rerender } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+
+    expect(result.current).not.toBeNull()
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+    expect(trackRuleMock).toHaveBeenCalledWith({
+      rule: "REPS_UP",
+      volumeType: "reps",
+      workoutExerciseId: "we-1",
+      exerciseId: "ex-1",
+      sessionId: "sess-1",
+    })
+
+    // A re-render on the same slot + session must not double-count.
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not emit when there is no suggestion", () => {
+    mockLastPerformance = null
+    renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+    expect(trackRuleMock).not.toHaveBeenCalled()
   })
 })
