@@ -63,6 +63,11 @@ We will:
 - **Negative:** one more nullable column on `set_logs`; the read must special-case "last set by
   `set_number`" and must not reuse the `[0]` convention; the RPC changes. Rows predating the change —
   and any set with no engine move — carry NULL and fall back to `prescribed_reps`.
+- **Known limit — the anchor lives on the last set only.** Because the read takes the highest
+  `set_number`, an anchor set on an earlier set is dropped if the *last* set carries none — either
+  because the athlete hand-edited it (`manuallyEdited` → null) or because it was never logged after
+  the cascade. The deload then falls back to `prescribed_reps`. This is the cost of one value per
+  session; a per-set read is possible later if the case proves common.
 - **Follow-ups:** the duration axis (`anchor_duration_seconds`) if the same hole is confirmed there;
   P2 / P3 read the anchor rather than re-deriving it.
 
