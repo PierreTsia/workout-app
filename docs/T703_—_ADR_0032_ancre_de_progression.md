@@ -41,11 +41,11 @@ None
 
 ## Acceptance Criteria
 
-- [ ] L'ADR suit le format des ADR existants et porte le numéro 0032.
-- [ ] Le Context cite les trois faits : observatoire de déviations, règle unique de `CONTEXT.md`,
+- [x] L'ADR suit le format des ADR existants et porte le numéro 0032.
+- [x] Le Context cite les trois faits : observatoire de déviations, règle unique de `CONTEXT.md`,
       précédent #381 de l'axe poids.
-- [ ] Les cinq alternatives sont listées avec leur raison de rejet.
-- [ ] La ligne d'index est ajoutée dans le même changement.
+- [x] Les alternatives sont listées avec leur raison de rejet (six, dont le stamp sur le row).
+- [x] La ligne d'index est ajoutée dans le même changement.
 
 ## References
 

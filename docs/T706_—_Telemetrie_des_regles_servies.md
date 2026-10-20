@@ -33,9 +33,10 @@ None
 
 ### Read path
 
-- Documenter les 3 requêtes SQL dérivées, patron `docs/Observatory_—_Deviations.md` :
-  (a) distribution des règles ; (b) longueur des runs `HOLD_INCOMPLETE` (window function, partition
-  `workoutExerciseId`, ordre `created_at`) ; (c) slots dont le dernier événement est `PLATEAU`.
+- Documenté dans `file:docs/Observatory_—_Progression_Rules.md` (patron
+  `file:docs/Observatory_—_Deviations.md`) : (a) distribution des règles ;
+  (b) longueur des runs `HOLD_INCOMPLETE` (gaps-and-islands sur `workoutExerciseId`) ;
+  (c) slots dont le dernier événement est `PLATEAU`.
 
 ## Out of Scope
 
@@ -45,11 +46,12 @@ None
 
 ## Acceptance Criteria
 
-- [ ] Un événement `progression_rule_served` est émis par slot et par séance servie.
-- [ ] Le payload contient `rule`, `volumeType`, `workoutExerciseId`, `exerciseId`, `sessionId`.
-- [ ] Aucune erreur d'insertion ne remonte à l'UI.
-- [ ] Aucun double comptage (couture unique in-session).
-- [ ] Les 3 requêtes de lecture sont documentées et exécutables.
+- [x] Un événement `progression_rule_served` est émis par slot et par séance servie.
+- [x] Le payload contient `rule`, `volumeType`, `workoutExerciseId`, `exerciseId`, `sessionId`.
+- [x] Aucune erreur d'insertion ne remonte à l'UI.
+- [x] Aucun double comptage (couture unique in-session).
+- [x] Les 3 requêtes de lecture sont documentées et exécutables
+      (`file:docs/Observatory_—_Progression_Rules.md`).
 
 ## References
 

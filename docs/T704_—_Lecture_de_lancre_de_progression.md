@@ -63,12 +63,14 @@ None
 
 ## Acceptance Criteria
 
-- [ ] `anchor_reps` existe sur `set_logs` et `get_last_performance_for_slots` la retourne.
-- [ ] Un test prouve `volume.current = ancre` de la série au `setNumber` max.
-- [ ] Un test prouve un résultat identique quel que soit l'ordre du tableau de séries.
-- [ ] Un test prouve le repli sur `prescribed_reps` quand l'ancre est NULL.
-- [ ] Le test d'arch échoue si la colonne ou la RPC perd `anchor_reps`.
-- [ ] Aucun test existant ne change (tout NULL → comportement identique).
+- [x] `anchor_reps` existe sur `set_logs` et `get_last_performance_for_slots` la retourne.
+- [x] Un test prouve `volume.current = ancre` de la série au `setNumber` max.
+- [x] Un test prouve un résultat identique quel que soit l'ordre du tableau de séries.
+- [x] Un test prouve le repli sur `prescribed_reps` quand l'ancre est NULL.
+- [x] Le test d'arch échoue si la colonne ou la RPC perd `anchor_reps`.
+- [~] Comportement inchangé quand tout est NULL — **vérifié**. Mais **des tests ont changé** :
+      `SetLog` / `SetPerformance` gagnant un champ requis, 9 fixtures et 1 assertion de forme ont
+      été complétées (compilation), sans changement de comportement.
 
 ## References
 
