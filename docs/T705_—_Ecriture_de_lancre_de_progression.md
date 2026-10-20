@@ -19,32 +19,37 @@ T704
 
 ## Scope
 
-### Dérivation (SetsTable)
+### Stamp par la cascade (SetsTable)
 
-> **Écart au Tech Plan, validé en cours de TDD** : l'ancre est **dérivée au log**, pas stampée sur le
-> row. Pas de champ `SessionSetRowReps`, pas de stamp dans la cascade, pas d'effacement dans
-> `updateField`.
+> **Design corrigé après revue Copilot.** Une première version *dérivait* l'ancre au log (« reps du
+> row ≠ prescription et non `manuallyEdited` »). Elle était **fausse** : la cascade renvoie toujours
+> `String(currentReps)`, donc un **miss** est recopié dans les séries suivantes sans `manuallyEdited`
+> et se lit comme un move moteur. La décision se prend donc **là où l'information existe** : dans la
+> cascade.
 
-- `confirmRir` (`file:src/components/workout/SetsTable.tsx`) : `anchorReps = reps du row si
-  `Number(reps)` ≠ `prescriptionForLog.reps` et `!currentSet.manuallyEdited`, sinon `null``.
-- L'édition manuelle (`updateField`) pose déjà `manuallyEdited` → exclue automatiquement, donc un
-  « miss » tapé par l'athlète ne devient jamais l'ancre.
-- La cascade moteur ne pose pas `manuallyEdited` → capturée automatiquement.
+- `SessionSetRowReps` (`file:src/lib/sessionSetRow.ts`) : `anchorReps?: number`.
+- La cascade stampe `anchorReps` sur les rows qu'elle déplace, **seulement** quand :
+  - la série déclenchante a fait **exactement** la prescription (`triggering.reps === prescription`),
+    et
+  - `Number(suggestion.reps) ≠ prescription` (sinon la cascade **écho** la valeur de l'athlète, ou ne
+    change rien).
+- `updateField` (édition manuelle) remet `anchorReps: undefined` : l'intention de l'athlète gagne.
+- `confirmRir` porte `currentSet.anchorReps ?? null` dans le payload — plus aucune comparaison au log.
 
 ### Payload & persistance
 
 - `SetLogPayloadReps` (`file:src/lib/syncService.ts`) : `anchorReps?: number | null`.
-- `confirmRir` (`SetsTable.tsx`) : porter `anchorReps` dans le payload.
 - `processSetLog` (`file:src/lib/syncService.ts`) : écrire `anchor_reps` sur la branche reps ; la
   branche durée laisse NULL.
 
 ### Tests
 
-- SetsTable : une série dont les reps diffèrent de la prescription verrouillée, sans `manuallyEdited`,
-  porte `anchorReps` ; une série `manuallyEdited` ne le porte pas.
+- SetsTable : un **miss** écho par la cascade ne porte **pas** d'ancre (repro Copilot) ; un **déload
+  reps-only** genuine (série déclenchante au plan, `rir 0`) porte l'ancre ; une série
+  `manuallyEdited` ne la porte pas.
 - `processSetLog` : `anchor_reps` écrit (reps), NULL (durée et payload legacy).
-- La chaîne complète (dérivation → persistance → lecture T704) tient la boucle ; un E2E Playwright
-  dédié n'est pas jugé nécessaire à ce grain.
+- La chaîne complète (stamp → persistance → lecture T704) tient la boucle ; un E2E Playwright dédié
+  n'est pas jugé nécessaire à ce grain.
 
 ## Out of Scope
 

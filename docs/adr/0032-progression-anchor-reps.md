@@ -40,12 +40,12 @@ We will:
 
 1. Add a nullable column `set_logs.anchor_reps`: the rep target **actually in force at the last logged
    set**.
-2. **Derive it at log time**, in `SetsTable.confirmRir`: `anchorReps = the row's reps when they differ
-   from the locked prescription and the row is not `manuallyEdited`, else null`. No row field, no stamp
-   in the cascade, no clearing: a manual edit already sets `manuallyEdited` (so a typed *miss* never
-   becomes the anchor), and the engine's cascade does not (so an engine-moved set always does). The
-   cascade changes *weight* for weight-first equipment and *reps* for reps-only equipment; the anchor
-   is a reps concern.
+2. **Stamp it in the cascade**, in `SetsTable.confirmRir`: the anchor rides the rows the intra-session
+   cascade moves, and only when the cascade *decided* the reps — the triggering set hit the plan
+   exactly (`triggering.reps === prescription`) **and** the suggested reps differ from it. When the
+   triggering set missed, `weightFirstRule` / `repsOnlyRule` merely *echo* the athlete's own value
+   (`reps: String(currentReps)`), and such an echo must never become the anchor. A manual edit clears
+   the anchor (`updateField` sets `anchorReps: undefined`).
 3. Read it as the value of the **last logged set of the session** (highest `set_number`), explicitly —
    never `lastPerformance[0]`.
 4. Use `anchor_reps ?? prescribed_reps` for `volume.current`. The weight axis is untouched: for
@@ -78,6 +78,6 @@ We will:
 | **Write the served target into `prescribed_*`** | Breaks the observatory's direction query, `CONTEXT.md`'s single rule, and re-creates #381. |
 | **Write the shift back into the Template Prescription at finish** (Manual Override Window) | The exact ADR 0006 / #373 banned pattern: a finish-time writeback that corrupted Builder edits and the engine's own reads. |
 | **Read the raw actual `reps_logged` for `volume.current`** | Ratchets the target down on a genuine miss (`HOLD_INCOMPLETE` loses its meaning). Track-reality is safe for weight, not for reps. |
-| **Stamp `anchorReps` on the row at the cascade, clear it on manual edit** | The pre-TDD plan. Correct but larger: a row field, a cascade write, a clearing path — all replaced by one derivation that reuses `manuallyEdited`. |
+| **Derive it at log time (`reps ≠ prescription && !manuallyEdited`)** | Tried, then rejected: the cascade echoes the athlete's actual reps (`String(currentReps)`), so a typed *miss* propagated into untouched sets looked exactly like an engine move — it would ratchet the target down (Copilot review, PR #706). The decision must be taken where the intent exists: in the cascade. |
 | **A separate `(session, slot)` anchor table** | Unambiguous grain, but a new table + RLS + arch test where one nullable column and an explicit read suffice. |
 | **Store the anchor on the first set only** | Dies on the ordering divergence between the two readers, and the write site cannot know which set will be last. |

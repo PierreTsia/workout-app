@@ -6,11 +6,11 @@
 
 | Décision | Choix | Rationale |
 |---|---|---|
-| Porteur de l'ancre | **dérivée au log** : `anchorReps = reps du row si ≠ prescription verrouillée et non `manuallyEdited`` | pas de champ de row ni de stamp : la règle tient en une comparaison, et `manuallyEdited` exclut à lui seul un « miss » |
-| Site de calcul | `confirmRir` (`file:src/components/workout/SetsTable.tsx`), au moment du payload | la cascade (`:566-570`) déplace bien les rows, mais l'auto-apply (`:207-299`) applique le pristine — comparer à la prescription verrouillée sépare les deux sans traçage |
+| Porteur de l'ancre | **stampée par la cascade** sur le row (`SessionSetRowReps.anchorReps`), effacée à l'édition manuelle | comparer au log ne distingue pas une décision moteur d'un **écho** de la valeur de l'athlète (revue Copilot) — la cascade seule connaît la nuance |
+| Condition de stamp | la série déclenchante a fait **exactement** la prescription, **et** `suggestion.reps ≠ prescription` | la cascade renvoie toujours `String(currentReps)` : si la série qui la déclenche a manqué, sa sortie est l'écho d'un miss, pas un déload |
 | Persistance | colonne additive `set_logs.anchor_reps integer` | garde `prescribed_*` pristine (baseline observatoire, règle unique `CONTEXT.md`) |
 | Lecture | `anchor_reps ?? prescribed_reps` sur la série au `set_number` max | les deux lecteurs ordonnent les séries à l'envers — l'ordre ne doit pas compter |
-| Édition manuelle | **exclue automatiquement** (`updateField` pose `manuallyEdited`, que la dérivation refuse) | l'intention de l'athlète reste souveraine, sans code d'effacement |
+| Édition manuelle | **efface l'ancre** (`updateField` remet `anchorReps: undefined` en même temps que `manuallyEdited`) | l'intention de l'athlète reste souveraine |
 | Axe poids | inchangé (lit `weight_logged`) | précédent #381 |
 | Métriques | émises vers `analytics_events`, couture **in-session** | le moteur est client-only, la règle n'est jamais persistée ; une seule couture évite le double comptage |
 | Forme de l'événement | un seul `event_type = 'progression_rule_served'`, la règle dans le payload | un seul type à maintenir quand l'enum `ProgressionRule` évolue |
@@ -28,9 +28,9 @@
   `file:src/lib/progression.ts:161` lit `[0]` aujourd'hui — inoffensif tant que `prescribed_*` est
   constant sur la séance, faux dès qu'une ancre s'ajoute.
 - **Aucun writeback du template en fin de séance** (retiré par ADR 0006, `file:src/lib/syncService.ts:1257`).
-- **L'ancre est dérivée au log, pas stampée sur le row.** `prescriptionForLog` vient de
-  `lockedPrescriptionRef` (`file:src/components/workout/SetsTable.tsx:146-163`), de la mémoire pure —
-  mais la comparaison se fait au moment du payload, donc rien ne dépend de la survie du ref.
+- **L'ancre est stampée sur le row par la cascade, pas dérivée au log.** Le stamp est dans
+  `confirmRir`, au moment où la cascade applique ses suggestions ; la comparaison au log ne saurait
+  pas distinguer une décision moteur d'un écho de la valeur de l'athlète.
 - **RPC.** Ajouter une colonne à `RETURNS TABLE` **ne peut pas** se faire en `CREATE OR REPLACE`
   (changement de type de retour → *cannot change return type of existing function*). La migration fait
   donc `DROP FUNCTION IF EXISTS` + `CREATE FUNCTION` + re-`GRANT EXECUTE`. Trois versions existent ;
@@ -60,6 +60,7 @@ classDiagram
     +weight string
     +done boolean
     +manuallyEdited boolean
+    +anchorReps number  «nouveau, stampé par la cascade»
   }
   class SetLogPayloadReps {
     +setNumber number
@@ -101,7 +102,7 @@ ALTER TABLE public.set_logs ADD COLUMN anchor_reps integer;
 
 ```mermaid
 graph TD
-  Row["sessionAtom row<br/>reps ≠ prescription, non manuallyEdited"] -->|confirmRir dérive| Payload["SetLogPayloadReps.anchorReps"]
+  Row["sessionAtom row<br/>anchorReps stampé par la cascade"] -->|confirmRir porte| Payload["SetLogPayloadReps.anchorReps"]
   Payload --> PSL["processSetLog"] --> DB[("set_logs.anchor_reps")]
   DB --> RPC["get_last_performance_for_slots"]
   RPC --> HDay["useProgressionSuggestionsForDay"]
@@ -121,13 +122,14 @@ graph TD
 | `src/test/setLogsAnchor.arch.test.ts` | invariant : la colonne existe et la RPC l'expose (comble le trou : rien ne couvre la RPC aujourd'hui) |
 | `docs/adr/0032-progression-anchor-reps.md` | l'ADR de la décision |
 
-**Modifiés :** `src/lib/progression.ts` (`pickAnchorSet` + lecture), `src/lib/syncService.ts`
-(payload `SetLogPayloadReps.anchorReps` + `processSetLog`),
-`src/components/workout/SetsTable.tsx` (`confirmRir` **dérive** l'ancre et la porte dans le payload),
-`src/hooks/useLastSessionDetail.ts` + `useProgressionSuggestionsForDay.ts` (`setNumber` + `anchorReps`
-dans `SetPerformance`), `src/hooks/useProgressionSuggestion.ts` (appel télémétrie),
-`src/types/database.ts` (`SetLog.anchor_reps`). `src/lib/sessionSetRow.ts` **n'est pas touché** — le
-champ de row du plan initial a été abandonné au profit de la dérivation (cf. T705).
+**Modifiés :** `src/lib/progression.ts` (`pickAnchorSet` + lecture), `src/lib/sessionSetRow.ts`
+(`anchorReps` sur `SessionSetRowReps`), `src/lib/syncService.ts` (payload
+`SetLogPayloadReps.anchorReps` + `processSetLog`),
+`src/components/workout/SetsTable.tsx` (la cascade **stampe** l'ancre, `confirmRir` la porte,
+`updateField` l'efface), `src/hooks/useLastSessionDetail.ts` + `useProgressionSuggestionsForDay.ts`
+(`setNumber` + `anchorReps` dans `SetPerformance`), `src/hooks/useProgressionSuggestion.ts`
+(télémétrie, dédup dans `sessionAtom`), `src/types/database.ts` (`SetLog.anchor_reps`),
+`src/store/atoms.ts` (`trackedRuleSlots`).
 
 ### Component Responsibilities
 
@@ -138,10 +140,10 @@ champ de row du plan initial a été abandonné au profit de la dérivation (cf.
   Window gagne toujours). `prescribedSets`, axe durée et axe poids inchangés.
 
 **`SetsTable`** (`file:src/components/workout/SetsTable.tsx`)
-- `confirmRir` : **dérive** l'ancre — `anchorReps = reps du row si ≠ prescriptionForLog.reps et non
-  `manuallyEdited`, sinon null` — et la porte dans `SetLogPayloadReps`.
-- Aucun autre point de contact : la cascade (`:566-570`) déplace les rows, l'édition manuelle pose
-  `manuallyEdited`, et la dérivation au log lit les deux sans traçage ni effacement.
+- La cascade **stampe** `anchorReps` sur les rows qu'elle déplace, **seulement** quand la série
+  déclenchante a fait exactement la prescription et que `suggestion.reps ≠ prescription` (sinon c'est
+  l'écho d'un miss). `confirmRir` porte `currentSet.anchorReps` dans `SetLogPayloadReps`.
+- `updateField` (édition manuelle) remet `anchorReps: undefined`.
 
 **`useLastSessionDetail`** / **`useProgressionSuggestionsForDay`**
 - Mappent `set_number → setNumber` et `anchor_reps → anchorReps` dans `SetPerformance` (les deux, pour
@@ -173,7 +175,7 @@ group by 1 order by n desc;
 | Pas d'ancre (legacy, ou séance sans décharge) | retombe sur `prescribed_reps` — comportement d'aujourd'hui |
 | Édition manuelle après un move moteur | ancre effacée → la valeur de l'athlète gagne |
 | Refresh en pleine séance | les rows déjà loggés gardent leur ancre (`sessionAtom`) ; seule la prescription en ref est perdue |
-| Skew de déploiement (colonne pas encore migrée) | le hook lit `undefined` → retombe sur `prescribed_reps` |
+| Skew de déploiement (colonne pas encore migrée) | **aucun repli** : le `select` de `anchor_reps` échoue (colonne inconnue) → la requête entière tombe, plus aucune suggestion. D'où l'ordre **impératif** : la migration passe avant le client |
 | Règle émise deux fois (batch + in-session) | évité : une seule couture (in-session) |
 | Insert `analytics_events` en échec (hors-ligne) | avalé, aucune erreur UI ; la mesure est perdue pour cette séance, pas la progression |
 
