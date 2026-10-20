@@ -1,6 +1,8 @@
+import { createElement } from "react"
 import { vi, describe, it, expect, beforeEach } from "vitest"
-import { renderHookWithProviders } from "@/test/utils"
+import { renderHookWithProviders, renderWithProviders } from "@/test/utils"
 import { useProgressionSuggestion } from "./useProgressionSuggestion"
+import { sessionAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import type { SetPerformance } from "@/lib/progression"
 
@@ -234,6 +236,7 @@ describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
   beforeEach(() => {
     mockLastPerformance = null
     trackRuleMock.mockClear()
+    localStorage.clear()
   })
 
   it("emits one progression_rule_served event per slot and session", () => {
@@ -290,5 +293,45 @@ describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
     exercise = makeExercise()
     rerender()
     expect(trackRuleMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("records the emitted slot in the session, so a remount or refresh cannot re-emit", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    const { store } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+    expect(store.get(sessionAtom).trackedRuleSlots).toContain("we-1")
+  })
+
+  // Copilot repro: selecting a Circuit swaps ExerciseDetail out (WorkoutPage), so
+  // the slot's card unmounts and remounts within the same session and store.
+  it("does not re-emit after the exercise card unmounts and mounts again", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+
+    function Card() {
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1")
+      return null
+    }
+    function Probe({ mounted }: { mounted: boolean }) {
+      return mounted ? createElement(Card) : null
+    }
+
+    const { rerender } = renderWithProviders(createElement(Probe, { mounted: true }))
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+
+    rerender(createElement(Probe, { mounted: false })) // Circuit selected → unmount
+    rerender(createElement(Probe, { mounted: true })) // back to the slot → remount
+
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
   })
 })

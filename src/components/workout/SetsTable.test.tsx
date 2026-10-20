@@ -502,19 +502,17 @@ describe("SetsTable", () => {
     )
   })
 
-  // ADR 0032 — a set whose reps differ from the locked prescription, with no
-  // manual edit, is a target the intra-session engine moved: it carries the
-  // anchor so the deload survives into the next session.
-  it("carries anchorReps on a set the engine moved, not on a manual edit (ADR 0032)", async () => {
+  // ADR 0032 — Copilot repro: a typed miss is *echoed* by the cascade into the
+  // untouched sets, but that copy must never become the next session's anchor.
+  it("does not carry anchorReps from a miss the cascade merely echoed (ADR 0032)", async () => {
     const user = userEvent.setup()
     const session: SessionState = {
       ...BASE_SESSION,
       setsData: {
         "workout-ex-1": [
-          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
-          // reps 8, no `manuallyEdited` = what the intra-session cascade leaves
-          // behind when it deloads a future set.
-          { kind: "reps", reps: "8", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: false },
+          { kind: "reps", reps: "10", weight: "60", done: false },
         ],
       },
     }
@@ -530,12 +528,60 @@ describe("SetsTable", () => {
       store.set(sessionAtom, session)
     })
 
+    // Set 1 misses: 8 reps instead of the prescribed 10.
+    const repsInput = screen.getAllByDisplayValue("10")[0]
+    await user.clear(repsInput)
+    await user.type(repsInput, "8")
+
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    // The cascade copied 8 into set 2 — logging it must ride with no anchor.
     await user.click(screen.getAllByRole("checkbox")[1])
     await user.click(screen.getByTestId("rir-confirm"))
 
-    expect(enqueueSetLogMock).toHaveBeenCalledWith(
-      expect.objectContaining({ setNumber: 2, anchorReps: 8 }),
+    const payload = enqueueSetLogMock.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload.setNumber).toBe(2)
+    expect(payload.anchorReps ?? null).toBeNull()
+  })
+
+  // ADR 0032 — the genuine case: the athlete hits the plan, fatigue makes the
+  // engine decide a lower rep target → the anchor rides it forward.
+  it("carries anchorReps on a genuine reps-only engine deload (ADR 0032)", async () => {
+    const user = userEvent.setup()
+    const bodyweight = { ...EXERCISE, reps: "20", weight: "0", sets: 2 }
+    const session: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "20", weight: "0", done: false },
+          { kind: "reps", reps: "20", weight: "0", done: false },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable
+        exercise={bodyweight}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+        equipment="bodyweight"
+      />,
     )
+    act(() => {
+      store.set(sessionAtom, session)
+    })
+
+    mockRirValue = 0 // failure bucket → proportional reps deload
+    await user.click(screen.getAllByRole("checkbox")[0])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const payload = enqueueSetLogMock.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload.setNumber).toBe(2)
+    expect(payload.anchorReps).toBe(17) // round(20 × 0.85)
   })
 
   it("does not carry anchorReps when the athlete typed the reps (manual edit) (ADR 0032)", async () => {

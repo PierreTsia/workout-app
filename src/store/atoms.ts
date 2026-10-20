@@ -24,6 +24,12 @@ export interface SessionState {
   cycleId: string | null
   /** Ids of Exercise Blocks fully completed this session (#351). Optional for back-compat. */
   completedBlockIds?: string[]
+  /**
+   * Slots already reported to the progression-rule telemetry this session (T706).
+   * Lives here, not in a hook ref: it must survive an unmount (selecting a Circuit
+   * swaps ExerciseDetail out) and a refresh, to keep one event per slot and session.
+   */
+  trackedRuleSlots?: string[]
 }
 
 export const defaultSessionState: SessionState = {
@@ -38,6 +44,7 @@ export const defaultSessionState: SessionState = {
   accumulatedPause: 0,
   cycleId: null,
   completedBlockIds: [],
+  trackedRuleSlots: [],
 }
 
 export const authAtom = atom<User | null>(null)

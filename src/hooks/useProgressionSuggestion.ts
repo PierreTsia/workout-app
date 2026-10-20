@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
+import { useStore } from "jotai"
 import { useLastSessionDetail } from "@/hooks/useLastSessionDetail"
 import {
   buildPrescription,
@@ -6,6 +7,7 @@ import {
   type ProgressionSuggestion,
 } from "@/lib/progression"
 import { trackProgressionRuleServed } from "@/lib/progressionRuleTelemetry"
+import { sessionAtom } from "@/store/atoms"
 import type { WorkoutExercise, Exercise } from "@/types/database"
 
 export function useProgressionSuggestion(
@@ -22,6 +24,7 @@ export function useProgressionSuggestion(
     sessionStartedAt,
     measurementType,
   )
+  const store = useStore()
 
   const suggestion = useMemo(() => {
     if (!lastSessionDetail || lastSessionDetail.sets.length === 0) return null
@@ -39,15 +42,18 @@ export function useProgressionSuggestion(
   }, [exercise, lastSessionDetail, measurementType, equipment, catalogExercise])
 
   // T706 — one event per slot and session, from the in-session seam only. The
-  // rule enum is never persisted elsewhere; this is the only record of what was
-  // actually served. A Set, not a single key: ExerciseDetail is one un-keyed
-  // instance reused across slots, and navigating A → B → A must not re-emit A.
-  const emittedKeys = useRef<Set<string>>(new Set())
+  // dedup lives in the session (not a hook ref): selecting a Circuit unmounts
+  // ExerciseDetail, and a refresh remounts it — either would re-emit A after
+  // A → B → A and inflate the observatory counts.
   useEffect(() => {
     if (!suggestion || !sessionId) return
-    const key = `${sessionId}:${exercise.id}`
-    if (emittedKeys.current.has(key)) return
-    emittedKeys.current.add(key)
+    const tracked = store.get(sessionAtom).trackedRuleSlots ?? []
+    if (tracked.includes(exercise.id)) return
+
+    store.set(sessionAtom, (prev) => ({
+      ...prev,
+      trackedRuleSlots: [...(prev.trackedRuleSlots ?? []), exercise.id],
+    }))
     trackProgressionRuleServed({
       rule: suggestion.rule,
       volumeType: suggestion.volumeType,
@@ -55,7 +61,7 @@ export function useProgressionSuggestion(
       exerciseId: exercise.exercise_id,
       sessionId,
     })
-  }, [suggestion, sessionId, exercise.id, exercise.exercise_id])
+  }, [suggestion, sessionId, exercise.id, exercise.exercise_id, store])
 
   return suggestion
 }
