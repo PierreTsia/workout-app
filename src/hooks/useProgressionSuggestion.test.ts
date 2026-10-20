@@ -1,6 +1,8 @@
+import { createElement } from "react"
 import { vi, describe, it, expect, beforeEach } from "vitest"
-import { renderHookWithProviders } from "@/test/utils"
+import { renderHookWithProviders, renderWithProviders } from "@/test/utils"
 import { useProgressionSuggestion } from "./useProgressionSuggestion"
+import { sessionAtom } from "@/store/atoms"
 import type { WorkoutExercise } from "@/types/database"
 import type { SetPerformance } from "@/lib/progression"
 
@@ -21,6 +23,12 @@ vi.mock("@/hooks/useLastSessionDetail", () => ({
             lastSessionFinishedAt: mockLastSessionFinishedAt,
           },
   }),
+}))
+
+const { trackRuleMock } = vi.hoisted(() => ({ trackRuleMock: vi.fn() }))
+
+vi.mock("@/lib/progressionRuleTelemetry", () => ({
+  trackProgressionRuleServed: (...args: unknown[]) => trackRuleMock(...args),
 }))
 
 // ---------------------------------------------------------------------------
@@ -221,5 +229,109 @@ describe("useProgressionSuggestion", () => {
     )
     expect(result.current).not.toBeNull()
     expect(result.current!.rule).toBe("HOLD_INCOMPLETE")
+  })
+})
+
+describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
+  beforeEach(() => {
+    mockLastPerformance = null
+    trackRuleMock.mockClear()
+    localStorage.clear()
+  })
+
+  it("emits one progression_rule_served event per slot and session", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    const { result, rerender } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+
+    expect(result.current).not.toBeNull()
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+    expect(trackRuleMock).toHaveBeenCalledWith({
+      rule: "REPS_UP",
+      volumeType: "reps",
+      workoutExerciseId: "we-1",
+      exerciseId: "ex-1",
+      sessionId: "sess-1",
+    })
+
+    // A re-render on the same slot + session must not double-count.
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not emit when there is no suggestion", () => {
+    mockLastPerformance = null
+    renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+    expect(trackRuleMock).not.toHaveBeenCalled()
+  })
+
+  // ExerciseDetail is one un-keyed instance reused across slots: a single-key
+  // dedup would re-emit A on the way back. Regression guard for the review finding.
+  it("does not re-emit a slot revisited later in the same session (A → B → A)", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    let exercise = makeExercise()
+    const { rerender } = renderHookWithProviders(() =>
+      useProgressionSuggestion(exercise, "reps", undefined, null, null, "sess-1"),
+    )
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+
+    exercise = makeExercise({ id: "we-2", exercise_id: "ex-2" })
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(2)
+
+    exercise = makeExercise()
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(2)
+  })
+
+  it("records the emitted slot in the session, so a remount or refresh cannot re-emit", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    const { store } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1"),
+    )
+
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+    expect(store.get(sessionAtom).trackedRuleSlots).toContain("we-1")
+  })
+
+  // Copilot repro: selecting a Circuit swaps ExerciseDetail out (WorkoutPage), so
+  // the slot's card unmounts and remounts within the same session and store.
+  it("does not re-emit after the exercise card unmounts and mounts again", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+
+    function Card() {
+      useProgressionSuggestion(makeExercise(), "reps", undefined, null, null, "sess-1")
+      return null
+    }
+    function Probe({ mounted }: { mounted: boolean }) {
+      return mounted ? createElement(Card) : null
+    }
+
+    const { rerender } = renderWithProviders(createElement(Probe, { mounted: true }))
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+
+    rerender(createElement(Probe, { mounted: false })) // Circuit selected → unmount
+    rerender(createElement(Probe, { mounted: true })) // back to the slot → remount
+
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
   })
 })

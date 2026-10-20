@@ -10,6 +10,13 @@ export type SessionSetRowReps = {
   done: boolean
   rir?: number
   manuallyEdited?: boolean
+  /**
+   * Progression anchor (ADR 0032) — stamped by the intra-session cascade only when
+   * it *decided* the reps, never when it echoed the athlete's actual. Cleared on a
+   * manual edit. Absent means "no engine move"; the engine then falls back to the
+   * pristine snapshot.
+   */
+  anchorReps?: number
 }
 
 export type SessionSetRowDuration = {

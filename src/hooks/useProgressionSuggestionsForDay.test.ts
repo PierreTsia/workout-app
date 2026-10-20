@@ -130,6 +130,31 @@ describe("useProgressionSuggestionsForDay", () => {
     expect(suggestion!.reps).toBe(11)
   })
 
+  // ADR 0032 — the in-session anchor reaches the day-level suggestion.
+  it("anchor path: the RPC's anchor_reps drives volume.current (in-session deload survives)", async () => {
+    rpcMock.mockResolvedValue({
+      data: [
+        makeRow({ set_number: 1, prescribed_reps: 10, anchor_reps: 10, reps_logged: "8" }),
+        makeRow({ set_number: 2, prescribed_reps: 10, anchor_reps: 10, reps_logged: "8" }),
+        makeRow({ set_number: 3, prescribed_reps: 10, anchor_reps: 8, reps_logged: "8" }),
+      ],
+      error: null,
+    })
+
+    const exercise = makeExercise({ reps: "10", weight: "80", sets: 3 })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [exercise]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const suggestion = result.current.data.get("we-1")
+    // Without the anchor: prescribed 10 vs logged 8 → HOLD_INCOMPLETE.
+    // With it: the target is 8, every set met → REPS_UP.
+    expect(suggestion!.rule).toBe("REPS_UP")
+  })
+
   it("returns an empty map and skips the RPC when exercises array is empty", () => {
     const { result } = renderHookWithProviders(() =>
       useProgressionSuggestionsForDay("day-1", []),

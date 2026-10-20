@@ -39,6 +39,15 @@ export interface SetPerformance {
   completed: boolean
   rir: number | null
   durationSeconds?: number
+  /** 1-based position of the set within its session — the anchor is read by this, never array position. */
+  setNumber?: number
+  /**
+   * Progression anchor (ADR 0032) — the rep target actually in force for this set
+   * when it was logged: the session-start target, or the intra-session engine's
+   * applied suggestion once it moves. NULL on legacy rows and on sets the engine
+   * never touched; `buildPrescription` then falls back to `prescribedReps`.
+   */
+  anchorReps?: number | null
   /**
    * Prescription Snapshot — the engine's pristine target for this set at session-start.
    * Source of `volume.current` / `currentSets` / `currentWeight` for subsequent sessions
@@ -113,6 +122,22 @@ export interface BuildPrescriptionOptions {
   lastSessionFinishedAt?: string | null
 }
 
+/**
+ * The set whose prescription the engine reads back for the next session: the last
+ * logged set by `setNumber` (ADR 0032). Falls back to the first element when no
+ * `setNumber` is present (legacy callers), preserving the pre-ADR behaviour.
+ */
+function pickAnchorSet(sets: SetPerformance[]): SetPerformance | undefined {
+  return sets.reduce<SetPerformance | undefined>(
+    (best, set) =>
+      best === undefined ||
+      (set.setNumber ?? -Infinity) > (best.setNumber ?? -Infinity)
+        ? set
+        : best,
+    undefined,
+  )
+}
+
 export function buildPrescription(
   exercise: WorkoutExercise,
   lastPerformance: SetPerformance[] | null,
@@ -149,9 +174,21 @@ export function buildPrescription(
       increment: exercise.duration_increment_seconds ?? DEFAULT_DURATION_INCREMENT,
     }
   } else {
-    const snapshotReps = useSnapshot ? lastPerformance[0].prescribedReps : null
+    // ADR 0032 — the anchor: the rep target in force at the LAST logged set. A
+    // deliberate in-session deload (the intra-session engine) rides `anchorReps`
+    // so it survives into the next prescription, while `prescribedReps` stays the
+    // pristine snapshot (the deviations observatory's baseline, CONTEXT.md's
+    // single rule). Read by `setNumber`, never array position: the two Last
+    // Performance readers order sets oppositely. Both `anchorReps` and
+    // `snapshotReps` are read from that one set: equivalent to `[0]` while
+    // `prescribed_*` is constant across the session (the ADR 0006 invariant).
+    const anchorSet = useSnapshot ? pickAnchorSet(lastPerformance) : undefined
+    const anchorReps = anchorSet?.anchorReps ?? null
+    const snapshotReps = anchorSet?.prescribedReps ?? null
     let currentReps: number
-    if (snapshotReps != null) {
+    if (anchorReps != null) {
+      currentReps = anchorReps
+    } else if (snapshotReps != null) {
       currentReps = snapshotReps
     } else {
       currentReps = parseInt(exercise.reps, 10)

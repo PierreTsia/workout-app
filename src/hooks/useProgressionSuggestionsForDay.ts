@@ -35,6 +35,8 @@ interface LastPerformanceRow {
   prescribed_weight: number | null
   prescribed_sets: number | null
   prescribed_duration_seconds: number | null
+  // Progression anchor — nullable; NULL on legacy rows and untouched sets. ADR 0032.
+  anchor_reps: number | null
   // Denormalized from sessions.finished_at — same value repeated on every row
   // of the latest session. Engine gates the snapshot read on this.
   session_finished_at: string | null
@@ -61,6 +63,8 @@ function rowToSetPerformance(row: LastPerformanceRow): SetPerformance {
     completed: true,
     rir: row.rir,
     durationSeconds: row.duration_seconds ?? undefined,
+    setNumber: row.set_number,
+    anchorReps: row.anchor_reps,
     prescribedReps: row.prescribed_reps,
     prescribedWeight: row.prescribed_weight,
     prescribedSets: row.prescribed_sets,

@@ -56,6 +56,12 @@ export type SetLogPayloadReps = {
   prescribedReps?: number | null
   prescribedWeight?: number | null
   prescribedSets?: number | null
+  /**
+   * Progression anchor (ADR 0032) — the rep target in force at log time, set only
+   * when the intra-session engine moved it. Persisted to `set_logs.anchor_reps`,
+   * its own column: never overwrites the pristine `prescribed_*` snapshot.
+   */
+  anchorReps?: number | null
 }
 
 /** Time-based set log; mutually exclusive with reps fields at rest. */
@@ -1214,6 +1220,7 @@ async function processSetLog(item: QueueItem): Promise<boolean> {
       prescribed_weight: p.prescribedWeight ?? null,
       prescribed_sets: p.prescribedSets ?? null,
       prescribed_duration_seconds: isDuration ? (p.prescribedDurationSeconds ?? null) : null,
+      anchor_reps: isDuration ? null : (p.anchorReps ?? null),
     }
 
     const { error } = await upsertSetLog(row)

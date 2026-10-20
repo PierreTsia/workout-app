@@ -55,6 +55,7 @@ function makeLog(overrides: Record<string, unknown> = {}) {
     prescribed_weight: null,
     prescribed_sets: null,
     prescribed_duration_seconds: null,
+    anchor_reps: null,
     sessions: { finished_at: "2026-05-01T10:00:00Z" },
     ...overrides,
   }
@@ -128,6 +129,8 @@ describe("useLastSessionDetail", () => {
         weight: 80,
         completed: true,
         rir: 2,
+        setNumber: 1,
+        anchorReps: null,
         prescribedReps: null,
         prescribedWeight: null,
         prescribedSets: null,
@@ -138,12 +141,28 @@ describe("useLastSessionDetail", () => {
         weight: 80,
         completed: true,
         rir: 1,
+        setNumber: 2,
+        anchorReps: null,
         prescribedReps: null,
         prescribedWeight: null,
         prescribedSets: null,
         prescribedDurationSeconds: null,
       },
     ])
+  })
+
+  it("maps a set's anchor_reps into SetPerformance (ADR 0032)", async () => {
+    setLogsChain = createChain({
+      data: [makeLog({ set_number: 1, reps_logged: "8", anchor_reps: 8 })],
+    })
+
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data!.sets[0]).toMatchObject({ setNumber: 1, anchorReps: 8 })
   })
 
   // Cycle 7: hook surfaces the last session's finished_at + prescribed_* per set.

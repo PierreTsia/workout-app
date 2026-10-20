@@ -366,6 +366,9 @@ export function SetsTable({
       exerciseSets[setIdx] = {
         ...cur,
         [field]: value,
+        // A manual edit makes the row the athlete's, so any engine anchor on it
+        // is stale (ADR 0032).
+        anchorReps: undefined,
         ...(!cur.done && { manuallyEdited: true }),
       }
       return {
@@ -449,6 +452,10 @@ export function SetsTable({
       const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
 
       const prescriptionForLog = readLockedPrescription()
+      // ADR 0032 — the anchor is stamped on the row by the cascade, and only when
+      // the engine decided the reps (not when it echoed the athlete's value). A
+      // manual edit clears it. Absent → the engine falls back to the snapshot.
+      const anchorReps = currentSet.anchorReps ?? null
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
@@ -465,6 +472,7 @@ export function SetsTable({
         prescribedReps: prescriptionForLog.reps,
         prescribedWeight: prescriptionForLog.weight,
         prescribedSets: prescriptionForLog.sets,
+        anchorReps,
       })
       scheduleImmediateDrain()
 
@@ -563,10 +571,30 @@ export function SetsTable({
         eligible.map(({ i }, j) => [i, suggestions[j]] as const),
       )
 
+      // ADR 0032 — the engine only *decided* the reps when the set it reacted to
+      // hit the plan exactly. Otherwise the cascade merely echoes the athlete's
+      // own value (a miss, or an overshoot), and copying that forward must never
+      // become next session's anchor. The anchor thus stays on genuine engine
+      // moves — reps-only deloads, since weight-first never decides reps.
+      const prescriptionReps = readLockedPrescription().reps
+      const triggering = completedSets[completedSets.length - 1]
+      const engineDecidedReps =
+        triggering != null && triggering.reps === prescriptionReps
+
       const updatedSets = exerciseSets.map((row, i) => {
         const suggestion = suggestionByIdx.get(i)
         if (!suggestion || !isRepsRow(row)) return row
-        return { ...row, weight: String(suggestion.weight), reps: suggestion.reps }
+        const suggestedReps = Number(suggestion.reps)
+        const anchorReps =
+          engineDecidedReps && suggestedReps !== prescriptionReps
+            ? suggestedReps
+            : undefined
+        return {
+          ...row,
+          weight: String(suggestion.weight),
+          reps: suggestion.reps,
+          anchorReps,
+        }
       })
 
       setSession((prev) => ({

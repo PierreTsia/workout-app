@@ -321,6 +321,8 @@ export interface SetLog {
   prescribed_weight: number | null
   prescribed_sets: number | null
   prescribed_duration_seconds: number | null
+  /** Progression anchor (ADR 0032) — never overwrites the pristine snapshot. */
+  anchor_reps: number | null
 }
 
 export interface CycleStats {
