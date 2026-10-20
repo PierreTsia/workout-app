@@ -77,4 +77,5 @@ references — use the slug.
 | 0028 | Accepted · amends 0025 | 2026-10-04 | The docs mini-site deploys on merge, not on a release | [0028-docs-site-deploys-on-merge.md](./0028-docs-site-deploys-on-merge.md) |
 | 0029 | Accepted | 2026-10-06 | Inactivity guard: 15 min of hidden time, not an immediate auto-pause | [0029-inactivity-guard-15min.md](./0029-inactivity-guard-15min.md) |
 | 0030 | Accepted · amends 0011 | 2026-10-06 | `update_program` preserves Exercise Slot identity by in-place reconciliation | [0030-update-program-slot-reconciliation.md](./0030-update-program-slot-reconciliation.md) |
+| 0031 | Accepted · extends 0028 | 2026-10-06 | The Decision Card renders a structured program: additive `structuredContent` | [0031-decision-card-structured-program.md](./0031-decision-card-structured-program.md) |
 | 0032 | Accepted | 2026-10-20 | The in-session anchor rides its own column, never the Prescription Snapshot | [0032-progression-anchor-reps.md](./0032-progression-anchor-reps.md) |
