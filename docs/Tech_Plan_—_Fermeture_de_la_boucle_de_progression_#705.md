@@ -6,11 +6,11 @@
 
 | Décision | Choix | Rationale |
 |---|---|---|
-| Porteur de l'ancre | champ `anchorReps` sur `SessionSetRowReps` (row persisté) | le row vit dans `sessionAtom` (localStorage) ; la prescription vit dans un `useRef` de composant, perdue au refresh |
-| Site de stamp | **la cascade intra-séance seule** (`file:src/components/workout/SetsTable.tsx:566-570`) | l'auto-apply (`:207-299`) applique la prescription de *début* de séance = le pristine, pas une décharge |
+| Porteur de l'ancre | **dérivée au log** : `anchorReps = reps du row si ≠ prescription verrouillée et non `manuallyEdited`` | pas de champ de row ni de stamp : la règle tient en une comparaison, et `manuallyEdited` exclut à lui seul un « miss » |
+| Site de calcul | `confirmRir` (`file:src/components/workout/SetsTable.tsx`), au moment du payload | la cascade (`:566-570`) déplace bien les rows, mais l'auto-apply (`:207-299`) applique le pristine — comparer à la prescription verrouillée sépare les deux sans traçage |
 | Persistance | colonne additive `set_logs.anchor_reps integer` | garde `prescribed_*` pristine (baseline observatoire, règle unique `CONTEXT.md`) |
 | Lecture | `anchor_reps ?? prescribed_reps` sur la série au `set_number` max | les deux lecteurs ordonnent les séries à l'envers — l'ordre ne doit pas compter |
-| Édition manuelle | efface l'ancre (`updateField` pose déjà `manuallyEdited` → efface aussi `anchorReps`) | l'intention de l'athlète reste souveraine |
+| Édition manuelle | **exclue automatiquement** (`updateField` pose `manuallyEdited`, que la dérivation refuse) | l'intention de l'athlète reste souveraine, sans code d'effacement |
 | Axe poids | inchangé (lit `weight_logged`) | précédent #381 |
 | Métriques | émises vers `analytics_events`, couture **in-session** | le moteur est client-only, la règle n'est jamais persistée ; une seule couture évite le double comptage |
 | Forme de l'événement | un seul `event_type = 'progression_rule_served'`, la règle dans le payload | un seul type à maintenir quand l'enum `ProgressionRule` évolue |
@@ -28,9 +28,9 @@
   `file:src/lib/progression.ts:161` lit `[0]` aujourd'hui — inoffensif tant que `prescribed_*` est
   constant sur la séance, faux dès qu'une ancre s'ajoute.
 - **Aucun writeback du template en fin de séance** (retiré par ADR 0006, `file:src/lib/syncService.ts:1257`).
-- **Le stamp vit sur le row, pas sur le ref.** `lockedPrescriptionRef`
-  (`file:src/components/workout/SetsTable.tsx:146-163`) est de la mémoire pure ; le row `sessionAtom`
-  survit à un refresh.
+- **L'ancre est dérivée au log, pas stampée sur le row.** `prescriptionForLog` vient de
+  `lockedPrescriptionRef` (`file:src/components/workout/SetsTable.tsx:146-163`), de la mémoire pure —
+  mais la comparaison se fait au moment du payload, donc rien ne dépend de la survie du ref.
 - **RPC.** Ajouter une colonne à `RETURNS TABLE` = `CREATE OR REPLACE`. Trois versions existent ; la
   « live » est `file:supabase/migrations/20260808115507_fix_slot_rpc_rir_cast.sql` (en-tête *« never
   committed »*). Le nouveau `CREATE OR REPLACE` part du corps de cette version.
@@ -58,7 +58,6 @@ classDiagram
     +weight string
     +done boolean
     +manuallyEdited boolean
-    +anchorReps number  «nouveau»
   }
   class SetLogPayloadReps {
     +setNumber number
@@ -70,7 +69,7 @@ classDiagram
     +anchorReps number  «nouveau»
     +prescribedReps number
   }
-  SessionSetRowReps --> SetLogPayloadReps : SetsTable confirmRir
+  SessionSetRowReps --> SetLogPayloadReps : confirmRir (dérive l'ancre)
   SetLogPayloadReps --> SetLog : processSetLog
   SetLog --> SetPerformance : RPC / useLastSessionDetail
 ```
@@ -100,8 +99,7 @@ ALTER TABLE public.set_logs ADD COLUMN anchor_reps integer;
 
 ```mermaid
 graph TD
-  Cascade["computeCascadeSuggestions<br/>(rirSuggestion.ts)"] -->|appliquée| Row["sessionAtom<br/>SessionSetRowReps.anchorReps"]
-  Row --> Payload["SetLogPayloadReps.anchorReps"]
+  Row["sessionAtom row<br/>reps ≠ prescription, non manuallyEdited"] -->|confirmRir dérive| Payload["SetLogPayloadReps.anchorReps"]
   Payload --> PSL["processSetLog"] --> DB[("set_logs.anchor_reps")]
   DB --> RPC["get_last_performance_for_slots"]
   RPC --> HDay["useProgressionSuggestionsForDay"]
@@ -137,10 +135,10 @@ le payload), `src/hooks/useLastSessionDetail.ts` + `useProgressionSuggestionsFor
   Window gagne toujours). `prescribedSets`, axe durée et axe poids inchangés.
 
 **`SetsTable`** (`file:src/components/workout/SetsTable.tsx`)
-- À l'application de la cascade (`:566-570`) : pose `anchorReps = suggestion.reps` (le reps appliqué)
-  sur les rows déplacées — *pas* sur les rows filtrées par `manuallyEdited` (`:544-549`).
-- À `updateField` (édition manuelle) : efface `anchorReps` en même temps que `manuallyEdited = true`.
-- `confirmRir` : porte `anchorReps` dans `SetLogPayloadReps`.
+- `confirmRir` : **dérive** l'ancre — `anchorReps = reps du row si ≠ prescriptionForLog.reps et non
+  `manuallyEdited`, sinon null` — et la porte dans `SetLogPayloadReps`.
+- Aucun autre point de contact : la cascade (`:566-570`) déplace les rows, l'édition manuelle pose
+  `manuallyEdited`, et la dérivation au log lit les deux sans traçage ni effacement.
 
 **`useLastSessionDetail`** / **`useProgressionSuggestionsForDay`**
 - Mappent `set_number → setNumber` et `anchor_reps → anchorReps` dans `SetPerformance` (les deux, pour

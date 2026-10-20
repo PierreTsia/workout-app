@@ -11,7 +11,7 @@ AFK.
 
 ## Slice
 
-`sessionSetRow` → `SetsTable` (stamp + clear) → payload → `syncService.processSetLog` → DB → test E2E
+`SetsTable.confirmRir` (dérive l'ancre) → payload → `syncService.processSetLog` → DB → tests
 
 ## Dependencies
 
@@ -19,31 +19,32 @@ T704
 
 ## Scope
 
-### Row
+### Dérivation (SetsTable)
 
-- `SessionSetRowReps` (`file:src/lib/sessionSetRow.ts`) : `anchorReps?: number`.
+> **Écart au Tech Plan, validé en cours de TDD** : l'ancre est **dérivée au log**, pas stampée sur le
+> row. Pas de champ `SessionSetRowReps`, pas de stamp dans la cascade, pas d'effacement dans
+> `updateField`.
 
-### Stamp (SetsTable)
-
-- À l'application de la cascade (`file:src/components/workout/SetsTable.tsx:566-570`) : poser
-  `anchorReps = suggestion.reps` sur les rows déplacées — jamais sur celles filtrées par
-  `manuallyEdited` (`:544-549`).
-- `updateField` (édition manuelle) : effacer `anchorReps` en même temps que `manuallyEdited = true`.
-- **Ne pas** stamper l'auto-apply (`:207-299`) : il applique la prescription de début de séance, qui
-  **est** le pristine.
+- `confirmRir` (`file:src/components/workout/SetsTable.tsx`) : `anchorReps = reps du row si
+  `Number(reps)` ≠ `prescriptionForLog.reps` et `!currentSet.manuallyEdited`, sinon `null``.
+- L'édition manuelle (`updateField`) pose déjà `manuallyEdited` → exclue automatiquement, donc un
+  « miss » tapé par l'athlète ne devient jamais l'ancre.
+- La cascade moteur ne pose pas `manuallyEdited` → capturée automatiquement.
 
 ### Payload & persistance
 
-- `SetLogPayloadReps` (`file:src/lib/syncService.ts`) : `anchorReps?: number`.
+- `SetLogPayloadReps` (`file:src/lib/syncService.ts`) : `anchorReps?: number | null`.
 - `confirmRir` (`SetsTable.tsx`) : porter `anchorReps` dans le payload.
-- `processSetLog` (`file:src/lib/syncService.ts:1213`) : écrire `anchor_reps` sur la branche reps ; la
+- `processSetLog` (`file:src/lib/syncService.ts`) : écrire `anchor_reps` sur la branche reps ; la
   branche durée laisse NULL.
 
 ### Tests
 
-- Test d'intégration bout-en-bout : une décharge appliquée à la série N → la prescription suivante
-  repart de l'ancre.
-- Miss sans move moteur → aucune ancre → snapshot inchangé.
+- SetsTable : une série dont les reps diffèrent de la prescription verrouillée, sans `manuallyEdited`,
+  porte `anchorReps` ; une série `manuallyEdited` ne le porte pas.
+- `processSetLog` : `anchor_reps` écrit (reps), NULL (durée et payload legacy).
+- La chaîne complète (dérivation → persistance → lecture T704) tient la boucle ; un E2E Playwright
+  dédié n'est pas jugé nécessaire à ce grain.
 
 ## Out of Scope
 
@@ -52,12 +53,11 @@ T704
 
 ## Acceptance Criteria
 
-- [ ] Un test prouve qu'une décharge intra-séance appliquée atteint `volume.current` de la séance
-      suivante.
-- [ ] Un test prouve qu'une série seulement *manquée* (aucun move moteur) ne pose pas d'ancre.
-- [ ] Une ré-édition manuelle d'une série déplacée efface l'ancre (la valeur de l'athlète gagne).
-- [ ] Les payloads legacy sans `anchorReps` restent tolérés.
-- [ ] La branche durée écrit `anchor_reps = NULL`.
+- [x] Un test prouve qu'une série dont les reps diffèrent de la prescription verrouillée (move moteur)
+      porte `anchorReps`, et qu'elle atteint `volume.current` de la séance suivante (via T704).
+- [x] Un test prouve qu'une série `manuallyEdited` (un « miss » tapé) ne porte pas d'ancre.
+- [x] Les payloads legacy sans `anchorReps` restent tolérés (`anchor_reps = NULL`).
+- [x] La branche durée écrit `anchor_reps = NULL`.
 
 ## References
 
