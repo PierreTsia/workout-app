@@ -840,8 +840,29 @@ describe("SyncService", () => {
       )
     })
 
-    it("writes prescribed_duration_seconds + prescribed_sets when present on duration payload", async () => {
-      enqueueSetLog({
+    // ADR 0032 — the in-session anchor rides its own column, never prescribed_*.
+    it("writes anchor_reps to set_logs upsert when present on reps payload", async () => {
+      enqueueSetLog(
+        makeSetLogPayload({
+          repsLogged: "8",
+          weightLogged: 50,
+          prescribedReps: 10,
+          anchorReps: 8,
+        }),
+      )
+
+      await drainQueue(USER_ID)
+
+      const upsertArg = setLogsChain.upsert.mock.calls[0][0]
+      expect(upsertArg).toEqual(
+        expect.objectContaining({
+          prescribed_reps: 10,
+          anchor_reps: 8,
+        }),
+      )
+    })
+
+    it("writes prescribed_duration_seconds + prescribed_sets when present on duration payload", async () => {      enqueueSetLog({
         sessionId: "local-session-1",
         exerciseId: "ex-1",
         exerciseNameSnapshot: "Plank",
@@ -864,6 +885,7 @@ describe("SyncService", () => {
           prescribed_weight: 0,
           prescribed_sets: 3,
           prescribed_duration_seconds: 40,
+          anchor_reps: null,
         }),
       )
     })
@@ -880,6 +902,7 @@ describe("SyncService", () => {
           prescribed_weight: null,
           prescribed_sets: null,
           prescribed_duration_seconds: null,
+          anchor_reps: null,
         }),
       )
     })

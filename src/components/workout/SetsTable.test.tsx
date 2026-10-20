@@ -502,6 +502,72 @@ describe("SetsTable", () => {
     )
   })
 
+  // ADR 0032 — a set whose reps differ from the locked prescription, with no
+  // manual edit, is a target the intra-session engine moved: it carries the
+  // anchor so the deload survives into the next session.
+  it("carries anchorReps on a set the engine moved, not on a manual edit (ADR 0032)", async () => {
+    const user = userEvent.setup()
+    const session: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
+          // reps 8, no `manuallyEdited` = what the intra-session cascade leaves
+          // behind when it deloads a future set.
+          { kind: "reps", reps: "8", weight: "60", done: false },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, session)
+    })
+
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    expect(enqueueSetLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ setNumber: 2, anchorReps: 8 }),
+    )
+  })
+
+  it("does not carry anchorReps when the athlete typed the reps (manual edit) (ADR 0032)", async () => {
+    const user = userEvent.setup()
+    const session: SessionState = {
+      ...BASE_SESSION,
+      setsData: {
+        "workout-ex-1": [
+          { kind: "reps", reps: "10", weight: "60", done: true, rir: 2 },
+          { kind: "reps", reps: "8", weight: "60", done: false, manuallyEdited: true },
+        ],
+      },
+    }
+    const { store } = renderWithProviders(
+      <SetsTable
+        exercise={EXERCISE}
+        sessionId="session-1"
+        isReadOnly={false}
+        suggestion={null}
+      />,
+    )
+    act(() => {
+      store.set(sessionAtom, session)
+    })
+
+    await user.click(screen.getAllByRole("checkbox")[1])
+    await user.click(screen.getByTestId("rir-confirm"))
+
+    const payload = enqueueSetLogMock.mock.calls.at(-1)?.[0] as Record<string, unknown>
+    expect(payload.anchorReps ?? null).toBeNull()
+  })
+
   // PR review #5: lock the prescription on the FIRST log. If the suggestion
   // resolves asynchronously *after* the user already logged set 1, set 2 must
   // still carry the same prescribed_* values — otherwise sets within a session

@@ -449,6 +449,16 @@ export function SetsTable({
       const restSeconds = getRestElapsedSeconds(restSnapshot, session.pausedAt)
 
       const prescriptionForLog = readLockedPrescription()
+      // ADR 0032 — a set whose reps differ from the locked prescription, with no
+      // manual edit, is a target the intra-session engine moved: anchor it so the
+      // deload survives into the next session. A typed reps value sets
+      // `manuallyEdited` and is excluded, so a plain miss never becomes the anchor.
+      const anchorReps =
+        !currentSet.manuallyEdited &&
+        Number.isFinite(reps) &&
+        reps !== prescriptionForLog.reps
+          ? reps
+          : null
       enqueueSetLog({
         sessionId,
         exerciseId: exercise.exercise_id,
@@ -465,6 +475,7 @@ export function SetsTable({
         prescribedReps: prescriptionForLog.reps,
         prescribedWeight: prescriptionForLog.weight,
         prescribedSets: prescriptionForLog.sets,
+        anchorReps,
       })
       scheduleImmediateDrain()
 
