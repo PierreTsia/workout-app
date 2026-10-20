@@ -151,6 +151,20 @@ describe("useLastSessionDetail", () => {
     ])
   })
 
+  it("maps a set's anchor_reps into SetPerformance (ADR 0032)", async () => {
+    setLogsChain = createChain({
+      data: [makeLog({ set_number: 1, reps_logged: "8", anchor_reps: 8 })],
+    })
+
+    const { result, store } = renderHookWithProviders(() => useLastSessionDetail("we-1", "ex-1"))
+    act(() => {
+      store.set(authAtom, { id: "user-1" } as never)
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data!.sets[0]).toMatchObject({ setNumber: 1, anchorReps: 8 })
+  })
+
   // Cycle 7: hook surfaces the last session's finished_at + prescribed_* per set.
   // Engine consumes both to gate the snapshot vs Manual Override Window read paths.
   // See ADR 0006.

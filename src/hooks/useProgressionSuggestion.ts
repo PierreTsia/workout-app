@@ -40,13 +40,14 @@ export function useProgressionSuggestion(
 
   // T706 — one event per slot and session, from the in-session seam only. The
   // rule enum is never persisted elsewhere; this is the only record of what was
-  // actually served. Keyed by session + slot so a re-render never double-counts.
-  const trackedKey = useRef<string | null>(null)
+  // actually served. A Set, not a single key: ExerciseDetail is one un-keyed
+  // instance reused across slots, and navigating A → B → A must not re-emit A.
+  const emittedKeys = useRef<Set<string>>(new Set())
   useEffect(() => {
     if (!suggestion || !sessionId) return
     const key = `${sessionId}:${exercise.id}`
-    if (trackedKey.current === key) return
-    trackedKey.current = key
+    if (emittedKeys.current.has(key)) return
+    emittedKeys.current.add(key)
     trackProgressionRuleServed({
       rule: suggestion.rule,
       volumeType: suggestion.volumeType,

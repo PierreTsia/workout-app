@@ -83,13 +83,15 @@ export function ExerciseDetail({
   const [swapPanelOpen, setSwapPanelOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // The locked-day view only reads — no rule telemetry from a slot being
+  // consulted, only from one actually trained (T706).
   const suggestion = useProgressionSuggestion(
     exercise,
     libExercise?.measurement_type,
     libExercise?.equipment,
     sessionStartedAt,
     libExercise,
-    sessionId,
+    isReadOnly ? undefined : sessionId,
   )
 
   const showWorkoutEdits = Boolean(editSession && !isReadOnly && !sessionPaused)

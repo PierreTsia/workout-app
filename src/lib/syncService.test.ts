@@ -862,7 +862,8 @@ describe("SyncService", () => {
       )
     })
 
-    it("writes prescribed_duration_seconds + prescribed_sets when present on duration payload", async () => {      enqueueSetLog({
+    it("writes prescribed_duration_seconds + prescribed_sets when present on duration payload", async () => {
+      enqueueSetLog({
         sessionId: "local-session-1",
         exerciseId: "ex-1",
         exerciseNameSnapshot: "Plank",

@@ -179,7 +179,9 @@ export function buildPrescription(
     // so it survives into the next prescription, while `prescribedReps` stays the
     // pristine snapshot (the deviations observatory's baseline, CONTEXT.md's
     // single rule). Read by `setNumber`, never array position: the two Last
-    // Performance readers order sets oppositely.
+    // Performance readers order sets oppositely. Both `anchorReps` and
+    // `snapshotReps` are read from that one set: equivalent to `[0]` while
+    // `prescribed_*` is constant across the session (the ADR 0006 invariant).
     const anchorSet = useSnapshot ? pickAnchorSet(lastPerformance) : undefined
     const anchorReps = anchorSet?.anchorReps ?? null
     const snapshotReps = anchorSet?.prescribedReps ?? null

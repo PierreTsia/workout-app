@@ -268,4 +268,27 @@ describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
     )
     expect(trackRuleMock).not.toHaveBeenCalled()
   })
+
+  // ExerciseDetail is one un-keyed instance reused across slots: a single-key
+  // dedup would re-emit A on the way back. Regression guard for the review finding.
+  it("does not re-emit a slot revisited later in the same session (A → B → A)", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+      makePerf({ reps: 10 }),
+    ]
+    let exercise = makeExercise()
+    const { rerender } = renderHookWithProviders(() =>
+      useProgressionSuggestion(exercise, "reps", undefined, null, null, "sess-1"),
+    )
+    expect(trackRuleMock).toHaveBeenCalledTimes(1)
+
+    exercise = makeExercise({ id: "we-2", exercise_id: "ex-2" })
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(2)
+
+    exercise = makeExercise()
+    rerender()
+    expect(trackRuleMock).toHaveBeenCalledTimes(2)
+  })
 })
