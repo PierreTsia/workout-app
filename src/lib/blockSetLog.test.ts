@@ -65,6 +65,7 @@ const setLog = (over: Partial<SetLog> = {}): SetLog => ({
   prescribed_weight: null,
   prescribed_sets: null,
   prescribed_duration_seconds: null,
+  anchor_reps: null,
   ...over,
 })
 

@@ -829,6 +829,104 @@ describe("buildPrescription", () => {
     expect(result.rule).toBe("REPS_UP")
     expect(result.reps).toBe(11)
   })
+
+  // ADR 0032 — an in-session deload (the intra-session engine) must reach the
+  // next prescription via the anchor; `prescribed_*` stays the pristine snapshot.
+  it("snapshot path: volume.current comes from the last set's anchor_reps after an in-session deload (ADR 0032)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 10, weight: 50, completed: true, rir: 2, setNumber: 1, prescribedReps: 10, anchorReps: 10 },
+      { reps: 10, weight: 50, completed: true, rir: 2, setNumber: 2, prescribedReps: 10, anchorReps: 10 },
+      { reps: 8, weight: 50, completed: true, rir: 0, setNumber: 3, prescribedReps: 10, anchorReps: 8 },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.volume.current).toBe(8)
+  })
+
+  it("snapshot path: the anchor is read by set_number, not array position (ADR 0032)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+    const asc: SetPerformance[] = [
+      { reps: 10, weight: 50, completed: true, rir: 2, setNumber: 1, prescribedReps: 10, anchorReps: 10 },
+      { reps: 10, weight: 50, completed: true, rir: 2, setNumber: 2, prescribedReps: 10, anchorReps: 10 },
+      { reps: 8, weight: 50, completed: true, rir: 0, setNumber: 3, prescribedReps: 10, anchorReps: 8 },
+    ]
+    const opts = { lastSessionFinishedAt: "2026-05-01T00:00:00Z" }
+
+    // The two Last Performance readers order sets oppositely — the result must not.
+    expect(buildPrescription(exercise, asc, opts)!.volume.current).toBe(8)
+    expect(buildPrescription(exercise, [...asc].reverse(), opts)!.volume.current).toBe(8)
+  })
+
+  it("snapshot path: falls back to prescribed_reps when no anchor is present (ADR 0032)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 10, weight: 50, completed: true, rir: 2, setNumber: 1, prescribedReps: 10 },
+      { reps: 8, weight: 50, completed: true, rir: 0, setNumber: 2, prescribedReps: 10 },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.volume.current).toBe(10)
+  })
+
+  it("Manual Override Window wins over the anchor when the template was edited after the session (ADR 0032)", () => {
+    const exercise = makeExercise({
+      reps: "6",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-06-01T00:00:00Z", // newer than the session finish
+    })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 8, weight: 50, completed: true, rir: 2, setNumber: 1, prescribedReps: 10, anchorReps: 8 },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    // The template's 6 wins; the anchor is ignored on the template path.
+    expect(prescription.volume.current).toBe(6)
+  })
+
+  it("legacy sets without set_number fall back to the first element (ADR 0032)", () => {
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+    const lastPerformance: SetPerformance[] = [
+      { reps: 10, weight: 50, completed: true, rir: 2, prescribedReps: 10, anchorReps: 10 },
+      { reps: 8, weight: 50, completed: true, rir: 0, prescribedReps: 10, anchorReps: 8 },
+    ]
+
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.volume.current).toBe(10)
+  })
 })
 
 describe("deriveDurationRangeMax (#379)", () => {

@@ -83,6 +83,7 @@ function log(over: Partial<SetLogWithExercise> = {}): SetLogWithExercise {
     prescribed_weight: null,
     prescribed_sets: null,
     prescribed_duration_seconds: null,
+    anchor_reps: null,
     exercise: null,
     ...over,
   }

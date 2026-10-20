@@ -32,6 +32,7 @@ interface SetLogRow {
   prescribed_weight: number | null
   prescribed_sets: number | null
   prescribed_duration_seconds: number | null
+  anchor_reps: number | null
   sessions: { finished_at: string | null } | null
 }
 
@@ -58,7 +59,7 @@ export function useLastSessionDetail(
         .select(
           "set_number, reps_logged, weight_logged, rir, session_id, " +
             "duration_seconds, prescribed_reps, prescribed_weight, " +
-            "prescribed_sets, prescribed_duration_seconds, " +
+            "prescribed_sets, prescribed_duration_seconds, anchor_reps, " +
             "sessions(finished_at)",
         )
         .eq("workout_exercise_id", workoutExerciseId!)
@@ -107,6 +108,8 @@ export function useLastSessionDetail(
             weight: Number(row.weight_logged) || 0,
             completed: true,
             rir: row.rir,
+            setNumber: row.set_number,
+            anchorReps: row.anchor_reps,
             prescribedReps: row.prescribed_reps,
             prescribedWeight: row.prescribed_weight,
             prescribedSets: row.prescribed_sets,
