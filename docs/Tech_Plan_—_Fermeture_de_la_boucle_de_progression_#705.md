@@ -31,9 +31,11 @@
 - **L'ancre est dérivée au log, pas stampée sur le row.** `prescriptionForLog` vient de
   `lockedPrescriptionRef` (`file:src/components/workout/SetsTable.tsx:146-163`), de la mémoire pure —
   mais la comparaison se fait au moment du payload, donc rien ne dépend de la survie du ref.
-- **RPC.** Ajouter une colonne à `RETURNS TABLE` = `CREATE OR REPLACE`. Trois versions existent ; la
-  « live » est `file:supabase/migrations/20260808115507_fix_slot_rpc_rir_cast.sql` (en-tête *« never
-  committed »*). Le nouveau `CREATE OR REPLACE` part du corps de cette version.
+- **RPC.** Ajouter une colonne à `RETURNS TABLE` **ne peut pas** se faire en `CREATE OR REPLACE`
+  (changement de type de retour → *cannot change return type of existing function*). La migration fait
+  donc `DROP FUNCTION IF EXISTS` + `CREATE FUNCTION` + re-`GRANT EXECUTE`. Trois versions existent ;
+  la « live » est `file:supabase/migrations/20260808115507_fix_slot_rpc_rir_cast.sql` (en-tête *« never
+  committed »*) — le nouveau corps en repart à l'identique, plus `anchor_reps`.
 - **Pas de codegen.** `file:src/types/database.ts` est écrit à la main ; à éditer seulement parce qu'un
   consommateur lit la colonne. `createClient` n'est pas typé par le schéma (`file:src/lib/supabase.ts:33`).
 
@@ -114,17 +116,18 @@ graph TD
 
 | File | Purpose |
 |---|---|
-| `supabase/migrations/2026…_progression_anchor_reps.sql` | colonne `anchor_reps` + `CREATE OR REPLACE` de la RPC |
+| `supabase/migrations/2026…_progression_anchor_reps.sql` | colonne `anchor_reps` + `DROP`/`CREATE` de la RPC |
 | `src/lib/progressionRuleTelemetry.ts` | émettre un événement `progression_rule_served` dans `analytics_events` ; jamais d'erreur remontée à l'appelant |
 | `src/test/setLogsAnchor.arch.test.ts` | invariant : la colonne existe et la RPC l'expose (comble le trou : rien ne couvre la RPC aujourd'hui) |
 | `docs/adr/0032-progression-anchor-reps.md` | l'ADR de la décision |
 
-**Modifiés :** `src/lib/progression.ts` (`pickAnchorSet` + lecture), `src/lib/sessionSetRow.ts`
-(`anchorReps`), `src/lib/syncService.ts` (payload `SetLogPayloadReps` + `processSetLog`),
-`src/components/workout/SetsTable.tsx` (stamp à la cascade, effacement à l'édition manuelle, port dans
-le payload), `src/hooks/useLastSessionDetail.ts` + `useProgressionSuggestionsForDay.ts` (`setNumber` +
-`anchorReps` dans `SetPerformance`), `src/hooks/useProgressionSuggestion.ts` (appel télémétrie),
-`src/types/database.ts` (`SetLog.anchor_reps`).
+**Modifiés :** `src/lib/progression.ts` (`pickAnchorSet` + lecture), `src/lib/syncService.ts`
+(payload `SetLogPayloadReps.anchorReps` + `processSetLog`),
+`src/components/workout/SetsTable.tsx` (`confirmRir` **dérive** l'ancre et la porte dans le payload),
+`src/hooks/useLastSessionDetail.ts` + `useProgressionSuggestionsForDay.ts` (`setNumber` + `anchorReps`
+dans `SetPerformance`), `src/hooks/useProgressionSuggestion.ts` (appel télémétrie),
+`src/types/database.ts` (`SetLog.anchor_reps`). `src/lib/sessionSetRow.ts` **n'est pas touché** — le
+champ de row du plan initial a été abandonné au profit de la dérivation (cf. T705).
 
 ### Component Responsibilities
 

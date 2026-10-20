@@ -25,9 +25,10 @@ None
 
 - `supabase/migrations/2026…_progression_anchor_reps.sql` :
   `ALTER TABLE public.set_logs ADD COLUMN anchor_reps integer;`
-- `CREATE OR REPLACE FUNCTION get_last_performance_for_slots(...)` : repartir du **corps exact** de
-  `supabase/migrations/20260808115507_fix_slot_rpc_rir_cast.sql`, ajouter `anchor_reps` au
-  `RETURNS TABLE` et au `SELECT`.
+- `DROP FUNCTION IF EXISTS` puis `CREATE FUNCTION` (`CREATE OR REPLACE` est **impossible** : ajouter
+  une colonne en sortie change le type de retour), corps **exact** de
+  `supabase/migrations/20260808115507_fix_slot_rpc_rir_cast.sql` plus `anchor_reps` au `RETURNS TABLE`
+  et au `SELECT`, puis re-`GRANT EXECUTE ... TO authenticated`.
 
 | Item | Detail |
 |---|---|
