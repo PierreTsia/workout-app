@@ -1,4 +1,9 @@
 import type { WorkoutExercise } from "@/types/database"
+import {
+  getAdjustmentTier,
+  PROPORTIONAL_DELOAD_FACTOR,
+  type AdjustmentTier,
+} from "@/lib/rirSuggestion"
 
 export type ProgressionRule =
   | "HOLD_INCOMPLETE"
@@ -8,6 +13,7 @@ export type ProgressionRule =
   | "WEIGHT_UP"
   | "SETS_UP"
   | "PLATEAU"
+  | "DELOAD"
 
 export interface VolumePrescription {
   type: "reps" | "duration"
@@ -25,6 +31,18 @@ export interface ProgressionPrescription {
   setRangeMax: number
   weightIncrement: number
   maxWeightReached: boolean
+  /**
+   * The intra-session engine's adjustment tier for this slot (ADR 0033): the
+   * Deload rule reads it instead of re-deriving from the load, so a loaded
+   * `cable` slot deloads on reps exactly as the in-session engine does.
+   */
+  adjustmentTier: AdjustmentTier
+  /**
+   * False when the **Manual Override Window** is open (the athlete edited the
+   * Template Prescription since the last session): the engine then reads the
+   * template, and the Deload rule must yield to that deliberate edit.
+   */
+  useSnapshot: boolean
   /** @deprecated Use volume.current — kept for backward compat */
   currentReps: number
   /** @deprecated Use volume.min */
@@ -68,6 +86,33 @@ export interface ProgressionSuggestion {
   delta: string
   volumeType: "reps" | "duration"
   duration?: number
+}
+
+/**
+ * One finished session of an **Exercise Slot**, summarised for the **Stall**
+ * predicate: the served target (`anchor_reps ?? prescribed_reps` +
+ * `prescribed_weight`, ADR 0032) and the session's average declared RIR.
+ * Read by `get_slot_prescription_history`, ordered oldest → newest.
+ */
+export interface SlotSessionSummary {
+  sessionFinishedAt: string | null
+  prescribedReps: number | null
+  anchorReps: number | null
+  /** Coerced to 0 when the session recorded no load (bodyweight). */
+  prescribedWeight: number
+  /** Average of the *declared* RIR only — null when none was logged. */
+  avgRir: number | null
+}
+
+/**
+ * Consecutive sessions of a **Stall** before the engine breaks it with a
+ * **Deload** (ADR 0033). A heuristic, to tune post-launch like the draft-step N.
+ */
+export const STALL_SESSIONS = 4
+
+/** Stable key for a slot's prescription history: slot id + catalog movement. */
+export function slotKey(workoutExerciseId: string, exerciseId: string): string {
+  return `${workoutExerciseId}:${exerciseId}`
 }
 
 const DEFAULT_INCREMENT_KG = 2.5
@@ -236,6 +281,8 @@ export function buildPrescription(
     setRangeMax: exercise.set_range_max ?? Math.min(6, currentSets + 2),
     weightIncrement: resolveWeightIncrement(exercise.weight_increment ?? null, equipment),
     maxWeightReached: exercise.max_weight_reached ?? false,
+    adjustmentTier: getAdjustmentTier(equipment ?? "", currentWeight),
+    useSnapshot,
     currentReps: volume.type === "reps" ? volume.current : 0,
     repRangeMin: volume.type === "reps" ? volume.min : 0,
     repRangeMax: volume.type === "reps" ? volume.max : 0,
@@ -248,9 +295,44 @@ function averageRir(sets: SetPerformance[]): number | null {
   return withRir.reduce((sum, s) => sum + s.rir!, 0) / withRir.length
 }
 
+/** The target the engine actually served that session — never the pristine snapshot (ADR 0032). */
+function servedTarget(s: SlotSessionSummary): { reps: number; weight: number } {
+  return {
+    reps: s.anchorReps ?? s.prescribedReps ?? 0,
+    weight: s.prescribedWeight ?? 0,
+  }
+}
+
+/**
+ * A **Stall**: `STALL_SESSIONS` consecutive sessions serving the *same* target,
+ * the last one at an average RIR of 1 or below (ADR 0033). A target that moves —
+ * up *or* down — is not a stall: a drop is an intervention (a served Deload, or a
+ * manual edit) and must not read as one. An undeclared RIR is not a zero.
+ */
+export function shouldDeload(sessions: SlotSessionSummary[]): boolean {
+  if (sessions.length < STALL_SESSIONS) return false
+
+  const window = sessions.slice(-STALL_SESSIONS)
+  const first = servedTarget(window[0])
+  const stalled = window.every((s) => {
+    const target = servedTarget(s)
+    return target.reps === first.reps && target.weight === first.weight
+  })
+  if (!stalled) return false
+
+  const lastRir = window[window.length - 1].avgRir
+  return lastRir != null && lastRir <= 1
+}
+
+export interface ComputeNextSessionTargetOptions {
+  /** The slot's recent sessions — the substrate of {@link shouldDeload}. */
+  stallHistory?: SlotSessionSummary[]
+}
+
 export function computeNextSessionTarget(
   prescription: ProgressionPrescription,
   lastPerformance: SetPerformance[] | null,
+  opts?: ComputeNextSessionTargetOptions,
 ): ProgressionSuggestion | null {
   if (!lastPerformance || lastPerformance.length === 0) return null
 
@@ -280,6 +362,44 @@ export function computeNextSessionTarget(
     volumeType: volume.type,
     duration: volume.type === "duration" ? vol : undefined,
   })
+
+  // A Deload preempts the whole rule chain: it is the only rule that can break a
+  // hold loop — otherwise HOLD_NEAR_FAILURE would win every session of a Stall
+  // (ADR 0033). The Manual Override Window wins over it, like every other rule.
+  if (prescription.useSnapshot && shouldDeload(opts?.stallHistory ?? [])) {
+    // A 0 kg slot on a weight-first tier (equipment `other`, or `""` while the
+    // catalog row loads) has no load to shave: mirror the intra-session twin
+    // (rirSuggestion.ts) and fall into the reps-only shape instead of raising
+    // the load to one increment.
+    const weightFirst =
+      prescription.adjustmentTier === "weight-first" && currentWeight > 0
+    const deloadedVolume = weightFirst
+      ? volume.current
+      : Math.max(
+          1,
+          Math.min(
+            Math.round(volume.current * PROPORTIONAL_DELOAD_FACTOR),
+            volume.current - 1,
+          ),
+        )
+    const deloadedWeight = weightFirst
+      ? Math.max(weightIncrement, currentWeight - weightIncrement)
+      : currentWeight
+    // A Deload that lowers nothing (weight-first at or below one increment,
+    // reps-only at one rep) would leave the served target equal — the Stall
+    // would never break and the rule would re-fire forever. Fall through to the
+    // normal chain, which moves the target.
+    if (deloadedVolume < volume.current || deloadedWeight < currentWeight) {
+      return makeSuggestion(
+        "DELOAD",
+        deloadedVolume,
+        deloadedWeight,
+        currentSets,
+        "progression.deload",
+        "—",
+      )
+    }
+  }
 
   const completedSets = lastPerformance.filter((s) => s.completed)
   const allCompleted = completedSets.length >= currentSets

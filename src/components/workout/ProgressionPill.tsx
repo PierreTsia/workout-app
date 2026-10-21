@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
   TrendingUp,
+  TrendingDown,
   Dumbbell,
   Layers,
   Pause,
@@ -23,6 +24,7 @@ const ICON_MAP: Record<ProgressionRule, React.ElementType> = {
   HOLD_INCOMPLETE: Pause,
   HOLD_NEAR_FAILURE: ShieldAlert,
   PLATEAU: Trophy,
+  DELOAD: TrendingDown,
 }
 
 const COLOR_MAP: Record<ProgressionRule, string> = {
@@ -33,9 +35,17 @@ const COLOR_MAP: Record<ProgressionRule, string> = {
   HOLD_INCOMPLETE: "bg-amber-500/15 text-amber-300 border-amber-500/25",
   HOLD_NEAR_FAILURE: "bg-amber-500/15 text-amber-300 border-amber-500/25",
   PLATEAU: "bg-muted text-muted-foreground border-border",
+  // A Deload is neither an error nor a win — the neutral muted style.
+  DELOAD: "bg-muted text-muted-foreground border-border",
 }
 
-const APPLIED_RULES = new Set<ProgressionRule>(["REPS_UP", "DURATION_UP", "WEIGHT_UP", "SETS_UP"])
+const APPLIED_RULES = new Set<ProgressionRule>([
+  "REPS_UP",
+  "DURATION_UP",
+  "WEIGHT_UP",
+  "SETS_UP",
+  "DELOAD",
+])
 
 interface ProgressionPillProps {
   suggestion: ProgressionSuggestion

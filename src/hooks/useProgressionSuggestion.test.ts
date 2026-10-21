@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest"
 import { renderHookWithProviders, renderWithProviders } from "@/test/utils"
 import { useProgressionSuggestion } from "./useProgressionSuggestion"
 import { sessionAtom } from "@/store/atoms"
+import { slotKey, type SlotSessionSummary } from "@/lib/progression"
 import type { WorkoutExercise } from "@/types/database"
 import type { SetPerformance } from "@/lib/progression"
 
@@ -23,6 +24,17 @@ vi.mock("@/hooks/useLastSessionDetail", () => ({
             lastSessionFinishedAt: mockLastSessionFinishedAt,
           },
   }),
+}))
+
+// Same isolation for the T707 history read: the real hook reaches Supabase.
+const { stallHistoryMock } = vi.hoisted(() => ({
+  stallHistoryMock: vi.fn<
+    () => { history: Map<string, SlotSessionSummary[]>; isLoading: boolean }
+  >(() => ({ history: new Map(), isLoading: false })),
+}))
+
+vi.mock("@/hooks/useSlotPrescriptionHistory", () => ({
+  useSlotPrescriptionHistory: () => stallHistoryMock(),
 }))
 
 const { trackRuleMock } = vi.hoisted(() => ({ trackRuleMock: vi.fn() }))
@@ -70,6 +82,7 @@ function makePerf(overrides: Partial<SetPerformance> = {}): SetPerformance {
 describe("useProgressionSuggestion", () => {
   beforeEach(() => {
     mockLastPerformance = null
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: false })
   })
 
   it("returns a duration suggestion for duration exercises with history", () => {
@@ -230,11 +243,67 @@ describe("useProgressionSuggestion", () => {
     expect(result.current).not.toBeNull()
     expect(result.current!.rule).toBe("HOLD_INCOMPLETE")
   })
+
+  // T707 — the in-session seam threads the slot's history into the engine, so a
+  // Stall pre-fills the live session with the lighter target.
+  it("serves a DELOAD when the slot's history is a Stall", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+    ]
+    const stall: SlotSessionSummary[] = Array.from({ length: 4 }, () => ({
+      sessionFinishedAt: "2026-04-01T00:00:00Z",
+      prescribedReps: 10,
+      anchorReps: null,
+      prescribedWeight: 50,
+      avgRir: 1,
+    }))
+    stallHistoryMock.mockReturnValue({
+      history: new Map([[slotKey("we-1", "ex-1"), stall]]),
+      isLoading: false,
+    })
+
+    const ex = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestion(ex, "reps"),
+    )
+
+    expect(result.current).not.toBeNull()
+    expect(result.current!.rule).toBe("DELOAD")
+    expect(result.current!.weight).toBe(47.5)
+    expect(result.current!.reps).toBe(10)
+  })
+
+  // B2 — no suggestion beats a wrong locked one: while the history is in
+  // flight the engine would compute a non-deload target, and a set logged in
+  // that window would freeze it (SetsTable.readLockedPrescription) while the
+  // auto-apply writes the deloaded values.
+  it("returns null while the slot history is still loading", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+    ]
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: true })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise({ reps: "10", weight: "50" }), "reps"),
+    )
+
+    expect(result.current).toBeNull()
+  })
 })
 
 describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
   beforeEach(() => {
     mockLastPerformance = null
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: false })
     trackRuleMock.mockClear()
     localStorage.clear()
   })

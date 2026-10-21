@@ -50,6 +50,7 @@ function makeSuggestion(
       volumeType: "reps",
     },
     PLATEAU: { reps: 12, weight: 100, sets: 5, reasonKey: "progression.plateau", delta: "—", volumeType: "reps" },
+    DELOAD: { reps: 10, weight: 77.5, sets: 3, reasonKey: "progression.deload", delta: "—", volumeType: "reps" },
   }
   return { rule, ...defaults[rule], ...overrides }
 }
@@ -87,6 +88,25 @@ describe("ProgressionPill", () => {
     renderPill("PLATEAU")
     const badge = screen.getByText(/Plateau/i).closest("div[class]")!
     expect(badge.className).toMatch(/muted/)
+  })
+
+  // T707 — a Deload is neither an error nor a win: the neutral muted style, and
+  // no delta (the value dropped, but the pill explains *why* instead).
+  it("renders DELOAD with muted styling and no delta", () => {
+    renderPill("DELOAD")
+    const badge = screen.getByText(/Deload/i).closest("div[class]")!
+    expect(badge.className).toMatch(/muted/)
+    expect(badge.textContent).not.toContain("—")
+  })
+
+  it("opens the deload detail on click, and marks it auto-applied", async () => {
+    const user = userEvent.setup()
+    renderPill("DELOAD")
+
+    await openPopover(user, screen.getByText(/Deload/i))
+
+    expect(screen.getByText(/hasn't moved in a while/i)).toBeTruthy()
+    expect(screen.getByText(/Already applied/i)).toBeTruthy()
   })
 
   it("shows delta in the label when delta is not —", () => {
@@ -185,6 +205,15 @@ describe("ProgressionPill", () => {
       await user.click(trigger)
 
       expect(screen.getByText(/Average RIR was very low/i)).toBeTruthy()
+    })
+
+    it("exposes the deload reason as aria-label", () => {
+      renderWithProviders(
+        <ProgressionPill suggestion={makeSuggestion("DELOAD")} compact />,
+      )
+
+      expect(screen.queryByText(/Deload/i)).toBeNull()
+      expect(screen.getByLabelText(/Deload/i)).toBeTruthy()
     })
   })
 })
