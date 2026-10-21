@@ -12,6 +12,7 @@ import {
   type SlotSessionSummary,
   type VolumePrescription,
 } from "./progression"
+import { resolveLoadLadder } from "./loadLadder"
 import type { WorkoutExercise } from "@/types/database"
 
 function makeVolume(
@@ -40,6 +41,7 @@ function makePrescription(
     weightIncrement: 2.5,
     maxWeightReached: false,
     adjustmentTier: "weight-first",
+    loadLadder: null,
     useSnapshot: true,
     currentReps: vol.type === "reps" ? vol.current : 0,
     repRangeMin: vol.type === "reps" ? vol.min : 0,
@@ -1137,3 +1139,91 @@ describe("deriveDurationRangeMax (#379)", () => {
     expect(deriveDurationRangeMax(90)).toBe(90)
   })
 })
+
+describe("load ladder (T309)", () => {
+  it("WEIGHT_UP lands on the next ladder rung — dumbbell 20 kg → 25 kg, reps back to the floor", () => {
+    const exercise = makeExercise({ reps: "12", weight: "20", sets: 3 })
+    const lastPerformance = makeSets(3, 12, 20)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "dumbbell",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toContain(25)
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(25) // not 22.5
+    expect(result.reps).toBe(prescription.volume.min)
+  })
+
+  it("prescribes no load outside the ladder — the inherited increment is the fallback", () => {
+    const exercise = makeExercise({ reps: "12", weight: "30", sets: 3 })
+    const lastPerformance = makeSets(3, 12, 30)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "bodyweight",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toBeNull()
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(32.5)
+  })
+
+  it("a duration exercise resolves no ladder — today's behaviour is unchanged", () => {
+    const exercise = makeExercise({
+      reps: "0",
+      weight: "0",
+      sets: 3,
+      target_duration_seconds: 30,
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 40,
+      duration_increment_seconds: 5,
+    })
+    const prescription = buildPrescription(exercise, makeDurationSets(3, 40), {
+      measurementType: "duration",
+      equipment: "dumbbell",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toBeNull()
+  })
+
+  it("an athlete in lbs at 45 lb gets the exact 50 lb rung", () => {
+    const kg45 = 45 / 2.20462
+    const exercise = makeExercise({ reps: "12", weight: String(kg45), sets: 3 })
+    const lastPerformance = makeSets(3, 12, kg45)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "dumbbell",
+      weightUnit: "lbs",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight * 2.20462).toBeCloseTo(50, 2)
+  })
+
+  it("defaults to kg when no unit is passed — existing callers are untouched", () => {
+    const exercise = makeExercise({ reps: "12", weight: "20", sets: 3 })
+    const prescription = buildPrescription(exercise, null, {
+      equipment: "dumbbell",
+    })!
+
+    expect(prescription.loadLadder).toEqual(
+      resolveLoadLadder("dumbbell", "kg"),
+    )
+  })
+})
+

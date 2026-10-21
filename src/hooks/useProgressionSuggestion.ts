@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react"
 import { useStore } from "jotai"
 import { useLastSessionDetail } from "@/hooks/useLastSessionDetail"
 import { useSlotPrescriptionHistory } from "@/hooks/useSlotPrescriptionHistory"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import {
   buildPrescription,
   computeNextSessionTarget,
@@ -34,6 +35,8 @@ export function useProgressionSuggestion(
       sessionStartedAt ? new Date(sessionStartedAt).toISOString() : undefined,
     )
   const store = useStore()
+  // T309 — the display unit selects the Load Ladder the engine reads.
+  const { unit } = useWeightUnit()
 
   const suggestion = useMemo(() => {
     // B2 — no suggestion beats a wrong locked one: while the history is in
@@ -50,6 +53,7 @@ export function useProgressionSuggestion(
       equipment,
       catalogExercise,
       lastSessionFinishedAt,
+      weightUnit: unit,
     })
     if (prescription === null) return null
 
@@ -64,6 +68,7 @@ export function useProgressionSuggestion(
     catalogExercise,
     stallHistory,
     historyLoading,
+    unit,
   ])
 
   // T706 — one event per slot and session, from the in-session seam only. The

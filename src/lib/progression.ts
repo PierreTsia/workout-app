@@ -3,7 +3,9 @@ import {
   getAdjustmentTier,
   PROPORTIONAL_DELOAD_FACTOR,
   type AdjustmentTier,
+  type WeightUnit,
 } from "@/lib/rirSuggestion"
+import { nextLoad, resolveLoadLadder } from "@/lib/loadLadder"
 
 export type ProgressionRule =
   | "HOLD_INCOMPLETE"
@@ -37,6 +39,14 @@ export interface ProgressionPrescription {
    * `cable` slot deloads on reps exactly as the in-session engine does.
    */
   adjustmentTier: AdjustmentTier
+  /**
+   * The **Load Ladder** for this slot, in kg — resolved once in
+   * {@link buildPrescription}. `null` when the equipment declares no ladder
+   * (bodyweight, band…), when the prescription is a duration one, or when the
+   * caller passed no equipment: the WEIGHT_UP rule then keeps the inherited
+   * increment. The engine never prescribes a load outside it (ADR 0034).
+   */
+  loadLadder: number[] | null
   /**
    * False when the **Manual Override Window** is open (the athlete edited the
    * Template Prescription since the last session): the engine then reads the
@@ -157,6 +167,11 @@ export interface BuildPrescriptionOptions {
   equipment?: string
   catalogExercise?: { default_duration_seconds?: number | null } | null
   /**
+   * The athlete's display unit — selects which **Load Ladder** table to resolve.
+   * Defaults to `"kg"`: callers that don't pass it keep their behaviour.
+   */
+  weightUnit?: WeightUnit
+  /**
    * ISO timestamp of the most recent session that logged this exercise.
    * Compared against `exercise.template_updated_at` to decide whether the
    * **Manual Override Window** is open: if the user edited the template
@@ -188,7 +203,13 @@ export function buildPrescription(
   lastPerformance: SetPerformance[] | null,
   options: BuildPrescriptionOptions,
 ): ProgressionPrescription | null {
-  const { measurementType, equipment, catalogExercise, lastSessionFinishedAt } = options
+  const {
+    measurementType,
+    equipment,
+    catalogExercise,
+    lastSessionFinishedAt,
+    weightUnit = "kg",
+  } = options
   const isDuration = measurementType === "duration"
 
   // Manual Override Window: when the user edited the template since the last
@@ -273,6 +294,11 @@ export function buildPrescription(
   const snapshotSets = useSnapshot ? lastPerformance[0].prescribedSets : null
   const currentSets = snapshotSets ?? exercise.sets
 
+  // The Load Ladder is resolved once, here: a duration prescription has no load
+  // to place on a ladder, so it never resolves one (#713 stays open).
+  const loadLadder =
+    volume.type === "reps" ? resolveLoadLadder(equipment, weightUnit) : null
+
   return {
     volume,
     currentWeight,
@@ -282,12 +308,16 @@ export function buildPrescription(
     weightIncrement: resolveWeightIncrement(exercise.weight_increment ?? null, equipment),
     maxWeightReached: exercise.max_weight_reached ?? false,
     adjustmentTier: getAdjustmentTier(equipment ?? "", currentWeight),
+    loadLadder,
     useSnapshot,
     currentReps: volume.type === "reps" ? volume.current : 0,
     repRangeMin: volume.type === "reps" ? volume.min : 0,
     repRangeMax: volume.type === "reps" ? volume.max : 0,
   }
 }
+
+/** One decimal, for a load delta string the pill re-parses as a number. */
+const round1 = (value: number): number => Math.round(value * 10) / 10
 
 function averageRir(sets: SetPerformance[]): number | null {
   const withRir = sets.filter((s) => s.completed && s.rir != null)
@@ -337,7 +367,7 @@ export function computeNextSessionTarget(
   if (!lastPerformance || lastPerformance.length === 0) return null
 
   const { volume, currentWeight, currentSets } = prescription
-  const { setRangeMax, maxWeightReached, weightIncrement } = prescription
+  const { setRangeMax, maxWeightReached, weightIncrement, loadLadder } = prescription
 
   const volumeValue = (s: SetPerformance) =>
     volume.type === "duration" ? (s.durationSeconds ?? 0) : s.reps
@@ -460,11 +490,21 @@ export function computeNextSessionTarget(
   }
 
   if (!maxWeightReached) {
-    const nextWeight = currentWeight + weightIncrement
+    const ladderNext = loadLadder ? nextLoad(loadLadder, currentWeight) : null
+    if (ladderNext != null) {
+      return makeSuggestion(
+        "WEIGHT_UP",
+        volume.min,
+        ladderNext,
+        currentSets,
+        "progression.weightUp",
+        String(round1(ladderNext - currentWeight)),
+      )
+    }
     return makeSuggestion(
       "WEIGHT_UP",
       volume.min,
-      nextWeight,
+      currentWeight + weightIncrement,
       currentSets,
       "progression.weightUp",
       String(weightIncrement),
