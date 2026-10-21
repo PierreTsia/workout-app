@@ -80,11 +80,10 @@ les exercices en durée (hors v1), ni les séances sans RIR déclaré.
 
 | Story # | Measure |
 |---|---|
-| 1 | A test proves a 4-stagnant-session streak at RIR ≤ 1 yields a `DELOAD` suggestion |
-| 4 | A test proves an undeclared RIR (null average) never yields a `DELOAD` |
-| 8 | A test proves the session after a served deload resumes the normal rule, not another deload |
 | 13 | The deviations observatory's query 3 classifies deloaded sets as before (no `flat` inflation) |
 | 12 | No new column, no persisted rule: the diff adds zero migration state |
+
+Les autres stories se valident qualitativement (comportement du moteur, couvert par les tests de T707/T708).
 
 ---
 
@@ -97,7 +96,9 @@ les exercices en durée (hors v1), ni les séances sans RIR déclaré.
    `prescribed_weight` do not advance, **and** the last session's average RIR ≤ 1. No time bound on the
    streak (`N` sessions, whatever their calendar spacing).
 3. Deload effect: load −1 increment (slot's `weightIncrement`); reps-only equipment reps ×0.85
-   (`PROPORTIONAL_DELOAD_FACTOR`). Sets, range, duration axis untouched.
+   (`PROPORTIONAL_DELOAD_FACTOR`). Sets, range, duration axis untouched — **the source doc proposed
+   "volume reduced" over a week; we ship one session with sets untouched (ADR 0033 supersedes that
+   grain)**.
 4. Derived exit: one deloaded session; the next session resumes normal progression once the served
    prescription reads lower than the previous one.
 5. Manual Override Window still wins.
@@ -127,4 +128,5 @@ les exercices en durée (hors v1), ni les séances sans RIR déclaré.
   prescribed at session start".
 - **Process:** ADR 0033 records the reframed trigger; the epic's prerequisite (deployed observatory) is used
   to tune `N` and the RIR gate **after P1 ships** — the thresholds ship as a documented starting point, not
-  a validated value.
+  a validated value. **Follow-up (HITL):** the body of #705 still carries the old wording ("une semaine de
+  décharge … volume réduit") and its AC "`PLATEAU` a une sortie" — reconcile it with ADR 0033.

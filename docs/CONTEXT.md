@@ -377,14 +377,16 @@ The language used to render user-facing content (`en` | `fr`). **Resolution rule
 The decision the engine emits for a given exercise's next session, based on **Last Performance** + RIR averaging. Enum: `WEIGHT_UP | REPS_UP | SETS_UP | DURATION_UP | DELOAD | HOLD_INCOMPLETE | HOLD_NEAR_FAILURE | PLATEAU`. `WEIGHT_UP`, `REPS_UP`, `SETS_UP`, `DURATION_UP` and `DELOAD` are **auto-applied** (the **Progression Suggestion**'s value differs from the previous session); the last three hold the value steady for explanatory reasons.
 → `file:src/lib/progression.ts`
 
-**Blocage** (EN **Stall**):
-The state of an **Exercise Slot** whose **Prescription Snapshot** no longer moves — `prescribed_reps` and `prescribed_weight` unchanged session over session — for `STALL_SESSIONS = 4` consecutive **Sessions**, the last one at average **RIR** ≤ 1. Derivated from history: no column, no persisted rule. It is the condition the **Décharge** (`DELOAD`) breaks, and it *subsumes* `PLATEAU` (a prescription frozen at the ceiling). An undeclared **RIR** is not a zero — no average means no **Blocage**. The **Manual Override Window** wins over it (a deliberate template edit is intent, not a stall).
+**Stall**:
+The state of an **Exercise Slot** whose **served target** — `anchor_reps ?? prescribed_reps` and `prescribed_weight` — stays **equal** across `STALL_SESSIONS = 4` consecutive **Sessions**, the last one at average **RIR** ≤ 1. The condition the **Deload** rule breaks. A target that *drops* is an intervention (a served **Deload**, or a manual change), not a **Stall**; an undeclared **RIR** is not a zero. Derived from history: no column, no persisted rule.
+→ `file:src/lib/progression.ts`
 
-**Décharge** (EN **Deload**, rule `DELOAD`):
-The **Progression Rule** that pulls an **Exercise Slot** out of a **Blocage**: load −1 increment (the slot's `weightIncrement`; 2.5 kg barbell / 2 kg dumbbell by default), and for *reps-only* equipment (`bodyweight`, `cable`, `band`) reps ×0.85 (`PROPORTIONAL_DELOAD_FACTOR`, the same factor the intra-session engine uses). Sets, range and the duration axis are untouched (duration is out of v1). Auto-applied and visible (a "Décharge" label), and lasts **one Session**: the exit is derived — when the next session's **Prescription Snapshot** reads *lower* than the previous one, the engine recognises it served a **Décharge** and resumes normal progression from the deloaded step. Runner rules that justify it: `WEIGHT_UP` already resets reps to the range min, and the weight axis tracks the real logged load (ADR 0006 / #381), so a deloaded weight propagates on its own. UI: FR **Décharge** / EN **Deload**.
+**Deload** (UI: FR **Décharge** / EN **Deload**, rule `DELOAD`):
+The **Progression Rule** that pulls an **Exercise Slot** out of a **Stall** by lowering one step — load −1 increment, or reps ×0.85 for *reps-only* equipment — for a single **Session**, after which the engine resumes normal progression. Auto-applied, like `WEIGHT_UP`; the **Manual Override Window** wins.
+→ `file:src/lib/progression.ts`
 
 **Progression Suggestion**:
-Engine output for a single exercise: `{ rule, reps, weight, sets, delta, reasonKey, volumeType, duration? }`. The canonical "what should the user do this session" payload — drives the in-session **`SetsTable`**, the in-session `ProgressionPill`, and (post-#371) the pre-session list rows. Computed by `computeNextSessionTarget(prescription, lastPerformance)`. Falls back to `null` when there is no **Last Performance** to anchor against.
+Engine output for a single exercise: `{ rule, reps, weight, sets, delta, reasonKey, volumeType, duration? }`. The canonical "what should the user do this session" payload — drives the in-session **`SetsTable`**, the in-session `ProgressionPill`, and (post-#371) the pre-session list rows. Computed by `computeNextSessionTarget(prescription, lastPerformance, opts?)`. Falls back to `null` when there is no **Last Performance** to anchor against.
 → `file:src/lib/progression.ts`, `file:src/hooks/useProgressionSuggestion.ts`
 
 **Template Prescription**:

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-20
 - **Decided in:** P2 analysis for the progression-engine epic [#705](https://github.com/PierreTsia/workout-app/issues/705)
-- **Relates to:** ADR [0006](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0006-decouple-template-from-progression-engine.md) (Template Prescription vs Progression Engine), ADR [0032](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0032-progression-anchor-reps.md) (progression anchor reps)
+- **Relates to:** ADR [0006](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0006-decouple-template-from-progression-engine.md) (Template Prescription vs Progression Engine), ADR [0032](https://github.com/PierreTsia/workout-app/blob/main/docs/adr/0032-progression-anchor-reps.md) (progression anchor reps — this ADR **honours its follow-up** "P2 / P3 read the anchor rather than re-deriving it")
 
 ## Context
 
@@ -40,18 +40,24 @@ reps-only equipment (`file:src/lib/rirSuggestion.ts`).
 We will:
 
 1. Trigger the deload on a **Blocage**, not on `PLATEAU`: `STALL_SESSIONS = 4` consecutive sessions
-   where `prescribed_reps` **and** `prescribed_weight` do not advance, **and** the last session's
-   average **RIR** ≤ 1 (genuine saturation, not comfortable stagnation). An undeclared RIR is not a
-   zero: no average means no deload, the same rule as any other unavailable signal.
+   whose **served target** — `anchor_reps ?? prescribed_reps` for reps (ADR 0032), `prescribed_weight`
+   for load — is **strictly equal** session over session, **and** the last session's average **RIR** ≤ 1
+   (genuine saturation, not comfortable stagnation). Equality, not "not increasing": the engine serves a
+   *hold* (same value) when it has nothing more; a value that **drops** is an intervention (a served
+   deload, or a manual change) and must not read as a stall. An undeclared RIR is not a zero: no average
+   means no deload, the same rule as any other unavailable signal.
 2. Add a `DELOAD` **Progression Rule**, auto-applied like `WEIGHT_UP`: load −1 increment (the slot's
    `weightIncrement`, 2.5 kg barbell / 2 kg dumbbell by default); for *reps-only* equipment
    (`bodyweight`, `cable`, `band`) reps ×0.85, reusing `PROPORTIONAL_DELOAD_FACTOR`. Sets, range and
    the duration axis untouched — **duration is out of v1**.
 3. Keep the state **derived, with no new column and no persisted rule**: the deload lasts exactly
-   **one session**; the exit is recognised by the next session's **Prescription Snapshot** reading
-   *lower* than the previous one, after which the normal engine resumes from the deloaded step.
-4. Let the **Manual Override Window** win, as it does for every other rule.
+   **one session**, and the exit needs no dedicated check — a served deload makes the served target
+   *drop*, which breaks the equality and lets the normal engine resume from the deloaded step.
+4. Let the **Manual Override Window** win, as it does for every other rule. The flag is computed inside
+   `buildPrescription` and carried on `ProgressionPrescription` so the rule can read it.
 5. Surface it: a visible "Décharge" label, like the other auto-applied rules (i18n copy pass).
+6. Supersede the source doc's grain: it proposed "a deload week (one step down, **reduced volume**)".
+   We ship **one session, sets untouched** — a reduced-set week is a different product object.
 
 ## Consequences
 
@@ -67,7 +73,10 @@ We will:
   be misread as "deload served".
 - **Follow-ups:** the duration axis (`DURATION_UP` deload) if the same hole shows there; a served-rule
   event or column if a future rule needs more state than one comparison. The epic's own prerequisite
-  still stands: once P1 is deployed, confirm the real served-rule distribution and tune `N`.
+  still stands: once P1 is deployed, confirm the real served-rule distribution and tune `N`. The body of
+  [#705](https://github.com/PierreTsia/workout-app/issues/705) still carries the source doc's wording
+  ("une semaine de décharge … volume réduit") and its AC "`PLATEAU` a une sortie" — reconcile it with
+  this ADR.
 
 ## Alternatives considered
 

@@ -48,7 +48,7 @@ Use these words. Do not invent a synonym.
 | **Transition** | Transition | Transition | |
 | **Weight** | Weight | Poids | |
 | **Hold** | Hold | Gainage / tenue | leftover English "Hold" in FR |
-| **Décharge** (rule `DELOAD`) | Deload | Décharge | deload week, semaine de décharge |
+| **Deload** (rule `DELOAD`) | Deload | Décharge | deload week, semaine de décharge |
 | **Personal record** | PR (personal record) | Record personnel | |
 | **Personal best** (circuit score) | PB (personal best) | PB (meilleur score) | |
 | **Embedded Agent** | the assistant | l'assistant | Gemini, Groq, Embedded Agent |
