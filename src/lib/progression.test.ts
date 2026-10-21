@@ -39,6 +39,7 @@ function makePrescription(
     setRangeMax: 5,
     weightIncrement: 2.5,
     maxWeightReached: false,
+    adjustmentTier: "weight-first",
     useSnapshot: true,
     currentReps: vol.type === "reps" ? vol.current : 0,
     repRangeMin: vol.type === "reps" ? vol.min : 0,
@@ -326,6 +327,7 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
     const rx = makePrescription({
       volume: makeVolume({ current: 10 }),
       currentWeight: 0,
+      adjustmentTier: "reps-only",
     })
     const result = computeNextSessionTarget(rx, makeSets(3, 10, 0), {
       stallHistory: makeStall({ prescribedWeight: 0 }),
@@ -334,6 +336,25 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
     expect(result.rule).toBe("DELOAD")
     expect(result.reps).toBe(9)
     expect(result.weight).toBe(0)
+  })
+
+  it("reps-only: a loaded cable slot deloads reps, not load (tier, not the load)", () => {
+    // The tier comes from `getAdjustmentTier` (cable is reps-only), so a cable
+    // slot carrying load must still deload on reps — the old `currentWeight > 0`
+    // heuristic would have treated it weight-first.
+    const exercise = makeExercise({ reps: "10", weight: "30", sets: 3 })
+    const lastPerformance = makeSets(3, 10, 30)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      equipment: "cable",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+    const result = computeNextSessionTarget(prescription, lastPerformance, {
+      stallHistory: makeStall({ prescribedWeight: 30 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.reps).toBe(9)
+    expect(result.weight).toBe(30)
   })
 
   it("the Manual Override Window suppresses it — the template wins", () => {

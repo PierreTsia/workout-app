@@ -1,5 +1,9 @@
 import type { WorkoutExercise } from "@/types/database"
-import { PROPORTIONAL_DELOAD_FACTOR } from "@/lib/rirSuggestion"
+import {
+  getAdjustmentTier,
+  PROPORTIONAL_DELOAD_FACTOR,
+  type AdjustmentTier,
+} from "@/lib/rirSuggestion"
 
 export type ProgressionRule =
   | "HOLD_INCOMPLETE"
@@ -27,6 +31,12 @@ export interface ProgressionPrescription {
   setRangeMax: number
   weightIncrement: number
   maxWeightReached: boolean
+  /**
+   * The intra-session engine's adjustment tier for this slot (ADR 0033): the
+   * Deload rule reads it instead of re-deriving from the load, so a loaded
+   * `cable` slot deloads on reps exactly as the in-session engine does.
+   */
+  adjustmentTier: AdjustmentTier
   /**
    * False when the **Manual Override Window** is open (the athlete edited the
    * Template Prescription since the last session): the engine then reads the
@@ -271,6 +281,7 @@ export function buildPrescription(
     setRangeMax: exercise.set_range_max ?? Math.min(6, currentSets + 2),
     weightIncrement: resolveWeightIncrement(exercise.weight_increment ?? null, equipment),
     maxWeightReached: exercise.max_weight_reached ?? false,
+    adjustmentTier: getAdjustmentTier(equipment ?? "", currentWeight),
     useSnapshot,
     currentReps: volume.type === "reps" ? volume.current : 0,
     repRangeMin: volume.type === "reps" ? volume.min : 0,
@@ -356,7 +367,7 @@ export function computeNextSessionTarget(
   // hold loop — otherwise HOLD_NEAR_FAILURE would win every session of a Stall
   // (ADR 0033). The Manual Override Window wins over it, like every other rule.
   if (prescription.useSnapshot && shouldDeload(opts?.stallHistory ?? [])) {
-    const weightFirst = currentWeight > 0
+    const weightFirst = prescription.adjustmentTier === "weight-first"
     const deloadedVolume = weightFirst
       ? volume.current
       : Math.max(
