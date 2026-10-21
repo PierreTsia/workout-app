@@ -15,6 +15,17 @@ vi.mock("@/lib/supabase", () => ({
   },
 }))
 
+// T708 — the hook reads the catalog `equipment` for the day's exercises. The
+// real `useExerciseBatch` reaches Supabase; isolate it and let each test decide
+// which catalog rows are loaded.
+const { batchMock } = vi.hoisted(() => ({
+  batchMock: vi.fn<() => { data: unknown[] }>(() => ({ data: [] })),
+}))
+
+vi.mock("@/hooks/useExerciseBatch", () => ({
+  useExerciseBatch: () => batchMock(),
+}))
+
 function makeExercise(overrides: Partial<WorkoutExercise> = {}): WorkoutExercise {
   return {
     id: "we-1",
@@ -61,6 +72,47 @@ function makeRow(
   }
 }
 
+/** One row of `get_slot_prescription_history` (T707): a slot × session summary. */
+function makeHistoryRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    workout_exercise_id: "we-1",
+    exercise_id: "ex-1",
+    session_id: "sess-1",
+    session_finished_at: "2026-04-01T00:00:00Z",
+    prescribed_reps: 10,
+    anchor_reps: null,
+    prescribed_weight: 50,
+    avg_rir: 1,
+    ...overrides,
+  }
+}
+
+/** Dispatch the two RPCs by name so each test controls both payloads. */
+function mockRpcBySlot({
+  lastPerformance = [] as Record<string, unknown>[],
+  history = [] as Record<string, unknown>[],
+  lastPerformanceError = null as { message: string } | null,
+  historyError = null as { message: string } | null,
+} = {}) {
+  rpcMock.mockImplementation((name: string) => {
+    if (name === "get_last_performance_for_slots") {
+      return Promise.resolve({
+        data: lastPerformanceError ? null : lastPerformance,
+        error: lastPerformanceError,
+      })
+    }
+    if (name === "get_slot_prescription_history") {
+      return Promise.resolve({
+        data: historyError ? null : history,
+        error: historyError,
+      })
+    }
+    return Promise.resolve({ data: null, error: null })
+  })
+}
+
 describe("requireParallelSlotArrays", () => {
   it("throws when parallel arrays differ in length", () => {
     expect(() =>
@@ -78,6 +130,8 @@ describe("requireParallelSlotArrays", () => {
 describe("useProgressionSuggestionsForDay", () => {
   beforeEach(() => {
     rpcMock.mockReset()
+    batchMock.mockReset()
+    batchMock.mockReturnValue({ data: [] })
   })
 
   // Cycle 9: batched RPC hook maps the new prescribed_* + session_finished_at
@@ -394,5 +448,130 @@ describe("useProgressionSuggestionsForDay", () => {
     expect(result.current.error).not.toBeNull()
     expect(result.current.error!.message).toBe("permission denied")
     expect(result.current.data.size).toBe(0)
+  })
+
+  // T708 — the pre-session seam reads the slot's history and threads it into the
+  // engine, so a Stall pre-fills the day list with the same lighter target as the
+  // in-session seam (T707).
+  it("serves a DELOAD pre-session when the slot's history is a Stall", async () => {
+    mockRpcBySlot({
+      lastPerformance: [
+        makeRow({ set_number: 1, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+        makeRow({ set_number: 2, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+        makeRow({ set_number: 3, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+      ],
+      history: Array.from({ length: 4 }, () => makeHistoryRow()),
+    })
+
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z", // older than session_finished_at
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [exercise]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const suggestion = result.current.data.get("we-1")
+    expect(suggestion).not.toBeNull()
+    expect(suggestion!.rule).toBe("DELOAD")
+    expect(suggestion!.weight).toBe(47.5)
+    expect(suggestion!.reps).toBe(10)
+  })
+
+  it("reads the slot history with a single RPC call for all slots of the day", async () => {
+    mockRpcBySlot({
+      lastPerformance: [makeRow({ workout_exercise_id: "we-1" })],
+      history: [],
+    })
+
+    const exercises = [
+      makeExercise({ id: "we-1", exercise_id: "ex-1" }),
+      makeExercise({ id: "we-2", exercise_id: "ex-2" }),
+      makeExercise({ id: "we-3", exercise_id: "ex-3" }),
+    ]
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", exercises),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const historyCalls = rpcMock.mock.calls.filter(
+      (call) => call[0] === "get_slot_prescription_history",
+    )
+    expect(historyCalls).toHaveLength(1)
+    expect(historyCalls[0][1]).toMatchObject({
+      p_workout_exercise_ids: ["we-1", "we-2", "we-3"],
+      p_exercise_ids: ["ex-1", "ex-2", "ex-3"],
+    })
+  })
+
+  // T708 — the increment must match the in-session seam: a dumbbell without an
+  // explicit `weight_increment` resolves to 2.0 kg, not the 2.5 default.
+  it("uses the catalog equipment so a dumbbell gets the in-session increment (2.0)", async () => {
+    batchMock.mockReturnValue({
+      data: [{ id: "ex-1", equipment: "dumbbell" }],
+    })
+    mockRpcBySlot({
+      lastPerformance: [
+        makeRow({ set_number: 1, reps_logged: "12", prescribed_reps: 12, prescribed_weight: 80, weight_logged: 80 }),
+        makeRow({ set_number: 2, reps_logged: "12", prescribed_reps: 12, prescribed_weight: 80, weight_logged: 80 }),
+        makeRow({ set_number: 3, reps_logged: "12", prescribed_reps: 12, prescribed_weight: 80, weight_logged: 80 }),
+      ],
+      history: [],
+    })
+
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "80",
+      sets: 3,
+      rep_range_max: 12,
+      max_weight_reached: false,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [exercise]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const suggestion = result.current.data.get("we-1")
+    expect(suggestion).not.toBeNull()
+    expect(suggestion!.rule).toBe("WEIGHT_UP")
+    expect(suggestion!.weight).toBe(82.0) // 80 + 2.0, not 80 + 2.5
+  })
+
+  it("degrades to normal suggestions when the history RPC errors", async () => {
+    mockRpcBySlot({
+      lastPerformance: [
+        makeRow({ set_number: 1, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+        makeRow({ set_number: 2, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+        makeRow({ set_number: 3, prescribed_reps: 10, prescribed_weight: 50, weight_logged: 50 }),
+      ],
+      historyError: { message: "function does not exist" },
+    })
+
+    const exercise = makeExercise({
+      reps: "10",
+      weight: "50",
+      sets: 3,
+      template_updated_at: "2026-01-01T00:00:00Z",
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [exercise]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const suggestion = result.current.data.get("we-1")
+    expect(suggestion).not.toBeNull()
+    expect(suggestion!.rule).not.toBe("DELOAD")
   })
 })
