@@ -1227,3 +1227,99 @@ describe("load ladder (T309)", () => {
   })
 })
 
+describe("load jump refusal (T310)", () => {
+  const DUMBBELL_KG = resolveLoadLadder("dumbbell", "kg")!
+  // A poor gym: nothing between 20 and 30 — the +50 % step we must refuse.
+  const POOR_LADDER = [10, 20, 30, 40]
+
+  const atCeiling = (overrides: Partial<ProgressionPrescription>) =>
+    makePrescription({
+      volume: makeVolume({ current: 12, min: 8, max: 12 }),
+      currentWeight: 20,
+      loadLadder: DUMBBELL_KG,
+      ...overrides,
+    })
+
+  it("accepts the +25 % dumbbell step — 20 kg → 25 kg stays WEIGHT_UP", () => {
+    const result = computeNextSessionTarget(atCeiling({}), makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(25)
+  })
+
+  it("refuses a +50 % step — 20 kg → 30 kg produces no WEIGHT_UP", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("a refused jump escalates to SETS_UP at the same load when sets remain", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+    expect(result.sets).toBe(4)
+    expect(result.reasonKey).toBe("progression.setsUp")
+  })
+
+  it("a refused jump at the set ceiling plateaus", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 5, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(5, 12, 20))!
+
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.weight).toBe(20)
+  })
+
+  it("leaves the Stall → Deload hand-off untouched — a real stall still deloads", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 5, setRangeMax: 5 })
+    const stallHistory: SlotSessionSummary[] = Array.from(
+      { length: STALL_SESSIONS },
+      (_, i) => ({
+        sessionFinishedAt: `2026-05-0${i + 1}T00:00:00Z`,
+        prescribedReps: 12,
+        anchorReps: 12,
+        prescribedWeight: 20,
+        avgRir: i === STALL_SESSIONS - 1 ? 1 : 2,
+      }),
+    )
+
+    const result = computeNextSessionTarget(rx, makeSets(5, 12, 20), {
+      stallHistory,
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+  })
+
+  it("maxWeightReached still wins over an acceptable ladder step", () => {
+    const rx = atCeiling({ maxWeightReached: true, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("without a ladder the inherited increment is prescribed, never refused", () => {
+    const rx = atCeiling({ loadLadder: null, weightIncrement: 2.5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(22.5)
+  })
+
+  it("a step off zero is refused — loadJumpRatio is Infinity", () => {
+    const rx = atCeiling({ currentWeight: 0, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 0))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(0)
+
+    const maxedRx = atCeiling({ currentWeight: 0, currentSets: 5, setRangeMax: 5 })
+    expect(computeNextSessionTarget(maxedRx, makeSets(5, 12, 0))!.rule).toBe(
+      "PLATEAU",
+    )
+  })
+})
+

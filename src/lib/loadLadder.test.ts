@@ -4,8 +4,10 @@ import { resolveIncrement } from "@/lib/rirSuggestion"
 import {
   DEFAULT_LOAD_LADDERS,
   LADDER_MATCH_TOLERANCE_KG,
+  LOAD_JUMP_MAX_RATIO,
   LOAD_LADDERS_KG,
   LOAD_LADDER_CATEGORY,
+  loadJumpRatio,
   nextLoad,
   resolveLoadLadder,
   type LadderCategory,
@@ -116,5 +118,25 @@ describe("nextLoad", () => {
     expect(nextLoad([2, 4, 6], 6)).toBeNull()
     expect(nextLoad([2, 4, 6], 100)).toBeNull()
     expect(nextLoad([], 10)).toBeNull()
+  })
+})
+
+describe("loadJumpRatio", () => {
+  it("is the relative step from one load to the next", () => {
+    expect(loadJumpRatio(20, 25)).toBe(0.25)
+    expect(loadJumpRatio(20, 30)).toBe(0.5)
+    expect(loadJumpRatio(100, 102.5)).toBe(0.025)
+  })
+
+  it("leaves the 30 % threshold where the dumbbell ladder needs it", () => {
+    expect(LOAD_JUMP_MAX_RATIO).toBe(0.3)
+    // The standard dumbbell jump is accepted; a poor gym's 20 → 30 is refused.
+    expect(loadJumpRatio(20, 25)).toBeLessThanOrEqual(LOAD_JUMP_MAX_RATIO)
+    expect(loadJumpRatio(20, 30)).toBeGreaterThan(LOAD_JUMP_MAX_RATIO)
+  })
+
+  it("is Infinity when there is no load to jump from", () => {
+    expect(loadJumpRatio(0, 25)).toBe(Infinity)
+    expect(loadJumpRatio(-5, 25)).toBe(Infinity)
   })
 })

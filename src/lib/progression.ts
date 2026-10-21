@@ -5,7 +5,12 @@ import {
   type AdjustmentTier,
   type WeightUnit,
 } from "@/lib/rirSuggestion"
-import { nextLoad, resolveLoadLadder } from "@/lib/loadLadder"
+import {
+  LOAD_JUMP_MAX_RATIO,
+  loadJumpRatio,
+  nextLoad,
+  resolveLoadLadder,
+} from "@/lib/loadLadder"
 
 export type ProgressionRule =
   | "HOLD_INCOMPLETE"
@@ -491,7 +496,21 @@ export function computeNextSessionTarget(
 
   if (!maxWeightReached) {
     const ladderNext = loadLadder ? nextLoad(loadLadder, currentWeight) : null
-    if (ladderNext != null) {
+
+    // Off the ladder, above its last rung, or no ladder at all: no refusal —
+    // fall back on the inherited step (never a dead end, never an invented jump).
+    if (ladderNext == null) {
+      return makeSuggestion(
+        "WEIGHT_UP",
+        volume.min,
+        currentWeight + weightIncrement,
+        currentSets,
+        "progression.weightUp",
+        String(weightIncrement),
+      )
+    }
+
+    if (loadJumpRatio(currentWeight, ladderNext) <= LOAD_JUMP_MAX_RATIO) {
       return makeSuggestion(
         "WEIGHT_UP",
         volume.min,
@@ -501,14 +520,7 @@ export function computeNextSessionTarget(
         String(round1(ladderNext - currentWeight)),
       )
     }
-    return makeSuggestion(
-      "WEIGHT_UP",
-      volume.min,
-      currentWeight + weightIncrement,
-      currentSets,
-      "progression.weightUp",
-      String(weightIncrement),
-    )
+    // Refused jump: fall through to the existing escalation — SETS_UP, then PLATEAU.
   }
 
   if (currentSets < setRangeMax) {

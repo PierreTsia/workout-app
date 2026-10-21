@@ -99,10 +99,26 @@ export function resolveLoadLadder(
 }
 
 /**
+ * Ceiling on a **Load Jump**, as a ratio of the current load: above it the
+ * engine refuses the step and escalates to `SETS_UP` instead. A starting
+ * guess, to recalibrate post-launch like `STALL_SESSIONS`.
+ */
+export const LOAD_JUMP_MAX_RATIO = 0.30
+
+/**
  * The first rung **strictly** above `currentKg` (within
  * {@link LADDER_MATCH_TOLERANCE_KG}), or `null` when there is none — the
  * caller then falls back to the legacy increment.
  */
 export function nextLoad(ladder: number[], currentKg: number): number | null {
   return ladder.find((step) => step > currentKg + LADDER_MATCH_TOLERANCE_KG) ?? null
+}
+
+/**
+ * The relative **Load Jump** from `fromKg` to `toKg`. `Infinity` when there is
+ * no load to jump from: a step off zero is always refused.
+ */
+export function loadJumpRatio(fromKg: number, toKg: number): number {
+  if (fromKg <= 0) return Infinity
+  return (toKg - fromKg) / fromKg
 }
