@@ -411,6 +411,87 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
   })
 })
 
+describe("computeNextSessionTarget — DELOAD steps down the Load Ladder (T311)", () => {
+  const DUMBBELL_KG = resolveLoadLadder("dumbbell", "kg")!
+  const BARBELL_KG = resolveLoadLadder("barbell", "kg")!
+
+  it("a stalled dumbbell slot at 25 kg deloads to the previous rung (20 kg), not 23 kg", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 25,
+      weightIncrement: 2,
+      loadLadder: DUMBBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 25), {
+      stallHistory: makeStall({ prescribedWeight: 25 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(20)
+  })
+
+  it("at the first rung the deload falls back to Math.max(weightIncrement, currentWeight - weightIncrement)", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 20,
+      weightIncrement: 2.5,
+      loadLadder: BARBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 20), {
+      stallHistory: makeStall({ prescribedWeight: 20 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(17.5)
+  })
+
+  it("without a ladder the behaviour is unchanged", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 80,
+      weightIncrement: 2.5,
+      loadLadder: null,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 80), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(77.5)
+  })
+
+  it("reps-only equipment still deloads reps ×0.85 and never reads the ladder", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 30,
+      adjustmentTier: "reps-only",
+      loadLadder: resolveLoadLadder("cable", "kg"),
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 30), {
+      stallHistory: makeStall({ prescribedWeight: 30 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.reps).toBe(9)
+    expect(result.weight).toBe(30)
+  })
+
+  it("an off-ladder current load (23 kg) steps down to the lower rung (20 kg)", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 23,
+      weightIncrement: 2,
+      loadLadder: DUMBBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 23), {
+      stallHistory: makeStall({ prescribedWeight: 23 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(20)
+  })
+})
+
 describe("computeNextSessionTarget — duration exercises", () => {
   function durationVolume(overrides: Partial<VolumePrescription> = {}): VolumePrescription {
     return {

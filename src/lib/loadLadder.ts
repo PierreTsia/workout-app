@@ -115,6 +115,23 @@ export function nextLoad(ladder: number[], currentKg: number): number | null {
 }
 
 /**
+ * The last rung **strictly** below `currentKg` (within
+ * {@link LADDER_MATCH_TOLERANCE_KG}), or `null` at the first rung / without a
+ * ladder — the caller then falls back to the legacy increment. The **Deload**
+ * reads it to step down onto a load the athlete can actually compose.
+ */
+export function previousLoad(
+  ladder: number[] | null,
+  currentKg: number,
+): number | null {
+  if (!ladder) return null
+  return (
+    ladder.filter((step) => step < currentKg - LADDER_MATCH_TOLERANCE_KG).at(-1) ??
+    null
+  )
+}
+
+/**
  * The relative **Load Jump** from `fromKg` to `toKg`. `Infinity` when there is
  * no load to jump from: a step off zero is always refused.
  */

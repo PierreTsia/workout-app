@@ -9,6 +9,7 @@ import {
   LOAD_JUMP_MAX_RATIO,
   loadJumpRatio,
   nextLoad,
+  previousLoad,
   resolveLoadLadder,
 } from "@/lib/loadLadder"
 
@@ -418,7 +419,8 @@ export function computeNextSessionTarget(
           ),
         )
     const deloadedWeight = weightFirst
-      ? Math.max(weightIncrement, currentWeight - weightIncrement)
+      ? previousLoad(loadLadder, currentWeight) ??
+        Math.max(weightIncrement, currentWeight - weightIncrement)
       : currentWeight
     // A Deload that lowers nothing (weight-first at or below one increment,
     // reps-only at one rep) would leave the served target equal — the Stall

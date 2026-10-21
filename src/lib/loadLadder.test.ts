@@ -9,6 +9,7 @@ import {
   LOAD_LADDER_CATEGORY,
   loadJumpRatio,
   nextLoad,
+  previousLoad,
   resolveLoadLadder,
   type LadderCategory,
 } from "./loadLadder"
@@ -118,6 +119,37 @@ describe("nextLoad", () => {
     expect(nextLoad([2, 4, 6], 6)).toBeNull()
     expect(nextLoad([2, 4, 6], 100)).toBeNull()
     expect(nextLoad([], 10)).toBeNull()
+  })
+})
+
+describe("previousLoad", () => {
+  it("returns the last rung strictly below the current load", () => {
+    expect(previousLoad([2, 4, 6, 8, 10], 8)).toBe(6)
+    expect(previousLoad([2, 4, 6, 8, 10], 7)).toBe(6)
+  })
+
+  it("the current load's own rung is not its previous rung", () => {
+    expect(previousLoad([20, 25], 25)).toBe(20)
+  })
+
+  it("absorbs the display tolerance", () => {
+    // A 45 lb rung stored as 20,4 kg must not read as its own previous rung.
+    expect(previousLoad([20.4116, 22.6796], 22.6796)).toBeCloseTo(20.4116, 4)
+  })
+
+  it("returns null at the first rung or on an empty ladder", () => {
+    expect(previousLoad([2, 4, 6], 2)).toBeNull()
+    expect(previousLoad([2, 4, 6], 1)).toBeNull()
+    expect(previousLoad([], 10)).toBeNull()
+  })
+
+  it("returns null without a ladder", () => {
+    expect(previousLoad(null, 25)).toBeNull()
+  })
+
+  it("returns the lower rung for an off-ladder current load", () => {
+    expect(previousLoad([2, 4, 6, 8, 10], 9)).toBe(8)
+    expect(previousLoad([20, 25, 30], 23)).toBe(20)
   })
 })
 
