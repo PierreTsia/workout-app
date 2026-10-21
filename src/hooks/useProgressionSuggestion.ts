@@ -1,9 +1,11 @@
 import { useEffect, useMemo } from "react"
 import { useStore } from "jotai"
 import { useLastSessionDetail } from "@/hooks/useLastSessionDetail"
+import { useSlotPrescriptionHistory } from "@/hooks/useSlotPrescriptionHistory"
 import {
   buildPrescription,
   computeNextSessionTarget,
+  slotKey,
   type ProgressionSuggestion,
 } from "@/lib/progression"
 import { trackProgressionRuleServed } from "@/lib/progressionRuleTelemetry"
@@ -24,6 +26,12 @@ export function useProgressionSuggestion(
     sessionStartedAt,
     measurementType,
   )
+  // T707 — the **Stall** substrate. `before` excludes the live session, whose own
+  // logs would otherwise read as a served target.
+  const stallHistory = useSlotPrescriptionHistory(
+    [{ workoutExerciseId: exercise.id, exerciseId: exercise.exercise_id }],
+    sessionStartedAt ? new Date(sessionStartedAt).toISOString() : undefined,
+  )
   const store = useStore()
 
   const suggestion = useMemo(() => {
@@ -38,8 +46,17 @@ export function useProgressionSuggestion(
     })
     if (prescription === null) return null
 
-    return computeNextSessionTarget(prescription, lastPerformance)
-  }, [exercise, lastSessionDetail, measurementType, equipment, catalogExercise])
+    return computeNextSessionTarget(prescription, lastPerformance, {
+      stallHistory: stallHistory.get(slotKey(exercise.id, exercise.exercise_id)),
+    })
+  }, [
+    exercise,
+    lastSessionDetail,
+    measurementType,
+    equipment,
+    catalogExercise,
+    stallHistory,
+  ])
 
   // T706 — one event per slot and session, from the in-session seam only. The
   // dedup lives in the session (not a hook ref): selecting a Circuit unmounts

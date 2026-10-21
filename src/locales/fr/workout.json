@@ -188,6 +188,8 @@
   "progression.plateauDetailDuration": "Toutes les dimensions sont au max à {{sets}}×{{duration}}s @ {{weight}} {{unit}}. Place à un nouveau stimulus !",
   "progression.durationUp": "Durée en hausse",
   "progression.durationUpDetail": "Toutes les séries réussies — passé à {{duration}}s pour {{sets}} séries à {{weight}} {{unit}}.",
+  "progression.deload": "Décharge",
+  "progression.deloadDetail": "Ta cible ne bouge plus depuis un moment et tu t'entraînes proche de l'échec. Séance plus légère pour récupérer — juste cette fois.",
   "progression.autoAppliedHint": "Déjà appliqué — modifie n'importe quelle valeur si besoin.",
   "progression.suggestionsUnavailable": "Suggestions indisponibles — valeurs par défaut affichées.",
   "progression.tryGenerator": "Essaye le générateur IA pour un nouveau cycle",

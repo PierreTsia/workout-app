@@ -54,7 +54,8 @@ const WEIGHT_FIRST_EQUIPMENT = new Set([
 const REPS_ONLY_EQUIPMENT = new Set(["bodyweight", "cable", "band"])
 
 const MAX_CASCADE_STEPS = 2
-const PROPORTIONAL_DELOAD_FACTOR = 0.85
+/** Reps kept on a deload for *reps-only* equipment (bodyweight, cable, band). */
+export const PROPORTIONAL_DELOAD_FACTOR = 0.85
 
 // ---------------------------------------------------------------------------
 // Helpers

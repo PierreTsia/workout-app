@@ -195,6 +195,8 @@
   "progression.plateauDetailDuration": "All dimensions maxed at {{sets}}×{{duration}}s @ {{weight}} {{unit}}. Time for a new stimulus!",
   "progression.durationUp": "Duration up",
   "progression.durationUpDetail": "You nailed every set last time — bumped to {{duration}}s for {{sets}} sets at {{weight}} {{unit}}.",
+  "progression.deload": "Deload",
+  "progression.deloadDetail": "Your target hasn't moved in a while and you're training close to failure. A lighter session to recover — just this once.",
   "progression.autoAppliedHint": "Already applied — edit any value to override.",
   "progression.suggestionsUnavailable": "Suggestions unavailable — showing template values.",
   "progression.tryGenerator": "Try the AI program generator for a new cycle",

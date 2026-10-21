@@ -4,9 +4,12 @@ import {
   computeNextSessionTarget,
   deriveDurationRangeMax,
   resolveWeightIncrement,
+  shouldDeload,
   DURATION_TARGET_CEILING_SECONDS,
+  STALL_SESSIONS,
   type ProgressionPrescription,
   type SetPerformance,
+  type SlotSessionSummary,
   type VolumePrescription,
 } from "./progression"
 import type { WorkoutExercise } from "@/types/database"
@@ -36,6 +39,7 @@ function makePrescription(
     setRangeMax: 5,
     weightIncrement: 2.5,
     maxWeightReached: false,
+    useSnapshot: true,
     currentReps: vol.type === "reps" ? vol.current : 0,
     repRangeMin: vol.type === "reps" ? vol.min : 0,
     repRangeMax: vol.type === "reps" ? vol.max : 0,
@@ -210,6 +214,144 @@ describe("computeNextSessionTarget", () => {
     const result = computeNextSessionTarget(rx, perf)!
 
     expect(result.weight).toBe(81.25)
+  })
+})
+
+function makeSlotSession(
+  overrides: Partial<SlotSessionSummary> = {},
+): SlotSessionSummary {
+  return {
+    sessionFinishedAt: "2026-05-01T00:00:00Z",
+    prescribedReps: 10,
+    anchorReps: null,
+    prescribedWeight: 80,
+    avgRir: 1,
+    ...overrides,
+  }
+}
+
+/** `STALL_SESSIONS` sessions serving the same target, the last at RIR ≤ 1. */
+function makeStall(overrides: Partial<SlotSessionSummary> = {}): SlotSessionSummary[] {
+  return Array.from({ length: STALL_SESSIONS }, () => makeSlotSession(overrides))
+}
+
+describe("shouldDeload (ADR 0033)", () => {
+  it("fires on STALL_SESSIONS equal targets whose last session is at RIR ≤ 1", () => {
+    expect(shouldDeload(makeStall())).toBe(true)
+  })
+
+  it("does not fire below STALL_SESSIONS", () => {
+    expect(shouldDeload(makeStall().slice(0, STALL_SESSIONS - 1))).toBe(false)
+    expect(shouldDeload([])).toBe(false)
+  })
+
+  it("does not fire when a target in the window advances", () => {
+    const sessions = makeStall()
+    sessions[1] = makeSlotSession({ prescribedReps: 11 })
+    expect(shouldDeload(sessions)).toBe(false)
+  })
+
+  it("does not fire when a target in the window drops (a served deload, or a manual change)", () => {
+    const sessions = makeStall()
+    sessions[2] = makeSlotSession({ prescribedWeight: 77.5 })
+    expect(shouldDeload(sessions)).toBe(false)
+  })
+
+  it("does not fire when the last session declared no RIR", () => {
+    const sessions = makeStall()
+    sessions[STALL_SESSIONS - 1] = makeSlotSession({ avgRir: null })
+    expect(shouldDeload(sessions)).toBe(false)
+  })
+
+  it("does not fire when the last session's average RIR is above 1", () => {
+    const sessions = makeStall()
+    sessions[STALL_SESSIONS - 1] = makeSlotSession({ avgRir: 2 })
+    expect(shouldDeload(sessions)).toBe(false)
+  })
+
+  it("reads the served target as anchor_reps ?? prescribed_reps (ADR 0032)", () => {
+    // The anchor moved down on the last session: the served target dropped, so
+    // the streak is broken even though prescribed_reps never budged.
+    const sessions = makeStall({ anchorReps: 10 })
+    sessions[STALL_SESSIONS - 1] = makeSlotSession({ anchorReps: 8 })
+    expect(shouldDeload(sessions)).toBe(false)
+
+    // A constant anchor is the served target — equality holds.
+    expect(shouldDeload(makeStall({ anchorReps: 8 }))).toBe(true)
+  })
+})
+
+describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
+  it("preempts the rule chain: a Stall at RIR 0.5 deloads instead of holding near failure", () => {
+    const rx = makePrescription({ volume: makeVolume({ current: 10 }), currentWeight: 80 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 80, 0.5), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.reasonKey).toBe("progression.deload")
+    expect(result.delta).toBe("—")
+    expect(result.sets).toBe(3)
+  })
+
+  it("weight-first: one increment off the load, reps untouched", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 80,
+      weightIncrement: 2.5,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 80), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(77.5)
+    expect(result.reps).toBe(10)
+  })
+
+  it("weight-first: floors at one increment", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 2.5,
+      weightIncrement: 2.5,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 2.5), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.weight).toBe(2.5)
+  })
+
+  it("reps-only: reps ×0.85 when the slot carries no load", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 0,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 0), {
+      stallHistory: makeStall({ prescribedWeight: 0 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.reps).toBe(9)
+    expect(result.weight).toBe(0)
+  })
+
+  it("the Manual Override Window suppresses it — the template wins", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 80,
+      useSnapshot: false,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 80), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.rule).not.toBe("DELOAD")
+  })
+
+  it("keeps its behaviour when opts is undefined", () => {
+    const rx = makePrescription({ volume: makeVolume({ current: 8 }) })
+    expect(computeNextSessionTarget(rx, makeSets(3, 8, 80))!.rule).toBe("REPS_UP")
   })
 })
 
