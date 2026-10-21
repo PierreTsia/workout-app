@@ -374,15 +374,23 @@ The language used to render user-facing content (`en` | `fr`). **Resolution rule
 ## Progression engine
 
 **Progression Rule**:
-The decision the engine emits for a given exercise's next session, based on **Last Performance** + RIR averaging. Enum: `WEIGHT_UP | REPS_UP | SETS_UP | DURATION_UP | DELOAD | HOLD_INCOMPLETE | HOLD_NEAR_FAILURE | PLATEAU`. `WEIGHT_UP`, `REPS_UP`, `SETS_UP`, `DURATION_UP` and `DELOAD` are **auto-applied** (the **Progression Suggestion**'s value differs from the previous session); the last three hold the value steady for explanatory reasons.
+The decision the engine emits for a given exercise's next session, based on **Last Performance** + RIR averaging. Enum: `WEIGHT_UP | REPS_UP | SETS_UP | DURATION_UP | DELOAD | HOLD_INCOMPLETE | HOLD_NEAR_FAILURE | PLATEAU`. `WEIGHT_UP`, `REPS_UP`, `SETS_UP`, `DURATION_UP` and `DELOAD` are **auto-applied** (the **Progression Suggestion**'s value differs from the previous session); the last three hold the value steady for explanatory reasons. The order is an **escalation** — reps to the ceiling, then load, then sets, then the **Stall** → **Deload** hand-off — and the load a `WEIGHT_UP` prescribes is always a **Load Ladder** entry.
 → `file:src/lib/progression.ts`
 
 **Stall**:
 The state of an **Exercise Slot** whose **served target** — `anchor_reps ?? prescribed_reps` and `prescribed_weight` — stays **equal** across `STALL_SESSIONS = 4` consecutive **Sessions**, the last one at average **RIR** ≤ 1. The condition the **Deload** rule breaks. A target that *drops* is an intervention (a served **Deload**, or a manual change), not a **Stall**; an undeclared **RIR** is not a zero. Derived from history: no column, no persisted rule.
 → `file:src/lib/progression.ts`
 
+**Load Ladder** (FR **échelle de charges**):
+The ordered list of loads the athlete can **actually compose** for an exercise — dumbbells step 2 kg to 20 then 5 kg, a barbell's plate set, a stack's pin positions. Resolved by **equipment category** with a per-exercise override, the same two-layer shape as the legacy increment (a sensible ladder per category ships by default, so nothing has to be declared). The engine never prescribes a load outside it; the athlete's own log stays free. Distinct from the *rep-range ladder* deliberately excluded from the epic.
+→ `file:src/lib/progression.ts`
+
+**Load Jump**:
+The step from the current load to the next **Load Ladder** entry. Above `LOAD_JUMP_MAX_RATIO` (~30 % of the current load) it is **refused** — the engine escalates to `SETS_UP` rather than prescribe a step the athlete would fail. Relative, not a fixed number of kilos: 5 kg is 5 % of a 100 kg squat and 50 % of a 10 kg lateral raise. Sits where the legacy constant increment used to be, and the **Deload** reads it on the way down too.
+→ `file:src/lib/progression.ts`
+
 **Deload** (UI: FR **Décharge** / EN **Deload**, rule `DELOAD`):
-The **Progression Rule** that pulls an **Exercise Slot** out of a **Stall** by lowering one step — load −1 increment, or reps ×0.85 for *reps-only* equipment — for a single **Session**, after which the engine resumes normal progression. Auto-applied, like `WEIGHT_UP`; the **Manual Override Window** wins.
+The **Progression Rule** that pulls an **Exercise Slot** out of a **Stall** by lowering one **Load Ladder** step — or reps ×0.85 for *reps-only* equipment — for a single **Session**, after which the engine resumes normal progression. Falls back to one legacy increment when the equipment declares no ladder. Auto-applied, like `WEIGHT_UP`; the **Manual Override Window** wins.
 → `file:src/lib/progression.ts`
 
 **Progression Suggestion**:
