@@ -511,6 +511,55 @@ describe("useProgressionSuggestionsForDay", () => {
     })
   })
 
+  // S4 — `before` frozen at mount goes stale and defeats cache reuse; omit it
+  // and let the RPC default to now().
+  it("omits p_before so the history RPC defaults to now()", async () => {
+    mockRpcBySlot({ lastPerformance: [makeRow()], history: [] })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [makeExercise()]),
+    )
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    const historyCall = rpcMock.mock.calls.find(
+      (call) => call[0] === "get_slot_prescription_history",
+    )!
+    expect(historyCall[1]).not.toHaveProperty("p_before")
+  })
+
+  // B2 — the day seam must not compute a suggestion before the history settles:
+  // fold the history query's loading state into the hook's own.
+  it("stays loading while the slot history query is pending", async () => {
+    let resolveHistory!: (value: unknown) => void
+    rpcMock.mockImplementation((name: string) => {
+      if (name === "get_last_performance_for_slots") {
+        return Promise.resolve({ data: [makeRow()], error: null })
+      }
+      if (name === "get_slot_prescription_history") {
+        return new Promise((resolve) => {
+          resolveHistory = resolve
+        })
+      }
+      return Promise.resolve({ data: null, error: null })
+    })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestionsForDay("day-1", [makeExercise()]),
+    )
+
+    await waitFor(() =>
+      expect(rpcMock).toHaveBeenCalledWith(
+        "get_slot_prescription_history",
+        expect.anything(),
+      ),
+    )
+    expect(result.current.isLoading).toBe(true)
+
+    resolveHistory({ data: [], error: null })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+  })
+
   // T708 — the increment must match the in-session seam: a dumbbell without an
   // explicit `weight_increment` resolves to 2.0 kg, not the 2.5 default.
   it("uses the catalog equipment so a dumbbell gets the in-session increment (2.0)", async () => {

@@ -67,6 +67,16 @@ describe("get_slot_prescription_history migration (ADR 0033)", () => {
     expect(rpc!.sql).toMatch(/PARTITION\s+BY\s+per_session\.we_id,\s*per_session\.ex_id/i)
   })
 
+  it("reads the anchor from the greatest set_number, not an aggregate (ADR 0032)", () => {
+    // `anchor_reps` is written per set; the served target is the anchor of the
+    // last logged set (pickAnchorSet, progression.ts). `max()` would pick a
+    // different set's anchor whenever the in-session engine moved mid-session.
+    expect(rpc!.sql).toMatch(
+      /array_agg\s*\(\s*sl\.anchor_reps\s+ORDER\s+BY\s+sl\.set_number\s+DESC\s+NULLS\s+LAST/i,
+    )
+    expect(rpc!.sql).not.toMatch(/max\s*\(\s*sl\.anchor_reps\s*\)/i)
+  })
+
   it("bounds the window before the ranking limit, so the live session is never counted", () => {
     const bound = rpc!.sql.search(/last_logged_at\s*<\s*p_before/i)
     const limit = rpc!.sql.search(/rn\s*<=\s*p_limit/i)

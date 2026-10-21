@@ -367,7 +367,12 @@ export function computeNextSessionTarget(
   // hold loop — otherwise HOLD_NEAR_FAILURE would win every session of a Stall
   // (ADR 0033). The Manual Override Window wins over it, like every other rule.
   if (prescription.useSnapshot && shouldDeload(opts?.stallHistory ?? [])) {
-    const weightFirst = prescription.adjustmentTier === "weight-first"
+    // A 0 kg slot on a weight-first tier (equipment `other`, or `""` while the
+    // catalog row loads) has no load to shave: mirror the intra-session twin
+    // (rirSuggestion.ts) and fall into the reps-only shape instead of raising
+    // the load to one increment.
+    const weightFirst =
+      prescription.adjustmentTier === "weight-first" && currentWeight > 0
     const deloadedVolume = weightFirst
       ? volume.current
       : Math.max(
@@ -380,14 +385,20 @@ export function computeNextSessionTarget(
     const deloadedWeight = weightFirst
       ? Math.max(weightIncrement, currentWeight - weightIncrement)
       : currentWeight
-    return makeSuggestion(
-      "DELOAD",
-      deloadedVolume,
-      deloadedWeight,
-      currentSets,
-      "progression.deload",
-      "—",
-    )
+    // A Deload that lowers nothing (weight-first at or below one increment,
+    // reps-only at one rep) would leave the served target equal — the Stall
+    // would never break and the rule would re-fire forever. Fall through to the
+    // normal chain, which moves the target.
+    if (deloadedVolume < volume.current || deloadedWeight < currentWeight) {
+      return makeSuggestion(
+        "DELOAD",
+        deloadedVolume,
+        deloadedWeight,
+        currentSets,
+        "progression.deload",
+        "—",
+      )
+    }
   }
 
   const completedSets = lastPerformance.filter((s) => s.completed)

@@ -31,7 +31,10 @@ BEGIN
            max(sl.logged_at)     AS last_logged_at,
            max(s.finished_at)    AS session_finished_at,
            max(sl.prescribed_reps)   AS prescribed_reps,
-           max(sl.anchor_reps)       AS anchor_reps,
+           -- ADR 0032: the anchor is the served target of the LAST logged set,
+           -- read by set_number (pickAnchorSet), not an aggregate. NULL when
+           -- that row carries none.
+           (array_agg(sl.anchor_reps ORDER BY sl.set_number DESC NULLS LAST, sl.logged_at DESC))[1] AS anchor_reps,
            max(sl.prescribed_weight) AS prescribed_weight,
            avg(sl.rir) FILTER (WHERE sl.rir IS NOT NULL) AS avg_rir
     FROM set_logs sl

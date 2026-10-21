@@ -102,18 +102,18 @@ None.
 
 ## Acceptance Criteria
 
-- [ ] La migration crée `get_slot_prescription_history` (`SECURITY INVOKER`, `GRANT authenticated`,
+- [x] La migration crée `get_slot_prescription_history` (`SECURITY INVOKER`, `GRANT authenticated`,
       colonnes aliasées) et l'arch test passe.
-- [ ] **Un appel réel de la RPC réussit** (pas seulement le test d'arch textuel).
-- [ ] `shouldDeload` couvre les 6 cas (égalité, < N, avancée, chute, RIR `null`, RIR `> 1`) par des tests
+- [x] **Un appel réel de la RPC réussit** (pas seulement le test d'arch textuel).
+- [x] `shouldDeload` couvre les 6 cas (égalité, < N, avancée, chute, RIR `null`, RIR `> 1`) par des tests
       rouges→verts.
-- [ ] Sur un slot bloqué, la séance en cours pré-remplit la charge −1 incrément (weight-first) ou les reps
+- [x] Sur un slot bloqué, la séance en cours pré-remplit la charge −1 incrément (weight-first) ou les reps
       ×0,85 (reps-only).
-- [ ] La Manual Override Window supprime la décharge (le template gagne) ; la séance suivant une décharge
+- [x] La Manual Override Window supprime la décharge (le template gagne) ; la séance suivant une décharge
       servie reprend la règle normale.
-- [ ] La pastille affiche « Décharge » (+ détail au tap, `aria-label` en compact), EN et FR présentes.
-- [ ] RPC en erreur ou absente → aucune décharge, suggestions normales (dégradation sûre).
-- [ ] `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` verts.
+- [x] La pastille affiche « Décharge » (+ détail au tap, `aria-label` en compact), EN et FR présentes.
+- [x] RPC en erreur ou absente → aucune décharge, suggestions normales (dégradation sûre).
+- [x] `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` verts.
 
 ## References
 

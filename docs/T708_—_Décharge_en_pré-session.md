@@ -54,11 +54,11 @@ T707.
 
 ## Acceptance Criteria
 
-- [ ] Les suggestions pré-séance d'un slot bloqué portent la décharge, **numériquement identiques** à
+- [x] Les suggestions pré-séance d'un slot bloqué portent la décharge, **numériquement identiques** à
       celles du seam in-session (même incrément, y compris haltère).
-- [ ] Un seul appel RPC couvre tous les slots du jour.
-- [ ] RPC en erreur/absente → suggestions pré-séance normales (dégradation sûre).
-- [ ] `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` verts.
+- [x] Un seul appel RPC couvre tous les slots du jour.
+- [x] RPC en erreur/absente → suggestions pré-séance normales (dégradation sûre).
+- [x] `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` verts.
 
 ## References
 

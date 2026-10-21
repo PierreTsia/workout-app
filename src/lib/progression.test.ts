@@ -310,7 +310,7 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
     expect(result.reps).toBe(10)
   })
 
-  it("weight-first: floors at one increment", () => {
+  it("weight-first: at one increment the deload lowers nothing, so it falls through", () => {
     const rx = makePrescription({
       volume: makeVolume({ current: 10 }),
       currentWeight: 2.5,
@@ -320,7 +320,40 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
       stallHistory: makeStall(),
     })!
 
+    expect(result.rule).not.toBe("DELOAD")
     expect(result.weight).toBe(2.5)
+  })
+
+  it("reps-only: at one rep the deload lowers nothing, so it falls through", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 1 }),
+      currentWeight: 0,
+      adjustmentTier: "reps-only",
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 1, 0), {
+      stallHistory: makeStall({ prescribedWeight: 0 }),
+    })!
+
+    expect(result.rule).not.toBe("DELOAD")
+  })
+
+  it("weight-first: a 0 kg slot deloads reps, not load (no phantom increment)", () => {
+    // equipment `other` (or `""` while the catalog row loads) is weight-first,
+    // but a 0 kg slot has no load to shave: the old `Math.max(weightIncrement,
+    // currentWeight - weightIncrement)` raised it to 2.5 kg.
+    const exercise = makeExercise({ reps: "10", weight: "0", sets: 3 })
+    const lastPerformance = makeSets(3, 10, 0)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      equipment: "other",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+    const result = computeNextSessionTarget(prescription, lastPerformance, {
+      stallHistory: makeStall({ prescribedWeight: 0 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(0)
+    expect(result.reps).toBe(9)
   })
 
   it("reps-only: reps ×0.85 when the slot carries no load", () => {

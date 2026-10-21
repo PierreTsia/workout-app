@@ -11,7 +11,7 @@
 | Source du verdict | **Fonction pure** `shouldDeload` dans `file:src/lib/progression.ts` | un seul prédicat, testable, partagé par les deux seams |
 | Forme du prédicat | **égalité stricte** de la cible sur la fenêtre de `STALL_SESSIONS = 4` | « n'avance pas » = le moteur sert un hold (valeur égale). Une **chute** dans la fenêtre = intervention → pas un blocage ; la sortie de décharge est **automatique** (une décharge servie fait chuter la cible) |
 | Préemption | **`DELOAD` en early return**, avant l'ordre normal | seul endroit capable de casser une boucle de hold (sinon `HOLD_NEAR_FAILURE` gagne toujours) |
-| Garde MO window | le drapeau `useSnapshot` est **porté par `ProgressionPrescription`** | il est calculé dans `buildPrescription` (`file:src/lib/progression.ts:152-156`) et invisible ailleurs ; `computeNextSessionTarget` ne peut le lire qu'en le recevant |
+| Garde MO window | le drapeau `useSnapshot` est **porté par `ProgressionPrescription`** | il est calculé dans `buildPrescription` (`file:src/lib/progression.ts:197-201`) et invisible ailleurs ; `computeNextSessionTarget` ne peut le lire qu'en le recevant |
 | Effet décharge | weight-first : charge −1 incrément ; reps-only : `max(1, min(round(reps×0.85), reps−1))` | réutilise `PROPORTIONAL_DELOAD_FACTOR` et la forme du moteur intra-session |
 | Incrément identique aux deux seams | `equipment` passe à **`buildPrescription`** dans **les deux** hooks | l'incrément est résolu **dans** `buildPrescription` (`resolveWeightIncrement`) ; le hook jour ne le passait pas → haltère à 2,5 kg côté pré-séance vs 2,0 en séance |
 | Dégradation | RPC absente / en erreur → **pas de décharge**, moteur normal | contrairement à P1 (colonne absente = tout casse), ici on **dégrade** vers le comportement d'aujourd'hui |
@@ -210,13 +210,19 @@ graph TD
 
 **`buildPrescription`** (`file:src/lib/progression.ts`)
 - Retourne `useSnapshot: boolean` sur `ProgressionPrescription` (le drapeau déjà calculé).
+- Retourne aussi `adjustmentTier: AdjustmentTier` (`getAdjustmentTier(equipment, currentWeight)`) : le
+  tier du moteur intra-session, porté par `ProgressionPrescription` pour que la règle `DELOAD` lise le
+  tier (pas la charge) et décharge un slot `cable` chargé sur les reps, comme en séance.
 
 **`computeNextSessionTarget`** (`file:src/lib/progression.ts`)
 - Nouveau param `opts?: { stallHistory?: SlotSessionSummary[] }`.
-- **En tête** : si `prescription.useSnapshot && shouldDeload(stallHistory)` → `DELOAD` (weight-first :
-  `currentWeight − weightIncrement`, plancher `weightIncrement` ; reps-only :
-  `max(1, min(round(volume.current × 0.85), volume.current − 1))`), `reasonKey: "progression.deload"`,
-  `delta: "—"`.
+- **En tête** : si `prescription.useSnapshot && shouldDeload(stallHistory)` → `DELOAD`. La forme suit
+  `prescription.adjustmentTier` : weight-first (`currentWeight > 0`) :
+  `currentWeight − weightIncrement`, plancher `weightIncrement` ; reps-only (ou weight-first à 0 kg) :
+  `max(1, min(round(volume.current × 0.85), volume.current − 1))`, charge inchangée. `reasonKey:
+  "progression.deload"`, `delta: "—"`.
+- Une décharge qui n'abaisse **rien** (weight-first à ≤ 1 incrément, reps-only à 1 rep) retombe dans la
+  chaîne normale : sinon la cible servie reste égale et la règle re-tire à chaque séance.
 - Rien d'autre ne bouge : les règles suivantes gardent leur ordre.
 
 **`useSlotPrescriptionHistory`** (nouveau)

@@ -47,7 +47,7 @@ describe("useSlotPrescriptionHistory", () => {
     )
 
     await waitFor(() =>
-      expect(result.current.get(slotKey("we-1", "ex-1"))).toHaveLength(2),
+      expect(result.current.history.get(slotKey("we-1", "ex-1"))).toHaveLength(2),
     )
 
     expect(rpcMock).toHaveBeenCalledWith("get_slot_prescription_history", {
@@ -55,7 +55,7 @@ describe("useSlotPrescriptionHistory", () => {
       p_exercise_ids: ["ex-1"],
       p_before: "2026-06-01T00:00:00Z",
     })
-    expect(result.current.get(slotKey("we-1", "ex-1"))![1]).toEqual({
+    expect(result.current.history.get(slotKey("we-1", "ex-1"))![1]).toEqual({
       sessionFinishedAt: "2026-05-01T10:30:00Z",
       prescribedReps: 10,
       anchorReps: null,
@@ -75,9 +75,9 @@ describe("useSlotPrescriptionHistory", () => {
     )
 
     await waitFor(() =>
-      expect(result.current.get(slotKey("we-1", "ex-1"))).toHaveLength(1),
+      expect(result.current.history.get(slotKey("we-1", "ex-1"))).toHaveLength(1),
     )
-    expect(result.current.get(slotKey("we-1", "ex-1"))![0].prescribedWeight).toBe(0)
+    expect(result.current.history.get(slotKey("we-1", "ex-1"))![0].prescribedWeight).toBe(0)
   })
 
   // The safe degradation of ADR 0033: a missing or broken RPC must read as "no
@@ -92,14 +92,19 @@ describe("useSlotPrescriptionHistory", () => {
       useSlotPrescriptionHistory([SLOT]),
     )
 
-    await waitFor(() => expect(rpcMock).toHaveBeenCalled())
-    expect(result.current.size).toBe(0)
+    // Wait for the query to settle (isLoading flips false only once the error
+    // has been observed) — asserting before that would pass on the initial
+    // empty state and never exercise the error path.
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(rpcMock).toHaveBeenCalled()
+    expect(result.current.history.size).toBe(0)
   })
 
   it("returns an empty Map and skips the RPC when there is no slot", () => {
     const { result } = renderHookWithProviders(() => useSlotPrescriptionHistory([]))
 
-    expect(result.current.size).toBe(0)
+    expect(result.current.history.size).toBe(0)
+    expect(result.current.isLoading).toBe(false)
     expect(rpcMock).not.toHaveBeenCalled()
   })
 })

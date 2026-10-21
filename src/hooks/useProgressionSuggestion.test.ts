@@ -28,7 +28,9 @@ vi.mock("@/hooks/useLastSessionDetail", () => ({
 
 // Same isolation for the T707 history read: the real hook reaches Supabase.
 const { stallHistoryMock } = vi.hoisted(() => ({
-  stallHistoryMock: vi.fn<() => Map<string, SlotSessionSummary[]>>(() => new Map()),
+  stallHistoryMock: vi.fn<
+    () => { history: Map<string, SlotSessionSummary[]>; isLoading: boolean }
+  >(() => ({ history: new Map(), isLoading: false })),
 }))
 
 vi.mock("@/hooks/useSlotPrescriptionHistory", () => ({
@@ -80,7 +82,7 @@ function makePerf(overrides: Partial<SetPerformance> = {}): SetPerformance {
 describe("useProgressionSuggestion", () => {
   beforeEach(() => {
     mockLastPerformance = null
-    stallHistoryMock.mockReturnValue(new Map())
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: false })
   })
 
   it("returns a duration suggestion for duration exercises with history", () => {
@@ -257,7 +259,10 @@ describe("useProgressionSuggestion", () => {
       prescribedWeight: 50,
       avgRir: 1,
     }))
-    stallHistoryMock.mockReturnValue(new Map([[slotKey("we-1", "ex-1"), stall]]))
+    stallHistoryMock.mockReturnValue({
+      history: new Map([[slotKey("we-1", "ex-1"), stall]]),
+      isLoading: false,
+    })
 
     const ex = makeExercise({
       reps: "10",
@@ -274,12 +279,31 @@ describe("useProgressionSuggestion", () => {
     expect(result.current!.weight).toBe(47.5)
     expect(result.current!.reps).toBe(10)
   })
+
+  // B2 — no suggestion beats a wrong locked one: while the history is in
+  // flight the engine would compute a non-deload target, and a set logged in
+  // that window would freeze it (SetsTable.readLockedPrescription) while the
+  // auto-apply writes the deloaded values.
+  it("returns null while the slot history is still loading", () => {
+    mockLastPerformance = [
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+      makePerf({ reps: 10, weight: 50, prescribedReps: 10, prescribedWeight: 50, prescribedSets: 3 }),
+    ]
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: true })
+
+    const { result } = renderHookWithProviders(() =>
+      useProgressionSuggestion(makeExercise({ reps: "10", weight: "50" }), "reps"),
+    )
+
+    expect(result.current).toBeNull()
+  })
 })
 
 describe("useProgressionSuggestion — served-rule telemetry (T706)", () => {
   beforeEach(() => {
     mockLastPerformance = null
-    stallHistoryMock.mockReturnValue(new Map())
+    stallHistoryMock.mockReturnValue({ history: new Map(), isLoading: false })
     trackRuleMock.mockClear()
     localStorage.clear()
   })

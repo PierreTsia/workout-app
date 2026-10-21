@@ -133,8 +133,9 @@ export function useProgressionSuggestionsForDay(
     [catalogRows],
   )
 
-  // T708 — one batched history read for every slot of the day. `before = now()`
-  // bounds the window pre-session; frozen at mount so the query key stays stable.
+  // T708 — one batched history read for every slot of the day. `p_before` is
+  // omitted so the RPC defaults to `now()`: a timestamp frozen at mount goes
+  // stale and defeats cache reuse.
   const slots = useMemo(
     () =>
       exercises.map((e) => ({
@@ -143,8 +144,8 @@ export function useProgressionSuggestionsForDay(
       })),
     [exercises],
   )
-  const before = useMemo(() => new Date().toISOString(), [])
-  const stallHistory = useSlotPrescriptionHistory(slots, before)
+  const { history: stallHistory, isLoading: historyLoading } =
+    useSlotPrescriptionHistory(slots)
 
   const query = useQuery<Map<string, LastPerformanceRow[]>, PostgrestError>({
     queryKey: [
@@ -199,7 +200,9 @@ export function useProgressionSuggestionsForDay(
 
   return {
     data,
-    isLoading: query.isLoading,
+    // B2 — the day seam must not present a suggestion before the history
+    // settles: fold the history query's loading state into the hook's own.
+    isLoading: query.isLoading || historyLoading,
     error: query.error ?? null,
   }
 }

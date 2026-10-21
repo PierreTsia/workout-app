@@ -21,12 +21,24 @@ interface SlotPrescriptionHistoryRow {
 
 const EMPTY_HISTORY: Map<string, SlotSessionSummary[]> = new Map()
 
+export interface SlotPrescriptionHistoryResult {
+  /** `Map<slotKey, SlotSessionSummary[]>` ordered oldest → newest. */
+  history: Map<string, SlotSessionSummary[]>
+  /**
+   * True while the query is in flight. Consumers must not compute a suggestion
+   * before it settles: a non-deload target locked in that window would never
+   * drop, and the Deload would re-fire every session.
+   */
+  isLoading: boolean
+}
+
 /**
  * The last few sessions of each slot, summarised for the **Stall** predicate
  * (ADR 0033): `Map<slotKey, SlotSessionSummary[]>` ordered oldest → newest.
  *
  * `before` bounds the window — in-session it is the session's start, so the live
- * session's own logs don't read as a served target.
+ * session's own logs don't read as a served target. Omit it to let the RPC
+ * default to `now()`.
  *
  * Any failure (RPC absent, plpgsql error, RLS) reads as **empty history**: the
  * engine computes without a Deload, exactly as before. Never thrown to the UI.
@@ -34,7 +46,7 @@ const EMPTY_HISTORY: Map<string, SlotSessionSummary[]> = new Map()
 export function useSlotPrescriptionHistory(
   slots: SlotRef[],
   before?: string | null,
-): Map<string, SlotSessionSummary[]> {
+): SlotPrescriptionHistoryResult {
   const pairs = slots
     .map((slot) => slotKey(slot.workoutExerciseId, slot.exerciseId))
     .sort()
@@ -46,7 +58,7 @@ export function useSlotPrescriptionHistory(
       const { data, error } = await supabase.rpc("get_slot_prescription_history", {
         p_workout_exercise_ids: slots.map((s) => s.workoutExerciseId),
         p_exercise_ids: slots.map((s) => s.exerciseId),
-        p_before: before ?? undefined,
+        ...(before ? { p_before: before } : {}),
       })
       if (error) throw error
 
@@ -74,5 +86,5 @@ export function useSlotPrescriptionHistory(
     staleTime: 30_000,
   })
 
-  return query.data ?? EMPTY_HISTORY
+  return { history: query.data ?? EMPTY_HISTORY, isLoading: query.isLoading }
 }

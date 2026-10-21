@@ -28,13 +28,20 @@ export function useProgressionSuggestion(
   )
   // T707 — the **Stall** substrate. `before` excludes the live session, whose own
   // logs would otherwise read as a served target.
-  const stallHistory = useSlotPrescriptionHistory(
-    [{ workoutExerciseId: exercise.id, exerciseId: exercise.exercise_id }],
-    sessionStartedAt ? new Date(sessionStartedAt).toISOString() : undefined,
-  )
+  const { history: stallHistory, isLoading: historyLoading } =
+    useSlotPrescriptionHistory(
+      [{ workoutExerciseId: exercise.id, exerciseId: exercise.exercise_id }],
+      sessionStartedAt ? new Date(sessionStartedAt).toISOString() : undefined,
+    )
   const store = useStore()
 
   const suggestion = useMemo(() => {
+    // B2 — no suggestion beats a wrong locked one: while the history is in
+    // flight the engine would compute a non-deload target, and a set logged in
+    // that window would freeze it (SetsTable.readLockedPrescription) while the
+    // auto-apply writes the deloaded values — prescribed_* never drops and
+    // DELOAD re-fires every session.
+    if (historyLoading) return null
     if (!lastSessionDetail || lastSessionDetail.sets.length === 0) return null
 
     const { sets: lastPerformance, lastSessionFinishedAt } = lastSessionDetail
@@ -56,6 +63,7 @@ export function useProgressionSuggestion(
     equipment,
     catalogExercise,
     stallHistory,
+    historyLoading,
   ])
 
   // T706 — one event per slot and session, from the in-session seam only. The
