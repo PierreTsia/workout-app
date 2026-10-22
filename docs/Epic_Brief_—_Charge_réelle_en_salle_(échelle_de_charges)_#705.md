@@ -54,8 +54,8 @@ durée (aucune charge), ni les athlètes qui ne sont jamais montés en charge.
    I keep progressing instead of failing.
 3. As an athlete at the rep ceiling, I want the extra set to arrive without flagging anything by hand, so
    that the progression keeps moving on its own.
-4. As an athlete whose sets are maxed *and* who is grinding at RIR ≤ 1, I want the **Deload** of P2 to
-   take over, so that an equipment ceiling leads to a real recovery step rather than a dead end.
+4. As an athlete grinding at RIR ≤ 1 with no load left to climb, I want the **Deload** of P2 to take
+   over, so that an equipment ceiling leads to a real recovery step rather than a dead end.
 5. As an athlete on a barbell, I want a sensible default ladder, so that I get the fix without describing
    my gym.
 6. As an athlete with unusual equipment, I want to override the ladder for a single exercise, so that my
@@ -124,9 +124,10 @@ Les autres stories se valident qualitativement, couvertes par les tests unitaire
 
 ## Success Criteria
 
-- **Numeric:** toute charge prescrite appartient à l'échelle (test de propriété sur l'échelle) ; un saut
-  > 30 % ne produit jamais `WEIGHT_UP` ; un slot au plafond de reps **et** de séries à RIR ≤ 1 atteint
-  toujours `DELOAD` par le chemin de **Stall** existant ; 0 migration ; 0 clé i18n.
+- **Numeric:** toute charge prescrite est un cran d'échelle **quand un cran existe** — les replis hors
+  échelle (au-dessus du dernier cran, en dessous du premier, aucune échelle déclarée) sont assumés et
+  testés comme tels, pas niés ; un saut > 30 % ne produit jamais `WEIGHT_UP` ; un slot stagnant à RIR ≤ 1
+  atteint toujours `DELOAD` par le chemin de **Stall** existant ; 0 migration ; 0 clé i18n.
 - **Qualitative:** un athlète haltères au-delà de 20 kg cesse de voir des charges impossibles ; un athlète
   en salle pauvre reçoit une série au lieu d'un saut raté ; le défaut corrige le cas courant **sans
   configuration** ; `prescribed_*` et l'observatoire de déviations gardent leur sémantique.

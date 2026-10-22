@@ -8,6 +8,10 @@ La **Décharge** de P2 (ADR 0033) baisse la charge d'un pas pour sortir un **Exe
 haltères qui n'ont pas de 23). Ce ticket fait descendre la Décharge d'un **cran d'échelle** : le pas de
 récupération est lui aussi une charge que l'athlète peut composer. Story 12.
 
+**Sauf au premier cran** (ou sans échelle), où le repli hérité
+`Math.max(weightIncrement, currentWeight - weightIncrement)` prescrit une charge hors échelle — une barre
+vide à 20 kg redescend à 17,5 kg. C'est le plancher assumé, pas une régression (cf. AC et Tech Plan).
+
 - **Mode :** AFK — la règle de descente est tranchée dans le Tech Plan (cran précédent, repli hérité).
 - **Slice :** `src/lib/loadLadder.ts` (`previousLoad`) → `src/lib/progression.ts` (branche `DELOAD`)
   → vitest.

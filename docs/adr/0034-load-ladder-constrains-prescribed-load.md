@@ -29,24 +29,30 @@ goal, level, or location (`file:docs/CONTEXT.md`), and no **Gym** / **Location**
 ## Decision
 
 We will give each **equipment category** a **Load Ladder** — the ordered list of loads the athlete can
-actually compose — with a per-exercise override on the same two-layer shape as the legacy increment,
-defaulting to a sensible ladder per category so nothing has to be declared. The engine prescribes
-**only** loads present on the ladder, and a step above `LOAD_JUMP_MAX_RATIO` (~30 % of the current
-load) is **refused**: the engine escalates to `SETS_UP` rather than prescribe a step the athlete would
-fail.
+actually compose — defaulting to a sensible ladder per category so nothing has to be declared. The
+engine **prefers** the ladder: a `WEIGHT_UP` takes the next rung, a `DELOAD` the previous one, and a
+step above `LOAD_JUMP_MAX_RATIO` (~30 % of the current load) is **refused** — the engine escalates to
+`SETS_UP` rather than prescribe a step the athlete would fail. Two limits are deliberate: the engine
+**falls back** to `currentWeight ± weight_increment` when no rung fits (above the top, below the first,
+or no ladder at all), so an off-ladder load can still be prescribed; and v1 ships **category defaults
+only** — the per-exercise override is deferred.
 
 ## Consequences
 
 - **Positive:** the infeasible-load bug is fixed for every athlete with **zero configuration** — no
   new entity, no new screen, no new i18n key. One concept is read twice (the step up, and the
-  `**Deload**` step down). The escalation reps → load → sets → deload now has a principled third rung,
-  and the `**Stall**` → `**Deload**` hand-off (ADR 0033) is reached only after reps *and* sets are
-  exhausted.
+  `**Deload**` step down), and the escalation reps → load → sets gains a principled third rung before
+  the `**Stall**` → `**Deload**` hand-off (ADR 0033).
 - **Negative:** the default barbell ladder is a **guess** (a standard plate set, not the athlete's
   actual plates). A coarse gym now gets `SETS_UP` where it used to get a failing `WEIGHT_UP` — a new
   behaviour to test, and `LOAD_JUMP_MAX_RATIO` is an **unvalidated constant** (same status as
   `STALL_SESSIONS`). `weight_increment` survives only as the no-ladder fallback, so two ways to express
-  a step coexist until the ladder is universal.
+  a step coexist until the ladder is universal — and the **Builder's per-exercise "Weight step" field**
+  (`file:src/components/builder/ExerciseDetailForm.tsx:277`) keeps its label while silently losing
+  effect on ladder-bearing equipment. The ladder is picked from the athlete's **display unit**, which
+  assumes the display unit is the gym's unit: an lbs-display athlete training in a kg gym gets lbs
+  rungs that do not exist there — the same class of bug, inverted, and unfixable without a declaration
+  surface.
 - **Follow-ups:** resolve the ladder by category with a per-exercise override; ship the default
   ladders; make `WEIGHT_UP` and `DELOAD` both read the ladder; decide the fallback when the current
   load is **not** on the ladder (legacy rows, a gym change). The declaration UI and the
