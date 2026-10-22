@@ -20,28 +20,50 @@ const PLAYWRIGHT_APP_ORIGIN =
 
 const AUTH_DIR = path.join(__dirname, "..", "playwright", ".auth")
 
+function grantsHint(detail: string) {
+  return (
+    `Cannot write to the local public schema (${detail}).\n` +
+    `The local stack is missing the Supabase grants. Repair with:\n` +
+    `  psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -c ` +
+    `"GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role; ` +
+    `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role; ` +
+    `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;"`
+  )
+}
+
 async function globalSetup() {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // Clean up any leftover test user from a previous aborted run
-  const { data: existing } = await admin.auth.admin.listUsers()
+  // Reuse a leftover test user instead of failing. A teardown whose
+  // `deleteUser` failed (GoTrue runs as `supabase_auth_admin`) leaves the
+  // account behind, and `createUser` would then 422 "already registered" — an
+  // error that hides the real cause. Reusing makes the leak harmless.
+  const { data: existing } = await admin.auth.admin.listUsers({ perPage: 1000 })
   const stale = existing?.users?.find((u) => u.email === TEST_EMAIL)
+
+  let userId: string
   if (stale) {
-    await admin.auth.admin.deleteUser(stale.id)
+    userId = stale.id
+    // Reset the account's data so the seeding below starts from a clean slate.
+    // Mirror the teardown: `workout_days` by user_id also catches detached days
+    // (program_id NULL) and cascades to exercises/blocks.
+    await admin.from("analytics_events").delete().eq("user_id", userId)
+    await admin.from("sessions").delete().eq("user_id", userId)
+    await admin.from("workout_days").delete().eq("user_id", userId)
+    await admin.from("programs").delete().eq("user_id", userId)
+    await admin.from("user_profiles").delete().eq("user_id", userId)
+  } else {
+    const { data: created, error: createErr } =
+      await admin.auth.admin.createUser({
+        email: TEST_EMAIL,
+        password: TEST_PASSWORD,
+        email_confirm: true,
+      })
+    if (createErr) throw new Error(`Failed to create test user: ${createErr.message}`)
+    userId = created.user.id
   }
-
-  // Create a fresh test user
-  const { data: created, error: createErr } =
-    await admin.auth.admin.createUser({
-      email: TEST_EMAIL,
-      password: TEST_PASSWORD,
-      email_confirm: true,
-    })
-  if (createErr) throw new Error(`Failed to create test user: ${createErr.message}`)
-
-  const userId = created.user.id
 
   // Sign in to get session tokens
   const anon = createClient(SUPABASE_URL, ANON_KEY, {
@@ -82,6 +104,30 @@ async function globalSetup() {
         ],
       },
     ],
+  }
+
+  // Preflight: a fresh `supabase db reset` can leave the public tables without
+  // the Supabase grants, and the first write then fails with "permission
+  // denied" — which used to surface as a confusing 422. Probe a write here and
+  // stop with the cause and the repair command.
+  const { data: probe, error: probeErr } = await admin
+    .from("analytics_events")
+    .insert({ event_type: "e2e_preflight", user_id: userId })
+    .select("id")
+    .single()
+  if (probeErr) {
+    throw new Error(
+      /permission denied/i.test(probeErr.message)
+        ? grantsHint(probeErr.message)
+        : `Failed to write to the local database: ${probeErr.message}`,
+    )
+  }
+  const { error: probeCleanupErr } = await admin
+    .from("analytics_events")
+    .delete()
+    .eq("id", probe.id)
+  if (probeCleanupErr) {
+    console.warn(`[e2e] could not delete the preflight probe row: ${probeCleanupErr.message}`)
   }
 
   // Seed user profile + active program so OnboardingGuard lets existing specs through

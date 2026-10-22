@@ -341,8 +341,8 @@ const revokeAnon = (name: string) =>
  * CREATE FUNCTION). `GRANT ALL [PRIVILEGES]` grants EXECUTE too.
  */
 const GRANTS_REACHING_ANON = [
-  /\bGRANT\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+(?:FUNCTION|ALL\s+FUNCTIONS\s+IN\s+SCHEMA)\b[^;]*?\bTO\s+([^;]+);/gi,
-  /\bALTER\s+DEFAULT\s+PRIVILEGES\b[^;]*?\bGRANT\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+FUNCTIONS\b[^;]*?\bTO\s+([^;]+);/gi,
+  /\bGRANT\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+(?:FUNCTION|ALL\s+FUNCTIONS\s+IN\s+SCHEMA|ALL\s+ROUTINES\s+IN\s+SCHEMA)\b[^;]*?\bTO\s+([^;]+);/gi,
+  /\bALTER\s+DEFAULT\s+PRIVILEGES\b[^;]*?\bGRANT\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+(?:FUNCTIONS|ROUTINES)\b[^;]*?\bTO\s+([^;]+);/gi,
 ]
 
 /**

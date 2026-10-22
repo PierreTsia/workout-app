@@ -22,14 +22,24 @@ test.describe("Progression — cross-session suggestion", () => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const userId = getTestUserId()
-    await admin.from("set_logs").delete().match({})
+    // set_logs cascade from the user's sessions; deleting those sessions keeps
+    // another local user's rows intact (#715).
     await admin.from("sessions").delete().eq("user_id", userId)
 
-    // Reset workout_exercises reps/weight to seed values (progression may have updated them)
-    await admin
-      .from("workout_exercises")
-      .update({ reps: "10", weight: "0", sets: 3 })
-      .match({})
+    // Reset this user's workout_exercises reps/weight to seed values
+    // (progression may have updated them). workout_exercises carry no user_id:
+    // scope through the user's days.
+    const { data: days } = await admin
+      .from("workout_days")
+      .select("id")
+      .eq("user_id", userId)
+    const dayIds = (days ?? []).map((d) => d.id)
+    if (dayIds.length > 0) {
+      await admin
+        .from("workout_exercises")
+        .update({ reps: "10", weight: "0", sets: 3 })
+        .in("workout_day_id", dayIds)
+    }
   })
 
   test("shows progression pill on second session after completing all sets", async ({
