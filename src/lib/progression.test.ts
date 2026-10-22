@@ -555,20 +555,42 @@ describe("computeNextSessionTarget — duration exercises", () => {
     expect(result.rule).toBe("HOLD_INCOMPLETE")
   })
 
-  it("WEIGHT_UP — all sets at max duration, maxWeightReached=false (loadable exercise)", () => {
+  // #713: a duration exercise has no load axis — the WEIGHT_UP branch must not
+  // exist for it. At the duration ceiling the engine escalates to SETS_UP, never
+  // to a load (which would prescribe kilos on a plank, with seconds in `reps`).
+  it("SETS_UP — duration at max, maxWeightReached=false, sets < setRangeMax (#713)", () => {
     const rx = makePrescription({
       volume: durationVolume({ current: 45 }),
-      currentWeight: 5,
+      currentWeight: 0,
+      currentSets: 3,
       maxWeightReached: false,
       weightIncrement: 2.5,
+      setRangeMax: 5,
     })
-    const perf = makeDurationSets(3, 45, 5)
+    const perf = makeDurationSets(3, 45)
     const result = computeNextSessionTarget(rx, perf)!
 
-    expect(result.rule).toBe("WEIGHT_UP")
-    expect(result.weight).toBe(7.5)
-    expect(result.duration).toBe(20)
-    expect(result.sets).toBe(3)
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(0)
+    expect(result.sets).toBe(4)
+  })
+
+  it("PLATEAU — duration at max, maxWeightReached=false, sets at setRangeMax (#713)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 45 }),
+      currentWeight: 0,
+      currentSets: 5,
+      maxWeightReached: false,
+      weightIncrement: 2.5,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(5, 45)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.weight).toBe(0)
   })
 
   it("SETS_UP — all at max duration, maxWeightReached=true, sets < setRangeMax", () => {

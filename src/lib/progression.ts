@@ -493,7 +493,9 @@ export function computeNextSessionTarget(
     )
   }
 
-  if (!maxWeightReached) {
+  // The load axis only exists for reps exercises: a duration hold has no load to
+  // step, so it escalates straight to SETS_UP / PLATEAU (#713).
+  if (volume.type === "reps" && !maxWeightReached) {
     const ladderNext = loadLadder ? nextLoad(loadLadder, currentWeight) : null
 
     // Off the ladder, above its last rung, or no ladder at all: no refusal —
