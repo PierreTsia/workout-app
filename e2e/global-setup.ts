@@ -23,9 +23,11 @@ const AUTH_DIR = path.join(__dirname, "..", "playwright", ".auth")
 function grantsHint(detail: string) {
   return (
     `Cannot write to the local public schema (${detail}).\n` +
-    `The local stack is missing the Supabase grants on public tables. Repair with:\n` +
+    `The local stack is missing the Supabase grants. Repair with:\n` +
     `  psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -c ` +
-    `"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;"`
+    `"GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role; ` +
+    `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role; ` +
+    `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;"`
   )
 }
 
@@ -45,8 +47,12 @@ async function globalSetup() {
   if (stale) {
     userId = stale.id
     // Reset the account's data so the seeding below starts from a clean slate.
+    // Mirror the teardown: `workout_days` by user_id also catches detached days
+    // (program_id NULL) and cascades to exercises/blocks.
+    await admin.from("analytics_events").delete().eq("user_id", userId)
     await admin.from("sessions").delete().eq("user_id", userId)
-    await admin.from("programs").delete().eq("user_id", userId) // cascades days/exercises/blocks
+    await admin.from("workout_days").delete().eq("user_id", userId)
+    await admin.from("programs").delete().eq("user_id", userId)
     await admin.from("user_profiles").delete().eq("user_id", userId)
   } else {
     const { data: created, error: createErr } =
@@ -116,7 +122,13 @@ async function globalSetup() {
         : `Failed to write to the local database: ${probeErr.message}`,
     )
   }
-  await admin.from("analytics_events").delete().eq("id", probe.id)
+  const { error: probeCleanupErr } = await admin
+    .from("analytics_events")
+    .delete()
+    .eq("id", probe.id)
+  if (probeCleanupErr) {
+    console.warn(`[e2e] could not delete the preflight probe row: ${probeCleanupErr.message}`)
+  }
 
   // Seed user profile + active program so OnboardingGuard lets existing specs through
   const { error: profileErr } = await admin.from("user_profiles").insert({

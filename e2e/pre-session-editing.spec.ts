@@ -107,7 +107,7 @@ test.describe("Pre-session exercise editing", () => {
 
   /**
    * Regression: template must come from DB after reload (React Query + permanent write).
-   * Run last: mutates `workout_exercises` for the seeded day (global setup recreates user each run).
+   * Run last: mutates `workout_exercises` for the seeded day (global setup reuses the test user each run).
    */
   test("permanent add → full reload → still extra row", async ({ page }) => {
     await gotoWorkoutHomeReady(page)

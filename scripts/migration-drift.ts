@@ -44,7 +44,20 @@ const readRemoteVersions = (dbUrl: string) =>
 const main = () => {
   const dbUrl = process.env.SUPABASE_DB_URL ?? DEFAULT_DB_URL
   const local = readLocalVersions()
-  const remote = readRemoteVersions(dbUrl)
+
+  let remote: string[]
+  try {
+    remote = readRemoteVersions(dbUrl)
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error(`\nImpossible de lire l'historique des migrations dans la base (${dbUrl}).`)
+    console.error(detail)
+    console.error(
+      "\nCe n'est pas un drift : vérifie que `psql` est installé, que la base répond et que SUPABASE_DB_URL est correct.",
+    )
+    process.exit(2)
+  }
+
   const { remoteOnly, localOnly } = compareMigrationVersions(local, remote)
 
   console.log(`dépôt : ${local.length} migrations · base : ${remote.length} versions`)
