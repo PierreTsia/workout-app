@@ -27,7 +27,8 @@ test.describe("Abandon & restart an incomplete cycle", () => {
     const userId = getTestUserId()
 
     // Wipe any leftover sessions/cycles from prior runs to keep state predictable.
-    await admin.from("set_logs").delete().match({})
+    // set_logs cascade from the sessions; scoping to this user leaves other
+    // local users' rows intact (#715).
     await admin.from("sessions").delete().eq("user_id", userId)
     await admin.from("cycles").delete().eq("user_id", userId)
 
@@ -75,7 +76,7 @@ test.describe("Abandon & restart an incomplete cycle", () => {
 
   test.afterAll(async () => {
     const userId = getTestUserId()
-    await admin.from("set_logs").delete().match({})
+    // set_logs cascade from the sessions (#715).
     await admin.from("sessions").delete().eq("user_id", userId)
     await admin.from("cycles").delete().eq("user_id", userId)
   })

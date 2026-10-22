@@ -24,7 +24,7 @@ function getAdmin() {
 async function clearUserData(userId: string) {
   const admin = getAdmin()
   await admin.from("analytics_events").delete().eq("user_id", userId)
-  await admin.from("workout_exercises").delete().match({})
+  // workout_exercises cascade from the user's workout_days (#715).
   await admin.from("workout_days").delete().eq("user_id", userId)
   await admin.from("programs").delete().eq("user_id", userId)
   await admin.from("user_profiles").delete().eq("user_id", userId)
