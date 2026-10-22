@@ -11,6 +11,7 @@ import {
   type SetPerformance,
   type SlotSessionSummary,
   type VolumePrescription,
+  type ComputeNextSessionTargetOptions,
 } from "./progression"
 import { resolveLoadLadder } from "./loadLadder"
 import type { WorkoutExercise } from "@/types/database"
@@ -555,20 +556,130 @@ describe("computeNextSessionTarget — duration exercises", () => {
     expect(result.rule).toBe("HOLD_INCOMPLETE")
   })
 
-  it("WEIGHT_UP — all sets at max duration, maxWeightReached=false (loadable exercise)", () => {
+  // #713: a duration exercise has no load axis — the WEIGHT_UP branch must not
+  // exist for it. At the duration ceiling the engine escalates to SETS_UP, never
+  // to a load (which would prescribe kilos on a plank, with seconds in `reps`).
+  it("SETS_UP — duration at max, maxWeightReached=false, sets < setRangeMax (#713)", () => {
     const rx = makePrescription({
       volume: durationVolume({ current: 45 }),
-      currentWeight: 5,
+      currentWeight: 0,
+      currentSets: 3,
       maxWeightReached: false,
       weightIncrement: 2.5,
+      setRangeMax: 5,
     })
-    const perf = makeDurationSets(3, 45, 5)
+    const perf = makeDurationSets(3, 45)
     const result = computeNextSessionTarget(rx, perf)!
 
-    expect(result.rule).toBe("WEIGHT_UP")
-    expect(result.weight).toBe(7.5)
-    expect(result.duration).toBe(20)
-    expect(result.sets).toBe(3)
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(0)
+    expect(result.sets).toBe(4)
+  })
+
+  it("PLATEAU — duration at max, maxWeightReached=false, sets at setRangeMax (#713)", () => {
+    const rx = makePrescription({
+      volume: durationVolume({ current: 45 }),
+      currentWeight: 0,
+      currentSets: 5,
+      maxWeightReached: false,
+      weightIncrement: 2.5,
+      setRangeMax: 5,
+    })
+    const perf = makeDurationSets(5, 45)
+    const result = computeNextSessionTarget(rx, perf)!
+
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.weight).toBe(0)
+  })
+
+  // #713: the invariant is "no rule prescribes a load on a duration exercise".
+  // The two rule tests above cover SETS_UP / PLATEAU; this walks the whole chain
+  // — including the DELOAD branch (P2) — on a loadless hold, the bug's case.
+  it("no rule prescribes a weight on a loadless duration exercise (#713)", () => {
+    const loadless = { currentWeight: 0, weightIncrement: 2.5 }
+    const cases: Array<{
+      rule: string
+      rx: ProgressionPrescription
+      perf: SetPerformance[]
+      opts?: ComputeNextSessionTargetOptions
+    }> = [
+      {
+        rule: "HOLD_INCOMPLETE",
+        rx: makePrescription({ volume: durationVolume(), currentSets: 3, ...loadless }),
+        perf: [
+          { reps: 0, weight: 0, completed: true, rir: null, durationSeconds: 30 },
+          { reps: 0, weight: 0, completed: false, rir: null, durationSeconds: 15 },
+          { reps: 0, weight: 0, completed: false, rir: null, durationSeconds: 15 },
+        ],
+      },
+      {
+        rule: "HOLD_NEAR_FAILURE",
+        rx: makePrescription({ volume: durationVolume(), currentSets: 3, ...loadless }),
+        perf: makeDurationSets(3, 30).map((s) => ({ ...s, rir: 0.5 })),
+      },
+      {
+        rule: "DURATION_UP",
+        rx: makePrescription({ volume: durationVolume({ current: 30 }), currentSets: 3, ...loadless }),
+        perf: makeDurationSets(3, 30),
+      },
+      {
+        rule: "SETS_UP",
+        rx: makePrescription({ volume: durationVolume({ current: 45 }), currentSets: 3, setRangeMax: 5, ...loadless }),
+        perf: makeDurationSets(3, 45),
+      },
+      {
+        rule: "PLATEAU",
+        rx: makePrescription({ volume: durationVolume({ current: 45 }), currentSets: 5, setRangeMax: 5, ...loadless }),
+        perf: makeDurationSets(5, 45),
+      },
+      {
+        rule: "DELOAD",
+        rx: makePrescription({ volume: durationVolume({ current: 45 }), currentSets: 3, ...loadless }),
+        perf: makeDurationSets(3, 45),
+        opts: {
+          stallHistory: makeStall({ prescribedWeight: 0, prescribedReps: 0, anchorReps: 0 }),
+        },
+      },
+    ]
+
+    for (const c of cases) {
+      const result = computeNextSessionTarget(c.rx, c.perf, c.opts)!
+      expect(result.rule, c.rule).toBe(c.rule)
+      expect(result.weight, `${c.rule} prescribed a weight`).toBe(0)
+    }
+  })
+
+  // The flip side, asserted so the distinction is written down: a *weighted* hold
+  // (bodyweight with a logged plate) is weight-first, so the Deload lowers its
+  // load — the load axis, not the reps axis. #713's invariant is about the
+  // loadless hold only.
+  it("a weighted hold deloads its load, not its duration (#713)", () => {
+    const exercise = makeExercise({
+      reps: "0",
+      weight: "10",
+      sets: 3,
+      target_duration_seconds: 45,
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 45,
+      duration_increment_seconds: 5,
+    })
+    const lastPerformance = makeDurationSets(3, 45, 10)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "duration",
+      equipment: "bodyweight",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+    expect(prescription.adjustmentTier).toBe("weight-first")
+
+    const result = computeNextSessionTarget(prescription, lastPerformance, {
+      stallHistory: makeStall({ prescribedWeight: 10, prescribedReps: 0, anchorReps: 0 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBeLessThan(10)
+    expect(result.duration).toBe(45)
   })
 
   it("SETS_UP — all at max duration, maxWeightReached=true, sets < setRangeMax", () => {

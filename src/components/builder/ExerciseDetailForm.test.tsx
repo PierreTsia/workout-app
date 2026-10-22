@@ -161,6 +161,30 @@ describe("ExerciseDetailForm", () => {
     expect(toggle).toBeChecked()
   })
 
+  it("explains the weight step is a fallback on tap", async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.click(
+      screen.getByRole("button", { name: "What the weight step does" }),
+    )
+    expect(
+      await screen.findByText(
+        "Fallback only. The app usually moves to the next real weight.",
+      ),
+    ).toBeVisible()
+  })
+
+  it("keeps the weight-step field's accessible name free of the hint", () => {
+    renderForm()
+
+    // The hint button sits beside the label, never inside it: the field's
+    // accessible name is the label alone, not the hint text.
+    expect(
+      screen.getByRole("spinbutton", { name: "Weight step" }),
+    ).toBeInTheDocument()
+  })
+
   it("shows duration ranges instead of rep ranges for holds", () => {
     renderWithProviders(
       <ExerciseDetailForm
