@@ -42,7 +42,14 @@ async function globalTeardown() {
   await admin.from("programs").delete().eq("user_id", userId)
   await admin.from("user_profiles").delete().eq("user_id", userId)
 
-  await admin.auth.admin.deleteUser(userId)
+  // A failed deleteUser (GoTrue runs as `supabase_auth_admin`) must not fail
+  // the run: the idempotent setup reuses a leaked user, so the leak is harmless.
+  const { error: deleteErr } = await admin.auth.admin.deleteUser(userId)
+  if (deleteErr) {
+    console.warn(
+      `[e2e] could not delete test user (leaving it for reuse): ${deleteErr.message}`,
+    )
+  }
 }
 
 export default globalTeardown
