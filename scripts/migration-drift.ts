@@ -3,7 +3,12 @@
  * from the repo — the 21/10 incident, where five migrations went through the SQL
  * editor and the prod history no longer matched `supabase/migrations/`.
  *
- *   npm run db:drift
+ *   SUPABASE_DB_URL=postgresql://… npm run db:drift
+ *
+ * The URL is required and must name the *same* database the subsequent
+ * `supabase db push` targets (the linked project). A silent localhost fallback
+ * would let a clean local stack report OK while the real target drifts. A local
+ * check is still possible — pass the local URL explicitly.
  *
  * Repo-only versions are normal here (migrations are pushed by hand) and are
  * reported without failing.
@@ -15,7 +20,27 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const MIGRATIONS_DIR = path.join(repoRoot, "supabase/migrations")
-const DEFAULT_DB_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+/** Host and database name only — never the userinfo (password) or query params. */
+export const redactDbUrl = (dbUrl: string): string => {
+  try {
+    const url = new URL(dbUrl)
+    const database = url.pathname.replace(/^\//, "")
+    return `${url.hostname}${url.port ? `:${url.port}` : ""}/${database}`
+  } catch {
+    return "<URL illisible>"
+  }
+}
+
+export const requireDbUrl = (env: NodeJS.ProcessEnv): string => {
+  const dbUrl = env.SUPABASE_DB_URL
+  if (!dbUrl) {
+    throw new Error(
+      "SUPABASE_DB_URL est requis : la vérification doit viser la même base que le `supabase db push` (le projet lié). Pour un check local, passe explicitement l'URL locale.",
+    )
+  }
+  return dbUrl
+}
 
 export const compareMigrationVersions = (local: string[], remote: string[]) => {
   const localSet = new Set(local)
@@ -42,7 +67,14 @@ const readRemoteVersions = (dbUrl: string) =>
     .filter(Boolean)
 
 const main = () => {
-  const dbUrl = process.env.SUPABASE_DB_URL ?? DEFAULT_DB_URL
+  let dbUrl: string
+  try {
+    dbUrl = requireDbUrl(process.env)
+  } catch (err) {
+    console.error(`\n${err instanceof Error ? err.message : String(err)}`)
+    process.exit(2)
+  }
+
   const local = readLocalVersions()
 
   let remote: string[]
@@ -50,7 +82,9 @@ const main = () => {
     remote = readRemoteVersions(dbUrl)
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
-    console.error(`\nImpossible de lire l'historique des migrations dans la base (${dbUrl}).`)
+    console.error(
+      `\nImpossible de lire l'historique des migrations dans la base (${redactDbUrl(dbUrl)}).`,
+    )
     console.error(detail)
     console.error(
       "\nCe n'est pas un drift : vérifie que `psql` est installé, que la base répond et que SUPABASE_DB_URL est correct.",
@@ -61,7 +95,7 @@ const main = () => {
   const { remoteOnly, localOnly } = compareMigrationVersions(local, remote)
 
   console.log(`dépôt : ${local.length} migrations · base : ${remote.length} versions`)
-  console.log(`base  : ${dbUrl}`)
+  console.log(`base  : ${redactDbUrl(dbUrl)}`)
 
   if (remoteOnly.length > 0) {
     console.error(
@@ -69,12 +103,24 @@ const main = () => {
     )
     for (const version of remoteOnly) console.error(`  ${version}`)
     console.error(
-      "\nUne migration a été appliquée hors dépôt (éditeur SQL). La remettre dans",
+      "\nUne migration a été appliquée hors dépôt (éditeur SQL). Avant tout",
     )
     console.error(
-      "supabase/migrations/ puis `supabase migration repair --status applied <version>`",
+      "`supabase db push --include-all`, audite ses effets et réconcilie les deux",
     )
-    console.error("avant tout `supabase db push --include-all`.")
+    console.error(
+      "entrées d'historique : la version distante et la version locale canonique",
+    )
+    console.error(
+      "qui porte le même changement. Copier la migration sous l'horodatage distant",
+    )
+    console.error(
+      "et marquer celui-ci appliqué laisse la version locale en attente — un push",
+    )
+    console.error(
+      "ultérieur peut alors rejouer un backfill destructif. Relis le `--dry-run`",
+    )
+    console.error("après réconciliation, pas avant.")
     process.exit(1)
   }
 
