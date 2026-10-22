@@ -1328,6 +1328,30 @@ describe("load jump refusal (T310)", () => {
     expect(result.weight).toBe(25)
   })
 
+  it("refuses a +35 % step — pins the threshold, it is not looser than 30 %", () => {
+    const rx = atCeiling({ loadLadder: [20, 27] })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("reports the load delta raw, so the pill renders the exact lbs step", () => {
+    // 45 → 50 lb is 2.2679… kg. Pre-rounding it to 2.3 kg made the pill read
+    // "+5.1 lbs" for a 5 lb rung, because the pill converts then rounds.
+    const currentKg = 45 * 0.453592
+    const rx = makePrescription({
+      volume: makeVolume({ current: 12, min: 8, max: 12 }),
+      currentWeight: currentKg,
+      loadLadder: resolveLoadLadder("dumbbell", "lbs")!,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, currentKg))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBeCloseTo(50 * 0.453592, 4)
+    expect(Number(result.delta)).toBeCloseTo(50 * 0.453592 - currentKg, 4)
+  })
+
   it("refuses a +50 % step — 20 kg → 30 kg produces no WEIGHT_UP", () => {
     const rx = atCeiling({ loadLadder: POOR_LADDER })
     const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!

@@ -11,7 +11,7 @@ import type { WeightUnit } from "@/lib/rirSuggestion"
 export type LadderCategory = "dumbbell" | "barbell" | "stack"
 
 /**
- * Equipment slug → ladder category. Keyed on `EQUIPMENT_TAXONOMY`: the four
+ * Equipment slug → ladder category. Keyed on `EQUIPMENT_TAXONOMY`: the six
  * ladder-bearing slugs fold onto three ladders, the rest declare none and fall
  * back to the legacy increment.
  */

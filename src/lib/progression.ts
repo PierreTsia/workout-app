@@ -322,9 +322,6 @@ export function buildPrescription(
   }
 }
 
-/** One decimal, for a load delta string the pill re-parses as a number. */
-const round1 = (value: number): number => Math.round(value * 10) / 10
-
 function averageRir(sets: SetPerformance[]): number | null {
   const withRir = sets.filter((s) => s.completed && s.rir != null)
   if (withRir.length === 0) return null
@@ -519,7 +516,7 @@ export function computeNextSessionTarget(
         ladderNext,
         currentSets,
         "progression.weightUp",
-        String(round1(ladderNext - currentWeight)),
+        String(ladderNext - currentWeight),
       )
     }
     // Refused jump: fall through to the existing escalation — SETS_UP, then PLATEAU.
