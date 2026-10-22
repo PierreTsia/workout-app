@@ -105,6 +105,30 @@ describe("ExerciseEditRowControls — pre-session progression", () => {
     expect(screen.queryByLabelText(/up|hold|plateau/i)).toBeNull()
   })
 
+  it("shows the suggested set count, not the template's, on SETS_UP (#714)", () => {
+    const suggestion: ProgressionSuggestion = {
+      rule: "SETS_UP",
+      reps: 8,
+      weight: 5,
+      sets: 4,
+      delta: "+1",
+      reasonKey: "progression.setsUp",
+      volumeType: "reps",
+    }
+
+    renderWithProviders(
+      <ExerciseEditRowControls
+        {...baseProps}
+        exercise={makeExercise({ weight: "5", reps: "12", sets: 3 })}
+        suggestion={suggestion}
+      />,
+    )
+
+    expect(screen.getByText(/4 × 8 · 5\s*kg/i)).toBeTruthy()
+    expect(screen.queryByText(/3 × 8/i)).toBeNull()
+    expect(screen.getByLabelText(/Sets up/i)).toBeTruthy()
+  })
+
   it("renders the pill on HOLD_NEAR_FAILURE while keeping the unchanged values", () => {
     const suggestion: ProgressionSuggestion = {
       rule: "HOLD_NEAR_FAILURE",

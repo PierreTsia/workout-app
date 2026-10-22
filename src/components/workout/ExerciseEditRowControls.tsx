@@ -72,6 +72,9 @@ export function ExerciseEditRowControls({
       : ex.target_duration_seconds
   const displayReps =
     suggestion?.volumeType === "reps" ? String(suggestion.reps) : ex.reps
+  // #714 — the set count follows the suggestion too, not just reps/weight:
+  // a SETS_UP prescribes n+1 sets the template never carries.
+  const displaySets = suggestion ? suggestion.sets : ex.sets
 
   const menu = (
     <DropdownMenu>
@@ -138,7 +141,7 @@ export function ExerciseEditRowControls({
           ) : (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span>
-                {ex.sets} ×{" "}
+                {displaySets} ×{" "}
                 {displayDurationSeconds != null && displayDurationSeconds > 0
                   ? formatDurationShort(displayDurationSeconds)
                   : displayReps}
