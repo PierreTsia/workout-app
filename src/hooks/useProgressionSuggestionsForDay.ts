@@ -4,6 +4,7 @@ import type { PostgrestError } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
 import { useExerciseBatch } from "@/hooks/useExerciseBatch"
 import { useSlotPrescriptionHistory } from "@/hooks/useSlotPrescriptionHistory"
+import { useWeightUnit } from "@/hooks/useWeightUnit"
 import {
   buildPrescription,
   computeNextSessionTarget,
@@ -12,6 +13,7 @@ import {
   type SetPerformance,
   type SlotSessionSummary,
 } from "@/lib/progression"
+import type { WeightUnit } from "@/lib/rirSuggestion"
 import type { WorkoutExercise } from "@/types/database"
 
 export interface UseProgressionSuggestionsForDayResult {
@@ -102,6 +104,7 @@ function computeSuggestion(
   rows: LastPerformanceRow[],
   equipment: string | undefined,
   stallHistory: SlotSessionSummary[] | undefined,
+  unit: WeightUnit,
 ): ProgressionSuggestion | null {
   const lastPerformance = rows.length > 0 ? rows.map(rowToSetPerformance) : null
   const lastSessionFinishedAt = rows[0]?.session_finished_at ?? null
@@ -109,6 +112,7 @@ function computeSuggestion(
     measurementType: inferMeasurementType(rows),
     equipment,
     lastSessionFinishedAt,
+    weightUnit: unit,
   })
   if (prescription === null) return null
   return computeNextSessionTarget(prescription, lastPerformance, { stallHistory })
@@ -146,6 +150,9 @@ export function useProgressionSuggestionsForDay(
   )
   const { history: stallHistory, isLoading: historyLoading } =
     useSlotPrescriptionHistory(slots)
+
+  // T309 — the display unit selects the Load Ladder the engine reads.
+  const { unit } = useWeightUnit()
 
   const query = useQuery<Map<string, LastPerformanceRow[]>, PostgrestError>({
     queryKey: [
@@ -190,13 +197,14 @@ export function useProgressionSuggestionsForDay(
             rows,
             equipmentById.get(exercise.exercise_id),
             stallHistory.get(slotKey(exercise.id, exercise.exercise_id)),
+            unit,
           ),
         )
         return acc
       },
       new Map(),
     )
-  }, [exercises, query.data, equipmentById, stallHistory])
+  }, [exercises, query.data, equipmentById, stallHistory, unit])
 
   return {
     data,

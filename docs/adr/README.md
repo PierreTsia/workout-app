@@ -80,3 +80,4 @@ references — use the slug.
 | 0031 | Accepted · extends 0028 | 2026-10-06 | The Decision Card renders a structured program: additive `structuredContent` | [0031-decision-card-structured-program.md](./0031-decision-card-structured-program.md) |
 | 0032 | Accepted | 2026-10-20 | The in-session anchor rides its own column, never the Prescription Snapshot | [0032-progression-anchor-reps.md](./0032-progression-anchor-reps.md) |
 | 0033 | Accepted | 2026-10-20 | The plateau exit triggers on prescription stagnation, not on `PLATEAU` | [0033-plateau-exit-triggered-by-prescription-stall.md](./0033-plateau-exit-triggered-by-prescription-stall.md) |
+| 0034 | Accepted | 2026-10-21 | The prescribed load comes from a Load Ladder, not a constant increment | [0034-load-ladder-constrains-prescribed-load.md](./0034-load-ladder-constrains-prescribed-load.md) |

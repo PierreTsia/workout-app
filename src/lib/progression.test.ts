@@ -12,6 +12,7 @@ import {
   type SlotSessionSummary,
   type VolumePrescription,
 } from "./progression"
+import { resolveLoadLadder } from "./loadLadder"
 import type { WorkoutExercise } from "@/types/database"
 
 function makeVolume(
@@ -40,6 +41,7 @@ function makePrescription(
     weightIncrement: 2.5,
     maxWeightReached: false,
     adjustmentTier: "weight-first",
+    loadLadder: null,
     useSnapshot: true,
     currentReps: vol.type === "reps" ? vol.current : 0,
     repRangeMin: vol.type === "reps" ? vol.min : 0,
@@ -406,6 +408,87 @@ describe("computeNextSessionTarget — DELOAD (ADR 0033)", () => {
   it("keeps its behaviour when opts is undefined", () => {
     const rx = makePrescription({ volume: makeVolume({ current: 8 }) })
     expect(computeNextSessionTarget(rx, makeSets(3, 8, 80))!.rule).toBe("REPS_UP")
+  })
+})
+
+describe("computeNextSessionTarget — DELOAD steps down the Load Ladder (T311)", () => {
+  const DUMBBELL_KG = resolveLoadLadder("dumbbell", "kg")!
+  const BARBELL_KG = resolveLoadLadder("barbell", "kg")!
+
+  it("a stalled dumbbell slot at 25 kg deloads to the previous rung (20 kg), not 23 kg", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 25,
+      weightIncrement: 2,
+      loadLadder: DUMBBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 25), {
+      stallHistory: makeStall({ prescribedWeight: 25 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(20)
+  })
+
+  it("at the first rung the deload falls back to Math.max(weightIncrement, currentWeight - weightIncrement)", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 20,
+      weightIncrement: 2.5,
+      loadLadder: BARBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 20), {
+      stallHistory: makeStall({ prescribedWeight: 20 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(17.5)
+  })
+
+  it("without a ladder the behaviour is unchanged", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 80,
+      weightIncrement: 2.5,
+      loadLadder: null,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 80), {
+      stallHistory: makeStall(),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(77.5)
+  })
+
+  it("reps-only equipment still deloads reps ×0.85 and never reads the ladder", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 30,
+      adjustmentTier: "reps-only",
+      loadLadder: resolveLoadLadder("cable", "kg"),
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 30), {
+      stallHistory: makeStall({ prescribedWeight: 30 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.reps).toBe(9)
+    expect(result.weight).toBe(30)
+  })
+
+  it("an off-ladder current load (23 kg) steps down to the lower rung (20 kg)", () => {
+    const rx = makePrescription({
+      volume: makeVolume({ current: 10 }),
+      currentWeight: 23,
+      weightIncrement: 2,
+      loadLadder: DUMBBELL_KG,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 10, 23), {
+      stallHistory: makeStall({ prescribedWeight: 23 }),
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+    expect(result.weight).toBe(20)
   })
 })
 
@@ -1137,3 +1220,211 @@ describe("deriveDurationRangeMax (#379)", () => {
     expect(deriveDurationRangeMax(90)).toBe(90)
   })
 })
+
+describe("load ladder (T309)", () => {
+  it("WEIGHT_UP lands on the next ladder rung — dumbbell 20 kg → 25 kg, reps back to the floor", () => {
+    const exercise = makeExercise({ reps: "12", weight: "20", sets: 3 })
+    const lastPerformance = makeSets(3, 12, 20)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "dumbbell",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toContain(25)
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(25) // not 22.5
+    expect(result.reps).toBe(prescription.volume.min)
+  })
+
+  it("prescribes no load outside the ladder — the inherited increment is the fallback", () => {
+    const exercise = makeExercise({ reps: "12", weight: "30", sets: 3 })
+    const lastPerformance = makeSets(3, 12, 30)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "bodyweight",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toBeNull()
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(32.5)
+  })
+
+  it("a duration exercise resolves no ladder — today's behaviour is unchanged", () => {
+    const exercise = makeExercise({
+      reps: "0",
+      weight: "0",
+      sets: 3,
+      target_duration_seconds: 30,
+      duration_range_min_seconds: 20,
+      duration_range_max_seconds: 40,
+      duration_increment_seconds: 5,
+    })
+    const prescription = buildPrescription(exercise, makeDurationSets(3, 40), {
+      measurementType: "duration",
+      equipment: "dumbbell",
+      weightUnit: "kg",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    expect(prescription.loadLadder).toBeNull()
+  })
+
+  it("an athlete in lbs at 45 lb gets the exact 50 lb rung", () => {
+    const kg45 = 45 / 2.20462
+    const exercise = makeExercise({ reps: "12", weight: String(kg45), sets: 3 })
+    const lastPerformance = makeSets(3, 12, kg45)
+    const prescription = buildPrescription(exercise, lastPerformance, {
+      measurementType: "reps",
+      equipment: "dumbbell",
+      weightUnit: "lbs",
+      lastSessionFinishedAt: "2026-05-01T00:00:00Z",
+    })!
+
+    const result = computeNextSessionTarget(prescription, lastPerformance)!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight * 2.20462).toBeCloseTo(50, 2)
+  })
+
+  it("defaults to kg when no unit is passed — existing callers are untouched", () => {
+    const exercise = makeExercise({ reps: "12", weight: "20", sets: 3 })
+    const prescription = buildPrescription(exercise, null, {
+      equipment: "dumbbell",
+    })!
+
+    expect(prescription.loadLadder).toEqual(
+      resolveLoadLadder("dumbbell", "kg"),
+    )
+  })
+})
+
+describe("load jump refusal (T310)", () => {
+  const DUMBBELL_KG = resolveLoadLadder("dumbbell", "kg")!
+  // A poor gym: nothing between 20 and 30 — the +50 % step we must refuse.
+  const POOR_LADDER = [10, 20, 30, 40]
+
+  const atCeiling = (overrides: Partial<ProgressionPrescription>) =>
+    makePrescription({
+      volume: makeVolume({ current: 12, min: 8, max: 12 }),
+      currentWeight: 20,
+      loadLadder: DUMBBELL_KG,
+      ...overrides,
+    })
+
+  it("accepts the +25 % dumbbell step — 20 kg → 25 kg stays WEIGHT_UP", () => {
+    const result = computeNextSessionTarget(atCeiling({}), makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(25)
+  })
+
+  it("refuses a +35 % step — pins the threshold, it is not looser than 30 %", () => {
+    const rx = atCeiling({ loadLadder: [20, 27] })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("reports the load delta raw, so the pill renders the exact lbs step", () => {
+    // 45 → 50 lb is 2.2679… kg. Pre-rounding it to 2.3 kg made the pill read
+    // "+5.1 lbs" for a 5 lb rung, because the pill converts then rounds.
+    const currentKg = 45 * 0.453592
+    const rx = makePrescription({
+      volume: makeVolume({ current: 12, min: 8, max: 12 }),
+      currentWeight: currentKg,
+      loadLadder: resolveLoadLadder("dumbbell", "lbs")!,
+    })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, currentKg))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBeCloseTo(50 * 0.453592, 4)
+    expect(Number(result.delta)).toBeCloseTo(50 * 0.453592 - currentKg, 4)
+  })
+
+  it("refuses a +50 % step — 20 kg → 30 kg produces no WEIGHT_UP", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).not.toBe("WEIGHT_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("a refused jump escalates to SETS_UP at the same load when sets remain", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+    expect(result.sets).toBe(4)
+    expect(result.reasonKey).toBe("progression.setsUp")
+  })
+
+  it("a refused jump at the set ceiling plateaus", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 5, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(5, 12, 20))!
+
+    expect(result.rule).toBe("PLATEAU")
+    expect(result.weight).toBe(20)
+  })
+
+  it("leaves the Stall → Deload hand-off untouched — a real stall still deloads", () => {
+    const rx = atCeiling({ loadLadder: POOR_LADDER, currentSets: 5, setRangeMax: 5 })
+    const stallHistory: SlotSessionSummary[] = Array.from(
+      { length: STALL_SESSIONS },
+      (_, i) => ({
+        sessionFinishedAt: `2026-05-0${i + 1}T00:00:00Z`,
+        prescribedReps: 12,
+        anchorReps: 12,
+        prescribedWeight: 20,
+        avgRir: i === STALL_SESSIONS - 1 ? 1 : 2,
+      }),
+    )
+
+    const result = computeNextSessionTarget(rx, makeSets(5, 12, 20), {
+      stallHistory,
+    })!
+
+    expect(result.rule).toBe("DELOAD")
+  })
+
+  it("maxWeightReached still wins over an acceptable ladder step", () => {
+    const rx = atCeiling({ maxWeightReached: true, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(20)
+  })
+
+  it("without a ladder the inherited increment is prescribed, never refused", () => {
+    const rx = atCeiling({ loadLadder: null, weightIncrement: 2.5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 20))!
+
+    expect(result.rule).toBe("WEIGHT_UP")
+    expect(result.weight).toBe(22.5)
+  })
+
+  it("a step off zero is refused — loadJumpRatio is Infinity", () => {
+    const rx = atCeiling({ currentWeight: 0, currentSets: 3, setRangeMax: 5 })
+    const result = computeNextSessionTarget(rx, makeSets(3, 12, 0))!
+
+    expect(result.rule).toBe("SETS_UP")
+    expect(result.weight).toBe(0)
+
+    const maxedRx = atCeiling({ currentWeight: 0, currentSets: 5, setRangeMax: 5 })
+    expect(computeNextSessionTarget(maxedRx, makeSets(5, 12, 0))!.rule).toBe(
+      "PLATEAU",
+    )
+  })
+})
+
