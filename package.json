@@ -20,6 +20,7 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",
+    "db:drift": "tsx scripts/migration-drift.ts",
     "import-exercises": "tsx scripts/import-exercises.ts",
     "enrich-youtube": "tsx scripts/enrich-youtube.ts",
     "enrich-illustrations": "tsx scripts/enrich-illustrations.ts",
