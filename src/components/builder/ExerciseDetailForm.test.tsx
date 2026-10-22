@@ -161,6 +161,20 @@ describe("ExerciseDetailForm", () => {
     expect(toggle).toBeChecked()
   })
 
+  it("explains the weight step is a fallback on tap", async () => {
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.click(
+      screen.getByRole("button", { name: "What the weight step does" }),
+    )
+    expect(
+      await screen.findByText(
+        "Fallback only. The app usually moves to the next real weight.",
+      ),
+    ).toBeVisible()
+  })
+
   it("shows duration ranges instead of rep ranges for holds", () => {
     renderWithProviders(
       <ExerciseDetailForm

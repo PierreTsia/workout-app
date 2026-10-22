@@ -62,6 +62,8 @@
   "setRangeMax": "Séries max",
   "weightIncrement": "Palier de poids",
   "weightIncrementPlaceholder": "Auto",
+  "weightIncrementHintAria": "À quoi sert le palier de poids",
+  "weightIncrementHint": "Repli seulement. Sinon l'appli passe au poids réel suivant.",
   "maxWeightReached": "Poids max atteint",
   "maxWeightReachedHintAria": "Ce que signifie poids max atteint",
   "maxWeightReachedHint": "Active si tu ne peux plus monter en poids. Ensuite on ajoute une série, pas des kilos.",

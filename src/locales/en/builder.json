@@ -62,6 +62,8 @@
   "setRangeMax": "Max sets",
   "weightIncrement": "Weight step",
   "weightIncrementPlaceholder": "Auto",
+  "weightIncrementHintAria": "What the weight step does",
+  "weightIncrementHint": "Fallback only. The app usually moves to the next real weight.",
   "maxWeightReached": "Weight maxed",
   "maxWeightReachedHintAria": "What weight maxed means",
   "maxWeightReachedHint": "On when you can't go heavier. Next step is an extra set, not more weight.",
