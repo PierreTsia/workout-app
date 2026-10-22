@@ -274,24 +274,24 @@ export function ExerciseDetailForm({
                 onChange={(e) => handleChange("set_range_max", e.target.value)}
               />
             </FieldGroup>
-            <FieldGroup
-              label={t("weightIncrement")}
-              hint={
+            <div className="flex flex-col gap-1.5">
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                {t("weightIncrement")}
                 <ProfileHint label={t("weightIncrementHintAria")}>
                   {t("weightIncrementHint")}
                 </ProfileHint>
-              }
-            >
+              </span>
               <Input
                 type="number"
                 inputMode="decimal"
                 min={0.25}
                 step={0.5}
+                aria-label={t("weightIncrement")}
                 value={form.weight_increment}
                 onChange={(e) => handleChange("weight_increment", e.target.value)}
                 placeholder={t("weightIncrementPlaceholder")}
               />
-            </FieldGroup>
+            </div>
             <div className="flex flex-col gap-1.5">
               <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
                 {t("maxWeightReached")}
@@ -318,18 +318,15 @@ export function ExerciseDetailForm({
 
 function FieldGroup({
   label,
-  hint,
   children,
 }: {
   label: string
-  hint?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+      <span className="text-xs font-medium text-muted-foreground">
         {label}
-        {hint}
       </span>
       {children}
     </label>

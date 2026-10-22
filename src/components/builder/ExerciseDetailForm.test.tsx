@@ -175,6 +175,16 @@ describe("ExerciseDetailForm", () => {
     ).toBeVisible()
   })
 
+  it("keeps the weight-step field's accessible name free of the hint", () => {
+    renderForm()
+
+    // The hint button sits beside the label, never inside it: the field's
+    // accessible name is the label alone, not the hint text.
+    expect(
+      screen.getByRole("spinbutton", { name: "Weight step" }),
+    ).toBeInTheDocument()
+  })
+
   it("shows duration ranges instead of rep ranges for holds", () => {
     renderWithProviders(
       <ExerciseDetailForm
