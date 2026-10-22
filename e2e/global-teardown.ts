@@ -24,9 +24,20 @@ async function globalTeardown() {
 
   // Clean up generated data owned by the test user (order matters for FK constraints)
   await admin.from("analytics_events").delete().eq("user_id", userId)
-  await admin.from("set_logs").delete().match({})
-  await admin.from("sessions").delete().match({})
-  await admin.from("workout_exercises").delete().match({})
+
+  // set_logs and workout_exercises carry no user_id: scope them through their parents.
+  const { data: sessions } = await admin.from("sessions").select("id").eq("user_id", userId)
+  const sessionIds = (sessions ?? []).map((s) => s.id)
+  if (sessionIds.length > 0) {
+    await admin.from("set_logs").delete().in("session_id", sessionIds)
+  }
+  await admin.from("sessions").delete().eq("user_id", userId)
+
+  const { data: days } = await admin.from("workout_days").select("id").eq("user_id", userId)
+  const dayIds = (days ?? []).map((d) => d.id)
+  if (dayIds.length > 0) {
+    await admin.from("workout_exercises").delete().in("workout_day_id", dayIds)
+  }
   await admin.from("workout_days").delete().eq("user_id", userId)
   await admin.from("programs").delete().eq("user_id", userId)
   await admin.from("user_profiles").delete().eq("user_id", userId)
