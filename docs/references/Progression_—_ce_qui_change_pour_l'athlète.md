@@ -45,8 +45,9 @@ répétitions, à chaque fois à l'échec ou presque. Le moteur te reproposait l
 
 Il existait bien un état « plateau » dans le code, mais il fallait réunir trois conditions, dont un
 réglage que **tu** devais activer à la main. Sur toute l'histoire de l'app en production, **un seul
-exercice** y est jamais arrivé. Pendant ce temps, **22 exercices** étaient réellement bloqués — cible
-figée sur 4 séances ou plus. Le vrai problème n'était pas là où le code le cherchait.
+slot** (un exercice à une place donnée de ton programme) y est jamais arrivé. Pendant ce temps, **22
+slots** étaient réellement bloqués — cible figée sur des séances consécutives, dont **18 sur 4 séances
+ou plus**. Le vrai problème n'était pas là où le code le cherchait.
 
 **Maintenant.** Après **4 séances d'affilée** où la cible ne bouge pas **et** où ta dernière séance
 était à RIR ≤ 1 (tu poussais vraiment), le moteur prescrit **une séance de décharge** : un cran de
@@ -128,7 +129,7 @@ Honnête, parce que l'article précédent avait cette section et qu'elle vieilli
 |---|---|---|
 | Séances de stagnation avant décharge | 4 | valeur de départ |
 | RIR moyen à la dernière séance | ≤ 1 | valeur de départ |
-| Effet de la décharge | −1 cran d'échelle, ou −15 % de reps | |
+| Effet de la décharge | −1 cran d'échelle (ou −1 incrément si pas d'échelle), ou −15 % de reps | |
 | Saut refusé au-delà de | +30 % | valeur de départ |
 | Pas des haltères | 2 kg jusqu'à 20, puis 5 kg | supposition (salle standard) |
 | Pas d'une pile | 5 kg | changement assumé |
