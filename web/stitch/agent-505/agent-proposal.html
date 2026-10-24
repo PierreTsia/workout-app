@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic — Agent · Proposed change</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<script src="theme.js"></script>
+</head>
+<body class="bg-[#0f0f13] text-foreground font-body-md antialiased min-h-screen flex items-center justify-center">
+<div class="w-[390px] h-[884px] bg-background relative overflow-hidden flex flex-col border border-border shadow-2xl rounded-[32px] mx-auto">
+<header class="flex justify-between items-center h-16 px-gutter w-full bg-background border-b border-border z-50 shrink-0">
+<div class="flex items-center gap-2">
+<button class="text-on-surface hover:opacity-80 transition-opacity flex items-center justify-center h-10 w-10">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Proposed change</h1>
+</div>
+<span class="font-label text-[10px] tracking-widest text-primary border border-primary/40 rounded-full px-2 py-0.5">EXPERIMENTAL</span>
+</header>
+<main class="flex-1 overflow-y-auto px-gutter py-5 flex flex-col gap-5">
+<div class="flex flex-col gap-2">
+<p class="font-body-md text-[15px] text-on-surface">I'd make one change to <span class="font-semibold">Upper Pump</span> for next week.</p>
+<p class="font-body-sm text-[12px] text-muted">Squat hit RIR 1 on the last two sessions — time to load.</p>
+</div>
+<div class="flex flex-col">
+<p class="font-label text-[10px] text-muted uppercase tracking-widest mb-2">Patch · Upper Pump · 1 change</p>
+<div class="border border-border rounded-xl overflow-hidden">
+<div class="bg-surface px-4 py-3 flex items-center justify-between gap-3 border-l-2 border-l-primary-container">
+<div class="flex flex-col">
+<span class="font-label text-[14px] text-foreground">Squat</span>
+<span class="font-body-sm text-[11px] text-muted">Slot 1 · load up</span>
+</div>
+<div class="flex items-center gap-2 font-mono text-mono">
+<span class="text-muted line-through">90 kg</span>
+<span class="material-symbols-outlined text-muted text-base" data-icon="arrow_forward">arrow_forward</span>
+<span class="text-primary-fixed-dim font-semibold">92.5 kg</span>
+</div>
+</div>
+<div class="bg-surface px-4 py-3 flex items-center justify-between gap-3 border-t border-border">
+<div class="flex flex-col">
+<span class="font-label text-[14px] text-on-surface-variant">Bench Press</span>
+<span class="font-body-sm text-[11px] text-muted">Slot 2</span>
+</div>
+<span class="font-body-sm text-[11px] text-muted">unchanged · 70 kg</span>
+</div>
+<div class="bg-surface px-4 py-3 flex items-center justify-between gap-3 border-t border-border">
+<div class="flex flex-col">
+<span class="font-label text-[14px] text-on-surface-variant">Barbell Row</span>
+<span class="font-body-sm text-[11px] text-muted">Slot 3</span>
+</div>
+<span class="font-body-sm text-[11px] text-muted">unchanged · 60 kg</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-2 bg-surface-container-low border border-border rounded-lg px-3 py-2.5">
+<span class="material-symbols-outlined text-muted text-base mt-0.5" data-icon="lock">lock</span>
+<p class="font-body-sm text-[12px] text-muted">Affects future sessions only. Nothing is written until you apply.</p>
+</div>
+</main>
+<div class="border-t border-border px-gutter py-4 flex flex-col gap-2 shrink-0" style="padding-bottom: max(1rem, env(safe-area-inset-bottom))">
+<button class="w-full h-12 rounded-lg bg-primary-container text-on-primary font-label text-label font-semibold">Apply to program</button>
+<div class="flex gap-2">
+<button class="flex-1 h-11 rounded-lg border border-border text-on-surface font-label text-label">Edit patch</button>
+<button class="flex-1 h-11 rounded-lg text-muted font-label text-label">Discard</button>
+</div>
+</div>
+</div>
+</body></html>
