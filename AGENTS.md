@@ -56,6 +56,39 @@ pourquoi, ce qui a été vérifié (commande + résultat), ce qui reste. Commit 
 Conventional Commits (`feat(#288): …`, `docs: …`), identité
 `PierreTsia <PierreTsia@users.noreply.github.com>`.
 
+## Flow produit & sous-agents
+
+Chaîne produit, **dans l'ordre — aucune étape ne démarre avant que la précédente ait laissé son
+artefact** :
+
+`grilling` (ou `grill-with-docs` quand ça touche au domaine : `CONTEXT.md` et ADR) → `to-prd`
+(PRD publié dans l'issue tracker, décisions d'implémentation et seams de test) → `to-issues`
+(tranches verticales, une issue = une tranche livrable) → `implement` (boucle `tdd`, un commit
+par tranche) → `review` (sous-agent `reviewer`) → QA (sous-agent `qa`).
+
+Le grill est **HITL** (Pierre répond) ou **AFK** (l'agent tranche à la place de Pierre et nomme
+ses hypothèses) ; hors codebase, `grill-me`. Deux verrous d'ordre : **pas de PRD, pas de
+ticket** ; **pas de test rouge, pas de code**. Un bug saute `to-prd` et `to-issues` : l'issue
+tient lieu de cadrage, plan court (cause + critère d'acceptation), puis `tdd` — **le test qui
+reproduit le bug d'abord**.
+
+**Piège de ce dépôt — deux générations de skills coexistent.** Les skills du flow sont
+**globales** (hors du dépôt). Ce dépôt porte en plus `.opencode/skills/` avec l'**ancienne**
+génération (`epic-brief`, `tech-plan`, `split-tickets`, `create-pr`, `deliver-tickets`) — et
+comme **le repo-local prime sur le global**, `tdd` et `grill-with-docs` chargent ici la version
+du dépôt et non la globale. Lire l'inventaire effectif avec `opencode debug skill` avant de
+nommer une étape.
+
+Sous-agents disponibles (`Task`, définis dans `.opencode/agents/`) :
+
+- **`reviewer`** — relit une PR contre les standards du dépôt et le ticket lié, trie ses
+  constats, pose les labels `review:*` et publie ses conclusions en **un seul commentaire** ;
+  lecture seule pour tout le reste (jamais d'édition, de commit ni de review GitHub).
+- **`qa`** — passe QA navigateur : monte l'app (Supabase local + Playwright, ou la prod),
+  parcourt les flux dans un vrai navigateur, capture des captures d'écran et rend un rapport
+  pass/fail avec preuves, plus un commentaire `## QA report`. Indépendant de `reviewer` — les
+  deux tournent en parallèle sur la même PR.
+
 ## TDD dans ce dépôt
 
 `npm test` = `TZ=UTC vitest run` (le TZ est volontaire : le domaine est sensible aux
