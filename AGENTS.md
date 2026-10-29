@@ -72,13 +72,12 @@ ticket** ; **pas de test rouge, pas de code**. Un bug saute `to-prd` et `to-issu
 tient lieu de cadrage, plan court (cause + critère d'acceptation), puis `tdd` — **le test qui
 reproduit le bug d'abord**.
 
-**Piège de ce dépôt — deux générations de skills coexistent.** Les skills du flow vivent dans
-`~/.agents/skills/`, globales et lues par OpenCode : `grilling`, `grill-with-docs`, `to-prd`,
-`to-issues`, `implement`, `tdd`, `review`, `qa`. Ce dépôt porte en plus `.opencode/skills/`
-avec l'**ancienne** génération (`epic-brief`, `tech-plan`, `split-tickets`, `create-pr`,
-`deliver-tickets`) — et comme **le repo-local prime sur le global**, `tdd` et `grill-with-docs`
-chargent ici la version du dépôt et non la globale. Lire l'inventaire effectif avec
-`opencode debug skill` avant de nommer une étape.
+**Piège de ce dépôt — deux générations de skills coexistent.** Les skills du flow sont
+**globales** (hors du dépôt). Ce dépôt porte en plus `.opencode/skills/` avec l'**ancienne**
+génération (`epic-brief`, `tech-plan`, `split-tickets`, `create-pr`, `deliver-tickets`) — et
+comme **le repo-local prime sur le global**, `tdd` et `grill-with-docs` chargent ici la version
+du dépôt et non la globale. Lire l'inventaire effectif avec `opencode debug skill` avant de
+nommer une étape.
 
 Sous-agents disponibles (`Task`, définis dans `.opencode/agents/`) :
 
