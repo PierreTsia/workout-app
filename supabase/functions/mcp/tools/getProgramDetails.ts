@@ -7,6 +7,7 @@ import {
   type DbSoloForRead,
 } from "../lib/daySequenceRead.ts"
 import { formatProgramDetails } from "../lib/format.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import { isUuid } from "../lib/uuid.ts"
 import type { ToolDefinition } from "./registry.ts"
 
@@ -88,6 +89,12 @@ export const getProgramDetails: ToolDefinition = {
         type: "string",
         description: "UUID of the program to fetch (obtained from list_programs or any tool that surfaces program ids).",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the exercise names. Defaults to the athlete's stored locale, then English.",
+      },
     },
   },
 
@@ -99,6 +106,7 @@ export const getProgramDetails: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const programId = String(args.program_id ?? "")
 
     if (!isUuid(programId)) {
@@ -216,6 +224,7 @@ export const getProgramDetails: ToolDefinition = {
       days.map(({ id, label, emoji, sort_order }) => ({ id, label, emoji, sort_order })),
       exercisesByDay,
       { sequenceByDay, echoDays },
+      locale,
     )
 
     return {

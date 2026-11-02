@@ -6,7 +6,9 @@ import {
   formatProgramListEntry,
   formatSessionHistory,
   formatSessionSummary,
+  formatStatsSummary,
   formatWeightConvention,
+  formatWorkoutDay,
   type WeightConvention,
 } from "./format"
 import type { CatalogExerciseForProgram } from "./programPersistence"
@@ -194,7 +196,7 @@ describe("formatProgramDetails", () => {
     )
   })
 
-  it("renders bilingual catalog names when name + name_en are present", () => {
+  it("renders the English catalog name for an English reader when name + name_en are present", () => {
     const program = makeProgram()
     const day = makeDay()
     const exercises = [
@@ -205,12 +207,31 @@ describe("formatProgramDetails", () => {
         exercise_id: "cccccccc-3333-4333-8333-333333333333",
       }),
     ]
-    const md = formatProgramDetails(program, [day], new Map([[day.id, exercises]]))
+    const md = formatProgramDetails(program, [day], new Map([[day.id, exercises]]), undefined, "en")
 
     expect(md).toContain(
-      "**Développé couché** (Bench Press) *(exercise_id: cccccccc-3333-4333-8333-333333333333)*",
+      "**Bench Press** *(exercise_id: cccccccc-3333-4333-8333-333333333333)*",
     )
-    expect(md).not.toContain("()")
+    expect(md).not.toContain("Développé couché")
+  })
+
+  it("renders the French catalog name for a French reader", () => {
+    const program = makeProgram()
+    const day = makeDay()
+    const exercises = [
+      makeExercise({
+        name_snapshot: "Développé couché",
+        name: "Développé couché",
+        name_en: "Bench Press",
+        exercise_id: "cccccccc-3333-4333-8333-333333333333",
+      }),
+    ]
+    const md = formatProgramDetails(program, [day], new Map([[day.id, exercises]]), undefined, "fr")
+
+    expect(md).toContain(
+      "**Développé couché** *(exercise_id: cccccccc-3333-4333-8333-333333333333)*",
+    )
+    expect(md).not.toContain("Bench Press")
   })
 
   it("falls back to name_snapshot alone when the catalog join is missing", () => {
@@ -1269,5 +1290,55 @@ describe("formatProgramAfterUpdate (T81)", () => {
     const md = formatProgramAfterUpdate(diff, current, catalog)
 
     expect(md).toContain("_(empty program — no days defined)_")
+  })
+})
+
+describe("formatStatsSummary locale (T711)", () => {
+  const volumes = [
+    { muscle_group: "Épaules", total_sets: 10, total_volume_kg: 500 },
+    { muscle_group: "Dos", total_sets: 8, total_volume_kg: 800 },
+  ]
+
+  it("renders English muscle labels for an English reader", () => {
+    const md = formatStatsSummary(30, 4, volumes, [], "en")
+    expect(md).toContain("**Shoulders**")
+    expect(md).not.toContain("Épaules")
+  })
+
+  it("keeps French muscle labels for a French reader", () => {
+    const md = formatStatsSummary(30, 4, volumes, [], "fr")
+    expect(md).toContain("**Épaules**")
+  })
+})
+
+describe("formatWorkoutDay locale (T711)", () => {
+  const day = { label: "Push", emoji: "💪" }
+
+  it("renders the English catalog name for an English reader", () => {
+    const md = formatWorkoutDay(
+      day,
+      [],
+      [
+        {
+          kind: "solo",
+          sort_order: 0,
+          solo: {
+            exercise_id: "cccccccc-3333-4333-8333-333333333333",
+            name_snapshot: "Développé couché",
+            name: "Développé couché",
+            name_en: "Bench Press",
+            sets: 4,
+            reps: "8",
+            weight: "80",
+            rest_seconds: 120,
+            target_duration_seconds: null,
+            sort_order: 0,
+          },
+        },
+      ],
+      "en",
+    )
+    expect(md).toContain("**Bench Press**")
+    expect(md).not.toContain("Développé couché")
   })
 })

@@ -1,5 +1,7 @@
 import type { ToolDefinition } from "./registry.ts"
 import { formatStatsSummary } from "../lib/format.ts"
+import { muscleLabel } from "../lib/displayLabels.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 
 export const getTrainingStats: ToolDefinition = {
   name: "get_training_stats",
@@ -26,7 +28,13 @@ export const getTrainingStats: ToolDefinition = {
       },
       muscle_group: {
         type: "string",
-        description: "Filter volume breakdown to a specific muscle group (French name, e.g. 'Dos', 'Pectoraux').",
+        description: "Filter volume breakdown to one muscle group (French or English label, e.g. 'Dos' / 'Back').",
+      },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the muscle labels and exercise names. Defaults to the athlete's stored locale, then English.",
       },
     },
   },
@@ -39,6 +47,7 @@ export const getTrainingStats: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const days = (args.days as number | undefined) ?? 30
     const muscleGroupFilter = args.muscle_group as string | undefined
 
@@ -69,8 +78,15 @@ export const getTrainingStats: ToolDefinition = {
 
     const raw = volumeResult.data as { finished_sessions: number; muscles: Array<{ muscle_group: string; total_sets: number; total_volume_kg: number; exercise_count?: number }> } | null
     const sessionCount = raw?.finished_sessions ?? 0
-    const muscles = (raw?.muscles ?? [])
-      .filter((m) => !muscleGroupFilter || m.muscle_group.toLowerCase() === muscleGroupFilter.toLowerCase())
+    const muscleMatches = (m: { muscle_group: string }) => {
+      if (!muscleGroupFilter) return true
+      const needle = muscleGroupFilter.toLowerCase()
+      return (
+        m.muscle_group.toLowerCase() === needle ||
+        muscleLabel(m.muscle_group, "en").toLowerCase() === needle
+      )
+    }
+    const muscles = (raw?.muscles ?? []).filter(muscleMatches)
 
     if (sessionCount === 0) {
       return {
@@ -87,7 +103,7 @@ export const getTrainingStats: ToolDefinition = {
     }>
 
     return {
-      content: [{ type: "text", text: formatStatsSummary(days, sessionCount, muscles, prs) }],
+      content: [{ type: "text", text: formatStatsSummary(days, sessionCount, muscles, prs, locale) }],
     }
   },
 }
