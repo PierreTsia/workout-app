@@ -102,6 +102,23 @@ const statements = Object.entries(migrationSources)
   .flatMap(([path, sql]) => parseFunctions(path, stripComments(sql)))
 
 /**
+ * Function names a migration explicitly `DROP`s before re-creating with a new
+ * signature. Postgres has no `CREATE OR REPLACE` that changes an argument list,
+ * so widening a function's parameters (ADR 0035's `p_locale`) means DROP-then-
+ * CREATE — a deliberate replacement, not the accidental overload the assertion
+ * below exists to catch. A function created twice with two signatures and *no*
+ * DROP still fails.
+ */
+const droppedFunctionNames = new Set(
+  Object.values(migrationSources)
+    .map(stripComments)
+    .flatMap((sql) => [
+      ...sql.matchAll(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?(\w+)\s*\(/gi),
+    ])
+    .map(([, name]) => name),
+)
+
+/**
  * THE ORDERING RULE, and the subtle part of this file.
  *
  * A function can be created insecurely and hardened later by a
@@ -242,6 +259,7 @@ describe("migration parsing", () => {
     // ever fails, the fix is to key effectiveDefinitions on the signature, not
     // to delete the assertion.
     const overloaded = [...new Set(statements.map(({ name }) => name))]
+      .filter((name) => !droppedFunctionNames.has(name))
       .filter(
         (name) =>
           new Set(
