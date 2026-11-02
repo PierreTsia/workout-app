@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GymLogic — Agent · Ask</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<script src="theme.js"></script>
+</head>
+<body class="bg-[#0f0f13] text-foreground font-body-md antialiased min-h-screen flex items-center justify-center">
+<div class="w-[390px] h-[884px] bg-background relative overflow-hidden flex flex-col border border-border shadow-2xl rounded-[32px] mx-auto">
+<header class="flex justify-between items-center h-16 px-gutter w-full bg-background border-b border-border z-50 shrink-0">
+<div class="flex items-center gap-2">
+<button class="text-on-surface hover:opacity-80 transition-opacity flex items-center justify-center h-10 w-10">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Upper Pump · W3</h1>
+</div>
+<span class="font-label text-[10px] tracking-widest text-primary border border-primary/40 rounded-full px-2 py-0.5">EXPERIMENTAL</span>
+</header>
+<main class="flex-1 overflow-y-auto px-gutter py-5 flex flex-col gap-5">
+<div class="flex flex-col gap-1">
+<p class="font-label text-[11px] text-muted uppercase tracking-widest">Live program · Hypertrophy 12 · Week 3/6</p>
+<p class="font-body-sm text-[12px] text-muted">Last session: Upper Pump · 3 days ago · RIR avg 2</p>
+</div>
+<div class="flex justify-end">
+<div class="bg-surface-container-high rounded-xl rounded-tr-sm px-4 py-3 max-w-[80%]">
+<p class="font-body-md text-[14px] text-on-surface">Why is squat still on HOLD?</p>
+</div>
+</div>
+<div class="flex flex-col gap-3">
+<p class="font-label text-[10px] text-muted uppercase tracking-widest">Agent</p>
+<div class="bg-surface border border-border rounded-xl rounded-tl-sm px-4 py-4 flex flex-col gap-3">
+<p class="font-body-md text-[14px] text-on-surface leading-relaxed">Your last three Upper Pump sessions logged Squat at <span class="text-primary-fixed-dim">RIR 2</span>, and the top set fell short of the target reps each time.</p>
+<p class="font-body-md text-[14px] text-on-surface leading-relaxed">The engine reads that as <span class="font-mono text-mono text-primary-fixed-dim">HOLD_NEAR_FAILURE</span>, so it keeps <span class="font-mono text-mono">90 kg</span> instead of loading more. It's holding on purpose — not stuck.</p>
+<div class="flex items-center gap-2 border-t border-border pt-3">
+<span class="material-symbols-outlined text-muted text-base" data-icon="info">info</span>
+<p class="font-body-sm text-[12px] text-muted">Deterministic suggestion from Last Performance, not a guess.</p>
+</div>
+<button class="flex items-center gap-1 text-primary font-label text-label hover:opacity-80 transition-opacity self-start">
+<span class="material-symbols-outlined text-base" data-icon="add">add</span>
+Propose a change
+</button>
+</div>
+</div>
+</main>
+<footer class="border-t border-border px-gutter py-3 flex items-center gap-2 shrink-0" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom))">
+<div class="flex-1 bg-surface border border-border rounded-full px-4 h-11 flex items-center">
+<input class="bg-transparent border-0 outline-none w-full font-body-md text-[14px] text-on-surface placeholder:text-muted focus:ring-0" placeholder="Ask about this programme"/>
+</div>
+<button class="h-11 w-11 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined" data-icon="arrow_upward">arrow_upward</span>
+</button>
+</footer>
+</div>
+</body></html>
