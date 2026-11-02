@@ -102,21 +102,46 @@ const statements = Object.entries(migrationSources)
   .flatMap(([path, sql]) => parseFunctions(path, stripComments(sql)))
 
 /**
- * Function names a migration explicitly `DROP`s before re-creating with a new
- * signature. Postgres has no `CREATE OR REPLACE` that changes an argument list,
- * so widening a function's parameters (ADR 0035's `p_locale`) means DROP-then-
- * CREATE — a deliberate replacement, not the accidental overload the assertion
- * below exists to catch. A function created twice with two signatures and *no*
- * DROP still fails.
+ * The type-list of a function's declared parameters (names and DEFAULTs stripped),
+ * so a CREATE can be matched against the DROP that removes it.
  */
-const droppedFunctionNames = new Set(
-  Object.values(migrationSources)
-    .map(stripComments)
-    .flatMap((sql) => [
-      ...sql.matchAll(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?(\w+)\s*\(/gi),
-    ])
-    .map(([, name]) => name),
-)
+const paramTypes = (header: string): string => {
+  const cut = header.search(/\bRETURNS\b/i)
+  const upToReturns = cut === -1 ? header : header.slice(0, cut)
+  const open = upToReturns.indexOf("(")
+  const close = upToReturns.lastIndexOf(")")
+  if (open === -1 || close === -1 || close < open) return ""
+  const inner = upToReturns.slice(open + 1, close)
+  if (inner.trim() === "") return ""
+  return inner
+    .split(",")
+    .map((param) =>
+      param.split(/\s+DEFAULT\s+/i)[0].trim().replace(/^\S+\s*/, "").replace(/\s+/g, " "),
+    )
+    .join(",")
+}
+
+/**
+ * Function signatures a migration explicitly `DROP`s before re-creating. Postgres has
+ * no `CREATE OR REPLACE` that changes an argument list, so widening a function's
+ * parameters (ADR 0035's `p_locale`) means DROP-then-CREATE — a deliberate
+ * replacement, not the accidental overload the assertion below exists to catch. An
+ * accidental second signature with no matching DROP still fails.
+ */
+const droppedSignatures = new Map<string, Set<string>>()
+for (const sql of Object.values(migrationSources).map(stripComments)) {
+  for (const [, name, args] of sql.matchAll(
+    /DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?(\w+)\s*\(([^)]*)\)/gi,
+  )) {
+    const types = args
+      .split(",")
+      .map((t) => t.trim().replace(/\s+/g, " "))
+      .join(",")
+    const set = droppedSignatures.get(name) ?? new Set<string>()
+    set.add(types)
+    droppedSignatures.set(name, set)
+  }
+}
 
 /**
  * THE ORDERING RULE, and the subtle part of this file.
@@ -258,16 +283,19 @@ describe("migration parsing", () => {
     // in Postgres, and the map above would keep only one of the two. If this
     // ever fails, the fix is to key effectiveDefinitions on the signature, not
     // to delete the assertion.
-    const overloaded = [...new Set(statements.map(({ name }) => name))]
-      .filter((name) => !droppedFunctionNames.has(name))
-      .filter(
-        (name) =>
-          new Set(
-            statements
-              .filter((statement) => statement.name === name)
-              .map(({ signature }) => signature),
-          ).size > 1,
+    // A signature is "live" when no migration DROPs the type-list it declares.
+    const liveSignatures = (name: string): Set<string> => {
+      const dropped = droppedSignatures.get(name) ?? new Set<string>()
+      return new Set(
+        statements
+          .filter((statement) => statement.name === name)
+          .map((statement) => paramTypes(statement.header))
+          .filter((types) => !dropped.has(types)),
       )
+    }
+
+    const overloaded = [...new Set(statements.map(({ name }) => name))]
+      .filter((name) => liveSignatures(name).size > 1)
       .sort()
 
     expect(overloaded).toEqual([])

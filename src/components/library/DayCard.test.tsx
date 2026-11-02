@@ -137,7 +137,8 @@ describe("DayCard", () => {
     expect(screen.getByText(/Gainage planche/)).toBeInTheDocument()
   })
 
-  it("labels circuit station Rx as reps or seconds, not a naked count", () => {    renderWithProviders(
+  it("labels circuit station Rx as reps or seconds, not a naked count", () => {
+    renderWithProviders(
       <DayCard
         label="Day 1"
         exerciseCount={1}

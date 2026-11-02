@@ -7,6 +7,8 @@
 --             20260506004927_resolve_exercises_batch_cap_size.sql.
 
 DROP FUNCTION IF EXISTS public.resolve_exercises_batch(text[]);
+-- Also drop the new signature, so a replay (db push --include-all) is idempotent.
+DROP FUNCTION IF EXISTS public.resolve_exercises_batch(text[], text);
 
 CREATE FUNCTION resolve_exercises_batch(
   queries text[],

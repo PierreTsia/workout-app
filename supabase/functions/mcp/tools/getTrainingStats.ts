@@ -1,6 +1,6 @@
 import type { ToolDefinition } from "./registry.ts"
 import { formatStatsSummary } from "../lib/format.ts"
-import { muscleLabel } from "../lib/displayLabels.ts"
+import { muscleLabel, resolveDisplayName } from "../lib/displayLabels.ts"
 import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 
 export const getTrainingStats: ToolDefinition = {
@@ -94,13 +94,35 @@ export const getTrainingStats: ToolDefinition = {
       }
     }
 
-    const prs = (prResult ?? []) as Array<{
+    const prsRaw = (prResult ?? []) as Array<{
+      exercise_id: string
       exercise_name_snapshot: string
       weight_logged: number
       reps_logged: string | null
       duration_seconds: number | null
       logged_at: string
     }>
+
+    // Localize the PR names from the catalog (ADR 0035), snapshot as fallback.
+    const prExerciseIds = [...new Set(prsRaw.map((p) => p.exercise_id))]
+    const prNameById = new Map<string, { name?: string | null; name_en?: string | null }>()
+    if (prExerciseIds.length > 0) {
+      const { data: catalogRows } = await supabase
+        .from("exercises")
+        .select("id, name, name_en")
+        .in("id", prExerciseIds)
+      for (const row of catalogRows ?? []) {
+        prNameById.set(String(row.id), { name: row.name, name_en: row.name_en })
+      }
+    }
+    const prs = prsRaw.map((p) => ({
+      ...p,
+      exercise_name_snapshot:
+        resolveDisplayName(
+          { ...prNameById.get(p.exercise_id), name_snapshot: p.exercise_name_snapshot },
+          locale,
+        ) || p.exercise_name_snapshot,
+    }))
 
     return {
       content: [{ type: "text", text: formatStatsSummary(days, sessionCount, muscles, prs, locale) }],
@@ -116,7 +138,7 @@ async function fetchPrs(
 
   const { data, error } = await supabase!
     .from("set_logs")
-    .select("exercise_name_snapshot, weight_logged, reps_logged, duration_seconds, logged_at")
+    .select("exercise_id, exercise_name_snapshot, weight_logged, reps_logged, duration_seconds, logged_at")
     .eq("was_pr", true)
     .gte("logged_at", since)
     .order("logged_at", { ascending: false })

@@ -138,7 +138,7 @@ Always call with \`dry_run: true\` first (the default) — review the top-level 
 
 Destructive guard: removing ≥1 day requires \`confirm: true\` along with \`dry_run: false\`. Logged sessions do not block deletion — \`sessions.workout_day_id\` is \`ON DELETE SET NULL\`, so history stays (label snapshot + set_logs).
 
-Mid-cycle awareness: when an active cycle exists for the program, the response surfaces a French warning ("Cycle actif depuis ..."). Edits still proceed when confirmed.
+Mid-cycle awareness: when an active cycle exists for the program, the response surfaces a warning ("Cycle actif depuis ..." / "Active cycle since ..."), localized to the \`locale\` argument. Edits still proceed when confirmed.
 
 For activating/deactivating a program (\`is_active\`), use the dedicated \`set_active_program\` tool (coming soon) — \`update_program\` rejects \`is_active\` in the patch.`
 

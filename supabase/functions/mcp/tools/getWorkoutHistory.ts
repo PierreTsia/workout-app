@@ -108,6 +108,25 @@ export const getWorkoutHistory: ToolDefinition = {
     }
 
     const sessionIds = sessions.map((s: { id: string }) => s.id)
+    let sessionQueryFilterIds: string[] | undefined
+
+    // Filter by exercise name at the DB layer (diacritic-insensitive) so we never
+    // fetch-and-drop a large history. Resolve the matching catalog ids first —
+    // matching either language, so an English query finds the row.
+    if (exerciseName) {
+      const needle = exerciseName.replace(/[%_]/g, "")
+      const { data: matched } = await supabase
+        .from("exercises")
+        .select("id")
+        .or(`name.ilike.%${needle}%,name_en.ilike.%${needle}%`)
+      const matchedIds = (matched ?? []).map((r) => String(r.id))
+      if (matchedIds.length === 0) {
+        return {
+          content: [{ type: "text", text: `No sessions found containing "${exerciseName}" in this period.` }],
+        }
+      }
+      sessionQueryFilterIds = matchedIds
+    }
 
     const setQuery = supabase
       .from("set_logs")
@@ -116,6 +135,10 @@ export const getWorkoutHistory: ToolDefinition = {
       )
       .in("session_id", sessionIds)
       .order("set_number", { ascending: true })
+
+    if (sessionQueryFilterIds) {
+      setQuery.in("exercise_id", sessionQueryFilterIds)
+    }
 
     const { data: setLogs, error: setErr } = await setQuery.returns<SetLogRow[]>()
 
@@ -142,16 +165,10 @@ export const getWorkoutHistory: ToolDefinition = {
         locale,
       )
 
-    let logs = setLogs ?? []
-    if (exerciseName) {
-      const needle = exerciseName.toLowerCase()
-      logs = logs.filter(
-        (log) =>
-          log.exercise_name_snapshot.toLowerCase().includes(needle) ||
-          localizedName(log).toLowerCase().includes(needle),
-      )
-    }
-    logs = logs.map((log) => ({ ...log, exercise_name_snapshot: localizedName(log) }))
+    const logs = (setLogs ?? []).map((log) => ({
+      ...log,
+      exercise_name_snapshot: localizedName(log),
+    }))
     const blockExerciseIds = [
       ...new Set(
         logs

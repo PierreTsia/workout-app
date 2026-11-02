@@ -76,5 +76,3 @@ export function warningText(
     ? `Cycle actif depuis ${date} — cette modification affecte vos workouts restants dans ce cycle.`
     : `Historique détaché : « ${exercise} » est retiré ou remplacé — sa progression repart de la prescription du template.`
 }
-
-

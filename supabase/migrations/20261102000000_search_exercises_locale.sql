@@ -11,6 +11,8 @@
 -- Depends on: 20260326120000_search_exercises.sql.
 
 DROP FUNCTION IF EXISTS public.search_exercises(text, text, text[], text[], int, int);
+-- Also drop the new signature, so a replay (db push --include-all) is idempotent.
+DROP FUNCTION IF EXISTS public.search_exercises(text, text, text[], text[], int, int, text);
 
 CREATE FUNCTION search_exercises(
   search_term         text    DEFAULT '',
