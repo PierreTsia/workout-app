@@ -1064,6 +1064,20 @@ describe("formatProgramAfterUpdate (T81)", () => {
     }
   }
 
+  it("localizes the rendered names to the update locale", () => {
+    const bilingual = new Map<string, CatalogExerciseForProgram>([
+      [ID_BENCH, { ...BENCH, name: "Développé couché", name_en: "Bench Press" }],
+    ])
+    const diff = emptyDiff({ days_unchanged: [{ id: ID_DAY_A, label: "Push" }] })
+
+    const en = formatProgramAfterUpdate(diff, makeCurrent(), bilingual, "en")
+    expect(en).toContain("Bench Press")
+    expect(en).not.toContain("Développé couché")
+
+    const fr = formatProgramAfterUpdate(diff, makeCurrent(), bilingual, "fr")
+    expect(fr).toContain("Développé couché")
+  })
+
   it("renders the program header with the renamed name when name_change is set", () => {
     const current = makeCurrent({ name: "Old name" })
     const diff = emptyDiff({

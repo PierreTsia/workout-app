@@ -1,4 +1,5 @@
 import { formatBilingualExerciseName } from "./bilingualName.ts"
+import { resolveDisplayName, type DisplayLocale } from "./displayLabels.ts"
 import { CIRCUIT_BOUNDS, type ParsedExercise } from "./createProgramValidation.ts"
 import {
   catalogMapFromBlock,
@@ -87,6 +88,7 @@ const AMRAP_GLOSS_EN = "As many rounds as possible."
 export function formatCircuitPreviewLines(
   circuit: Extract<ParsedExercise, { kind: "circuit" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string[] {
   const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
   const isAmrap = circuit.mode === "amrap"
@@ -103,7 +105,10 @@ export function formatCircuitPreviewLines(
     )
   })
 
-  const nameOf = (id: string) => catalogById.get(id)?.name ?? id
+  const nameOf = (id: string) => {
+    const catalog = catalogById.get(id)
+    return resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) || id
+  }
 
   const slug = circuit.benchmarkSlug?.trim()
   const catalogId = circuit.benchmarkCircuitId?.trim()
@@ -604,22 +609,23 @@ export function formatProgramAfterUpdate(
   diff: ProgramDiff,
   currentProgram: CurrentProgramSnapshot,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   const finalName = diff.name_change?.to ?? currentProgram.name
   const header = `## **${finalName}** *(id: ${currentProgram.id})*`
 
   const fromUpdates: RenderableDay[] = diff.days_to_update.map((u) =>
-    renderableFromUpdate(u, catalogById),
+    renderableFromUpdate(u, catalogById, locale),
   )
 
   const fromInserts: RenderableDay[] = diff.days_to_insert.map((i) =>
-    renderableFromInsert(i, catalogById),
+    renderableFromInsert(i, catalogById, locale),
   )
 
   const fromUnchanged: RenderableDay[] = diff.days_unchanged
     .map((u) => currentProgram.days.find((d) => d.id === u.id))
     .filter((d): d is CurrentProgramSnapshotDay => d !== undefined)
-    .map((d) => renderableFromCurrent(d, catalogById))
+    .map((d) => renderableFromCurrent(d, catalogById, locale))
 
   const finalDays = [...fromUpdates, ...fromInserts, ...fromUnchanged].sort(
     (a, b) => a.sort_order - b.sort_order,
@@ -638,52 +644,60 @@ export function formatProgramAfterUpdate(
 function renderableFromUpdate(
   u: DiffDayUpdate,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   return {
     label: u.label,
     emoji: u.emoji,
     sort_order: u.sort_order,
-    exerciseLines: u.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+    exerciseLines: u.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById, locale)}`),
   }
 }
 
 function renderableFromInsert(
   i: DiffDayInsert,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   return {
     label: i.label,
     emoji: i.emoji ?? DEFAULT_INSERT_EMOJI,
     sort_order: i.sort_order,
-    exerciseLines: i.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+    exerciseLines: i.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById, locale)}`),
   }
 }
 
 function renderableFromCurrent(
   d: CurrentProgramSnapshotDay,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   const sortedExercises = [...d.workout_exercises].sort((a, b) => a.sort_order - b.sort_order)
   return {
     label: d.label,
     emoji: d.emoji,
     sort_order: d.sort_order,
-    exerciseLines: sortedExercises.map((ex) => `  - ${renderCurrentLine(ex, catalogById)}`),
+    exerciseLines: sortedExercises.map(
+      (ex) => `  - ${renderCurrentLine(ex, catalogById, locale)}`,
+    ),
   }
 }
 
 function renderParsedLine(
   parsed: ParsedExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   if (parsed.kind === "circuit") {
-    return formatCircuitPreviewLines(parsed, catalogById).join("\n")
+    return formatCircuitPreviewLines(parsed, catalogById, locale).join("\n")
   }
 
   const catalog = catalogById.get(parsed.exerciseId)
   // Defensive fallback: catalog should always be present (handler fetches the union of
   // patch + current ids), but a missing entry must not crash dry_run rendering.
-  const name = catalog?.name ?? "(unknown exercise)"
+  const name =
+    resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) ||
+    "(unknown exercise)"
   const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
 
   if (parsed.kind === "bare") {
@@ -718,9 +732,12 @@ function renderParsedLine(
 function renderCurrentLine(
   ex: CurrentProgramSnapshotExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   const catalog = catalogById.get(ex.exercise_id)
-  const name = catalog?.name ?? ex.name_snapshot
+  const name =
+    resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) ||
+    ex.name_snapshot
   const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
 
   return formatPrescriptionLine({

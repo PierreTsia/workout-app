@@ -395,7 +395,7 @@ export const updateProgram: ToolDefinition = {
     })
 
     if (parsedPatch.dry_run) {
-      const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
+      const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById, toolLocale)
       const removed_days = diff.days_to_delete.map((d) => ({
         id: d.id,
         label: d.label,
