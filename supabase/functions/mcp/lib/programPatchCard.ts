@@ -17,6 +17,7 @@ import {
   APPLY_DEFAULT_SETS,
 } from "./format.ts"
 import type { CatalogExerciseForProgram } from "./programPersistence.ts"
+import { resolveDisplayName, type DisplayLocale } from "./displayLabels.ts"
 import { reconcileSolos } from "./slotReconciliation.ts"
 import type {
   CurrentProgramSnapshot,
@@ -92,9 +93,13 @@ function soloFromParsed(
   parsed: Extract<ParsedExercise, { kind: "bare" | "object" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
   existing: CurrentProgramSnapshotExercise | undefined,
+  locale: DisplayLocale,
 ): PatchSoloExercise {
   const catalog = catalogById.get(parsed.exerciseId)
-  const name = catalog?.name ?? existing?.name_snapshot ?? "(unknown exercise)"
+  const name = resolveDisplayName(
+    { name: catalog?.name, name_en: catalog?.name_en, name_snapshot: existing?.name_snapshot },
+    locale,
+  ) || "(unknown exercise)"
 
   if (parsed.kind === "bare") {
     // Mirror renderParsedLine: a duration-measured exercise bootstraps to the catalog's
@@ -150,6 +155,7 @@ function buildUpdatedDay(
   update: DiffDayUpdate,
   current: CurrentProgramSnapshotDay | undefined,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale,
 ): PatchDay {
   const existing = current?.workout_exercises ?? []
   const { matched } = reconcileSolos(existing, update.parsed_exercises)
@@ -158,7 +164,7 @@ function buildUpdatedDay(
   const exercises = update.parsed_exercises.map((parsed, index): PatchExercise =>
     parsed.kind === "circuit"
       ? circuitFromParsed(parsed, false)
-      : soloFromParsed(parsed, catalogById, matchedByIndex.get(index)),
+      : soloFromParsed(parsed, catalogById, matchedByIndex.get(index), locale),
   )
 
   return { label: update.label, emoji: update.emoji, exercises }
@@ -167,11 +173,12 @@ function buildUpdatedDay(
 function buildInsertedDay(
   insert: DiffDayInsert,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale,
 ): PatchDay {
   const exercises = insert.parsed_exercises.map((parsed): PatchExercise =>
     parsed.kind === "circuit"
       ? circuitFromParsed(parsed, true)
-      : soloFromParsed(parsed, catalogById, undefined),
+      : soloFromParsed(parsed, catalogById, undefined, locale),
   )
   return { label: insert.label, emoji: insert.emoji ?? DEFAULT_INSERT_EMOJI, exercises }
 }
@@ -179,13 +186,17 @@ function buildInsertedDay(
 function buildUnchangedDay(
   day: CurrentProgramSnapshotDay,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale,
 ): PatchDay {
   const exercises = [...day.workout_exercises]
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map(
-      (ex): PatchSoloExercise => ({
+    .map((ex): PatchSoloExercise => {
+      const catalog = catalogById.get(ex.exercise_id)
+      return {
         kind: "solo",
-        name: catalogById.get(ex.exercise_id)?.name ?? ex.name_snapshot,
+        name:
+          resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) ||
+          ex.name_snapshot,
         sets: ex.sets,
         reps: ex.reps,
         weightKg: toNumber(ex.weight) ?? 0,
@@ -193,8 +204,8 @@ function buildUnchangedDay(
         targetDurationSeconds: ex.target_duration_seconds,
         isNew: false,
         change: null,
-      }),
-    )
+      }
+    })
   return { label: day.label, emoji: day.emoji, exercises }
 }
 
@@ -202,21 +213,24 @@ export function buildPatchProgram(
   diff: ProgramDiff,
   current: CurrentProgramSnapshot,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): PatchProgram {
   const currentById = new Map(current.days.map((day) => [day.id, day]))
 
   const ordered: Array<{ sort_order: number; day: PatchDay }> = [
     ...diff.days_to_update.map((u) => ({
       sort_order: u.sort_order,
-      day: buildUpdatedDay(u, currentById.get(u.id), catalogById),
+      day: buildUpdatedDay(u, currentById.get(u.id), catalogById, locale),
     })),
     ...diff.days_to_insert.map((i) => ({
       sort_order: i.sort_order,
-      day: buildInsertedDay(i, catalogById),
+      day: buildInsertedDay(i, catalogById, locale),
     })),
     ...diff.days_unchanged.flatMap((u) => {
       const day = currentById.get(u.id)
-      return day ? [{ sort_order: day.sort_order, day: buildUnchangedDay(day, catalogById) }] : []
+      return day
+        ? [{ sort_order: day.sort_order, day: buildUnchangedDay(day, catalogById, locale) }]
+        : []
     }),
   ].sort((a, b) => a.sort_order - b.sort_order)
 

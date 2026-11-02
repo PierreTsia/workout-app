@@ -37,11 +37,8 @@ import {
 import { computeProgramDiff } from "../lib/updateProgramDiff.ts"
 import { applyProgramDiff } from "../lib/updateProgramApply.ts"
 import { detachedSoloExerciseIds } from "../lib/slotReconciliation.ts"
-import {
-  formatActiveCycleWarning,
-  formatProgramAfterUpdate,
-  formatSlotDetachmentWarning,
-} from "../lib/format.ts"
+import { formatProgramAfterUpdate } from "../lib/format.ts"
+import { resolveDisplayName, warningText } from "../lib/displayLabels.ts"
 import { mintPreviewToken, previewSecret, PREVIEW_TTL_SECONDS } from "../lib/previewToken.ts"
 import { asCardLocale } from "../lib/sessionCard.ts"
 import { buildPatchProgram, type PatchWarning } from "../lib/programPatchCard.ts"
@@ -359,12 +356,23 @@ export const updateProgram: ToolDefinition = {
         ? (cycleData as { started_at: string }).started_at
         : null
 
-    // The text `warnings` stay French (non-UI clients); `warning_details` carry the same
-    // signals in a locale-neutral shape so the Decision Card composes them in its locale.
+    // The Decision Card's copy locale (ADR 0031/#677, ADR 0035). The two sources are
+    // emitted SEPARATELY so the view can rank the host's own language between them:
+    //   explicit tool argument → host locale → user_profiles seed → en
+    // (Display Locale: the device signal wins over the cross-device seed.) The same
+    // resolution drives this tool's own markdown `warnings[]`.
+    const { data: profileRow } = await supabase
+      .from("user_profiles")
+      .select("locale")
+      .maybeSingle()
+    const explicitLocale = asCardLocale((args as Record<string, unknown>).locale)
+    const profileLocale = asCardLocale((profileRow as { locale?: unknown } | null)?.locale)
+    const toolLocale = explicitLocale ?? profileLocale ?? "en"
+
     const warnings: string[] = []
     const warning_details: PatchWarning[] = []
     if (cycleStartedAt) {
-      warnings.push(formatActiveCycleWarning({ started_at: cycleStartedAt }))
+      warnings.push(warningText("active_cycle", toolLocale, { date: cycleStartedAt.slice(0, 10) }))
       warning_details.push({ kind: "active_cycle", date: cycleStartedAt.slice(0, 10) })
     }
 
@@ -376,25 +384,17 @@ export const updateProgram: ToolDefinition = {
       if (!currentDay) return
       const existingIds = currentDay.workout_exercises.map((ex) => ex.exercise_id)
       detachedSoloExerciseIds(existingIds, update.parsed_exercises).forEach((id) => {
-        const name = catalogById.get(id)?.name ?? id
-        warnings.push(formatSlotDetachmentWarning(name))
+        const catalog = catalogById.get(id)
+        const name = resolveDisplayName(
+          { name: catalog?.name, name_en: catalog?.name_en },
+          toolLocale,
+        ) || id
+        warnings.push(warningText("slot_detachment", toolLocale, { exercise: name }))
         warning_details.push({ kind: "slot_detachment", exercise: name })
       })
     })
 
     if (parsedPatch.dry_run) {
-      // The Decision Card's copy locale (ADR 0031/#677). The two sources are emitted
-      // SEPARATELY so the view can rank the host's own language between them:
-      //   explicit tool argument → host locale → user_profiles seed → en
-      // (Display Locale: the device signal wins over the cross-device seed.)
-      const { data: profileRow } = await supabase
-        .from("user_profiles")
-        .select("locale")
-        .maybeSingle()
-      const explicitLocale = asCardLocale((args as Record<string, unknown>).locale)
-      const profileLocale = asCardLocale(
-        (profileRow as { locale?: unknown } | null)?.locale,
-      )
       const rendered = formatProgramAfterUpdate(diff, currentProgram, catalogById)
       const removed_days = diff.days_to_delete.map((d) => ({
         id: d.id,
@@ -443,7 +443,7 @@ export const updateProgram: ToolDefinition = {
           warning_details,
           ...(explicitLocale ? { locale: explicitLocale } : {}),
           ...(profileLocale ? { profile_locale: profileLocale } : {}),
-          program: buildPatchProgram(diff, currentProgram, catalogById),
+          program: buildPatchProgram(diff, currentProgram, catalogById, toolLocale),
           ...(preview_token ? { preview_token } : {}),
         },
       }

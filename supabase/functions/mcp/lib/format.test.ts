@@ -1,13 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
-  formatActiveCycleWarning,
   formatPrescriptionLine,
   formatProgramAfterUpdate,
   formatProgramDetails,
   formatProgramListEntry,
   formatSessionHistory,
   formatSessionSummary,
-  formatSlotDetachmentWarning,
   formatWeightConvention,
   type WeightConvention,
 } from "./format"
@@ -990,28 +988,6 @@ describe("formatPrescriptionLine — duration mode (T75)", () => {
     expect(line).toBe("Plank — 3 × 45s — 60s rest")
     expect(line).not.toContain("kg")
     expect(line).not.toContain("12")
-  })
-})
-
-describe("formatActiveCycleWarning (T81)", () => {
-  it("returns the French warning with YYYY-MM-DD extracted from the ISO started_at", () => {
-    const warning = formatActiveCycleWarning({ started_at: "2026-04-15T10:00:00.000Z" })
-    expect(warning).toBe(
-      "Cycle actif depuis 2026-04-15 — cette modification affecte vos workouts restants dans ce cycle.",
-    )
-  })
-
-  it("strips the time portion regardless of timezone offset (uses the literal date prefix of the ISO)", () => {
-    const warning = formatActiveCycleWarning({ started_at: "2026-12-31T23:59:59+02:00" })
-    expect(warning).toContain("Cycle actif depuis 2026-12-31")
-  })
-})
-
-describe("formatSlotDetachmentWarning (#666)", () => {
-  it("names the movement and states the progression consequence", () => {
-    expect(formatSlotDetachmentWarning("Bench Press")).toBe(
-      "Historique détaché : « Bench Press » est retiré ou remplacé — sa progression repart de la prescription du template.",
-    )
   })
 })
 

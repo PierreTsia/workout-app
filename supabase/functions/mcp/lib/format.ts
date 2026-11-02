@@ -635,29 +635,6 @@ export function formatProgramAfterUpdate(
   return [header, ...dayBlocks].join("\n\n")
 }
 
-/**
- * Returns the active-cycle warning string surfaced in both dry_run and apply responses
- * when the program is currently being followed in an unfinished cycle.
- *
- * The message is intentionally French — it lands as-is in the agent's reply and the
- * product copy is localized at this layer (cf. Tech Plan).
- */
-export function formatActiveCycleWarning(cycle: { started_at: string }): string {
-  // started_at is an ISO-8601 timestamp; the literal YYYY-MM-DD prefix is enough
-  // and avoids any timezone surprise.
-  const date = cycle.started_at.slice(0, 10)
-  return `Cycle actif depuis ${date} — cette modification affecte vos workouts restants dans ce cycle.`
-}
-
-/**
- * Informative `dry_run` warning when a solo slot's history detaches because the
- * exercise is removed or swapped (ADR 0030). A swap is an expected identity
- * reset (#463) — this is a signal, not a confirmation gate.
- */
-export function formatSlotDetachmentWarning(exerciseName: string): string {
-  return `Historique détaché : « ${exerciseName} » est retiré ou remplacé — sa progression repart de la prescription du template.`
-}
-
 function renderableFromUpdate(
   u: DiffDayUpdate,
   catalogById: Map<string, CatalogExerciseForProgram>,

@@ -85,6 +85,31 @@ function updateDay(over: Partial<DiffDayUpdate> = {}): DiffDayUpdate {
 }
 
 describe("buildPatchProgram", () => {
+  it("localizes solo names to the card locale", () => {
+    const bilingual = new Map<string, CatalogExerciseForProgram>([
+      [
+        ID_BENCH,
+        {
+          id: ID_BENCH,
+          name: "Développé couché",
+          name_en: "Bench Press",
+          muscle_group: "Pectoraux",
+          emoji: "💪",
+          equipment: "barbell",
+        },
+      ],
+    ])
+    const diff = emptyDiff({
+      days_to_update: [updateDay({ parsed_exercises: [{ kind: "bare", exerciseId: ID_BENCH }] })],
+    })
+    expect(buildPatchProgram(diff, makeCurrent(), bilingual, "en").days[0].exercises[0].name).toBe(
+      "Bench Press",
+    )
+    expect(buildPatchProgram(diff, makeCurrent(), bilingual, "fr").days[0].exercises[0].name).toBe(
+      "Développé couché",
+    )
+  })
+
   it("uses the renamed program name when the patch renames it", () => {
     const diff = emptyDiff({ name_change: { from: "Upper", to: "Upper v2" } })
     expect(buildPatchProgram(diff, makeCurrent(), catalog).name).toBe("Upper v2")
