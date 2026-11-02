@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic - Contexte du Coach</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Script -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface": "#e4e1e7",
+            "on-primary": "#00382d",
+            "foreground": "#f2f2f2",
+            "on-primary-fixed-variant": "#005142",
+            "rank-diamond": "#b9f2ff",
+            "on-tertiary-fixed-variant": "#793100",
+            "surface-container-high": "#2a292e",
+            "secondary": "#c8c5cf",
+            "primary-fixed-dim": "#38debb",
+            "background": "#131317",
+            "on-secondary": "#303037",
+            "on-tertiary-fixed": "#341100",
+            "on-tertiary": "#552000",
+            "inverse-on-surface": "#303034",
+            "rank-bronze": "#cd7f32",
+            "on-surface-variant": "#bacac3",
+            "secondary-fixed-dim": "#c8c5cf",
+            "on-primary-fixed": "#002019",
+            "tertiary-container": "#ff9862",
+            "outline-variant": "#3c4a45",
+            "primary-fixed": "#5ffbd6",
+            "secondary-fixed": "#e4e1eb",
+            "on-secondary-container": "#b9b7c1",
+            "tertiary": "#ffc0a1",
+            "inverse-primary": "#006b58",
+            "on-secondary-fixed": "#1b1b22",
+            "tertiary-fixed-dim": "#ffb692",
+            "rank-platinum": "#e5e4e2",
+            "on-error-container": "#ffdad6",
+            "card": "#1a1a22",
+            "outline": "#85948e",
+            "error": "#ffb4ab",
+            "tertiary-fixed": "#ffdbcb",
+            "error-container": "#93000a",
+            "surface-bright": "#39393d",
+            "surface-dim": "#131317",
+            "surface-container-low": "#1b1b1f",
+            "primary": "#44e5c2",
+            "rank-gold": "#ffd700",
+            "surface-container": "#1f1f23",
+            "muted": "#999999",
+            "primary-container": "#00c9a7",
+            "inverse-surface": "#e4e1e7",
+            "rank-silver": "#c0c0c0",
+            "surface-tint": "#38debb",
+            "surface-container-highest": "#353439",
+            "border": "#2d2d37",
+            "on-primary-container": "#004e40",
+            "surface-variant": "#353439",
+            "on-error": "#690005",
+            "on-background": "#e4e1e7",
+            "surface-container-lowest": "#0e0e12",
+            "on-tertiary-container": "#762f00",
+            "surface": "#131317",
+            "secondary-container": "#494850",
+            "on-secondary-fixed-variant": "#47464e"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "1rem",
+            "stack-xs": "0.25rem",
+            "stack-xl": "2rem",
+            "stack-sm": "0.5rem",
+            "stack-lg": "1.5rem",
+            "margin-mobile": "1rem",
+            "stack-md": "1rem"
+          },
+          "fontFamily": {
+            "headline-md": ["Geist"],
+            "label-sm": ["Geist"],
+            "body-lg": ["Geist"],
+            "title-lg": ["Geist"],
+            "headline-sm": ["Geist"],
+            "title-md": ["Geist"],
+            "label-md": ["Geist"],
+            "headline-lg": ["Geist"],
+            "body-md": ["Geist"]
+          },
+          "fontSize": {
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #0f0f13;
+      color: #f2f2f2;
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-foreground selection:bg-primary-container selection:text-black">
+<!-- Mobile Viewport Container 390x844 -->
+<div class="relative w-[390px] h-[844px] overflow-hidden bg-[#0f0f13] flex flex-col justify-between select-none">
+<!-- UNDERLYING SCREEN: Background Level 0 with subtle content visible -->
+<div class="absolute inset-0 flex flex-col pointer-events-none opacity-40">
+<!-- TopAppBar as per Shared Components JSON -->
+<header class="bg-surface-container-low h-14 border-b border-border flex items-center justify-between px-gutter w-full">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-foreground text-[20px]">arrow_back</span>
+</div>
+<h1 class="text-title-md font-title-md font-semibold text-foreground tracking-tight">PPL (Push/Pull/Legs)</h1>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-foreground text-[20px]">edit</span>
+</div>
+</header>
+<!-- Sub-screen preview content: Push 1 Session -->
+<main class="flex-1 p-margin-mobile flex flex-col gap-stack-md">
+<div class="flex justify-between items-center py-stack-xs border-b border-border">
+<div>
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-muted">Séance 1/6</span>
+<div class="text-headline-sm font-headline-sm text-foreground">Push 1 · Force / Hypertrophie</div>
+</div>
+<span class="bg-card text-muted border border-border px-2 py-0.5 rounded text-label-sm font-label-sm">45 min</span>
+</div>
+<div class="bg-card rounded-xl p-3 border border-border flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-title-md font-title-md text-foreground">1. Développé couché barre</span>
+<span class="text-label-sm font-label-sm text-muted">4 séries</span>
+</div>
+<div class="grid grid-cols-4 gap-2 text-center text-label-sm font-label-sm text-muted">
+<div class="bg-surface p-1 rounded border border-border">S1: 85kg x 8</div>
+<div class="bg-surface p-1 rounded border border-border">S2: 85kg x 8</div>
+<div class="bg-surface p-1 rounded border border-border">S3: 85kg x 7</div>
+<div class="bg-surface p-1 rounded border border-border">S4: 85kg x 6</div>
+</div>
+</div>
+<div class="bg-card rounded-xl p-3 border border-border flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<span class="text-title-md font-title-md text-foreground">2. Développé militaire haltères</span>
+<span class="text-label-sm font-label-sm text-muted">3 séries</span>
+</div>
+<div class="text-label-sm font-label-sm text-muted">Prêt pour enregistrement série 1</div>
+</div>
+</main>
+<!-- BottomNavBar as per Shared Components JSON -->
+<nav class="bg-surface-container-low h-16 border-t border-border flex justify-around items-center px-margin-mobile w-full">
+<div class="flex flex-col items-center justify-center text-primary border-b-2 border-primary pb-1">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+<span class="text-label-sm font-label-sm mt-0.5">Programme</span>
+</div>
+<div class="flex flex-col items-center justify-center text-muted hover:text-foreground pb-1">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+<span class="text-label-sm font-label-sm mt-0.5">Entraînement</span>
+</div>
+<div class="flex flex-col items-center justify-center text-muted hover:text-foreground pb-1">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span class="text-label-sm font-label-sm mt-0.5">Coach</span>
+</div>
+<div class="flex flex-col items-center justify-center text-muted hover:text-foreground pb-1">
+<span class="material-symbols-outlined text-[20px]">person</span>
+<span class="text-label-sm font-label-sm mt-0.5">Profil</span>
+</div>
+</nav>
+</div>
+<!-- OVERLAY SCRIM (Strict flat darkening) -->
+<div class="absolute inset-0 bg-[#0e0e12]/85 z-20"></div>
+<!-- FOREGROUND: BOTTOM SHEET MODAL (Context du Coach) -->
+<section aria-label="Contexte du Coach" class="absolute bottom-0 left-0 right-0 z-30 bg-[#15151c] rounded-t-xl border-t border-x border-[#2d2d37] flex flex-col max-h-[810px] w-full">
+<!-- Drag Handle -->
+<div class="w-full flex justify-center pt-2.5 pb-1 cursor-grab">
+<div class="w-10 h-1 bg-[#2d2d37] rounded-full"></div>
+</div>
+<!-- Header of Sheet -->
+<div class="px-margin-mobile pt-1 pb-3 flex items-start justify-between border-b border-[#2d2d37]">
+<div class="flex-1 pr-3">
+<div class="flex items-center space-x-2">
+<h2 class="text-headline-sm font-headline-sm font-semibold text-foreground tracking-tight">Contexte du Coach</h2>
+</div>
+<p class="text-label-sm font-label-sm text-muted mt-1 leading-normal">
+            Paramètres déterministes injectés lors de chaque analyse et recommandation vocale.
+          </p>
+</div>
+<button aria-label="Fermer le contexte" class="w-8 h-8 rounded-lg bg-[#1a1a22] border border-[#2d2d37] text-muted flex items-center justify-center hover:text-foreground active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Scrollable Technical Data Sheet -->
+<div class="px-margin-mobile py-stack-sm flex flex-col gap-2 overflow-y-auto">
+<!-- Table/Card Parameters Container (Level 2: #1a1a22, radius 12px) -->
+<div class="bg-[#1a1a22] rounded-xl border border-[#2d2d37] divide-y divide-[#2d2d37] text-body-md font-body-md">
+<!-- Param 1: Écran courant -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Écran courant</span>
+<span class="text-foreground font-medium text-body-md font-body-md">Push 1</span>
+</div>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#00c9a7]/15 text-[#00c9a7] text-label-sm font-label-sm font-semibold tracking-wide border border-[#00c9a7]/30">
+<span class="w-1.5 h-1.5 rounded-full bg-[#00c9a7]"></span>
+              En direct
+            </span>
+</div>
+<!-- Param 2: Programme actif -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Programme actif</span>
+<span class="text-foreground font-medium text-body-md font-body-md">PPL (Push/Pull/Legs)</span>
+</div>
+<span class="text-muted text-label-md font-label-md tabular-nums">6 j / sem</span>
+</div>
+<!-- Param 3: Cycle / Semaine -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Cycle / Semaine</span>
+<span class="text-foreground font-medium text-body-md font-body-md">Semaine 3 / 6</span>
+</div>
+<span class="text-muted text-label-md font-label-md">Phase Hypertrophie</span>
+</div>
+<!-- Param 4: Fenêtre d'historique -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Fenêtre d'historique</span>
+<span class="text-foreground font-medium text-body-md font-body-md">30 jours</span>
+</div>
+<span class="text-muted text-label-md font-label-md tabular-nums">116 séries analysées</span>
+</div>
+<!-- Param 5: Dernière séance -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Dernière séance</span>
+<span class="text-foreground font-medium text-body-md font-body-md">Développé couché</span>
+</div>
+<div class="text-right">
+<div class="text-muted text-label-md font-label-md">Il y a 3 j</div>
+<div class="text-label-sm font-label-sm text-foreground font-medium">RPE 8.5</div>
+</div>
+</div>
+<!-- Param 6: Exclusions -->
+<div class="p-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-label-sm font-label-sm text-muted">Exclusions</span>
+<span class="text-foreground font-medium text-body-md font-body-md">Aucune</span>
+</div>
+<span class="text-muted text-label-md font-label-md">Filtres neutres</span>
+</div>
+</div>
+<!-- 3 Strict Actions Required -->
+<div class="pt-1 flex flex-col gap-2">
+<!-- Primary Action 1: Changer de contexte -->
+<button class="w-full h-11 bg-[#00c9a7] text-[#000000] font-semibold text-body-md font-body-md rounded-lg flex items-center justify-center hover:opacity-90 active:scale-[0.99] transition-all">
+            Changer de contexte
+          </button>
+<!-- Secondary Actions 2 & 3: Cote à cote -->
+<div class="grid grid-cols-2 gap-2">
+<button class="h-10 bg-[#1a1a22] border border-[#2d2d37] text-foreground text-label-md font-label-md font-medium rounded-lg flex items-center justify-center hover:border-muted active:scale-[0.98] transition-all px-2 text-center">
+              Réinitialiser le contexte
+            </button>
+<button class="h-10 bg-[#1a1a22] border border-[#2d2d37] text-foreground text-label-md font-label-md font-medium rounded-lg flex items-center justify-center hover:border-muted active:scale-[0.98] transition-all px-2 text-center">
+              Voir le contexte complet
+            </button>
+</div>
+</div>
+</div>
+<!-- Footer Panel: Telemetry & Dismiss / Live Mic -->
+<div class="px-margin-mobile pt-2 pb-5 border-t border-[#2d2d37] bg-[#15151c] flex flex-col gap-2.5">
+<!-- JEV CORE V2.4 Line with 3 precise engineering status dots -->
+<div class="flex items-center justify-between px-1 text-label-sm font-label-sm">
+<div class="flex items-center space-x-1.5 font-mono text-muted tracking-tight">
+<span class="text-foreground font-medium">JEV CORE</span>
+<span class="text-muted">V2.4</span>
+</div>
+<div class="flex items-center space-x-3 text-muted">
+<!-- Routage: Vert (#00c9a7) -->
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-[#00c9a7]"></span>
+<span>Routage</span>
+</div>
+<!-- Qualification: Ambre (#f59e0b) -->
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-[#f59e0b]"></span>
+<span>Qualification</span>
+</div>
+<!-- Sécurité: Rouge (#ef4444) -->
+<div class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-[#ef4444]"></span>
+<span>Sécurité</span>
+</div>
+</div>
+</div>
+<!-- Action Row: Bouton Fermer sombre neutre + Micro flottant écoute vocale -->
+<div class="flex items-center gap-2 pt-0.5">
+<button class="flex-1 h-11 bg-[#1a1a22] border border-[#2d2d37] text-foreground text-body-md font-body-md font-medium rounded-lg flex items-center justify-center hover:border-muted active:scale-[0.98] transition-all">
+            Fermer
+          </button>
+<!-- Persistent Floating Voice Mic Trigger (Teal round button, no gradient, flat) -->
+<button aria-label="Activer micro vocal" class="w-11 h-11 bg-[#00c9a7] text-[#000000] rounded-full flex items-center justify-center active:scale-95 transition-all flex-shrink-0">
+<span class="material-symbols-outlined text-[22px] font-semibold">mic</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</body></html>

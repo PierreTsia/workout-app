@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic - Programme PPL</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed-variant": "#793100",
+            "rank-gold": "#ffd700",
+            "error-container": "#93000a",
+            "rank-platinum": "#e5e4e2",
+            "on-surface": "#e4e1e7",
+            "on-primary": "#00382d",
+            "foreground": "#f2f2f2",
+            "inverse-surface": "#e4e1e7",
+            "background": "#0f0f13",
+            "on-secondary": "#303037",
+            "on-error": "#690005",
+            "on-secondary-fixed": "#1b1b22",
+            "tertiary-fixed": "#ffdbcb",
+            "secondary-fixed-dim": "#c8c5cf",
+            "surface-variant": "#353439",
+            "rank-bronze": "#cd7f32",
+            "tertiary-fixed-dim": "#ffb692",
+            "on-error-container": "#ffdad6",
+            "rank-diamond": "#b9f2ff",
+            "on-primary-fixed-variant": "#005142",
+            "on-tertiary": "#552000",
+            "on-background": "#e4e1e7",
+            "primary-fixed-dim": "#38debb",
+            "on-tertiary-fixed": "#341100",
+            "surface-bright": "#39393d",
+            "on-surface-variant": "#bacac3",
+            "outline": "#85948e",
+            "surface-container-lowest": "#0e0e12",
+            "surface-container-high": "#2a292e",
+            "card": "#1a1a22",
+            "tertiary-container": "#ff9862",
+            "surface-tint": "#38debb",
+            "on-secondary-fixed-variant": "#47464e",
+            "surface-container-low": "#15151c",
+            "secondary": "#c8c5cf",
+            "on-primary-container": "#004e40",
+            "primary": "#00c9a7",
+            "on-primary-fixed": "#002019",
+            "rank-silver": "#c0c0c0",
+            "muted": "#999999",
+            "on-tertiary-container": "#762f00",
+            "primary-fixed": "#5ffbd6",
+            "outline-variant": "#2d2d37",
+            "surface-dim": "#131317",
+            "surface-container-highest": "#353439",
+            "surface-container": "#15151c",
+            "primary-container": "#00c9a7",
+            "inverse-on-surface": "#303034",
+            "error": "#ffb4ab",
+            "on-secondary-container": "#b9b7c1",
+            "secondary-fixed": "#e4e1eb",
+            "surface": "#15151c",
+            "tertiary": "#ffc0a1",
+            "secondary-container": "#494850",
+            "inverse-primary": "#006b58",
+            "border": "#2d2d37"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-xs": "0.25rem",
+            "stack-xl": "2rem",
+            "stack-sm": "0.5rem",
+            "margin-mobile": "1rem",
+            "stack-md": "1rem",
+            "stack-lg": "1.5rem",
+            "gutter": "1rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Geist", "sans-serif"],
+            "label-sm": ["Geist", "sans-serif"],
+            "title-lg": ["Geist", "sans-serif"],
+            "body-lg": ["Geist", "sans-serif"],
+            "headline-lg": ["Geist", "sans-serif"],
+            "body-md": ["Geist", "sans-serif"],
+            "headline-md": ["Geist", "sans-serif"],
+            "label-md": ["Geist", "sans-serif"],
+            "title-md": ["Geist", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "500" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      background-color: #0f0f13;
+      color: #f2f2f2;
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-foreground flex justify-center items-center min-h-screen">
+<div class="relative w-[390px] h-[844px] bg-background overflow-hidden flex flex-col select-none border border-border shadow-2xl">
+<!-- TopAppBar (From Shared Component Spec) -->
+<header class="bg-surface-container-low dark:bg-surface-container-low border-b border-outline-variant dark:border-outline-variant flex items-center justify-between w-full px-4 h-14 z-20 shrink-0">
+<button aria-label="Retour" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant rounded active:scale-[0.98] transition-transform duration-150">
+<span class="material-symbols-outlined text-[18px]">arrow_back_ios_new</span>
+</button>
+<div class="flex flex-col items-center justify-center flex-1 px-2 overflow-hidden">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-muted leading-tight">PROGRAMME</span>
+<div class="flex items-center gap-1.5 max-w-full">
+<span class="font-title-md text-title-md font-semibold text-on-surface truncate">PPL (Push/Pull/Legs)</span>
+<span class="bg-primary/15 text-primary text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none">Actif</span>
+</div>
+</div>
+<button aria-label="Modifier" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-variant rounded active:scale-[0.98] transition-transform duration-150">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+</button>
+</header>
+<!-- Main Content Canvas (Dimmed Background Layer) -->
+<main class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3 relative opacity-35 pointer-events-none">
+<!-- Program Stats Row -->
+<div class="grid grid-cols-3 gap-2 bg-surface-container-low border border-border rounded-lg p-2.5">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted">Cadence</span>
+<span class="font-headline-sm text-headline-sm text-foreground">6 <span class="font-label-md text-label-md text-muted font-normal">Jours</span></span>
+</div>
+<div class="flex flex-col border-l border-border pl-2.5">
+<span class="font-label-sm text-label-sm text-muted">Volume</span>
+<span class="font-headline-sm text-headline-sm text-foreground">116 <span class="font-label-md text-label-md text-muted font-normal">Séries</span></span>
+</div>
+<div class="flex flex-col border-l border-border pl-2.5">
+<span class="font-label-sm text-label-sm text-muted">Circuits</span>
+<span class="font-headline-sm text-headline-sm text-foreground">0 <span class="font-label-md text-label-md text-muted font-normal">Fixes</span></span>
+</div>
+</div>
+<!-- Sequence Section Header -->
+<div class="flex justify-between items-center pt-1">
+<span class="font-label-md text-label-md text-muted uppercase tracking-wider font-semibold">Séquences Hebdomadaires</span>
+<span class="font-label-sm text-label-sm text-primary">Semaine 4 / 8</span>
+</div>
+<!-- Sequence Cards -->
+<div class="flex flex-col gap-2">
+<!-- Push 1 Card -->
+<div class="bg-card border border-border rounded-xl p-3 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-sm text-label-sm text-primary font-semibold">SEANCE 01</span>
+<h2 class="font-title-md text-title-md font-semibold text-foreground">Push 1 - Pectoraux Focus</h2>
+</div>
+<span class="font-label-sm text-label-sm text-muted bg-surface px-2 py-0.5 rounded border border-border">52 min</span>
+</div>
+<div class="w-full bg-muted/20 h-1.5 rounded overflow-hidden">
+<div class="bg-primary h-full w-[70%]"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-muted">
+<span>6 Exercices • 24 Séries</span>
+<span class="text-foreground">Charge max: 110 kg</span>
+</div>
+</div>
+<!-- Pull 1 Card -->
+<div class="bg-card border border-border rounded-xl p-3 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-sm text-label-sm text-muted font-semibold">SEANCE 02</span>
+<h2 class="font-title-md text-title-md font-semibold text-foreground">Pull 1 - Dos &amp; Biceps</h2>
+</div>
+<span class="font-label-sm text-label-sm text-muted bg-surface px-2 py-0.5 rounded border border-border">58 min</span>
+</div>
+<div class="w-full bg-muted/20 h-1.5 rounded overflow-hidden">
+<div class="bg-muted h-full w-[0%]"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-muted">
+<span>7 Exercices • 28 Séries</span>
+<span class="text-foreground">Tirage lourd</span>
+</div>
+</div>
+<!-- Legs 1 Card -->
+<div class="bg-card border border-border rounded-xl p-3 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<div>
+<span class="font-label-sm text-label-sm text-muted font-semibold">SEANCE 03</span>
+<h2 class="font-title-md text-title-md font-semibold text-foreground">Legs 1 - Quadriceps Dominant</h2>
+</div>
+<span class="font-label-sm text-label-sm text-muted bg-surface px-2 py-0.5 rounded border border-border">65 min</span>
+</div>
+<div class="w-full bg-muted/20 h-1.5 rounded overflow-hidden">
+<div class="bg-muted h-full w-[0%]"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-muted">
+<span>5 Exercices • 20 Séries</span>
+<span class="text-foreground">Squat lourd</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Superposed Coach Vocal Card (Positioned right above bottom controls) -->
+<div class="absolute inset-x-3.5 bottom-[136px] z-30 pointer-events-auto">
+<div class="bg-card border border-border rounded-xl p-3.5 shadow-none flex flex-col gap-3">
+<!-- Header -->
+<div class="flex items-center justify-between pb-2 border-b border-border">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">graphic_eq</span>
+<span class="font-label-md text-label-md font-semibold tracking-wider text-primary">COACH VOCAL</span>
+</div>
+<button aria-label="Fermer le dialogue" class="w-6 h-6 flex items-center justify-center text-muted hover:text-foreground active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Transcribed User Voice Request Box -->
+<div class="bg-surface-container-low border border-border rounded-lg p-2.5 flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted uppercase tracking-wider">DEMANDE VOCALE</span>
+<span class="material-symbols-outlined text-muted text-[14px]">mic</span>
+</div>
+<p class="font-body-md text-body-md text-foreground italic">« Fais-moi un truc plus dur »</p>
+</div>
+<!-- Clarification Section (Low confidence ambiguity) -->
+<div class="flex flex-col gap-2 pt-0.5">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[#f59e0b] text-[16px]">help</span>
+<span class="font-label-sm text-label-sm font-semibold tracking-wider text-[#f59e0b] uppercase">PRÉCISION REQUISE</span>
+</div>
+<p class="font-body-md text-body-md text-foreground font-medium">
+            Tu veux durcir quelle séance : Push, Pull ou Legs ?
+          </p>
+<!-- 3 Choice Chips / Buttons -->
+<div class="grid grid-cols-3 gap-2 mt-1">
+<button class="h-9 rounded-lg bg-surface border border-border hover:border-primary text-foreground font-label-md text-label-md font-medium flex items-center justify-center active:scale-[0.97] transition-all">
+              Push
+            </button>
+<button class="h-9 rounded-lg bg-surface border border-border hover:border-primary text-foreground font-label-md text-label-md font-medium flex items-center justify-center active:scale-[0.97] transition-all">
+              Pull
+            </button>
+<button class="h-9 rounded-lg bg-surface border border-border hover:border-primary text-foreground font-label-md text-label-md font-medium flex items-center justify-center active:scale-[0.97] transition-all">
+              Legs
+            </button>
+</div>
+</div>
+<!-- Single Secondary CTA Button -->
+<button class="w-full h-8 mt-0.5 border border-border hover:bg-surface text-muted hover:text-foreground rounded-lg font-label-md text-label-md flex items-center justify-center active:scale-[0.98] transition-transform">
+          Fermer
+        </button>
+</div>
+</div>
+<!-- Floating Mic & JEV Status Row Container (Fixed above BottomNavBar) -->
+<div class="absolute bottom-16 inset-x-0 z-40 flex flex-col items-center pointer-events-none pb-2">
+<!-- DEV Helper Row: JEV Core Pastilles (Compact, discrete) -->
+<div class="pointer-events-auto bg-surface/90 border border-border rounded-full px-2.5 py-1 mb-2 flex items-center gap-2.5 backdrop-blur-none">
+<span class="font-label-sm text-[10px] text-muted font-bold tracking-tight">JEV CORE</span>
+<div class="h-2.5 w-[1px] bg-border"></div>
+<div class="flex items-center gap-1">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
+<span class="font-label-sm text-[10px] text-[#f59e0b]">Routage</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
+<span class="font-label-sm text-[10px] text-[#f59e0b]">Qualification</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
+<span class="font-label-sm text-[10px] text-[#f59e0b]">Sécurité</span>
+</div>
+</div>
+<!-- Centered Floating Mic Button -->
+<button aria-label="Microphone" class="pointer-events-auto w-12 h-12 rounded-full bg-surface-container-low border-2 border-primary flex items-center justify-center text-primary active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[24px]">mic</span>
+</button>
+</div>
+<!-- BottomNavBar (From Shared Component Spec) -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low border-t border-outline-variant dark:border-outline-variant fixed bottom-0 left-0 right-0 w-full max-w-[480px] mx-auto z-50 flex justify-around items-center h-16 pb-[env(safe-area-inset-bottom)]">
+<!-- Entraînement (Active) -->
+<button class="flex flex-col items-center justify-center text-primary dark:text-primary font-semibold active:scale-[0.96] transition-transform duration-150">
+<span class="material-symbols-outlined text-[22px]">fitness_center</span>
+<span class="font-label-sm text-label-sm mt-0.5">Entraînement</span>
+</button>
+<!-- Programmes -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary active:scale-[0.96] transition-transform duration-150">
+<span class="material-symbols-outlined text-[22px]">view_timeline</span>
+<span class="font-label-sm text-label-sm mt-0.5">Programmes</span>
+</button>
+<!-- Stats -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary active:scale-[0.96] transition-transform duration-150">
+<span class="material-symbols-outlined text-[22px]">query_stats</span>
+<span class="font-label-sm text-label-sm mt-0.5">Stats</span>
+</button>
+<!-- Profil -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary active:scale-[0.96] transition-transform duration-150">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="font-label-sm text-label-sm mt-0.5">Profil</span>
+</button>
+</nav>
+</div>
+</body></html>

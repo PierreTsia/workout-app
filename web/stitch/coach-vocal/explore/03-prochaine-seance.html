@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic · PPL (Push/Pull/Legs)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "rank-bronze": "#cd7f32",
+            "tertiary-fixed-dim": "#ffb692",
+            "on-secondary-fixed": "#1b1b22",
+            "surface-dim": "#131317",
+            "primary-fixed-dim": "#38debb",
+            "outline-variant": "#3c4a45",
+            "card": "#1a1a22",
+            "primary": "#44e5c2",
+            "inverse-surface": "#e4e1e7",
+            "on-tertiary-fixed": "#341100",
+            "border": "#2d2d37",
+            "inverse-primary": "#006b58",
+            "surface-container-low": "#1b1b1f",
+            "inverse-on-surface": "#303034",
+            "error-container": "#93000a",
+            "on-error-container": "#ffdad6",
+            "on-primary-container": "#004e40",
+            "primary-fixed": "#5ffbd6",
+            "tertiary": "#ffc0a1",
+            "outline": "#85948e",
+            "primary-container": "#00c9a7",
+            "rank-platinum": "#e5e4e2",
+            "secondary": "#c8c5cf",
+            "on-surface": "#e4e1e7",
+            "muted": "#999999",
+            "on-secondary": "#303037",
+            "foreground": "#f2f2f2",
+            "rank-gold": "#ffd700",
+            "surface-variant": "#353439",
+            "on-primary": "#000000",
+            "on-primary-fixed-variant": "#005142",
+            "secondary-container": "#494850",
+            "surface-container-lowest": "#0e0e12",
+            "surface-container": "#1f1f23",
+            "on-tertiary-fixed-variant": "#793100",
+            "secondary-fixed": "#e4e1eb",
+            "rank-silver": "#c0c0c0",
+            "tertiary-container": "#ff9862",
+            "on-surface-variant": "#bacac3",
+            "surface-container-high": "#2a292e",
+            "surface-container-highest": "#353439",
+            "on-tertiary-container": "#762f00",
+            "on-tertiary": "#552000",
+            "error": "#ffb4ab",
+            "rank-diamond": "#b9f2ff",
+            "secondary-fixed-dim": "#c8c5cf",
+            "background": "#131317",
+            "on-error": "#690005",
+            "on-secondary-container": "#b9b7c1",
+            "surface": "#131317",
+            "on-primary-fixed": "#002019",
+            "tertiary-fixed": "#ffdbcb",
+            "on-secondary-fixed-variant": "#47464e",
+            "surface-bright": "#39393d",
+            "on-background": "#e4e1e7",
+            "surface-tint": "#38debb"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "stack-xs": "0.25rem",
+            "stack-sm": "0.5rem",
+            "stack-md": "1rem",
+            "stack-lg": "1.5rem",
+            "stack-xl": "2rem",
+            "margin-mobile": "1rem",
+            "gutter": "1rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Geist"],
+            "body-md": ["Geist"],
+            "body-lg": ["Geist"],
+            "title-lg": ["Geist"],
+            "label-sm": ["Geist"],
+            "label-md": ["Geist"],
+            "headline-lg": ["Geist"],
+            "headline-md": ["Geist"],
+            "title-md": ["Geist"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-sm-mobile": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "500" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "headline-lg": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "24px", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    body {
+      background-color: #0f0f13;
+      color: #f2f2f2;
+      font-family: 'Geist', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-foreground antialiased selection:bg-primary-container selection:text-on-primary">
+<div class="relative mx-auto min-h-screen w-full max-w-[390px] bg-background flex flex-col justify-between overflow-x-hidden border-x border-border">
+<!-- Top Navigation Chrome -->
+<header class="fixed top-0 w-full max-w-[390px] z-30 bg-surface border-b border-border flex items-center justify-between px-margin-mobile h-14">
+<button aria-label="Retour" class="w-9 h-9 flex items-center justify-center text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg active:scale-95 duration-100" type="button">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<div class="flex flex-col items-center justify-center">
+<span class="font-label-sm text-[10px] tracking-widest text-muted font-semibold uppercase leading-none mb-0.5">Programme</span>
+<div class="flex items-center gap-1.5">
+<h1 class="font-headline-sm text-headline-sm-mobile text-foreground font-semibold leading-tight">PPL (Push/Pull/Legs)</h1>
+<span class="px-1.5 py-0.5 rounded bg-primary-container/15 text-primary-container font-label-sm text-[10px] font-semibold leading-none border border-primary-container/20">Actif</span>
+</div>
+</div>
+<button aria-label="Éditer le programme" class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-foreground hover:bg-surface-container-highest transition-colors rounded-lg active:scale-95 duration-100" type="button">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</header>
+<!-- Underlay / Read-Only Context Area -->
+<main class="w-full pt-16 pb-40 px-margin-mobile flex-1 flex flex-col gap-stack-md select-none opacity-45 pointer-events-none">
+<!-- Metrics Bento Summary -->
+<section class="grid grid-cols-3 gap-2 mt-1">
+<div class="bg-card border border-border rounded-lg p-2.5 flex flex-col justify-between">
+<span class="font-label-sm text-[11px] text-muted">Fréquence</span>
+<div class="mt-1 flex items-baseline gap-1">
+<span class="font-headline-sm text-foreground font-semibold">6</span>
+<span class="font-label-sm text-[11px] text-muted">Jours</span>
+</div>
+</div>
+<div class="bg-card border border-border rounded-lg p-2.5 flex flex-col justify-between">
+<span class="font-label-sm text-[11px] text-muted">Volume Hebdo</span>
+<div class="mt-1 flex items-baseline gap-1">
+<span class="font-headline-sm text-foreground font-semibold">116</span>
+<span class="font-label-sm text-[11px] text-muted">Séries</span>
+</div>
+</div>
+<div class="bg-card border border-border rounded-lg p-2.5 flex flex-col justify-between">
+<span class="font-label-sm text-[11px] text-muted">Format</span>
+<div class="mt-1 flex items-baseline gap-1">
+<span class="font-headline-sm text-foreground font-semibold">0</span>
+<span class="font-label-sm text-[11px] text-muted">Circuit</span>
+</div>
+</div>
+</section>
+<!-- Routine Sequence Header -->
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-muted font-medium tracking-wide uppercase text-[11px]">Séquence active</span>
+<span class="font-label-sm text-muted text-[11px]">Microcycle Semaine 4</span>
+</div>
+<!-- Dimmed Background Plan List -->
+<section class="flex flex-col gap-2">
+<div class="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-foreground font-medium text-[14px]">Push 1 · Force Pectoraux &amp; Triceps</span>
+</div>
+<span class="font-label-sm text-muted text-[11px]">5 exercices · 24 séries · RPE 8-9</span>
+</div>
+<span class="material-symbols-outlined text-muted text-[18px]">lock</span>
+</div>
+<div class="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-foreground font-medium text-[14px]">Pull 1 · Dos &amp; Biceps</span>
+</div>
+<span class="font-label-sm text-muted text-[11px]">6 exercices · 22 séries · RPE 8</span>
+</div>
+<span class="material-symbols-outlined text-muted text-[18px]">lock</span>
+</div>
+<div class="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-foreground font-medium text-[14px]">Legs 1 · Quadriceps Dominant</span>
+</div>
+<span class="font-label-sm text-muted text-[11px]">5 exercices · 20 séries · RPE 8.5</span>
+</div>
+<span class="material-symbols-outlined text-muted text-[18px]">lock</span>
+</div>
+</section>
+</main>
+<!-- Modal Coach Vocal (Ultra-Minimal Card + Debug HUD + Mic Action) -->
+<div class="fixed inset-x-0 bottom-16 mx-auto w-full max-w-[390px] px-margin-mobile pb-3 z-40 flex flex-col gap-2 pointer-events-auto">
+<!-- Dev Debug JEV Indicator Strip -->
+<div class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#121418] border border-border/70 text-[10px] font-mono text-muted tracking-tight">
+<span class="text-[9px] uppercase tracking-wider text-muted/80 font-semibold">JEV Core v2.4</span>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>Routage</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>Qualification</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>Sécurité</span>
+</div>
+</div>
+</div>
+<!-- Main Assistant Surface Card -->
+<div class="w-full bg-card border border-border rounded-xl p-3.5 flex flex-col gap-3">
+<!-- Header row -->
+<div class="flex items-center justify-between border-b border-border/60 pb-2.5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container text-[18px]">graphic_eq</span>
+<span class="font-label-sm text-[11px] font-semibold text-primary-container tracking-wider uppercase">Coach Vocal</span>
+</div>
+<button aria-label="Fermer la transcription" class="w-6 h-6 flex items-center justify-center text-muted hover:text-foreground rounded active:scale-90 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+<!-- Transcribed Input Query -->
+<div class="px-1">
+<p class="font-body-md text-foreground italic text-[13px] leading-snug">
+            « C'est quoi ma prochaine séance ? »
+          </p>
+</div>
+<!-- Prescribed Session Module -->
+<div class="bg-surface border border-border rounded-lg p-3 flex flex-col gap-2.5">
+<div class="flex flex-col gap-0.5">
+<span class="font-title-md text-[14px] text-foreground font-semibold tracking-tight">Push 1 · Pectoraux, Épaules, Triceps</span>
+<span class="font-label-sm text-muted text-[11px]">5 exercices · Durée estimée ~55 min</span>
+</div>
+<!-- Prescriptions Breakdown -->
+<div class="flex flex-col divide-y divide-border/60 text-[12px]">
+<div class="py-1.5 flex items-center justify-between">
+<span class="text-on-surface font-normal">Développé couché barre</span>
+<div class="flex items-center gap-1.5 font-mono text-[11px]">
+<span class="text-foreground font-medium">4 × 8 @ 87.5 kg</span>
+<span class="text-muted text-[10px]">RPE 8.5</span>
+</div>
+</div>
+<div class="py-1.5 flex items-center justify-between">
+<span class="text-on-surface font-normal">Développé militaire haltères</span>
+<div class="flex items-center gap-1.5 font-mono text-[11px]">
+<span class="text-foreground font-medium">3 × 10 @ 26 kg</span>
+<span class="text-muted text-[10px]">RPE 8.0</span>
+</div>
+</div>
+<div class="pt-1.5 flex items-center justify-between">
+<span class="text-on-surface font-normal">Dips barres parallèles</span>
+<div class="flex items-center gap-1.5 font-mono text-[11px]">
+<span class="text-foreground font-medium">3 × 10 @ PDC +10 kg</span>
+<span class="text-muted text-[10px]">RPE 8.5</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Unique Close CTA -->
+<button class="w-full h-10 rounded-lg bg-surface hover:bg-surface-container-highest border border-border text-foreground font-label-md text-[13px] font-medium flex items-center justify-center transition-colors active:scale-95 duration-100" type="button">
+          Fermer
+        </button>
+</div>
+<!-- Action Bar with Centered Microphone Trigger -->
+<div class="w-full flex items-center justify-center pt-0.5">
+<button aria-label="Microphone actif" class="h-11 w-11 rounded-full bg-surface border border-primary-container flex items-center justify-center text-primary-container hover:bg-surface-container transition-colors active:scale-90 duration-150" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+</div>
+</div>
+<!-- BottomNavBar Anchor Component (Top-level destination: Entraînement active) -->
+<nav class="fixed bottom-0 w-full max-w-[390px] z-50 bg-surface-container dark:bg-surface-container border-t border-border flex justify-around items-center h-16 px-2">
+<!-- Item 1: Entraînement (Active) -->
+<a class="flex flex-col items-center justify-center text-primary hover:text-on-surface transition-colors active:scale-90 duration-150 flex-1 py-1" href="#">
+<span class="material-symbols-outlined text-[22px] mb-0.5">fitness_center</span>
+<span class="font-label-md text-label-md">Entraînement</span>
+</a>
+<!-- Item 2: Programmes -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150 flex-1 py-1" href="#">
+<span class="material-symbols-outlined text-[22px] mb-0.5">list_alt</span>
+<span class="font-label-md text-label-md">Programmes</span>
+</a>
+<!-- Item 3: Stats -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150 flex-1 py-1" href="#">
+<span class="material-symbols-outlined text-[22px] mb-0.5">leaderboard</span>
+<span class="font-label-md text-label-md">Stats</span>
+</a>
+<!-- Item 4: Profil -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-90 duration-150 flex-1 py-1" href="#">
+<span class="material-symbols-outlined text-[22px] mb-0.5">person</span>
+<span class="font-label-md text-label-md">Profil</span>
+</a>
+</nav>
+</div>
+</body></html>

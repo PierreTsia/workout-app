@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>GymLogic · Coach Vocal</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-variant": "#353439",
+            "surface-container-lowest": "#0e0e12",
+            "outline-variant": "#3c4a45",
+            "border": "#2d2d37",
+            "primary-container": "#00c9a7",
+            "primary": "#44e5c2",
+            "on-secondary": "#303037",
+            "on-surface": "#e4e1e7",
+            "inverse-on-surface": "#303034",
+            "rank-diamond": "#b9f2ff",
+            "surface-dim": "#131317",
+            "error-container": "#93000a",
+            "tertiary-container": "#ff9862",
+            "secondary-fixed": "#e4e1eb",
+            "muted": "#999999",
+            "on-tertiary-container": "#762f00",
+            "foreground": "#f2f2f2",
+            "rank-gold": "#ffd700",
+            "secondary": "#c8c5cf",
+            "surface-tint": "#38debb",
+            "secondary-container": "#494850",
+            "on-error": "#690005",
+            "rank-platinum": "#e5e4e2",
+            "rank-bronze": "#cd7f32",
+            "card": "#1a1a22",
+            "on-tertiary-fixed": "#341100",
+            "on-secondary-container": "#b9b7c1",
+            "on-tertiary-fixed-variant": "#793100",
+            "error": "#ffb4ab",
+            "on-tertiary": "#552000",
+            "outline": "#85948e",
+            "surface-container-high": "#2a292e",
+            "surface-container-highest": "#353439",
+            "on-secondary-fixed": "#1b1b22",
+            "surface-bright": "#39393d",
+            "surface-container-low": "#1b1b1f",
+            "rank-silver": "#c0c0c0",
+            "inverse-surface": "#e4e1e7",
+            "on-primary": "#000000",
+            "tertiary-fixed-dim": "#ffb692",
+            "on-error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#47464e",
+            "on-primary-fixed": "#002019",
+            "tertiary": "#ffc0a1",
+            "inverse-primary": "#006b58",
+            "tertiary-fixed": "#ffdbcb",
+            "on-primary-container": "#004e40",
+            "surface": "#131317",
+            "secondary-fixed-dim": "#c8c5cf",
+            "on-background": "#e4e1e7",
+            "background": "#131317",
+            "on-primary-fixed-variant": "#005142",
+            "primary-fixed-dim": "#38debb",
+            "on-surface-variant": "#bacac3",
+            "surface-container": "#1f1f23",
+            "primary-fixed": "#5ffbd6"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "stack-xl": "2rem",
+            "stack-sm": "0.5rem",
+            "stack-md": "1rem",
+            "stack-xs": "0.25rem",
+            "stack-lg": "1.5rem",
+            "margin-mobile": "1rem",
+            "gutter": "1rem"
+          },
+          fontFamily: {
+            "title-lg": ["Geist", "sans-serif"],
+            "body-md": ["Geist", "sans-serif"],
+            "headline-lg": ["Geist", "sans-serif"],
+            "label-sm": ["Geist", "sans-serif"],
+            "headline-md": ["Geist", "sans-serif"],
+            "label-md": ["Geist", "sans-serif"],
+            "title-md": ["Geist", "sans-serif"],
+            "headline-sm": ["Geist", "sans-serif"],
+            "body-lg": ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "title-lg": ["18px", { lineHeight: "24px", fontWeight: "500" }],
+            "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "headline-lg": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }],
+            "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "500" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "500" }],
+            "title-md": ["16px", { lineHeight: "24px", fontWeight: "500" }],
+            "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Fixed 390x844 PWA viewport shell for strict device target */
+    body {
+      background-color: #0b0b0e;
+      color: #f2f2f2;
+      font-family: 'Geist', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-foreground select-none">
+<!-- Mobile Portrait Shell (390 x 844 px) -->
+<main class="w-[390px] h-[844px] bg-[#0f0f13] relative overflow-hidden flex flex-col justify-between border border-border">
+<!-- Top Chrome Area -->
+<header class="w-full bg-[#15151c] border-b border-border flex-shrink-0 z-30">
+<!-- Nav Header -->
+<div class="h-14 px-gutter flex items-center justify-between">
+<button aria-label="Fermer la session" class="flex items-center gap-1 text-muted hover:text-foreground active:opacity-75 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+<span class="font-label-sm text-label-sm">Fermer</span>
+</button>
+<h1 class="font-title-md text-title-md text-foreground tracking-tight text-center font-semibold">
+          Coach Vocal
+        </h1>
+<div class="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#1a1a22] border border-border">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm text-muted uppercase">SYNC</span>
+</div>
+</div>
+<!-- Persistent Context Priming Bar -->
+<div class="px-gutter pb-3 pt-1 border-t border-border/50 bg-[#121217]">
+<div class="flex items-center justify-between mb-1.5">
+<span class="font-label-sm text-label-sm text-foreground font-medium">Contexte · 0/4 · À compléter</span>
+<span class="font-label-sm text-label-sm text-muted">0 %</span>
+</div>
+<!-- 4 Discrete Segmented Context Trackers (Écran, Programme, Fenêtre, Intention) -->
+<div class="grid grid-cols-4 gap-1.5 mb-1.5">
+<div class="h-1.5 bg-[#2d2d37] rounded-none relative">
+<span class="sr-only">Écran : non injecté</span>
+</div>
+<div class="h-1.5 bg-[#2d2d37] rounded-none relative">
+<span class="sr-only">Programme : non injecté</span>
+</div>
+<div class="h-1.5 bg-[#2d2d37] rounded-none relative">
+<span class="sr-only">Fenêtre : non injecté</span>
+</div>
+<div class="h-1.5 bg-[#2d2d37] rounded-none relative">
+<span class="sr-only">Intention : non injectée</span>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<p class="font-label-sm text-label-sm text-muted leading-tight">
+            Remplissage requis pour exécution déterministe.
+          </p>
+<span class="font-label-sm text-label-sm text-muted tracking-tight">4 variables</span>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Conversation Area -->
+<section class="flex-1 overflow-y-auto px-margin-mobile py-4 space-y-4 flex flex-col justify-start">
+<!-- Telemetry Chip / Pipeline state -->
+<div class="bg-[#15151c] border border-border rounded-lg p-2.5 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-muted tracking-wider">JEV CORE V2.4</span>
+<span class="h-3 w-[1px] bg-border"></span>
+<span class="font-label-sm text-label-sm text-muted">Pipeline déterministe</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> R
+          </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-[#ff9862]"></span> Q
+          </span>
+<span class="flex items-center gap-1 font-label-sm text-label-sm text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-border"></span> S
+          </span>
+</div>
+</div>
+<!-- User Voice Transcription Bubble (Right-Aligned) -->
+<div class="flex flex-col items-end space-y-1.5 pl-8">
+<div class="flex items-center gap-1.5 text-muted px-1">
+<span class="material-symbols-outlined text-[14px]">mic</span>
+<span class="font-label-sm text-label-sm">Audio transcrit</span>
+<span class="text-border">·</span>
+<span class="font-label-sm text-label-sm">10:33</span>
+</div>
+<div class="bg-[#1a1a22] border border-border rounded-xl px-4 py-3 text-right max-w-full">
+<p class="font-body-md text-body-md text-foreground font-medium">« Salut »</p>
+</div>
+<div class="flex items-center gap-1.5 px-1 text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-[#ff9862]"></span>
+<span class="font-label-sm text-label-sm">Requête non qualifiée · Contexte insuffisant</span>
+</div>
+</div>
+<!-- Coach Response Bubble (GymLogic Agent Qualification Mode) -->
+<div class="flex flex-col items-start space-y-2 pr-2">
+<div class="flex items-center gap-2 px-1">
+<div class="w-5 h-5 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-[14px]">graphic_eq</span>
+</div>
+<span class="font-label-sm text-label-sm text-foreground font-semibold">Coach GymLogic</span>
+<span class="text-border">·</span>
+<span class="font-label-sm text-label-sm text-muted">Qualification d'intention</span>
+</div>
+<!-- Agent Response Card -->
+<div class="bg-[#15151c] border border-border rounded-xl p-4 w-full space-y-3.5">
+<p class="font-body-md text-body-md text-foreground leading-relaxed">
+            Salut. Sur quoi je t'aide aujourd'hui : ton programme en cours, une séance du cycle, ou tes statistiques de charge ?
+          </p>
+<!-- Divider -->
+<div class="h-[1px] w-full bg-border"></div>
+<!-- Direct Context Anchors Selection -->
+<div class="space-y-2">
+<p class="font-label-sm text-label-sm text-muted">
+              Sélectionnez un point d'ancrage pour injecter les variables :
+            </p>
+<div class="flex flex-col gap-2">
+<button class="w-full text-left bg-[#1a1a22] hover:bg-[#20202b] active:scale-[0.99] border border-border hover:border-primary-container transition-all rounded-lg px-3.5 py-2.5 flex items-center justify-between group" type="button">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-muted group-hover:text-primary text-[18px]">calendar_today</span>
+<span class="font-body-md text-body-md text-foreground">Mon programme PPL</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted font-mono">+Programme</span>
+</button>
+<button class="w-full text-left bg-[#1a1a22] hover:bg-[#20202b] active:scale-[0.99] border border-border hover:border-primary-container transition-all rounded-lg px-3.5 py-2.5 flex items-center justify-between group" type="button">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-muted group-hover:text-primary text-[18px]">fitness_center</span>
+<span class="font-body-md text-body-md text-foreground">Séance du jour (Push 1)</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted font-mono">+Séance</span>
+</button>
+<button class="w-full text-left bg-[#1a1a22] hover:bg-[#20202b] active:scale-[0.99] border border-border hover:border-primary-container transition-all rounded-lg px-3.5 py-2.5 flex items-center justify-between group" type="button">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-muted group-hover:text-primary text-[18px]">monitoring</span>
+<span class="font-body-md text-body-md text-foreground">Mes stats &amp; tonnage</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted font-mono">+Métriques</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Docked Area: Voice & Text Input Controls -->
+<footer class="w-full bg-[#15151c] border-t border-border px-margin-mobile pt-3 pb-5 flex-shrink-0 z-30 space-y-3">
+<!-- Text / Precision Dictation Field -->
+<div class="relative flex items-center">
+<input class="w-full h-11 bg-[#1a1a22] border border-border focus:border-primary focus:outline-none rounded-lg px-3.5 pr-10 text-foreground font-body-md text-body-md placeholder:text-muted placeholder:font-body-md transition-colors" placeholder="Répondre ou dicter une précision..." type="text"/>
+<button aria-label="Envoyer texte" class="absolute right-2.5 text-muted hover:text-foreground active:opacity-75 transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</div>
+<!-- Voice Interaction Bar & Center Action -->
+<div class="flex items-center justify-between pt-1">
+<!-- Secondary Reset / Cancel Action -->
+<button class="h-9 px-3 rounded-lg border border-border bg-[#1a1a22] hover:bg-[#22222d] text-foreground font-label-sm text-label-sm active:scale-95 transition-all" type="button">
+          Annuler
+        </button>
+<!-- Center Direct Push-To-Talk Button -->
+<div class="flex flex-col items-center">
+<button aria-label="Enregistrer une instruction vocale" class="w-12 h-12 rounded-full bg-primary-container hover:bg-primary active:scale-95 transition-all flex items-center justify-center shadow-none border border-transparent" type="button">
+<span class="material-symbols-outlined text-on-primary text-[24px]">mic</span>
+</button>
+<span class="font-label-sm text-label-sm text-muted mt-1">Écoute active</span>
+</div>
+<!-- Manual Dismiss Session -->
+<button class="h-9 px-3 rounded-lg border border-border bg-[#1a1a22] hover:bg-[#22222d] text-foreground font-label-sm text-label-sm active:scale-95 transition-all" type="button">
+          Clôturer
+        </button>
+</div>
+<!-- System Diagnostic Line -->
+<div class="text-center pt-1">
+<p class="font-label-sm text-label-sm text-muted">
+          Session vocale sécurisée · Latence 42ms · Moteur GymLogic JEV
+        </p>
+</div>
+</footer>
+</main>
+</body></html>
