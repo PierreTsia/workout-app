@@ -81,6 +81,8 @@ export interface DraftArgs {
   // which the /draft route adds when invoking).
   name: string
   days: Array<{ label: string; exercises: DraftArgsExercise[] }>
+  // Language of the `rendered` preview echo — never persisted (ADR 0035).
+  locale?: "en" | "fr"
 }
 
 export type DraftResult =
@@ -171,6 +173,7 @@ export async function runProgramDraftStep(
 
   const args: DraftArgs = {
     name: programNameFor(constraints, input.locale),
+    locale: input.locale,
     days: nonEmptyDays.map((d) => ({
       label: d.label,
       // Bare UUIDs (catalog defaults) and MCP Circuit Items (ADR 0011 / T168).
