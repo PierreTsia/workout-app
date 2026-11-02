@@ -6,6 +6,7 @@ import {
   type DbSoloForRead,
 } from "../lib/daySequenceRead.ts"
 import { formatWorkoutDay } from "../lib/format.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 export const getUpcomingWorkouts: ToolDefinition = {
@@ -27,6 +28,12 @@ export const getUpcomingWorkouts: ToolDefinition = {
         maximum: 7,
         description: "How many upcoming workout days to show (default 3, max 7).",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the exercise names. Defaults to the athlete's stored locale, then English.",
+      },
     },
   },
 
@@ -38,6 +45,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const numDays = Math.min((args.num_days as number | undefined) ?? 3, 7)
 
     // 1. Active program
@@ -226,7 +234,7 @@ export const getUpcomingWorkouts: ToolDefinition = {
         blockRows.filter((r) => r.workout_day_id === day.id).map((r) => r.block),
       )
       const prefix = i === 0 ? "**Next up →** " : ""
-      return prefix + formatWorkoutDay(day, [], sequence)
+      return prefix + formatWorkoutDay(day, [], sequence, locale)
     })
 
     return {

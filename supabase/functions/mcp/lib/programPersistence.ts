@@ -49,6 +49,7 @@ export function parseRepsBounds(reps: string): { min: number; max: number } {
 export interface CatalogExerciseForProgram {
   id: string
   name: string
+  name_en?: string | null
   muscle_group: string
   emoji: string | null
   equipment: string

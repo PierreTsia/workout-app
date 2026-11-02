@@ -32,7 +32,7 @@ const DAY_CARDS_SELECT = [
   "label",
   "sort_order",
   `workout_exercises(id, exercise_id, emoji_snapshot, name_snapshot, sets, reps, rest_seconds, sort_order, exercise:exercises(${LABEL_EXERCISE_SELECT}))`,
-  `exercise_blocks(id, label, rounds, sort_order, exercises:block_exercises(id, position, exercise_id, name_snapshot, emoji_snapshot, per_round, exercise:exercises(measurement_type)))`,
+  `exercise_blocks(id, label, rounds, sort_order, exercises:block_exercises(id, position, exercise_id, name_snapshot, emoji_snapshot, per_round, exercise:exercises(${LABEL_EXERCISE_SELECT}, measurement_type)))`,
 ].join(", ")
 
 export function useProgramDayCards(programId: string | null) {

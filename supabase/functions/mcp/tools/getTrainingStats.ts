@@ -1,5 +1,7 @@
 import type { ToolDefinition } from "./registry.ts"
 import { formatStatsSummary } from "../lib/format.ts"
+import { muscleLabel, resolveDisplayName } from "../lib/displayLabels.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 
 export const getTrainingStats: ToolDefinition = {
   name: "get_training_stats",
@@ -26,7 +28,13 @@ export const getTrainingStats: ToolDefinition = {
       },
       muscle_group: {
         type: "string",
-        description: "Filter volume breakdown to a specific muscle group (French name, e.g. 'Dos', 'Pectoraux').",
+        description: "Filter volume breakdown to one muscle group (French or English label, e.g. 'Dos' / 'Back').",
+      },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the muscle labels and exercise names. Defaults to the athlete's stored locale, then English.",
       },
     },
   },
@@ -39,6 +47,7 @@ export const getTrainingStats: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const days = (args.days as number | undefined) ?? 30
     const muscleGroupFilter = args.muscle_group as string | undefined
 
@@ -69,8 +78,15 @@ export const getTrainingStats: ToolDefinition = {
 
     const raw = volumeResult.data as { finished_sessions: number; muscles: Array<{ muscle_group: string; total_sets: number; total_volume_kg: number; exercise_count?: number }> } | null
     const sessionCount = raw?.finished_sessions ?? 0
-    const muscles = (raw?.muscles ?? [])
-      .filter((m) => !muscleGroupFilter || m.muscle_group.toLowerCase() === muscleGroupFilter.toLowerCase())
+    const muscleMatches = (m: { muscle_group: string }) => {
+      if (!muscleGroupFilter) return true
+      const needle = muscleGroupFilter.toLowerCase()
+      return (
+        m.muscle_group.toLowerCase() === needle ||
+        muscleLabel(m.muscle_group, "en").toLowerCase() === needle
+      )
+    }
+    const muscles = (raw?.muscles ?? []).filter(muscleMatches)
 
     if (sessionCount === 0) {
       return {
@@ -78,7 +94,8 @@ export const getTrainingStats: ToolDefinition = {
       }
     }
 
-    const prs = (prResult ?? []) as Array<{
+    const prsRaw = (prResult ?? []) as Array<{
+      exercise_id: string
       exercise_name_snapshot: string
       weight_logged: number
       reps_logged: string | null
@@ -86,8 +103,29 @@ export const getTrainingStats: ToolDefinition = {
       logged_at: string
     }>
 
+    // Localize the PR names from the catalog (ADR 0035), snapshot as fallback.
+    const prExerciseIds = [...new Set(prsRaw.map((p) => p.exercise_id))]
+    const prNameById = new Map<string, { name?: string | null; name_en?: string | null }>()
+    if (prExerciseIds.length > 0) {
+      const { data: catalogRows } = await supabase
+        .from("exercises")
+        .select("id, name, name_en")
+        .in("id", prExerciseIds)
+      for (const row of catalogRows ?? []) {
+        prNameById.set(String(row.id), { name: row.name, name_en: row.name_en })
+      }
+    }
+    const prs = prsRaw.map((p) => ({
+      ...p,
+      exercise_name_snapshot:
+        resolveDisplayName(
+          { ...prNameById.get(p.exercise_id), name_snapshot: p.exercise_name_snapshot },
+          locale,
+        ) || p.exercise_name_snapshot,
+    }))
+
     return {
-      content: [{ type: "text", text: formatStatsSummary(days, sessionCount, muscles, prs) }],
+      content: [{ type: "text", text: formatStatsSummary(days, sessionCount, muscles, prs, locale) }],
     }
   },
 }
@@ -100,7 +138,7 @@ async function fetchPrs(
 
   const { data, error } = await supabase!
     .from("set_logs")
-    .select("exercise_name_snapshot, weight_logged, reps_logged, duration_seconds, logged_at")
+    .select("exercise_id, exercise_name_snapshot, weight_logged, reps_logged, duration_seconds, logged_at")
     .eq("was_pr", true)
     .gte("logged_at", since)
     .order("logged_at", { ascending: false })

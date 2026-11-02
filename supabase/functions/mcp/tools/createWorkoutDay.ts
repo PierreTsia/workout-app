@@ -5,6 +5,7 @@ import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { collectReferencedBenchmarkExerciseIds } from "../lib/resolveBenchmark.ts"
 import { parsedCircuitToWire } from "../lib/daySequenceRead.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
 const TOOL_DESCRIPTION = `Create a single ad-hoc workout day in the user's GymLogic account (Quick Workout flow).
@@ -98,6 +99,12 @@ export const createWorkoutDay: ToolDefinition = {
         },
       },
       dry_run: { type: "boolean" },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the `rendered` preview lines. Defaults to the athlete's stored locale, then English. Never affects what is stored.",
+      },
     },
     required: ["label", "exercises"],
   },
@@ -175,9 +182,10 @@ export const createWorkoutDay: ToolDefinition = {
     // explicitly. The Edge `commit-quick-workout` function is the in-app
     // caller (T128) and will set this flag on every commit.
     const dryRun = (args.dry_run as boolean | undefined) !== false
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
 
     if (dryRun) {
-      const rendered = buildDayRenderedLines(validation.parsed, byId)
+      const rendered = buildDayRenderedLines(validation.parsed, byId, locale)
       const exercises = validation.parsed.map((item) =>
         item.kind === "circuit" ? parsedCircuitToWire(item) : item.kind === "bare" ? item.exerciseId : {
           exercise_id: item.exerciseId,

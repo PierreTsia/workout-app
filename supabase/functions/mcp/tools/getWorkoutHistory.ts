@@ -1,4 +1,6 @@
 import { formatWorkoutHistory } from "../lib/format.ts"
+import { resolveDisplayName } from "../lib/displayLabels.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import {
   buildBlockMetaMap,
   type BlockExerciseMetaRow,
@@ -47,13 +49,20 @@ export const getWorkoutHistory: ToolDefinition = {
       },
       exercise_name: {
         type: "string",
-        description: "Filter to sessions containing this exercise (fuzzy match on snapshot name).",
+        description:
+          "Filter to sessions containing this exercise (fuzzy match on the workout name in the athlete's language).",
       },
       limit: {
         type: "number",
         minimum: 1,
         maximum: 50,
         description: "Max sessions to return (default 10, max 50).",
+      },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the exercise names. Defaults to the athlete's stored locale, then English.",
       },
     },
   },
@@ -66,6 +75,7 @@ export const getWorkoutHistory: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const limit = Math.min((args.limit as number | undefined) ?? 10, 50)
     const toDate = (args.to_date as string | undefined) ?? new Date().toISOString().slice(0, 10)
     const fromDate = args.from_date as string | undefined
@@ -98,8 +108,27 @@ export const getWorkoutHistory: ToolDefinition = {
     }
 
     const sessionIds = sessions.map((s: { id: string }) => s.id)
+    let sessionQueryFilterIds: string[] | undefined
 
-    let setQuery = supabase
+    // Filter by exercise name at the DB layer (diacritic-insensitive) so we never
+    // fetch-and-drop a large history. Resolve the matching catalog ids first —
+    // matching either language, so an English query finds the row.
+    if (exerciseName) {
+      const needle = exerciseName.replace(/[%_]/g, "")
+      const { data: matched } = await supabase
+        .from("exercises")
+        .select("id")
+        .or(`name.ilike.%${needle}%,name_en.ilike.%${needle}%`)
+      const matchedIds = (matched ?? []).map((r) => String(r.id))
+      if (matchedIds.length === 0) {
+        return {
+          content: [{ type: "text", text: `No sessions found containing "${exerciseName}" in this period.` }],
+        }
+      }
+      sessionQueryFilterIds = matchedIds
+    }
+
+    const setQuery = supabase
       .from("set_logs")
       .select(
         "id, session_id, exercise_id, block_exercise_id, exercise_name_snapshot, set_number, reps_logged, duration_seconds, weight_logged, was_pr, logged_at",
@@ -107,8 +136,8 @@ export const getWorkoutHistory: ToolDefinition = {
       .in("session_id", sessionIds)
       .order("set_number", { ascending: true })
 
-    if (exerciseName) {
-      setQuery = setQuery.ilike("exercise_name_snapshot", `%${exerciseName}%`)
+    if (sessionQueryFilterIds) {
+      setQuery.in("exercise_id", sessionQueryFilterIds)
     }
 
     const { data: setLogs, error: setErr } = await setQuery.returns<SetLogRow[]>()
@@ -117,7 +146,29 @@ export const getWorkoutHistory: ToolDefinition = {
       return { content: [{ type: "text", text: `Error fetching set logs: ${setErr.message}` }], isError: true }
     }
 
-    const logs = setLogs ?? []
+    // Localize the frozen snapshot for display (ADR 0010/0035): resolve from the joined
+    // catalog row, keep `exercise_name_snapshot` as the fallback.
+    const exerciseIds = [...new Set((setLogs ?? []).map((s) => s.exercise_id))]
+    const nameById = new Map<string, { name?: string | null; name_en?: string | null }>()
+    if (exerciseIds.length > 0) {
+      const { data: catalogRows } = await supabase
+        .from("exercises")
+        .select("id, name, name_en")
+        .in("id", exerciseIds)
+      for (const row of catalogRows ?? []) {
+        nameById.set(String(row.id), { name: row.name, name_en: row.name_en })
+      }
+    }
+    const localizedName = (log: SetLogRow): string =>
+      resolveDisplayName(
+        { ...nameById.get(log.exercise_id), name_snapshot: log.exercise_name_snapshot },
+        locale,
+      )
+
+    const logs = (setLogs ?? []).map((log) => ({
+      ...log,
+      exercise_name_snapshot: localizedName(log),
+    }))
     const blockExerciseIds = [
       ...new Set(
         logs

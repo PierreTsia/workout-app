@@ -174,4 +174,29 @@ describe("DayCard", () => {
     expect(screen.getByText("10 reps")).toBeInTheDocument()
     expect(screen.getByText("30s")).toBeInTheDocument()
   })
+
+  it("resolves the localized catalog name for the reader (T713)", () => {
+    renderWithProviders(
+      <DayCard
+        label="Day 1"
+        exerciseCount={1}
+        items={[
+          {
+            kind: "solo",
+            id: "ex-1",
+            emoji: "💪",
+            name: "Développé couché",
+            sets: 3,
+            reps: "8",
+            restSeconds: 90,
+            sortOrder: 0,
+            exercise: { name: "Développé couché", name_en: "Bench Press" },
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText(/Bench Press/)).toBeInTheDocument()
+    expect(screen.queryByText(/Développé couché/)).not.toBeInTheDocument()
+  })
 })

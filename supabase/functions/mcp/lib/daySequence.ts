@@ -13,6 +13,7 @@ import {
   type CatalogExerciseForProgram,
 } from "./programPersistence.ts"
 import type { ParsedExercise } from "./createProgramValidation.ts"
+import { resolveDisplayName, type DisplayLocale } from "./displayLabels.ts"
 import {
   formatCircuitPreviewLines,
   formatPrescriptionLine,
@@ -77,17 +78,22 @@ export async function insertDaySequence(
 export function buildDayRenderedLines(
   items: ParsedExercise[],
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string[] {
   return items.flatMap((item) => {
     if (item.kind === "circuit") {
-      return formatCircuitPreviewLines(item, catalogById)
+      return formatCircuitPreviewLines(item, catalogById, locale)
     }
     const ge = buildGeneratedExercise(item, catalogById.get(item.exerciseId)!)
     const placeholderDayId = "00000000-0000-4000-8000-000000000000"
     const [row] = buildWorkoutExerciseInsertRowsForDay(placeholderDayId, [ge])
     return [
       formatPrescriptionLine({
-        exerciseName: ge.exercise.name,
+        exerciseName:
+          resolveDisplayName(
+            { name: ge.exercise.name, name_en: ge.exercise.name_en },
+            locale,
+          ) || ge.exercise.name,
         sets: row.sets,
         reps: row.reps,
         weightKg: Number(row.weight),

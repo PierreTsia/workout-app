@@ -54,7 +54,7 @@ function parseBenchmarkRow(raw: unknown): BenchmarkCircuitLookup | null {
 }
 
 const CATALOG_COLUMNS =
-  "id, name, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
+  "id, name, name_en, muscle_group, emoji, equipment, measurement_type, default_duration_seconds"
 
 function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForProgram {
   const mt = row.measurement_type
@@ -68,6 +68,7 @@ function catalogRowToExercise(row: Record<string, unknown>): CatalogExerciseForP
   return {
     id: String(row.id),
     name: String(row.name),
+    name_en: row.name_en != null ? String(row.name_en) : null,
     muscle_group: String(row.muscle_group),
     emoji: row.emoji != null ? String(row.emoji) : null,
     equipment: String(row.equipment),

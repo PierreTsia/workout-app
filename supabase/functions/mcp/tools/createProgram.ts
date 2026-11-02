@@ -11,6 +11,7 @@ import { collectCandidateExerciseIds } from "../lib/exerciseConversion.ts"
 import { collectReferencedBenchmarkExerciseIds } from "../lib/resolveBenchmark.ts"
 import { parsedCircuitToWire } from "../lib/daySequenceRead.ts"
 import { buildDayRenderedLines, insertDaySequence } from "../lib/daySequence.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import { MCP_CIRCUIT_DAY_ITEM_SCHEMA } from "../lib/circuitItemSchema.ts"
 
 const MAX_DAYS = 14
@@ -132,6 +133,12 @@ export const createProgram: ToolDefinition = {
         type: "boolean",
         description: "If true or omitted, validate and return the insert plan with rendered echo without writing. If false, perform the database writes.",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the `rendered` preview lines. Defaults to the athlete's stored locale, then English. Never affects what is stored.",
+      },
     },
     required: ["name", "days"],
   },
@@ -155,6 +162,7 @@ export const createProgram: ToolDefinition = {
     }
 
     const dryRun = (args.dry_run as boolean | undefined) !== false
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const name = String(args.name ?? "").trim()
     const days = args.days as DayInput[] | undefined
 
@@ -257,7 +265,7 @@ export const createProgram: ToolDefinition = {
       sort_order: dayIndex,
       label: day.label,
       emoji: dayEmojiForProgramDayIndex(dayIndex),
-      rendered: buildDayRenderedLines(day.exercises, byId),
+      rendered: buildDayRenderedLines(day.exercises, byId, locale),
       exercises: day.exercises.map((item) =>
         item.kind === "circuit" ? parsedCircuitToWire(item) : item.kind === "bare" ? item.exerciseId : {
           exercise_id: item.exerciseId,

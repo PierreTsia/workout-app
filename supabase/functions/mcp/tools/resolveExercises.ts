@@ -4,7 +4,8 @@ import {
   type ResolvedQuery,
   type ResolveBatchRow,
 } from "../lib/assembleResolution.ts"
-import { formatBilingualExerciseName } from "../lib/bilingualName.ts"
+import { muscleLabel, resolveDisplayName, type DisplayLocale } from "../lib/displayLabels.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import { resolveAmbiguityGap } from "../lib/scoreGap.ts"
 import type { ToolDefinition } from "./registry.ts"
 
@@ -45,6 +46,12 @@ export const resolveExercises: ToolDefinition = {
           "diacritic-insensitive). Each is resolved to its top catalog match plus " +
           "alternates if scores are close.",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the matched names and muscle labels, and the ranking. Defaults to the athlete's stored locale, then English.",
+      },
     },
     required: ["queries"],
   },
@@ -57,6 +64,7 @@ export const resolveExercises: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const queries = args.queries
     if (!Array.isArray(queries) || queries.length === 0) {
       return {
@@ -88,7 +96,10 @@ export const resolveExercises: ToolDefinition = {
 
     const gap = resolveAmbiguityGap(Deno.env.get("MCP_AMBIGUITY_GAP"))
 
-    const { data, error } = await supabase.rpc("resolve_exercises_batch", { queries })
+    const { data, error } = await supabase.rpc("resolve_exercises_batch", {
+      queries,
+      p_locale: locale,
+    })
 
     if (error) {
       return {
@@ -100,12 +111,12 @@ export const resolveExercises: ToolDefinition = {
     const rows = (data ?? []) as ResolveBatchRow[]
     const results = assembleResolutionResults(queries, rows, gap)
 
-    return { content: [{ type: "text", text: formatResolutionResults(results) }] }
+    return { content: [{ type: "text", text: formatResolutionResults(results, locale) }] }
   },
 }
 
-function formatResolutionResults(results: ResolvedQuery[]): string {
-  const sections = results.map(formatResolvedQuery).join("\n\n")
+function formatResolutionResults(results: ResolvedQuery[], locale: DisplayLocale): string {
+  const sections = results.map((r) => formatResolvedQuery(r, locale)).join("\n\n")
   const summary = summarizeStatuses(results)
   const footer =
     "\n\n_Use the ids above directly with `create_program`. " +
@@ -124,7 +135,7 @@ function summarizeStatuses(results: ResolvedQuery[]): string {
     .join(", ")
 }
 
-function formatResolvedQuery(r: ResolvedQuery): string {
+function formatResolvedQuery(r: ResolvedQuery, locale: DisplayLocale): string {
   const header = `## "${r.query}" → ${r.status}`
   if (r.status === "no_match") {
     return `${header}\n- No catalog match. Try \`search_exercises\` with broader filters or check spelling.`
@@ -132,13 +143,13 @@ function formatResolvedQuery(r: ResolvedQuery): string {
   if (r.status === "empty_query") {
     return `${header}\n- Empty/whitespace query — skipped.`
   }
-  return `${header}\n${r.matches.map(formatMatch).join("\n")}`
+  return `${header}\n${r.matches.map((m) => formatMatch(m, locale)).join("\n")}`
 }
 
-function formatMatch(m: ResolvedExercise): string {
-  const nameLine = formatBilingualExerciseName(m.name, m.name_en)
+function formatMatch(m: ResolvedExercise, locale: DisplayLocale): string {
+  const nameLine = resolveDisplayName({ name: m.name, name_en: m.name_en }, locale)
   const meta = [
-    m.muscle_group,
+    muscleLabel(m.muscle_group, locale),
     m.equipment,
     `weight_convention: ${m.weight_convention}`,
     m.measurement_type === "duration"

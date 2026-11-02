@@ -13,6 +13,7 @@ import {
   type SessionHistoryItem,
 } from "./sessionHistoryGrouping.ts"
 import { sessionTonnageKg } from "./tonnage.ts"
+import { resolveDisplayName } from "./displayLabels.ts"
 
 export type SessionCardLocale = "en" | "fr"
 
@@ -253,7 +254,10 @@ export async function buildSessionCardPayload(
       .in("id", exerciseIds)
     if (error) throw new Error(`exercises: ${error.message}`)
     for (const row of data ?? []) {
-      nameById.set(String(row.id), locale === "fr" ? String(row.name) : String(row.name_en ?? row.name))
+      nameById.set(
+        String(row.id),
+        resolveDisplayName({ name: row.name as string, name_en: row.name_en as string | null }, locale),
+      )
     }
   }
 

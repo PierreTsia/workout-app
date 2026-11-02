@@ -1,9 +1,10 @@
 /**
- * Shared bilingual exercise-name line for MCP tool output.
+ * Catalog-name embed helpers for MCP tool output.
  *
- * Canonical French name first, English in parentheses when present — the
- * format `search_exercises` and `resolve_exercises` already use. No locale
- * read: the agent picks the language it needs.
+ * The bilingual `**FR** (EN)` formatter is retired (ADR 0035): output is
+ * localized through `displayLabels.resolveDisplayName`. What remains here is
+ * the PostgREST embed unwrapper and the plain (non-markdown) label used by
+ * `get_exercise_details`, which still shows both names.
  */
 
 export type CatalogNameEmbed = {
@@ -22,14 +23,6 @@ export function unwrapCatalogNameEmbed(
   if (embed == null) return null
   if (Array.isArray(embed)) return embed[0] ?? null
   return embed
-}
-
-export function formatBilingualExerciseName(
-  name: string,
-  nameEn: string | null | undefined,
-): string {
-  const english = nameEn?.trim()
-  return english ? `**${name}** (${english})` : `**${name}**`
 }
 
 /**

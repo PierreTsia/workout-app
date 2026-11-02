@@ -1,4 +1,5 @@
-import { formatBilingualExerciseName } from "../lib/bilingualName.ts"
+import { muscleLabel, resolveDisplayName } from "../lib/displayLabels.ts"
+import { readProfileLocale, resolveToolLocale } from "../lib/locale.ts"
 import type { ToolDefinition } from "./registry.ts"
 
 const MUSCLE_GROUP_ALIASES: Record<string, string> = {
@@ -129,6 +130,12 @@ export const searchExercises: ToolDefinition = {
         maximum: 50,
         description: "Max results per muscle group (default 20, max 50). Total results may exceed this when querying multiple groups.",
       },
+      locale: {
+        type: "string",
+        enum: ["en", "fr"],
+        description:
+          "Language of the result names and muscle labels, and the ranking. Defaults to the athlete's stored locale, then English.",
+      },
     },
   },
 
@@ -140,6 +147,7 @@ export const searchExercises: ToolDefinition = {
       }
     }
 
+    const locale = resolveToolLocale(args, await readProfileLocale(supabase))
     const limit = (args.limit as number | undefined) ?? 20
     const equipment = args.equipment as string[] | undefined
     const difficulty = args.difficulty as string[] | undefined
@@ -174,6 +182,7 @@ export const searchExercises: ToolDefinition = {
           filter_difficulty: difficulty?.length ? difficulty : undefined,
           page_offset: 0,
           page_limit: mg ? limit : limit,
+          p_locale: locale,
         }),
       ),
     )
@@ -221,8 +230,8 @@ export const searchExercises: ToolDefinition = {
       const name = typeof ex.name === "string" ? ex.name : ""
       const nameEn = typeof ex.name_en === "string" ? ex.name_en : null
       const parts = [
-        `${i + 1}. ${formatBilingualExerciseName(name, nameEn)}`,
-        `— ${ex.muscle_group}`,
+        `${i + 1}. ${resolveDisplayName({ name, name_en: nameEn }, locale)}`,
+        `— ${muscleLabel(typeof ex.muscle_group === "string" ? ex.muscle_group : null, locale)}`,
         ex.equipment && ex.equipment !== "bodyweight" ? `| ${ex.equipment}` : null,
         ex.difficulty_level ? `| ${ex.difficulty_level}` : null,
         isSingleMatch ? `| id: ${ex.id}` : null,

@@ -75,7 +75,7 @@ describe("search_exercises", () => {
 
   it("is defined exactly where this guard expects it", () => {
     expect(repoPath(path ?? "")).toBe(
-      "supabase/migrations/20260326120000_search_exercises.sql",
+      "supabase/migrations/20261102000000_search_exercises_locale.sql",
     )
   })
 

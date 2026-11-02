@@ -1,4 +1,4 @@
-import { formatBilingualExerciseName } from "./bilingualName.ts"
+import { muscleLabel, resolveDisplayName, type DisplayLocale } from "./displayLabels.ts"
 import { CIRCUIT_BOUNDS, type ParsedExercise } from "./createProgramValidation.ts"
 import {
   catalogMapFromBlock,
@@ -87,6 +87,7 @@ const AMRAP_GLOSS_EN = "As many rounds as possible."
 export function formatCircuitPreviewLines(
   circuit: Extract<ParsedExercise, { kind: "circuit" }>,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string[] {
   const labelPart = circuit.label?.trim() ? ` "${circuit.label.trim()}"` : ""
   const isAmrap = circuit.mode === "amrap"
@@ -103,7 +104,10 @@ export function formatCircuitPreviewLines(
     )
   })
 
-  const nameOf = (id: string) => catalogById.get(id)?.name ?? id
+  const nameOf = (id: string) => {
+    const catalog = catalogById.get(id)
+    return resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) || id
+  }
 
   const slug = circuit.benchmarkSlug?.trim()
   const catalogId = circuit.benchmarkCircuitId?.trim()
@@ -340,6 +344,7 @@ export function formatStatsSummary(
   sessionCount: number,
   volumes: VolumeRow[],
   prs: PrRow[],
+  locale: DisplayLocale = "en",
 ): string {
   const freq = sessionCount > 0 ? (sessionCount / (days / 7)).toFixed(1) : "0"
   const totalSets = volumes.reduce((sum, v) => sum + v.total_sets, 0)
@@ -347,7 +352,10 @@ export function formatStatsSummary(
   const volumeLines = volumes
     .filter((v) => v.total_sets > 0)
     .sort((a, b) => b.total_sets - a.total_sets)
-    .map((v) => `  - **${v.muscle_group}**: ${v.total_sets} sets, ${formatWeight(v.total_volume_kg)} volume`)
+    .map(
+      (v) =>
+        `  - **${muscleLabel(v.muscle_group, locale)}**: ${v.total_sets} sets, ${formatWeight(v.total_volume_kg)} volume`,
+    )
 
   const prLines = prs.map((p) => {
     const measure = p.duration_seconds ? `${p.duration_seconds}s` : `${p.reps_logged} reps`
@@ -383,14 +391,21 @@ interface WorkoutExForFormat {
   target_duration_seconds?: number | null
 }
 
-/** Catalog name (FR + EN) when present, else the frozen snapshot alone. */
-function displayExerciseName(ex: {
-  name_snapshot: string
-  name?: string | null
-  name_en?: string | null
-}): string {
-  const french = ex.name?.trim() || ex.name_snapshot
-  return formatBilingualExerciseName(french, ex.name_en)
+/** Catalog name in the caller's locale when present, else the frozen snapshot alone. */
+function displayExerciseName(
+  ex: {
+    name_snapshot: string
+    name?: string | null
+    name_en?: string | null
+  },
+  locale: DisplayLocale = "en",
+): string {
+  const name =
+    resolveDisplayName(
+      { name: ex.name, name_en: ex.name_en, name_snapshot: ex.name_snapshot },
+      locale,
+    ) || ex.name_snapshot
+  return `**${name}**`
 }
 
 interface WorkoutDayForFormat {
@@ -453,36 +468,42 @@ export interface ProgramDetailsEchoDay {
   exercises: EchoDayExercise[]
 }
 
-function formatSoloDetailsLine(ex: ProgramDetailsExercise): string {
+function formatSoloDetailsLine(ex: ProgramDetailsExercise, locale: DisplayLocale = "en"): string {
   const measure = ex.target_duration_seconds
     ? `${ex.sets} × ${ex.target_duration_seconds}s`
     : `${ex.sets} × ${ex.reps} reps`
   const weightSuffix = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
-  return `  - ${displayExerciseName(ex)} *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
+  return `  - ${displayExerciseName(ex, locale)} *(exercise_id: ${ex.exercise_id})*: ${measure}${weightSuffix} (rest ${ex.rest_seconds}s)`
 }
 
-function formatSequenceDetailsLines(items: DaySequenceReadItem[]): string[] {
+function formatSequenceDetailsLines(
+  items: DaySequenceReadItem[],
+  locale: DisplayLocale = "en",
+): string[] {
   return items.flatMap((item) => {
     if (item.kind === "solo") {
       const s = item.solo
       return [
-        formatSoloDetailsLine({
-          id: s.id ?? s.exercise_id,
-          exercise_id: s.exercise_id,
-          name_snapshot: s.name_snapshot,
-          name: s.name,
-          name_en: s.name_en,
-          sets: s.sets,
-          reps: s.reps,
-          weight: s.weight,
-          rest_seconds: s.rest_seconds,
-          target_duration_seconds: s.target_duration_seconds,
-        }),
+        formatSoloDetailsLine(
+          {
+            id: s.id ?? s.exercise_id,
+            exercise_id: s.exercise_id,
+            name_snapshot: s.name_snapshot,
+            name: s.name,
+            name_en: s.name_en,
+            sets: s.sets,
+            reps: s.reps,
+            weight: s.weight,
+            rest_seconds: s.rest_seconds,
+            target_duration_seconds: s.target_duration_seconds,
+          },
+          locale,
+        ),
       ]
     }
     const parsed = dbBlockToParsedCircuit(item.block)
     const catalog = catalogMapFromBlock(item.block)
-    return formatCircuitPreviewLines(parsed, catalog).map((line) => `  ${line}`)
+    return formatCircuitPreviewLines(parsed, catalog, locale).map((line) => `  ${line}`)
   })
 }
 
@@ -501,6 +522,7 @@ export function formatProgramDetails(
     sequenceByDay?: Map<string, DaySequenceReadItem[]>
     echoDays?: ProgramDetailsEchoDay[]
   },
+  locale: DisplayLocale = "en",
 ): string {
   const archivedSuffix = program.archived_at !== null ? " (archived)" : ""
   const header = `## **${program.name}** *(id: ${program.id})*${archivedSuffix}`
@@ -513,8 +535,8 @@ export function formatProgramDetails(
   const dayBlocks = days.map((day) => {
     const sequence = options?.sequenceByDay?.get(day.id)
     const exLines = sequence
-      ? formatSequenceDetailsLines(sequence)
-      : (exercisesByDay.get(day.id) ?? []).map(formatSoloDetailsLine)
+      ? formatSequenceDetailsLines(sequence, locale)
+      : (exercisesByDay.get(day.id) ?? []).map((ex) => formatSoloDetailsLine(ex, locale))
     return [`### ${day.emoji} ${day.label} *(id: ${day.id})*`, ...exLines].join("\n")
   })
 
@@ -532,6 +554,7 @@ export function formatWorkoutDay(
   day: WorkoutDayForFormat,
   exercises: WorkoutExForFormat[],
   sequence?: DaySequenceReadItem[],
+  locale: DisplayLocale = "en",
 ): string {
   if (sequence) {
     const exLines = sequence.flatMap((item) => {
@@ -543,16 +566,19 @@ export function formatWorkoutDay(
         const weight = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
         const rest = ex.rest_seconds ? ` (rest ${ex.rest_seconds}s)` : ""
         return [
-          `  - ${displayExerciseName({
-            name_snapshot: ex.name_snapshot,
-            name: ex.name,
-            name_en: ex.name_en,
-          })}: ${measure}${weight}${rest}`,
+          `  - ${displayExerciseName(
+            {
+              name_snapshot: ex.name_snapshot,
+              name: ex.name,
+              name_en: ex.name_en,
+            },
+            locale,
+          )}: ${measure}${weight}${rest}`,
         ]
       }
       const parsed = dbBlockToParsedCircuit(item.block)
       const catalog = catalogMapFromBlock(item.block)
-      return formatCircuitPreviewLines(parsed, catalog).map((line) => `  ${line}`)
+      return formatCircuitPreviewLines(parsed, catalog, locale).map((line) => `  ${line}`)
     })
     return [`### ${day.emoji} ${day.label}`, ...exLines].join("\n")
   }
@@ -563,7 +589,7 @@ export function formatWorkoutDay(
       : `${ex.sets} × ${ex.reps} reps`
     const weight = Number(ex.weight) > 0 ? ` @ ${ex.weight} kg` : ""
     const rest = ex.rest_seconds ? ` (rest ${ex.rest_seconds}s)` : ""
-    return `  - ${displayExerciseName(ex)}: ${measure}${weight}${rest}`
+    return `  - ${displayExerciseName(ex, locale)}: ${measure}${weight}${rest}`
   })
 
   return [`### ${day.emoji} ${day.label}`, ...exLines].join("\n")
@@ -604,22 +630,23 @@ export function formatProgramAfterUpdate(
   diff: ProgramDiff,
   currentProgram: CurrentProgramSnapshot,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   const finalName = diff.name_change?.to ?? currentProgram.name
   const header = `## **${finalName}** *(id: ${currentProgram.id})*`
 
   const fromUpdates: RenderableDay[] = diff.days_to_update.map((u) =>
-    renderableFromUpdate(u, catalogById),
+    renderableFromUpdate(u, catalogById, locale),
   )
 
   const fromInserts: RenderableDay[] = diff.days_to_insert.map((i) =>
-    renderableFromInsert(i, catalogById),
+    renderableFromInsert(i, catalogById, locale),
   )
 
   const fromUnchanged: RenderableDay[] = diff.days_unchanged
     .map((u) => currentProgram.days.find((d) => d.id === u.id))
     .filter((d): d is CurrentProgramSnapshotDay => d !== undefined)
-    .map((d) => renderableFromCurrent(d, catalogById))
+    .map((d) => renderableFromCurrent(d, catalogById, locale))
 
   const finalDays = [...fromUpdates, ...fromInserts, ...fromUnchanged].sort(
     (a, b) => a.sort_order - b.sort_order,
@@ -635,78 +662,63 @@ export function formatProgramAfterUpdate(
   return [header, ...dayBlocks].join("\n\n")
 }
 
-/**
- * Returns the active-cycle warning string surfaced in both dry_run and apply responses
- * when the program is currently being followed in an unfinished cycle.
- *
- * The message is intentionally French — it lands as-is in the agent's reply and the
- * product copy is localized at this layer (cf. Tech Plan).
- */
-export function formatActiveCycleWarning(cycle: { started_at: string }): string {
-  // started_at is an ISO-8601 timestamp; the literal YYYY-MM-DD prefix is enough
-  // and avoids any timezone surprise.
-  const date = cycle.started_at.slice(0, 10)
-  return `Cycle actif depuis ${date} — cette modification affecte vos workouts restants dans ce cycle.`
-}
-
-/**
- * Informative `dry_run` warning when a solo slot's history detaches because the
- * exercise is removed or swapped (ADR 0030). A swap is an expected identity
- * reset (#463) — this is a signal, not a confirmation gate.
- */
-export function formatSlotDetachmentWarning(exerciseName: string): string {
-  return `Historique détaché : « ${exerciseName} » est retiré ou remplacé — sa progression repart de la prescription du template.`
-}
-
 function renderableFromUpdate(
   u: DiffDayUpdate,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   return {
     label: u.label,
     emoji: u.emoji,
     sort_order: u.sort_order,
-    exerciseLines: u.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+    exerciseLines: u.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById, locale)}`),
   }
 }
 
 function renderableFromInsert(
   i: DiffDayInsert,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   return {
     label: i.label,
     emoji: i.emoji ?? DEFAULT_INSERT_EMOJI,
     sort_order: i.sort_order,
-    exerciseLines: i.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById)}`),
+    exerciseLines: i.parsed_exercises.map((p) => `  - ${renderParsedLine(p, catalogById, locale)}`),
   }
 }
 
 function renderableFromCurrent(
   d: CurrentProgramSnapshotDay,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): RenderableDay {
   const sortedExercises = [...d.workout_exercises].sort((a, b) => a.sort_order - b.sort_order)
   return {
     label: d.label,
     emoji: d.emoji,
     sort_order: d.sort_order,
-    exerciseLines: sortedExercises.map((ex) => `  - ${renderCurrentLine(ex, catalogById)}`),
+    exerciseLines: sortedExercises.map(
+      (ex) => `  - ${renderCurrentLine(ex, catalogById, locale)}`,
+    ),
   }
 }
 
 function renderParsedLine(
   parsed: ParsedExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   if (parsed.kind === "circuit") {
-    return formatCircuitPreviewLines(parsed, catalogById).join("\n")
+    return formatCircuitPreviewLines(parsed, catalogById, locale).join("\n")
   }
 
   const catalog = catalogById.get(parsed.exerciseId)
   // Defensive fallback: catalog should always be present (handler fetches the union of
   // patch + current ids), but a missing entry must not crash dry_run rendering.
-  const name = catalog?.name ?? "(unknown exercise)"
+  const name =
+    resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) ||
+    "(unknown exercise)"
   const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
 
   if (parsed.kind === "bare") {
@@ -741,9 +753,12 @@ function renderParsedLine(
 function renderCurrentLine(
   ex: CurrentProgramSnapshotExercise,
   catalogById: Map<string, CatalogExerciseForProgram>,
+  locale: DisplayLocale = "en",
 ): string {
   const catalog = catalogById.get(ex.exercise_id)
-  const name = catalog?.name ?? ex.name_snapshot
+  const name =
+    resolveDisplayName({ name: catalog?.name, name_en: catalog?.name_en }, locale) ||
+    ex.name_snapshot
   const convention = catalog ? formatWeightConvention(catalog.equipment) : "total"
 
   return formatPrescriptionLine({
