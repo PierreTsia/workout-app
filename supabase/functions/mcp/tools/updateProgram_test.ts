@@ -882,7 +882,7 @@ Deno.test("update_program surfaces the active-cycle warning in BOTH dry_run and 
   const applyBody = parseReply(applyReply)
   const applyWarnings = applyBody.warnings as string[]
   assertEquals(applyWarnings.length, 1)
-  assertStringIncludes(applyWarnings[0], "Cycle actif depuis 2026-04-15")
+  assertStringIncludes(applyWarnings[0], "Active cycle since 2026-04-15")
 
   // Re-run as dry_run — same cycle state, same warning expected.
   const stateDry = makeBaseState()
@@ -901,7 +901,7 @@ Deno.test("update_program surfaces the active-cycle warning in BOTH dry_run and 
   const dryBody = parseReply(dryReply)
   const dryWarnings = dryBody.warnings as string[]
   assertEquals(dryWarnings.length, 1)
-  assertStringIncludes(dryWarnings[0], "Cycle actif depuis 2026-04-15")
+  assertStringIncludes(dryWarnings[0], "Active cycle since 2026-04-15")
 
   // #677 — the card's copy is composed view-side from the locale-neutral details.
   const dryStructured = dryReply.structuredContent as {
@@ -1434,7 +1434,7 @@ Deno.test(
     assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
     const body = parseReply(reply)
     const warnings = body.warnings as string[]
-    const detachment = warnings.find((w) => w.includes("Historique détaché"))
+    const detachment = warnings.find((w) => w.includes("History detached"))
     assertExists(detachment)
     assertStringIncludes(detachment!, "Bench Press")
     // Still a preview — no writes.
@@ -1479,6 +1479,6 @@ Deno.test(
     assertEquals(reply.isError ?? false, false, JSON.stringify(reply.content))
     const body = parseReply(reply)
     const warnings = body.warnings as string[]
-    assertEquals(warnings.some((w) => w.includes("Historique détaché")), false)
+    assertEquals(warnings.some((w) => w.includes("History detached")), false)
   },
 )
