@@ -1,3 +1,9 @@
+/** Catalog name embed, resolved at display time (ADR 0010). */
+export interface DayCardNameEmbed {
+  name?: string | null
+  name_en?: string | null
+}
+
 /** Solo line in a library day summary. */
 export interface DayExercise {
   id: string
@@ -9,6 +15,8 @@ export interface DayExercise {
   sortOrder: number
   /** Catalog id — set when the line can open instructions. */
   exerciseId?: string | null
+  /** Joined catalog row — preferred for the label; `name` is the snapshot fallback. */
+  exercise?: DayCardNameEmbed | null
 }
 
 /** One station inside a Circuit summary. */
@@ -19,6 +27,7 @@ export interface DayCircuitStation {
   amounts: number[]
   isDuration: boolean
   exerciseId?: string | null
+  exercise?: DayCardNameEmbed | null
 }
 
 /** Circuit line in a library day summary (#454). */
@@ -44,6 +53,7 @@ export type DayCardExercise = {
   rest_seconds: number
   sort_order: number
   exercise_id?: string | null
+  exercise?: DayCardNameEmbed | null
 }
 
 export type DayCardBlockStation = {
@@ -53,7 +63,7 @@ export type DayCardBlockStation = {
   name_snapshot?: string | null
   emoji_snapshot?: string | null
   per_round?: ReadonlyArray<{ amount: number }>
-  exercise?: { measurement_type?: "reps" | "duration" | null } | null
+  exercise?: (DayCardNameEmbed & { measurement_type?: "reps" | "duration" | null }) | null
 }
 
 export type DayCardBlock = {
@@ -82,6 +92,7 @@ function toCircuitStation(ex: DayCardBlockStation): DayCircuitStation | null {
     amounts: stationAmounts(ex.per_round),
     isDuration: ex.exercise?.measurement_type === "duration",
     exerciseId: ex.exercise_id,
+    exercise: ex.exercise,
   }
 }
 
@@ -99,6 +110,7 @@ export function toDayCardItems(
     restSeconds: ex.rest_seconds,
     sortOrder: ex.sort_order,
     exerciseId: ex.exercise_id,
+    exercise: ex.exercise,
   }))
   const circuits: DayCardItem[] = blocks.map((block) => ({
     kind: "circuit",

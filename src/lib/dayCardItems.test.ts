@@ -91,4 +91,50 @@ describe("toDayCardItems", () => {
       exerciseId: "ex-plank",
     })
   })
+
+  it("carries the catalog name embed through for solos and circuit stations (T713)", () => {
+    const items = toDayCardItems(
+      [
+        {
+          id: "we-1",
+          emoji_snapshot: "💪",
+          name_snapshot: "Développé couché",
+          sets: 4,
+          reps: "8",
+          rest_seconds: 120,
+          sort_order: 0,
+          exercise_id: "ex-bench",
+          exercise: { name: "Développé couché", name_en: "Bench Press" },
+        },
+      ],
+      [
+        {
+          id: "blk-1",
+          label: "Circuit",
+          rounds: 3,
+          sort_order: 1,
+          exercises: [
+            {
+              id: "be-1",
+              position: 0,
+              exercise_id: "ex-pull",
+              name_snapshot: "Tractions",
+              emoji_snapshot: "🏋️",
+              per_round: [{ amount: 5 }],
+              exercise: { name: "Tractions", name_en: "Pull-ups", measurement_type: "reps" },
+            },
+          ],
+        },
+      ],
+    )
+
+    const solo = items.find((i) => i.kind === "solo")
+    expect(solo).toMatchObject({ exercise: { name_en: "Bench Press" } })
+
+    const circuit = items.find((i) => i.kind === "circuit")
+    expect(circuit?.kind === "circuit" && circuit.stations?.[0]).toMatchObject({
+      name: "Tractions",
+      exercise: { name_en: "Pull-ups" },
+    })
+  })
 })

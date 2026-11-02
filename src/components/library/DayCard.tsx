@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import type { BuilderLocationState } from "@/lib/builderLocationState"
 import { compactNumberSequence } from "@/lib/blockPrescription"
 import type { DayCardItem, DayCircuitStation } from "@/lib/dayCardItems"
+import { useCatalogLabels } from "@/hooks/useCatalogLabels"
 import { cn } from "@/lib/utils"
 
 export function DayItemLines({
@@ -18,6 +19,7 @@ export function DayItemLines({
 }) {
   const { t } = useTranslation("library")
   const { t: tExercise } = useTranslation("exercise")
+  const { exerciseName } = useCatalogLabels()
   const ordered = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
 
   return (
@@ -33,9 +35,11 @@ export function DayItemLines({
           <PeekRow
             key={item.id}
             tile={item.emoji}
-            title={item.name}
+            title={exerciseName({ name_snapshot: item.name, exercise: item.exercise ?? null })}
             subtitle={`${t("setsReps", { sets: item.sets, reps: item.reps })} · ${t("restSeconds", { seconds: item.restSeconds })}`}
-            instructionsLabel={tExercise("instructionsFor", { name: item.name })}
+            instructionsLabel={tExercise("instructionsFor", {
+              name: exerciseName({ name_snapshot: item.name, exercise: item.exercise ?? null }),
+            })}
             exerciseId={item.exerciseId}
             onSelectExercise={onSelectExercise}
           />
@@ -55,6 +59,7 @@ function CircuitDayItem({
   const { t } = useTranslation("library")
   const { t: tExercise } = useTranslation("exercise")
   const { t: tWorkout } = useTranslation("workout")
+  const { exerciseName } = useCatalogLabels()
   const stations = item.stations ?? []
 
   return (
@@ -81,10 +86,16 @@ function CircuitDayItem({
             <PeekRow
               key={station.id}
               tile={station.emoji}
-              title={station.name}
+              title={exerciseName({
+                name_snapshot: station.name,
+                exercise: station.exercise ?? null,
+              })}
               subtitle={stationRxLabel(station, tWorkout)}
               instructionsLabel={tExercise("instructionsFor", {
-                name: station.name,
+                name: exerciseName({
+                  name_snapshot: station.name,
+                  exercise: station.exercise ?? null,
+                }),
               })}
               exerciseId={station.exerciseId}
               onSelectExercise={onSelectExercise}
